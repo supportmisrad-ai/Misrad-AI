@@ -1,0 +1,7 @@
+{
+  "name": "Nexus OS",
+  "description": "A modern, minimalist internal task management system inspired by Linear and Notion.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
