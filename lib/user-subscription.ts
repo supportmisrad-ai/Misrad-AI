@@ -1,0 +1,122 @@
+/**
+ * User Subscription & Purchased Modules
+ * 
+ * This module handles checking which OS modules a user has purchased.
+ * In production, this should fetch from your database/subscription service.
+ */
+
+import { OSModule, OSModuleInfo, OS_MODULES } from '../types/os-modules';
+
+/**
+ * Get purchased modules for a user
+ * 
+ * Fetches the purchased OS modules from the database via API.
+ * The API checks the user's tenant subscription and returns available modules.
+ * 
+ * @param userId - Clerk user ID (used for authentication, not directly in query)
+ * @returns Array of purchased OS modules
+ */
+export async function getUserPurchasedModules(userId: string): Promise<OSModule[]> {
+  try {
+    // Call API to get modules from database (based on user's tenant)
+    const response = await fetch('/api/subscription/modules', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Credentials are automatically included via Clerk session
+      // Add cache control to prevent stale data
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      // Only log non-network errors (network errors are common in dev)
+      if (response.status !== 0 && response.status !== 500) {
+        console.error('[Subscription] Failed to fetch modules:', response.status, response.statusText);
+      }
+      // Fallback to empty array on error (user won't see any modules)
+      // In development, return all modules for testing
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Subscription] Development mode: API error, returning all modules as fallback');
+        return ['system', 'nexus', 'social', 'finance', 'client'];
+      }
+      return [];
+    }
+
+    const data = await response.json();
+    const modules = data.modules || [];
+    
+    // Validate that all returned modules are valid OSModule types
+    const validModules: OSModule[] = modules.filter((m: string): m is OSModule => 
+      ['system', 'nexus', 'social', 'finance', 'client'].includes(m)
+    );
+
+    return validModules;
+  } catch (error: any) {
+    // Handle network errors gracefully (common in development)
+    const isNetworkError = error?.name === 'TypeError' && 
+                          (error?.message?.includes('fetch') || error?.message?.includes('Failed to fetch'));
+    
+    if (isNetworkError) {
+      // Network errors are common in dev - don't spam console
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Subscription] Development mode: Network error, returning all modules as fallback');
+        return ['system', 'nexus', 'social', 'finance', 'client'];
+      }
+      // In production, silently return empty array
+      return [];
+    }
+    
+    // Log other errors
+    console.error('[Subscription] Error fetching purchased modules:', error);
+    
+    // Fallback: return empty array on error
+    // In development, you might want to return all modules for testing
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Subscription] Development mode: Returning all modules as fallback');
+      return ['system', 'nexus', 'social', 'finance', 'client'];
+    }
+    return [];
+  }
+}
+
+/**
+ * Get the first available OS module for a user
+ * Priority order:
+ * 1. Nexus OS (if purchased) - default/main OS
+ * 2. System OS (if purchased)
+ * 3. Social OS (if purchased)
+ * 4. Finance OS (if purchased)
+ * 5. Client OS (if purchased)
+ * 
+ * @param purchasedModules - Array of purchased module IDs
+ * @returns First available OS module route, or null if none
+ */
+export function getFirstAvailableOSRoute(purchasedModules: OSModule[]): string | null {
+  const priorityOrder: OSModule[] = ['nexus', 'system', 'social', 'finance', 'client'];
+  
+  for (const moduleId of priorityOrder) {
+    if (purchasedModules.includes(moduleId)) {
+      const module = OS_MODULES.find(m => m.id === moduleId);
+      const route = module?.route || null;
+      if (!route) return null;
+      if (route.includes('[orgSlug]')) return null;
+      return route;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Check if user has access to a specific OS module
+ * 
+ * @param userId - Clerk user ID
+ * @param moduleId - OS module ID to check
+ * @returns true if user has access, false otherwise
+ */
+export async function hasAccessToModule(userId: string, moduleId: OSModule): Promise<boolean> {
+  const purchasedModules = await getUserPurchasedModules(userId);
+  return purchasedModules.includes(moduleId);
+}
+

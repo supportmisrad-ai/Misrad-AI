@@ -1,0 +1,132 @@
+{
+  "name": "scale-crm",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "next dev -p 4000 --webpack",
+    "dev:turbo": "next dev -p 5000",
+    "postinstall": "prisma generate --schema prisma/schema.prisma",
+    "build": "prisma generate --schema prisma/schema.prisma && next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "prisma:validate": "dotenv -e .env -e .env.local -- prisma validate --schema prisma/schema.prisma",
+    "prisma:format": "dotenv -e .env -e .env.local -- prisma format --schema prisma/schema.prisma",
+    "prisma:generate": "dotenv -e .env -e .env.local -- prisma generate --schema prisma/schema.prisma",
+    "prisma:migrate:dev": "dotenv -e .env -e .env.local -- prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:db:push": "dotenv -e .env -e .env.local -- prisma db push --schema prisma/schema.prisma",
+    "prisma:studio": "dotenv -e .env -e .env.local -- prisma studio --schema prisma/schema.prisma",
+    "generate-icons": "node scripts/generate-icons.js",
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4000 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/react": "^3.0.3",
+    "@clerk/nextjs": "^6.36.2",
+    "@google/genai": "^1.33.0",
+    "@hebcal/core": "^6.0.6",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^5.22.0",
+    "@supabase/supabase-js": "^2.89.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/recharts": "^1.8.29",
+    "ai": "^6.0.3",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.23.26",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^169.0.0",
+    "lucide-react": "^0.561.0",
+    "next": "16.0.10",
+    "prisma": "^5.22.0",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "react-hook-form": "^7.69.0",
+    "react-router-dom": "^7.10.1",
+    "recharts": "^3.6.0",
+    "resend": "^6.6.0",
+    "svix": "^1.82.0",
+    "@upstash/redis": "^1.35.0",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.10",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  },
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.scalecrm.app",
+    "productName": "Scale CRM",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      ".next/**/*",
+      "public/**/*",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon-512.png"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "public/icon-512.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon-512.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

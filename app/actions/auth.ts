@@ -1,0 +1,159 @@
+'use server';
+
+import { clerkClient } from '@clerk/nextjs/server';
+import { sendInvitationEmail } from './email';
+
+/**
+ * Server Action: Send team member invitation via Clerk
+ */
+export async function inviteTeamMember(
+  email: string,
+  role: string,
+  orgSlug?: string
+): Promise<{ success: boolean; invitationId?: string; error?: string }> {
+  try {
+    if (!email) {
+      return {
+        success: false,
+        error: 'נדרש אימייל',
+      };
+    }
+
+    // Create invitation via Clerk
+    const client = await clerkClient();
+    const invitation = await client.invitations.createInvitation({
+      emailAddress: email,
+      publicMetadata: {
+        role: role,
+        orgSlug: orgSlug || null,
+      },
+    });
+
+    // Create invitation link - Clerk will send the invitation email automatically
+    // We can also send a custom email with a link to sign-in
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const lobbyRedirect = orgSlug ? `${baseUrl}/w/${encodeURIComponent(orgSlug)}/lobby` : `${baseUrl}/`;
+    const invitationLink = `${baseUrl}/sign-up?redirect_url=${encodeURIComponent(lobbyRedirect)}`;
+    
+    // Send custom invitation email
+    const emailResult = await sendTeamInvitationEmail({
+      email,
+      invitationLink,
+      role,
+    });
+
+    return {
+      success: true,
+      invitationId: invitation.id,
+    };
+  } catch (error: any) {
+    console.error('Error inviting team member:', error);
+    return {
+      success: false,
+      error: error.message || 'שגיאה בשליחת הזמנה',
+    };
+  }
+}
+
+/**
+ * Helper: Send team invitation email
+ */
+async function sendTeamInvitationEmail(params: {
+  email: string;
+  invitationLink: string;
+  role: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { sendInvitationEmail } = await import('./email');
+    const { resend, isResendConfigured } = await import('@/lib/resend');
+
+    if (!isResendConfigured() || !resend) {
+      // If Resend is not configured, Clerk will send the default invitation email
+      return { success: true };
+    }
+
+    const roleNames: Record<string, string> = {
+      account_manager: 'מנהל לקוח',
+      designer: 'מעצב גרפי',
+      content_creator: 'קופירייטר',
+      social_manager: 'מנהל סושיאל מדיה',
+    };
+
+    const roleName = roleNames[params.role] || params.role;
+
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+    const { error } = await resend.emails.send({
+      from: fromEmail,
+      to: params.email,
+      subject: `הזמנה להצטרף ל-Social OS - ${roleName}`,
+      html: `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>הזמנה ל-Social OS</title>
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; background-color: #f8fafc; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 24px; padding: 40px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #1e293b; font-size: 28px; font-weight: 900; margin: 0;">Social OS</h1>
+              <p style="color: #64748b; font-size: 14px; margin-top: 8px;">מערכת הניהול המתקדמת לניהול סושיאל מדיה</p>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); border-radius: 16px; padding: 30px; text-align: center; margin-bottom: 30px;">
+              <h2 style="color: white; font-size: 24px; font-weight: 900; margin: 0 0 10px 0;">שלום!</h2>
+              <p style="color: rgba(255, 255, 255, 0.9); font-size: 16px; margin: 0;">הוזמנת להצטרף לצוות ב-Social OS</p>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+              <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                הוזמנת להצטרף לצוות ב-<strong>Social OS</strong> בתפקיד <strong>${roleName}</strong>.
+              </p>
+              <p style="color: #334155; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                דרך המערכת תוכל:
+              </p>
+              <ul style="color: #475569; font-size: 15px; line-height: 1.8; padding-right: 20px;">
+                <li>לנהל לקוחות וקמפיינים</li>
+                <li>ליצור ולנהל תוכן</li>
+                <li>לצפות בביצועים ואנליטיקס</li>
+                <li>ולעבוד יחד עם הצוות</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+              <a 
+                href="${params.invitationLink}" 
+                style="display: inline-block; background-color: #3b82f6; color: white; padding: 16px 32px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);"
+              >
+                התחבר עכשיו
+              </a>
+            </div>
+
+            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 30px;">
+              <p style="color: #94a3b8; font-size: 12px; line-height: 1.6; margin: 0;">
+                אם הכפתור לא עובד, העתק והדבק את הקישור הבא בדפדפן שלך:<br>
+                <a href="${params.invitationLink}" style="color: #3b82f6; word-break: break-all;">${params.invitationLink}</a>
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      // Don't fail the invitation if email fails - Clerk will send default email
+      return { success: true };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending team invitation email:', error);
+    // Don't fail the invitation if email fails
+    return { success: true };
+  }
+}
+

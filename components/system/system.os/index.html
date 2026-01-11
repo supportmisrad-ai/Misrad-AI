@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>system.OS | Front Wing</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><style> circle { fill: %23111; } path { fill: %23fff; } </style><circle cx='50' cy='50' r='50' /><path d='M50 20 A30 30 0 1 0 50 80 A30 30 0 1 0 50 20 Z M50 40 A10 10 0 1 1 50 60 A10 10 0 1 1 50 40 Z' /></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&family=Heebo:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Assistant', 'Heebo', 'sans-serif'],
+              display: ['Heebo', 'sans-serif'],
+              mono: ['Inter', 'monospace'],
+            },
+            colors: {
+              onyx: {
+                900: '#09090B',
+                800: '#18181B',
+                700: '#27272A',
+                glass: 'rgba(9, 9, 11, 0.6)',
+              },
+              primary: {
+                DEFAULT: '#A21D3C', 
+                glow: '#881337',    
+                dark: '#4C0519',    
+                indigo: '#3730A3',  
+              },
+              surface: {
+                50: '#F8FAFC',
+                100: '#F1F5F9',
+                glass: 'rgba(255, 255, 255, 0.65)',
+              },
+            },
+            backgroundImage: {
+              'nexus-gradient': 'linear-gradient(135deg, #A21D3C 0%, #3730A3 100%)', 
+              'glass-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 100%)',
+              'dark-glass': 'linear-gradient(145deg, rgba(24,24,27,0.8) 0%, rgba(9,9,11,0.9) 100%)',
+            },
+            boxShadow: {
+              'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.04)',
+              'neon': '0 0 20px rgba(162, 29, 60, 0.1)', 
+              'float': '0 20px 40px -10px rgba(0,0,0,0.05)',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'blob': 'blob 10s infinite',
+              'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
+            },
+            keyframes: {
+              blob: {
+                '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                '33%': { transform: 'translate(30px, -50px) scale(1.05)' },
+                '66%': { transform: 'translate(-20px, 20px) scale(0.95)' },
+                '100%': { transform: 'translate(0px, 0px) scale(1)' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' }
+              },
+              slideUp: {
+                '0%': { transform: 'translateY(20px)', opacity: '0' },
+                '100%': { transform: 'translateY(0)', opacity: '1' }
+              },
+              pulseSoft: {
+                '0%, 100%': { opacity: '0.6' },
+                '50%': { opacity: '1' }
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --bg-app: #F8FAFC; 
+        --text-main: #0F172A; 
+        --text-muted: #64748B;
+        --primary-gradient: linear-gradient(135deg, #A21D3C 0%, #3730A3 100%);
+      }
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      *::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Hide scrollbar for IE, Edge and Firefox */
+      * {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      /* Accessible Focus State */
+      :focus-visible {
+        outline: 3px solid rgba(162, 29, 60, 0.5);
+        outline-offset: 2px;
+        border-radius: inherit;
+      }
+
+      body {
+        font-family: 'Assistant', 'Heebo', sans-serif;
+        background-color: var(--bg-app);
+        background-image: 
+          radial-gradient(at 0% 0%, rgba(55, 48, 163, 0.05) 0px, transparent 50%),
+          radial-gradient(at 100% 0%, rgba(162, 29, 60, 0.05) 0px, transparent 50%),
+          radial-gradient(at 100% 100%, rgba(55, 48, 163, 0.03) 0px, transparent 50%),
+          radial-gradient(at 0% 50%, rgba(162, 29, 60, 0.02) 0px, transparent 50%);
+        background-attachment: fixed;
+        background-size: cover;
+        color: var(--text-main);
+        overflow: hidden; 
+        margin: 0;
+        height: 100vh;
+        width: 100vw;
+        -webkit-font-smoothing: antialiased;
+        overscroll-behavior-y: none;
+      }
+      
+      h1, h2, h3, h4, h5, h6, .font-display {
+        font-family: 'Heebo', sans-serif;
+      }
+      
+      ::selection {
+        background: #A21D3C;
+        color: white;
+      }
+
+      .app-layout {
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      .sidebar {
+        width: 280px;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-left: 1px solid rgba(226, 232, 240, 0.6);
+        display: flex;
+        flex-direction: column;
+        z-index: 50;
+        padding: 32px 24px;
+        position: relative;
+      }
+
+      .main-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        padding: 24px 40px; 
+        height: 100%;
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          padding: 16px 16px 100px 16px;
+        }
+      }
+
+      .header {
+        height: auto;
+        min-height: 60px;
+        background: transparent;
+        display: flex;
+        align-items: flex-end; 
+        justify-content: space-between;
+        padding-bottom: 24px;
+        flex-shrink: 0;
+      }
+
+      .workspace {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 40px;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .ui-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 1);
+        border-radius: 40px; 
+        box-shadow: 
+          0 4px 30px -5px rgba(0, 0, 0, 0.02),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      
+      .ui-card:hover {
+        transform: translateY(-4px);
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 
+          0 30px 60px -12px rgba(0, 0, 0, 0.04),
+          0 0 0 1px rgba(162, 29, 60, 0.05);
+      }
+
+      input, select, textarea {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(226, 232, 240, 1) !important;
+        border-radius: 20px !important;
+        color: #0F172A !important;
+        font-size: 0.95rem !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease;
+      }
+      input:focus, select:focus, textarea:focus {
+        border-color: #A21D3C !important;
+        outline: none !important;
+        box-shadow: 0 0 0 4px rgba(162, 29, 60, 0.08) !important;
+      }
+
+      .bg-nexus-gradient { background: var(--primary-gradient); }
+      .text-nexus-gradient { 
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* Indicator Gradient for long scrolls */
+      .scroll-mask {
+        mask-image: linear-gradient(to bottom, transparent, black 40px, black calc(100% - 40px), transparent);
+      }
+
+    </style>
+    <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "framer-motion": "https://aistudiocdn.com/framer-motion@^11.0.8",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

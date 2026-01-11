@@ -1,0 +1,100 @@
+import type { NextConfig } from "next";
+import path from "path";
+
+const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname),
+  cleanDistDir: false,
+  productionBrowserSourceMaps: false,
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'i.pravatar.cc', pathname: '/**' },
+    ],
+  },
+  async redirects() {
+    return [
+      {
+        source: '/nexus/app',
+        destination: '/app',
+        permanent: false,
+      },
+      {
+        source: '/nexus/app/:path*',
+        destination: '/app/:path*',
+        permanent: false,
+      },
+      {
+        source: '/sign-in',
+        destination: '/login',
+        permanent: false,
+      },
+      {
+        source: '/sign-in/:path*',
+        destination: '/login',
+        permanent: false,
+      },
+    ];
+  },
+  // Use 'export' for static sites, or remove for server-side rendering
+  // output: 'standalone', // Commented out for Netlify compatibility
+  // Transpile Supabase to fix ESM import issues
+  transpilePackages: ['@supabase/supabase-js'],
+  experimental: {
+    forceSwcTransforms: true,
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', '*.vercel.app', '*.netlify.app', '*.railway.app']
+    }
+  },
+  // Optimize for Netlify
+  compress: true,
+  // !! WARN !!
+  // Dangerously allow production builds to successfully complete even if
+  // your project has type errors.
+  // !! WARN !!
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Use webpack instead of Turbopack to avoid issues with Hebrew paths
+  webpack: (config, { isServer }) => {
+    // Fixes npm packages that depend on `fs` module
+    if (!isServer) {
+      config.resolve.fallback = { 
+        fs: false,
+        path: false,
+        crypto: false
+      };
+    }
+    
+    // Fix for Supabase ESM imports
+    config.resolve.extensionAlias = {
+      '.js': ['.js', '.ts', '.tsx'],
+      '.mjs': ['.mjs', '.mts'],
+    };
+    
+    // Fix for Supabase wrapper.mjs ESM import issue
+    config.resolve.alias = {
+      ...config.resolve.alias,
+    };
+    
+    // Ensure proper module resolution for Supabase
+    config.module = {
+      ...config.module,
+      rules: [
+        ...(config.module?.rules || []),
+        {
+          test: /\.mjs$/,
+          include: /node_modules\/@supabase/,
+          type: 'javascript/auto',
+        },
+      ],
+    };
+
+    if (process.env.NODE_ENV === 'development') {
+      return config;
+    }
+    
+    return config;
+  },
+};
+
+export default nextConfig;

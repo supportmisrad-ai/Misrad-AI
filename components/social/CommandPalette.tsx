@@ -1,0 +1,440 @@
+﻿'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, HelpCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname, useRouter } from 'next/navigation';
+import { useApp } from '@/contexts/AppContext';
+import { useChat } from '@ai-sdk/react';
+import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
+
+export default function CommandPalette() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const basePath = getSocialBasePath(pathname);
+  const workspaceRoute = parseWorkspaceRoute(pathname);
+  const workspaceOrgId = workspaceRoute?.orgSlug;
+  const { 
+    isCommandPaletteOpen, 
+    setIsCommandPaletteOpen, 
+    clients, 
+    setActiveClientId,
+    setActiveDraft,
+    setIsInviteModalOpen,
+    setIsCampaignWizardOpen,
+    setIsTourActive,
+    activeClient,
+    addToast 
+  } = useApp();
+
+  const [query, setQuery] = useState('');
+  const [isChatMode, setIsChatMode] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<HTMLInputElement>(null);
+
+  // AI Chat hook
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = (useChat as any)({
+    api: '/api/chat',
+    headers: workspaceOrgId ? { 'x-org-id': workspaceOrgId } : undefined,
+    body: {
+      clientContext: activeClient ? {
+        companyName: activeClient.companyName,
+        name: activeClient.name,
+        brandVoice: activeClient.brandVoice,
+        dna: activeClient.dna,
+        organizationId: workspaceOrgId || (activeClient as any)?.organizationId,
+      } : undefined,
+    },
+    initialMessages: [],
+  }) as any;
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (isChatMode && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isChatMode]);
+
+  // Auto-focus chat input when entering chat mode
+  useEffect(() => {
+    if (isChatMode && chatInputRef.current) {
+      // Small delay to ensure the input is rendered
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isChatMode]);
+
+  // Define commands list
+  const allCommands = [
+    { icon: HelpCircle, label: 'הפעל הדרכת מערכת', action: 'הפעל הדרכה' },
+    { icon: Sparkles, label: 'צור פוסט חדש', action: 'פוסט חדש' },
+    { icon: Users, label: 'הוסף לקוח למערכת', action: 'הוספת לקוח' },
+    { icon: Megaphone, label: 'פתח קמפיין פרסום', action: 'קמפיין חדש' },
+    { icon: Calendar, label: 'עבור ללוח שידורים', action: 'מעבר ללוח שנה' },
+  ];
+  
+  const commands = allCommands.filter(c => c.label.toLowerCase().includes(query.toLowerCase()));
+
+  // Detect chat mode triggers: "?", "/chat", "/ai", or manual toggle
+  useEffect(() => {
+    if (query.length > 0 && !isChatMode) {
+      const lowerQuery = query.toLowerCase().trim();
+      // Check for chat triggers
+      if (lowerQuery === '?' || lowerQuery === '/chat' || lowerQuery === '/ai' || lowerQuery.startsWith('/chat ') || lowerQuery.startsWith('/ai ')) {
+        setIsChatMode(true);
+        // Remove trigger from query if it's a command
+        if (lowerQuery.startsWith('/chat ')) {
+          setQuery(query.substring(6));
+        } else if (lowerQuery.startsWith('/ai ')) {
+          setQuery(query.substring(4));
+        } else if (lowerQuery === '?' || lowerQuery === '/chat' || lowerQuery === '/ai') {
+          setQuery('');
+        }
+        return;
+      }
+    } else if (query.length === 0 && isChatMode) {
+      // Don't auto-close chat mode when query is empty - let user decide
+    }
+  }, [query, isChatMode]);
+
+  // Reset when palette closes
+  useEffect(() => {
+    if (!isCommandPaletteOpen) {
+      setQuery('');
+      setIsChatMode(false);
+      setMessages([]);
+    }
+  }, [isCommandPaletteOpen]);
+
+  if (!isCommandPaletteOpen) return null;
+
+  const filteredClients = clients.filter(c => 
+    c.companyName.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const handleAction = (action: string) => {
+    setIsCommandPaletteOpen(false);
+    switch (action) {
+      case 'הפעל הדרכה':
+        router.push(joinPath(basePath, '/dashboard'));
+        setIsTourActive(true);
+        break;
+      case 'פוסט חדש':
+        setActiveDraft(null);
+        router.push(joinPath(basePath, '/machine'));
+        break;
+      case 'הוספת לקוח':
+        setIsInviteModalOpen(true);
+        break;
+      case 'קמפיין חדש':
+        setIsCampaignWizardOpen(true);
+        break;
+      case 'מעבר ללוח שנה':
+        router.push(joinPath(basePath, '/calendar'));
+        break;
+    }
+  };
+
+  const handleSelectClient = (id: string) => {
+    setActiveClientId(id);
+    router.push(joinPath(basePath, '/workspace'));
+    setIsCommandPaletteOpen(false);
+  };
+  
+  const handleChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      handleSubmit(e);
+      setQuery('');
+      // Refocus input after sending message
+      setTimeout(() => {
+        chatInputRef.current?.focus();
+      }, 50);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isCommandPaletteOpen && (
+        <div className="fixed inset-0 z-[550] flex items-start justify-center pt-24 px-4 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsCommandPaletteOpen(false)}>
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} 
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="w-full max-w-3xl bg-white rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+            onClick={e => e.stopPropagation()}
+            dir="rtl"
+          >
+             {/* Header */}
+             <div className="p-6 border-b flex items-center gap-4 bg-gradient-to-l from-blue-50 to-white">
+               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isChatMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
+                 {isChatMode ? <MessageSquare size={24} /> : <Search size={24} />}
+               </div>
+               {!isChatMode ? (
+                 <>
+                   <input 
+                     ref={inputRef}
+                     autoFocus
+                     type="text" 
+                     placeholder="חפש לקוח, פקודה, הקלד ? או /chat לצ'אט..." 
+                     className="flex-1 outline-none text-xl font-black bg-transparent"
+                     value={query}
+                     onChange={e => setQuery(e.target.value)}
+                     onKeyDown={(e) => {
+                       if (e.key === 'Escape') {
+                         setIsCommandPaletteOpen(false);
+                       }
+                     }}
+                   />
+                   <button
+                     onClick={() => {
+                       setIsChatMode(true);
+                       setQuery('');
+                     }}
+                     className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
+                     title="הפעל מצב צ'אט AI"
+                   >
+                     <Sparkles size={16} />
+                     AI
+                   </button>
+                 </>
+               ) : (
+                 <>
+                   <div className="flex-1">
+                     <p className="text-sm font-black text-slate-600 mb-1">עוזר AI אישי</p>
+                     <p className="text-xs text-slate-400">שאל אותי כל שאלה על המערכת</p>
+                   </div>
+                   <button
+                     onClick={() => {
+                       setIsChatMode(false);
+                       setQuery('');
+                       setMessages([]);
+                     }}
+                     className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
+                     title="חזור למצב חיפוש"
+                   >
+                     <Search size={16} />
+                     חיפוש
+                   </button>
+                 </>
+               )}
+               <button onClick={() => setIsCommandPaletteOpen(false)} className="p-3 hover:bg-slate-100 rounded-2xl transition-colors">
+                 <X size={20}/>
+               </button>
+             </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {isChatMode ? (
+                // Chat Mode
+                <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-slate-50 via-white to-slate-50 flex flex-col gap-5 min-h-0">
+                  {messages.length === 0 && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex-1 flex items-center justify-center"
+                    >
+                      <div className="text-center max-w-md">
+                        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
+                          <Sparkles size={36} className="text-white" />
+                        </div>
+                        <p className="text-2xl font-black text-slate-800 mb-3">איך אוכל לעזור לך?</p>
+                        <p className="text-sm text-slate-500 leading-relaxed">שאל אותי כל שאלה על המערכת, הלקוחות, הפוסטים ועוד</p>
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  {messages.map((message: any, index: number) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                      className={`flex items-end gap-3 ${
+                        message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                      }`}
+                    >
+                      {message.role === 'assistant' && (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <Sparkles size={16} className="text-white" />
+                        </div>
+                      )}
+                      
+                      <div
+                        className={`relative px-5 py-4 rounded-3xl max-w-[80%] shadow-lg leading-relaxed transition-all duration-200 ${
+                          message.role === 'user'
+                            ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-md shadow-blue-500/30'
+                            : 'bg-white text-slate-800 rounded-tl-md shadow-slate-200/50 border border-slate-100'
+                        }`}
+                      >
+                        {message.parts?.map((part: any, i: number) => {
+                          if (part.type === 'text') {
+                            return (
+                              <div 
+                                key={`${message.id}-${i}`} 
+                                className={`whitespace-pre-wrap text-[15px] ${
+                                  message.role === 'user' ? 'font-semibold' : 'font-medium'
+                                }`}
+                              >
+                                {part.text}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                        {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
+                          <span className="inline-flex gap-1 mt-2">
+                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        )}
+                      </div>
+                      
+                      {message.role === 'user' && (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                          <span className="text-white text-xs font-black">א</span>
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                  
+                  {isLoading && messages[messages.length - 1]?.role === 'user' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-end gap-3 flex-row"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <Sparkles size={16} className="text-white" />
+                      </div>
+                      <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-md shadow-lg shadow-slate-200/50 border border-slate-100">
+                        <Loader2 size={18} className="animate-spin text-blue-600" />
+                      </div>
+                    </motion.div>
+                  )}
+                  
+                  <div ref={messagesEndRef} />
+                </div>
+              ) : (
+                // Search Mode
+                <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8 min-h-0">
+                  {query.length > 0 && filteredClients.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">לקוחות</p>
+                      <div className="flex flex-col gap-2">
+                        {filteredClients.map(c => (
+                          <button 
+                            key={c.id} 
+                            onClick={() => handleSelectClient(c.id)} 
+                            className="w-full p-5 flex items-center gap-6 hover:bg-blue-50 rounded-3xl transition-all text-right group"
+                          >
+                            <img src={c.avatar} className="w-12 h-12 rounded-2xl shadow-md" alt={c.companyName} />
+                            <span className="font-black text-lg flex-1 text-slate-700">{c.companyName}</span>
+                            <span className="text-xs font-black text-blue-600 opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                              ניהול לקוח <ArrowLeft size={16}/>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">פקודות וניווט מהיר</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {commands.map((cmd, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => {
+                            handleAction(cmd.action);
+                          }} 
+                          className="flex items-center gap-6 p-5 hover:bg-slate-50 rounded-3xl transition-all text-right group"
+                        >
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <cmd.icon size={22}/>
+                          </div>
+                          <span className="font-black text-lg text-slate-700">{cmd.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {query.length > 2 && filteredClients.length === 0 && commands.length === 0 && (
+                    <div className="flex-1 flex items-center justify-center">
+                      <div className="text-center">
+                        <MessageSquare size={48} className="text-slate-300 mx-auto mb-4" />
+                        <p className="text-lg font-black text-slate-600 mb-2">לא נמצאו תוצאות</p>
+                        <p className="text-sm text-slate-400 mb-4">נסה לשאול אותי משהו במקום</p>
+                        <button
+                          onClick={() => setIsChatMode(true)}
+                          className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                        >
+                          <Sparkles size={18} />
+                          שאל את ה-AI
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Chat Input */}
+              {isChatMode && (
+                <form onSubmit={handleChatSubmit} className="p-5 border-t border-slate-200/80 bg-white/80 backdrop-blur-sm flex gap-3">
+                  <div className="flex-1 relative">
+                    <input
+                      ref={chatInputRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      placeholder="שאל אותי משהו..."
+                      className="w-full bg-slate-100 rounded-2xl px-5 py-4 pr-14 font-semibold text-[15px] outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all duration-200 placeholder:text-slate-400 border border-transparent focus:border-blue-200"
+                      disabled={isLoading}
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isLoading || !input.trim()}
+                    className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:from-blue-700 hover:to-blue-800 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
+                  >
+                    {isLoading ? (
+                      <Loader2 size={22} className="animate-spin" />
+                    ) : (
+                      <Send size={22} />
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-slate-50 p-4 flex items-center justify-between border-t border-slate-100">
+              <div className="flex gap-4 text-[10px] font-black text-slate-400">
+                {!isChatMode && (
+                  <>
+                    <span className="flex items-center gap-2">
+                      <kbd className="bg-white border px-2 py-1 rounded shadow-sm">↵</kbd> לבחירה
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <kbd className="bg-white border px-2 py-1 rounded shadow-sm">esc</kbd> לסגירה
+                    </span>
+                  </>
+                )}
+                {isChatMode && (
+                  <span className="flex items-center gap-2 text-blue-600">
+                    <Sparkles size={12} />
+                    מצב צ'אט פעיל
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Social Search v1.3</p>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}

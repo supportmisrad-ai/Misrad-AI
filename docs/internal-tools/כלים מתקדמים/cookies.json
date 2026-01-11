@@ -1,0 +1,112 @@
+[
+  {
+    "name": "__cf_bm",
+    "value": "V1FXqIQzf_26NS6g5CkVs5Hn5p0.eRiDW6MR1jrheTw-1766270423-1.0.1.1-NBVSJn6wuotdrUjn1MnnbZjhIfN70oPTpQcLDPMC9plPuP914ISj3xpCa4dFe8URx6qz4k5YBX0p2GqfA7rAbCa6MhEzDv3ZEzNd8Yv5hhM",
+    "domain": ".balanced-bluejay-33.clerk.accounts.dev",
+    "path": "/",
+    "expires": 1766272228.323556,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "_cfuvid",
+    "value": "1z1.S7SLksUuMRGSbulkLGq7PuU9u_3Zg6FBppmWvq0-1766270423375-0.0.1.1-604800000",
+    "domain": ".balanced-bluejay-33.clerk.accounts.dev",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__clerk_db_jwt",
+    "value": "dvb_3782YKwlBdQPvJTpN5T5cCkTOUi",
+    "domain": "localhost",
+    "path": "/",
+    "expires": 1797806492,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__clerk_db_jwt_3dsKWWUh",
+    "value": "dvb_3782YKwlBdQPvJTpN5T5cCkTOUi",
+    "domain": "localhost",
+    "path": "/",
+    "expires": 1797806492,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "WMF-Uniq",
+    "value": "svy0GiNmDhRwK7IJpr33SALPAAAAAFvdvrtu9D1PcNUKtFXjmysIRQ6ouKAiSe3U",
+    "domain": ".upload.wikimedia.org",
+    "path": "/",
+    "expires": 1797772358.587108,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__Host-GAPS",
+    "value": "1:j1jII-eQ8rJfOwwgZI1TEMthP6M67w:RVSG6dF3ziSZu6z3",
+    "domain": "accounts.google.com",
+    "path": "/",
+    "expires": 1800830463.6264,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "OTZ",
+    "value": "8399441_48_48_120960_44_365700",
+    "domain": "accounts.google.com",
+    "path": "/",
+    "expires": 1768862464,
+    "httpOnly": false,
+    "secure": true,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "NID",
+    "value": "527=m44rrSVfSTWMGV4OS4e_LFcZeknXlHffCh-sFmpmuue7RtQpml-K8MZD8bYeJmE_H63Pl2hUeJyK8kTgVAvv2pfzmA02-2AFsCT8gNLk-z2N_ZQ7dX3mIQxS9IX8ePvdGhob6qlk4ykCzQx-VUPp88vZmd1D3XORRhGX0jc7jbPh97sJOGRQjkWjQKHiO2VJDvZNlYtOsjDgHbc",
+    "domain": ".google.com",
+    "path": "/",
+    "expires": 1782081664.349449,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "None"
+  },
+  {
+    "name": "__next_hmr_refresh_hash__",
+    "value": "85d13810b9fbdbb476c9420fca02f338eb908c4e7850df75",
+    "domain": "localhost",
+    "path": "/",
+    "expires": -1,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Lax"
+  },
+  {
+    "name": "__client_uat_3dsKWWUh",
+    "value": "0",
+    "domain": "localhost",
+    "path": "/",
+    "expires": 1797806492,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  },
+  {
+    "name": "__client_uat",
+    "value": "0",
+    "domain": "localhost",
+    "path": "/",
+    "expires": 1797806492,
+    "httpOnly": false,
+    "secure": false,
+    "sameSite": "Strict"
+  }
+]
