@@ -29,7 +29,7 @@ export const useAuth = (
         // If Clerk user is already loaded, use its metadata
         if (clerkUser?.publicMetadata) {
             return {
-                id: clerkUser.id || '',
+                id: '',
                 name: clerkUser.firstName && clerkUser.lastName
                     ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
                     : clerkUser.firstName || clerkUser.lastName || '',
@@ -79,14 +79,32 @@ export const useAuth = (
     const loadCurrentUserInFlightRef = useRef(false);
     const hasLoggedNetworkErrorRef = useRef(false);
 
-    const [hasShownUserNotFoundWarning, setHasShownUserNotFoundWarning] = useState(false);
-    const [hasAttemptedSync, setHasAttemptedSync] = useState(false); // Prevent infinite sync attempts
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
     const [trashUsers, setTrashUsers] = useState<User[]>([]);
     const [trashTimeEntries, setTrashTimeEntries] = useState<TimeEntry[]>([]);
     const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
 
     const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+        if (!orgSlug) return;
+
+        const key = `NEXUS_ACTIVE_SHIFT_V1:${orgSlug}`;
+        try {
+            if (activeShift?.startTime) {
+                localStorage.setItem(
+                    key,
+                    JSON.stringify({ entryId: activeShift.id, startTime: activeShift.startTime, userId: currentUser.id })
+                );
+            } else {
+                localStorage.removeItem(key);
+            }
+        } catch {
+            // ignore
+        }
+    }, [activeShift?.startTime, currentUser.id]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -109,7 +127,6 @@ export const useAuth = (
                 if (prev.role === 'עובד' && roleFromClerk !== 'עובד') {
                     return {
                         ...prev,
-                        id: clerkUser.id || prev.id,
                         name: nameFromClerk || prev.name,
                         email: clerkUser.primaryEmailAddress?.emailAddress || prev.email,
                         role: roleFromClerk,
@@ -139,7 +156,6 @@ export const useAuth = (
                 // Not signed in - reset to default
                 setIsAuthenticated(false);
                 setIsLoadingCurrentUser(false);
-                setHasAttemptedSync(false); // Reset on logout
                 return;
             }
 
@@ -147,8 +163,8 @@ export const useAuth = (
             if (loadCurrentUserInFlightRef.current) return;
             
             // If user is already loaded and matches current Clerk user, skip
-            if (currentUser.id && currentUser.id === clerkUser.id && isAuthenticated) {
-                return; // Already loaded
+            if (currentUser.id && isAuthenticated) {
+                return; // Already loaded (DB UUID)
             }
 
             try {
@@ -159,7 +175,10 @@ export const useAuth = (
                 let data: any;
                 
                 try {
-                    const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                    const orgId =
+                        typeof window !== 'undefined'
+                            ? (getWorkspaceOrgIdFromPathname(window.location.pathname) || localStorage.getItem('currentTenantId'))
+                            : null;
                     response = await fetch('/api/users/me', {
                         headers: orgId ? { 'x-org-id': orgId } : undefined
                     });
@@ -189,7 +208,7 @@ export const useAuth = (
                     // Use Clerk user as fallback
                     if (clerkUser) {
                         const clerkUserAsDbUser: User = {
-                            id: clerkUser.id,
+                            id: '',
                             name: clerkUser.firstName && clerkUser.lastName
                                 ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
                                 : clerkUser.firstName || clerkUser.lastName || 'User',
@@ -265,202 +284,7 @@ export const useAuth = (
                             return [...prev, { ...userWithDefaults, online: true }];
                         }
                     });
-                } else if (data.warning && !hasShownUserNotFoundWarning && !hasAttemptedSync) {
-                    // User not found in database - try to auto-sync OR use Clerk user directly
-                    // Only attempt once to prevent infinite loops
-                    setHasAttemptedSync(true);
-                    setHasShownUserNotFoundWarning(true);
-                    
-                    // Skip sync for dev@local.dev (development fallback)
-                    if (data.clerkUser?.email === 'dev@local.dev' || data.clerkUser?.id === 'dev-user') {
-                        console.warn('[Auth] Skipping sync for dev user - using Clerk user directly');
-                        if (data.clerkUser) {
-                            const clerkUserAsDbUser: User = {
-                                id: data.clerkUser.id,
-                                name: data.clerkUser.firstName && data.clerkUser.lastName
-                                    ? `${data.clerkUser.firstName} ${data.clerkUser.lastName}`.trim()
-                                    : data.clerkUser.firstName || data.clerkUser.lastName || 'User',
-                                role: data.clerkUser.role || 'עובד',
-                                department: undefined,
-                                avatar: clerkUser?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.clerkUser.email)}&background=6366f1&color=fff`,
-                                online: true,
-                                capacity: 0,
-                                email: data.clerkUser.email,
-                                phone: undefined,
-                                location: undefined,
-                                bio: undefined,
-                                paymentType: undefined,
-                                hourlyRate: undefined,
-                                monthlySalary: undefined,
-                                commissionPct: undefined,
-                                bonusPerTask: undefined,
-                                accumulatedBonus: 0,
-                                streakDays: 0,
-                                weeklyScore: undefined,
-                                pendingReward: undefined,
-                                targets: undefined,
-                                notificationPreferences: {
-                                    emailNewTask: true,
-                                    browserPush: true,
-                                    morningBrief: true,
-                                    soundEffects: false,
-                                    marketing: true
-                                },
-                                twoFactorEnabled: false,
-                                isSuperAdmin: data.clerkUser.isSuperAdmin || false,
-                                isTenantAdmin: data.isTenantAdmin || false,
-                                tenantId: data.tenant?.id || null,
-                                billingInfo: undefined
-                            };
-                            setCurrentUser(clerkUserAsDbUser);
-                            setIsAuthenticated(true);
-                        }
-                        setIsLoadingCurrentUser(false);
-                        return;
-                    }
-                    
-                    console.warn('[Auth]', data.warning);
-                    console.warn('[Auth] Attempting to auto-sync user...');
-                    
-                    try {
-                        // Try to automatically create the user
-                        const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                        const syncResponse = await fetch('/api/users/sync', {
-                            method: 'POST',
-                            headers: orgId ? { 'x-org-id': orgId } : undefined
-                        });
-                        const syncData = await syncResponse.json();
-                        
-                        if (syncData.success && syncData.user) {
-                            // User created successfully - reload
-                            console.log('[Auth] User auto-synced successfully:', syncData.user.email);
-                            const userWithDefaults = {
-                                ...syncData.user,
-                                isSuperAdmin: Boolean(
-                                    (syncData.user as any)?.isSuperAdmin ??
-                                    (clerkUser?.publicMetadata?.isSuperAdmin as boolean) ??
-                                    ((clerkUser as any)?.unsafeMetadata as any)?.isSuperAdmin ??
-                                    currentUser?.isSuperAdmin
-                                ),
-                                isTenantAdmin: syncData.isTenantAdmin || false,
-                                tenantId: syncData.tenant?.id || null,
-                                billingInfo: syncData.user.billingInfo || undefined,
-                                notificationPreferences: syncData.user.notificationPreferences || {
-                                    emailNewTask: true,
-                                    browserPush: true,
-                                    morningBrief: true,
-                                    soundEffects: false,
-                                    marketing: true
-                                }
-                            };
-                            setCurrentUser(userWithDefaults);
-                            setIsAuthenticated(true);
-                            setUsers(prev => {
-                                const existingIndex = prev.findIndex(u => u.id === syncData.user.id);
-                                if (existingIndex >= 0) {
-                                    return prev.map((u, i) => i === existingIndex ? { ...userWithDefaults, online: true } : u);
-                                }
-                                return [...prev, { ...userWithDefaults, online: true }];
-                            });
-                        } else {
-                            // Auto-sync failed - use Clerk user directly as fallback
-                            console.warn('[Auth] Auto-sync failed, using Clerk user directly as fallback');
-                            if (data.clerkUser) {
-                                const clerkUserAsDbUser: User = {
-                                    id: data.clerkUser.id,
-                                    name: data.clerkUser.firstName && data.clerkUser.lastName
-                                        ? `${data.clerkUser.firstName} ${data.clerkUser.lastName}`.trim()
-                                        : data.clerkUser.firstName || data.clerkUser.lastName || 'User',
-                                    role: data.clerkUser.role || 'עובד',
-                                    department: undefined,
-                                    avatar: clerkUser?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.clerkUser.email)}&background=6366f1&color=fff`,
-                                    online: true,
-                                    capacity: 0,
-                                    email: data.clerkUser.email,
-                                    phone: undefined,
-                                    location: undefined,
-                                    bio: undefined,
-                                    paymentType: undefined,
-                                    hourlyRate: undefined,
-                                    monthlySalary: undefined,
-                                    commissionPct: undefined,
-                                    bonusPerTask: undefined,
-                                    accumulatedBonus: 0,
-                                    streakDays: 0,
-                                    weeklyScore: undefined,
-                                    pendingReward: undefined,
-                                    targets: undefined,
-                                    notificationPreferences: {
-                                        emailNewTask: true,
-                                        browserPush: true,
-                                        morningBrief: true,
-                                        soundEffects: false,
-                                        marketing: true
-                                    },
-                                    twoFactorEnabled: false,
-                                    isSuperAdmin: data.clerkUser.isSuperAdmin || false,
-                                    isTenantAdmin: data.isTenantAdmin || false,
-                                    tenantId: data.tenant?.id || null,
-                                    billingInfo: undefined
-                                };
-                                setCurrentUser(clerkUserAsDbUser);
-                                setIsAuthenticated(true);
-                            } else {
-                                setIsAuthenticated(false);
-                            }
-                            setHasShownUserNotFoundWarning(true);
-                        }
-                    } catch (syncError: any) {
-                        console.error('[Auth] Auto-sync error:', syncError);
-                        // Fallback to Clerk user if sync fails
-                        if (data.clerkUser) {
-                            console.warn('[Auth] Using Clerk user as fallback due to sync error');
-                            const clerkUserAsDbUser: User = {
-                                id: data.clerkUser.id,
-                                name: data.clerkUser.firstName && data.clerkUser.lastName
-                                    ? `${data.clerkUser.firstName} ${data.clerkUser.lastName}`.trim()
-                                    : data.clerkUser.firstName || data.clerkUser.lastName || 'User',
-                                role: data.clerkUser.role || 'עובד',
-                                department: undefined,
-                                avatar: clerkUser?.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.clerkUser.email)}&background=6366f1&color=fff`,
-                                online: true,
-                                capacity: 0,
-                                email: data.clerkUser.email,
-                                phone: undefined,
-                                location: undefined,
-                                bio: undefined,
-                                paymentType: undefined,
-                                hourlyRate: undefined,
-                                monthlySalary: undefined,
-                                commissionPct: undefined,
-                                bonusPerTask: undefined,
-                                accumulatedBonus: 0,
-                                streakDays: 0,
-                                weeklyScore: undefined,
-                                pendingReward: undefined,
-                                targets: undefined,
-                                notificationPreferences: {
-                                    emailNewTask: true,
-                                    browserPush: true,
-                                    morningBrief: true,
-                                    soundEffects: false,
-                                    marketing: true
-                                },
-                                twoFactorEnabled: false,
-                                isSuperAdmin: data.clerkUser.isSuperAdmin || false,
-                                isTenantAdmin: data.isTenantAdmin || false,
-                                tenantId: data.tenant?.id || null,
-                                billingInfo: undefined
-                            };
-                            setCurrentUser(clerkUserAsDbUser);
-                            setIsAuthenticated(true);
-                        } else {
-                            setIsAuthenticated(false);
-                        }
-                        setHasShownUserNotFoundWarning(true);
-                    }
-                } else if (data.warning) {
-                    // Already shown warning, just update state
+                } else {
                     setIsAuthenticated(false);
                 }
             } catch (error: any) {
@@ -482,17 +306,14 @@ export const useAuth = (
         };
 
         loadCurrentUser();
-    }, [clerkUser?.id, isClerkLoaded]); // Removed addToast and clerkUser object to prevent infinite loops
-
-    const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const normalizeEmail = (email?: string | null) => String(email || '').trim().toLowerCase();
+    }, [clerkUser?.id, isClerkLoaded]);
 
     // Load users list from DB so assignee pickers / avatars can resolve UUID-based users
     useEffect(() => {
         const loadUsers = async () => {
             if (!isClerkLoaded) return;
             if (typeof window === 'undefined') return;
-            const orgId = getWorkspaceOrgIdFromPathname(window.location.pathname);
+            const orgId = getWorkspaceOrgIdFromPathname(window.location.pathname) || localStorage.getItem('currentTenantId');
             if (!orgId) return;
 
             try {
@@ -511,30 +332,6 @@ export const useAuth = (
 
         loadUsers();
     }, [isClerkLoaded, clerkUser?.id]);
-
-    // If currentUser is still a Clerk user (non-UUID id), reconcile to DB UUID user by email.
-    useEffect(() => {
-        const currentEmail = normalizeEmail(currentUser?.email);
-        if (!currentEmail) return;
-
-        const dbMatch = users.find(u => normalizeEmail(u.email) === currentEmail);
-        if (!dbMatch?.id) return;
-
-        if (String(currentUser.id) === String(dbMatch.id)) return;
-
-        // Prefer DB UUID ids when there's a mismatch
-        const currentIsUuid = isUUID(String(currentUser.id));
-        const dbIsUuid = isUUID(String(dbMatch.id));
-        if (dbIsUuid && !currentIsUuid) {
-            setCurrentUser(prev => ({
-                ...prev,
-                ...dbMatch,
-                online: true,
-                isSuperAdmin: prev.isSuperAdmin ?? (dbMatch as any).isSuperAdmin,
-            }));
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [users]);
 
     const login = (userId: string) => {
         const user = users.find(u => u.id === userId);

@@ -106,12 +106,12 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border-2 border-indigo-500/30 rounded-2xl shadow-2xl max-w-md w-full p-6 relative overflow-hidden backdrop-blur-xl"
+                    className="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full p-6 relative overflow-hidden backdrop-blur-xl"
                 >
                     {/* Background Effects */}
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
@@ -121,17 +121,17 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
-                                    <UserPlus size={20} className="text-indigo-400" />
+                                <div className="p-2 bg-indigo-50 rounded-lg border border-indigo-200">
+                                    <UserPlus size={20} className="text-indigo-600" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-white">הוסף משתמש</h2>
-                                    <p className="text-xs text-slate-400 mt-0.5">{tenant.name}</p>
+                                    <h2 className="text-xl font-black text-slate-900">הוסף משתמש</h2>
+                                    <p className="text-xs text-slate-600 mt-0.5">{tenant.name}</p>
                                 </div>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
+                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
                             >
                                 <X size={18} />
                             </button>
@@ -140,7 +140,7 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                         {/* Form */}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-slate-300 mb-2">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
                                     שם מלא *
                                 </label>
                                 <div className="relative">
@@ -150,14 +150,14 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                         required
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl py-2.5 pr-10 pl-4 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                                        className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
                                         placeholder="הזן שם מלא"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-300 mb-2">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
                                     אימייל *
                                 </label>
                                 <div className="relative">
@@ -167,20 +167,20 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                         required
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl py-2.5 pr-10 pl-4 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                                        className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
                                         placeholder="user@example.com"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-300 mb-2">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
                                     תפקיד
                                 </label>
                                 <select
                                     value={formData.role}
                                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                    className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl py-2.5 pr-4 pl-4 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                                    className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-4 pl-4 text-sm text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
                                 >
                                     <option value="עובד">עובד</option>
                                     <option value="מנהל">מנהל</option>
@@ -190,14 +190,14 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-300 mb-2">
+                                <label className="block text-sm font-bold text-slate-700 mb-2">
                                     טלפון (אופציונלי)
                                 </label>
                                 <input
                                     type="tel"
                                     value={formData.phone}
                                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                    className="w-full bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl py-2.5 pr-4 pl-4 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-all"
+                                    className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 pr-4 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
                                     placeholder="05X-XXXXXXX"
                                 />
                             </div>
@@ -213,7 +213,7 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                 <button
                                     type="button"
                                     onClick={onClose}
-                                    className="flex-1 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl font-bold text-slate-300 hover:text-white transition-all"
+                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold text-slate-700 transition-all"
                                 >
                                     ביטול
                                 </button>

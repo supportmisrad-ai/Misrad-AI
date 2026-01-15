@@ -1,22 +1,10 @@
 'use server';
 
-import { GoogleGenAI, Type } from '@google/genai';
-
-function getApiKey(): string {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-  if (!apiKey) throw new Error('Missing GEMINI_API_KEY');
-  return apiKey;
-}
-
-function getAI() {
-  return new GoogleGenAI({ apiKey: getApiKey() });
-}
+import { Type } from '@google/genai';
+import { AIService } from '@/lib/services/ai/AIService';
 
 export async function analyzeMeetingTranscriptAction(transcript: string) {
-  const ai = getAI();
-
   try {
-    const model = 'gemini-3-pro-preview';
     const systemPrompt = `
       You are the Nexus Meeting Analyzer, specialized in B2B Account Management.
 
@@ -40,78 +28,90 @@ export async function analyzeMeetingTranscriptAction(transcript: string) {
       9. STORIES: Any anecdotes, metaphors or stories told.
       10. SLANG: Specific jargon or slang words used.
       11. RATING: Rate professionalism, warmth, and clarity (0-100).
+      12. COMMITMENTS: Extract strict commitments (who promised what, and by when). If missing, set "לא צוין".
+      13. RELATIONSHIP_WARMTH: Give warmth score 1-10 + one short reason.
 
       Output must be valid JSON.
     `;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: transcript,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: 'application/json',
-        responseSchema: {
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        sentimentScore: { type: Type.NUMBER },
+        relationshipWarmth: { type: Type.NUMBER },
+        relationshipNote: { type: Type.STRING },
+        frictionKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        objections: { type: Type.ARRAY, items: { type: Type.STRING } },
+        compliments: { type: Type.ARRAY, items: { type: Type.STRING } },
+        decisions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        intents: { type: Type.ARRAY, items: { type: Type.STRING } },
+        stories: { type: Type.ARRAY, items: { type: Type.STRING } },
+        slang: { type: Type.ARRAY, items: { type: Type.STRING } },
+        commitments: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              who: { type: Type.STRING },
+              what: { type: Type.STRING },
+              due: { type: Type.STRING },
+            },
+          },
+        },
+        rating: {
           type: Type.OBJECT,
           properties: {
-            summary: { type: Type.STRING },
-            sentimentScore: { type: Type.NUMBER },
-            frictionKeywords: { type: Type.ARRAY, items: { type: Type.STRING } },
-            objections: { type: Type.ARRAY, items: { type: Type.STRING } },
-            compliments: { type: Type.ARRAY, items: { type: Type.STRING } },
-            decisions: { type: Type.ARRAY, items: { type: Type.STRING } },
-            intents: { type: Type.ARRAY, items: { type: Type.STRING } },
-            stories: { type: Type.ARRAY, items: { type: Type.STRING } },
-            slang: { type: Type.ARRAY, items: { type: Type.STRING } },
-            rating: {
-              type: Type.OBJECT,
-              properties: {
-                professionalism: { type: Type.NUMBER },
-                warmth: { type: Type.NUMBER },
-                clarity: { type: Type.NUMBER },
-              },
+            professionalism: { type: Type.NUMBER },
+            warmth: { type: Type.NUMBER },
+            clarity: { type: Type.NUMBER },
+          },
+        },
+        agencyTasks: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              task: { type: Type.STRING },
+              deadline: { type: Type.STRING },
+              priority: { type: Type.STRING, enum: ['HIGH', 'NORMAL', 'LOW'] },
             },
-            agencyTasks: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  task: { type: Type.STRING },
-                  deadline: { type: Type.STRING },
-                  priority: { type: Type.STRING, enum: ['HIGH', 'NORMAL', 'LOW'] },
-                },
-              },
+          },
+        },
+        clientTasks: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              task: { type: Type.STRING },
+              deadline: { type: Type.STRING },
+              priority: { type: Type.STRING, enum: ['HIGH', 'NORMAL', 'LOW'] },
             },
-            clientTasks: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  task: { type: Type.STRING },
-                  deadline: { type: Type.STRING },
-                  priority: { type: Type.STRING, enum: ['HIGH', 'NORMAL', 'LOW'] },
-                },
-              },
-            },
-            liabilityRisks: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  quote: { type: Type.STRING },
-                  context: { type: Type.STRING },
-                  riskLevel: { type: Type.STRING, enum: ['HIGH', 'MEDIUM', 'LOW'] },
-                },
-              },
+          },
+        },
+        liabilityRisks: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              quote: { type: Type.STRING },
+              context: { type: Type.STRING },
+              riskLevel: { type: Type.STRING, enum: ['HIGH', 'MEDIUM', 'LOW'] },
             },
           },
         },
       },
+    };
+
+    const ai = AIService.getInstance();
+    const out = await ai.generateJson<any>({
+      featureKey: 'client_os.meetings.analyze',
+      prompt: transcript,
+      systemInstruction: systemPrompt,
+      responseSchema,
     });
 
-    const text = response.text;
-    if (!text) throw new Error('No response from Nexus AI');
-
-    const data = JSON.parse(text);
+    const data = out.result;
 
     if (Array.isArray(data?.agencyTasks)) {
       data.agencyTasks = data.agencyTasks.map((t: any, i: number) => ({
@@ -145,10 +145,7 @@ export async function analyzeMeetingTranscriptAction(transcript: string) {
 }
 
 export async function generateClientInsightAction(clientName: string, healthScore: number, sentimentTrend: string[]) {
-  const ai = getAI();
-
   try {
-    const model = 'gemini-3-flash-preview';
     const prompt = `
       Act as a senior B2B Account Manager AI.
       Analyze the client "${clientName}".
@@ -161,78 +158,67 @@ export async function generateClientInsightAction(clientName: string, healthScor
       Return JSON: {insight, action}
     `;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            insight: { type: Type.STRING },
-            action: { type: Type.STRING },
-          },
+    const ai = AIService.getInstance();
+    const out = await ai.generateJson<{ insight: string; action: string }>({
+      featureKey: 'nexus.client_insight',
+      prompt,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          insight: { type: Type.STRING },
+          action: { type: Type.STRING },
         },
       },
     });
 
-    return JSON.parse(response.text || '{}');
+    return out.result;
   } catch {
     return { insight: 'הלקוח דורש תשומת לב מוגברת סביב נושאי תקציב.', action: 'קבע שיחת בירור' };
   }
 }
 
 export async function generateDailyBriefingAction(riskyClientsCount: number, opportunitiesCount: number, meetingsCount: number) {
-  const ai = getAI();
-
   try {
-    const model = 'gemini-3-flash-preview';
     const prompt = `Generate a "Morning Protocol" briefing for an Account Manager in Hebrew. Data: ${riskyClientsCount} risky, ${opportunitiesCount} opportunities, ${meetingsCount} meetings. Professional, concise style. JSON: {greeting, focusPoints: string[], quote}`;
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            greeting: { type: Type.STRING },
-            focusPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-            quote: { type: Type.STRING },
-          },
+
+    const ai = AIService.getInstance();
+    const out = await ai.generateJson<{ greeting: string; focusPoints: string[]; quote: string }>({
+      featureKey: 'nexus.daily_briefing',
+      prompt,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          greeting: { type: Type.STRING },
+          focusPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+          quote: { type: Type.STRING },
         },
       },
     });
 
-    return JSON.parse(response.text || '{}');
+    return out.result;
   } catch {
     return { greeting: 'בוקר טוב. הנה הלו"ז שלך.', focusPoints: ['בדוק את נובקורפ', 'הכנה לפגישת אית\'ר'], quote: 'הצלחה היא התמדה.' };
   }
 }
 
 export async function generateSuccessRecommendationAction(clientName: string, healthScore: number) {
-  const ai = getAI();
-
   try {
-    const model = 'gemini-3-flash-preview';
     const prompt = `As a high-end agency consultant, provide a tip in Hebrew for the business owner on how to use transparency to retain client "${clientName}". Health Score is ${healthScore}/100. Tip should be motivating and professional (max 15 words). JSON: {tip, expectedBenefit}`;
 
-    const response = await ai.models.generateContent({
-      model,
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            tip: { type: Type.STRING },
-            expectedBenefit: { type: Type.STRING },
-          },
+    const ai = AIService.getInstance();
+    const out = await ai.generateJson<{ tip?: string; expectedBenefit?: string }>({
+      featureKey: 'nexus.success_recommendation',
+      prompt,
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          tip: { type: Type.STRING },
+          expectedBenefit: { type: Type.STRING },
         },
       },
     });
 
-    const parsed = JSON.parse(response.text || '{}');
+    const parsed = out.result || {};
     return {
       tip: parsed.tip || 'שקיפות מלאה במדדי הצלחה מחזקת את האמון בטווח הארוך.',
       expectedBenefit: parsed.expectedBenefit || 'שיפור בשימור לקוח (Retention)',
@@ -246,10 +232,11 @@ export async function generateSuccessRecommendationAction(clientName: string, he
 }
 
 export async function generateSmartReplyAction(emailBody: string, senderName: string, tone: string = 'professional') {
-  const ai = getAI();
-
-  const model = 'gemini-3-flash-preview';
   const prompt = `Reply to this email in Hebrew. From: ${senderName || 'הלקוח'}. Body: ${emailBody}. Tone: ${tone}. Brief and helpful.`;
-  const response = await ai.models.generateContent({ model, contents: prompt });
-  return response.text || '';
+  const ai = AIService.getInstance();
+  const out = await ai.generateText({
+    featureKey: 'nexus.smart_reply',
+    prompt,
+  });
+  return out.text || '';
 }

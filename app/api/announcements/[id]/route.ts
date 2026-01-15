@@ -8,7 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createClient } from '../../../../lib/supabase';
 
-export async function DELETE(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function DELETEHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -67,7 +68,7 @@ export async function DELETE(
     }
 }
 
-export async function PATCH(
+async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -133,3 +134,7 @@ export async function PATCH(
     }
 }
 
+
+export const PATCH = shabbatGuard(PATCHHandler);
+
+export const DELETE = shabbatGuard(DELETEHandler);

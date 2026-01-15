@@ -51,13 +51,25 @@ export async function adminMarkSubscriptionOrderPaid(input: {
 
     const supabase = createClient();
 
-    const { data: order, error: orderError } = await supabase
+    let order: any = null;
+    const withSeats = await supabase
       .from('subscription_orders')
-      .select('id, organization_id, package_type, customer_email, customer_name')
+      .select('id, organization_id, package_type, customer_email, customer_name, seats')
       .eq('id', orderId)
       .single();
 
-    if (orderError) return createErrorResponse(orderError, 'שגיאה בטעינת הזמנה');
+    if (withSeats.error?.message && String(withSeats.error.message).toLowerCase().includes('column') && String(withSeats.error.message).toLowerCase().includes('seats')) {
+      const withoutSeats = await supabase
+        .from('subscription_orders')
+        .select('id, organization_id, package_type, customer_email, customer_name')
+        .eq('id', orderId)
+        .single();
+      if (withoutSeats.error) return createErrorResponse(withoutSeats.error, 'שגיאה בטעינת הזמנה');
+      order = withoutSeats.data;
+    } else {
+      if (withSeats.error) return createErrorResponse(withSeats.error, 'שגיאה בטעינת הזמנה');
+      order = withSeats.data;
+    }
 
     const organizationId = order?.organization_id ? String(order.organization_id) : '';
     const packageType = order?.package_type ? (String(order.package_type) as PackageType) : null;
@@ -76,18 +88,41 @@ export async function adminMarkSubscriptionOrderPaid(input: {
 
     const flags = buildOrgFlagsFromPackageType(packageType);
 
-    const { error: orgUpdateError } = await supabase
+    const seatsRaw = (order as any)?.seats;
+    const seatsNormalized = Number.isFinite(Number(seatsRaw)) ? Math.floor(Number(seatsRaw)) : null;
+    const seatsAllowed = seatsNormalized && seatsNormalized > 0 ? seatsNormalized : null;
+
+    const orgUpdatePayload: any = {
+      ...flags,
+      subscription_status: 'active',
+      subscription_plan: packageType,
+      subscription_start_date: now,
+      updated_at: now,
+    };
+    if (seatsAllowed) {
+      orgUpdatePayload.seats_allowed = seatsAllowed;
+    }
+
+    const orgUpdateAttempt = await supabase
       .from('organizations')
-      .update({
-        ...flags,
-        subscription_status: 'active',
-        subscription_plan: packageType,
-        subscription_start_date: now,
-        updated_at: now,
-      } as any)
+      .update(orgUpdatePayload)
       .eq('id', organizationId);
 
-    if (orgUpdateError) return createErrorResponse(orgUpdateError, 'שגיאה בעדכון הרשאות הארגון');
+    if (orgUpdateAttempt.error?.message) {
+      const msg = String(orgUpdateAttempt.error.message).toLowerCase();
+      if (msg.includes('column') && msg.includes('seats_allowed')) {
+        delete orgUpdatePayload.seats_allowed;
+        const retry = await supabase
+          .from('organizations')
+          .update(orgUpdatePayload)
+          .eq('id', organizationId);
+        if (retry.error) return createErrorResponse(retry.error, 'שגיאה בעדכון הרשאות הארגון');
+      } else {
+        return createErrorResponse(orgUpdateAttempt.error, 'שגיאה בעדכון הרשאות הארגון');
+      }
+    } else if (orgUpdateAttempt.error) {
+      return createErrorResponse(orgUpdateAttempt.error, 'שגיאה בעדכון הרשאות הארגון');
+    }
 
     // Best-effort: send welcome email
     try {

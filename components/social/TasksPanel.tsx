@@ -1,9 +1,10 @@
 ﻿'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, MessageSquare, ShieldAlert, Clock, Trash2, Plus, DollarSign, Zap } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { Avatar } from '@/components/Avatar';
 import { SocialTask } from '@/types/social';
 
 interface TasksPanelProps {
@@ -96,11 +97,24 @@ export default function TasksPanel({ onAddTask, onEditTask }: TasksPanelProps) {
 
                 <div className="flex items-center gap-4">
                   {assignee && (
-                    <img src={assignee.avatar} className="w-8 h-8 rounded-xl border-2 border-white shadow-sm" alt={assignee.name} />
+                    <Avatar
+                      src={String(assignee.avatar || '')}
+                      name={String(assignee.name || '')}
+                      alt={String(assignee.name || '')}
+                      size="lg"
+                      rounded="xl"
+                      className="border-2 border-white shadow-sm"
+                    />
                   )}
                   {client && (
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                      <img src={client.avatar} className="w-6 h-6 rounded-lg" alt={client.companyName} />
+                      <Avatar
+                        src={String(client.avatar || '')}
+                        name={String(client.companyName || client.name || '')}
+                        alt={String(client.companyName || '')}
+                        size="md"
+                        rounded="lg"
+                      />
                       <span className="hidden md:inline">{client.companyName}</span>
                     </div>
                   )}

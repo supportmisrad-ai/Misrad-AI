@@ -11,7 +11,8 @@ import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
 import { supabase } from '../../../../lib/supabase';
 import { uploadFile, listFiles, deleteFile } from '../../../../lib/storage';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         try {
             await requireSuperAdmin();
@@ -132,3 +133,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

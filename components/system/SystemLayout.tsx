@@ -8,6 +8,8 @@ import { useData } from '../../context/DataContext';
 import { Notification } from '../../types';
 import { RoomSwitcher } from '../shared/RoomSwitcher';
 import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
+import { useShabbat } from '@/hooks/useShabbat';
+import { ShabbatScreen } from '@/components/ShabbatScreen';
 
 interface SystemLayoutProps {
   children?: React.ReactNode;
@@ -19,6 +21,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
   const basePath = getNexusBasePath(pathname);
   const { currentUser, notifications } = useData();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isShabbat } = useShabbat();
 
   const isActive = (path: string) => (pathname || '/') === toNexusPath(basePath, path);
   
@@ -32,6 +35,10 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
       { path: '/sales/pipeline', label: 'צנרת עסקאות', icon: Kanban },
       { path: '/sales/targets', label: 'יעדים', icon: Target },
   ];
+
+  if (isShabbat) {
+    return <ShabbatScreen />;
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#020617] text-slate-200 font-sans overflow-hidden selection:bg-rose-600/30" dir="rtl">

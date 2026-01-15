@@ -10,12 +10,21 @@ import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
 import { getClients, createRecord, updateRecord, getUsers } from '../../../lib/db';
 import { Client } from '../../../types';
 import { getClientOsClients as getClientOsClientsHandler } from '@/lib/server/clientOsClients';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         if (request.headers.get('x-client-os') === '1') {
             return getClientOsClientsHandler(request);
         }
+
+        const orgSlugFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgSlugFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlugFromHeader);
 
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -42,12 +51,12 @@ export async function GET(request: NextRequest) {
         try {
             clients = await getClients({
                 clientId: clientId || undefined,
-                searchTerm: searchTerm || undefined
+                searchTerm: searchTerm || undefined,
+                organizationId: workspace.id,
             });
         } catch (dbError: any) {
             console.error('[API] Error fetching clients from database:', dbError);
-            // Return empty array on database error (graceful degradation)
-            clients = [];
+            return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 });
         }
         
         // 6. Filter based on permissions
@@ -99,8 +108,15 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
+        const orgSlugFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgSlugFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlugFromHeader);
+
         const user = await getAuthenticatedUser();
         
         // Only users with CRM permission can create clients
@@ -131,7 +147,7 @@ export async function POST(request: NextRequest) {
             source: body.source || 'manual'
         };
         
-        const newClient = await createRecord<Client>('clients', clientData);
+        const newClient = await createRecord<Client>('clients', clientData, { organizationId: workspace.id });
         
         await logAuditEvent('data.write', 'client', {
             resourceId: newClient.id,
@@ -143,7 +159,7 @@ export async function POST(request: NextRequest) {
             const { supabase } = await import('../../../lib/supabase');
             const supabaseClient = supabase;
             if (supabaseClient) {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const crmManagers = allUsers.filter(u => {
                     const hasCrmAccess = u.role === 'מנכ״ל' || u.role === 'מנכ"ל' || u.role === 'אדמין' || 
                                         u.isSuperAdmin || u.role?.includes('מכירות') || u.role?.includes('CRM');
@@ -199,8 +215,15 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function PATCH(request: NextRequest) {
+async function PATCHHandler(request: NextRequest) {
     try {
+        const orgSlugFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgSlugFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlugFromHeader);
+
         const user = await getAuthenticatedUser();
         const body = await request.json();
         const { clientId, updates } = body;
@@ -219,7 +242,7 @@ export async function PATCH(request: NextRequest) {
         }
         
         // Update client in database
-        await updateRecord<Client>('clients', clientId, updates);
+        await updateRecord<Client>('clients', clientId, updates, { organizationId: workspace.id });
         
         await logAuditEvent('data.write', 'client', {
             resourceId: clientId,
@@ -237,3 +260,9 @@ export async function PATCH(request: NextRequest) {
 }
 
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);
+
+export const PATCH = shabbatGuard(PATCHHandler);

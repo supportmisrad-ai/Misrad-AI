@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Star, Clock, Link as LinkIcon, CheckCircle, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
+import { Star, Clock, Link as LinkIcon, CheckCircle, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare, Pencil } from 'lucide-react';
 import { Client, SocialPlatform } from '@/types/social';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
@@ -25,6 +25,7 @@ interface ClientWorkspaceHeaderProps {
   onTogglePin: () => void;
   onCopyLink: () => void;
   onPaymentClick: () => void;
+  onEditClient: () => void;
   onNewPost: () => void;
 }
 
@@ -35,17 +36,40 @@ export function ClientWorkspaceHeader({
   onTogglePin,
   onCopyLink,
   onPaymentClick,
+  onEditClient,
   onNewPost
 }: ClientWorkspaceHeaderProps) {
+
+  const getInitials = (name?: string) => {
+    const n = String(name || '').trim();
+    if (!n) return '?';
+    return n
+      .split(' ')
+      .filter(Boolean)
+      .map((p) => p.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const rawAvatar = String(activeClient.avatar || '').trim();
+  const avatarSrc = rawAvatar && rawAvatar !== '/icons/misrad-icon.svg' ? rawAvatar : '';
+  const initials = getInitials(activeClient.companyName || activeClient.name);
 
   return (
     <section className="bg-white p-6 md:p-10 rounded-3xl md:rounded-[48px] border border-slate-200 shadow-xl flex flex-col md:flex-row items-center gap-6 md:gap-10">
       <div className="relative group">
-        <img 
-          src={activeClient.avatar} 
-          className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-[40px] shadow-2xl border-2 md:border-4 border-white object-cover" 
-          alt={activeClient.companyName}
-        />
+        {avatarSrc ? (
+          <img 
+            src={avatarSrc} 
+            className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-[40px] shadow-2xl border-2 md:border-4 border-white object-cover" 
+            alt={activeClient.companyName}
+          />
+        ) : (
+          <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-[40px] shadow-2xl border-2 md:border-4 border-white bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white font-black text-3xl md:text-4xl">
+            {initials}
+          </div>
+        )}
         <button 
           onClick={onTogglePin}
           className={`absolute -top-2 -right-2 p-2 rounded-xl shadow-lg border-2 border-white transition-all transform hover:scale-110 ${
@@ -93,22 +117,31 @@ export function ClientWorkspaceHeader({
             + פוסט חדש
           </button>
         </div>
-        <button 
-          onClick={onCopyLink} 
-          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs transition-all border-2 ${
-            isCopyingLink ? 'bg-green-500 text-white border-green-500' : 'bg-white text-blue-600 border-blue-50'
-          }`}
-        >
-          {isCopyingLink ? (
-            <>
-              <CheckCircle size={14}/> הועתק!
-            </>
-          ) : (
-            <>
-              <LinkIcon size={14}/> לינק לפורטל הלקוח
-            </>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={onEditClient}
+            className="flex-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs transition-all border-2 bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+          >
+            <Pencil size={14} /> עריכת פרטי לקוח
+          </button>
+
+          <button 
+            onClick={onCopyLink} 
+            className={`flex-1 w-full flex items-center justify-center gap-2 py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-xs transition-all border-2 ${
+              isCopyingLink ? 'bg-green-500 text-white border-green-500' : 'bg-white text-blue-600 border-blue-50'
+            }`}
+          >
+            {isCopyingLink ? (
+              <>
+                <CheckCircle size={14}/> הועתק!
+              </>
+            ) : (
+              <>
+                <LinkIcon size={14}/> לינק לפורטל
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </section>
   );

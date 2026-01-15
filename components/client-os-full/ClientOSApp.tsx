@@ -21,6 +21,14 @@ export type ClientOSUserData = {
   } | null;
 } | null;
 
-export default function ClientOSApp({ userData }: { userData: ClientOSUserData }) {
-  return <App userData={userData} />;
+export default function ClientOSApp({
+  userData,
+  initialCurrentUser,
+  initialOrganization,
+}: {
+  userData: ClientOSUserData;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}) {
+  return <App userData={userData} initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization} />;
 }

@@ -1,7 +1,7 @@
 import NexusModuleClient from './NexusModuleClient';
-import { currentUser } from '@clerk/nextjs/server';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getNexusOwnerDashboardData } from '@/lib/services/nexus-service';
+import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,25 +16,7 @@ export default async function NexusModuleHome({
 
   const initialOwnerDashboard = await getNexusOwnerDashboardData(orgSlug);
 
-  const clerk = await currentUser();
-  const roleFromClerk =
-    (clerk as any)?.publicMetadata?.role ??
-    (clerk as any)?.privateMetadata?.role ??
-    (clerk as any)?.unsafeMetadata?.role ??
-    null;
-  const normalizedRole = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? 'עובד';
-
-  const initialCurrentUser = {
-    id: clerk?.id || '',
-    name: clerk?.fullName ?? clerk?.username ?? '',
-    role: normalizedRole || 'עובד',
-    avatar: clerk?.imageUrl || '',
-    online: true,
-    capacity: 0,
-    email: clerk?.primaryEmailAddress?.emailAddress || '',
-    isSuperAdmin: Boolean((clerk as any)?.publicMetadata?.isSuperAdmin),
-    tenantId: workspace.id,
-  };
+  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
 
   const initialOrganization = {
     name: workspace.name,

@@ -13,7 +13,8 @@ import { generatePostVariationsAction, generateAIImageAction } from '@/app/actio
 import { useApp } from '@/contexts/AppContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { Client, PostVariation, SocialPost, SocialPlatform } from '@/types/social';
-import { publishToSocialMedia } from '@/lib/services/socialService';
+import { createPost, publishPost } from '@/app/actions/posts';
+import { Avatar } from '@/components/Avatar';
 
 interface VariationWithImage extends PostVariation {
   generatedImage?: string | null;
@@ -59,6 +60,29 @@ export default function TheMachine() {
   const [previewPlatform, setPreviewPlatform] = useState<SocialPlatform>('instagram');
   const [editableContent, setEditableContent] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handler = () => {
+      setActiveDraft(null);
+      setStep(1);
+      setSelectedClient(null);
+      setSelectedPlatforms([]);
+      setBrief('');
+      setClientSearchQuery('');
+      setIsLoading(false);
+      setVariations([]);
+      setSelectedVariation(null);
+      setEditableContent('');
+      setIsGeneratingImage(false);
+    };
+
+    window.addEventListener('social:machine:new', handler as any);
+    return () => {
+      window.removeEventListener('social:machine:new', handler as any);
+    };
+  }, [setActiveDraft]);
 
   useEffect(() => {
     const cid = activeClientId || activeDraft?.clientId;
@@ -113,28 +137,40 @@ export default function TheMachine() {
 
   const handleFinalize = async () => {
     if (!selectedClient || !selectedVariation) return;
-    
-    const newPost: SocialPost = {
-      id: `post-${Date.now()}`,
+
+    addToast('שולח לפרסום דרך Make/Zapier...', 'info');
+
+    const created = await createPost({
       clientId: selectedClient.id,
       content: editableContent,
-      mediaUrl: selectedVariation.generatedImage || undefined,
       platforms: selectedPlatforms,
-      status: 'pending_approval',
-      scheduledAt: new Date().toISOString()
-    };
-    
-    addToast('מעבד פוסט...', 'info');
-    const result = await publishToSocialMedia(newPost);
-    
-    if (result.success) {
-      setPosts(prev => [newPost, ...prev]);
-      addToast('הפוסט נשלח לאישור הלקוח! 📤');
-      setActiveDraft(null);
-      router.push(joinPath(basePath, '/dashboard'));
-    } else {
-      addToast(result.error || 'שגיאה בביצוע', 'error');
+      mediaUrl: selectedVariation.generatedImage || undefined,
+      scheduledAt: new Date().toISOString(),
+      status: 'draft',
+    });
+
+    if (!created.success || !created.data) {
+      addToast(created.error || 'שגיאה ביצירת הפוסט', 'error');
+      return;
     }
+
+    const published = await publishPost(created.data.id);
+    if (!published.success) {
+      addToast(published.error || 'שגיאה בפרסום הפוסט', 'error');
+      return;
+    }
+
+    const createdPost = created.data as SocialPost;
+    const newPost: SocialPost = {
+      ...createdPost,
+      status: 'published',
+      publishedAt: new Date().toISOString(),
+    };
+
+    setPosts((prev) => [newPost, ...prev]);
+    addToast('הפוסט נשלח לפרסום ✅', 'success');
+    setActiveDraft(null);
+    router.push(joinPath(basePath, '/dashboard'));
   };
 
   const handleCancel = () => {
@@ -180,7 +216,13 @@ export default function TheMachine() {
         {selectedClient && (
           <div className="hidden md:flex mt-8 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 flex-col gap-4">
             <div className="flex items-center gap-4">
-              <img src={selectedClient.avatar} className="w-10 h-10 rounded-xl" alt={selectedClient.companyName} />
+              <Avatar
+                src={String(selectedClient.avatar || '')}
+                name={String(selectedClient.companyName || selectedClient.name || '')}
+                alt={String(selectedClient.companyName || '')}
+                size="lg"
+                rounded="xl"
+              />
               <p className="font-black text-blue-900 truncate">{selectedClient.companyName}</p>
             </div>
             <button 
@@ -228,7 +270,14 @@ export default function TheMachine() {
                         }} 
                         className="p-3 md:p-4 bg-white rounded-2xl md:rounded-3xl border border-slate-200 flex flex-col items-center gap-2 md:gap-3 hover:shadow-xl transition-all group"
                       >
-                        <img src={c.avatar} className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl group-hover:scale-110 transition-transform" alt={c.companyName} />
+                        <Avatar
+                          src={String(c.avatar || '')}
+                          name={String(c.companyName || c.name || '')}
+                          alt={String(c.companyName || '')}
+                          size="lg"
+                          rounded="xl"
+                          className="group-hover:scale-110 transition-transform"
+                        />
                         <span className="font-black text-[10px] md:text-xs text-center line-clamp-1">{c.companyName}</span>
                       </button>
                     ))}
@@ -345,7 +394,14 @@ export default function TheMachine() {
               <div className="lg:col-span-5 flex flex-col items-center">
                 <div className="bg-white rounded-[40px] md:rounded-[56px] border-[8px] md:border-[12px] border-slate-300 shadow-2xl relative aspect-[9/18] w-full max-w-[260px] md:max-w-[300px] overflow-hidden">
                   <div className="p-3 md:p-4 border-b border-slate-200 font-black text-[10px] md:text-[11px] flex items-center gap-2">
-                    <img src={selectedClient?.avatar} className="w-4 h-4 md:w-5 md:h-5 rounded-md" alt={selectedClient?.companyName} /> 
+                    <Avatar
+                      src={String(selectedClient?.avatar || '')}
+                      name={String(selectedClient?.companyName || selectedClient?.name || '')}
+                      alt={String(selectedClient?.companyName || '')}
+                      size="sm"
+                      rounded="lg"
+                      className="w-4 h-4 md:w-5 md:h-5"
+                    />
                     {selectedClient?.companyName}
                   </div>
                   <div className="aspect-square bg-slate-100 flex items-center justify-center text-slate-200 relative overflow-hidden">

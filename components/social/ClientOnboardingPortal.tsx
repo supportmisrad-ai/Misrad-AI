@@ -2,10 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, BrainCircuit, Building, Loader2, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare, CreditCard } from 'lucide-react';
+import { CheckCircle2, ArrowRight, BrainCircuit, Building, Loader2, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform } from '@/types/social';
-import { updateClient } from '@/app/actions/client-clients';
+import { updateClientForWorkspace } from '@/app/actions/clients';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   facebook: Facebook,
@@ -22,6 +24,8 @@ const PLATFORM_ICONS: Record<SocialPlatform, any> = {
 };
 
 export default function ClientOnboardingPortal() {
+  const pathname = usePathname();
+  const routeInfo = parseWorkspaceRoute(pathname);
   const { 
     activeClient, 
     platformConfigs,
@@ -31,32 +35,72 @@ export default function ClientOnboardingPortal() {
   } = useApp();
 
   const [step, setStep] = useState(1);
-  const [companyName, setCompanyName] = useState(activeClient?.companyName === 'ממתין להזנה' ? '' : activeClient?.companyName || '');
-  const [logo, setLogo] = useState<string | null>(null);
-  const [businessId, setBusinessId] = useState('');
+  const [companyName, setCompanyName] = useState(activeClient?.onboardingStatus === 'invited' ? '' : activeClient?.companyName || '');
+  const [logo, setLogo] = useState<string | null>(activeClient?.avatar ? activeClient.avatar : null);
+  const [businessId, setBusinessId] = useState(activeClient?.businessId || '');
   const [invoiceName, setInvoiceName] = useState('');
-  const [activePlatforms, setActivePlatforms] = useState<SocialPlatform[]>([]);
-  const [brandSummary, setBrandSummary] = useState('');
-  const [dna, setDna] = useState({ formal: 50, funny: 50, length: 50 });
-  const [lovedWords, setLovedWords] = useState('');
-  const [forbiddenWords, setForbiddenWords] = useState('');
+  const [activePlatforms, setActivePlatforms] = useState<SocialPlatform[]>((activeClient?.activePlatforms as SocialPlatform[]) || []);
+  const [brandSummary, setBrandSummary] = useState(activeClient?.dna?.brandSummary || '');
+  const [dna, setDna] = useState({
+    formal: activeClient?.dna?.voice?.formal ?? 50,
+    funny: activeClient?.dna?.voice?.funny ?? 50,
+    length: activeClient?.dna?.voice?.length ?? 50,
+  });
+  const [lovedWords, setLovedWords] = useState((activeClient?.dna?.vocabulary?.loved || []).join(', '));
+  const [forbiddenWords, setForbiddenWords] = useState((activeClient?.dna?.vocabulary?.forbidden || []).join(', '));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!activeClient) return null;
 
-  const totalPrice = activePlatforms.reduce((sum, pId) => {
-    const config = platformConfigs.find(c => c.id === pId);
-    return sum + (config?.basePrice || 0);
-  }, 0);
+  const isEditMode = activeClient.onboardingStatus !== 'invited';
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setLogo(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        addToast('סוג קובץ לא נתמך. PNG / JPG / SVG / WebP', 'error');
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        addToast('הקובץ גדול מדי. מקסימום 5MB', 'error');
+        return;
+      }
+
+      setIsUploadingLogo(true);
+
+      const form = new FormData();
+      form.append('file', file);
+      form.append('bucket', 'attachments');
+      form.append('folder', `client-avatars/${activeClient.id}`);
+
+      const uploadRes = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => null);
+        throw new Error(err?.error || 'שגיאה בהעלאת תמונה');
+      }
+
+      const upload = await uploadRes.json().catch(() => null);
+      const url = String(upload?.url || '').trim();
+      if (!url) throw new Error('לא התקבל URL מהעלאה');
+
+      setLogo(url);
+      addToast('התמונה עודכנה');
+    } catch (error: any) {
+      addToast(error?.message || 'שגיאה בהעלאה', 'error');
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -70,6 +114,12 @@ export default function ClientOnboardingPortal() {
   const handleComplete = async () => {
     if (!companyName) {
       addToast('נא למלא שם עסק', 'error');
+      return;
+    }
+
+    const orgSlug = routeInfo.orgSlug;
+    if (!orgSlug) {
+      addToast('שגיאה: לא נמצא ארגון פעיל בכתובת. נא להיכנס דרך /w/[orgSlug]/social', 'error');
       return;
     }
 
@@ -91,13 +141,13 @@ export default function ClientOnboardingPortal() {
             forbidden: forbiddenWords.split(',').map(w => w.trim()).filter(Boolean)
           }
         },
-        onboardingStatus: 'completed' as const,
-        status: 'Active' as const,
-        paymentStatus: 'paid' as const
+        onboardingStatus: (activeClient.onboardingStatus === 'invited' ? 'completed' : activeClient.onboardingStatus) as any,
+        status: (activeClient.onboardingStatus === 'invited' ? 'Active' : activeClient.status) as any,
+        paymentStatus: 'pending' as const
       };
 
       // Save to database
-      const result = await updateClient(activeClient.id, updateData);
+      const result = await updateClientForWorkspace(orgSlug, activeClient.id, updateData);
 
       if (!result.success) {
         addToast(result.error || 'שגיאה בשמירת הנתונים', 'error');
@@ -117,7 +167,7 @@ export default function ClientOnboardingPortal() {
       
       setIsSubmitting(false);
       setIsOnboardingMode(false);
-      addToast('הגדרות הלקוח והתשלום הושלמו בהצלחה! 🎉');
+      addToast('הגדרות הלקוח הושלמו בהצלחה!');
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
       addToast('שגיאה בשמירת הנתונים: ' + (error.message || 'שגיאה לא ידועה'), 'error');
@@ -126,14 +176,26 @@ export default function ClientOnboardingPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6" dir="rtl">
-      <div className="w-full max-w-4xl bg-white rounded-[48px] shadow-2xl overflow-hidden">
+    <motion.div
+      className="fixed inset-0 z-[250] bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 md:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      dir="rtl"
+    >
+      <motion.div
+        className="w-full max-w-4xl bg-white rounded-[48px] shadow-2xl overflow-hidden"
+        initial={{ scale: 0.98, y: 10 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.98, y: 10 }}
+        transition={{ type: 'spring', damping: 26, stiffness: 360 }}
+      >
         <div className="p-8 border-b flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl">
               S
             </div>
-            <h1 className="text-2xl font-black">הקמת חשבון</h1>
+            <h1 className="text-2xl font-black">{isEditMode ? 'עריכת פרטי לקוח' : 'הקמת לקוח'}</h1>
           </div>
           <button onClick={() => setIsOnboardingMode(false)} className="p-2 hover:bg-slate-100 rounded-xl">
             <X size={24} />
@@ -175,10 +237,11 @@ export default function ClientOnboardingPortal() {
                   {logo && <img src={logo} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
                   <button
                     onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingLogo}
                     className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black flex items-center gap-2"
                   >
-                    <Camera size={20} />
-                    העלה לוגו
+                    {isUploadingLogo ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                    {logo ? 'החלף תמונה' : 'העלה תמונה'}
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 </div>
@@ -220,7 +283,6 @@ export default function ClientOnboardingPortal() {
                     >
                       {Icon && <Icon size={32} />}
                       <p className="font-black text-sm mt-2">{config.label}</p>
-                      <p className="text-xs font-bold opacity-70 mt-1">₪{config.basePrice}</p>
                     </button>
                   );
                 })}
@@ -281,10 +343,10 @@ export default function ClientOnboardingPortal() {
 
           {step === 4 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-              <h2 className="text-2xl font-black mb-6">סיכום ותשלום</h2>
+              <h2 className="text-2xl font-black mb-6">סיכום</h2>
               <div className="bg-slate-50 p-6 rounded-3xl">
-                <p className="font-black text-lg mb-4">סה"כ לתשלום: ₪{totalPrice}</p>
-                <p className="text-sm font-bold text-slate-400">כולל {activePlatforms.length} רשתות</p>
+                <p className="font-black text-lg mb-4">{isEditMode ? 'הכל מוכן לשמירה' : 'הכל מוכן לסיום ההקמה'}</p>
+                <p className="text-sm font-bold text-slate-400">נבחרו {activePlatforms.length} רשתות</p>
               </div>
               <button
                 onClick={handleComplete}
@@ -297,17 +359,14 @@ export default function ClientOnboardingPortal() {
                     מעבד...
                   </>
                 ) : (
-                  <>
-                    <CreditCard size={24} />
-                    השלם תשלום והגדר
-                  </>
+                  <>{isEditMode ? 'שמור שינויים' : 'סיים הקמה'}</>
                 )}
               </button>
             </motion.div>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

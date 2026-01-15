@@ -9,8 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
 import { getUsers } from '../../../../../../lib/db';
 import { supabase } from '../../../../../../lib/supabase';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 
-export async function POST(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -73,6 +77,47 @@ export async function POST(
                        user.role === 'מנכ"ל' || 
                        user.role === 'אדמין';
 
+        const ws = await requireWorkspaceAccessByOrgSlugApi(String((invitation as any)?.organization_id));
+        const flags = await getSystemFeatureFlags();
+
+        let seatsAllowedOverride: number | null = null;
+        try {
+            const orgId = String((invitation as any)?.organization_id || '');
+            if (orgId) {
+                const { data: orgSeatsRow, error: orgSeatsError } = await supabase
+                    .from('organizations')
+                    .select('seats_allowed')
+                    .eq('id', orgId)
+                    .maybeSingle();
+
+                if (!orgSeatsError) {
+                    seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+                }
+
+                if (orgSeatsError?.message) {
+                    const msg = String(orgSeatsError.message).toLowerCase();
+                    if (msg.includes('column') && msg.includes('seats_allowed')) {
+                        seatsAllowedOverride = null;
+                    }
+                }
+            }
+        } catch {
+            seatsAllowedOverride = null;
+        }
+
+        const caps = computeWorkspaceCapabilities({
+            entitlements: (ws as any)?.entitlements,
+            fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+            seatsAllowedOverride,
+        });
+
+        if (!caps.isTeamManagementEnabled) {
+            return NextResponse.json(
+                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { status: 403 }
+            );
+        }
+
         const isOwner = invitation.created_by === user.id;
 
         if (!isAdmin && !isOwner) {
@@ -113,3 +158,5 @@ export async function POST(
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

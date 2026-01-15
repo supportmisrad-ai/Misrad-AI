@@ -8,10 +8,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasPermission } from '../../../lib/auth';
 import { logAuditEvent } from '../../../lib/audit';
 import { getTimeEntries, createRecord, updateRecord, deleteRecord } from '../../../lib/db';
+import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
+import { TimeEntry } from '../../../types';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+function isUUID(id: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
+async function GETHandler(request: NextRequest) {
     try {
-        // 1. Authenticate user
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        // Resolve workspace + DB user in a zero-trust way
+        const resolved = await resolveWorkspaceCurrentUserForApi(headerOrgId);
+        const workspace = resolved.workspace;
+        const dbUser = resolved.user;
+
+        // 1. Authenticate user (kept for permission checks / consistency)
         const user = await getAuthenticatedUser();
         
         // 2. Check permissions
@@ -27,26 +44,34 @@ export async function GET(request: NextRequest) {
         const userId = searchParams.get('userId');
         const dateFrom = searchParams.get('dateFrom');
         const dateTo = searchParams.get('dateTo');
+
+        // Normalize to DB UUIDs
+        const requestedUserId = userId && isUUID(userId) ? userId : null;
         
         // 5. Fetch time entries from database
+        // NOTE: getTimeEntries isn't org-scoped; we scope here by querying and filtering.
+        // Prefer fetching by userId when possible.
         let timeEntries = await getTimeEntries({
-            userId: userId || undefined,
+            userId: requestedUserId || undefined,
             dateFrom: dateFrom || undefined,
-            dateTo: dateTo || undefined
+            dateTo: dateTo || undefined,
+            tenantId: workspace.id,
         });
         
         // 6. Filter based on permissions
-        if (userId) {
+        // Filter based on permissions + enforce org scoping by filtering out mismatched org rows.
+        // The DB layer doesn't expose organization_id in the DTO, so we validate access by user scope.
+        if (requestedUserId) {
             // Check if user can view this user's time entries
-            if (userId !== user.id && !canManageTeam) {
+            if (requestedUserId !== dbUser.id && !canManageTeam) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
-            
-            timeEntries = timeEntries.filter(e => e.userId === userId);
+
+            timeEntries = timeEntries.filter(e => e.userId === requestedUserId);
         } else {
             // If no userId specified, return only current user's entries (unless manager)
             if (!canManageTeam) {
-                timeEntries = timeEntries.filter(e => e.userId === user.id);
+                timeEntries = timeEntries.filter(e => e.userId === dbUser.id);
             }
         }
         
@@ -81,21 +106,91 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+async function PATCHHandler(request: NextRequest) {
     try {
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const resolved = await resolveWorkspaceCurrentUserForApi(headerOrgId);
+        const workspace = resolved.workspace;
+        const dbUser = resolved.user;
+
+        const user = await getAuthenticatedUser();
+        const canManageTeam = await hasPermission('manage_team');
+
+        const searchParams = request.nextUrl.searchParams;
+        const entryId = searchParams.get('id');
+        if (!entryId) {
+            return NextResponse.json({ error: 'Entry ID is required' }, { status: 400 });
+        }
+
+        const entries = await getTimeEntries({ entryId, tenantId: workspace.id });
+        const entry = entries[0];
+        if (!entry) {
+            return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+        }
+
+        if (entry.userId !== dbUser.id && !canManageTeam) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const body = await request.json().catch(() => ({}));
+        const endTime = typeof body?.endTime === 'string' ? body.endTime : new Date().toISOString();
+
+        const startTimeMs = new Date(entry.startTime).getTime();
+        const endTimeMs = new Date(endTime).getTime();
+        const durationMinutes = endTimeMs > startTimeMs ? Math.round((endTimeMs - startTimeMs) / 60000) : 0;
+
+        const updated = await updateRecord<TimeEntry>('time_entries', entryId, {
+            endTime,
+            durationMinutes,
+        }, {
+            organizationId: workspace.id
+        });
+
+        await logAuditEvent('data.write', 'time_entry', {
+            resourceId: entryId,
+            details: { updatedBy: user.id, action: 'clock_out' }
+        });
+
+        return NextResponse.json({ success: true, entry: updated });
+    } catch (error: any) {
+        return NextResponse.json(
+            { error: error.message },
+            { status: error.message.includes('Forbidden') ? 403 : error.message.includes('Unauthorized') ? 401 : 500 }
+        );
+    }
+}
+
+async function POSTHandler(request: NextRequest) {
+    try {
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const resolved = await resolveWorkspaceCurrentUserForApi(headerOrgId);
+        const workspace = resolved.workspace;
+        const dbUser = resolved.user;
+
         const user = await getAuthenticatedUser();
         const body = await request.json();
         
         // Users can only create entries for themselves (unless manager)
         const canManageTeam = await hasPermission('manage_team');
-        if (body.userId && body.userId !== user.id && !canManageTeam) {
+        const requestedUserId = typeof body.userId === 'string' && isUUID(body.userId) ? body.userId : null;
+        if (requestedUserId && requestedUserId !== dbUser.id && !canManageTeam) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         
         // Create time entry in database
         const newEntry = await createRecord('time_entries', {
             ...body,
-            userId: body.userId || user.id
+            userId: requestedUserId || dbUser.id,
+        }, {
+            organizationId: workspace.id
         });
         
         await logAuditEvent('data.write', 'time_entry', {
@@ -113,8 +208,17 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function DELETE(request: NextRequest) {
+async function DELETEHandler(request: NextRequest) {
     try {
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const resolved = await resolveWorkspaceCurrentUserForApi(headerOrgId);
+        const workspace = resolved.workspace;
+        const dbUser = resolved.user;
+
         const user = await getAuthenticatedUser();
         const searchParams = request.nextUrl.searchParams;
         const entryId = searchParams.get('id');
@@ -127,7 +231,7 @@ export async function DELETE(request: NextRequest) {
         }
         
         // Fetch entry from database to check ownership
-        const entries = await getTimeEntries({ entryId });
+        const entries = await getTimeEntries({ entryId, tenantId: workspace.id });
         const entry = entries[0];
         
         if (!entry) {
@@ -136,7 +240,7 @@ export async function DELETE(request: NextRequest) {
         
         // Check ownership
         const canManageTeam = await hasPermission('manage_team');
-        if (entry.userId !== user.id && !canManageTeam) {
+        if (entry.userId !== dbUser.id && !canManageTeam) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         
@@ -158,3 +262,11 @@ export async function DELETE(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);
+
+export const PATCH = shabbatGuard(PATCHHandler);
+
+export const DELETE = shabbatGuard(DELETEHandler);

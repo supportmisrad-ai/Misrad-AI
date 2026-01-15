@@ -1,14 +1,21 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, Bell } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
-import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { buildDocumentTitle } from '@/lib/room-branding';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { getMyProfile } from '@/app/actions/profiles';
+import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { DataProvider } from '@/context/DataContext';
+import { MeView } from '@/views/MeView';
+import CommandPalette from './CommandPalette';
 
 // Import placeholder components
 import InvoicesView from './invoices/InvoicesView';
@@ -47,16 +54,46 @@ const FinanceBootScreen = ({ onComplete }: { onComplete: () => void }) => {
   );
 };
 
-const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinanceOverview }) => {
+const FinanceOSApp: React.FC<{
+  initialFinanceOverview?: any;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}> = ({ initialFinanceOverview, initialCurrentUser, initialOrganization }) => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
   const { pathname } = useRoomBranding();
+  const nextPathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
   const [booted, setBooted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(profileRef, () => setIsProfileOpen(false));
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+
+  const orgSlug = React.useMemo(() => parseWorkspaceRoute(nextPathname).orgSlug, [nextPathname]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!orgSlug) {
+        setProfileIdentity(null);
+        return;
+      }
+      try {
+        const res = await getMyProfile({ orgSlug });
+        if (!res.success || !res.data?.profile) return;
+        const p: any = res.data.profile;
+        setProfileIdentity({
+          name: p.full_name ? String(p.full_name) : null,
+          role: p.role ? String(p.role) : null,
+        });
+      } catch {
+        // Best-effort
+      }
+    };
+
+    load();
+  }, [orgSlug]);
 
   const onBootComplete = useCallback(() => {
     setBooted(true);
@@ -75,15 +112,87 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
     { id: 'invoices', label: 'חשבוניות', icon: FileText },
     { id: 'reports', label: 'דוחות', icon: BarChart },
     { id: 'integrations', label: 'אינטגרציות', icon: Plug },
-    { id: 'settings', label: 'הגדרות', icon: Settings }
+    { id: 'hub', label: 'הגדרות', icon: Settings }
   ];
 
   const activeNavItem = navItems.find(item => item.id === activeTab);
 
   useEffect(() => {
+    const tab = searchParams?.get('tab');
+    if (!tab) return;
+    const allowed = new Set(['overview', 'invoices', 'reports', 'integrations', 'hub']);
+    if (!allowed.has(tab)) return;
+    if (tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [activeTab, searchParams]);
+
+  useEffect(() => {
     if (typeof document === 'undefined') return;
     document.title = buildDocumentTitle({ pathname, screenName: activeNavItem?.label || null });
   }, [activeNavItem?.label, pathname]);
+
+  const basePath = React.useMemo(() => {
+    const info = parseWorkspaceRoute(nextPathname);
+    if (info.orgSlug && info.module === 'finance') {
+      return `/w/${encodeURIComponent(info.orgSlug)}/finance`;
+    }
+    return '/finance';
+  }, [nextPathname]);
+
+  const isMeRoute = React.useMemo(() => {
+    return Boolean(nextPathname && nextPathname.startsWith(`${basePath}/me`));
+  }, [basePath, nextPathname]);
+
+  const isHubRoute = React.useMemo(() => {
+    return Boolean(nextPathname && nextPathname.startsWith(`${basePath}/hub`));
+  }, [basePath, nextPathname]);
+
+  React.useEffect(() => {
+    if (!booted) return;
+    if (isHubRoute && activeTab !== 'hub') {
+      setActiveTab('hub');
+    }
+    if (!isHubRoute && activeTab === 'hub') {
+      setActiveTab('overview');
+    }
+  }, [activeTab, booted, isHubRoute]);
+
+  React.useEffect(() => {
+    if (!booted) return;
+    if (isMeRoute && activeTab !== 'me') {
+      setActiveTab('me');
+    }
+    if (!isMeRoute && activeTab === 'me') {
+      setActiveTab('overview');
+    }
+  }, [activeTab, booted, isMeRoute]);
+
+  React.useEffect(() => {
+    if (!booted) return;
+    if (activeTab !== 'hub') return;
+    if (isHubRoute) return;
+    const from = nextPathname || basePath;
+    router.push(`${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(from)}`);
+  }, [activeTab, basePath, booted, isHubRoute, nextPathname, router]);
+
+  React.useEffect(() => {
+    if (!booted) return;
+    if (activeTab !== 'me') return;
+    if (isMeRoute) return;
+    router.push(`${basePath}/me`);
+  }, [activeTab, basePath, booted, isMeRoute, router]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        if (user) setIsCommandPaletteOpen((open) => !open);
+      }
+    };
+    document.addEventListener('keydown', down, { capture: true });
+    return () => document.removeEventListener('keydown', down, { capture: true });
+  }, [user]);
 
   if (!user) {
     return <div className="p-8 text-center">נדרש התחברות</div>;
@@ -106,6 +215,9 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
     ? (String(user?.email ?? '').split('@')[0] || 'משתמש')
     : String(user?.name ?? '');
 
+  const headerName = profileIdentity?.name || safeUserName;
+  const headerRole = profileIdentity?.role || null;
+
   const avatarValue = String(user?.avatar ?? '').trim();
   const hasValidAvatarSrc =
     !!avatarValue &&
@@ -121,17 +233,60 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
         return <ReportsView />;
       case 'integrations':
         return <IntegrationsView />;
-      case 'settings':
+      case 'me':
         return (
-          <div className="p-8 text-center">
-            <Settings className="mx-auto mb-4 text-slate-500" size={48} />
-            <h2 className="text-2xl font-bold mb-2">הגדרות</h2>
-            <p className="text-slate-500">פיצ'ר זה יגיע בקרוב...</p>
-          </div>
+          <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+            <MeView
+              basePathOverride={basePath}
+              moduleCards={
+                basePath
+                  ? [
+                      {
+                        title: 'דוחות',
+                        subtitle: 'סיכומים וניתוחים מהירים',
+                        href: `${basePath}?tab=reports`,
+                        iconId: 'trending_up',
+                      },
+                      {
+                        title: 'הגדרות פיננסיות',
+                        subtitle: 'מסמכים, אינטגרציות ותשלומים',
+                        href: `${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(
+                          `${basePath}/me`
+                        )}`,
+                        iconId: 'settings',
+                      },
+                    ]
+                  : undefined
+              }
+            />
+          </DataProvider>
         );
+      case 'hub':
+        return <GlobalProfileHub defaultOrigin="finance" defaultDrawer="finance" />;
       default:
         return <OverviewView />;
     }
+  };
+
+  const goToMe = () => {
+    router.push(`${basePath}/me`);
+  };
+
+  const navigateToTab = (tabId: string) => {
+    const from = nextPathname || basePath;
+    if (tabId === 'me') {
+      router.push(`${basePath}/me`);
+      return;
+    }
+    if (tabId === 'hub') {
+      router.push(`${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(from)}`);
+      return;
+    }
+    if (tabId === 'overview') {
+      router.push(basePath);
+      return;
+    }
+    router.push(`${basePath}?tab=${encodeURIComponent(tabId)}`);
   };
 
   return (
@@ -165,7 +320,8 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="p-2 rounded-lg hover:bg-slate-100">
+            <AttendanceMiniStatus />
+            <button type="button" onClick={() => setIsCommandPaletteOpen(true)} className="p-2 rounded-lg hover:bg-slate-100">
               <Search size={20} />
             </button>
             <button className="p-2 rounded-lg hover:bg-slate-100 relative">
@@ -173,40 +329,24 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
             </button>
 
-            {/* Profile Menu */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
-              >
-                <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold overflow-hidden">
-                  {hasValidAvatarSrc ? (
-                    <img src={avatarValue} alt={safeUserName} className="w-full h-full object-cover" />
-                  ) : (
-                    safeUserName.charAt(0)
-                  )}
-                </div>
-                <span className="hidden md:block font-medium text-sm">{safeUserName}</span>
-              </button>
-
-              <AnimatePresence>
-                {isProfileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50"
-                  >
-                    <button
-                      onClick={logout}
-                      className="w-full px-4 py-3 text-right text-sm text-slate-600 hover:bg-slate-50"
-                    >
-                      התנתק
-                    </button>
-                  </motion.div>
+            <button
+              type="button"
+              onClick={goToMe}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
+              aria-label="פרופיל"
+            >
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold overflow-hidden">
+                {hasValidAvatarSrc ? (
+                  <img src={avatarValue} alt={headerName} className="w-full h-full object-cover" />
+                ) : (
+                  headerName.charAt(0)
                 )}
-              </AnimatePresence>
-            </div>
+              </div>
+              <div className="hidden md:flex flex-col items-end leading-tight">
+                <span className="font-bold text-sm text-slate-900">{headerName}</span>
+                <span className="text-[10px] text-slate-500 font-medium">{headerRole || ''}</span>
+              </div>
+            </button>
           </div>
         </header>
 
@@ -246,6 +386,13 @@ const FinanceOSApp: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
           </>
         )}
       </AnimatePresence>
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onCloseAction={() => setIsCommandPaletteOpen(false)}
+        onNavigateAction={navigateToTab}
+        navItems={navItems.map((n) => ({ id: n.id, label: n.label }))}
+      />
     </div>
   );
 };

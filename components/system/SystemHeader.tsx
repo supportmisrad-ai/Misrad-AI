@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Bell, LogOut, Settings, User } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Bell } from 'lucide-react';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 export function SystemHeader({
   title,
@@ -14,16 +14,11 @@ export function SystemHeader({
   isWorkspaceRoute,
   onOpenCommandPaletteAction,
   onNavigateToNotificationsAction,
+  onProfileClickAction,
   user,
   roleLabel,
   avatarUrl,
   hasValidAvatarSrc,
-  isProfileOpen,
-  onToggleProfileOpenAction,
-  profileRef,
-  onNavigateToPersonalAreaAction,
-  onNavigateToSystemSettingsAction,
-  onLogoutAction,
 }: {
   title: string;
   currentDate: string;
@@ -35,6 +30,7 @@ export function SystemHeader({
   isWorkspaceRoute: boolean;
   onOpenCommandPaletteAction: () => void;
   onNavigateToNotificationsAction: () => void;
+  onProfileClickAction: () => void;
   user: {
     name: string;
     email?: string | null;
@@ -42,12 +38,6 @@ export function SystemHeader({
   roleLabel: string;
   avatarUrl: string;
   hasValidAvatarSrc: boolean;
-  isProfileOpen: boolean;
-  onToggleProfileOpenAction: () => void;
-  profileRef: React.RefObject<HTMLDivElement | null>;
-  onNavigateToPersonalAreaAction: () => void;
-  onNavigateToSystemSettingsAction: () => void;
-  onLogoutAction: () => void;
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -65,12 +55,12 @@ export function SystemHeader({
     : 'bg-transparent transition-colors duration-200';
 
   const profileSlot = (
-    <div className="relative hidden md:block" ref={profileRef}>
+    <div className="relative hidden md:block">
       <button
-        onClick={onToggleProfileOpenAction}
+        onClick={onProfileClickAction}
         className="flex items-center gap-3 pl-0.5 pr-0.5 md:pr-4 rounded-full transition-all hover:bg-white/50"
         type="button"
-        aria-label="תפריט פרופיל"
+        aria-label="פרופיל"
       >
         <div className="text-right hidden md:block">
           <p className="text-sm font-bold text-gray-900 leading-none" suppressHydrationWarning>
@@ -88,52 +78,12 @@ export function SystemHeader({
           )}
         </div>
       </button>
-
-      <AnimatePresence>
-        {isProfileOpen ? (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute top-full left-0 mt-2 w-64 bg-white/90 backdrop-blur-xl border border-white/50 rounded-[32px] shadow-2xl p-2 z-50 origin-top-left ring-1 ring-slate-900/5 overflow-hidden"
-          >
-            <div className="p-4 border-b border-slate-100 mb-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">מחובר כ-</p>
-              <p className="font-bold text-slate-800">{user.email || 'user@system.os'}</p>
-            </div>
-            <div className="space-y-1">
-              <button
-                onClick={onNavigateToPersonalAreaAction}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-full hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors text-sm font-bold"
-                type="button"
-              >
-                <User size={16} /> פרופיל אישי
-              </button>
-              <button
-                onClick={onNavigateToSystemSettingsAction}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-full hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors text-sm font-bold"
-                type="button"
-              >
-                <Settings size={16} /> הגדרות
-              </button>
-            </div>
-            <div className="mt-2 pt-2 border-t border-slate-100">
-              <button
-                onClick={onLogoutAction}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-full hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors text-sm font-bold"
-                type="button"
-              >
-                <LogOut size={16} /> יציאה
-              </button>
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
     </div>
   );
 
   const notificationsSlot = (
     <div className="flex items-center gap-2">
+      <AttendanceMiniStatus />
       <button
         onClick={onNavigateToNotificationsAction}
         className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
@@ -143,7 +93,7 @@ export function SystemHeader({
         <Bell size={18} />
       </button>
       <button
-        onClick={onNavigateToPersonalAreaAction}
+        onClick={onProfileClickAction}
         className="md:hidden w-9 h-9 rounded-full bg-nexus-gradient flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden"
         aria-label="פרופיל"
         type="button"

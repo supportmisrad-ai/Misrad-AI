@@ -16,9 +16,9 @@ import { isShabbatNow } from './shabbat';
  * });
  */
 export function shabbatGuard(
-  handler: (req: NextRequest) => Promise<NextResponse>
+  handler: (...args: any[]) => Promise<NextResponse>
 ) {
-  return async (req: NextRequest): Promise<NextResponse> => {
+  return async (...args: any[]): Promise<NextResponse> => {
     try {
       const shabbatCheck = isShabbatNow();
       
@@ -35,12 +35,17 @@ export function shabbatGuard(
       }
       
       // Not Shabbat - proceed with the handler
-      return handler(req);
+      return handler(...args);
     } catch (error: any) {
       console.error('[ShabbatGuard] Error checking Shabbat:', error);
-      // If there's an error checking Shabbat, allow the request to proceed
-      // (fail open - better to allow access than block everything on error)
-      return handler(req);
+      // Fail closed: do not allow system activity if we cannot determine Shabbat state.
+      return NextResponse.json(
+        {
+          error: 'Shabbat Mode',
+          message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
+        },
+        { status: 503 }
+      );
     }
   };
 }

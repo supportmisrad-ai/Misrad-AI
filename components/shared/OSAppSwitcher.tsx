@@ -73,7 +73,7 @@ function parseWorkspaceRoute(pathname: string | null): {
   if (parts[0] !== 'w') return { orgSlug: null, module: null };
   const orgSlug = parts[1] || null;
   const rawModule = parts[2] || null;
-  const allowed = new Set<OSModuleKey>(['nexus', 'system', 'social', 'finance', 'client']);
+  const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
   const module = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
   return { orgSlug, module };
 }
@@ -81,6 +81,11 @@ function parseWorkspaceRoute(pathname: string | null): {
 function getOSModuleInfo(key: OSModuleKey): OSModuleInfo | null {
   const found = OS_MODULES.find((m) => m.id === key);
   return found || null;
+}
+
+function getOrderedModuleKeys(): OSModuleKey[] {
+  const keys = OS_MODULES.map((m) => m.id as OSModuleKey);
+  return ['nexus', ...keys.filter((k) => k !== 'nexus')];
 }
 
 function InlineModuleIcon({ module }: { module: OSModuleKey }) {
@@ -134,6 +139,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   const router = useRouter();
   const { user: clerkUser } = useUser();
   const isSuperAdmin = clerkUser?.publicMetadata?.isSuperAdmin === true;
+  const [hasMounted, setHasMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -144,6 +150,10 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   const pathname = usePathname();
   const [entitlements, setEntitlements] = useState<Record<OSModuleKey, boolean> | null>(entitlementsProp ?? null);
   const [locked, setLocked] = useState<OSModuleKey | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const routeInfo = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
   const orgSlug = orgSlugProp ?? routeInfo.orgSlug;
@@ -241,7 +251,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     };
   }, [entitlementsProp, orgSlug]);
 
-  const moduleKeys: OSModuleKey[] = ['nexus', 'system', 'social', 'client'];
+  const moduleKeys: OSModuleKey[] = getOrderedModuleKeys();
   const visibleModules = moduleKeys.filter((k) => k !== currentModule);
   const enabledCount = entitlements
     ? visibleModules.filter((k) => Boolean(entitlements[k])).length
@@ -261,10 +271,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   }, []);
 
   if (mode === 'inlineGrid') {
-    const isReady = Boolean(entitlements) || isSuperAdmin;
-    const modulesToRender = isSuperAdmin
+    const effectiveIsSuperAdmin = hasMounted ? isSuperAdmin : false;
+    const effectiveEntitlements = hasMounted ? entitlements : null;
+    const isReady = Boolean(effectiveEntitlements) || effectiveIsSuperAdmin;
+    const modulesToRender = effectiveIsSuperAdmin
       ? visibleModules
-      : visibleModules.filter((key) => key === 'nexus' || Boolean(entitlements?.[key]));
+      : visibleModules.filter((key) => key === 'nexus' || Boolean(effectiveEntitlements?.[key]));
     const gridColsClass = modulesToRender.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
     return (
@@ -272,7 +284,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         <div className={`grid ${gridColsClass} ${compact ? 'gap-2' : 'gap-3'}`}>
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
-            const enabled = isSuperAdmin || key === 'nexus' ? true : Boolean(entitlements?.[key]);
+            const enabled = effectiveIsSuperAdmin || key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
             const logoSrc = key === 'client' ? null : ((OS_METADATA as any)?.[key]?.icon ?? null);
 
             return (

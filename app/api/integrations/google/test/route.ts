@@ -11,7 +11,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 import { requireSuperAdmin } from '../../../../../lib/auth';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         try {
             await requireSuperAdmin();
@@ -90,3 +91,5 @@ export async function GET(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
+export const GET = shabbatGuard(GETHandler);

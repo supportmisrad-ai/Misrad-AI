@@ -16,7 +16,7 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
             <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -42,9 +42,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                             <div className="text-xs font-bold text-red-600 uppercase mb-1">הוצאות (שכר)</div>
                             <div className="text-2xl font-black text-red-700">{formatCurrency(report.data.totalCost)}</div>
                         </div>
-                        <div className="bg-slate-900 p-4 rounded-2xl border border-slate-700 text-center text-white shadow-lg">
-                            <div className="text-xs font-bold text-slate-400 uppercase mb-1">רווח נקי</div>
-                            <div className={`text-2xl font-black ${report.data.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-center shadow-lg">
+                            <div className="text-xs font-bold text-slate-600 uppercase mb-1">רווח נקי</div>
+                            <div className={`text-2xl font-black ${report.data.netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
                                 {formatCurrency(report.data.netProfit)}
                             </div>
                         </div>

@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform, Client } from '@/types/social';
 import { getBusinessAuditAction } from '@/app/actions/ai-actions';
+import { Avatar } from '@/components/Avatar';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   facebook: Facebook,
@@ -158,7 +159,14 @@ export default function Analytics() {
             <div key={client.id} className="bg-white p-8 rounded-[48px] border border-slate-100 shadow-xl flex flex-col gap-6 relative overflow-hidden group">
                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                     <img src={client.avatar} className="w-14 h-14 rounded-2xl shadow-lg border-2 border-white" alt={client.companyName} />
+                     <Avatar
+                       src={String(client.avatar || '')}
+                       name={String(client.companyName || client.name || '')}
+                       alt={String(client.companyName || '')}
+                       size="lg"
+                       rounded="2xl"
+                       className="shadow-lg border-2 border-white"
+                     />
                      <div>
                         <h4 className="text-xl font-black text-slate-800">{client.companyName}</h4>
                         <p className="text-[10px] font-black text-slate-400 uppercase">ריטיינר: ₪{client.monthlyFee?.toLocaleString()}</p>

@@ -1,9 +1,13 @@
-﻿import React, { memo } from 'react';
+﻿ 'use client';
+
+import React, { memo, useEffect, useState } from 'react';
 import * as Icons from 'lucide-react';
 import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { joinPath } from '@/lib/os/social-routing';
 import type { SocialNavigationItem } from '@/lib/services/social-service';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
+import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 
 // Icon mapping with default colors
 const ICON_COLORS: Record<string, string> = {
@@ -34,8 +38,6 @@ const DEFAULT_ITEMS = [
   { id: 'team', label: 'צוות', icon: 'Users', view: 'team', section: 'management', order: 1, isVisible: true },
   { id: 'collection', label: 'גבייה', icon: 'Wallet', view: 'collection', section: 'management', order: 2, isVisible: true },
   { id: 'agency-insights', label: 'תובנות', icon: 'TrendingUp', view: 'agency-insights', section: 'management', order: 3, isVisible: true },
--  { id: 'admin-panel', label: 'ניהול מערכת', icon: 'ShieldCheck', view: 'admin-panel', section: 'admin', order: 1, isVisible: true, requiresRole: ['super_admin'] },
-  { id: 'settings', label: 'הגדרות', icon: 'Settings', view: 'settings', section: 'settings', order: 1, isVisible: true },
 ];
 
 function NavigationImpl({
@@ -44,13 +46,55 @@ function NavigationImpl({
   isSidebarOpen,
   roomNameHebrew,
   gradient,
+  isTeamEnabled,
 }: {
   initialMenuItems?: SocialNavigationItem[];
   basePath: string;
   isSidebarOpen: boolean;
   roomNameHebrew?: string | null;
   gradient?: string | null;
+  isTeamEnabled?: boolean;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [hasMounted, setHasMounted] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    const clientIdFromParams = searchParams.get('clientId');
+    const clientNameFromParams = searchParams.get('clientName');
+
+    if (clientIdFromParams) {
+      setSelectedClientId(clientIdFromParams);
+      setSelectedClientName(clientNameFromParams ? decodeURIComponent(clientNameFromParams) : null);
+      try {
+        localStorage.setItem('social_active_client_id', clientIdFromParams);
+        if (clientNameFromParams) {
+          localStorage.setItem('social_active_client_name', decodeURIComponent(clientNameFromParams));
+        }
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    try {
+      const storedId = localStorage.getItem('social_active_client_id');
+      const storedName = localStorage.getItem('social_active_client_name');
+      setSelectedClientId(storedId || null);
+      setSelectedClientName(storedName || null);
+    } catch {
+      setSelectedClientId(null);
+      setSelectedClientName(null);
+    }
+  }, [hasMounted, searchParams]);
+
   const menuItems = (Array.isArray(initialMenuItems) && initialMenuItems.length > 0
     ? initialMenuItems
     : (DEFAULT_ITEMS as any)) as any[];
@@ -63,6 +107,8 @@ function NavigationImpl({
       .filter((item: any) => {
         if (item.section !== section) return false;
         if (!item.isVisible) return false;
+        if (item.view === 'settings') return false;
+        if (item.id === 'team' && isTeamEnabled === false) return false;
         return true;
       })
       .sort((a: any, b: any) => a.order - b.order);
@@ -72,6 +118,8 @@ function NavigationImpl({
   const clientItems = getFilteredItems('client', menuItems);
   const managementItems = getFilteredItems('management', menuItems);
   const settingsItems = getFilteredItems('settings', menuItems);
+
+  const hasSelectedClient = Boolean(selectedClientId);
 
   const getRouteForView = (view: string) => {
     const map: Record<string, string> = {
@@ -87,7 +135,7 @@ function NavigationImpl({
       'collection': joinPath(basePath, '/collection'),
       'agency-insights': joinPath(basePath, '/agency-insights'),
       'settings': joinPath(basePath, '/settings'),
-      'profile': joinPath(basePath, '/profile'),
+      'profile': joinPath(basePath, '/me'),
     };
     return map[view] || joinPath(basePath, '/dashboard');
   };
@@ -97,7 +145,10 @@ function NavigationImpl({
     const color = ICON_COLORS[item.icon] || 'text-slate-600';
     const href = getRouteForView(item.view);
 
-    const isActive = false;
+    const isActive =
+      hasMounted &&
+      Boolean(pathname) &&
+      (pathname === href || pathname.startsWith(`${href}/`));
 
     return (
       <Link
@@ -139,11 +190,22 @@ function NavigationImpl({
             {'S'}
           </div>
           {isSidebarOpen && (
-            <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              {roomNameHebrew || 'סושיאל OS'}
-            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-black text-2xl tracking-tighter bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent truncate">
+                Social OS
+              </span>
+              <span className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase truncate">
+                SOCIAL
+              </span>
+            </div>
           )}
         </div>
+
+        {isSidebarOpen ? (
+          <div className="px-6 py-4 border-b border-white/30">
+            <WorkspaceSwitcher className="w-full" />
+          </div>
+        ) : null}
         
         <nav className={`flex flex-col gap-2 p-4 flex-1 overflow-y-auto ${isSidebarOpen ? '' : 'w-full'}`}>
         {/* Global Items */}
@@ -159,12 +221,23 @@ function NavigationImpl({
         </div>
 
         {/* Client Section */}
-        <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
-        <div className="flex flex-col gap-1">
-          {clientItems.map((item: any) => (
-            <NavItem key={item.id} item={item} />
-          ))}
-        </div>
+        {hasSelectedClient ? (
+          <>
+            <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
+            {isSidebarOpen && (
+              <div className="px-4 mb-2">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  {selectedClientName ? `לקוח: ${selectedClientName}` : 'לקוח נבחר'}
+                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              {clientItems.map((item: any) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+            </div>
+          </>
+        ) : null}
 
         {/* Management Items */}
         <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
@@ -180,17 +253,21 @@ function NavigationImpl({
         </div>
 
         {/* Settings */}
-        <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
-        <div className="flex flex-col gap-1 mt-auto">
-          {isSidebarOpen && (
-            <span className="text-[9px] font-black text-slate-400 px-4 mb-3 uppercase tracking-widest">
-              הגדרות
-            </span>
-          )}
-          {settingsItems.map((item: any) => (
-            <NavItem key={item.id} item={item} />
-          ))}
-        </div>
+        {settingsItems.length > 0 ? (
+          <>
+            <div className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'}`}></div>
+            <div className="flex flex-col gap-1 mt-auto">
+              {isSidebarOpen && (
+                <span className="text-[9px] font-black text-slate-400 px-4 mb-3 uppercase tracking-widest">
+                  הגדרות
+                </span>
+              )}
+              {settingsItems.map((item: any) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+            </div>
+          </>
+        ) : null}
       </nav>
 
         <div>

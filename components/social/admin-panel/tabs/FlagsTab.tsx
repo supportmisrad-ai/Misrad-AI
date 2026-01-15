@@ -22,6 +22,72 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
           </div>
         </div>
         <div className="p-10 flex flex-col gap-8">
+          <div className="flex items-center justify-between p-6 bg-emerald-50 rounded-xl border border-emerald-100">
+            <div>
+              <h4 className="font-black text-slate-900 mb-1">אפשר תשלום ידני (Bit/העברה)</h4>
+              <p className="text-sm text-slate-600">כאשר פעיל, הלקוח רואה הוראות תשלום ידני ב-Checkout</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={featureFlags?.enable_payment_manual !== false}
+                onChange={async (e) => {
+                  const result = await updateFeatureFlags({ enable_payment_manual: e.target.checked });
+                  if (result.success) {
+                    addToast(e.target.checked ? 'תשלום ידני הופעל' : 'תשלום ידני בוטל', 'success');
+                    onRefresh();
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between p-6 bg-amber-50 rounded-xl border border-amber-100">
+            <div>
+              <h4 className="font-black text-slate-900 mb-1">אפשר תשלום באשראי (Yaad Pay)</h4>
+              <p className="text-sm text-slate-600">כאשר פעיל, הלקוח יראה אופציה לאשראי ב-Checkout (כרגע Placeholder)</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={featureFlags?.enable_payment_credit_card || false}
+                onChange={async (e) => {
+                  const result = await updateFeatureFlags({ enable_payment_credit_card: e.target.checked });
+                  if (result.success) {
+                    addToast(e.target.checked ? 'אשראי הופעל (Placeholder)' : 'אשראי בוטל', 'success');
+                    onRefresh();
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-between p-6 bg-slate-50 rounded-xl border border-slate-200">
+            <div>
+              <h4 className="font-black text-slate-900 mb-1">משרד מלא כולל פיננס</h4>
+              <p className="text-sm text-slate-600">כאשר פעיל, "משרד מלא" ידרוש גם מודול פיננס כדי להפעיל צוות</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={featureFlags?.fullOfficeRequiresFinance || false}
+                onChange={async (e) => {
+                  const result = await updateFeatureFlags({ fullOfficeRequiresFinance: e.target.checked });
+                  if (result.success) {
+                    addToast(e.target.checked ? 'משרד מלא עודכן לכולל פיננס' : 'משרד מלא עודכן ללא פיננס', 'success');
+                    onRefresh();
+                  }
+                }}
+                className="sr-only peer"
+              />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-900"></div>
+            </label>
+          </div>
+
           <div className="flex items-center justify-between p-6 bg-indigo-50 rounded-xl border border-indigo-100">
             <div>
               <h4 className="font-black text-slate-900 mb-1">מצב תחזוקה (Maintenance Mode)</h4>

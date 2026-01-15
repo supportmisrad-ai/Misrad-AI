@@ -29,6 +29,7 @@ export default function ClientWorkspace() {
     setPosts,
     setIsPaymentModalOpen,
     setIsClientMode,
+    setIsOnboardingMode,
     addToast,
     setIdeas,
     setClients
@@ -109,6 +110,7 @@ export default function ClientWorkspace() {
         onTogglePin={handleTogglePin}
         onCopyLink={handleCopyLink}
         onPaymentClick={() => setIsPaymentModalOpen(true)}
+        onEditClient={() => setIsOnboardingMode(true)}
         onNewPost={handlers.handleNewPost}
       />
 

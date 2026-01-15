@@ -19,9 +19,8 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/icons/nexus-icon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', type: 'image/x-icon' },
     ],
-    apple: '/icon-192.png', // Fallback until nexus-icon-192.png is created
+    apple: '/icons/nexus-icon.svg',
     shortcut: '/icons/nexus-icon.svg',
   },
   other: {

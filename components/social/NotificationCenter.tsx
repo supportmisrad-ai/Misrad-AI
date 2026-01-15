@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { getUpdatesWithStatus, AppUpdate } from '@/app/actions/updates';
-import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
+import { getSocialBasePath } from '@/lib/os/social-routing';
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -15,7 +15,6 @@ export default function NotificationCenter() {
     isNotificationCenterOpen, 
     setIsNotificationCenterOpen, 
     clients,
-    setSettingsSubView,
   } = useApp();
 
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -70,10 +69,14 @@ export default function NotificationCenter() {
     }
   };
 
-  const handleUpdateClick = (updateId: string) => {
+  const handleUpdateClick = (_updateId: string) => {
     const basePath = getSocialBasePath(pathname);
-    router.push(joinPath(basePath, '/settings'));
-    setSettingsSubView('updates');
+    const orgSlug = basePath.startsWith('/w/') ? basePath.split('/')[2] : null;
+    if (orgSlug) {
+      router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=global`);
+    } else {
+      router.push('/');
+    }
     setIsNotificationCenterOpen(false);
   };
 

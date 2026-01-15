@@ -17,7 +17,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getGoogleAuthUrl } from '@/lib/integrations/google-oauth';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         // Check if OAuth credentials are configured
         const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -86,3 +87,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

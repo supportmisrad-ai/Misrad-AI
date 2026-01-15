@@ -273,12 +273,17 @@ export async function getTasks(filters?: {
 export async function getClients(filters?: {
     clientId?: string;
     searchTerm?: string;
+    organizationId?: string;
 }): Promise<Client[]> {
     await initDatabase();
     assertDbAvailable('getClients');
     
     try {
         let query = supabase.from('nexus_clients').select('*');
+
+        if (filters?.organizationId) {
+            query = query.eq('organization_id', filters.organizationId);
+        }
     
     if (filters?.clientId) {
             query = query.eq('id', filters.clientId);
@@ -324,27 +329,46 @@ export async function getTimeEntries(filters?: {
     userId?: string;
     dateFrom?: string;
     dateTo?: string;
+    tenantId?: string;
 }): Promise<TimeEntry[]> {
     await initDatabase();
     assertDbAvailable('getTimeEntries');
     
     try {
-        let query = supabase.from('nexus_time_entries').select('*');
+        const buildBaseQuery = () => {
+            let query = supabase.from('nexus_time_entries').select('*');
+
+            if (filters?.entryId) {
+                query = query.eq('id', filters.entryId);
+            }
+            if (filters?.userId) {
+                query = query.eq('user_id', filters.userId);
+            }
+            if (filters?.dateFrom) {
+                query = query.gte('date', filters.dateFrom);
+            }
+            if (filters?.dateTo) {
+                query = query.lte('date', filters.dateTo);
+            }
+
+            return query;
+        };
+
+        const tryTenantScopedQuery = async () => {
+            if (!filters?.tenantId) {
+                return buildBaseQuery();
+            }
+
+            // Backward compatibility: organization scoping may not exist in older schemas.
+            const baseQuery = buildBaseQuery();
+            let result = await baseQuery.eq('organization_id', filters.tenantId);
+            if (result?.error?.code === '42703') {
+                return buildBaseQuery();
+            }
+            return result;
+        };
         
-        if (filters?.entryId) {
-            query = query.eq('id', filters.entryId);
-        }
-        if (filters?.userId) {
-            query = query.eq('user_id', filters.userId);
-        }
-        if (filters?.dateFrom) {
-            query = query.gte('date', filters.dateFrom);
-        }
-        if (filters?.dateTo) {
-            query = query.lte('date', filters.dateTo);
-        }
-        
-        const { data, error } = await query;
+        const { data, error } = await tryTenantScopedQuery();
         
         if (error) {
             console.error('[DB] Error fetching time entries:', error);
@@ -494,7 +518,10 @@ export async function getFinancialData(filters?: {
  */
 export async function createRecord<T extends { id: string }>(
     table: 'users' | 'tasks' | 'clients' | 'time_entries' | 'tenants',
-    data: Omit<T, 'id'>
+    data: Omit<T, 'id'>,
+    options?: {
+        organizationId?: string;
+    }
 ): Promise<T> {
     await initDatabase();
     assertDbAvailable('createRecord');
@@ -581,6 +608,10 @@ export async function createRecord<T extends { id: string }>(
                 assets_folder_url: clientData.assetsFolderUrl,
                 source: clientData.source,
             };
+
+            if (options?.organizationId) {
+                dbData.organization_id = options.organizationId;
+            }
         } else if (table === 'time_entries') {
             const entryData = data as unknown as Omit<TimeEntry, 'id'>;
             dbData = {
@@ -593,6 +624,10 @@ export async function createRecord<T extends { id: string }>(
                 voided_by: entryData.voidedBy,
                 voided_at: entryData.voidedAt,
             };
+
+            if (options?.organizationId) {
+                dbData.organization_id = options.organizationId;
+            }
         } else if (table === 'tenants') {
             const tenantData = data as unknown as Omit<Tenant, 'id'>;
             dbData = {
@@ -711,7 +746,10 @@ export async function createRecord<T extends { id: string }>(
 export async function updateRecord<T extends { id: string }>(
     table: 'users' | 'tasks' | 'clients' | 'time_entries' | 'tenants',
     id: string,
-    updates: Partial<T>
+    updates: Partial<T>,
+    options?: {
+        organizationId?: string;
+    }
 ): Promise<T> {
     await initDatabase();
     assertDbAvailable('updateRecord');
@@ -800,12 +838,20 @@ export async function updateRecord<T extends { id: string }>(
         // Map table names to actual database table names
         const dbTableName = TABLE_NAME_MAP[table] || table;
         
-        const { data: updatedData, error } = await supabase
+        let updateQuery = supabase
             .from(dbTableName)
             .update(dbUpdates)
-            .eq('id', id)
-            .select()
-            .single();
+            .eq('id', id);
+
+        if (table === 'clients' && options?.organizationId) {
+            updateQuery = updateQuery.eq('organization_id', options.organizationId);
+        }
+
+        if (table === 'time_entries' && options?.organizationId) {
+            updateQuery = updateQuery.eq('organization_id', options.organizationId);
+        }
+
+        const { data: updatedData, error } = await updateQuery.select().single();
         
         if (error) {
             console.error(`[DB] Error updating ${table}:`, error);

@@ -8,9 +8,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { uploadFile } from '../../../../lib/storage';
+import { createClient } from '@/lib/supabase';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -40,20 +41,52 @@ export async function POST(request: NextRequest) {
         }
 
         // 4. Upload file
-        const result = await uploadFile(file, bucket, folder, userId);
+        const supabase = createClient();
 
-        if (result.error) {
+        const timestamp = Date.now();
+        const randomStr = Math.random().toString(36).substring(2, 15);
+        const fileExtension = file.name.split('.').pop() || 'bin';
+        const fileName = `${timestamp}-${randomStr}.${fileExtension}`;
+
+        let filePath = '';
+        if (userId && folder) {
+            filePath = `${userId}/${folder}/${fileName}`;
+        } else if (userId) {
+            filePath = `${userId}/${fileName}`;
+        } else if (folder) {
+            filePath = `${folder}/${fileName}`;
+        } else {
+            filePath = fileName;
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const fileData = new Uint8Array(arrayBuffer);
+
+        const { error: uploadError } = await supabase.storage
+            .from(bucket)
+            .upload(filePath, fileData, {
+                contentType: file.type || 'application/octet-stream',
+                upsert: false,
+            });
+
+        if (uploadError) {
             return NextResponse.json(
-                { error: result.error },
+                { error: uploadError.message },
                 { status: 500 }
             );
         }
 
+        const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(filePath);
+
+        const publicUrl = urlData?.publicUrl || '';
+
         // 5. Return success with file info
         return NextResponse.json({
             success: true,
-            url: result.url,
-            path: result.path,
+            url: publicUrl,
+            path: filePath,
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type
@@ -68,3 +101,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

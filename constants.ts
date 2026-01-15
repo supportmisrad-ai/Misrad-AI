@@ -45,6 +45,7 @@ export const SYSTEM_SCREENS: ScreenDefinition[] = [
     { id: 'settings_departments', label: 'מחלקות', category: 'settings' },
     { id: 'settings_roles', label: 'תפקידים והרשאות', category: 'settings' },
     { id: 'settings_data', label: 'גיבוי ושחזור', category: 'settings' },
+    { id: 'settings_ai_dna', label: 'DNA עסקי ל-AI', category: 'settings' },
 ];
 
 // USERS, TASKS, CLIENTS, TENANTS, LEADS, ASSETS, TEMPLATES, CONTENT_ITEMS removed
@@ -123,71 +124,65 @@ export const DEFAULT_WORKFLOW: WorkflowStage[] = [
 
 // Translated Product Names with Features
 export const DEFAULT_PRODUCTS: Product[] = [
-    { 
-        id: 'prod_saas_starter', 
-        name: 'חבילת בסיס', 
-        price: 199, 
-        color: 'bg-gray-500 text-white',
-        modules: ['crm', 'team'],
-        maxUsers: 5,
-        maxStorageGB: 10,
-        maxClients: 50,
-        maxTasks: 500,
-        maxLeads: 100,
-        maxApiCalls: 1000,
-        maxIntegrations: 2,
-        allowCustomBranding: false,
-        allowApiAccess: false,
-        allowWebhooks: false,
-        allowExport: false,
-        allowAdvancedReports: false,
-        allowAiFeatures: false,
-        allowPrioritySupport: false,
-        features: ['CRM בסיסי', 'ניהול צוות עד 5 משתמשים', '10GB אחסון', 'עד 50 לקוחות']
+    {
+        id: 'prod_system_single',
+        name: 'System · מודול בודד',
+        price: 149,
+        color: 'bg-rose-600 text-white',
+        modules: ['crm'],
+        maxUsers: 1,
+        maxStorageGB: 5,
+        features: ['מודול בודד', 'משתמש אחד', 'לידים ומכירות']
     },
-    { 
-        id: 'prod_saas_pro', 
-        name: 'חבילת פרו', 
-        price: 499, 
+    {
+        id: 'prod_client_single',
+        name: 'Client · מודול בודד',
+        price: 149,
+        color: 'bg-amber-500 text-slate-900',
+        modules: ['team'],
+        maxUsers: 1,
+        maxStorageGB: 5,
+        features: ['מודול בודד', 'משתמש אחד', 'ניהול לקוחות']
+    },
+    {
+        id: 'prod_social_single',
+        name: 'Social · מודול בודד',
+        price: 149,
         color: 'bg-blue-600 text-white',
-        modules: ['crm', 'finance', 'team', 'ai'],
-        maxUsers: 20,
-        maxStorageGB: 100,
-        maxClients: 500,
-        maxTasks: 5000,
-        maxLeads: 1000,
-        maxApiCalls: 10000,
-        maxIntegrations: 5,
-        allowCustomBranding: true,
-        allowApiAccess: true,
-        allowWebhooks: true,
-        allowExport: true,
-        allowAdvancedReports: true,
-        allowAiFeatures: true,
-        allowPrioritySupport: false,
-        features: ['כל התכונות של בסיס', 'כספים ודוחות', 'Nexus AI', 'עד 20 משתמשים', '100GB אחסון', 'מותאם אישית', 'API access']
+        modules: ['content'],
+        maxUsers: 1,
+        maxStorageGB: 5,
+        features: ['מודול בודד', 'משתמש אחד', 'סושיאל']
     },
-    { 
-        id: 'prod_saas_ent', 
-        name: 'חבילת ארגונים', 
-        price: 1500, 
-        color: 'bg-purple-600 text-white',
-        modules: ['crm', 'finance', 'team', 'ai', 'content'],
-        maxUsers: 999,
-        maxStorageGB: 1000,
-        maxClients: undefined, // Unlimited
-        maxTasks: undefined,
-        maxLeads: undefined,
-        maxApiCalls: undefined,
-        maxIntegrations: undefined,
-        allowCustomBranding: true,
-        allowApiAccess: true,
-        allowWebhooks: true,
-        allowExport: true,
-        allowAdvancedReports: true,
-        allowAiFeatures: true,
-        allowPrioritySupport: true,
-        features: ['כל התכונות', 'משתמשים ללא הגבלה', '1TB אחסון', 'תמיכה 24/7', 'API מותאם אישית', 'Webhooks', 'דוחות מתקדמים']
+    {
+        id: 'prod_nexus_single',
+        name: 'Nexus · מודול בודד',
+        price: 149,
+        color: 'bg-slate-900 text-white',
+        modules: ['crm', 'team'],
+        maxUsers: 1,
+        maxStorageGB: 5,
+        features: ['מודול בודד', 'משתמש אחד', 'ניהול עסק']
+    },
+    {
+        id: 'prod_combo',
+        name: 'Combo · 2 מודולים',
+        price: 249,
+        color: 'bg-indigo-600 text-white',
+        modules: ['crm', 'team'],
+        maxUsers: 1,
+        maxStorageGB: 10,
+        features: ['בחר 2 מודולים מתוך 4', 'כניסה אחת', 'סנכרון בין מודולים']
+    },
+    {
+        id: 'prod_full_office',
+        name: 'משרד מלא · 4 מודולים',
+        price: 349,
+        color: 'bg-indigo-600 text-white',
+        modules: ['crm', 'team', 'content', 'finance', 'ai', 'assets'],
+        maxUsers: 5,
+        maxStorageGB: 100,
+        features: ['4 מודולים', 'כולל 5 משתמשים', '+₪39 לכל מושב נוסף']
     },
 ];
 

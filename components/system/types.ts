@@ -291,6 +291,11 @@ export interface CallAnalysisResult {
   summary: string;
   score: number;
   intent: 'buying' | 'window_shopping' | 'angry' | 'churn_risk';
+  objections?: {
+    objection: string;
+    reply: string;
+    next_question?: string;
+  }[];
   transcript: {
     speaker: 'Agent' | 'Customer';
     text: string;

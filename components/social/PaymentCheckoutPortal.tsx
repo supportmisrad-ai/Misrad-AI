@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, CreditCard, ChevronLeft, CheckCircle2, Lock, Loader2, X } from 'lucide-react';
 import { PaymentOrder, Client } from '@/types/social';
+import { Avatar } from '@/components/Avatar';
 import { processPayment } from '@/app/actions/payments';
 
 interface PaymentCheckoutPortalProps {
@@ -107,7 +108,14 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
           <div className="flex flex-col gap-2 mt-4">
             <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">עבור העסק:</p>
             <div className="flex items-center gap-4">
-              <img src={client.avatar} className="w-12 h-12 rounded-2xl border-2 border-white/20" alt={client.companyName} />
+              <Avatar
+                src={String(client.avatar || '')}
+                name={String(client.companyName || client.name || '')}
+                alt={String(client.companyName || '')}
+                size="lg"
+                rounded="2xl"
+                className="border-2 border-white/20"
+              />
               <h2 className="text-2xl font-black">{client.companyName}</h2>
             </div>
           </div>

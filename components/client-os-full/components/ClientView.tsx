@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { UPSELL_CATALOG } from '../constants';
 import { HealthStatus, JourneyStage, UpsellItem, AssignedForm, Opportunity, AutomationSequence, ScheduledAutomation, Meeting, SuccessGoal, ClientStatus, ClientType, Client, ROIRecord } from '../types';
 import { generateClientInsight } from '../services/geminiService';
@@ -20,6 +21,7 @@ import { createClinicClient } from '@/app/actions/client-clinic';
 
 const ClientView: React.FC = () => {
   const { clients: contextClients, meetings: contextMeetings, refreshClients } = useNexus();
+  const searchParams = useSearchParams();
   const [clients, setClients] = useState<Client[]>(contextClients);
   const [viewMode, setViewMode] = useState<'LIST' | 'DETAIL'>('LIST');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -60,6 +62,20 @@ const ClientView: React.FC = () => {
   useEffect(() => {
     setClients(contextClients);
   }, [contextClients]);
+
+  useEffect(() => {
+    const tab = searchParams?.get('tab');
+    const meetingId = searchParams?.get('meetingId');
+    if (tab !== 'meetings' || !meetingId) return;
+
+    const meeting = contextMeetings.find((m) => String(m.id) === String(meetingId));
+    if (!meeting?.clientId) return;
+
+    setSelectedClientId(String(meeting.clientId));
+    setViewMode('DETAIL');
+    setActiveTab('meetings');
+    setExpandedMeetingId(String(meetingId));
+  }, [contextMeetings, searchParams]);
 
   useEffect(() => {
     if (client) {

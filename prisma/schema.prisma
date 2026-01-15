@@ -2732,6 +2732,7 @@ model social_organizations {
   social_clients          social_clients[]
   social_team_members     social_team_members[]
   social_users            social_users[]
+  profiles                Profile[]
   customerAccounts        CustomerAccount[]
   systemLeads             SystemLead[]
   nexusClients            NexusClient[]
@@ -3048,6 +3049,35 @@ model social_users {
   @@index([clerk_user_id], map: "idx_users_clerk_user_id")
   @@index([organization_id], map: "users_organization_id_idx")
   @@index([role], map: "users_role_idx")
+}
+
+model Profile {
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId          String              @map("organization_id") @db.Uuid
+  clerkUserId             String              @map("clerk_user_id")
+  email                   String?
+  fullName                String?             @map("full_name")
+  avatarUrl               String?             @map("avatar_url")
+
+  phone                   String?
+  location                String?
+  bio                     String?
+
+  notificationPreferences Json?               @default("{}") @map("notification_preferences")
+  twoFactorEnabled        Boolean?            @default(false) @map("two_factor_enabled")
+  uiPreferences           Json?               @default("{}") @map("ui_preferences")
+  socialProfile           Json?               @default("{}") @map("social_profile")
+  billingInfo             Json?               @default("{}") @map("billing_info")
+
+  createdAt               DateTime?           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime?           @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  organization            social_organizations @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@unique([organizationId, clerkUserId], map: "profiles_org_clerk_key")
+  @@index([organizationId], map: "profiles_organization_id_idx")
+  @@index([clerkUserId], map: "profiles_clerk_user_id_idx")
+  @@map("profiles")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

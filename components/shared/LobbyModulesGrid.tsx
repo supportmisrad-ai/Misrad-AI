@@ -7,6 +7,7 @@ import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
 import { OS_METADATA } from '@/lib/metadata';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
+import { OS_MODULES } from '@/types/os-modules';
 
 export default function LobbyModulesGrid({
   orgSlug,
@@ -18,7 +19,8 @@ export default function LobbyModulesGrid({
   const router = useRouter();
   const [locked, setLocked] = useState<OSModuleKey | null>(null);
 
-  const ordered: OSModuleKey[] = ['nexus', 'system', 'social', 'finance', 'client'];
+  const allKeys = OS_MODULES.map((m) => m.id as OSModuleKey);
+  const ordered: OSModuleKey[] = ['nexus', ...allKeys.filter((k) => k !== 'nexus')];
 
   return (
     <>

@@ -11,8 +11,12 @@ import { getUsers } from '../../../../lib/db';
 import { supabase } from '../../../../lib/supabase';
 import { getBaseUrl } from '../../../../lib/utils';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { countOrganizationActiveUsers } from '@/lib/server/seats';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
 
@@ -68,6 +72,50 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        let seatUsage: { activeUsers: number; seatsAllowed: number } | null = null;
+        if (workspace?.id) {
+            const ws = await requireWorkspaceAccessByOrgSlugApi(workspace.id);
+            const flags = await getSystemFeatureFlags();
+
+            let seatsAllowedOverride: number | null = null;
+            try {
+                const { data: orgSeatsRow, error: orgSeatsError } = await supabase
+                    .from('organizations')
+                    .select('seats_allowed')
+                    .eq('id', workspace.id)
+                    .maybeSingle();
+
+                if (!orgSeatsError) {
+                    seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+                }
+
+                if (orgSeatsError?.message) {
+                    const msg = String(orgSeatsError.message).toLowerCase();
+                    if (msg.includes('column') && msg.includes('seats_allowed')) {
+                        seatsAllowedOverride = null;
+                    }
+                }
+            } catch {
+                seatsAllowedOverride = null;
+            }
+
+            const caps = computeWorkspaceCapabilities({
+                entitlements: (ws as any)?.entitlements,
+                fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+                seatsAllowedOverride,
+            });
+
+            if (!caps.isTeamManagementEnabled) {
+                return NextResponse.json(
+                    { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                    { status: 403 }
+                );
+            }
+
+            const activeUsers = await countOrganizationActiveUsers(String(workspace.id));
+            seatUsage = { activeUsers, seatsAllowed: caps.seatsAllowed };
+        }
+
         // 4. Build query
         let query = supabase
             .from('nexus_employee_invitation_links')
@@ -121,7 +169,8 @@ export async function GET(request: NextRequest) {
         }));
 
         return NextResponse.json({
-            invitations: invitationsWithUrls
+            invitations: invitationsWithUrls,
+            seatUsage,
         });
 
     } catch (error: any) {
@@ -132,3 +181,5 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);

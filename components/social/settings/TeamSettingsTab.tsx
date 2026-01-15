@@ -9,6 +9,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { getTeamRoleDisplayName } from '@/lib/roleTranslations';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { Avatar } from '@/components/Avatar';
 
 interface TeamSettingsTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -208,7 +209,14 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                     <div key={member.id} className="p-6 bg-slate-50/50 rounded-[32px] border border-slate-100 flex flex-col gap-4 group hover:bg-white hover:shadow-lg transition-all">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <img src={member.avatar} className="w-12 h-12 rounded-2xl shadow-sm" alt={member.name} />
+                          <Avatar
+                            src={String(member.avatar || '')}
+                            name={String(member.name || '')}
+                            alt={String(member.name || '')}
+                            size="lg"
+                            rounded="2xl"
+                            className="shadow-sm"
+                          />
                           <div className="flex-1">
                             {isEditing ? (
                               <div className="flex flex-col gap-2">

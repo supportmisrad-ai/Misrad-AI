@@ -111,7 +111,7 @@ function CheckoutContent() {
         throw new Error('שגיאה ביצירת חשבון');
       }
 
-      router.push(`/checkout/success?plan=${plan}`);
+      router.push(`/subscribe/checkout`);
     } catch (err: any) {
       setError(err.message || 'אירעה שגיאה. אנא נסה שוב.');
       setIsProcessing(false);

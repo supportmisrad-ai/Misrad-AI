@@ -10,7 +10,8 @@ import { getAuthenticatedUser, isTenantAdmin, getOwnedTenant } from '../../../..
 import { getUsers, createRecord } from '../../../../lib/db';
 import { User } from '../../../../types';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Get authenticated Clerk user
         let clerkUser;
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET endpoint to check sync status
  */
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         // 1. Get authenticated Clerk user
         let clerkUser;
@@ -226,3 +227,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

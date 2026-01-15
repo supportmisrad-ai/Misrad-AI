@@ -5,6 +5,7 @@ import { OSModuleKey } from '@/lib/os/modules/types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 type LastLocationPayload = {
   orgSlug?: string | null;
   module?: OSModuleKey | null;
@@ -46,7 +47,7 @@ async function safeUpdateLastLocation({
   }
 }
 
-export async function GET() {
+async function GETHandler() {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -84,7 +85,7 @@ export async function GET() {
   });
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -114,3 +115,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

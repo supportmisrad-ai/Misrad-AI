@@ -181,10 +181,10 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
             {isLoading ? (
                 <div className="text-center py-12 text-slate-400">טוען...</div>
             ) : announcements.length === 0 ? (
-                <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-12 text-center">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-12 text-center shadow-xl">
                     <MessageSquare size={48} className="mx-auto mb-4 text-slate-500" />
-                    <p className="text-slate-400 mb-2">אין הודעות פעילות</p>
-                    <p className="text-sm text-slate-500">צור הודעה חדשה כדי לשלוח התראה למשתמשים</p>
+                    <p className="text-slate-900 font-bold mb-2">אין הודעות פעילות</p>
+                    <p className="text-sm text-slate-600">צור הודעה חדשה כדי לשלוח התראה למשתמשים</p>
                 </div>
             ) : (
                 <div className="space-y-3">

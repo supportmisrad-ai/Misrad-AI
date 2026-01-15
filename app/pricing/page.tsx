@@ -1,7 +1,7 @@
-import PricingPage from '@/components/social/PricingPage';
+import PricingPageClient from './PricingPageClient';
 
 export const dynamic = 'force-dynamic';
 
 export default function Pricing() {
-  return <PricingPage />;
+  return <PricingPageClient />;
 }

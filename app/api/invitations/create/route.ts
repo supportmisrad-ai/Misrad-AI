@@ -11,7 +11,8 @@ import { getUsers } from '../../../../lib/db';
 import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
 import { supabase } from '../../../../lib/supabase';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         let clerkUser;
@@ -136,3 +137,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

@@ -38,25 +38,25 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={e => e.stopPropagation()}
-            className="bg-[#020617] border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl relative"
+            className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-4xl w-full shadow-2xl relative"
             dir="rtl"
           >
             <button 
               onClick={onClose}
-              className="absolute top-4 left-4 sm:top-6 sm:left-6 text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800 transition-colors z-10"
+              className="absolute top-4 left-4 sm:top-6 sm:left-6 text-slate-500 hover:text-slate-900 p-2 rounded-lg hover:bg-slate-100 transition-colors z-10"
             >
               <X size={24} />
             </button>
 
             <div className="text-center mb-6">
-              <h3 className="text-2xl sm:text-3xl font-black text-white mb-2">צפה בדמו</h3>
-              <p className="text-slate-400 text-sm sm:text-base">
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">צפה בדמו</h3>
+              <p className="text-slate-600 text-sm sm:text-base">
                 {demoVideoUrl ? 'סרטון הסבר על Misrad' : 'דמו אינטראקטיבי של המערכת'}
               </p>
             </div>
 
             {demoVideoUrl ? (
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 mb-6">
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 mb-6">
                 <iframe
                   src={demoVideoUrl}
                   className="w-full h-full"
@@ -66,20 +66,20 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
               </div>
             ) : (
               <div className="space-y-6 mb-6">
-                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-slate-800 flex items-center justify-center">
+                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-50 to-purple-50 border border-slate-200 flex items-center justify-center">
                   <div className="text-center p-8">
                     <Play size={64} className="text-indigo-400 mx-auto mb-4" fill="currentColor" />
-                    <p className="text-slate-400 text-lg mb-6">סרטון הסבר יופיע כאן</p>
+                    <p className="text-slate-700 text-lg mb-6">סרטון הסבר יופיע כאן</p>
                     <p className="text-slate-500 text-sm">ניתן להוסיף סרטון דרך פאנל האדמין</p>
                   </div>
                 </div>
                 
-                <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                  <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                  <h4 className="text-slate-900 font-bold mb-4 flex items-center gap-2">
                     <Sparkles size={18} className="text-indigo-400" />
                     או צפה בדמו אינטראקטיבי
                   </h4>
-                  <p className="text-slate-400 text-sm mb-4">
+                  <p className="text-slate-600 text-sm mb-4">
                     גלול למטה לסקשן "פיצ'רים" כדי לראות דמואים חיים של המערכת בפעולה.
                   </p>
                   <button
@@ -95,7 +95,7 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
             <div className="flex flex-col sm:flex-row gap-3 justify-end">
               <button
                 onClick={onClose}
-                className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
+                className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all"
               >
                 סגור
               </button>

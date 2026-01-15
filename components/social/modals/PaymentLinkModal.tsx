@@ -5,6 +5,7 @@ import { X, DollarSign, Link as LinkIcon, Copy, Check, Send, User, CreditCard } 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { PaymentOrder } from '@/types/social';
+import { Avatar } from '@/components/Avatar';
 
 export default function PaymentLinkModal() {
   const { 
@@ -144,7 +145,13 @@ export default function PaymentLinkModal() {
                             selectedClientId === c.id ? 'border-slate-900 bg-slate-50' : 'border-slate-100'
                           }`}
                         >
-                          <img src={c.avatar} className="w-8 h-8 rounded-lg" alt={c.companyName} />
+                          <Avatar
+                            src={String(c.avatar || '')}
+                            name={String(c.companyName || c.name || '')}
+                            alt={String(c.companyName || '')}
+                            size="md"
+                            rounded="lg"
+                          />
                           <span className="font-black text-sm">{c.companyName}</span>
                         </button>
                       ))}

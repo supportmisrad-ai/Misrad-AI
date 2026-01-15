@@ -1,35 +1,29 @@
 import { useState, useEffect, useRef } from 'react';
-import { useChat } from '@ai-sdk/react';
 import { useData } from '@/context/DataContext';
 import { Lead } from '@/types';
 import { NAV_ITEMS, QUICK_ASSETS } from '@/constants';
 import { CommandPaletteMode } from './command-palette.types';
+import { useAIModuleChat } from './useAIModuleChat';
 
 export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
   const { addToast } = useData();
   const [query, setQuery] = useState('');
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null!);
+  const messagesEndRef = useRef<HTMLDivElement>(null!);
   const lastQueryRef = useRef<string>('');
 
-  // Use streaming chat API
-  const { messages, sendMessage, isLoading: isThinking, error } = useChat({
-    api: '/api/chat',
-    onError: (error) => {
-      console.error('Chat error:', error);
-      addToast('שגיאה בצ\'אט: ' + (error.message || 'בעיה בהתחברות לשרת'), 'error');
-    },
-    onResponse: (response) => {
-      if (!response.ok) {
-        console.error('Chat API response not OK:', response.status, response.statusText);
-        if (response.status === 401) {
-          addToast('אינך מורשה לשימוש בצ\'אט. נא להתחבר מחדש.', 'error');
-        } else if (response.status === 500) {
-          addToast('שגיאת שרת. בדוק את הגדרות ה-AI.', 'error');
-        }
-      }
+  const {
+    messages,
+    isLoading: isThinking,
+    error,
+    sendText,
+  } = useAIModuleChat({ moduleOverride: 'nexus' });
+
+  useEffect(() => {
+    if (error) {
+      addToast('שגיאה בצ\'אט: ' + (error?.message || 'בעיה בהתחברות לשרת'), 'error');
     }
-  });
+  }, [addToast, error]);
 
   // Auto-focus when modal opens or mode changes
   useEffect(() => {
@@ -104,7 +98,7 @@ export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
     const filteredLeads = leads.filter(lead => 
       lead.name.toLowerCase().includes(query.toLowerCase()) ||
       lead.company?.toLowerCase().includes(query.toLowerCase()) ||
-      lead.phone.includes(query)
+      (lead.phone || '').includes(query)
     ).slice(0, 5);
 
     const filteredAssets = QUICK_ASSETS.filter(asset => 
@@ -118,14 +112,14 @@ export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
   const handleSendMessage = () => {
     if (mode === 'chat') {
       if (query.trim().length >= 1 && !isThinking) {
-        sendMessage({ text: query });
+        sendText(query);
         setQuery('');
         lastQueryRef.current = '';
       }
     } else {
       if (query.trim().length >= 2 && query !== lastQueryRef.current) {
         lastQueryRef.current = query;
-        sendMessage({ text: query });
+        sendText(query);
       }
     }
   };
@@ -142,7 +136,7 @@ export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
     extractMessageText,
     getFilteredResults,
     handleSendMessage,
-    sendMessage
+    sendText
   };
 }
 

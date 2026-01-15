@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Shield, LayoutGrid, Lock, BrainCircuit, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image as ImageIcon, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Shield, LayoutGrid, Lock, BrainCircuit, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image as ImageIcon, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
 import { Tenant, GeneratedReport, ModuleId, SystemScreenStatus, Product } from '../types';
 import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
@@ -28,18 +28,25 @@ import { SupportTicketsPanel } from '../components/saas/SupportTicketsPanel';
 import { FeatureRequestsPanel } from '../components/saas/FeatureRequestsPanel';
 import { LandingPageVideosPanel } from '../components/saas/LandingPageVideosPanel';
 import { LandingPageLogoPanel } from '../components/saas/LandingPageLogoPanel';
+import { GlobalBrandingPanel } from '../components/saas/GlobalBrandingPanel';
 import { PartnersLogosPanel } from '../components/saas/PartnersLogosPanel';
 import { FounderImagePanel } from '../components/saas/FounderImagePanel';
 import { AnnouncementsPanel } from '../components/saas/AnnouncementsPanel';
 import { LandingPaymentLinksPanel } from '../components/saas/LandingPaymentLinksPanel';
+import { AiBrainPanel } from '../components/saas/AiBrainPanel';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { IntegrationsTab } from '../components/saas/social/tabs/IntegrationsTab';
+import { AutomationTab } from '../components/saas/social/tabs/AutomationTab';
+import { QuotasTab } from '../components/saas/social/tabs/QuotasTab';
+import { TeamTab } from '../components/saas/social/tabs/TeamTab';
 
 type SystemType = 'global' | 'nexus' | 'system' | 'client' | 'landing' | 'social' | null;
-type GlobalTab = 'control' | 'versions' | 'data' | 'updates' | 'approvals' | 'users' | 'announcements';
+type GlobalTab = 'control' | 'ai' | 'versions' | 'data' | 'updates' | 'approvals' | 'users' | 'announcements';
 type NexusTab = 'control' | 'tenants' | 'intelligence' | 'invitations' | 'announcements';
 type SystemOSTab = 'control' | 'announcements';
 type ClientTab = 'support' | 'features' | 'announcements';
-type LandingTab = 'pricing' | 'payment_links' | 'videos' | 'logo' | 'partners' | 'founder' | 'announcements';
+type LandingTab = 'pricing' | 'payment_links' | 'videos' | 'logo' | 'branding' | 'partners' | 'founder' | 'announcements';
+type SocialTab = 'overview' | 'team' | 'integrations' | 'quotas' | 'automation' | 'features' | 'updates';
 
 export const SaaSAdminView: React.FC = () => {
     const { tenants, addTenant, updateTenant, deleteTenant, products, feedbacks, systemReports, markReportRead, addToast, switchToTenantConfig, organization, updateSystemFlag, userApprovalRequests, approveUserRequest, rejectUserRequest, addAllowedEmail, removeAllowedEmail, currentUser, availableVersions, updateTenantVersion } = useData();
@@ -49,6 +56,7 @@ export const SaaSAdminView: React.FC = () => {
     const [systemOSTab, setSystemOSTab] = useState<SystemOSTab>('control');
     const [clientTab, setClientTab] = useState<ClientTab>('support');
     const [landingTab, setLandingTab] = useState<LandingTab>('pricing');
+    const [socialTab, setSocialTab] = useState<SocialTab>('overview');
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoadingTenants, setIsLoadingTenants] = useState(false);
     
@@ -57,9 +65,52 @@ export const SaaSAdminView: React.FC = () => {
     const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
     const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
     const [selectedReport, setSelectedReport] = useState<GeneratedReport | null>(null);
+    const [isMarketingLinksOpen, setIsMarketingLinksOpen] = useState(false);
+    const [marketingLinksCopied, setMarketingLinksCopied] = useState(false);
     
     const { navigate } = useNexusNavigation();
     const searchParams = useSearchParams();
+
+    const socialTenantOptions = useMemo(() => {
+        const list = Array.isArray(tenants) ? tenants : [];
+        const seen = new Set<string>();
+        return list.filter((t: any) => {
+            const id = String(t?.id || '');
+            if (!id) return false;
+            if (seen.has(id)) return false;
+            seen.add(id);
+            return true;
+        });
+    }, [tenants]);
+
+    const [selectedSocialTenantId, setSelectedSocialTenantId] = useState<string>(() => {
+        const first = socialTenantOptions[0];
+        return first?.id ? String(first.id) : '';
+    });
+
+    useEffect(() => {
+        if (selectedSocialTenantId) return;
+        const first = socialTenantOptions[0];
+        if (first?.id) {
+            setSelectedSocialTenantId(String(first.id));
+        }
+    }, [selectedSocialTenantId, socialTenantOptions]);
+
+    const selectedSocialTenant = useMemo(() => {
+        return socialTenantOptions.find((t: any) => String(t.id) === String(selectedSocialTenantId)) || null;
+    }, [selectedSocialTenantId, socialTenantOptions]);
+
+    useEffect(() => {
+        try {
+            const system = searchParams?.get('system');
+            const allowed: Array<SystemType> = ['global', 'nexus', 'system', 'client', 'landing', 'social'];
+            if (allowed.includes(system as SystemType)) {
+                setSelectedSystem(system as SystemType);
+            }
+        } catch {
+            // ignore
+        }
+    }, [searchParams]);
 
     const getReturnToPath = () => {
         try {
@@ -75,6 +126,42 @@ export const SaaSAdminView: React.FC = () => {
             // ignore
         }
         return '/';
+    };
+
+    const getBaseUrl = () => {
+        if (typeof window === 'undefined') return '';
+        return window.location.origin;
+    };
+
+    const getMarketingLinks = () => {
+        return [
+            { label: 'Social · דף נחיתה', path: '/social' },
+            { label: 'Pricing · מחירון', path: '/pricing' },
+            { label: 'Subscribe · Checkout', path: '/subscribe/checkout' },
+            { label: 'System · דף שיווק', path: '/system' },
+            { label: 'Client · דף שיווק', path: '/client' },
+        ];
+    };
+
+    const toAbsoluteUrl = (path: string) => {
+        const base = getBaseUrl();
+        if (!base) return path;
+        return `${base}${path}`;
+    };
+
+    const handleCopyMarketingLinks = async () => {
+        const links = getMarketingLinks();
+        const text = links.map((l) => `${l.label}: ${toAbsoluteUrl(l.path)}`).join('\n');
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+            setMarketingLinksCopied(true);
+            setTimeout(() => setMarketingLinksCopied(false), 2000);
+            addToast('הועתק ללוח', 'success');
+        } catch (error) {
+            console.error('[SaaSAdmin] Failed to copy marketing links:', error);
+            addToast('שגיאה בהעתקה', 'error');
+        }
     };
     
     // Load tenants from API on mount
@@ -317,22 +404,13 @@ export const SaaSAdminView: React.FC = () => {
         setSelectedReport(report);
     };
 
-    const getSocialAdminUrl = () => {
-        if (typeof window === 'undefined') return '/social/admin?mode=super';
-        const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
-        if (orgSlug) return `/w/${encodeURIComponent(orgSlug)}/social/admin?mode=super`;
-        return '/social/admin?mode=super';
-    };
-
-    const socialAdminUrl = getSocialAdminUrl();
-
     return (
-        <div className="flex h-screen w-full bg-gradient-to-br from-[#0a0a0a] via-[#0f0f1a] to-[#0a0a0a] text-slate-200 font-sans relative overflow-hidden" dir="rtl">
+        <div className="flex h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-slate-900 font-sans relative overflow-hidden" dir="rtl">
             {/* Animated Background Elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 -right-1/4 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 -left-1/4 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-blue-500/3 rounded-full blur-3xl"></div>
+                <div className="absolute top-0 -right-1/4 w-[800px] h-[800px] bg-indigo-200/40 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-0 -left-1/4 w-[600px] h-[600px] bg-purple-200/40 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-blue-100/40 rounded-full blur-3xl"></div>
             </div>
             
             {/* Modals */}
@@ -363,19 +441,19 @@ export const SaaSAdminView: React.FC = () => {
             </AnimatePresence>
 
             {/* Sidebar - Premium Glassmorphic */}
-            <aside className="w-64 border-l border-white/10 bg-gradient-to-b from-black/60 via-black/40 to-black/60 backdrop-blur-3xl flex flex-col h-screen relative z-20 shrink-0 shadow-2xl shadow-black/50 overflow-hidden">
+            <aside className="w-64 border-l border-slate-200/70 bg-white/80 backdrop-blur-3xl flex flex-col h-screen relative z-20 shrink-0 shadow-2xl shadow-slate-200/60 overflow-hidden">
                 {/* Animated gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none"></div>
                 
                 {/* Header - Fixed at top */}
                 <div className="pt-6 pb-4 px-2 shrink-0 relative z-10">
-                    <div className="flex items-center gap-2 text-indigo-400 font-bold uppercase tracking-wider text-xs mb-2">
-                        <div className="p-1.5 bg-indigo-500/20 rounded-lg backdrop-blur-sm border border-indigo-500/30">
+                    <div className="flex items-center gap-2 text-indigo-700 font-bold uppercase tracking-wider text-xs mb-2">
+                        <div className="p-1.5 bg-indigo-50 rounded-lg backdrop-blur-sm border border-indigo-200">
                             <Shield size={12} />
                         </div>
                         ניהול-על
                     </div>
-                    <h1 className="text-2xl font-black text-white tracking-tight bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
                         ענן משרד
                     </h1>
                     <div className="mt-2 h-0.5 w-16 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"></div>
@@ -388,8 +466,8 @@ export const SaaSAdminView: React.FC = () => {
                         onClick={() => setSelectedSystem(selectedSystem === 'global' ? null : 'global')} 
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                             selectedSystem === 'global' 
-                                ? 'text-white bg-emerald-600/80 border border-emerald-500/50' 
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                                ? 'text-emerald-800 bg-emerald-50 border border-emerald-200' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                         }`}
                     >
                         <Globe size={18} /> 
@@ -402,6 +480,7 @@ export const SaaSAdminView: React.FC = () => {
                         <div className="space-y-1 pr-4 pt-2">
                             {[
                                 { id: 'control' as GlobalTab, label: 'בקרת מערכת', icon: Lock },
+                                { id: 'ai' as GlobalTab, label: 'מוח ה-AI', icon: BrainCircuit },
                                 { id: 'users' as GlobalTab, label: 'ניהול משתמשים', icon: Users },
                                 { id: 'announcements' as GlobalTab, label: 'הודעות מערכת', icon: MessageSquare },
                                 { id: 'versions' as GlobalTab, label: 'ניהול גרסאות', icon: Code },
@@ -416,8 +495,8 @@ export const SaaSAdminView: React.FC = () => {
                                         onClick={() => setGlobalTab(item.id)} 
                                         className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
                                             globalTab === item.id 
-                                                ? 'text-emerald-300 bg-emerald-600/20 border border-emerald-500/30' 
-                                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                                                ? 'text-emerald-800 bg-emerald-100/70 border border-emerald-200' 
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                                         }`}
                                     >
                                         <Icon size={14} /> 
@@ -433,26 +512,13 @@ export const SaaSAdminView: React.FC = () => {
                         onClick={() => setSelectedSystem(selectedSystem === 'nexus' ? null : 'nexus')} 
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                             selectedSystem === 'nexus' 
-                                ? 'text-white bg-indigo-600/80 border border-indigo-500/50' 
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                                ? 'text-indigo-800 bg-indigo-50 border border-indigo-200' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                         }`}
                     >
                         <Zap size={18} /> 
                         <span className="flex-1 text-right">מערכת Nexus</span>
                         <ChevronRight size={14} className={`transition-transform duration-200 ${selectedSystem === 'nexus' ? 'rotate-90' : ''}`} />
-                    </button>
-
-                    {/* Social OS Button */}
-                    <button
-                        onClick={() => setSelectedSystem(selectedSystem === 'social' ? null : 'social')}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
-                            selectedSystem === 'social'
-                                ? 'text-white bg-blue-600/80 border border-blue-500/50'
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
-                        }`}
-                    >
-                        <ShieldCheck size={18} />
-                        <span className="flex-1 text-right">מערכת Social</span>
                     </button>
 
                     {/* Nexus Submenu */}
@@ -472,8 +538,8 @@ export const SaaSAdminView: React.FC = () => {
                                         onClick={() => setNexusTab(item.id)} 
                                         className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
                                             nexusTab === item.id 
-                                                ? 'text-indigo-300 bg-indigo-600/20 border border-indigo-500/30' 
-                                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                                                ? 'text-indigo-800 bg-indigo-100/70 border border-indigo-200' 
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                                         }`}
                                     >
                                         <Icon size={14} /> 
@@ -481,16 +547,51 @@ export const SaaSAdminView: React.FC = () => {
                                     </button>
                                 );
                             })}
-                            <button
-                                onClick={() => {
-                                    const url = getSocialAdminUrl();
-                                    window.location.href = url;
-                                }}
-                                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent"
-                            >
-                                <ShieldCheck size={14} />
-                                <span>ניהול מערכת סושיאל</span>
-                            </button>
+                        </div>
+                    )}
+
+                    {/* Social OS Button */}
+                    <button
+                        onClick={() => setSelectedSystem(selectedSystem === 'social' ? null : 'social')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
+                            selectedSystem === 'social'
+                                ? 'text-blue-800 bg-blue-50 border border-blue-200'
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                        }`}
+                    >
+                        <ShieldCheck size={18} />
+                        <span className="flex-1 text-right">מערכת Social</span>
+                        <ChevronRight size={14} className={`transition-transform duration-200 ${selectedSystem === 'social' ? 'rotate-90' : ''}`} />
+                    </button>
+
+                    {/* Social Submenu */}
+                    {selectedSystem === 'social' && (
+                        <div className="space-y-1 pr-4 pt-2">
+                            {[
+                                { id: 'overview' as SocialTab, label: 'מבט על', icon: LayoutGrid },
+                                { id: 'team' as SocialTab, label: 'צוות', icon: Users },
+                                { id: 'integrations' as SocialTab, label: 'אינטגרציות', icon: Plug },
+                                { id: 'quotas' as SocialTab, label: 'מכסות', icon: SlidersHorizontal },
+                                { id: 'automation' as SocialTab, label: 'אוטומציות', icon: Sparkles },
+                                { id: 'features' as SocialTab, label: 'בקשות פיצ\'רים', icon: Sparkles },
+                                { id: 'updates' as SocialTab, label: 'עדכוני מערכת', icon: Rocket },
+                            ].map((item) => {
+                                const Icon = item.icon;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setSocialTab(item.id)}
+                                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                            socialTab === item.id
+                                                ? 'text-blue-800 bg-blue-100/70 border border-blue-200'
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                                        }`}
+                                    >
+                                        <Icon size={14} />
+                                        <span>{item.label}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     )}
 
@@ -499,8 +600,8 @@ export const SaaSAdminView: React.FC = () => {
                         onClick={() => setSelectedSystem(selectedSystem === 'system' ? null : 'system')} 
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                             selectedSystem === 'system' 
-                                ? 'text-white bg-red-600/80 border border-red-500/50' 
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                                ? 'text-red-800 bg-red-50 border border-red-200' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                         }`}
                     >
                         <Server size={18} /> 
@@ -522,8 +623,8 @@ export const SaaSAdminView: React.FC = () => {
                                         onClick={() => setSystemOSTab(item.id)} 
                                         className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
                                             systemOSTab === item.id 
-                                                ? 'text-red-300 bg-red-600/20 border border-red-500/30' 
-                                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                                                ? 'text-red-800 bg-red-100/70 border border-red-200' 
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                                         }`}
                                     >
                                         <Icon size={14} /> 
@@ -539,8 +640,8 @@ export const SaaSAdminView: React.FC = () => {
                         onClick={() => setSelectedSystem(selectedSystem === 'client' ? null : 'client')} 
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                             selectedSystem === 'client' 
-                                ? 'text-white bg-purple-600/80 border border-purple-500/50' 
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                                ? 'text-purple-800 bg-purple-50 border border-purple-200' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                         }`}
                     >
                         <Users size={18} /> 
@@ -563,8 +664,8 @@ export const SaaSAdminView: React.FC = () => {
                                         onClick={() => setClientTab(item.id)} 
                                         className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
                                             clientTab === item.id 
-                                                ? 'text-purple-300 bg-purple-600/20 border border-purple-500/30' 
-                                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                                                ? 'text-purple-800 bg-purple-100/70 border border-purple-200' 
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                                         }`}
                                     >
                                         <Icon size={14} /> 
@@ -580,8 +681,8 @@ export const SaaSAdminView: React.FC = () => {
                         onClick={() => setSelectedSystem(selectedSystem === 'landing' ? null : 'landing')} 
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
                             selectedSystem === 'landing' 
-                                ? 'text-white bg-amber-600/80 border border-amber-500/50' 
-                                : 'text-slate-300 hover:text-white hover:bg-slate-800/50 border border-transparent'
+                                ? 'text-amber-800 bg-amber-50 border border-amber-200' 
+                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                         }`}
                     >
                         <FileText size={18} /> 
@@ -597,6 +698,7 @@ export const SaaSAdminView: React.FC = () => {
                                 { id: 'payment_links' as LandingTab, label: 'תשלום / קישורי סליקה', icon: ExternalLink },
                                 { id: 'videos' as LandingTab, label: 'סרטוני דף הנחיתה', icon: Video },
                                 { id: 'logo' as LandingTab, label: 'לוגו דף הנחיתה', icon: ImageIcon },
+                                { id: 'branding' as LandingTab, label: 'מיתוג גלובלי (White Label)', icon: ShieldCheck },
                                 { id: 'partners' as LandingTab, label: 'לוגואים של שותפים', icon: Building2 },
                                 { id: 'founder' as LandingTab, label: 'תמונת המייסד', icon: UserCheck },
                                 { id: 'announcements' as LandingTab, label: 'הודעות מערכת', icon: MessageSquare },
@@ -608,8 +710,8 @@ export const SaaSAdminView: React.FC = () => {
                                         onClick={() => setLandingTab(item.id)} 
                                         className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
                                             landingTab === item.id 
-                                                ? 'text-amber-300 bg-amber-600/20 border border-amber-500/30' 
-                                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                                                ? 'text-amber-800 bg-amber-100/70 border border-amber-200' 
+                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
                                         }`}
                                     >
                                         <Icon size={14} /> 
@@ -622,28 +724,26 @@ export const SaaSAdminView: React.FC = () => {
                 </nav>
 
                 {/* Footer - Fixed at bottom */}
-                <div className="mt-auto border-t border-white/10 pt-6 pb-6 relative z-10 space-y-2 shrink-0 px-2 bg-gradient-to-t from-black/60 to-transparent">
+                <div className="mt-auto border-t border-slate-200/70 pt-6 pb-6 relative z-10 space-y-2 shrink-0 px-2 bg-gradient-to-t from-white/60 to-transparent">
                     <a 
                         href="/shabbat" 
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-yellow-500/20 hover:to-amber-500/20 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-yellow-500/30 hover:shadow-lg hover:scale-[1.02] group"
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-yellow-200/50 hover:to-amber-200/50 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-yellow-300/60 hover:shadow-lg hover:scale-[1.02] group"
                     >
                         <Moon size={18} className="relative z-10 group-hover:text-yellow-400 transition-colors" /> 
                         <span className="relative z-10">מצב שבת</span>
                         <ExternalLink size={14} className="mr-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                     </a>
-                    <a 
-                        href="/" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-indigo-500/20 hover:to-purple-500/20 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-indigo-500/30 hover:shadow-lg hover:scale-[1.02] group"
+                    <button 
+                        onClick={() => setIsMarketingLinksOpen(true)}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-indigo-200/50 hover:to-purple-200/50 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-indigo-300/60 hover:shadow-lg hover:scale-[1.02] group"
                     >
                         <Globe size={18} className="relative z-10 group-hover:text-indigo-400 transition-colors" /> 
-                        <span className="relative z-10">דף הבית השיווקי</span>
+                        <span className="relative z-10">דפי שיווק - קישורים</span>
                         <ExternalLink size={14} className="mr-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                    <button onClick={() => navigate(getReturnToPath())} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-gradient-to-r hover:from-slate-800/50 hover:to-slate-700/50 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-white/10 hover:shadow-lg hover:scale-[1.02]">
+                    </button>
+                    <button onClick={() => navigate(getReturnToPath())} className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-gradient-to-r hover:from-slate-100/60 hover:to-slate-200/60 hover:backdrop-blur-md transition-all duration-500 border border-transparent hover:border-slate-200/70 hover:shadow-lg hover:scale-[1.02]">
                         <LogOut size={18} className="rotate-180" /> חזרה לאפליקציה
                     </button>
                 </div>
@@ -660,56 +760,56 @@ export const SaaSAdminView: React.FC = () => {
                     >
                         <div className="text-center max-w-2xl">
                             <div className="mb-6">
-                                <Shield size={64} className="mx-auto text-indigo-400/50 mb-4" />
+                                <Shield size={64} className="mx-auto text-indigo-600/50 mb-4" />
                             </div>
-                            <h1 className="text-5xl font-black text-white tracking-tight mb-4 bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                            <h1 className="text-5xl font-black text-slate-900 tracking-tight mb-4 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
                                 מערכת ניהול-על
                             </h1>
-                            <p className="text-slate-400 text-xl mb-8">
+                            <p className="text-slate-600 text-xl mb-8">
                                 בחר מערכת מהתפריט כדי להתחיל לנהל
                             </p>
                             <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
                                 <div 
                                     onClick={() => setSelectedSystem('global')}
-                                    className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all hover:scale-105"
+                                    className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center cursor-pointer hover:bg-emerald-100 hover:border-emerald-300 transition-all hover:scale-105"
                                 >
-                                    <Globe size={24} className="mx-auto mb-2 text-emerald-400" />
-                                    <p className="text-sm font-bold text-emerald-300">גלובלי</p>
+                                    <Globe size={24} className="mx-auto mb-2 text-emerald-600" />
+                                    <p className="text-sm font-bold text-emerald-800">גלובלי</p>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedSystem('nexus')}
-                                    className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-500/20 hover:border-indigo-500/40 transition-all hover:scale-105"
+                                    className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-100 hover:border-indigo-300 transition-all hover:scale-105"
                                 >
-                                    <Zap size={24} className="mx-auto mb-2 text-indigo-400" />
-                                    <p className="text-sm font-bold text-indigo-300">Nexus</p>
+                                    <Zap size={24} className="mx-auto mb-2 text-indigo-600" />
+                                    <p className="text-sm font-bold text-indigo-800">Nexus</p>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedSystem('social')}
-                                    className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-blue-500/20 hover:border-blue-500/40 transition-all hover:scale-105"
+                                    className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center cursor-pointer hover:bg-blue-100 hover:border-blue-300 transition-all hover:scale-105"
                                 >
-                                    <ShieldCheck size={24} className="mx-auto mb-2 text-blue-400" />
-                                    <p className="text-sm font-bold text-blue-300">Social</p>
+                                    <ShieldCheck size={24} className="mx-auto mb-2 text-blue-600" />
+                                    <p className="text-sm font-bold text-blue-800">Social</p>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedSystem('system')}
-                                    className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-red-500/20 hover:border-red-500/40 transition-all hover:scale-105"
+                                    className="bg-red-50 border border-red-200 rounded-xl p-4 text-center cursor-pointer hover:bg-red-100 hover:border-red-300 transition-all hover:scale-105"
                                 >
-                                    <Server size={24} className="mx-auto mb-2 text-red-400" />
-                                    <p className="text-sm font-bold text-red-300">System</p>
+                                    <Server size={24} className="mx-auto mb-2 text-red-600" />
+                                    <p className="text-sm font-bold text-red-800">System</p>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedSystem('client')}
-                                    className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-500/20 hover:border-purple-500/40 transition-all hover:scale-105"
+                                    className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-100 hover:border-purple-300 transition-all hover:scale-105"
                                 >
-                                    <Users size={24} className="mx-auto mb-2 text-purple-400" />
-                                    <p className="text-sm font-bold text-purple-300">Client</p>
+                                    <Users size={24} className="mx-auto mb-2 text-purple-600" />
+                                    <p className="text-sm font-bold text-purple-800">Client</p>
                                 </div>
                                 <div 
                                     onClick={() => setSelectedSystem('landing')}
-                                    className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-amber-500/20 hover:border-amber-500/40 transition-all hover:scale-105 col-span-2"
+                                    className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center cursor-pointer hover:bg-amber-100 hover:border-amber-300 transition-all hover:scale-105 col-span-2"
                                 >
-                                    <FileText size={24} className="mx-auto mb-2 text-amber-400" />
-                                    <p className="text-sm font-bold text-amber-300">Landing</p>
+                                    <FileText size={24} className="mx-auto mb-2 text-amber-600" />
+                                    <p className="text-sm font-bold text-amber-800">Landing</p>
                                 </div>
                             </div>
                         </div>
@@ -726,6 +826,10 @@ export const SaaSAdminView: React.FC = () => {
                                     />
                                 )}
 
+                                {globalTab === 'ai' && (
+                                    <AiBrainPanel />
+                                )}
+
                                 {globalTab === 'versions' && (
                                     <VersionManagementPanel
                                         tenants={tenants}
@@ -738,12 +842,12 @@ export const SaaSAdminView: React.FC = () => {
                                 {globalTab === 'data' && (
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                                         <div className="mb-8">
-                                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
+                                            <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-emerald-700 to-teal-700 bg-clip-text text-transparent">
                                                 ניהול נתונים וגיבוי
                                             </h1>
-                                            <p className="text-slate-400 text-lg">ייצוא נתונים מערכתי (System Dump) ושחזור מאסון.</p>
+                                            <p className="text-slate-600 text-lg">ייצוא נתונים מערכתי (System Dump) ושחזור מאסון.</p>
                                         </div>
-                                        <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 text-white shadow-2xl">
+                                        <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
                                             <DataTab />
                                         </div>
                                     </motion.div>
@@ -752,12 +856,12 @@ export const SaaSAdminView: React.FC = () => {
                                 {globalTab === 'updates' && (
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                                         <div className="mb-8">
-                                            <h1 className="text-4xl font-black text-white tracking-tight mb-2 bg-gradient-to-r from-white via-emerald-200 to-teal-200 bg-clip-text text-transparent">
+                                            <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-emerald-700 to-teal-700 bg-clip-text text-transparent">
                                                 מרכז העדכונים
                                             </h1>
-                                            <p className="text-slate-400 text-lg">פרסם ונהל את ה-Change Log עבור כל משתמשי הפלטפורמה.</p>
+                                            <p className="text-slate-600 text-lg">פרסם ונהל את ה-Change Log עבור כל משתמשי הפלטפורמה.</p>
                                         </div>
-                                        <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 text-white shadow-2xl">
+                                        <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
                                             <UpdatesTab readOnly={false} />
                                         </div>
                                     </motion.div>
@@ -812,14 +916,102 @@ export const SaaSAdminView: React.FC = () => {
 
                         {/* Social OS Content */}
                         {selectedSystem === 'social' && (
-                            <div className="w-full h-[calc(100vh-4rem)] bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                                <iframe
-                                    key={socialAdminUrl}
-                                    src={socialAdminUrl}
-                                    className="w-full h-full border-0"
-                                    referrerPolicy="no-referrer"
-                                />
-                            </div>
+                            <>
+                                {!currentUser?.isSuperAdmin ? (
+                                    <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
+                                        <h2 className="text-2xl font-black text-slate-900 mb-2">ניהול Social</h2>
+                                        <p className="text-slate-600">אין לך הרשאות לניהול מערכת Social.</p>
+                                    </div>
+                                ) : (
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                                        <div className="mb-8">
+                                            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                                                <div>
+                                                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+                                                        {socialTab === 'overview'
+                                                            ? 'Social · מבט על'
+                                                            : socialTab === 'team'
+                                                              ? 'Social · צוות'
+                                                              : socialTab === 'integrations'
+                                                                ? 'Social · אינטגרציות'
+                                                                : socialTab === 'quotas'
+                                                                  ? 'Social · מכסות'
+                                                                  : socialTab === 'automation'
+                                                                    ? 'Social · אוטומציות'
+                                                                    : socialTab === 'features'
+                                                                      ? 'Social · בקשות פיצ\'רים'
+                                                                      : 'Social · עדכוני מערכת'}
+                                                    </h1>
+                                                    <p className="text-slate-600 text-lg">שליטה מרכזית על קונפיגורציית Social לכל טננט.</p>
+                                                </div>
+
+                                                <div className="min-w-[260px]">
+                                                    <label className="block text-xs font-bold text-slate-600 mb-2">בחר טננט</label>
+                                                    <select
+                                                        value={selectedSocialTenantId}
+                                                        onChange={(e) => setSelectedSocialTenantId(e.target.value)}
+                                                        className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2.5 px-4 text-sm text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200/60 transition-all appearance-none cursor-pointer"
+                                                    >
+                                                        {socialTenantOptions.length === 0 ? (
+                                                            <option value="">אין טננטים</option>
+                                                        ) : (
+                                                            socialTenantOptions.map((t: any) => (
+                                                                <option key={t.id} value={String(t.id)}>
+                                                                    {t.name || t.slug || t.id}
+                                                                </option>
+                                                            ))
+                                                        )}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl shadow-2xl overflow-hidden">
+                                            <div className="p-6">
+                                                {socialTab === 'overview' ? (
+                                                    <div className="flex flex-col gap-6">
+                                                        <div className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-2xl p-6 shadow-sm">
+                                                            <h2 className="text-lg font-black text-slate-900 mb-1">סטטוס כללי</h2>
+                                                            <p className="text-sm text-slate-600">
+                                                                {selectedSocialTenant
+                                                                    ? `טננט נבחר: ${selectedSocialTenant.name || selectedSocialTenant.slug || selectedSocialTenant.id}`
+                                                                    : 'בחר טננט כדי לצפות בנתונים'}
+                                                            </p>
+                                                        </div>
+                                                        <IntegrationsTab tenantId={selectedSocialTenant?.id ? String(selectedSocialTenant.id) : null} addToast={addToast} />
+                                                    </div>
+                                                ) : null}
+
+                                                {socialTab === 'team' ? (
+                                                    <TeamTab tenantId={selectedSocialTenant?.id ? String(selectedSocialTenant.id) : null} addToast={addToast} />
+                                                ) : null}
+
+                                                {socialTab === 'integrations' ? (
+                                                    <IntegrationsTab tenantId={selectedSocialTenant?.id ? String(selectedSocialTenant.id) : null} addToast={addToast} />
+                                                ) : null}
+
+                                                {socialTab === 'quotas' ? (
+                                                    <QuotasTab tenantId={selectedSocialTenant?.id ? String(selectedSocialTenant.id) : null} addToast={addToast} />
+                                                ) : null}
+
+                                                {socialTab === 'automation' ? (
+                                                    <AutomationTab tenantId={selectedSocialTenant?.id ? String(selectedSocialTenant.id) : null} addToast={addToast} />
+                                                ) : null}
+
+                                                {socialTab === 'features' ? (
+                                                    <FeatureRequestsPanel addToast={addToast} />
+                                                ) : null}
+
+                                                {socialTab === 'updates' ? (
+                                                    <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
+                                                        <UpdatesTab readOnly={false} />
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </>
                         )}
 
                         {/* Nexus OS Content */}
@@ -860,7 +1052,7 @@ export const SaaSAdminView: React.FC = () => {
 
                                 {nexusTab === 'invitations' && (
                                     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                                        <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 text-white shadow-2xl">
+                                        <div className="bg-white/80 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
                                             <InvitationLinksPanel 
                                                 addToast={addToast}
                                             />
@@ -920,6 +1112,10 @@ export const SaaSAdminView: React.FC = () => {
                                     <LandingPageLogoPanel />
                                 )}
 
+                                {landingTab === 'branding' && (
+                                    <GlobalBrandingPanel />
+                                )}
+
                                 {landingTab === 'partners' && (
                                     <PartnersLogosPanel />
                                 )}
@@ -939,6 +1135,72 @@ export const SaaSAdminView: React.FC = () => {
                     </>
                 )}
             </main>
+
+            {isMarketingLinksOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
+                    <button
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        onClick={() => setIsMarketingLinksOpen(false)}
+                        aria-label="Close"
+                    />
+                    <div className="relative w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                            <div className="flex flex-col">
+                                <h3 className="text-lg font-black text-slate-900">קישורים לדפי שיווק</h3>
+                                <p className="text-xs font-bold text-slate-500">פתיחה בטאב חדש</p>
+                            </div>
+                            <button
+                                onClick={() => setIsMarketingLinksOpen(false)}
+                                className="p-2 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-slate-900 transition-colors"
+                                aria-label="Close"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="space-y-2">
+                                {getMarketingLinks().map((link) => (
+                                    <a
+                                        key={link.path}
+                                        href={link.path}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            const url = toAbsoluteUrl(link.path);
+                                            window.open(url, '_blank');
+                                        }}
+                                    >
+                                        <ExternalLink size={16} className="text-indigo-600" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-black text-slate-900 truncate">{link.label}</div>
+                                            <div className="text-xs font-bold text-slate-500 truncate">{toAbsoluteUrl(link.path)}</div>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+
+                            <div className="mt-5 flex items-center justify-between gap-3">
+                                <button
+                                    onClick={handleCopyMarketingLinks}
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
+                                >
+                                    {marketingLinksCopied ? <X size={16} className="opacity-0" /> : <Copy size={16} />}
+                                    <span>{marketingLinksCopied ? 'הועתק!' : 'העתק הכל'}</span>
+                                </button>
+                                <button
+                                    onClick={() => setIsMarketingLinksOpen(false)}
+                                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-black text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                                >
+                                    סגור
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

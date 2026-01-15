@@ -5,9 +5,11 @@ import { X, Send, Copy, Check, MessageCircle, Loader2, Link as LinkIcon, Zap, Ey
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { PricingPlan } from '@/types/social';
-import { createClient, inviteClient } from '@/app/actions/client-clients';
+import { createClientForWorkspace, createClientInvitationLinkForWorkspace, inviteClientForWorkspace } from '@/app/actions/clients';
 import { useUser } from '@clerk/nextjs';
 import { translateError } from '@/lib/errorTranslations';
+import { usePathname, useRouter } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 const PLANS = [
   { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
@@ -17,6 +19,9 @@ const PLANS = [
 
 export default function InviteClientModal() {
   const { user } = useUser();
+  const pathname = usePathname();
+  const router = useRouter();
+  const routeInfo = parseWorkspaceRoute(pathname);
   const { 
     isInviteModalOpen, 
     setIsInviteModalOpen, 
@@ -30,6 +35,7 @@ export default function InviteClientModal() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan>('pro');
+  const [monthlyFee, setMonthlyFee] = useState<number>(PLANS.find(p => p.id === 'pro')?.price ?? 2990);
   const [generatedLink, setGeneratedLink] = useState('');
   const [newClientId, setNewClientId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -41,6 +47,12 @@ export default function InviteClientModal() {
   const handleGenerate = async () => {
     if (!user?.id) {
       addToast('נא להתחבר כדי ליצור לקוח', 'error');
+      return;
+    }
+
+    const orgSlug = routeInfo.orgSlug;
+    if (!orgSlug) {
+      addToast('שגיאה: לא נמצא ארגון פעיל בכתובת. נא להיכנס דרך /w/[orgSlug]/social', 'error');
       return;
     }
 
@@ -60,9 +72,9 @@ export default function InviteClientModal() {
     
     try {
       // Create client using Server Action
-      const result = await createClient({
+      const result = await createClientForWorkspace(orgSlug, {
         name,
-        companyName: 'ממתין להזנה',
+        companyName: name,
         avatar: '',
         brandVoice: '',
         dna: {
@@ -79,7 +91,7 @@ export default function InviteClientModal() {
         onboardingStatus: 'invited',
         color: '#1e293b',
         plan: selectedPlan,
-        monthlyFee: planObj.price,
+        monthlyFee,
         paymentStatus: 'pending',
         autoRemindersEnabled: true,
         businessMetrics: {
@@ -101,15 +113,34 @@ export default function InviteClientModal() {
 
       const newClient = result.data;
       setClients(prev => [...prev, newClient]);
-      
+
+      const invitationResult = await createClientInvitationLinkForWorkspace({
+        orgSlug,
+        clientId: newClient.id,
+        clerkUserId: user.id,
+        source: 'social',
+        metadata: {
+          plan: selectedPlan,
+          monthlyFee,
+        },
+      });
+
+      if (!invitationResult.success || !invitationResult.token) {
+        const errorMsg = invitationResult.error ? translateError(invitationResult.error) : 'שגיאה ביצירת לינק הזמנה';
+        setError(errorMsg);
+        addToast(errorMsg, 'error');
+        setIsGenerating(false);
+        return;
+      }
+
       // Generate invitation link
-      const invitationLink = `${window.location.origin}/setup/${newClient.invitationToken}`;
+      const invitationLink = `${window.location.origin}/invite/${invitationResult.token}`;
       setGeneratedLink(invitationLink);
       setNewClientId(newClient.id);
       
       // Send invitation email if email is provided
       if (newClient.email) {
-        const inviteResult = await inviteClient(newClient.id, invitationLink);
+        const inviteResult = await inviteClientForWorkspace(orgSlug, newClient.id, invitationLink);
         if (inviteResult.success) {
           addToast('מייל הזמנה נשלח בהצלחה!');
         } else {
@@ -138,16 +169,23 @@ export default function InviteClientModal() {
   };
 
   const handleWhatsApp = () => {
-    const text = encodeURIComponent(`היי ${name}, שלחתי לך לינק להקמת חשבון ב-Social. שם תוכלי למלא את פרטי המותג, להגדיר DNA ולסדר את התשלום בקלות: ${generatedLink}`);
+    const text = encodeURIComponent(`היי ${name}, שלחתי לך לינק להקמת חשבון ב-Social. שם תוכלו למלא פרטים, להגדיר DNA ולהעלות חומרים: ${generatedLink}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const handleSimulate = () => {
     if (newClientId) {
+      const orgSlug = routeInfo.orgSlug;
+      if (!orgSlug) {
+        addToast('שגיאה: לא נמצא ארגון פעיל בכתובת. נא להיכנס דרך /w/[orgSlug]/social', 'error');
+        return;
+      }
+
       setActiveClientId(newClientId);
       setIsOnboardingMode(true);
       setIsInviteModalOpen(false);
-      addToast('נכנס לסימולציית לקוח...', 'info');
+      router.push(`/w/${orgSlug}/social/workspace?clientId=${encodeURIComponent(newClientId)}&onboarding=1`);
+      addToast('פותח כרטיס לקוח...', 'info');
     }
   };
 
@@ -212,7 +250,10 @@ export default function InviteClientModal() {
                     {PLANS.map(plan => (
                       <button 
                         key={plan.id}
-                        onClick={() => setSelectedPlan(plan.id)}
+                        onClick={() => {
+                          setSelectedPlan(plan.id);
+                          setMonthlyFee(plan.price);
+                        }}
                         disabled={isGenerating}
                         className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border-2 flex items-center justify-between transition-all ${
                           selectedPlan === plan.id 
@@ -224,10 +265,23 @@ export default function InviteClientModal() {
                           <span className="font-black text-base sm:text-lg">{plan.name}</span>
                           <span className="text-xs font-bold text-slate-400">{plan.desc}</span>
                         </div>
-                        <span className={`font-black ${selectedPlan === plan.id ? 'text-green-600' : 'text-blue-600'}`}>₪{plan.price.toLocaleString()}</span>
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">מחיר חודשי ללקוח (₪)</label>
+                  <input
+                    type="number"
+                    value={monthlyFee}
+                    onChange={(e) => setMonthlyFee(Number(e.target.value))}
+                    min={0}
+                    disabled={isGenerating}
+                    className="bg-slate-50 border border-slate-100 rounded-2xl sm:rounded-[28px] px-4 sm:px-6 py-4 sm:py-5 text-lg sm:text-xl font-black outline-none min-h-[48px] transition-all focus:ring-2 focus:ring-green-500 focus:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="לדוגמה: 2990"
+                  />
+                  <p className="text-xs text-slate-400 font-bold px-1">ברירת המחדל מגיעה מהחבילה שבחרת — אפשר לערוך לפני יצירת הלינק.</p>
                 </div>
 
                 <button 
@@ -250,7 +304,7 @@ export default function InviteClientModal() {
                 <div>
                   <h3 className="text-2xl sm:text-3xl font-black mb-2">הלינק מוכן לשליחה!</h3>
                   <p className="text-sm sm:text-base text-slate-400 font-bold max-w-sm mx-auto px-4">
-                    הלקוח {name} יוכל להשלים את כל ההגדרות, ה-DNA והתשלום בעצמו דרך הלינק הזה.
+                    הלקוח {name} יוכל להשלים את כל ההגדרות וה-DNA בעצמו דרך הלינק הזה.
                   </p>
                 </div>
 
@@ -283,8 +337,8 @@ export default function InviteClientModal() {
                   className="w-full py-3 sm:py-4 bg-slate-100 text-slate-600 rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 hover:bg-green-600 hover:text-white transition-all group min-h-[44px]"
                 >
                   <Eye size={16} className="sm:w-[18px] sm:h-[18px] group-hover:scale-110 transition-transform" />
-                  <span className="hidden sm:inline">צפה בסימולציה (מה שהלקוח יראה)</span>
-                  <span className="sm:hidden">סימולציה</span>
+                  <span className="hidden sm:inline">פתח כרטיס לקוח</span>
+                  <span className="sm:hidden">כרטיס לקוח</span>
                 </button>
                 
                 <button onClick={reset} className="text-slate-400 font-bold hover:text-slate-600 underline text-xs">

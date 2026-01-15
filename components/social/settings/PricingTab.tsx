@@ -99,7 +99,6 @@ export default function PricingTab({ platformConfigs, setPlatformConfigs, market
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex flex-col gap-2">
             <h3 className="text-xl font-black">ניהול פלטפורמות ומחירים</h3>
-            <p className="text-sm font-bold text-slate-400">הגדר אילו רשתות חברתיות המשרד שלך תומך בהן ומה מחיר הבסיס.</p>
           </div>
           <button onClick={() => setIsAddingPlatform(!isAddingPlatform)} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-black transition-all flex items-center gap-2">
             {isAddingPlatform ? <X size={20}/> : <Plus size={20}/>} הוסף פלטפורמה
@@ -143,7 +142,6 @@ export default function PricingTab({ platformConfigs, setPlatformConfigs, market
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex flex-col gap-2">
             <h3 className="text-xl font-black flex items-center gap-2"><ShoppingCart size={24} className="text-blue-600"/> ניהול Marketplace</h3>
-            <p className="text-sm font-bold text-slate-400">הגדר שירותים נוספים שיופיעו בפורטל של הלקוחות שלך.</p>
           </div>
           <button onClick={() => setIsAddingAddon(!isAddingAddon)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2">
             {isAddingAddon ? <X size={20}/> : <Plus size={20}/>} הוסף שירות
@@ -181,7 +179,6 @@ export default function PricingTab({ platformConfigs, setPlatformConfigs, market
                 </div>
                 <div className="flex-1">
                   <h4 className="font-black text-slate-800">{addon.label} {addon.isRecurring && <span className="bg-purple-50 text-purple-600 text-[8px] px-2 py-0.5 rounded-md font-black">חודשי</span>}</h4>
-                  <p className="text-[10px] font-bold text-slate-400 line-clamp-1">{addon.description}</p>
                 </div>
                 <div className="text-left"><p className="text-lg font-black text-blue-600">₪{addon.basePrice.toLocaleString()}</p></div>
               </div>

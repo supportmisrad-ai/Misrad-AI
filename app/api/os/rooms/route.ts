@@ -5,11 +5,12 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export type OSRoomId = 'social' | 'nexus' | 'system' | 'finance' | 'client';
 
 type RoomsPayload = Partial<Record<OSRoomId, boolean>>;
 
-export async function GET() {
+async function GETHandler() {
   try {
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
@@ -115,7 +116,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     try {
       await requireSuperAdmin();
@@ -242,3 +243,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
   }
 }
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

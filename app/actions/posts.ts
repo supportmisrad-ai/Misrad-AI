@@ -9,6 +9,7 @@ import { uploadFile } from './files';
 import { createPostSchema, validateWithSchema } from '@/lib/validation';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { triggerWebhookEvent } from './integrations';
 
 /**
  * Server Action: Get all posts
@@ -361,6 +362,46 @@ export async function publishPost(postId: string): Promise<{ success: boolean; e
     }
 
     const supabase = createClient();
+
+    const { data: post, error: postError } = await supabase
+      .from('social_posts')
+      .select(
+        `
+          id,
+          client_id,
+          content,
+          media_url,
+          status,
+          scheduled_at,
+          social_post_platforms (platform)
+        `
+      )
+      .eq('id', postId)
+      .single();
+
+    if (postError || !post) {
+      return { success: false, error: translateError(postError?.message || 'פוסט לא נמצא') };
+    }
+
+    const platforms = (post.social_post_platforms || []).map((pp: any) => pp.platform);
+
+    const webhookResult = await triggerWebhookEvent({
+      eventType: 'post_published',
+      payload: {
+        post: {
+          id: post.id,
+          clientId: post.client_id,
+          content: post.content,
+          mediaUrl: post.media_url || null,
+          platforms,
+          scheduledAt: post.scheduled_at || null,
+        },
+      },
+    });
+
+    if (!webhookResult.success) {
+      return { success: false, error: webhookResult.error || 'שגיאה בשליחת הפוסט לפרסום' };
+    }
 
     const { error } = await supabase
       .from('social_posts')

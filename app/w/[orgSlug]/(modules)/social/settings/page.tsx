@@ -1,30 +1,12 @@
-'use client';
-
-import { Suspense } from 'react';
-import nextDynamic from 'next/dynamic';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-
-const SocialAccountPage = nextDynamic(() => import('@/components/social/SocialAccountPage'), {
-  loading: () => (
-    <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-    </div>
-  ),
-  ssr: false,
-});
-
-export default function SettingsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-        </div>
-      }
-    >
-      <SocialAccountPage />
-    </Suspense>
-  );
+export default async function SocialSettingsRedirectPage({
+  params,
+}: {
+  params: Promise<{ orgSlug: string }>;
+}) {
+  const { orgSlug } = await params;
+  redirect(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
 }

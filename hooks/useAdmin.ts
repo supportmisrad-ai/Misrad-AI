@@ -16,7 +16,7 @@ export const useAdmin = (
         name: initialOrganization?.name ?? 'Misrad', 
         logo: initialOrganization?.logo ?? '', 
         primaryColor: (initialOrganization as any)?.primaryColor ?? '#000000',
-        enabledModules: (initialOrganization as any)?.enabledModules ?? ['crm', 'finance', 'ai', 'team'],
+        enabledModules: (initialOrganization as any)?.enabledModules ?? ['crm', 'ai'],
         systemFlags: (initialOrganization as any)?.systemFlags ?? SYSTEM_SCREENS.reduce((acc, screen) => ({ ...acc, [screen.id]: 'active' }), {})
     });
     const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals>({ revenue: 100000, tasksCompletion: 90 });
@@ -64,14 +64,16 @@ export const useAdmin = (
                 if (!res.ok) return;
 
                 const data = await res.json().catch(() => null);
-                const workspaces = (data?.workspaces || []) as Array<{ slug: string; id: string; entitlements?: Record<string, boolean> }>;
+                const workspaces = (data?.workspaces || []) as Array<{ slug: string; id: string; entitlements?: Record<string, boolean>; capabilities?: { isTeamManagementEnabled?: boolean } }>;
                 const ws = workspaces.find(w => String(w.slug) === String(orgSlug) || String(w.id) === String(orgSlug));
                 if (!ws) return;
 
                 const financeEnabled = Boolean(ws.entitlements?.finance);
 
+                const teamEnabled = Boolean(ws.capabilities?.isTeamManagementEnabled);
+
                 setOrganization(prev => {
-                    const base: ModuleId[] = ['crm', 'ai', 'team'];
+                    const base: ModuleId[] = teamEnabled ? ['crm', 'ai', 'team'] : ['crm', 'ai'];
                     const next: ModuleId[] = financeEnabled ? [...base, 'finance'] : base;
                     if (Array.isArray(prev.enabledModules) && prev.enabledModules.join('|') === next.join('|')) {
                         return prev;

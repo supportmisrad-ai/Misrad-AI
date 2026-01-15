@@ -13,6 +13,52 @@ import { logIntegrationEvent } from '../../../../lib/audit';
 import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function resolveOrganizationIdFromHeader(orgKey: string): Promise<string> {
+    if (!supabase) {
+        throw new Error('Database not configured');
+    }
+
+    const key = String(orgKey || '').trim();
+    if (!key) {
+        throw new Error('Missing x-org-id header');
+    }
+
+    let org: any = null;
+
+    const bySlug = await supabase
+        .from('organizations')
+        .select('id, slug')
+        .eq('slug', key)
+        .maybeSingle();
+
+    org = bySlug.data;
+
+    if (!org?.id && bySlug.error?.message) {
+        const msg = String(bySlug.error.message).toLowerCase();
+        const isMissingSlugColumn = msg.includes('column') && msg.includes('slug');
+        if (!isMissingSlugColumn) {
+            console.warn('[integrations/onboard-client] organization slug lookup failed:', bySlug.error);
+        }
+    }
+
+    if (!org?.id) {
+        const byId = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('id', key)
+            .maybeSingle();
+
+        org = byId.data;
+    }
+
+    if (!org?.id) {
+        throw new Error('Organization not found');
+    }
+
+    return String(org.id);
+}
+
 /**
  * POST /api/integrations/onboard-client
  * 
@@ -32,8 +78,15 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
  *   - success: boolean
  *   - clientId: string
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
+        const orgSlugFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgSlugFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const organizationId = await resolveOrganizationIdFromHeader(orgSlugFromHeader);
+
         // 1. Verify API Key
         const apiKey = request.headers.get('x-nexus-api-key');
         const expectedApiKey = process.env.NEXUS_API_KEY;
@@ -135,7 +188,7 @@ export async function POST(request: NextRequest) {
             source: 'integration' // Mark as created via integration
         };
 
-        const newClient = await createRecord<Client>('clients', clientData);
+        const newClient = await createRecord<Client>('clients', clientData, { organizationId });
 
         // 4. Create automatic invitation link for the new client
         let invitationUrl: string | null = null;
@@ -169,7 +222,8 @@ export async function POST(request: NextRequest) {
                     webhookData: {
                         plan,
                         receivedAt: new Date().toISOString()
-                    }
+                    },
+                    organizationId,
                 }
             };
 
@@ -239,3 +293,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

@@ -1,4 +1,5 @@
 import { OSModuleKey } from '@/lib/os/modules/types';
+import { OS_MODULES } from '@/types/os-modules';
 
 export type WorkspaceRouteInfo = {
   orgSlug: string | null;
@@ -11,7 +12,7 @@ export function parseWorkspaceRoute(pathname: string | null | undefined): Worksp
   if (parts[0] !== 'w') return { orgSlug: null, module: null };
   const orgSlug = parts[1] || null;
   const rawModule = parts[2] || null;
-  const allowed = new Set<OSModuleKey>(['nexus', 'system', 'social', 'finance', 'client']);
+  const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
   const module = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
   return { orgSlug, module };
 }

@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: Request) {
+async function GETHandler(req: Request) {
   const url = new URL(req.url);
   const moduleId = url.searchParams.get('module_id');
   const category = url.searchParams.get('category');
@@ -40,3 +41,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
   }
 }
+
+export const GET = shabbatGuard(GETHandler);

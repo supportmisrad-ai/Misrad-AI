@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath } from '@/lib/os/modules/registry';
+import { OS_MODULES } from '@/types/os-modules';
 
 type WorkspaceItem = {
   id: string;
@@ -23,14 +24,14 @@ function parseWorkspaceRoute(pathname: string | null): {
   if (parts[0] !== 'w') return { orgSlug: null, module: null, rest: '' };
   const orgSlug = parts[1] || null;
   const rawModule = parts[2] || null;
-  const allowed = new Set<OSModuleKey>(['nexus', 'system', 'social', 'finance', 'client']);
+  const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
   const module = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
   const rest = parts.length > 3 ? `/${parts.slice(3).join('/')}` : '';
   return { orgSlug, module, rest };
 }
 
 function getFirstAllowedModule(entitlements: Record<OSModuleKey, boolean>): OSModuleKey | null {
-  const order: OSModuleKey[] = ['nexus', 'system', 'social', 'finance', 'client'];
+  const order: OSModuleKey[] = OS_MODULES.map((m) => m.id as OSModuleKey);
   for (const key of order) {
     if (entitlements[key]) return key;
   }

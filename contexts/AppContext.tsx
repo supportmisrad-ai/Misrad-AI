@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { Client, SocialPost, SocialTask, TeamMember, AIOpportunity, ClientRequest, ManagerRequest, PaymentOrder, AgencyServiceConfig, Conversation, Idea, UserRole } from '@/types/social';
 import { DEFAULT_PLATFORM_CONFIGS, MARKETPLACE_ADDONS } from '@/lib/constants';
-import { getClients } from '@/app/actions/client-clients';
+import { getClients } from '@/app/actions/clients';
 import { getCampaigns } from '@/app/actions/campaigns';
 import { getTasks } from '@/app/actions/tasks';
 import { getPosts } from '@/app/actions/posts';
@@ -200,7 +200,40 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   
   const [isClientMode, setIsClientMode] = useState(false);
   const [isOnboardingMode, setIsOnboardingMode] = useState(false);
-  const [isTeamManagementEnabled, setIsTeamManagementEnabled] = useState(true);
+  const [isTeamManagementEnabled, setIsTeamManagementEnabled] = useState(false);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (!effectiveOrgSlug) {
+          setIsTeamManagementEnabled(false);
+          return;
+        }
+
+        const res = await fetch('/api/workspaces', { cache: 'no-store' });
+        if (!res.ok) {
+          setIsTeamManagementEnabled(false);
+          return;
+        }
+
+        const data = await res.json().catch(() => null);
+        const workspaces = (data?.workspaces || []) as Array<{ slug: string; id: string; entitlements?: Record<string, boolean>; capabilities?: { isTeamManagementEnabled?: boolean } }>;
+        const ws = workspaces.find((w) => String(w.slug) === String(effectiveOrgSlug) || String(w.id) === String(effectiveOrgSlug));
+        const capTeamEnabled = ws?.capabilities?.isTeamManagementEnabled;
+        if (typeof capTeamEnabled === 'boolean') {
+          setIsTeamManagementEnabled(Boolean(capTeamEnabled));
+          return;
+        }
+
+        const ent = ws?.entitlements;
+        setIsTeamManagementEnabled(Boolean(ent?.nexus && ent?.system && ent?.social && ent?.client));
+      } catch {
+        setIsTeamManagementEnabled(false);
+      }
+    };
+
+    run();
+  }, [effectiveOrgSlug]);
   
   const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -260,6 +293,37 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [editingTask, setEditingTask] = useState<SocialTask | null>(null);
   
   const activeClient = clients.find(c => c.id === activeClientId);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (activeClientId) return;
+    try {
+      const storedId = localStorage.getItem('social_active_client_id');
+      if (storedId) {
+        setActiveClientId(storedId);
+      }
+    } catch {
+      // ignore
+    }
+  }, [activeClientId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (activeClientId) {
+        localStorage.setItem('social_active_client_id', activeClientId);
+        const name = String((activeClient as any)?.companyName || (activeClient as any)?.name || '').trim();
+        if (name) {
+          localStorage.setItem('social_active_client_name', name);
+        }
+        return;
+      }
+      localStorage.removeItem('social_active_client_id');
+      localStorage.removeItem('social_active_client_name');
+    } catch {
+      // ignore
+    }
+  }, [activeClientId, (activeClient as any)?.companyName, (activeClient as any)?.name]);
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substr(2, 9);

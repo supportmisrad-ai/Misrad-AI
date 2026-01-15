@@ -3,7 +3,8 @@ import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -77,3 +78,5 @@ function generatePDFContent(clientId: string, month: string, year: string): stri
   return Buffer.from(JSON.stringify(pdfData)).toString('base64');
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

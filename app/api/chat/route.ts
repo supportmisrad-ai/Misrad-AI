@@ -1,32 +1,58 @@
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/server/authHelper';
+import { logAuditEvent } from '@/lib/audit';
+import { AIService } from '@/lib/services/ai/AIService';
 
-export async function POST(req: Request) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+type IncomingMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  parts?: Array<{ type: string; text?: string }>;
+  content?: string;
+  text?: string;
+};
+
+function extractText(msg: IncomingMessage): string {
+  if (typeof (msg as any)?.content === 'string') return String((msg as any).content);
+  if (typeof (msg as any)?.text === 'string') return String((msg as any).text);
+  const parts = Array.isArray(msg.parts) ? msg.parts : [];
+  return parts
+    .filter((p) => p && p.type === 'text')
+    .map((p) => String(p.text || ''))
+    .join('');
+}
+
+function streamTextResponse(text: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(text));
+      controller.close();
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+    },
+  });
+}
+
+async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
 
-    const apiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
-    if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: 'GEMINI_API_KEY לא מוגדר' }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const orgIdFromHeader = req.headers.get('x-org-id') || req.headers.get('x-orgid');
 
-    const { messages, clientContext }: { 
-      messages: Array<{
-        id: string;
-        role: 'user' | 'assistant';
-        parts: Array<{ type: string; text: string }>;
-      }>;
+    const { messages, clientContext }: {
+      messages: IncomingMessage[];
       clientContext?: {
         companyName: string;
         name: string;
@@ -46,51 +72,108 @@ export async function POST(req: Request) {
       };
     } = await req.json();
 
-    const orgIdFromBody = (clientContext as any)?.organizationId;
-    const orgId = orgIdFromHeader || orgIdFromBody;
-    if (!orgId) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
+    let orgKeyFromBody: string | null = null;
+    const rawFromCtx = (clientContext as any)?.organizationId;
+    if (rawFromCtx) orgKeyFromBody = String(rawFromCtx);
+
+    let organizationKey: string | null = orgIdFromHeader || orgKeyFromBody;
+
+    if (!organizationKey) {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from('social_users')
+        .select('organization_id')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+
+      organizationKey = (data as any)?.organization_id ? String((data as any).organization_id) : null;
     }
 
+    if (!organizationKey) return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
+
+    let workspaceId: string;
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgId);
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(organizationKey);
+      workspaceId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
       return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
     }
 
-    // Build concise system message with client context
-    const systemMessage = clientContext ? `עוזר AI לניהול סושיאל מדיה עבור ${clientContext.companyName} (${clientContext.name}).
-קול המותג: ${clientContext.brandVoice}.
-${clientContext.dna?.brandSummary ? `מותג: ${clientContext.dna.brandSummary}. ` : ''}
-${clientContext.dna?.voice ? `סגנון: רשמיות ${clientContext.dna.voice.formal}%, הומור ${clientContext.dna.voice.funny}%, אורך ${clientContext.dna.voice.length}%. ` : ''}
-ענה בעברית, קצר וברור, בהתאם לסגנון המותג.` : `עוזר AI לניהול סושיאל מדיה. ענה בעברית, קצר וברור.`;
+    const safeMessages = Array.isArray(messages) ? messages : [];
+    const coreMessages = safeMessages.filter((m) => m.id !== 'welcome').map((m) => ({
+      role: m.role,
+      content: extractText(m),
+    }));
 
-    // Convert messages to SDK message format (skip welcome message)
-    const coreMessages = messages
-      .filter(m => m.id !== 'welcome')
-      .map(msg => ({
-        role: msg.role,
-        content: msg.parts?.find(p => p.type === 'text')?.text || '',
-      }));
+    const lastUser = [...coreMessages].reverse().find((m) => m.role === 'user')?.content || '';
+    const history = coreMessages.slice(-20).map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
 
-    // Use AI SDK with Google provider - this uses your existing Google API key
-    // Using gemini-1.5-flash for faster responses
-    const result = streamText({
-      model: (google as any)('gemini-1.5-flash', {
-        apiKey: apiKey,
-      }),
-      system: systemMessage,
-      messages: coreMessages,
-      temperature: 0.5, // Lower temperature for faster, more focused responses
+    const ctx = clientContext ? {
+      companyName: clientContext.companyName,
+      name: clientContext.name,
+      brandVoice: clientContext.brandVoice,
+      dna: clientContext.dna,
+    } : null;
+
+    const featureKey = ctx ? 'social.chat' : 'ai.chat';
+    const moduleName = ctx ? 'social' : 'global';
+
+    await logAuditEvent('ai.query', featureKey, {
+      details: {
+        organizationId: workspaceId,
+        module: moduleName,
+        hasClientContext: Boolean(ctx),
+      },
     });
 
-    // Return in format expected by useChat hook
-    return (result as any).toDataStreamResponse
-      ? (result as any).toDataStreamResponse()
-      : (result as any).toTextStreamResponse();
+    let memoryBlock = '';
+    try {
+      const ai = AIService.getInstance();
+      const memory = await ai.semanticSearch({
+        featureKey: `${featureKey}.memory_search`,
+        organizationId: workspaceId,
+        userId: clerkUserId,
+        query: `${lastUser}\n\n${history}`.slice(0, 6000),
+        moduleId: moduleName,
+        matchCount: 8,
+        similarityThreshold: 0.2,
+      });
+
+      const compact = memory
+        .slice(0, 6)
+        .map((m) => ({
+          docKey: m.docKey,
+          similarity: m.similarity,
+          content: String(m.content || '').slice(0, 900),
+          metadata: m.metadata ?? null,
+        }));
+
+      if (compact.length > 0) {
+        memoryBlock = `\n\nMemory snippets (from organizational knowledge base):\n${JSON.stringify(compact).slice(0, 12000)}`;
+      }
+    } catch (e: any) {
+      console.warn('[chat] semantic memory skipped/failed (non-fatal)', {
+        message: String(e?.message || e),
+      });
+    }
+
+    const prompt = `מודול: ${moduleName}\n\nContext (JSON):\n${ctx ? JSON.stringify(ctx).slice(0, 12000) : '{}'}\n\nHistory:\n${history || '(empty)'}${memoryBlock}\n\nUser message:\n${lastUser}`;
+
+    const ai = AIService.getInstance();
+    const out = await ai.generateText({
+      featureKey,
+      organizationId: workspaceId,
+      userId: clerkUserId,
+      prompt,
+    });
+
+    return streamTextResponse(out.text || '');
   } catch (error: any) {
     console.error('Chat API error:', error);
+    if (error?.status === 402 || error?.name === 'UpgradeRequiredError') {
+      return NextResponse.json({ error: error.message || 'Upgrade Required' }, { status: 402 });
+    }
     return new Response(
       JSON.stringify({ error: error.message || 'שגיאה בטעינת הבוט. נסה שוב מאוחר יותר.' }),
       { 
@@ -100,3 +183,5 @@ ${clientContext.dna?.voice ? `סגנון: רשמיות ${clientContext.dna.voice
     );
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

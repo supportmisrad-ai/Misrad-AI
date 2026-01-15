@@ -339,9 +339,10 @@ export const PartnersLogosPanel: React.FC = () => {
             </div>
 
             {logos.length === 0 && (
-                <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800">
-                    <Building2 size={48} className="text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-400 mb-4">אין לוגואים עדיין</p>
+                <div className="text-center py-16 bg-white/70 backdrop-blur-2xl rounded-2xl border border-slate-200/70 shadow-xl">
+                    <Building2 size={48} className="text-slate-500 mx-auto mb-4" />
+                    <p className="text-slate-700 font-bold mb-1">אין לוגואים עדיין</p>
+                    <p className="text-sm text-slate-600 mb-4">הוסף לוגו ראשון כדי להתחיל</p>
                     <button
                         onClick={() => setIsAddingLogo(true)}
                         className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500 transition-all"

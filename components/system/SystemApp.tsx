@@ -9,13 +9,12 @@ import { ToastProvider, useToast } from './contexts/ToastContext';
 import { CallAnalysisProvider } from './contexts/CallAnalysisContext';
 import { BrandProvider } from './contexts/BrandContext';
 import useLocalStorage from './hooks/useLocalStorage';
-import { useOnClickOutside } from './hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RoomSwitcher } from '../shared/RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrand } from './contexts/BrandContext';
 import { SystemHeader } from './SystemHeader';
 
@@ -48,9 +47,12 @@ import ClientPortalView from './ClientPortalView';
 import PersonalAreaView from './PersonalAreaView';
 import CommunicationView from './CommunicationView';
 import TasksView from '../nexus/TasksView';
-import SettingsView from './SettingsView';
 import AIAnalyticsView from './AIAnalyticsView';
 import DataConnectivityView from './DataConnectivityView';
+import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
+import { getMyProfile } from '@/app/actions/profiles';
+import { DataProvider } from '@/context/DataContext';
+import { MeView } from '@/views/MeView';
 
 declare const confetti: any;
 
@@ -119,6 +121,8 @@ const TAB_IDS = new Set([
   'reports',
   'headquarters',
   'system',
+  'me',
+  'hub',
   'personal_area',
   'notifications_center',
   'focus_mode',
@@ -137,12 +141,21 @@ const tabFromPathname = (pathname: string | null | undefined) => {
   return TAB_IDS.has(candidate) ? candidate : null;
 };
 
-const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
+const SystemOSApp = ({
+  initialTab,
+  initialCurrentUser,
+  initialOrganization,
+}: {
+  initialTab?: string;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}) => {
   const { user, logout, isLoading, isSuperAdmin, isTenantAdmin, tenantId } = useAuth();
   const { addToast } = useToast();
   const { title } = useRoomBranding();
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const isWorkspaceRoute = Boolean(pathname?.startsWith('/w/'));
   const { brandName, brandLogo } = useBrand();
   
@@ -168,6 +181,15 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
     return 'workspace';
   }); 
 
+  const [meProfile, setMeProfile] = useState<{
+    fullName: string;
+    role: string | null;
+    avatarUrl: string | null;
+    phone: string | null;
+    location: string | null;
+    bio: string | null;
+  } | null>(null);
+
   const basePath = useMemo(() => {
     const parts = (pathname || '').split('/').filter(Boolean);
     const wIndex = parts.indexOf('w');
@@ -175,8 +197,49 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
     return orgSlug ? `/w/${orgSlug}/system` : null;
   }, [pathname]);
 
+  const orgSlug = useMemo(() => {
+    const parts = (pathname || '').split('/').filter(Boolean);
+    const wIndex = parts.indexOf('w');
+    return wIndex !== -1 ? (parts[wIndex + 1] || null) : null;
+  }, [pathname]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!orgSlug) return;
+      try {
+        const res = await getMyProfile({ orgSlug });
+        if (!res.success || !res.data?.profile) return;
+        const p: any = res.data.profile;
+        setMeProfile({
+          fullName: String(p.full_name || user?.name || 'החשבון שלי'),
+          role: p.role ? String(p.role) : null,
+          avatarUrl: p.avatar_url ? String(p.avatar_url) : null,
+          phone: p.phone ? String(p.phone) : null,
+          location: p.location ? String(p.location) : null,
+          bio: p.bio ? String(p.bio) : null,
+        });
+      } catch {
+        // Best-effort
+      }
+    };
+    load();
+  }, [orgSlug, user?.name]);
+
   const navigateToTab = (tabId: string) => {
     if (!basePath) return;
+    const from = pathname || `${basePath}/workspace`;
+    if (tabId === 'me') {
+      router.push(`${basePath}/me`);
+      return;
+    }
+    if (tabId === 'personal_area') {
+      router.push(`${basePath}/hub?origin=system&drawer=profile&from=${encodeURIComponent(from)}`);
+      return;
+    }
+    if (tabId === 'system' || tabId === 'settings') {
+      router.push(`${basePath}/hub?origin=system&drawer=system&from=${encodeURIComponent(from)}`);
+      return;
+    }
     router.push(`${basePath}/${tabId}`);
   };
   const [viewMode, setViewMode] = useState<'admin' | 'portal'>('admin');
@@ -185,8 +248,6 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isCloserOpen, setIsCloserOpen] = useState(false);
   const [closerItems, setCloserItems] = useState<StrategicContentItem[]>([]);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const [showAdminNextActionCard, setShowAdminNextActionCard] = useState(false);
@@ -222,7 +283,6 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
     }
     setShowAdminNextActionCard(false);
   };
-  useOnClickOutside(profileRef, () => setIsProfileOpen(false));
 
   const [storedLeads, setStoredLeads] = useLocalStorage<Lead[]>('sales_os_leads_v1', []);
   const [storedTasks, setStoredTasks] = useLocalStorage<Task[]>('sales_os_tasks_v1', []);
@@ -305,14 +365,22 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
   }, [pathname, activeTab]);
 
   useEffect(() => {
+    const leadIdFromUrl = searchParams?.get('leadId');
+    if (!leadIdFromUrl) return;
+    const match = leads.find((l) => String(l.id) === String(leadIdFromUrl));
+    if (!match) return;
+    setSelectedLead(match);
+  }, [leads, searchParams]);
+
+  useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         if (user) setIsCommandPaletteOpen((open) => !open);
       }
     };
-    document.addEventListener('keydown', down);
-    return () => document.removeEventListener('keydown', down);
+    document.addEventListener('keydown', down, { capture: true });
+    return () => document.removeEventListener('keydown', down, { capture: true });
   }, [user]);
 
   useEffect(() => {
@@ -504,11 +572,14 @@ const SystemOSApp = ({ initialTab }: { initialTab?: string }) => {
     : user.name;
 
   const avatarValue = String((user as any)?.avatar ?? '').trim();
+  const headerAvatarUrl = String(meProfile?.avatarUrl || avatarValue || '').trim();
   const hasValidAvatarSrc =
-    !!avatarValue &&
-    (avatarValue.startsWith('http') || avatarValue.startsWith('data:') || avatarValue.startsWith('/'));
+    !!headerAvatarUrl &&
+    (headerAvatarUrl.startsWith('http') || headerAvatarUrl.startsWith('data:') || headerAvatarUrl.startsWith('/'));
 
   const roleLabel = isSuperAdmin ? 'סופר אדמין' : isTenantAdmin ? 'אדמין ארגון' : user.role === 'admin' ? 'מנהל' : 'סוכן';
+  const headerName = meProfile?.fullName || safeUserName;
+  const headerRoleLabel = meProfile?.role || roleLabel;
 
   // Early return after all hooks
   if (viewMode === 'portal' && activePortalClient) return <ClientPortalView client={activePortalClient} onExit={handleExitPortal} />;
@@ -619,28 +690,27 @@ case 'dialer':
           currentDate={currentDate || 'טוען...'}
           brand={{
             name: brandName,
-            logoUrl: '/icons/system-icon.svg',
-            fallbackIcon: <img src="/icons/system-icon.svg" alt="System" className="w-full h-full object-cover" />,
+            logoUrl: null,
+            fallbackIcon: (
+              <div className="w-full h-full bg-gradient-to-br from-rose-600 to-indigo-600 flex items-center justify-center">
+                <Target size={18} className="text-white" strokeWidth={2.5} />
+              </div>
+            ),
           }}
           isWorkspaceRoute={isWorkspaceRoute}
           onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
           onNavigateToNotificationsAction={() => navigateToTab('notifications_center')}
-          user={{ name: safeUserName, email: user.email || `${user.id}@system.os` }}
-          roleLabel={roleLabel}
-          avatarUrl={avatarValue}
+          onProfileClickAction={() => {
+            if (basePath) {
+              router.push(`${basePath}/me`);
+            } else {
+              router.push('/me');
+            }
+          }}
+          user={{ name: headerName, email: user.email || `${user.id}@system.os` }}
+          roleLabel={headerRoleLabel}
+          avatarUrl={headerAvatarUrl}
           hasValidAvatarSrc={hasValidAvatarSrc}
-          isProfileOpen={isProfileOpen}
-          onToggleProfileOpenAction={() => setIsProfileOpen(!isProfileOpen)}
-          profileRef={profileRef}
-          onNavigateToPersonalAreaAction={() => {
-            navigateToTab('personal_area');
-            setIsProfileOpen(false);
-          }}
-          onNavigateToSystemSettingsAction={() => {
-            navigateToTab('system');
-            setIsProfileOpen(false);
-          }}
-          onLogoutAction={logout}
         />
 
         <div className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0 touch-pan-y" id="main-scroll-container" style={{ WebkitOverflowScrolling: 'touch' }}>
@@ -692,6 +762,35 @@ case 'dialer':
                               {activeTab === 'workspace' && (
                                   <WorkspaceHub leads={leads} content={storedContent} students={storedStudents} campaigns={storedCampaigns} tasks={tasks} events={calendarEvents} onLeadClick={setSelectedLead} onNavigate={setActiveTab} onQuickAction={setActiveTab} onAddEvent={handleSaveMeeting} onNewMeetingClick={() => setShowNewMeetingModal(true)} onAddActivity={handleAddActivity} onUpdateTask={handleUpdateTask} onAddTask={(t) => setStoredTasks(p => [t, ...p])} />
                               )}
+                              {activeTab === 'me' && (
+                                <div className="w-full">
+                                  <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+                                    <MeView
+                                      basePathOverride={basePath ? String(basePath) : undefined}
+                                      moduleCards={
+                                        basePath
+                                          ? [
+                                              {
+                                                title: 'לידים',
+                                                subtitle: 'צינור מכירות וניהול פניות',
+                                                href: `${basePath}/sales_leads`,
+                                                iconId: 'target',
+                                              },
+                                              {
+                                                title: 'הגדרות מערכת',
+                                                subtitle: 'תצורה, שדות ואוטומציות',
+                                                href: `${basePath}/hub?origin=system&drawer=system&from=${encodeURIComponent(
+                                                  `${basePath}/me`
+                                                )}`,
+                                                iconId: 'settings',
+                                              },
+                                            ]
+                                          : undefined
+                                      }
+                                    />
+                                  </DataProvider>
+                                </div>
+                              )}
                               {(activeTab === 'sales_pipeline' || activeTab === 'sales_leads') && (
                                   <LeadsHub leads={leads} onLeadClick={setSelectedLead} onStatusChange={handleStatusChange} initialTab={activeTab === 'sales_pipeline' ? 'pipeline' : 'list'} />
                               )}
@@ -726,12 +825,17 @@ case 'dialer':
                                   onAddActivity={handleAddActivity}
                                 />
                               )}
+                              {activeTab === 'hub' && (
+                                <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />
+                              )}
                               {activeTab === 'personal_area' && <PersonalAreaView leads={leads} tasks={tasks} />}
                               {activeTab === 'notifications_center' && <NotificationsView />}
                               {activeTab === 'focus_mode' && <FocusModeView />}
                               {activeTab === 'data_connectivity' && <DataConnectivityView />}
                               {activeTab === 'ai_analytics' && <AIAnalyticsView leads={leads} campaigns={storedCampaigns} tasks={tasks} invoices={storedInvoices} />}
-                  {activeTab === 'settings' && <SettingsView />}
+                  {activeTab === 'settings' && (
+                    <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -804,7 +908,7 @@ case 'dialer':
               >
                 <button
                   onClick={handlePlusDialerClick}
-                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-2xl shadow-lg shadow-purple-500/30 flex items-center justify-center hover:from-purple-600 hover:to-purple-700 active:scale-95 transition-all duration-200 border border-purple-400/20"
+                  className="group relative w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center hover:from-emerald-600 hover:to-emerald-700 active:scale-95 transition-all duration-200 border border-emerald-400/20"
                   aria-label="חייגן"
                   type="button"
                 >
@@ -1028,7 +1132,11 @@ export default function SystemApp({
               initialBrandName={String(initialOrganization?.name || 'system.OS')}
               initialBrandLogo={initialOrganization?.logo || null}
             >
-               <SystemOSApp initialTab={initialTab} />
+               <SystemOSApp
+                 initialTab={initialTab}
+                 initialCurrentUser={initialCurrentUser}
+                 initialOrganization={initialOrganization}
+               />
             </BrandProvider>
           </CallAnalysisProvider>
         </ToastProvider>

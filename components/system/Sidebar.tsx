@@ -56,6 +56,17 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
 
   const onNavigate = (tabId: string) => {
     if (!basePath) return;
+    const from = pathname || `${basePath}/workspace`;
+    if (tabId === 'personal_area') {
+      router.push(`${basePath}/hub?origin=system&drawer=profile&from=${encodeURIComponent(from)}`);
+      if (mobile && onClose) onClose();
+      return;
+    }
+    if (tabId === 'system') {
+      router.push(`${basePath}/hub?origin=system&drawer=system&from=${encodeURIComponent(from)}`);
+      if (mobile && onClose) onClose();
+      return;
+    }
     router.push(`${basePath}/${tabId}`);
     if (mobile && onClose) onClose();
   };

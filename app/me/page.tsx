@@ -1,10 +1,20 @@
 import { redirect } from 'next/navigation';
-import { requireCurrentOrganizationId } from '@/lib/server/workspace';
+import { loadCurrentUserLastLocation, requireCurrentOrganizationId, requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
 // Force dynamic rendering as this page depends on authentication
 export const dynamic = 'force-dynamic';
 
 export default async function MePage() {
   const organizationId = await requireCurrentOrganizationId();
-  redirect(`/w/${encodeURIComponent(String(organizationId))}/nexus/me`);
+  const last = await loadCurrentUserLastLocation();
+
+  const orgSlug = last.orgSlug ? String(last.orgSlug) : String(organizationId);
+
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const module = last.module && workspace.entitlements?.[last.module] ? last.module : 'nexus';
+    redirect(`/w/${encodeURIComponent(orgSlug)}/${encodeURIComponent(String(module))}/me`);
+  } catch {
+    redirect(`/w/${encodeURIComponent(String(organizationId))}/nexus/me`);
+  }
 }

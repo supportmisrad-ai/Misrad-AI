@@ -105,24 +105,24 @@ export function LandingPaymentLinksPanel({
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <div className="mb-8">
-        <h1 className="text-4xl font-black text-white tracking-tight mb-2 bg-gradient-to-r from-white via-amber-200 to-indigo-200 bg-clip-text text-transparent">
+        <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-amber-700 to-indigo-700 bg-clip-text text-transparent">
           תשלום / סליקה לדפי הנחיתה
         </h1>
-        <p className="text-slate-400 text-lg">
+        <p className="text-slate-600 text-lg">
           כאן אתה שולט על מה שיופיע בעמוד התשלום (`/subscribe/checkout`) שמגיע מדפי הנחיתה: QR, הוראות, וקישור חיצוני לסליקה
           (כולל אפשרות ל־iframe).
         </p>
       </div>
 
-      <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 text-white shadow-2xl">
+      <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-6 text-slate-900 shadow-2xl">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white/5 rounded-2xl border border-white/10">
-              <CreditCard size={20} />
+            <div className="p-2 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700">
+              <CreditCard size={20} className="text-slate-700" />
             </div>
             <div>
               <div className="text-lg font-black">הגדרות תשלום לפי מערכת</div>
-              <div className="text-xs text-slate-400">נדרש Super Admin</div>
+              <div className="text-xs text-slate-500">נדרש Super Admin</div>
             </div>
           </div>
 
@@ -142,20 +142,20 @@ export function LandingPaymentLinksPanel({
             const cfg = configs[pkg];
 
             return (
-              <div key={pkg} className="bg-black/30 border border-white/10 rounded-2xl p-5">
+              <div key={pkg} className="bg-white/60 border border-slate-200/70 rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <div className="text-sm font-black text-white">{meta.title}</div>
-                    <div className="text-xs text-slate-400">{meta.subtitle}</div>
+                    <div className="text-sm font-black text-slate-900">{meta.title}</div>
+                    <div className="text-xs text-slate-600">{meta.subtitle}</div>
                     <div className="text-[10px] text-slate-500 mt-1">package_type: {pkg}</div>
                   </div>
 
                   <div className="min-w-[220px]">
-                    <div className="text-[10px] font-black text-slate-400 mb-2">Payment Method</div>
+                    <div className="text-[10px] font-black text-slate-600 mb-2">Payment Method</div>
                     <select
                       value={cfg.paymentMethod}
                       onChange={(e) => update(pkg, { paymentMethod: e.target.value === 'automatic' ? 'automatic' : 'manual' })}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
                       disabled={isLoading || isSaving}
                     >
                       <option value="manual">manual (QR + הוכחה)</option>
@@ -166,22 +166,22 @@ export function LandingPaymentLinksPanel({
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-[10px] font-black text-slate-400 mb-2">כותרת</div>
+                    <div className="text-[10px] font-black text-slate-600 mb-2">כותרת</div>
                     <input
                       value={cfg.title}
                       onChange={(e) => update(pkg, { title: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
                       placeholder="כותרת שתופיע בעמוד התשלום"
                       disabled={isLoading || isSaving}
                     />
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black text-slate-400 mb-2">External Payment URL</div>
+                    <div className="text-[10px] font-black text-slate-600 mb-2">External Payment URL</div>
                     <input
                       value={cfg.externalPaymentUrl}
                       onChange={(e) => update(pkg, { externalPaymentUrl: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
                       placeholder="https://... (למשל Grow / גמא / ישראכרט)"
                       disabled={isLoading || isSaving}
                     />
@@ -191,7 +191,7 @@ export function LandingPaymentLinksPanel({
                           href={cfg.externalPaymentUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-xs text-amber-300 font-bold hover:underline"
+                          className="text-xs text-amber-700 font-bold hover:underline"
                         >
                           פתח קישור לבדיקה
                         </a>
@@ -200,22 +200,22 @@ export function LandingPaymentLinksPanel({
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black text-slate-400 mb-2">QR Image URL</div>
+                    <div className="text-[10px] font-black text-slate-600 mb-2">QR Image URL</div>
                     <input
                       value={cfg.qrImageUrl}
                       onChange={(e) => update(pkg, { qrImageUrl: e.target.value })}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60"
                       placeholder="https://..."
                       disabled={isLoading || isSaving}
                     />
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-black text-slate-400 mb-2">טקסט הנחיות</div>
+                    <div className="text-[10px] font-black text-slate-600 mb-2">טקסט הנחיות</div>
                     <textarea
                       value={cfg.instructionsText}
                       onChange={(e) => update(pkg, { instructionsText: e.target.value })}
-                      className="w-full min-h-[44px] rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none resize-y"
+                      className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/60 resize-y"
                       placeholder="הוראות שיופיעו בעמוד התשלום"
                       disabled={isLoading || isSaving}
                     />
@@ -226,7 +226,7 @@ export function LandingPaymentLinksPanel({
           })}
         </div>
 
-        {isLoading ? <div className="mt-6 text-xs text-slate-400">טוען...</div> : null}
+        {isLoading ? <div className="mt-6 text-xs text-slate-500">טוען...</div> : null}
       </div>
     </motion.div>
   );

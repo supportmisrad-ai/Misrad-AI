@@ -3,7 +3,7 @@
  * Calculates Shabbat times and manages Shabbat mode state
  */
 
-import { HDate, Location, Zmanim } from '@hebcal/core';
+import { Location, Zmanim } from '@hebcal/core';
 // import { formatInTimeZone } from 'date-fns-tz'; - removed to avoid dependency issue
 
 export interface ShabbatTimes {
@@ -44,61 +44,50 @@ export function calculateShabbatTimes(
     location = new Location(latitude, longitude, isInIsrael, timezone, 'Custom', undefined, undefined, 0);
   }
   
-  const hdate = new HDate(date);
-  
-  // Get Friday (ערב שבת) - find the Friday before or on the given date
-  let friday = new Date(date);
-  const dayOfWeek = friday.getDay(); // 0 = Sunday, 5 = Friday
-  const daysUntilFriday = dayOfWeek <= 5 ? 5 - dayOfWeek : 5 - dayOfWeek + 7;
-  friday.setDate(friday.getDate() + daysUntilFriday);
-  friday.setHours(0, 0, 0, 0);
-  
-  // If it's already Friday and past sunset, get next Friday
-  if (dayOfWeek === 5) {
-    const zmanim = new Zmanim(location, date, false);
-    const sunset = zmanim.sunset();
-    if (date > sunset) {
-      friday.setDate(friday.getDate() + 7);
-    }
-  }
-  
-  const fridayHDate = new HDate(friday);
-  const zmanim = new Zmanim(location, friday, false);
-  
-  // Calculate times
-  const sunset = zmanim.sunset(); // שקיעה = תחילת שבת
-  const candleLighting = new Date(sunset.getTime() - 18 * 60 * 1000); // 18 דקות לפני השקיעה
-  const shabbatEnd = new Date(sunset.getTime() + 42 * 60 * 1000); // 42 דקות אחרי השקיעה
-  
-  // Check if currently Shabbat
   const now = new Date();
-  const isShabbat = now >= candleLighting && now < shabbatEnd;
-  
-  // Calculate time until end
-  let timeUntilEnd = 0;
-  if (isShabbat) {
-    timeUntilEnd = shabbatEnd.getTime() - now.getTime();
-  }
-  
-  // Next Shabbat (if current time is after this Shabbat, get next Friday)
-  let nextShabbat = candleLighting;
-  if (now > shabbatEnd) {
-    const nextFriday = new Date(friday);
-    nextFriday.setDate(nextFriday.getDate() + 7);
-    const nextFridayHDate = new HDate(nextFriday);
-    const nextZmanim = new Zmanim(location, nextFriday, false);
-    const nextSunset = nextZmanim.sunset();
-    nextShabbat = new Date(nextSunset.getTime() - 18 * 60 * 1000);
-  }
-  
+
+  const computeForFriday = (fridayDate: Date) => {
+    const normalizedFriday = new Date(fridayDate);
+    normalizedFriday.setHours(0, 0, 0, 0);
+    const zmanim = new Zmanim(location, normalizedFriday, false);
+    const sunset = zmanim.sunset();
+    const candleLighting = new Date(sunset.getTime() - 18 * 60 * 1000);
+    const shabbatEnd = new Date(sunset.getTime() + 42 * 60 * 1000);
+    return { candleLighting, sunset, shabbatEnd };
+  };
+
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 5 = Friday
+  const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
+  const daysSinceFriday = (dayOfWeek - 5 + 7) % 7;
+
+  const upcomingFriday = new Date(now);
+  upcomingFriday.setDate(upcomingFriday.getDate() + daysUntilFriday);
+
+  const previousFriday = new Date(now);
+  previousFriday.setDate(previousFriday.getDate() - daysSinceFriday);
+
+  const upcoming = computeForFriday(upcomingFriday);
+  const previous = computeForFriday(previousFriday);
+
+  const isShabbat = now >= previous.candleLighting && now < previous.shabbatEnd;
+
+  const effective = isShabbat ? previous : upcoming;
+  const timeUntilEnd = isShabbat ? Math.max(0, effective.shabbatEnd.getTime() - now.getTime()) : 0;
+  const nextShabbat = upcoming.candleLighting;
+
   return {
-    candleLighting,
-    shabbatStart: sunset,
-    shabbatEnd,
+    candleLighting: effective.candleLighting,
+    shabbatStart: effective.sunset,
+    shabbatEnd: effective.shabbatEnd,
     isShabbat,
     timeUntilEnd,
     nextShabbat,
   };
+}
+
+export function isShabbatNow(): { isShabbat: boolean; havdalah: Date } {
+  const times = calculateShabbatTimes();
+  return { isShabbat: times.isShabbat, havdalah: times.shabbatEnd };
 }
 
 /**

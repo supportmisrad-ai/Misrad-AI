@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { WebhookLog, Lead, FieldAgent } from './types';
 import { Settings, Bot, Webhook, BrainCircuit } from 'lucide-react';
-import SettingsView from './SettingsView';
 import AutomationsView from './AutomationsView';
 import IntegrationsView from './IntegrationsView';
 import AIAnalyticsView from './AIAnalyticsView';
 import { useAuth } from './contexts/AuthContext';
+import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 
 interface SystemHubProps {
     logs: WebhookLog[];
@@ -59,7 +59,7 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents, onAddTask, o
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto">
-            {activeTab === 'analytics' && <AIAnalyticsView leads={leads} agents={agents} />}
+            {activeTab === 'analytics' && <AIAnalyticsView leads={leads} />}
             {activeTab === 'automations' && (
               <AutomationsView 
                 leads={leads} 
@@ -68,7 +68,7 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents, onAddTask, o
               />
             )}
             {activeTab === 'integrations' && canAccess('integrations_config') && <IntegrationsView logs={logs} />}
-            {activeTab === 'settings' && <SettingsView leads={leads} />}
+            {activeTab === 'settings' && <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />}
         </div>
     </div>
   );

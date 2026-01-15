@@ -5,80 +5,37 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, isTenantAdmin, getOwnedTenant } from '../../../../lib/auth';
-import { getUsers } from '../../../../lib/db';
+import { isTenantAdmin, getOwnedTenant } from '../../../../lib/auth';
+import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
-        // 1. Get authenticated Clerk user
-        const clerkUser = await getAuthenticatedUser();
-
-        if (!clerkUser.email) {
+        const orgHeader = request.headers.get('x-org-id');
+        if (!orgHeader) {
             return NextResponse.json(
-                { error: 'User email not found' },
+                { error: 'Missing organization context (x-org-id)' },
                 { status: 400 }
             );
         }
 
-        // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const resolved = await resolveWorkspaceCurrentUserForApi(orgHeader);
 
-        if (!dbUser) {
-            // User not found in database - return Clerk user info with instructions
-            // Log to console instead of returning warning in response (to avoid repeated toasts)
-            console.warn(`[API] User with email ${clerkUser.email} not found in database.`);
-            console.warn(`[API] To fix: Call POST /api/users/sync to automatically create the user, or add manually to Supabase.`);
-            
-            // Get tenant admin status even if user not in DB (for Clerk-only users)
-            const tenant = await getOwnedTenant();
-            const tenantAdminStatus = await isTenantAdmin(tenant?.id);
-
-            return NextResponse.json({
-                user: null,
-                clerkUser: {
-                    id: clerkUser.id,
-                    email: clerkUser.email,
-                    firstName: clerkUser.firstName,
-                    lastName: clerkUser.lastName,
-                    role: clerkUser.role,
-                    isSuperAdmin: clerkUser.isSuperAdmin || false
-                },
-                tenant: tenant ? {
-                    id: tenant.id,
-                    name: tenant.name,
-                    ownerEmail: tenant.ownerEmail
-                } : null,
-                isTenantAdmin: tenantAdminStatus,
-                warning: `User with email ${clerkUser.email} not found in database`,
-                matched: false,
-                syncEndpoint: '/api/users/sync',
-                instructions: 'Call POST /api/users/sync to automatically create this user in the database'
-            }, { status: 200 });
-        }
-
-        // 3. Get tenant admin status and tenant info
         const tenant = await getOwnedTenant();
         const tenantAdminStatus = await isTenantAdmin(tenant?.id);
 
-        // 4. Return matched user with tenant info
         return NextResponse.json({
-            user: dbUser,
-            clerkUser: {
-                id: clerkUser.id,
-                email: clerkUser.email,
-                firstName: clerkUser.firstName,
-                lastName: clerkUser.lastName,
-                isSuperAdmin: clerkUser.isSuperAdmin || false,
-                role: clerkUser.role || dbUser.role || 'עובד'
-            },
-            tenant: tenant ? {
-                id: tenant.id,
-                name: tenant.name,
-                ownerEmail: tenant.ownerEmail
-            } : null,
+            user: resolved.user,
+            clerkUser: resolved.clerkUser,
+            tenant: tenant
+                ? {
+                    id: tenant.id,
+                    name: tenant.name,
+                    ownerEmail: tenant.ownerEmail,
+                }
+                : null,
             isTenantAdmin: tenantAdminStatus,
-            matched: true
+            matched: true,
         });
 
     } catch (error: any) {
@@ -90,3 +47,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

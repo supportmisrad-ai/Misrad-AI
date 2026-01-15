@@ -10,7 +10,8 @@ import { supabase } from '../../../lib/supabase';
 import { getUsers } from '../../../lib/db';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
@@ -82,3 +83,5 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ notifications: [] }, { status: 200 });
     }
 }
+
+export const GET = shabbatGuard(GETHandler);

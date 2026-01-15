@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '../../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../../lib/auth';
 
-export async function GET() {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler() {
     try {
         await requireSuperAdmin();
     } catch (e: any) {
@@ -70,3 +71,5 @@ export async function GET() {
     });
 }
 
+
+export const GET = shabbatGuard(GETHandler);

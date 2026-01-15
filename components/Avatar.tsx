@@ -7,6 +7,7 @@ interface AvatarProps {
     alt?: string;
     name?: string;
     size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    rounded?: 'none' | 'lg' | 'xl' | '2xl' | '3xl' | 'full';
     className?: string;
 }
 
@@ -23,6 +24,7 @@ export function Avatar({
     alt,
     name,
     size = 'md',
+    rounded = 'full',
     className = ''
 }: AvatarProps) {
     const [mounted, setMounted] = useState(false);
@@ -44,12 +46,25 @@ export function Avatar({
     const sizeClass = sizeClasses[size];
     const initials = getInitials(name);
 
+    const roundedClass =
+        rounded === 'none'
+            ? ''
+            : rounded === 'lg'
+                ? 'rounded-lg'
+                : rounded === 'xl'
+                    ? 'rounded-xl'
+                    : rounded === '2xl'
+                        ? 'rounded-2xl'
+                        : rounded === '3xl'
+                            ? 'rounded-3xl'
+                            : 'rounded-full';
+
     const effectiveSrc = mounted ? src : undefined;
 
     if (!effectiveSrc || effectiveSrc.trim() === '') {
         return (
             <div 
-                className={`${sizeClass} rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className}`}
+                className={`${sizeClass} ${roundedClass} bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className}`}
                 aria-label={alt || name || 'User avatar'}
                 suppressHydrationWarning
             >
@@ -62,7 +77,7 @@ export function Avatar({
         <img 
             src={effectiveSrc} 
             alt={alt || name || 'User avatar'} 
-            className={`${sizeClass} rounded-full object-cover ${className}`}
+            className={`${sizeClass} ${roundedClass} object-cover ${className}`}
         />
     );
 };

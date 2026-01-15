@@ -5,15 +5,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Briefcase, X, CheckCircle2, Trash2, Settings, Wallet, UserPlus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
+import { Avatar } from '@/components/Avatar';
 import { getTeamRoleDisplayName } from '@/lib/roleTranslations';
-import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
+import { getSocialBasePath } from '@/lib/os/social-routing';
+import { canManageTeamMembers } from '@/lib/rbac';
 
 export default function TeamView() {
   const router = useRouter();
   const pathname = usePathname();
-  const { team, clients, setSettingsSubView } = useApp();
+  const { team, clients, setSettingsSubView, userRole } = useApp();
   const [selectedMember, setSelectedMember] = useState<typeof team[0] | null>(null);
   const [isAssigning, setIsAssigning] = useState(false);
+
+  const basePath = getSocialBasePath(pathname);
+  const orgSlug = basePath.startsWith('/w/') ? basePath.split('/')[2] : null;
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-10 pb-20 animate-in fade-in" dir="rtl">
@@ -41,11 +46,17 @@ export default function TeamView() {
           </div>
           <button 
             onClick={() => {
+              if (!canManageTeamMembers(userRole)) return;
               setSettingsSubView('team_management');
-              const basePath = getSocialBasePath(pathname);
-              router.push(joinPath(basePath, '/settings'));
+              if (orgSlug) {
+                router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
+                return;
+              }
+              router.push('/');
             }}
-            className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2"
+            className={`bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl transition-all flex items-center gap-2 ${
+              canManageTeamMembers(userRole) ? 'hover:bg-blue-700' : 'opacity-50 cursor-not-allowed'
+            }`}
           >
             <UserPlus size={20} /> הוסף חבר צוות ראשון
           </button>
@@ -65,7 +76,14 @@ export default function TeamView() {
             >
               <div className="flex items-center justify-between">
                 <div className="relative">
-                  <img src={member.avatar} className="w-20 h-20 rounded-[28px] shadow-lg border-4 border-white" alt={member.name} />
+                  <Avatar
+                    src={String(member.avatar || '')}
+                    name={String(member.name || '')}
+                    alt={String(member.name || '')}
+                    size="xl"
+                    rounded="3xl"
+                    className="w-20 h-20 shadow-lg border-4 border-white"
+                  />
                   <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-4 border-white ${isOverloaded ? 'bg-red-500' : 'bg-green-500'}`}></div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
@@ -118,7 +136,17 @@ export default function TeamView() {
                 <div className="flex -space-x-2 space-x-reverse">
                   {member.assignedClients.map(cid => {
                     const client = clients.find(c => c.id === cid);
-                    return <img key={cid} src={client?.avatar} className="w-10 h-10 rounded-xl border-2 border-white shadow-sm" title={client?.companyName} alt={client?.companyName} />;
+                    return (
+                      <Avatar
+                        key={cid}
+                        src={String(client?.avatar || '')}
+                        name={String(client?.companyName || client?.name || '')}
+                        alt={String(client?.companyName || '')}
+                        size="lg"
+                        rounded="xl"
+                        className="border-2 border-white shadow-sm"
+                      />
+                    );
                   })}
                   <button className="w-10 h-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl text-slate-300 flex items-center justify-center hover:border-blue-400 hover:text-blue-500 transition-all">+</button>
                 </div>
@@ -142,7 +170,14 @@ export default function TeamView() {
             >
               <div className="p-10 border-b flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-6">
-                  <img src={selectedMember.avatar} className="w-20 h-20 rounded-[32px] shadow-xl border-4 border-white" alt={selectedMember.name} />
+                  <Avatar
+                    src={String(selectedMember.avatar || '')}
+                    name={String(selectedMember.name || '')}
+                    alt={String(selectedMember.name || '')}
+                    size="xl"
+                    rounded="3xl"
+                    className="w-20 h-20 shadow-xl border-4 border-white"
+                  />
                   <div>
                     <div className="flex items-center gap-3">
                       <h2 className="text-3xl font-black">{selectedMember.name}</h2>
@@ -188,7 +223,13 @@ export default function TeamView() {
                             key={c.id}
                             className={`p-4 rounded-2xl border-2 flex items-center gap-3 transition-all ${isAssigned ? 'bg-white border-blue-500 shadow-md' : 'bg-white/50 border-transparent opacity-60'}`}
                           >
-                            <img src={c.avatar} className="w-8 h-8 rounded-lg" alt={c.companyName} />
+                            <Avatar
+                              src={String(c.avatar || '')}
+                              name={String(c.companyName || c.name || '')}
+                              alt={String(c.companyName || '')}
+                              size="md"
+                              rounded="lg"
+                            />
                             <span className="font-bold text-xs truncate">{c.companyName}</span>
                             {isAssigned && <CheckCircle2 size={14} className="text-blue-500 ml-auto"/>}
                           </button>
@@ -203,7 +244,14 @@ export default function TeamView() {
                       return (
                         <div key={cid} className="bg-white p-6 rounded-3xl border border-slate-100 flex items-center justify-between group hover:shadow-lg transition-all">
                           <div className="flex items-center gap-6">
-                            <img src={client?.avatar} className="w-14 h-14 rounded-2xl shadow-md" alt={client?.companyName} />
+                            <Avatar
+                              src={String(client?.avatar || '')}
+                              name={String(client?.companyName || client?.name || '')}
+                              alt={String(client?.companyName || '')}
+                              size="lg"
+                              rounded="2xl"
+                              className="shadow-md"
+                            />
                             <div>
                               <p className="font-black text-lg text-slate-800">{client?.companyName}</p>
                               <p className="text-xs font-bold text-slate-400">סטטוס: {client?.status === 'Active' ? 'פעיל' : 'ממתין'}</p>
@@ -224,7 +272,23 @@ export default function TeamView() {
               </div>
 
               <div className="p-10 bg-slate-900 border-t flex items-center justify-between">
-                <button className="flex items-center gap-2 text-white/60 hover:text-white font-black text-sm transition-all"><Settings size={18}/> הגדרות חשבון וחיובים</button>
+                <button
+                  onClick={() => {
+                    if (!canManageTeamMembers(userRole)) return;
+                    if (orgSlug) {
+                      router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
+                      return;
+                    }
+                    router.push('/');
+                  }}
+                  className={`flex items-center gap-2 font-black text-sm transition-all ${
+                    canManageTeamMembers(userRole)
+                      ? 'text-white/60 hover:text-white'
+                      : 'text-white/30 cursor-not-allowed'
+                  }`}
+                >
+                  <Settings size={18}/> הגדרות חשבון וחיובים
+                </button>
                 <button onClick={() => setSelectedMember(null)} className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-black shadow-xl">סגור תצוגה</button>
               </div>
             </motion.div>

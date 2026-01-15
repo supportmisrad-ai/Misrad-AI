@@ -13,12 +13,15 @@ interface PricingCardProps {
     billingCycle: 'monthly' | 'yearly';
     subtitle?: string;
     systemSubtitle?: string; // שם קטן בעברית: "לידים ומכירות", "ניהול לקוחות", "ניהול עסק"
+    accent?: 'indigo' | 'gold';
 }
 
-export const PricingCard = ({ title, price, features, recommended = false, onSelect, billingCycle, subtitle, systemSubtitle }: PricingCardProps) => {
+export const PricingCard = ({ title, price, features, recommended = false, onSelect, billingCycle, subtitle, systemSubtitle, accent = 'indigo' }: PricingCardProps) => {
     const [isHovered, setIsHovered] = useState(false);
     const finalPrice = billingCycle === 'yearly' ? Math.round(price * 0.8) : price;
     const monthlySavings = billingCycle === 'yearly' ? Math.round(price * 0.2) : 0;
+
+    const isGold = accent === 'gold';
 
     return (
         <motion.div
@@ -27,8 +30,8 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             whileHover={{ y: recommended ? -8 : -4 }}
             className={`relative pt-12 pb-8 px-8 rounded-3xl border-2 flex flex-col h-full transition-all duration-500 group ${
                 recommended 
-                    ? 'bg-gradient-to-br from-slate-800 via-slate-800 to-slate-900 border-indigo-500/60 shadow-2xl shadow-indigo-900/30 z-10 scale-105' 
-                    : 'bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/80 border-slate-800/60 hover:border-slate-700/80 hover:bg-slate-900/90'
+                    ? `bg-white ${isGold ? 'border-[#C5A572]/40' : 'border-indigo-300'} shadow-xl z-10 scale-105` 
+                    : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'
             }`}
             style={{ 
                 boxSizing: 'border-box',
@@ -39,9 +42,13 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             {/* Animated Background Glow */}
             {recommended && (
                 <>
-                    <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl" />
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl ${
+                        isGold
+                            ? 'bg-gradient-to-r from-[#C5A572]/10 via-amber-500/10 to-[#E5C17A]/10'
+                            : 'bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5'
+                    }`} />
                     <motion.div
-                        className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"
+                        className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none ${isGold ? 'bg-[#C5A572]/20' : 'bg-indigo-500/20'}`}
                         animate={{
                             scale: isHovered ? [1, 1.2, 1] : 1,
                             opacity: isHovered ? [0.3, 0.5, 0.3] : 0.2,
@@ -61,8 +68,12 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                     style={{ willChange: 'transform' }}
                 >
                     <div className="relative">
-                        <div className="absolute inset-0 bg-indigo-500 blur-xl opacity-75 animate-pulse -z-10" />
-                        <div className="relative bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 text-white text-xs font-black px-5 py-2 rounded-full uppercase tracking-wider shadow-2xl border-2 border-white/20 backdrop-blur-sm whitespace-nowrap">
+                        <div className={`absolute inset-0 blur-xl opacity-75 animate-pulse -z-10 ${isGold ? 'bg-[#C5A572]' : 'bg-indigo-500'}`} />
+                        <div className={`relative text-white text-xs font-black px-5 py-2 rounded-full uppercase tracking-wider shadow-2xl border-2 border-white/20 backdrop-blur-sm whitespace-nowrap ${
+                            isGold
+                                ? 'bg-gradient-to-r from-[#C5A572] via-amber-500 to-[#E5C17A]'
+                                : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500'
+                        }`}>
                             <div className="flex items-center gap-2">
                                 <Crown size={14} className="fill-yellow-300 text-yellow-300 shrink-0" />
                                 <span>הכי משתלם</span>
@@ -77,11 +88,11 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             <div className="mb-8 relative z-10 mt-2">
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                        <h3 className={`text-2xl font-black mb-1 ${recommended ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-purple-300' : 'text-white'}`}>
+                        <h3 className={`text-2xl font-black mb-1 ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
                             {title}
                         </h3>
                         {systemSubtitle && (
-                            <p className="text-xs text-indigo-400/80 font-bold mb-2 leading-tight">
+                            <p className={`text-xs font-bold mb-2 leading-tight ${isGold ? 'text-[#C5A572]' : 'text-indigo-600'}`}>
                                 {systemSubtitle}
                             </p>
                         )}
@@ -103,7 +114,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                 {/* Price Display - Enhanced */}
                 <div className="relative">
                     <div className="flex items-baseline gap-2 mb-2">
-                        <span className={`text-5xl font-black ${recommended ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400' : 'text-white'}`}>
+                        <span className={`text-5xl font-black ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
                             ₪{finalPrice}
                         </span>
                         <span className="text-slate-400 text-sm font-bold">/חודש</span>
@@ -115,9 +126,9 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                             animate={{ opacity: 1, y: 0 }}
                             className="flex items-center gap-2 mt-2"
                         >
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-lg">
-                                <TrendingUp size={12} className="text-emerald-400" />
-                                <span className="text-xs text-emerald-400 font-bold">
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-lg">
+                                <TrendingUp size={12} className="text-emerald-600" />
+                                <span className="text-xs text-emerald-700 font-bold">
                                     חסוך ₪{monthlySavings}/חודש
                                 </span>
                             </div>
@@ -144,13 +155,13 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                                     transition={{ duration: 0.3 }}
                                     className={`mt-0.5 rounded-full p-1 shrink-0 ${
                                         recommended 
-                                            ? 'bg-gradient-to-br from-indigo-500/30 to-purple-500/30 text-indigo-300 border border-indigo-500/30' 
-                                            : 'bg-slate-800/50 text-slate-400 border border-slate-700/50'
+                                            ? (isGold ? 'bg-[#C5A572]/10 text-[#C5A572] border border-[#C5A572]/20' : 'bg-indigo-50 text-indigo-700 border border-indigo-100') 
+                                            : 'bg-slate-50 text-slate-500 border border-slate-200'
                                     }`}
                                 >
-                                    <Check size={14} strokeWidth={3} className={recommended ? 'text-indigo-300' : 'text-slate-400'} />
+                                    <Check size={14} strokeWidth={3} className={recommended ? (isGold ? 'text-[#C5A572]' : 'text-indigo-700') : 'text-slate-500'} />
                                 </motion.div>
-                                <span className={`flex-1 leading-relaxed break-words ${recommended ? 'text-slate-200 font-medium' : 'text-slate-300'}`}>
+                                <span className={`flex-1 leading-relaxed break-words ${recommended ? 'text-slate-700 font-medium' : 'text-slate-600'}`}>
                                     {feature}
                                 </span>
                             </>
@@ -168,8 +179,14 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                 onClick={onSelect}
                 className={`relative w-full py-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn ${
                     recommended
-                        ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-900/40 hover:shadow-2xl hover:shadow-indigo-900/60 mb-6'
-                        : 'bg-white text-black hover:bg-slate-100 shadow-lg hover:shadow-xl mb-6'
+                        ? (isGold
+                            ? 'bg-gradient-to-r from-[#C5A572] via-amber-500 to-[#E5C17A] text-slate-900 shadow-xl shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/30 mb-6'
+                            : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-900/40 hover:shadow-2xl hover:shadow-indigo-900/60 mb-6'
+                        )
+                        : (isGold
+                            ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 shadow-sm hover:shadow-md mb-6'
+                            : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 shadow-sm hover:shadow-md mb-6'
+                        )
                 }`}
             >
                 {/* Button Shine Effect */}

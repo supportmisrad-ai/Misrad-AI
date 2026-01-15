@@ -4,7 +4,8 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
 
-export async function GET(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(
   _req: Request,
   { params }: { params: Promise<{ orgSlug: string }> }
 ) {
@@ -55,3 +56,5 @@ export async function GET(
     },
   });
 }
+
+export const GET = shabbatGuard(GETHandler);

@@ -6,6 +6,7 @@ import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import { setNexusBillingItems, buildNexusBillingItemsForTemplate } from '@/lib/services/nexus-billing-service';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 function getOrgSlugFromRequest(request: NextRequest): string | null {
   const headerOrgId = request.headers.get('x-org-id');
   const queryOrgId = request.nextUrl.searchParams.get('orgId');
@@ -20,7 +21,7 @@ function legacyKeyBilling(workspaceId: string) {
   return `nexus_billing_items:${workspaceId}`;
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -103,3 +104,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: msg }, { status });
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

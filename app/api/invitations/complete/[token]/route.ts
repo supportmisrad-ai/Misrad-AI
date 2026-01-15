@@ -10,7 +10,8 @@ import { supabase } from '../../../../../lib/supabase';
 import { updateRecord, getUsers } from '../../../../../lib/db';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
-export async function POST(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ token: string }> }
 ) {
@@ -194,6 +195,28 @@ export async function POST(
         // If there's a client_id, update the client with the new information
         if (invitation.client_id) {
             try {
+                const organizationIdFromMetadata =
+                    invitation.metadata && typeof invitation.metadata === 'object'
+                        ? (invitation.metadata as any).organizationId
+                        : null;
+
+                let organizationId: string | null =
+                    typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0
+                        ? organizationIdFromMetadata
+                        : null;
+
+                if (!organizationId) {
+                    const { data: clientOrgRow, error: clientOrgError } = await supabase
+                        .from('nexus_clients')
+                        .select('organization_id')
+                        .eq('id', invitation.client_id)
+                        .maybeSingle();
+
+                    if (!clientOrgError && clientOrgRow?.organization_id) {
+                        organizationId = String(clientOrgRow.organization_id);
+                    }
+                }
+
                 const clientUpdateData: any = {
                     name: ceoName,
                     email: ceoEmail,
@@ -206,7 +229,9 @@ export async function POST(
                     clientUpdateData.avatar = companyLogo;
                 }
 
-                await updateRecord('clients', invitation.client_id, clientUpdateData);
+                await updateRecord('clients', invitation.client_id, clientUpdateData, {
+                    organizationId: organizationId || undefined,
+                });
             } catch (clientError) {
                 console.error('[API] Error updating client:', clientError);
                 // Don't fail the request if client update fails
@@ -285,3 +310,5 @@ export async function POST(
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

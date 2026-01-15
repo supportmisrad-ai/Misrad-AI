@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '../../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../../lib/auth';
 
-export async function POST() {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler() {
     try {
         await requireSuperAdmin();
     } catch (e: any) {
@@ -92,3 +93,5 @@ export async function POST() {
     });
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

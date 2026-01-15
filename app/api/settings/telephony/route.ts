@@ -11,6 +11,7 @@ import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { getTenants } from '../../../../lib/db';
 import { prisma } from '../../../../lib/prisma';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * Helper function to get tenantId from request/user
  */
@@ -49,7 +50,7 @@ async function getTenantId(request: NextRequest, userEmail: string | null): Prom
  * GET /api/settings/telephony
  * Get telephony configuration for current tenant
  */
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
  *   - credentials: object (required) - { api_key, secret, account_id, etc. }
  *   - isActive: boolean (optional) - Whether to activate this integration
  */
-export async function PUT(request: NextRequest) {
+async function PUTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -201,3 +202,7 @@ export async function PUT(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const PUT = shabbatGuard(PUTHandler);

@@ -74,48 +74,48 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <div className="mb-8">
-                <h1 className="text-4xl font-black text-white tracking-tight mb-2 bg-gradient-to-r from-white via-indigo-200 to-purple-200 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
                     ניהול אישורי משתמשים
                 </h1>
-                <p className="text-slate-400 text-lg">אשר או דחה בקשות גישה, ונהל רשימת מיילים מאושרים לכל לקוח.</p>
+                <p className="text-slate-600 text-lg">אשר או דחה בקשות גישה, ונהל רשימת מיילים מאושרים לכל לקוח.</p>
             </div>
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 p-6 rounded-2xl shadow-xl hover:border-white/20 transition-all">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl hover:border-slate-300/80 transition-all">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">בקשות ממתינות</p>
-                            <h3 className="text-3xl font-black text-white mt-1">{pendingRequests.length}</h3>
+                            <p className="text-xs font-bold text-slate-600 uppercase">בקשות ממתינות</p>
+                            <h3 className="text-3xl font-black text-slate-900 mt-1">{pendingRequests.length}</h3>
                         </div>
-                        <div className="p-3 bg-yellow-500/20 text-yellow-400 rounded-xl border border-yellow-500/30 backdrop-blur-sm">
+                        <div className="p-3 bg-yellow-500/20 text-yellow-700 rounded-xl border border-yellow-500/30 backdrop-blur-sm">
                             <Clock size={20} />
                         </div>
                     </div>
                 </div>
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 p-6 rounded-2xl shadow-xl hover:border-white/20 transition-all">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl hover:border-slate-300/80 transition-all">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">אושרו החודש</p>
-                            <h3 className="text-3xl font-black text-white mt-1">
+                            <p className="text-xs font-bold text-slate-600 uppercase">אושרו החודש</p>
+                            <h3 className="text-3xl font-black text-slate-900 mt-1">
                                 {approvalRequests.filter(r => r.status === 'approved' && 
                                     new Date(r.approvedAt || '').getMonth() === new Date().getMonth()).length}
                             </h3>
                         </div>
-                        <div className="p-3 bg-green-500/20 text-green-400 rounded-xl border border-green-500/30 backdrop-blur-sm">
+                        <div className="p-3 bg-green-500/20 text-green-700 rounded-xl border border-green-500/30 backdrop-blur-sm">
                             <CheckCircle2 size={20} />
                         </div>
                     </div>
                 </div>
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 p-6 rounded-2xl shadow-xl hover:border-white/20 transition-all">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl hover:border-slate-300/80 transition-all">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase">מיילים מאושרים</p>
-                            <h3 className="text-3xl font-black text-white mt-1">
+                            <p className="text-xs font-bold text-slate-600 uppercase">מיילים מאושרים</p>
+                            <h3 className="text-3xl font-black text-slate-900 mt-1">
                                 {uniqueTenants.reduce((acc, t) => acc + (t.allowedEmails?.length || 0), 0)}
                             </h3>
                         </div>
-                        <div className="p-3 bg-blue-500/20 text-blue-400 rounded-xl border border-blue-500/30 backdrop-blur-sm">
+                        <div className="p-3 bg-blue-500/20 text-blue-700 rounded-xl border border-blue-500/30 backdrop-blur-sm">
                             <Mail size={20} />
                         </div>
                     </div>
@@ -123,16 +123,16 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
             </div>
 
             {/* Pending Requests */}
-            <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden mb-8 shadow-2xl">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center bg-black/30 backdrop-blur-sm">
-                    <h3 className="font-bold text-white text-lg flex items-center gap-2">
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden mb-8 shadow-2xl">
+                <div className="p-6 border-b border-slate-200/70 flex justify-between items-center bg-white/60 backdrop-blur-sm">
+                    <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                         <UserCheck size={20} /> בקשות ממתינות לאישור
                     </h3>
                     <div className="flex gap-3">
                         <select
                             value={selectedTenant}
                             onChange={(e) => setSelectedTenant(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 rounded-xl py-2 px-4 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            className="bg-white/80 border border-slate-200 rounded-xl py-2 px-4 text-sm text-slate-900 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60"
                         >
                             <option value="all">כל הלקוחות</option>
                             {uniqueTenants.map((t, index) => (
@@ -146,7 +146,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                 placeholder="חפש לפי אימייל או שם..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl py-2 pr-10 pl-4 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 w-64 transition-all"
+                                className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 w-64 transition-all"
                             />
                         </div>
                     </div>
@@ -154,7 +154,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
 
                 <div className="p-6 space-y-3">
                     {filteredRequests.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400">
+                        <div className="text-center py-12 text-slate-600">
                             <UserCheck size={48} className="mx-auto mb-4 opacity-50" />
                             <p>אין בקשות ממתינות</p>
                         </div>
@@ -162,14 +162,14 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                         filteredRequests.map(request => {
                             const tenant = tenants.find(t => t.id === request.tenantId);
                             return (
-                                <div key={request.id} className="bg-slate-900/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between hover:bg-slate-900 transition-colors">
+                                <div key={request.id} className="bg-white/80 border border-slate-200 rounded-xl p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                     <div className="flex items-center gap-4 flex-1">
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
                                             {request.email.charAt(0).toUpperCase()}
                                         </div>
                                         <div className="flex-1">
-                                            <div className="font-bold text-white">{request.name || 'ללא שם'}</div>
-                                            <div className="text-sm text-slate-400 flex items-center gap-2">
+                                            <div className="font-bold text-slate-900">{request.name || 'ללא שם'}</div>
+                                            <div className="text-sm text-slate-600 flex items-center gap-2">
                                                 <Mail size={12} /> {request.email}
                                             </div>
                                             {tenant && (
@@ -190,12 +190,12 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                                     placeholder="סיבת דחייה..."
                                                     value={rejectReason}
                                                     onChange={(e) => setRejectReason(e.target.value)}
-                                                    className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 text-sm text-white w-48 focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all"
+                                                    className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 w-48 focus:outline-none focus:ring-2 focus:ring-red-200/70 focus:border-red-300 transition-all"
                                                     onKeyPress={(e) => e.key === 'Enter' && handleReject(request.id)}
                                                 />
                                                 <button
                                                     onClick={() => handleReject(request.id)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-900/50 transition-all"
+                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-200/60 transition-all"
                                                 >
                                                     דחה
                                                 </button>
@@ -204,7 +204,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                                         setRejectingId(null);
                                                         setRejectReason('');
                                                     }}
-                                                    className="px-4 py-2 bg-black/40 backdrop-blur-sm border border-white/10 text-slate-300 rounded-lg text-sm font-bold hover:bg-black/60 transition-all"
+                                                    className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
                                                 >
                                                     ביטול
                                                 </button>
@@ -213,13 +213,13 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                             <>
                                                 <button
                                                     onClick={() => onApprove(request.id, currentUserId)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-bold hover:from-green-500 hover:to-emerald-500 flex items-center gap-2 shadow-lg shadow-green-900/50 transition-all"
+                                                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-bold hover:from-green-500 hover:to-emerald-500 flex items-center gap-2 shadow-lg shadow-green-200/60 transition-all"
                                                 >
                                                     <CheckCircle2 size={16} /> אשר
                                                 </button>
                                                 <button
                                                     onClick={() => setRejectingId(request.id)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 flex items-center gap-2 shadow-lg shadow-red-900/50 transition-all"
+                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 flex items-center gap-2 shadow-lg shadow-red-200/60 transition-all"
                                                 >
                                                     <X size={16} /> דחה
                                                 </button>
@@ -234,21 +234,21 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
             </div>
 
             {/* Allowed Emails Management */}
-            <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="p-6 border-b border-white/10 bg-black/30 backdrop-blur-sm">
-                    <h3 className="font-bold text-white text-lg flex items-center gap-2">
+            <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="p-6 border-b border-slate-200/70 bg-white/60 backdrop-blur-sm">
+                    <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
                         <Mail size={20} /> רשימת מיילים מאושרים לכל לקוח
                     </h3>
-                    <p className="text-sm text-slate-400 mt-1">מיילים אלה יכולים להירשם ללא אישור מנהל</p>
+                    <p className="text-sm text-slate-600 mt-1">מיילים אלה יכולים להירשם ללא אישור מנהל</p>
                 </div>
 
                 <div className="p-6 space-y-6">
                     {uniqueTenants.map((tenant, index) => (
-                        <div key={`${tenant.id}-${index}`} className="bg-black/30 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:border-white/20 transition-all">
+                        <div key={`${tenant.id}-${index}`} className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 hover:border-slate-300/80 transition-all">
                             <div className="flex items-center justify-between mb-4">
                                 <div>
-                                    <h4 className="font-bold text-white">{tenant.name}</h4>
-                                    <p className="text-xs text-slate-400">{tenant.ownerEmail}</p>
+                                    <h4 className="font-bold text-slate-900">{tenant.name}</h4>
+                                    <p className="text-xs text-slate-600">{tenant.ownerEmail}</p>
                                 </div>
                                 {addingToTenant === tenant.id ? (
                                     <div className="flex gap-2 items-center">
@@ -257,12 +257,12 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                             placeholder="email@example.com"
                                             value={newEmail}
                                             onChange={(e) => setNewEmail(e.target.value)}
-                                            className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white w-64"
+                                            className="bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 w-64 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60"
                                             onKeyPress={(e) => e.key === 'Enter' && handleAddEmail(tenant.id)}
                                         />
                                         <button
                                             onClick={() => handleAddEmail(tenant.id)}
-                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-900/50 transition-all"
+                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60 transition-all"
                                         >
                                             הוסף
                                         </button>
@@ -271,7 +271,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                                 setAddingToTenant(null);
                                                 setNewEmail('');
                                             }}
-                                            className="px-4 py-2 bg-black/40 backdrop-blur-sm border border-white/10 text-slate-300 rounded-lg text-sm font-bold hover:bg-black/60 transition-all"
+                                            className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
                                         >
                                             ביטול
                                         </button>
@@ -279,7 +279,7 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                 ) : (
                                     <button
                                         onClick={() => setAddingToTenant(tenant.id)}
-                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 flex items-center gap-2 shadow-lg shadow-indigo-900/50 transition-all"
+                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 flex items-center gap-2 shadow-lg shadow-indigo-200/60 transition-all"
                                     >
                                         <Plus size={16} /> הוסף מייל
                                     </button>
@@ -288,13 +288,13 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                             <div className="space-y-2">
                                 {tenant.allowedEmails && tenant.allowedEmails.length > 0 ? (
                                     tenant.allowedEmails.map((email, idx) => (
-                                        <div key={idx} className="flex items-center justify-between bg-black/40 backdrop-blur-sm border border-white/10 rounded-lg px-3 py-2 hover:border-white/20 transition-all">
-                                            <div className="flex items-center gap-2 text-sm text-slate-300">
+                                        <div key={idx} className="flex items-center justify-between bg-white/70 backdrop-blur-sm border border-slate-200 rounded-lg px-3 py-2 hover:border-slate-300/80 transition-all">
+                                            <div className="flex items-center gap-2 text-sm text-slate-700">
                                                 <Mail size={14} /> {email}
                                             </div>
                                             <button
                                                 onClick={() => onRemoveAllowedEmail(tenant.id, email)}
-                                                className="text-red-400 hover:text-red-300"
+                                                className="text-red-600 hover:text-red-700"
                                             >
                                                 <Trash2 size={16} />
                                             </button>

@@ -76,27 +76,29 @@ export const FounderImagePanel: React.FC = () => {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <div className="mb-10">
-                <h1 className="text-3xl font-black text-white tracking-tight mb-2">ניהול תמונת המייסד</h1>
-                <p className="text-slate-400">נהל את התמונה שמוצגת בבלוק "למה יצרנו את Nexus" בדף הנחיתה.</p>
+                <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                    ניהול תמונת המייסד
+                </h1>
+                <p className="text-slate-600">נהל את התמונה שמוצגת בבלוק "למה יצרנו את Nexus" בדף הנחיתה.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Upload Section */}
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 shadow-2xl">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-indigo-500/20 rounded-lg backdrop-blur-sm border border-indigo-500/30">
                             <Upload size={20} className="text-indigo-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white">העלאת תמונה</h2>
-                            <p className="text-sm text-slate-400">PNG, JPG, SVG או WebP (מקסימום 5MB)</p>
+                            <h2 className="text-xl font-black text-slate-900">העלאת תמונה</h2>
+                            <p className="text-sm text-slate-600">PNG, JPG, SVG או WebP (מקסימום 5MB)</p>
                         </div>
                     </div>
 
                     <div className="space-y-4">
                         {/* Image Preview */}
                         <div className="relative">
-                            <div className="w-full aspect-square rounded-2xl border-2 border-dashed border-white/20 flex items-center justify-center bg-slate-900/50 overflow-hidden relative group">
+                            <div className="w-full aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden relative group">
                                 {previewImage ? (
                                     <>
                                         <img 
@@ -104,10 +106,10 @@ export const FounderImagePanel: React.FC = () => {
                                             alt="תמונת מייסד" 
                                             className="w-full h-full object-cover"
                                         />
-                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                                        <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                                             <button
                                                 onClick={() => setPreviewImage(null)}
-                                                className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm border border-white/30 font-bold text-sm transition-all"
+                                                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-900 rounded-lg backdrop-blur-sm border border-slate-200 font-bold text-sm transition-all"
                                             >
                                                 <Eye size={16} className="inline mr-2" />
                                                 הסתר תצוגה מקדימה
@@ -119,8 +121,8 @@ export const FounderImagePanel: React.FC = () => {
                                         <div className="w-24 h-24 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 flex items-center justify-center">
                                             <User size={48} className="text-indigo-400" />
                                         </div>
-                                        <p className="text-slate-400 text-sm mb-2">אין תמונה</p>
-                                        <p className="text-slate-500 text-xs">העלה תמונה כדי להציג אותה בבלוק</p>
+                                        <p className="text-slate-700 font-bold text-sm mb-2">אין תמונה</p>
+                                        <p className="text-slate-600 text-xs">העלה תמונה כדי להציג אותה בבלוק</p>
                                     </div>
                                 )}
                             </div>
@@ -146,7 +148,7 @@ export const FounderImagePanel: React.FC = () => {
                             {founderImage && (
                                 <button
                                     onClick={() => setIsDeleting(true)}
-                                    className="px-6 py-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl font-bold transition-all border border-red-500/30 flex items-center justify-center gap-2"
+                                    className="px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2"
                                 >
                                     <Trash2 size={18} />
                                     מחק
@@ -158,9 +160,9 @@ export const FounderImagePanel: React.FC = () => {
                         <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl">
                             <div className="flex items-start gap-3">
                                 <AlertCircle size={18} className="text-indigo-400 shrink-0 mt-0.5" />
-                                <div className="text-sm text-slate-300">
-                                    <p className="font-bold text-white mb-1">טיפים לעיצוב:</p>
-                                    <ul className="space-y-1 text-slate-400 list-disc list-inside">
+                                <div className="text-sm text-slate-700">
+                                    <p className="font-bold text-slate-900 mb-1">טיפים לעיצוב:</p>
+                                    <ul className="space-y-1 text-slate-600 list-disc list-inside">
                                         <li>מומלץ תמונה מרובעת (1:1) או קרובה לזה</li>
                                         <li>רזולוציה מומלצת: 400x400px לפחות</li>
                                         <li>תמונה מקצועית ונעימה תוסיף אמון</li>
@@ -173,18 +175,18 @@ export const FounderImagePanel: React.FC = () => {
                 </div>
 
                 {/* Preview Section */}
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 shadow-2xl">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-purple-500/20 rounded-lg backdrop-blur-sm border border-purple-500/30">
                             <Eye size={20} className="text-purple-400" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white">תצוגה מקדימה</h2>
-                            <p className="text-sm text-slate-400">איך זה ייראה בדף הנחיתה</p>
+                            <h2 className="text-xl font-black text-slate-900">תצוגה מקדימה</h2>
+                            <p className="text-sm text-slate-600">איך זה ייראה בדף הנחיתה</p>
                         </div>
                     </div>
 
-                    <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200">
                         <div className="flex items-start gap-4">
                             {/* Profile Image Preview */}
                             <div className="relative shrink-0">
@@ -218,11 +220,11 @@ export const FounderImagePanel: React.FC = () => {
                             
                             {/* Content Preview */}
                             <div className="flex-1">
-                                <h3 className="text-2xl font-black text-white mb-2">
+                                <h3 className="text-2xl font-black text-slate-900 mb-2">
                                     אני לא מתכנת.
                                 </h3>
-                                <p className="text-base text-slate-300 leading-relaxed">
-                                    <span className="text-slate-400">עצמאי 7 שנים.</span> בשנה וחצי האחרונות ליוויתי עסקים...
+                                <p className="text-base text-slate-700 leading-relaxed">
+                                    <span className="text-slate-500">עצמאי 7 שנים.</span> בשנה וחצי האחרונות ליוויתי עסקים...
                                 </p>
                             </div>
                         </div>
@@ -245,19 +247,19 @@ export const FounderImagePanel: React.FC = () => {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+                        className="bg-white/90 backdrop-blur-2xl border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="text-red-400" size={24} />
-                            <h3 className="text-xl font-bold text-white">מחיקת תמונה</h3>
+                            <AlertCircle className="text-red-500" size={24} />
+                            <h3 className="text-xl font-bold text-slate-900">מחיקת תמונה</h3>
                         </div>
-                        <p className="text-slate-300 mb-6">
+                        <p className="text-slate-600 mb-6">
                             האם אתה בטוח שברצונך למחוק את תמונת המייסד? התמונה תוסר מהבלוק בדף הנחיתה.
                         </p>
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setIsDeleting(false)}
-                                className="px-4 py-2 text-slate-400 hover:text-white"
+                                className="px-4 py-2 text-slate-600 hover:text-slate-900"
                             >
                                 ביטול
                             </button>

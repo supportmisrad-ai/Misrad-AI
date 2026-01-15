@@ -19,6 +19,7 @@ export type CreateSubscriptionOrderInput = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  seats?: number;
 };
 
 export type SubscriptionOrder = {
@@ -78,6 +79,10 @@ export async function createSubscriptionOrder(
 
     const organizationId = input.organizationId || socialUser?.organization_id || null;
 
+    const seatsRaw = input.seats;
+    const seatsNormalized = Number.isFinite(Number(seatsRaw)) ? Math.floor(Number(seatsRaw)) : null;
+    const seats = seatsNormalized && seatsNormalized > 0 ? seatsNormalized : null;
+
     const insertPayload: any = {
       id,
       clerk_user_id: clerkUserId,
@@ -97,12 +102,28 @@ export async function createSubscriptionOrder(
       updated_at: now,
     };
 
-    const { error } = await supabase
+    if (seats) {
+      insertPayload.seats = seats;
+    }
+
+    const insertAttempt = await supabase
       .from('subscription_orders')
       .insert(insertPayload);
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה ביצירת הזמנת מנוי');
+    if (insertAttempt.error) {
+      const msg = String(insertAttempt.error.message || '').toLowerCase();
+      if (msg.includes('column') && msg.includes('seats')) {
+        delete insertPayload.seats;
+        const retry = await supabase
+          .from('subscription_orders')
+          .insert(insertPayload);
+
+        if (retry.error) {
+          return createErrorResponse(retry.error, 'שגיאה ביצירת הזמנת מנוי');
+        }
+      } else {
+        return createErrorResponse(insertAttempt.error, 'שגיאה ביצירת הזמנת מנוי');
+      }
     }
 
     const order: SubscriptionOrder = {

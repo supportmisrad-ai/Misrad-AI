@@ -67,7 +67,7 @@ export async function getFinanceOverviewData(params: {
   const entries = Array.isArray(timeEntries) ? timeEntries : [];
 
   const userIds = Array.from(new Set(entries.map((e: any) => String(e.user_id)).filter(Boolean)));
-  const dbUsers = userIds.length > 0 ? await getUsers() : [];
+  const dbUsers = userIds.length > 0 ? await getUsers({ tenantId: params.organizationId }) : [];
   const usersById = new Map<string, any>(dbUsers.map((u: any) => [String(u.id), u]));
 
   const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();

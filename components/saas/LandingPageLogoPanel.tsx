@@ -87,24 +87,26 @@ export const LandingPageLogoPanel: React.FC = () => {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <div className="mb-10">
-                <h1 className="text-3xl font-black text-white tracking-tight mb-2">ניהול לוגו דף הנחיתה</h1>
-                <p className="text-slate-400">נהל את הלוגו והטקסט שמוצגים ב-Navbar של דף הנחיתה.</p>
+                <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                    ניהול לוגו דף הנחיתה
+                </h1>
+                <p className="text-slate-600">נהל את הלוגו והטקסט שמוצגים ב-Navbar של דף הנחיתה.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Upload Section */}
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 shadow-2xl">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-indigo-500/20 rounded-lg backdrop-blur-sm border border-indigo-500/30">
                             <Upload size={20} className="text-indigo-400" />
                         </div>
-                        <h2 className="text-xl font-black text-white">העלאת לוגו</h2>
+                        <h2 className="text-xl font-black text-slate-900">העלאת לוגו</h2>
                     </div>
 
                     <div className="space-y-6">
                         {/* Logo Preview */}
                         <div className="flex flex-col items-center gap-4">
-                            <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-white/20 bg-black/40 backdrop-blur-sm flex items-center justify-center overflow-hidden shadow-xl">
+                            <div className="w-32 h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shadow-xl">
                                 {logo ? (
                                     <img src={logo} alt="Landing Page Logo" className="w-full h-full object-contain p-4" />
                                 ) : (
@@ -132,7 +134,7 @@ export const LandingPageLogoPanel: React.FC = () => {
                             {logo && (
                                 <button
                                     onClick={() => setIsDeleting(true)}
-                                    className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-xl font-bold flex items-center gap-2 transition-all border border-red-500/30"
+                                    className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold flex items-center gap-2 transition-all border border-red-200"
                                 >
                                     <Trash2 size={16} />
                                     מחק לוגו
@@ -142,7 +144,7 @@ export const LandingPageLogoPanel: React.FC = () => {
 
                         {/* Logo Text */}
                         <div>
-                            <label className="block text-sm font-bold text-white mb-2 flex items-center gap-2">
+                            <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
                                 <Globe size={16} className="text-indigo-400" />
                                 טקסט הלוגו
                             </label>
@@ -151,7 +153,7 @@ export const LandingPageLogoPanel: React.FC = () => {
                                     type="text"
                                     value={logoText}
                                     onChange={(e) => setLogoText(e.target.value)}
-                                    className="flex-1 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl p-3 text-white text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 outline-none transition-all"
+                                    className="flex-1 bg-white border border-slate-200 rounded-xl p-3 text-slate-900 text-sm placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all"
                                     placeholder="Misrad"
                                 />
                                 <button
@@ -162,23 +164,23 @@ export const LandingPageLogoPanel: React.FC = () => {
                                     שמור
                                 </button>
                             </div>
-                            <p className="text-xs text-slate-400 mt-2">הטקסט שיוצג לצד הלוגו ב-Navbar</p>
+                            <p className="text-xs text-slate-600 mt-2">הטקסט שיוצג לצד הלוגו ב-Navbar</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Preview Section */}
-                <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 shadow-2xl">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="p-2 bg-emerald-500/20 rounded-lg backdrop-blur-sm border border-emerald-500/30">
                             <Eye size={20} className="text-emerald-400" />
                         </div>
-                        <h2 className="text-xl font-black text-white">תצוגה מקדימה</h2>
+                        <h2 className="text-xl font-black text-slate-900">תצוגה מקדימה</h2>
                     </div>
 
-                    <div className="bg-[#020617] rounded-2xl p-6 border border-slate-800">
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200">
                         {/* Simulated Navbar */}
-                        <nav className="bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/50 rounded-xl overflow-hidden">
+                        <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-200/70 rounded-xl overflow-hidden">
                             <div className="px-6 h-20 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     {logo ? (
@@ -190,17 +192,17 @@ export const LandingPageLogoPanel: React.FC = () => {
                                             <div className="w-4 h-4 bg-white rounded-full"></div>
                                         </div>
                                     )}
-                                    <span className="text-xl font-black text-white tracking-tight">{logoText}</span>
+                                    <span className="text-xl font-black text-slate-900 tracking-tight">{logoText}</span>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <div className="w-20 h-8 bg-slate-800/50 rounded-full"></div>
-                                    <div className="w-20 h-8 bg-white rounded-full"></div>
+                                    <div className="w-20 h-8 bg-slate-200 rounded-full"></div>
+                                    <div className="w-20 h-8 bg-slate-100 rounded-full"></div>
                                 </div>
                             </div>
                         </nav>
 
-                        <div className="mt-4 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
-                            <p className="text-xs text-slate-400 text-center">
+                        <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <p className="text-xs text-slate-600 text-center">
                                 זה איך הלוגו ייראה ב-Navbar של דף הנחיתה
                             </p>
                         </div>
@@ -211,8 +213,8 @@ export const LandingPageLogoPanel: React.FC = () => {
                         <div className="flex items-start gap-3">
                             <AlertCircle size={18} className="text-indigo-400 mt-0.5 shrink-0" />
                             <div>
-                                <p className="text-sm font-bold text-white mb-1">טיפים חשובים</p>
-                                <ul className="text-xs text-slate-400 space-y-1">
+                                <p className="text-sm font-bold text-slate-900 mb-1">טיפים חשובים</p>
+                                <ul className="text-xs text-slate-600 space-y-1">
                                     <li>• מומלץ להשתמש בלוגו עם רקע שקוף (PNG/SVG)</li>
                                     <li>• גודל מומלץ: 36x36px עד 72x72px</li>
                                     <li>• הלוגו יוצג גם במובייל - ודא שהוא קריא</li>
@@ -230,19 +232,19 @@ export const LandingPageLogoPanel: React.FC = () => {
                     <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+                        className="bg-white/90 backdrop-blur-2xl border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                     >
                         <div className="flex items-center gap-3 mb-4">
-                            <AlertCircle className="text-red-400" size={24} />
-                            <h3 className="text-xl font-bold text-white">מחיקת לוגו</h3>
+                            <AlertCircle className="text-red-500" size={24} />
+                            <h3 className="text-xl font-bold text-slate-900">מחיקת לוגו</h3>
                         </div>
-                        <p className="text-slate-300 mb-6">
+                        <p className="text-slate-600 mb-6">
                             האם אתה בטוח שברצונך למחוק את הלוגו? הלוגו הדיפולטיבי יוצג במקום.
                         </p>
                         <div className="flex justify-end gap-3">
                             <button
                                 onClick={() => setIsDeleting(false)}
-                                className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                                className="px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
                             >
                                 ביטול
                             </button>

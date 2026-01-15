@@ -10,6 +10,7 @@ import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { getTenants } from '../../../../lib/db';
 import { TelephonyService } from '../../../../lib/services/telephony';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * Helper function to get tenantId from request/user
  */
@@ -52,7 +53,7 @@ async function getTenantId(request: NextRequest, userEmail: string | null): Prom
  *   - to: string (required) - Phone number to call to (destination)
  *   - from: string (required) - Phone number to call from (source/caller)
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -107,3 +108,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

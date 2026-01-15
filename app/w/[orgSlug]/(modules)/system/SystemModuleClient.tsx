@@ -3,6 +3,8 @@
 import React from 'react';
 import { OSModuleProvider } from '@/contexts/OSModuleContext';
 import SystemApp from '@/components/system/SystemApp';
+import { useShabbat } from '@/hooks/useShabbat';
+import { ShabbatScreen } from '@/components/ShabbatScreen';
 
 export default function SystemModuleClient({
   initialCurrentUser,
@@ -13,6 +15,12 @@ export default function SystemModuleClient({
   initialOrganization?: any;
   initialTab?: string;
 }) {
+  const { isShabbat, isLoading } = useShabbat();
+
+  if (!isLoading && isShabbat) {
+    return <ShabbatScreen />;
+  }
+
   return (
     <OSModuleProvider initialModule="system">
       <SystemApp

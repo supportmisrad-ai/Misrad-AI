@@ -1,5 +1,5 @@
 import type { OSModule } from '@/types/os-modules';
-import { getOSModule } from '@/types/os-modules';
+import { getOSModule, OS_MODULES } from '@/types/os-modules';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 
 export const MISRAD_APP_NAME = 'Misrad';
@@ -9,7 +9,7 @@ export const getActiveRoomFromPathname = (pathname: string | null | undefined): 
   if (pathname.startsWith('/w/')) {
     const parts = pathname.split('/').filter(Boolean);
     const raw = parts[2] || null;
-    const allowed = new Set<OSModuleKey>(['nexus', 'system', 'social', 'finance', 'client']);
+    const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
     if (raw && allowed.has(raw as OSModuleKey)) return raw as OSModule;
   }
   if (pathname.startsWith('/social')) return 'social';
@@ -33,7 +33,6 @@ const SOCIAL_SCREEN_TITLES: Record<string, string> = {
   '/social/agency-insights': 'תובנות',
   '/social/admin': 'ניהול מערכת',
   '/social/settings': 'הגדרות מערכת',
-  '/social/profile': 'פרופיל אישי',
 };
 
 const SYSTEM_SCREEN_TITLES: Record<string, string> = {

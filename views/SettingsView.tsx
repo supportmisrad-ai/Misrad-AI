@@ -20,6 +20,7 @@ import { WorkflowTab } from '../components/settings/WorkflowTab';
 import { RolesTab } from '../components/settings/RolesTab';
 import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
+import { AiDnaTab } from '@/components/settings/AiDnaTab';
 
 export const SettingsView: React.FC = () => {
   const { hasPermission, startTutorial, organization, addToast, currentUser, users } = useData();
@@ -28,6 +29,8 @@ export const SettingsView: React.FC = () => {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const basePath = getNexusBasePath(pathname);
+
+  const isTeamModuleEnabled = Boolean(organization?.enabledModules?.includes('team'));
 
   // TABS CONFIGURATION with Screen IDs
   const ALL_TABS: { 
@@ -53,6 +56,7 @@ export const SettingsView: React.FC = () => {
         { id: 'departments', label: 'מחלקות', short: 'מחלקות', icon: Building2, color: 'text-gray-600', desc: 'מבנה', requiredPermissions: ['manage_system'], screenId: 'settings_departments' },
         { id: 'roles', label: 'תפקידים והרשאות', short: 'תפקידים', icon: Shield, color: 'text-gray-600', desc: 'הגדרות', requiredPermissions: ['manage_system'], screenId: 'settings_roles' }, 
         { id: 'data', label: 'גיבוי ושחזור', short: 'גיבוי', icon: Database, color: 'text-slate-600', desc: 'ייצוא וייבוא', requiredPermissions: ['manage_system'], screenId: 'settings_data' },
+        { id: 'ai_dna', label: 'DNA עסקי ל-AI', short: 'DNA', icon: Compass, color: 'text-slate-600', desc: 'טון, יתרונות וקהל יעד', requiredPermissions: ['manage_system'], screenId: 'settings_ai_dna' },
   ];
 
   const requestedTabFromUrl = searchParams?.get('tab') || 'organization';
@@ -98,6 +102,10 @@ export const SettingsView: React.FC = () => {
       const flag = organization.systemFlags?.[tab.screenId];
       if (flag === 'hidden') return false;
 
+      if (!isTeamModuleEnabled && (tab.id === 'team' || tab.id === 'departments' || tab.id === 'roles')) {
+          return false;
+      }
+
       // 2. Check Permissions
       if (!tab.requiredPermissions) return true;
       return tab.requiredPermissions.some(p => hasPermission(p as PermissionId));
@@ -142,6 +150,7 @@ export const SettingsView: React.FC = () => {
                       case 'departments': return <DepartmentsTab />;
                       case 'roles': return <RolesTab />;
                       case 'data': return <DataTab />;
+                      case 'ai_dna': return <AiDnaTab />;
                       default: return null;
                   }
               })()}

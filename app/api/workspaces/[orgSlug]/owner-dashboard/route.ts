@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 type OwnerDashboardAction = {
   id: string;
   source: 'nexus' | 'system' | 'social' | 'finance' | 'client';
@@ -13,7 +14,7 @@ type OwnerDashboardAction = {
   priority: 'urgent' | 'high' | 'normal';
 };
 
-export async function GET(
+async function GETHandler(
   _req: Request,
   { params }: { params: Promise<{ orgSlug: string }> }
 ) {
@@ -181,3 +182,5 @@ export async function GET(
     nextActions: actions.slice(0, 10),
   });
 }
+
+export const GET = shabbatGuard(GETHandler);

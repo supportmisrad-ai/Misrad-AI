@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getSystemBootstrap } from '@/lib/services/system-service';
 import SystemModuleEntryClient from '../SystemModuleEntryClient';
 
@@ -23,6 +23,7 @@ const TAB_IDS = new Set([
   'reports',
   'headquarters',
   'system',
+  'hub',
   'personal_area',
   'notifications_center',
   'focus_mode',
@@ -37,6 +38,13 @@ export default async function SystemTabPage({
   params: Promise<{ orgSlug: string; tab: string }>;
 }) {
   const { orgSlug, tab } = await params;
+
+  if (tab === 'system' || tab === 'settings') {
+    const from = `/w/${encodeURIComponent(orgSlug)}/system/${encodeURIComponent(tab)}`;
+    return redirect(
+      `/w/${encodeURIComponent(orgSlug)}/system/hub?origin=system&drawer=system&from=${encodeURIComponent(from)}`
+    );
+  }
 
   if (!tab || !TAB_IDS.has(tab)) {
     notFound();

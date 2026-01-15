@@ -9,6 +9,9 @@ import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { useNexus } from '../../context/ClientContext';
 import { usePathname } from 'next/navigation';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { getMyProfile } from '@/app/actions/profiles';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,6 +27,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const [notifications, setNotifications] = useState<Notification[]>(contextNotifications);
   const { title, roomName, roomNameHebrew, RoomIcon, gradient, room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(pathname?.startsWith('/w/'));
+
+  const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug, [pathname]);
+  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
 
   const userLabel = useMemo(() => {
     const userData = (typeof window !== 'undefined' ? ((window as any).__CLIENT_OS_USER__ as any) : null);
@@ -42,6 +48,42 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
       : '';
     return { name: name || null, roleLabel: roleLabel || null, initials: initials || null };
   }, []);
+
+  const displayInitials = useMemo(() => {
+    const name = String(profileIdentity?.name || userLabel.name || '').trim();
+    const initials = name
+      ? name
+          .split(' ')
+          .filter(Boolean)
+          .slice(0, 2)
+          .map((p: string) => p[0])
+          .join('')
+          .toUpperCase()
+      : '';
+    return initials || userLabel.initials || null;
+  }, [profileIdentity?.name, userLabel.initials, userLabel.name]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!orgSlug) {
+        setProfileIdentity(null);
+        return;
+      }
+      try {
+        const res = await getMyProfile({ orgSlug });
+        if (!res.success || !res.data?.profile) return;
+        const p: any = res.data.profile;
+        setProfileIdentity({
+          name: p.full_name ? String(p.full_name) : null,
+          role: p.role ? String(p.role) : null,
+        });
+      } catch {
+        // Best-effort
+      }
+    };
+
+    load();
+  }, [orgSlug]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -215,6 +257,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                   <div className="hidden lg:flex items-center gap-2">
                     {isWorkspaceRoute ? <WorkspaceSwitcher /> : <RoomSwitcher />}
                   </div>
+                  <AttendanceMiniStatus />
                   <button 
                     onClick={triggerCommand}
                     className="p-2 text-gray-400 hover:text-nexus-primary hover:bg-white/50 rounded-xl transition-all no-tap-highlight"
@@ -238,17 +281,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                   <div className="hidden lg:block h-8 w-px bg-gray-200"></div>
 
                   <div 
-                    onClick={() => onNavigate('personal')}
+                    onClick={() => onNavigate('me')}
                     className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity no-tap-highlight group"
                     role="button"
                     aria-label="User profile"
                   >
                         <div className="text-right hidden lg:block">
-                            <div className="text-sm font-bold text-nexus-primary group-hover:text-nexus-accent transition-colors">{userLabel.name || '—'}</div>
-                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{userLabel.roleLabel || '—'}</div>
+                            <div className="text-sm font-bold text-nexus-primary group-hover:text-nexus-accent transition-colors">{profileIdentity?.name || userLabel.name || '—'}</div>
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{profileIdentity?.role || userLabel.roleLabel || '—'}</div>
                         </div>
                         <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 border-2 border-white shadow-lg flex items-center justify-center text-sm text-white font-bold group-hover:ring-2 group-hover:ring-nexus-accent/50 transition-all">
-                            {userLabel.initials || '—'}
+                            {displayInitials || '—'}
                         </div>
                   </div>
               </div>
@@ -343,7 +386,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                   ))}
                   
                   <div 
-                    onClick={() => handleDrawerNav('personal')}
+                    onClick={() => handleDrawerNav('me')}
                     className="col-span-2 mt-4 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 active:scale-[0.98] transition-transform cursor-pointer"
                     role="button"
                   >

@@ -206,12 +206,12 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-slate-100/50">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
             <span className="font-black text-2xl tracking-tighter text-slate-900">Social</span>
           </div>
           
           <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/pricing')} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">מחירון</button>
+            <button onClick={() => router.push('/pricing')} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">מחירון (החל מ-₪149)</button>
             <button onClick={handleGetStarted} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">התחברות</button>
             <button 
               onClick={handleGetStarted}
@@ -254,7 +254,7 @@ export default function LandingPage() {
               )}
             </h1>
 
-            <p className="text-xl md:text-2xl text-slate-400 font-bold max-w-xl leading-relaxed">
+            <p className="text-xl md:text-2xl text-slate-600 font-bold max-w-xl leading-relaxed">
               {isLoading ? 'שחררו את המחסומים. פוסטים ב-DNA של המותג בלחיצת כפתור, גבייה אוטומטית ופורטלים ממותגים ללקוחות - הכל במקום אחד, שקט ומאורגן.' : heroSubtitle}
             </p>
 
@@ -286,7 +286,7 @@ export default function LandingPage() {
             className="relative"
           >
             <div className="bg-white rounded-[64px] p-6 shadow-[0_100px_140px_-50px_rgba(15,23,42,0.1)] relative z-10 border border-slate-100/50 overflow-hidden min-h-[450px]">
-              <div className="bg-slate-900 rounded-[48px] overflow-hidden aspect-[4/3] relative p-8 flex flex-col items-center justify-center gap-8">
+              <div className="bg-slate-50 rounded-[48px] overflow-hidden aspect-[4/3] relative p-8 flex flex-col items-center justify-center gap-8 border border-slate-200">
                 <AnimatePresence mode="wait">
                   {demoStep === 0 && (
                     <motion.div 
@@ -294,10 +294,10 @@ export default function LandingPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="w-full max-w-md bg-white/5 border border-white/10 p-8 rounded-[32px] backdrop-blur-sm"
+                      className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm"
                     >
                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">שלב 1: הבריף</p>
-                      <p className="text-xl font-black text-white leading-relaxed">
+                      <p className="text-xl font-black text-slate-900 leading-relaxed">
                         "הכנס את הבריף שלך כאן..."
                       </p>
                     </motion.div>
@@ -502,7 +502,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto flex flex-col gap-32">
           <div className="text-center flex flex-col gap-6 relative z-10">
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900">מרכז שליטה <br className="md:hidden" /> מבצעי אחד.</h2>
-            <p className="text-slate-400 font-bold text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
+            <p className="text-slate-600 font-bold text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
               תחזירו לעצמכם את הזמן. Social לוקחת את כל ה"רעש" של ניהול לקוחות והופכת אותו למוצר טכנולוגי נקי ומדויק.
             </p>
           </div>
@@ -521,7 +521,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex flex-col gap-4">
                     <h3 className="text-3xl font-black text-slate-900 tracking-tight">{feat.title}</h3>
-                    <p className="text-slate-400 font-bold text-lg leading-relaxed">{feat.desc}</p>
+                    <p className="text-slate-600 font-bold text-lg leading-relaxed">{feat.desc}</p>
                   </div>
                 </motion.div>
               );
@@ -545,15 +545,15 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.1 }}
                 viewport={{ once: true }}
-                className="bg-slate-50 p-12 rounded-[56px] flex flex-col gap-10 group hover:bg-slate-900 transition-all duration-500"
+                className="bg-slate-50 p-12 rounded-[56px] flex flex-col gap-10 group hover:bg-white transition-all duration-500 border border-slate-200 shadow-sm hover:shadow-md"
               >
-                <Quote className="text-blue-600 group-hover:text-blue-400 transition-colors" size={48} />
-                <p className="text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-white transition-colors">"{t.quote}"</p>
-                <div className="mt-auto flex items-center gap-5 pt-8 border-t border-slate-200 group-hover:border-white/10 transition-colors">
+                <Quote className="text-blue-600 group-hover:text-blue-700 transition-colors" size={48} />
+                <p className="text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">"{t.quote}"</p>
+                <div className="mt-auto flex items-center gap-5 pt-8 border-t border-slate-200 transition-colors">
                   <img src={t.avatar} className="w-16 h-16 rounded-2xl object-cover shadow-lg group-hover:scale-110 transition-transform" />
                   <div className="flex flex-col">
-                    <p className="font-black text-slate-900 group-hover:text-white transition-colors">{t.name}</p>
-                    <p className="text-xs font-bold text-slate-400 group-hover:text-slate-500 transition-colors uppercase tracking-widest">{t.role}</p>
+                    <p className="font-black text-slate-900">{t.name}</p>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.role}</p>
                   </div>
                 </div>
               </motion.div>
@@ -567,7 +567,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto flex flex-col gap-12">
           <div className="text-center flex flex-col gap-6">
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900">שאלות נפוצות</h2>
-            <p className="text-slate-400 font-bold text-xl">כל מה שרציתם לדעת על Social</p>
+            <p className="text-slate-600 font-bold text-xl">כל מה שרציתם לדעת על Social</p>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -659,7 +659,7 @@ export default function LandingPage() {
                 onClick={() => router.push('/pricing')}
                 className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-12 py-6 rounded-[32px] font-black text-xl flex items-center justify-center gap-4 hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
-                צפה במחירון <ArrowRight size={24} />
+                צפה במחירון (₪149) <ArrowRight size={24} />
               </button>
             </div>
 
@@ -686,10 +686,10 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
               <span className="font-black text-3xl tracking-tighter">Social</span>
             </div>
-            <p className="text-slate-400 font-bold text-lg leading-relaxed">אנחנו כאן כדי להפוך את הסושיאל למקום רווחי, מאורגן ויצירתי יותר.</p>
+            <p className="text-slate-600 font-bold text-lg leading-relaxed">אנחנו כאן כדי להפוך את הסושיאל למקום רווחי, מאורגן ויצירתי יותר.</p>
           </div>
           <div className="mt-32 pt-12 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">
             <p>© 2025 SOCIAL ISRAEL. כל הזכויות שמורות.</p>

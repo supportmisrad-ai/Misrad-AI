@@ -13,9 +13,15 @@ import { supabase } from '../../../../lib/supabase';
 import { sendEmployeeInvitationEmail } from '../../../../lib/email';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { countOrganizationActiveUsers } from '@/lib/server/seats';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
+        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+
         // 1. Authenticate user
         const clerkUser = await getAuthenticatedUser();
         
@@ -125,22 +131,27 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Resolve organization_id for tenant scoping (required for lobby redirect + RLS)
-        const { data: socialUserRow, error: socialUserError } = await supabase
-            .from('social_users')
-            .select('organization_id')
-            .eq('clerk_user_id', clerkUser.id)
-            .maybeSingle();
+        let organizationId: string | null = orgIdFromHeader ? String(orgIdFromHeader) : null;
 
-        if (socialUserError) {
-            console.error('[API] Error resolving social user organization:', socialUserError);
-            return NextResponse.json(
-                { error: 'שגיאה בזיהוי הארגון של המשתמש היוצר' },
-                { status: 500 }
-            );
+        // Resolve organization_id for tenant scoping (required for lobby redirect + RLS)
+        if (!organizationId) {
+            const { data: socialUserRow, error: socialUserError } = await supabase
+                .from('social_users')
+                .select('organization_id')
+                .eq('clerk_user_id', clerkUser.id)
+                .maybeSingle();
+
+            if (socialUserError) {
+                console.error('[API] Error resolving social user organization:', socialUserError);
+                return NextResponse.json(
+                    { error: 'שגיאה בזיהוי הארגון של המשתמש היוצר' },
+                    { status: 500 }
+                );
+            }
+
+            organizationId = (socialUserRow as any)?.organization_id as string | null;
         }
 
-        const organizationId = (socialUserRow as any)?.organization_id as string | null;
         if (!organizationId) {
             return NextResponse.json(
                 { error: 'לא נמצא organization_id למשתמש היוצר. ודא שהמשתמש משויך ל-Workspace.' },
@@ -149,7 +160,54 @@ export async function POST(request: NextRequest) {
         }
 
         // Enforce strict multi-tenant access (works with either org slug or UUID id)
-        await requireWorkspaceAccessByOrgSlugApi(String(organizationId));
+        const ws = await requireWorkspaceAccessByOrgSlugApi(String(organizationId));
+        const flags = await getSystemFeatureFlags();
+
+        let seatsAllowedOverride: number | null = null;
+        try {
+            const { data: orgSeatsRow, error: orgSeatsError } = await supabase
+                .from('organizations')
+                .select('seats_allowed')
+                .eq('id', organizationId)
+                .maybeSingle();
+
+            if (!orgSeatsError) {
+                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+            }
+
+            if (orgSeatsError?.message) {
+                const msg = String(orgSeatsError.message).toLowerCase();
+                if (msg.includes('column') && msg.includes('seats_allowed')) {
+                    seatsAllowedOverride = null;
+                }
+            }
+        } catch {
+            seatsAllowedOverride = null;
+        }
+
+        const caps = computeWorkspaceCapabilities({
+            entitlements: (ws as any)?.entitlements,
+            fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+            seatsAllowedOverride,
+        });
+
+        if (!caps.isTeamManagementEnabled) {
+            return NextResponse.json(
+                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { status: 403 }
+            );
+        }
+
+        const activeUsers = await countOrganizationActiveUsers(String(organizationId));
+        if (activeUsers >= caps.seatsAllowed) {
+            return NextResponse.json(
+                {
+                    error: `הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). כדי להוסיף משתמשים יש לשדרג חבילה`,
+                    seatUsage: { activeUsers, seatsAllowed: caps.seatsAllowed },
+                },
+                { status: 403 }
+            );
+        }
 
         const invitationData = {
             organization_id: organizationId,
@@ -302,3 +360,5 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = shabbatGuard(POSTHandler);

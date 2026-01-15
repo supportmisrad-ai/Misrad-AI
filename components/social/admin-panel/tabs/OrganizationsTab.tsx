@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, Edit, Plus, Save, X, RefreshCw } from 'lucide-react';
+import { Building2, Edit, Plus, Save, X, RefreshCw, Upload } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import {
   createOrganization,
@@ -62,6 +62,10 @@ export default function OrganizationsTab() {
 
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
+
+  const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const [logoOrgId, setLogoOrgId] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   const filteredOrganizations = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -229,6 +233,58 @@ export default function OrganizationsTab() {
     await load();
   };
 
+  const triggerLogoUpload = (organizationId: string) => {
+    setLogoOrgId(organizationId);
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
+      logoInputRef.current.click();
+    }
+  };
+
+  const handleLogoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const orgId = logoOrgId;
+    const file = e.target.files?.[0];
+    if (!orgId || !file) return;
+
+    try {
+      setIsUploadingLogo(true);
+
+      const form = new FormData();
+      form.append('file', file);
+      form.append('bucket', 'attachments');
+      form.append('folder', 'org-logos');
+      form.append('userId', orgId);
+
+      const uploadRes = await fetch('/api/storage/upload', {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({}));
+        throw new Error(err?.error || 'שגיאה בהעלאת קובץ');
+      }
+
+      const uploaded = await uploadRes.json().catch(() => null);
+      const url = String(uploaded?.url || '');
+      if (!url) throw new Error('שגיאה: לא התקבל URL לאחר העלאה');
+
+      const saveRes = await updateOrganization({ organizationId: orgId, logo: url });
+      if (!saveRes.success) {
+        throw new Error(saveRes.error || 'שגיאה בשמירת לוגו לארגון');
+      }
+
+      addToast('לוגו הארגון עודכן בהצלחה', 'success');
+      await load();
+    } catch (err: any) {
+      addToast(err?.message || 'שגיאה בהעלאת לוגו', 'error');
+    } finally {
+      setIsUploadingLogo(false);
+      setLogoOrgId(null);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
+
   return (
     <motion.div key="organizations" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8 w-full">
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 rounded-3xl overflow-hidden w-full shadow-md">
@@ -335,6 +391,14 @@ export default function OrganizationsTab() {
         )}
 
         <div className="overflow-x-auto w-full">
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+            className="hidden"
+            onChange={handleLogoFileSelected}
+          />
+
           <table className="w-full text-right border-collapse">
             <thead>
               <tr className="bg-gradient-to-r from-indigo-50/50 to-purple-50/50 border-b border-indigo-100">
@@ -359,9 +423,18 @@ export default function OrganizationsTab() {
                           className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400 w-full"
                         />
                       ) : (
-                        <div>
-                          <p className="font-black text-slate-900">{org.name}</p>
-                          <p className="text-xs text-slate-500 font-bold">{org.id}</p>
+                        <div className="flex items-start gap-3">
+                          <img
+                            src={org.logo || '/icons/misrad-icon.svg'}
+                            alt={org.name || 'org'}
+                            className="w-10 h-10 rounded-xl border border-indigo-100 bg-white object-contain"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                          <div>
+                            <p className="font-black text-slate-900">{org.name}</p>
+                            <p className="text-xs text-slate-500 font-bold">{org.id}</p>
+                          </div>
                         </div>
                       )}
                     </td>
@@ -442,6 +515,14 @@ export default function OrganizationsTab() {
                           </button>
                         ) : (
                           <>
+                            <button
+                              onClick={() => triggerLogoUpload(org.id)}
+                              className="p-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                              title="העלה/החלף לוגו"
+                              disabled={isUploadingLogo}
+                            >
+                              <Upload size={16} className={isUploadingLogo && logoOrgId === org.id ? 'animate-pulse' : ''} />
+                            </button>
                             {(editForm as any)?.has_finance && (
                               <button
                                 onClick={emergencyDisableFinance}

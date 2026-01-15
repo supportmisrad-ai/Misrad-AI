@@ -10,6 +10,7 @@ import { getTenants, updateRecord, deleteRecord } from '../../../../lib/db';
 import { Tenant } from '../../../../types';
 import { logAuditEvent } from '../../../../lib/audit';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * PATCH /api/tenants/[id]
  * 
@@ -32,7 +33,7 @@ import { logAuditEvent } from '../../../../lib/audit';
  *   - success: boolean
  *   - tenant: object (updated tenant object)
  */
-export async function PATCH(
+async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -152,7 +153,7 @@ export async function PATCH(
  *   - success: boolean
  *   - message: string
  */
-export async function DELETE(
+async function DELETEHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -212,3 +213,7 @@ export async function DELETE(
     }
 }
 
+
+export const PATCH = shabbatGuard(PATCHHandler);
+
+export const DELETE = shabbatGuard(DELETEHandler);

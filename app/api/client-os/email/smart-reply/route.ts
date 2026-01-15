@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { AIService } from '@/lib/services/ai/AIService';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
-
-    const apiKey = process.env.API_KEY;
-    if (!apiKey) return NextResponse.json({ error: 'Missing API_KEY env var' }, { status: 500 });
 
     const body = (await req.json()) as {
       emailBody?: string;
@@ -23,14 +21,19 @@ export async function POST(req: Request) {
 
     if (!emailBody.trim()) return NextResponse.json({ error: 'emailBody is required' }, { status: 400 });
 
-    const ai = new GoogleGenAI({ apiKey });
-    const model = 'gemini-3-flash-preview';
-
     const prompt = `Reply to this email in Hebrew. From: ${senderName || 'הלקוח'}. Body: ${emailBody}. Tone: ${tone}. Brief and helpful.`;
-    const response = await ai.models.generateContent({ model, contents: prompt });
 
-    return NextResponse.json({ draft: response.text || '' });
+    const ai = AIService.getInstance();
+    const out = await ai.generateText({
+      featureKey: 'client_os.email.smart_reply',
+      prompt,
+      meta: { tone },
+    });
+
+    return NextResponse.json({ draft: out.text || '' });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Failed to generate reply' }, { status: 500 });
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

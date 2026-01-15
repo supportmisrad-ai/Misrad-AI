@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Loader2, Lock, ArrowUpRight, Phone } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { Avatar } from '@/components/Avatar';
 
 export default function CollectionCockpit() {
   const { clients, setIsPaymentModalOpen, setActiveClientId, addToast } = useApp();
@@ -86,7 +87,14 @@ export default function CollectionCockpit() {
               <div key={client.id} className={`p-8 rounded-[40px] border-2 transition-all flex flex-col md:flex-row items-center justify-between group hover:shadow-2xl ${isLocked ? 'border-red-100 bg-red-50/20' : 'border-slate-50 bg-white'}`}>
                 <div className="flex items-center gap-6 md:w-1/3">
                   <div className="relative">
-                    <img src={client.avatar} className="w-16 h-16 rounded-[24px] shadow-lg" alt={client.companyName} />
+                    <Avatar
+                      src={String(client.avatar || '')}
+                      name={String(client.companyName || client.name || '')}
+                      alt={String(client.companyName || '')}
+                      size="lg"
+                      rounded="2xl"
+                      className="w-16 h-16 shadow-lg"
+                    />
                     {isLocked && <div className="absolute -top-2 -right-2 bg-red-600 text-white p-1.5 rounded-full shadow-lg"><Lock size={14}/></div>}
                   </div>
                   <div>

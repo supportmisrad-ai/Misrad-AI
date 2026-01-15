@@ -3,11 +3,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { GoogleGenAI } from '@google/genai';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { AIService } from '@/lib/services/ai/AIService';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
 async function fileToBuffer(file: File): Promise<Buffer> {
@@ -50,42 +51,13 @@ async function runFfmpegExtractAudio(inputPath: string, outputPath: string): Pro
   });
 }
 
-async function transcribeAudioWithGemini(params: { audioBuffer: Buffer; mimeType: string }): Promise<string> {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error('Missing API_KEY env var');
-
-  const ai = new GoogleGenAI({ apiKey });
-
-  const base64 = params.audioBuffer.toString('base64');
-
-  // NOTE: We do a best-effort transcription prompt. Output is plain text.
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {
-            text:
-              'Transcribe this audio in Hebrew. Use speaker labels when possible (נציג / לקוח). Return ONLY the transcript text.',
-          },
-          {
-            inlineData: {
-              mimeType: params.mimeType,
-              data: base64,
-            },
-          },
-        ],
-      },
-    ],
-  });
-
-  const text = response.text;
-  if (!text) throw new Error('No transcription returned');
-  return text;
+function bufferToArrayBuffer(buf: Buffer): ArrayBuffer {
+  const ab = new ArrayBuffer(buf.byteLength);
+  new Uint8Array(ab).set(buf);
+  return ab;
 }
 
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'client-os-meeting-'));
 
   try {
@@ -93,7 +65,7 @@ export async function POST(req: Request) {
 
     const contentType = req.headers.get('content-type') || '';
 
-    let orgId = '';
+    let orgIdInput = '';
     let clientId = '';
     let title = 'פגישה';
     let location = 'ZOOM' as 'ZOOM' | 'FRONTAL' | 'PHONE';
@@ -112,7 +84,7 @@ export async function POST(req: Request) {
         dataBase64?: string;
       };
 
-      orgId = String(body.orgId || '');
+      orgIdInput = String(body.orgId || '');
       clientId = String(body.clientId || '');
       title = String(body.title || title);
       location = (body.location || location) as any;
@@ -125,7 +97,7 @@ export async function POST(req: Request) {
       // Fallback to multipart/form-data
       try {
         const formData = await req.formData();
-        orgId = String(formData.get('orgId') || '');
+        orgIdInput = String(formData.get('orgId') || '');
         clientId = String(formData.get('clientId') || '');
         title = String(formData.get('title') || title);
         location = String(formData.get('location') || location) as any;
@@ -147,12 +119,14 @@ export async function POST(req: Request) {
       }
     }
 
-    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
+    if (!orgIdInput) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
     if (!inputBuf) return NextResponse.json({ error: 'Missing file data' }, { status: 400 });
 
+    let orgId: string;
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgId);
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdInput);
+      orgId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
       return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
@@ -179,7 +153,15 @@ export async function POST(req: Request) {
 
     const audioBuf = await fs.readFile(audioPath);
 
-    const transcript = await transcribeAudioWithGemini({ audioBuffer: audioBuf, mimeType: audioMime });
+    const ai = AIService.getInstance();
+    const out = await ai.transcribe({
+      featureKey: 'client_os.meetings.transcription',
+      organizationId: orgId,
+      audioBuffer: bufferToArrayBuffer(audioBuf),
+      mimeType: audioMime,
+      meta: { source: 'client-os-meetings-upload', isVideo },
+    });
+    const transcript = out.text;
 
     const saved = await analyzeAndStoreMeeting({
       orgId,
@@ -200,3 +182,5 @@ export async function POST(req: Request) {
     }
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

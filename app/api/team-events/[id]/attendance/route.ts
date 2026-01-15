@@ -9,7 +9,8 @@ import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { supabase } from '../../../../../lib/supabase';
 import { getUsers } from '../../../../../lib/db';
 
-export async function GET(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -125,7 +126,7 @@ export async function GET(
     }
 }
 
-export async function POST(
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -239,3 +240,7 @@ export async function POST(
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

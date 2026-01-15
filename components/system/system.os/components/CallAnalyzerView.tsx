@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
 import { useToast } from '../contexts/ToastContext';
+import AiOutOfCreditsModal from '../../AiOutOfCreditsModal';
 import { Lead } from '../types';
 
 interface CallAnalyzerViewProps {
@@ -16,7 +17,18 @@ interface CallAnalyzerViewProps {
 }
 
 const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
-    const { state, history, startAnalysis, cancelAnalysis, resetAnalysis, loadFromHistory, deleteFromHistory, updateHistoryItem } = useCallAnalysis();
+    const {
+        state,
+        history,
+        startAnalysis,
+        cancelAnalysis,
+        resetAnalysis,
+        loadFromHistory,
+        deleteFromHistory,
+        updateHistoryItem,
+        creditsModal,
+        closeCreditsModal,
+    } = useCallAnalysis();
     const { addToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -91,6 +103,13 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
     if (!state.isProcessing && !state.result) {
         return (
             <div className="h-full flex flex-col p-4 md:p-8 animate-fade-in gap-8 overflow-y-auto custom-scrollbar">
+                <AiOutOfCreditsModal
+                    open={creditsModal.open}
+                    onCloseAction={closeCreditsModal}
+                    checkoutHref="/subscribe/checkout"
+                    outputsCount={creditsModal.outputsCount}
+                    savedHours={creditsModal.savedHours}
+                />
                 
                 {/* Upload Zone */}
                 <div className="flex flex-col items-center justify-center">
@@ -176,6 +195,13 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
     if (state.isProcessing) {
         return (
             <div className="h-full flex flex-col items-center justify-center p-8 animate-fade-in relative">
+                <AiOutOfCreditsModal
+                    open={creditsModal.open}
+                    onCloseAction={closeCreditsModal}
+                    checkoutHref="/subscribe/checkout"
+                    outputsCount={creditsModal.outputsCount}
+                    savedHours={creditsModal.savedHours}
+                />
                 <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl p-8 border border-slate-200 text-center relative overflow-hidden">
                     {/* Background Pulse */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-indigo-100">
@@ -200,7 +226,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     </div>
 
                     <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 mb-6">
-                        💡 <strong>טיפ:</strong> זה יכול לקחת כמה דקות. אתם יכולים להמשיך לסייר במערכת, אנחנו נודיע לכם כשזה מוכן.
+                        <strong>טיפ:</strong> זה יכול לקחת כמה דקות. אתם יכולים להמשיך לסייר במערכת, אנחנו נודיע לכם כשזה מוכן.
                     </div>
 
                     <button 
@@ -218,6 +244,13 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
     const result = state.result!;
     return (
         <div className="h-full flex flex-col overflow-hidden animate-slide-up">
+            <AiOutOfCreditsModal
+                open={creditsModal.open}
+                onCloseAction={closeCreditsModal}
+                checkoutHref="/subscribe/checkout"
+                outputsCount={creditsModal.outputsCount}
+                savedHours={creditsModal.savedHours}
+            />
             
             {/* Results Header */}
             <div className="shrink-0 p-6 border-b border-slate-200 bg-white flex justify-between items-center">
@@ -370,6 +403,34 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                             }`}>
                                 כוונת לקוח: {result.intent === 'buying' ? 'קנייה (חם)' : result.intent === 'angry' ? 'כועס' : 'מתעניין'}
                             </span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="p-4 bg-indigo-50 border-b border-indigo-100 flex items-center gap-2">
+                            <MessageSquare size={18} className="text-indigo-600" />
+                            <h3 className="font-bold text-indigo-900 text-sm">התנגדויות ומענה מומלץ</h3>
+                        </div>
+                        <div className="p-4 space-y-3">
+                            {(result.objections || []).length === 0 ? (
+                                <div className="text-xs font-bold text-slate-500">לא זוהו התנגדויות ברורות.</div>
+                            ) : (
+                                (result.objections || []).map((o, i) => (
+                                    <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                        <div className="text-xs font-black text-slate-800">התנגדות</div>
+                                        <div className="text-xs text-slate-700 font-bold leading-relaxed mt-1">{o?.objection}</div>
+
+                                        <div className="text-xs font-black text-slate-800 mt-3">מענה מומלץ</div>
+                                        <div className="text-xs text-slate-700 font-bold leading-relaxed mt-1">{o?.reply}</div>
+
+                                        {o?.next_question ? (
+                                            <div className="mt-3 text-xs font-bold text-slate-600">
+                                                שאלה להמשך: <span className="text-slate-800">{o.next_question}</span>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
 

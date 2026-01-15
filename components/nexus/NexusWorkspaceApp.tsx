@@ -8,14 +8,14 @@ import { ScreenGuard } from '@/components/ScreenGuard';
 import { AdminGuard } from '@/components/AdminGuard';
 import { SystemLayout } from '@/components/system/SystemLayout';
 import { DashboardView } from '@/views/DashboardView';
+import { MeView } from '@/views/MeView';
 import { TasksView } from '@/views/TasksView';
 import { CalendarView } from '@/views/CalendarView';
 import { ClientsView } from '@/views/ClientsView';
 import { TeamView } from '@/views/TeamView';
 import { ReportsView } from '@/views/ReportsView';
 import { AssetsView } from '@/views/AssetsView';
-import { SettingsView } from '@/views/SettingsView';
-import { MeView } from '@/views/MeView';
+import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 import { RecycleBinView } from '@/views/RecycleBinView';
 import { IntelligenceView } from '@/views/IntelligenceView';
 import { ModuleGuard } from '@/components/ModuleGuard';
@@ -41,6 +41,14 @@ export function NexusWorkspaceApp({
   const render = () => {
     switch (relative) {
       case '/':
+        return (
+          <Layout>
+            <ScreenGuard id="dashboard">
+              <MeView />
+            </ScreenGuard>
+          </Layout>
+        );
+      case '/dashboard':
         return (
           <Layout>
             <ScreenGuard id="dashboard">
@@ -76,7 +84,9 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <ScreenGuard id="team">
-              <TeamView />
+              <ModuleGuard moduleId="team">
+                <TeamView />
+              </ModuleGuard>
             </ScreenGuard>
           </Layout>
         );
@@ -84,7 +94,9 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <ScreenGuard id="team">
-              <TeamView />
+              <ModuleGuard moduleId="team">
+                <TeamView />
+              </ModuleGuard>
             </ScreenGuard>
           </Layout>
         );
@@ -117,13 +129,21 @@ export function NexusWorkspaceApp({
       case '/settings':
         return (
           <Layout>
-            <SettingsView />
+            <GlobalProfileHub defaultOrigin="nexus" defaultDrawer="profile" />
           </Layout>
         );
       case '/me':
         return (
           <Layout>
-            <MeView />
+            <ScreenGuard id="dashboard">
+              <MeView />
+            </ScreenGuard>
+          </Layout>
+        );
+      case '/hub':
+        return (
+          <Layout>
+            <GlobalProfileHub defaultOrigin="nexus" defaultDrawer="profile" />
           </Layout>
         );
       case '/brain':
@@ -162,7 +182,7 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <ScreenGuard id="dashboard">
-              <DashboardView initialOwnerDashboard={initialOwnerDashboard} />
+              <MeView />
             </ScreenGuard>
           </Layout>
         );

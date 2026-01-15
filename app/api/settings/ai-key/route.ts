@@ -11,7 +11,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -39,3 +40,5 @@ export async function GET(request: NextRequest) {
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);

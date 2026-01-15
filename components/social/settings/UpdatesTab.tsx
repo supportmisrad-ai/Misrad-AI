@@ -93,9 +93,6 @@ export default function UpdatesTab({ onNotify }: UpdatesTabProps) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black text-slate-800">עדכוני אפליקציה</h2>
-          <p className="text-sm font-bold text-slate-400 mt-2">
-            הישארו מעודכנים עם כל השינויים והשיפורים החדשים
-          </p>
         </div>
         {unreadCount > 0 && (
           <button

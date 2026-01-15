@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import { Lead } from '@/components/system/types';
 import { createSystemLead, SystemLeadDTO, updateSystemLeadStatus } from '@/app/actions/system-leads';
@@ -33,12 +34,36 @@ export default function SystemLeadsClient({
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
 }) {
+  const searchParams = useSearchParams();
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
   const [leads, setLeads] = useState<SystemLeadDTO[]>(initialLeads);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const leadRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [deepLinkedLeadId, setDeepLinkedLeadId] = useState<string | null>(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+
   const leadCards = useMemo(() => leads.map(dtoToLead), [leads]);
+
+  useEffect(() => {
+    const leadId = searchParams?.get('leadId');
+    if (!leadId) return;
+    setDeepLinkedLeadId(String(leadId));
+    setSelectedLeadId(String(leadId));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!deepLinkedLeadId) return;
+    const el = leadRefs.current[String(deepLinkedLeadId)];
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [deepLinkedLeadId, leads.length]);
+
+  const selectedLead = useMemo(() => {
+    if (!selectedLeadId) return null;
+    return leads.find((l) => String(l.id) === String(selectedLeadId)) || null;
+  }, [leads, selectedLeadId]);
 
   const handleCreateLead = async (input: {
     name: string;
@@ -101,7 +126,13 @@ export default function SystemLeadsClient({
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {leadCards.map(l => (
-          <div key={l.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div
+            key={l.id}
+            ref={(el) => {
+              leadRefs.current[String(l.id)] = el;
+            }}
+            className="rounded-2xl border border-slate-200 bg-white p-4"
+          >
             <div className="flex items-center justify-between mb-2">
               <div className="font-bold text-slate-900">{l.name}</div>
               {l.isHot && <div className="text-[10px] font-bold px-2 py-1 rounded bg-rose-50 text-rose-700 border border-rose-100">חם</div>}
@@ -116,6 +147,13 @@ export default function SystemLeadsClient({
             </div>
 
             <div className="mt-4 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedLeadId(String(l.id))}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700"
+              >
+                פרטים
+              </button>
               <button
                 onClick={() => void handleMarkWon(l.id)}
                 disabled={isSaving || l.status === 'won'}
@@ -154,6 +192,51 @@ export default function SystemLeadsClient({
           }}
         />
       )}
+
+      {selectedLead ? (
+        <div
+          className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setSelectedLeadId(null)}
+        >
+          <div
+            className="w-full max-w-xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-lg font-black text-slate-900 truncate">{selectedLead.name}</div>
+                <div className="text-sm text-slate-500 mt-1">{selectedLead.company || 'לקוח פרטי'}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedLeadId(null)}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold"
+              >
+                סגור
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-xs font-bold text-slate-500">סטטוס</div>
+                <div className="mt-1 font-bold text-slate-900">{String(selectedLead.status || '')}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                <div className="text-xs font-bold text-slate-500">שווי</div>
+                <div className="mt-1 font-bold text-slate-900">₪{Number(selectedLead.value || 0).toLocaleString()}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4" dir="ltr">
+                <div className="text-xs font-bold text-slate-500" dir="rtl">טלפון</div>
+                <div className="mt-1 font-bold text-slate-900">{String(selectedLead.phone || '')}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4" dir="ltr">
+                <div className="text-xs font-bold text-slate-500" dir="rtl">אימייל</div>
+                <div className="mt-1 font-bold text-slate-900 break-all">{String(selectedLead.email || '')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

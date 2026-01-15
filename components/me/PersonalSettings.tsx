@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { Camera, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { upsertMyProfile } from '@/app/actions/profiles';
 
 interface PersonalSettingsProps {
     onClose: () => void;
@@ -10,9 +13,11 @@ interface PersonalSettingsProps {
 export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) => {
     const { currentUser, updateUser, addToast, requestNameChange, openSupport } = useData();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const pathname = usePathname();
+    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [showNameRequestInput, setShowNameRequestInput] = useState(false);
     const [requestedName, setRequestedName] = useState('');
-    
+
     const [form, setForm] = useState({
         name: currentUser.name,
         email: currentUser.email || '',
@@ -28,8 +33,27 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                updateUser(currentUser.id, { avatar: reader.result as string });
-                addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
+                const nextAvatar = String(reader.result || '');
+                if (!orgSlug) {
+                    updateUser(currentUser.id, { avatar: nextAvatar });
+                    addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
+                    return;
+                }
+
+                (async () => {
+                    const res = await upsertMyProfile({
+                        orgSlug,
+                        updates: {
+                            avatarUrl: nextAvatar || null,
+                        },
+                    });
+                    if (!res.success) {
+                        addToast(res.error || 'שגיאה בעדכון תמונת פרופיל', 'error');
+                        return;
+                    }
+                    updateUser(currentUser.id, { avatar: nextAvatar });
+                    addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
+                })();
             };
             reader.readAsDataURL(file);
         }
@@ -75,7 +99,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         return (isIsraeliMobile || isIsraeliLandline) && length >= 9 && length <= 13;
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         // Validate phone if provided
         if (form.phone && form.phone.trim() !== '' && !validatePhone(form.phone)) {
             addToast('נא להזין מספר טלפון תקין (לדוגמה: 050-1234567)', 'error');
@@ -85,8 +109,23 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         // Clean phone number (remove spaces, dashes, parentheses)
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
+        if (orgSlug) {
+            const res = await upsertMyProfile({
+                orgSlug,
+                updates: {
+                    phone: cleanedPhone || null,
+                    location: form.location || null,
+                    bio: form.bio || null,
+                },
+            });
+
+            if (!res.success) {
+                addToast(res.error || 'שגיאה בשמירת פרטים', 'error');
+                return;
+            }
+        }
+
         updateUser(currentUser.id, {
-            email: form.email,
             phone: cleanedPhone,
             location: form.location,
             bio: form.bio
@@ -111,7 +150,13 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                     aria-label="עדכן תמונת פרופיל"
                 >
                     <div className="w-28 h-28 rounded-full p-1 bg-white shadow-lg border border-gray-100">
-                        <img src={currentUser.avatar} alt={`תמונת פרופיל של ${currentUser.name}`} className="w-full h-full rounded-full object-cover" />
+                        {String(currentUser.avatar || '').trim() ? (
+                            <img src={currentUser.avatar} alt={`תמונת פרופיל של ${currentUser.name}`} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 font-black text-3xl">
+                                {String(currentUser.name || 'U').charAt(0)}
+                            </div>
+                        )}
                     </div>
                     <div className="absolute bottom-0 right-0 bg-black text-white p-2 rounded-full shadow-lg hover:bg-gray-800 transition-colors">
                         <Camera size={18} />
@@ -174,8 +219,8 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                             id="personal-email-input"
                             type="email" 
                             value={form.email}
-                            onChange={(e) => setForm({...form, email: e.target.value})}
-                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black transition-all dir-ltr text-right" 
+                            readOnly
+                            className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-sm outline-none text-gray-500 cursor-not-allowed dir-ltr text-right" 
                         />
                     </div>
                     <div>

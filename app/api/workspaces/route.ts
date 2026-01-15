@@ -4,6 +4,10 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 type WorkspaceApiItem = {
   id: string;
@@ -11,9 +15,14 @@ type WorkspaceApiItem = {
   name: string;
   logo?: string | null;
   entitlements: Record<OSModuleKey, boolean>;
+  capabilities: {
+    isFullOffice: boolean;
+    isTeamManagementEnabled: boolean;
+    seatsAllowed: number;
+  };
 };
 
-export async function GET() {
+async function GETHandler() {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -63,19 +72,44 @@ export async function GET() {
     return NextResponse.json({ workspaces: [] as WorkspaceApiItem[] });
   }
 
+  const systemFlags = await getSystemFeatureFlags();
+
   let orgs: any[] | null = null;
 
   const withSlug = await supabase
     .from('organizations')
-    .select('id, slug, name, logo, has_nexus, has_system, has_social, has_finance, has_client')
+    .select('id, slug, name, logo, has_nexus, has_system, has_social, has_finance, has_client, seats_allowed')
     .in('id', ids);
 
-  if (withSlug.error?.message && String(withSlug.error.message).toLowerCase().includes('column') && String(withSlug.error.message).toLowerCase().includes('slug')) {
-    const withoutSlug = await supabase
-      .from('organizations')
-      .select('id, name, logo, has_nexus, has_system, has_social, has_finance, has_client')
-      .in('id', ids);
-    orgs = withoutSlug.data as any;
+  if (withSlug.error?.message) {
+    const msg = String(withSlug.error.message).toLowerCase();
+    const missingSlug = msg.includes('column') && msg.includes('slug');
+    const missingSeatsAllowed = msg.includes('column') && msg.includes('seats_allowed');
+
+    if (missingSlug) {
+      const withoutSlug = await supabase
+        .from('organizations')
+        .select('id, name, logo, has_nexus, has_system, has_social, has_finance, has_client, seats_allowed')
+        .in('id', ids);
+
+      if (withoutSlug.error?.message && String(withoutSlug.error.message).toLowerCase().includes('column') && String(withoutSlug.error.message).toLowerCase().includes('seats_allowed')) {
+        const withoutSlugWithoutSeats = await supabase
+          .from('organizations')
+          .select('id, name, logo, has_nexus, has_system, has_social, has_finance, has_client')
+          .in('id', ids);
+        orgs = withoutSlugWithoutSeats.data as any;
+      } else {
+        orgs = withoutSlug.data as any;
+      }
+    } else if (missingSeatsAllowed) {
+      const withoutSeatsAllowed = await supabase
+        .from('organizations')
+        .select('id, slug, name, logo, has_nexus, has_system, has_social, has_finance, has_client')
+        .in('id', ids);
+      orgs = withoutSeatsAllowed.data as any;
+    } else {
+      orgs = withSlug.data as any;
+    }
   } else {
     orgs = withSlug.data as any;
   }
@@ -92,6 +126,17 @@ export async function GET() {
       finance: o.has_finance ?? false,
       client: o.has_client ?? false,
     },
+    capabilities: computeWorkspaceCapabilities({
+      entitlements: {
+        nexus: o.has_nexus ?? true,
+        system: o.has_system ?? false,
+        social: o.has_social ?? false,
+        finance: o.has_finance ?? false,
+        client: o.has_client ?? false,
+      },
+      fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
+      seatsAllowedOverride: (o as any)?.seats_allowed ?? null,
+    }),
   }));
 
   await logAuditEvent('data.read', 'workspaces.list', {
@@ -103,3 +148,5 @@ export async function GET() {
 
   return NextResponse.json({ workspaces });
 }
+
+export const GET = shabbatGuard(GETHandler);

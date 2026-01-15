@@ -5,9 +5,9 @@ import { LayoutGrid, Lock, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { OS_METADATA } from '@/lib/metadata';
 import { usePathname } from 'next/navigation';
-import { getOSModule } from '@/types/os-modules';
+import { getOSModule, OS_MODULES, type OSModule } from '@/types/os-modules';
 
-type OSRoomId = 'social' | 'nexus' | 'system' | 'finance' | 'client';
+type OSRoomId = OSModule;
 
 const DEFAULT_ROOMS: Record<OSRoomId, boolean> = {
   social: true,
@@ -17,12 +17,12 @@ const DEFAULT_ROOMS: Record<OSRoomId, boolean> = {
   client: false,
 };
 
-const ROOM_META: Array<{ id: OSRoomId; title: string; icon?: string; gradient: string }> = [
-  { id: 'nexus', title: 'Nexus', icon: OS_METADATA.nexus.icon, gradient: 'from-slate-900 to-slate-700' },
-  { id: 'system', title: 'System', icon: OS_METADATA.system.icon, gradient: 'from-rose-600 to-rose-500' },
-  { id: 'social', title: 'Social', gradient: 'from-indigo-600 to-indigo-500' },
-  { id: 'client', title: 'Client', gradient: 'from-amber-600 to-amber-500' },
-];
+const ROOM_META: Array<{ id: OSRoomId; title: string; icon?: string; gradient: string }> = OS_MODULES.map((m) => ({
+  id: m.id,
+  title: m.name,
+  icon: (OS_METADATA as any)?.[m.id]?.icon,
+  gradient: m.gradient,
+}));
 
 export function RoomSwitcher({ className = '' }: { className?: string }) {
   const [rooms, setRooms] = useState<Record<OSRoomId, boolean>>(DEFAULT_ROOMS);
@@ -207,7 +207,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
                 className="flex-1 h-11 rounded-xl bg-slate-900 text-white font-black"
                 onClick={() => {
                   setLockedRoom(null);
-                  navigateTo('/checkout');
+                  navigateTo('/subscribe/checkout');
                 }}
               >
                 שדרג עכשיו

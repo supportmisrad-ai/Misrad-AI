@@ -9,8 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../../../lib/supabase';
 import { getUsers } from '../../../../../../lib/db';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { countOrganizationActiveUsers } from '@/lib/server/seats';
 
-export async function POST(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ token: string }> }
 ) {
@@ -90,6 +94,68 @@ export async function POST(
                     { status: 410 }
                 );
             }
+        }
+
+        const organizationId = (invitation as any).organization_id as string | null;
+        if (!organizationId) {
+            return NextResponse.json(
+                { error: 'הזמנה לא משויכת לארגון' },
+                { status: 400 }
+            );
+        }
+
+        let org: any = null;
+        const orgWithSeats = await supabase
+            .from('organizations')
+            .select('has_nexus, has_system, has_social, has_finance, has_client, seats_allowed')
+            .eq('id', organizationId)
+            .maybeSingle();
+
+        if (orgWithSeats.error?.message) {
+            const msg = String(orgWithSeats.error.message).toLowerCase();
+            if (msg.includes('column') && msg.includes('seats_allowed')) {
+                const orgWithoutSeats = await supabase
+                    .from('organizations')
+                    .select('has_nexus, has_system, has_social, has_finance, has_client')
+                    .eq('id', organizationId)
+                    .maybeSingle();
+                org = orgWithoutSeats.data as any;
+            } else {
+                org = orgWithSeats.data as any;
+            }
+        } else {
+            org = orgWithSeats.data as any;
+        }
+
+        const flags = await getSystemFeatureFlags();
+        const caps = computeWorkspaceCapabilities({
+            entitlements: {
+                nexus: (org as any)?.has_nexus ?? true,
+                system: (org as any)?.has_system ?? false,
+                social: (org as any)?.has_social ?? false,
+                finance: (org as any)?.has_finance ?? false,
+                client: (org as any)?.has_client ?? false,
+            },
+            fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+            seatsAllowedOverride: (org as any)?.seats_allowed ?? null,
+        });
+
+        if (!caps.isTeamManagementEnabled) {
+            return NextResponse.json(
+                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { status: 403 }
+            );
+        }
+
+        const activeUsers = await countOrganizationActiveUsers(String(organizationId));
+        if (activeUsers >= caps.seatsAllowed) {
+            return NextResponse.json(
+                {
+                    error: `הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). לא ניתן להשלים הרשמה`,
+                    seatUsage: { activeUsers, seatsAllowed: caps.seatsAllowed },
+                },
+                { status: 403 }
+            );
         }
 
         // 5. Parse form data
@@ -253,3 +319,5 @@ export async function POST(
         );
     }
 }
+
+export const POST = shabbatGuard(POSTHandler);

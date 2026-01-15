@@ -11,7 +11,8 @@ import { getUsers } from '@/lib/db';
 import { supabase } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
         if (orgIdFromHeader) {
@@ -130,3 +131,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

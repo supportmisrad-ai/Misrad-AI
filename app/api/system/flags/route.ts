@@ -4,11 +4,12 @@ import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
 import { getTenants } from '../../../../lib/db';
 import { initDatabase } from '../../../../lib/db';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * GET /api/system/flags
  * Get system flags for current tenant
  */
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -125,7 +126,7 @@ export async function GET(request: NextRequest) {
  * PATCH /api/system/flags
  * Update system flag for a screen
  */
-export async function PATCH(request: NextRequest) {
+async function PATCHHandler(request: NextRequest) {
     try {
         const { userId } = await auth();
         if (!userId) {
@@ -257,3 +258,7 @@ export async function PATCH(request: NextRequest) {
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);
+
+export const PATCH = shabbatGuard(PATCHHandler);

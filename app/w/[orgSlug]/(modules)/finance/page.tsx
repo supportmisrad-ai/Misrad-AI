@@ -1,8 +1,8 @@
-import { currentUser } from '@clerk/nextjs/server';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
 import { getFinanceOverviewData } from '@/lib/services/finance-service';
 import FinanceModuleEntryClient from './FinanceModuleEntryClient';
+import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,25 +14,7 @@ export default async function FinanceModuleHome({
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-  const clerk = await currentUser();
-  const roleFromClerk =
-    (clerk as any)?.publicMetadata?.role ??
-    (clerk as any)?.privateMetadata?.role ??
-    (clerk as any)?.unsafeMetadata?.role ??
-    null;
-  const normalizedRole = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? 'עובד';
-
-  const initialCurrentUser = {
-    id: clerk?.id || '',
-    name: clerk?.fullName ?? clerk?.username ?? '',
-    role: normalizedRole || 'עובד',
-    avatar: clerk?.imageUrl || '',
-    online: true,
-    capacity: 0,
-    email: clerk?.primaryEmailAddress?.emailAddress || '',
-    isSuperAdmin: Boolean((clerk as any)?.publicMetadata?.isSuperAdmin),
-    tenantId: workspace.id,
-  };
+  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
 
   const initialOrganization = {
     name: workspace.name,

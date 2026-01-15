@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Search, Send, Bot, User, Loader2, X, Sparkles } from 'lucide-react';
+import { ChatSources } from './ChatSources';
 
 interface CommandPaletteChatProps {
   query: string;
@@ -13,6 +14,8 @@ interface CommandPaletteChatProps {
   inputRef: React.RefObject<HTMLTextAreaElement>;
   extractMessageText: (message: any) => string;
   handleSendMessage: () => void;
+  sendText?: (text: string) => void;
+  starters?: Array<{ id: string; text: string }>;
   onKeyDown: (e: React.KeyboardEvent) => void;
 }
 
@@ -26,8 +29,12 @@ export function CommandPaletteChat({
   inputRef,
   extractMessageText,
   handleSendMessage,
+  sendText,
+  starters,
   onKeyDown
 }: CommandPaletteChatProps) {
+  const resolvedStarters = Array.isArray(starters) ? starters : [];
+
   return (
     <>
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gradient-to-b from-white via-slate-50/30 to-white space-y-5 min-h-0 relative">
@@ -79,6 +86,10 @@ export function CommandPaletteChat({
               <div className="whitespace-pre-wrap break-words text-sm leading-relaxed font-medium">
                 {extractMessageText(message)}
               </div>
+
+              {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
+                <ChatSources sources={(message as any).sources} />
+              ) : null}
             </div>
           </div>
         ))}
@@ -122,6 +133,31 @@ export function CommandPaletteChat({
       </div>
 
       <div className="p-5 border-t border-slate-200/60 bg-gradient-to-r from-white via-slate-50/50 to-white backdrop-blur-xl shrink-0 relative">
+        {resolvedStarters.length ? (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {resolvedStarters.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  if (typeof sendText === 'function') {
+                    sendText(s.text);
+                    setQuery('');
+                    return;
+                  }
+                  setQuery(s.text);
+                  handleSendMessage();
+                }}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 border border-slate-200/60 text-slate-700 text-xs font-bold hover:bg-white hover:border-indigo-200/60 hover:text-slate-900 transition-all"
+                disabled={isThinking}
+              >
+                <Sparkles size={14} className="text-indigo-500" />
+                {s.text}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         <div className="flex gap-3 items-end">
           <div className="flex-1 relative">
             <textarea

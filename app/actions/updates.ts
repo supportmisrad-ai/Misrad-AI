@@ -5,6 +5,11 @@ import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
 
+function isMissingTableError(error: any, tableName: string) {
+  const msg = String(error?.message || '');
+  return msg.includes(`Could not find the table 'public.${tableName}' in the schema cache`);
+}
+
 export interface AppUpdate {
   id: string;
   version: string;
@@ -29,7 +34,12 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
       .eq('is_published', true)
       .order('published_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingTableError(error, 'app_updates')) {
+        return { success: true, data: [] };
+      }
+      throw error;
+    }
 
     const formattedUpdates: AppUpdate[] = (updates || []).map(update => ({
       id: update.id,
@@ -73,7 +83,12 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
       .eq('is_published', true)
       .order('published_at', { ascending: false });
 
-    if (updatesError) throw updatesError;
+    if (updatesError) {
+      if (isMissingTableError(updatesError, 'app_updates')) {
+        return { success: true, data: [] };
+      }
+      throw updatesError;
+    }
 
     // Get viewed updates for this user
     const { data: viewedUpdates, error: viewedError } = await supabase
@@ -81,7 +96,22 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
       .select('update_id')
       .eq('user_id', supabaseUserId);
 
-    if (viewedError) throw viewedError;
+    if (viewedError) {
+      if (isMissingTableError(viewedError, 'user_update_views')) {
+        const formattedUpdates: AppUpdate[] = (updates || []).map(update => ({
+          id: update.id,
+          version: update.version,
+          title: update.title,
+          description: update.description,
+          category: update.category,
+          priority: update.priority,
+          publishedAt: update.published_at,
+          isViewed: false,
+        }));
+        return { success: true, data: formattedUpdates };
+      }
+      throw viewedError;
+    }
 
     const viewedIds = new Set((viewedUpdates || []).map(v => v.update_id));
 
@@ -130,7 +160,12 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
         onConflict: 'user_id,update_id',
       });
 
-    if (error) throw error;
+    if (error) {
+      if (isMissingTableError(error, 'user_update_views')) {
+        return { success: true };
+      }
+      throw error;
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -163,7 +198,12 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
       .select('id')
       .eq('is_published', true);
 
-    if (updatesError) throw updatesError;
+    if (updatesError) {
+      if (isMissingTableError(updatesError, 'app_updates')) {
+        return { success: true, count: 0 };
+      }
+      throw updatesError;
+    }
 
     // Get viewed updates
     const { data: viewedUpdates, error: viewedError } = await supabase
@@ -171,7 +211,12 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
       .select('update_id')
       .eq('user_id', supabaseUserId);
 
-    if (viewedError) throw viewedError;
+    if (viewedError) {
+      if (isMissingTableError(viewedError, 'user_update_views')) {
+        return { success: true, count: (updates || []).length };
+      }
+      throw viewedError;
+    }
 
     const viewedIds = new Set((viewedUpdates || []).map(v => v.update_id));
     const unreadCount = (updates || []).filter(u => !viewedIds.has(u.id)).length;

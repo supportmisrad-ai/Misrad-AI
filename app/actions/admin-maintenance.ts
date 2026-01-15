@@ -175,7 +175,7 @@ export async function updateSystemSettings(
     // Update system settings
     try {
       await supabase
-        .from('system_settings')
+        .from('social_system_settings')
         .upsert({
           key: 'maintenance_settings',
           value: JSON.stringify(settings),

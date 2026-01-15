@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GraduationCap, Users, Calendar, BookOpen, Lightbulb, Globe, Menu, X, Search, Bell } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
-import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from './Sidebar';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useShabbat } from '@/hooks/useShabbat';
+import { ShabbatScreen } from '@/components/ShabbatScreen';
 
 // Import placeholder components
 import ClientsView from './clients/ClientsView';
@@ -50,12 +53,12 @@ const ClientBootScreen = ({ onComplete }: { onComplete: () => void }) => {
 const ClientOSApp = () => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
+  const pathname = usePathname();
+  const workspace = parseWorkspaceRoute(pathname);
+  const { isShabbat, isLoading: isShabbatLoading } = useShabbat();
   const [booted, setBooted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('clients');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(profileRef, () => setIsProfileOpen(false));
 
   useEffect(() => {
     const saved = sessionStorage.getItem('client_booted');
@@ -75,6 +78,10 @@ const ClientOSApp = () => {
 
   if (!user) {
     return <div className="p-8 text-center">נדרש התחברות</div>;
+  }
+
+  if (!isShabbatLoading && isShabbat) {
+    return <ShabbatScreen />;
   }
 
   if (!booted) {
@@ -141,42 +148,23 @@ const ClientOSApp = () => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
             </button>
 
-            {/* Profile Menu */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
-              >
-                <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">
-                  {user.avatar || user.name.charAt(0)}
-                </div>
-                <span className="hidden md:block font-medium text-sm">{user.name}</span>
-              </button>
-
-              <AnimatePresence>
-                {isProfileOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden z-50"
-                  >
-                    <a
-                      href="/app#/me"
-                      className="block w-full px-4 py-3 text-right text-sm text-slate-600 hover:bg-slate-50"
-                    >
-                      פרופיל וחשבון
-                    </a>
-                    <button
-                      onClick={logout}
-                      className="w-full px-4 py-3 text-right text-sm text-slate-600 hover:bg-slate-50"
-                    >
-                      התנתק
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (workspace.orgSlug) {
+                  window.location.href = `/w/${encodeURIComponent(workspace.orgSlug)}/client/me`;
+                  return;
+                }
+                window.location.href = '/client/me';
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
+              aria-label="פרופיל"
+            >
+              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">
+                {user.avatar || user.name.charAt(0)}
+              </div>
+              <span className="hidden md:block font-medium text-sm">{user.name}</span>
+            </button>
           </div>
         </header>
 

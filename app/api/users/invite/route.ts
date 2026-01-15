@@ -11,7 +11,8 @@ import { getUsers } from '../../../../lib/db';
 import { getBaseUrl } from '../../../../lib/utils';
 import { sendEmployeeInvitationEmail } from '../../../../lib/email';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
@@ -91,3 +92,5 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const POST = shabbatGuard(POSTHandler);

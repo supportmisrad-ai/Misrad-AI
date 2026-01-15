@@ -3,7 +3,8 @@ import { getGoogleOAuthClient } from '@/lib/googleAuth';
 import { saveGoogleTokens } from '@/app/actions/integrations';
 import { getAuthenticatedUser } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
   try {
     try {
       await getAuthenticatedUser();
@@ -66,3 +67,5 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

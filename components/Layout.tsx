@@ -21,6 +21,7 @@ import { MemoHeader } from './layout/Header';
 import { LayoutModals } from './layout/LayoutModals';
 import { MobileMenu } from './layout/MobileMenu';
 import { NAV_ITEMS } from './layout/layout.types';
+import { getMyProfile } from '@/app/actions/profiles';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -34,7 +35,22 @@ export const Layout = ({ children }: LayoutProps) => {
   const location = useMemo(() => ({ pathname: pathname || '/' }) as any, [pathname]);
   const navigate = useCallback(
     (path: string) => {
-      const target = toNexusPath(basePath, path);
+      const raw = String(path || '/');
+      const [rawPath, rawQuery] = raw.split('?');
+      const query = new URLSearchParams(rawQuery || '');
+
+      const from = pathname || toNexusPath(basePath, '/');
+
+      // Normalize Nexus profile/settings navigation so the unified hub can provide
+      // correct back behavior without changing every call site.
+      if (rawPath === '/settings') {
+        if (!query.has('origin')) query.set('origin', 'nexus');
+        if (!query.has('drawer')) query.set('drawer', 'ai');
+        if (!query.has('from')) query.set('from', from);
+      }
+
+      const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
+      const target = toNexusPath(basePath, finalPath);
       router.push(target);
     },
     [basePath, router]
@@ -51,6 +67,8 @@ export const Layout = ({ children }: LayoutProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('טוען...');
   const [isMounted, setIsMounted] = useState(false);
+  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
+  const orgSlug = useMemo(() => getWorkspaceOrgIdFromPathname(pathname || ''), [pathname]);
   
   // Check Shabbat status
   const { isShabbat, isLoading: shabbatLoading } = useShabbat();
@@ -60,6 +78,28 @@ export const Layout = ({ children }: LayoutProps) => {
       setIsMounted(true);
       setCurrentDate(new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }));
   }, []);
+
+  useEffect(() => {
+      const load = async () => {
+          if (!orgSlug) {
+              setProfileIdentity(null);
+              return;
+          }
+          try {
+              const res = await getMyProfile({ orgSlug });
+              if (!res.success || !res.data?.profile) return;
+              const p: any = res.data.profile;
+              setProfileIdentity({
+                  name: p.full_name ? String(p.full_name) : null,
+                  role: p.role ? String(p.role) : null,
+              });
+          } catch {
+              // Best-effort
+          }
+      };
+
+      load();
+  }, [orgSlug]);
 
   // Lightweight client navigation timing for internal Nexus route changes
   useEffect(() => {
@@ -223,7 +263,7 @@ export const Layout = ({ children }: LayoutProps) => {
       
       const handleKeyDown = (e: KeyboardEvent) => {
           // Check for Ctrl+Shift+A (or Cmd+Shift+A on Mac) - Admin panel
-          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+          if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a' && !window.location.pathname.startsWith('/w/')) {
               // Only allow if user is super admin
               if (currentUser?.isSuperAdmin) {
                   e.preventDefault();
@@ -258,6 +298,15 @@ export const Layout = ({ children }: LayoutProps) => {
   const hasUnread = notifications
     .filter((n: Notification) => n.recipientId === 'all' || n.recipientId === currentUser.id)
     .some((n: Notification) => !n.read);
+
+  const headerCurrentUser = useMemo(() => {
+    const base: any = currentUser || { name: 'משתמש', role: '' };
+    return {
+      ...base,
+      name: profileIdentity?.name || base.name || 'משתמש',
+      role: profileIdentity?.role || base.role || '',
+    };
+  }, [currentUser, profileIdentity?.name, profileIdentity?.role]);
 
   const togglePlusMenu = () => { setIsMobileMenuOpen(false); setIsPlusMenuOpen(!isPlusMenuOpen); };
   const toggleMobileMenu = () => { setIsPlusMenuOpen(false); setIsMobileMenuOpen(!isMobileMenuOpen); };
@@ -503,7 +552,7 @@ export const Layout = ({ children }: LayoutProps) => {
           location={location}
           currentDate={currentDate}
           organization={organization}
-          currentUser={currentUser}
+          currentUser={headerCurrentUser}
           isNotificationsOpen={isNotificationsOpen}
           setIsNotificationsOpen={setIsNotificationsOpen}
           hasUnread={hasUnread}

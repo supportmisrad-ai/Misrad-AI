@@ -8,6 +8,7 @@ import { joinPath } from '@/lib/os/social-routing';
 import DashboardActionsClient from '@/components/social/dashboard/DashboardActionsClient';
 import DashboardTasksClient from '@/components/social/dashboard/DashboardTasksClient';
 import { useApp } from '@/contexts/AppContext';
+import { useUser } from '@clerk/nextjs';
 
 type StrategicContentItem = {
   id: string;
@@ -20,8 +21,14 @@ type StrategicContentItem = {
 export default function Dashboard({ orgSlug }: { orgSlug: string }) {
   const basePath = `/w/${orgSlug}/social`;
   const { clients, posts } = useApp();
+  const { isLoaded, isSignedIn, user } = useUser();
+  const [hasMounted, setHasMounted] = useState(false);
   const [isScriptsOpen, setIsScriptsOpen] = useState(false);
   const [scripts, setScripts] = useState<StrategicContentItem[]>([]);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -61,28 +68,48 @@ export default function Dashboard({ orgSlug }: { orgSlug: string }) {
     );
   }).length;
 
+  const greeting = useMemo(() => {
+    if (!hasMounted) return '';
+    const h = new Date().getHours();
+    if (h < 12) return 'בוקר טוב';
+    if (h < 18) return 'צהריים טובים';
+    return 'ערב טוב';
+  }, [hasMounted]);
+
+  const firstName = useMemo(() => {
+    if (!hasMounted || !isLoaded || !isSignedIn || !user) return '';
+    const fromFirst = user.firstName?.trim();
+    if (fromFirst) return fromFirst;
+    const fromFull = user.fullName?.trim();
+    if (fromFull) return fromFull.split(' ')[0] || '';
+    const email = user.emailAddresses?.[0]?.emailAddress;
+    return email ? email.split('@')[0] : '';
+  }, [hasMounted, isLoaded, isSignedIn, user]);
+
   return (
     <div id="operational-center" className="max-w-6xl mx-auto flex flex-col gap-6 md:gap-8 pb-10 text-right">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-l from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg">
+      <div className="bg-gradient-to-l from-indigo-500 via-purple-500 to-pink-500 rounded-3xl p-5 md:p-8 text-white relative overflow-hidden shadow-lg">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
         <div className="relative z-10">
-          <h1 className="text-2xl md:text-3xl font-black mb-2">ברוך הבא! 👋</h1>
-          <p className="text-sm md:text-base font-bold text-white/90 max-w-2xl">
-            יש לך {todayPostsCount} פוסטים מתוכננים להיום ו-{counters?.postsScheduled ?? 0} פוסטים מתוזמנים.
+          <h1 className="text-xl md:text-3xl font-black mb-1" suppressHydrationWarning>
+            {greeting}{firstName ? `, ${firstName}` : ''}
+          </h1>
+          <p className="text-sm font-bold text-white/90 max-w-2xl" suppressHydrationWarning>
+            היום יש {todayPostsCount} פוסטים מתוכננים
           </p>
         </div>
+      </div>
 
       <div>
         <button
           type="button"
           onClick={() => setIsScriptsOpen((v) => !v)}
-          className="w-full bg-white p-6 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right"
+          className="w-full bg-white p-5 md:p-6 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right"
         >
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black text-slate-900">בנק תסריטי הזהב</h2>
-              <p className="text-sm font-bold text-slate-400 mt-1">תסריטים מוכנים לשימוש שמייצרים סמכות</p>
+              <h2 className="text-lg md:text-xl font-black text-slate-900">בנק תסריטים</h2>
             </div>
             <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
               <ChevronDown size={18} className={isScriptsOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
@@ -104,55 +131,50 @@ export default function Dashboard({ orgSlug }: { orgSlug: string }) {
           )}
         </button>
       </div>
-      </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6">
         <DashboardActionsClient hrefMachine={joinPath(basePath, '/machine')} />
 
         <Link
           href={joinPath(basePath, '/calendar')}
-          className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
+          className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
         >
-          <div className="w-16 h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Calendar className="text-purple-600" size={32} />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-purple-50 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+            <Calendar className="text-purple-600" size={28} />
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">לוח שנה</h3>
-          <p className="text-sm font-bold text-slate-400">צפה בלוח השידורים</p>
+          <h3 className="text-base md:text-xl font-black text-slate-900">לוח שנה</h3>
         </Link>
 
         <Link
           href={joinPath(basePath, '/clients')}
-          className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
+          className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
         >
-          <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Users className="text-green-600" size={32} />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+            <Users className="text-green-600" size={28} />
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">לקוחות</h3>
-          <p className="text-sm font-bold text-slate-400">{clients.length} לקוחות פעילים</p>
+          <h3 className="text-base md:text-xl font-black text-slate-900">לקוחות</h3>
         </Link>
 
         <Link
           href={joinPath(basePath, '/analytics')}
-          className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
+          className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
         >
-          <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <TrendingUp className="text-orange-600" size={32} />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-orange-50 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+            <TrendingUp className="text-orange-600" size={28} />
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">אנליטיקה</h3>
-          <p className="text-sm font-bold text-slate-400">צפה בביצועים</p>
+          <h3 className="text-base md:text-xl font-black text-slate-900">אנליטיקה</h3>
         </Link>
         
         <Link
           id="collection-button"
           href={joinPath(basePath, '/collection')}
-          className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
+          className="bg-white p-4 md:p-8 rounded-[24px] md:rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all text-right group"
         >
-          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-            <Wallet className="text-red-600" size={32} />
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+            <Wallet className="text-red-600" size={28} />
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-2">גבייה</h3>
-          <p className="text-sm font-bold text-slate-400">ניהול תשלומים</p>
+          <h3 className="text-base md:text-xl font-black text-slate-900">גבייה</h3>
         </Link>
       </div>
 
@@ -171,15 +193,21 @@ export default function Dashboard({ orgSlug }: { orgSlug: string }) {
           {clients.slice(0, 6).map((client) => (
             <Link
               key={client.id}
-              href={joinPath(basePath, `/workspace?clientId=${encodeURIComponent(String(client.id))}`)}
+              href={joinPath(basePath, `/workspace?clientId=${encodeURIComponent(String(client.id))}&clientName=${encodeURIComponent(String(client.companyName || ''))}`)}
               className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-lg hover:shadow-xl transition-all cursor-pointer group"
             >
               <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={client.avatar} 
-                  className="w-16 h-16 rounded-2xl object-cover group-hover:scale-110 transition-transform" 
-                  alt={client.companyName}
-                />
+                {String(client.avatar || '').trim() ? (
+                  <img
+                    src={String(client.avatar)}
+                    className="w-16 h-16 rounded-2xl object-cover group-hover:scale-110 transition-transform"
+                    alt={client.companyName}
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-black text-xl">
+                    {String(client.companyName || 'L').charAt(0)}
+                  </div>
+                )}
                 <div className="flex-1">
                   <h3 className="text-xl font-black text-slate-900">{client.companyName}</h3>
                   <p className="text-sm font-bold text-slate-400">{client.postingRhythm}</p>

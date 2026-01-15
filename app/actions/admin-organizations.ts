@@ -281,6 +281,7 @@ export async function updateOrganization(input: {
   organizationId: string;
   name?: string;
   slug?: string;
+  logo?: string | null;
   has_nexus?: boolean;
   has_social?: boolean;
   has_system?: boolean;
@@ -301,6 +302,10 @@ export async function updateOrganization(input: {
     const patch: any = { updated_at: new Date().toISOString() };
 
     if (input.name !== undefined) patch.name = String(input.name).trim();
+
+    if (input.logo !== undefined) {
+      patch.logo = input.logo === null ? null : String(input.logo);
+    }
 
     if (input.slug !== undefined) {
       const desired = normalizeSlug(String(input.slug));

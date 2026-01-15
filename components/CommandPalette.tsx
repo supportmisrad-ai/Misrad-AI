@@ -7,6 +7,7 @@ import { useCommandPalette } from './command-palette/useCommandPalette';
 import { CommandPaletteHeader } from './command-palette/CommandPaletteHeader';
 import { CommandPaletteChat } from './command-palette/CommandPaletteChat';
 import { CommandPaletteSearch } from './command-palette/CommandPaletteSearch';
+import { getSemanticStarters } from './command-palette/semanticStarters';
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onSelectLead, leads }) => {
   const [mode, setMode] = useState<CommandPaletteMode>('search');
@@ -21,7 +22,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
     error,
     extractMessageText,
     getFilteredResults,
-    handleSendMessage
+    handleSendMessage,
+    sendText
   } = useCommandPalette(isOpen, mode);
 
   useEffect(() => {
@@ -79,7 +81,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
             inputRef={inputRef as React.RefObject<HTMLTextAreaElement>}
             extractMessageText={extractMessageText}
             handleSendMessage={handleSendMessage}
-                                onKeyDown={handleKeyDown}
+            sendText={sendText}
+            starters={getSemanticStarters('nexus')}
+            onKeyDown={handleKeyDown}
           />
         ) : (
           <CommandPaletteSearch

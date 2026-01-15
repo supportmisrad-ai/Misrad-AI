@@ -421,3 +421,145 @@ export async function getClientByInvitationToken(
     return createErrorResponse(e, e?.message || 'שגיאה בטעינת לקוח');
   }
 }
+
+export async function linkPortalClientToCanonical(params: {
+  orgSlug: string;
+  portalClientId: string;
+  canonicalClientId: string;
+}): Promise<{ success: boolean; data?: Client; error?: string }> {
+  try {
+    const orgSlug = String(params.orgSlug || '').trim();
+    if (!orgSlug) return createErrorResponse(new Error('orgSlug חסר'), 'orgSlug חסר');
+    if (!params.portalClientId) return createErrorResponse(new Error('portalClientId חסר'), 'portalClientId חסר');
+    if (!params.canonicalClientId) return createErrorResponse(new Error('canonicalClientId חסר'), 'canonicalClientId חסר');
+
+    const supabaseCheck = requireSupabase();
+    if (!supabaseCheck.success) return supabaseCheck as any;
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = workspace?.id ? String(workspace.id) : null;
+    if (!organizationId) return createErrorResponse(new Error('ארגון לא נמצא'), 'ארגון לא נמצא');
+
+    const supabase = createSupabaseClient();
+    const { data: existing, error: existingError } = await supabase
+      .from('client_clients')
+      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
+      .eq('organization_id', organizationId)
+      .eq('id', params.portalClientId)
+      .maybeSingle();
+
+    if (existingError || !existing?.id) {
+      return createErrorResponse(new Error('לקוח לא נמצא'), existingError?.message || 'לקוח לא נמצא');
+    }
+
+    const nextMetadata = {
+      ...((existing as any).metadata ?? {}),
+      canonicalClientId: params.canonicalClientId,
+    };
+
+    await updateClinicClient({
+      orgId: organizationId,
+      clientId: params.portalClientId,
+      updates: {
+        metadata: nextMetadata,
+      },
+    });
+
+    const { data: after, error: afterError } = await supabase
+      .from('client_clients')
+      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
+      .eq('organization_id', organizationId)
+      .eq('id', params.portalClientId)
+      .maybeSingle();
+
+    if (afterError || !after?.id) {
+      return createSuccessResponse(true) as any;
+    }
+
+    return { success: true, data: mapClientClientsRowToSocialClient(after as any) };
+  } catch (e: any) {
+    return createErrorResponse(e, e?.message || 'שגיאה בקישור לקוח');
+  }
+}
+
+export async function ensurePortalClientForCanonical(params: {
+  orgSlug: string;
+  canonicalClientId: string;
+}): Promise<{ success: boolean; data?: Client; error?: string }> {
+  try {
+    const orgSlug = String(params.orgSlug || '').trim();
+    if (!orgSlug) return createErrorResponse(new Error('orgSlug חסר'), 'orgSlug חסר');
+    if (!params.canonicalClientId) return createErrorResponse(new Error('canonicalClientId חסר'), 'canonicalClientId חסר');
+
+    const supabaseCheck = requireSupabase();
+    if (!supabaseCheck.success) return supabaseCheck as any;
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = workspace?.id ? String(workspace.id) : null;
+    if (!organizationId) return createErrorResponse(new Error('ארגון לא נמצא'), 'ארגון לא נמצא');
+
+    const supabase = createSupabaseClient();
+
+    const { data: existing, error: existingError } = await supabase
+      .from('client_clients')
+      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
+      .eq('organization_id', organizationId)
+      .contains('metadata', { canonicalClientId: params.canonicalClientId })
+      .maybeSingle();
+
+    if (!existingError && existing?.id) {
+      return { success: true, data: mapClientClientsRowToSocialClient(existing as any) };
+    }
+
+    const { data: canonical, error: canonicalError } = await supabase
+      .from('clients')
+      .select('id, name, company_name, phone, email, avatar, status, onboarding_status, portal_token, invitation_token, color, plan, monthly_fee, payment_status')
+      .eq('organization_id', organizationId)
+      .eq('id', params.canonicalClientId)
+      .maybeSingle();
+
+    if (canonicalError || !canonical?.id) {
+      return createErrorResponse(new Error('לקוח קנוני לא נמצא'), canonicalError?.message || 'לקוח קנוני לא נמצא');
+    }
+
+    const md = {
+      canonicalClientId: canonical.id,
+      name: canonical.name ?? '',
+      companyName: canonical.company_name ?? canonical.name ?? '',
+      avatar: canonical.avatar ?? '',
+      postingRhythm: '3 פעמים בשבוע',
+      status: canonical.status ?? ('Onboarding' as ClientStatus),
+      onboardingStatus: canonical.onboarding_status ?? undefined,
+      invitationToken: canonical.invitation_token ?? undefined,
+      portalToken: canonical.portal_token ?? '',
+      color: canonical.color ?? '#1e293b',
+      plan: canonical.plan ?? undefined,
+      monthlyFee: canonical.monthly_fee ?? undefined,
+      paymentStatus: canonical.payment_status ?? undefined,
+    };
+
+    const created = await createClinicClient({
+      orgId: organizationId,
+      fullName: String(canonical.company_name ?? canonical.name ?? 'לקוח חדש'),
+      phone: canonical.phone ?? null,
+      email: canonical.email ?? null,
+      notes: null,
+      metadata: md,
+    });
+
+    const { data: row, error } = await supabase
+      .from('client_clients')
+      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
+      .eq('organization_id', organizationId)
+      .eq('id', created.id)
+      .maybeSingle();
+
+    if (error || !row?.id) {
+      return createErrorResponse(new Error('נכשל ביצירת לקוח פורטל'), error?.message || 'נכשל ביצירת לקוח פורטל');
+    }
+
+    return { success: true, data: mapClientClientsRowToSocialClient(row as any) };
+  } catch (e: any) {
+    return createErrorResponse(e, e?.message || 'שגיאה ביצירת לקוח פורטל');
+  }
+}

@@ -12,6 +12,7 @@ import { logAuditEvent, logIntegrationEvent } from '../../../lib/audit';
 import { sendTenantInvitationEmail } from '../../../lib/email';
 import { getBaseUrl } from '../../../lib/utils';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * GET /api/tenants
  * 
@@ -22,7 +23,7 @@ import { getBaseUrl } from '../../../lib/utils';
  *   - tenantId: string (optional) - Filter by tenant ID
  *   - status: string (optional) - Filter by status
  */
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
         
@@ -107,7 +108,7 @@ export async function GET(request: NextRequest) {
  *   - tenantId: string (UUID) - The ID of the newly created tenant
  *   - tenant: object (full tenant object, optional)
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
         // Check for API key authentication (for external systems)
         const apiKey = request.headers.get('x-nexus-api-key');
@@ -473,3 +474,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

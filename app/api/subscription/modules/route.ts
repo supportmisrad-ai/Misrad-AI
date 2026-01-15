@@ -10,7 +10,8 @@ import { getAuthenticatedUser } from '../../../../lib/auth';
 import { getUsers, getTenants } from '../../../../lib/db';
 import { OSModule } from '../../../../types/os-modules';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         // 1. Get authenticated Clerk user
         const clerkUser = await getAuthenticatedUser();
@@ -107,3 +108,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

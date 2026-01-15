@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase';
-import { getClientsLite } from '@/app/actions/client-clients';
+import { getClients as getCanonicalClients } from '@/app/actions/clients';
 import { getTeamMembers } from '@/app/actions/team';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import type { ActivityLog, ClientRequest, Conversation, Idea, ManagerRequest, SocialPost, SocialTask } from '@/types/social';
@@ -396,7 +396,7 @@ export async function getSocialInitialData(params: {
 
   const [workspace, clientsResult, teamResult, postsResult, activityResult] = await Promise.all([
     workspacePromise,
-    getClientsLite(params.clerkUserId ?? undefined, params.orgSlug),
+    getCanonicalClients(undefined, params.orgSlug),
     getTeamMembers(),
     getSocialPosts({ orgSlug: params.orgSlug }),
     getSocialActivity({ orgSlug: params.orgSlug, limit: 50 }),

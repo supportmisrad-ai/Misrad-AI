@@ -3,13 +3,14 @@ import { auth } from '@clerk/nextjs/server';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { buildNexusBillingItemsForTemplate, setNexusBillingItems } from '@/lib/services/nexus-billing-service';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 function getOrgSlugFromRequest(request: NextRequest): string | null {
   const headerOrgId = request.headers.get('x-org-id');
   const queryOrgId = request.nextUrl.searchParams.get('orgId');
   return headerOrgId || queryOrgId;
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -42,3 +43,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

@@ -8,18 +8,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasPermission } from '../../../../lib/auth';
 import { prepareAIContext, validateAIResponse } from '../../../../lib/ai-security';
 import { logAuditEvent } from '../../../../lib/audit';
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { AIService } from '@/lib/services/ai/AIService';
 
-export async function POST(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate
         const user = await getAuthenticatedUser();
 
         // Resolve the caller organization_id from DB (server-side source of truth)
         const clerkUserId = await getCurrentUserId();
+        if (!clerkUserId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         const supabase = createClient();
         const { data: socialUser, error: socialUserError } = await supabase
             .from('social_users')
@@ -102,15 +107,8 @@ export async function POST(request: NextRequest) {
             }
         });
         
-        // 7. Call AI with safe context
-        if (!process.env.API_KEY) {
-            return NextResponse.json(
-                { error: 'AI service not configured' },
-                { status: 500 }
-            );
-        }
-        
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // 7. Call AI with safe context (via centralized AIService)
+        const aiService = AIService.getInstance();
         
         // Build schema based on role
         const responseSchema: any = {
@@ -191,27 +189,16 @@ export async function POST(request: NextRequest) {
                    
                    Query: ${query}`;
         
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: {
-                parts: [{ text: prompt }]
-            },
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-            },
+        const aiOut = await aiService.generateJson({
+            featureKey: 'ai.analyze',
+            organizationId: callerOrganizationId,
+            userId: clerkUserId,
+            prompt,
+            responseSchema: responseSchema,
         });
-        
+
         // 8. Validate response doesn't contain sensitive data
-        let result;
-        try {
-            result = JSON.parse(response.text || '{}');
-        } catch (e) {
-            return NextResponse.json(
-                { error: 'Invalid AI response' },
-                { status: 500 }
-            );
-        }
+        const result = aiOut.result;
         
         if (!validateAIResponse(result)) {
             console.error('[AI SECURITY] Response validation failed');
@@ -232,6 +219,10 @@ export async function POST(request: NextRequest) {
             success: false,
             error: error.message
         });
+
+        if (error?.status === 402 || error?.name === 'UpgradeRequiredError') {
+            return NextResponse.json({ error: error.message || 'Upgrade Required' }, { status: 402 });
+        }
         
         if (error.message.includes('Unauthorized')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -244,3 +235,5 @@ export async function POST(request: NextRequest) {
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

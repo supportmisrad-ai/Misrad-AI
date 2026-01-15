@@ -5,7 +5,8 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { logAuditEvent } from '@/lib/audit';
 
-export async function GET(req: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(req: NextRequest) {
   try {
     try {
       await requireSuperAdmin();
@@ -84,3 +85,5 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export const GET = shabbatGuard(GETHandler);

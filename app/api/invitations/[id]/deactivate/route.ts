@@ -10,7 +10,8 @@ import { getAuthenticatedUser, requireSuperAdmin } from '../../../../../lib/auth
 import { getUsers } from '../../../../../lib/db';
 import { supabase } from '../../../../../lib/supabase';
 
-export async function POST(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -95,3 +96,5 @@ export async function POST(
     }
 }
 
+
+export const POST = shabbatGuard(POSTHandler);

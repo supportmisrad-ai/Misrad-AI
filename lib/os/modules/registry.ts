@@ -40,3 +40,11 @@ export function buildWorkspaceModulePath(orgSlug: string, module: OSModuleKey): 
 export function getModuleDefinition(module: OSModuleKey): OSModuleDefinition {
   return modulesRegistry[module];
 }
+
+export function getModuleLabel(module: OSModuleKey): string {
+  return getModuleDefinition(module)?.label ?? String(module);
+}
+
+export function getModuleLabelHe(module: OSModuleKey): string {
+  return getModuleDefinition(module)?.labelHe ?? getModuleLabel(module);
+}

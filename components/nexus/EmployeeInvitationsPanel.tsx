@@ -11,6 +11,7 @@ import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 
 interface EmployeeInvitation {
     id: string;
@@ -45,6 +46,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const [isCreating, setIsCreating] = useState(false);
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [seatUsage, setSeatUsage] = useState<{ activeUsers: number; seatsAllowed: number } | null>(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -66,13 +68,17 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const loadInvitations = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('/api/employees/invitations');
+            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/employees/invitations', {
+                headers: orgId ? { 'x-org-id': orgId } : undefined,
+            });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
                 throw new Error(errorData.error || `Failed to load invitations (${response.status})`);
             }
             const data = await response.json();
             setInvitations(data.invitations || []);
+            setSeatUsage(data.seatUsage || null);
         } catch (error: any) {
             console.error('[EmployeeInvitations] Error loading invitations:', error);
             addToast(error.message || 'שגיאה בטעינת קישורים', 'error');
@@ -95,10 +101,12 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
 
         setIsCreating(true);
         try {
+            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/employees/invite', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgId ? { 'x-org-id': orgId } : {}),
                 },
                 body: JSON.stringify({
                     employeeEmail: formData.employeeEmail.trim(),
@@ -166,8 +174,10 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     // Deactivate invitation
     const handleDeactivate = async (id: string) => {
         try {
+            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/employees/invitations/${id}/deactivate`, {
-                method: 'POST'
+                method: 'POST',
+                headers: orgId ? { 'x-org-id': orgId } : undefined,
             });
 
             if (!response.ok) {
@@ -206,6 +216,9 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">הזמנת עובדים</h1>
                 <p className="text-sm text-gray-500">צור קישורי הזמנה לעובדים חדשים, קבע פרטים מראש ועקוב אחר התהליך</p>
+                {seatUsage && (
+                    <p className="text-sm text-gray-500 mt-2">משתמשים: {seatUsage.activeUsers} מתוך {seatUsage.seatsAllowed}</p>
+                )}
             </div>
 
             {/* Stats */}

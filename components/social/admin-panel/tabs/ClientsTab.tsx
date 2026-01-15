@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Eye, Lock, Unlock, Settings } from 'lucide-react';
+import { Avatar } from '@/components/Avatar';
 
 interface ClientsTabProps {
   filteredClients: any[];
@@ -55,7 +56,14 @@ export default function ClientsTab({
                 <tr key={client.id} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors group">
                   <td className="p-8">
                     <div className="flex items-center gap-4">
-                      <img src={client.avatar} className="w-12 h-12 rounded-2xl border border-indigo-200 shadow-sm" alt={client.companyName} />
+                      <Avatar
+                        src={String(client.avatar || '')}
+                        name={String(client.companyName || client.name || '')}
+                        alt={String(client.companyName || '')}
+                        size="lg"
+                        rounded="2xl"
+                        className="border border-indigo-200 shadow-sm"
+                      />
                       <div>
                         <p className="font-black text-slate-900">{client.companyName}</p>
                         <p className="text-[10px] font-bold text-slate-500">{client.email || 'אין דוא"ל'}</p>
@@ -69,9 +77,29 @@ export default function ClientsTab({
                   </td>
                   <td className="p-8">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${client.paymentStatus === 'paid' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                      <span className={`text-[10px] font-black uppercase ${client.paymentStatus === 'paid' ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {client.paymentStatus === 'paid' ? 'שולם' : 'בפיגור'}
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          client.paymentStatus === 'paid'
+                            ? 'bg-emerald-500'
+                            : client.paymentStatus === 'overdue'
+                              ? 'bg-rose-500'
+                              : 'bg-amber-500'
+                        }`}
+                      ></div>
+                      <span
+                        className={`text-[10px] font-black uppercase ${
+                          client.paymentStatus === 'paid'
+                            ? 'text-emerald-600'
+                            : client.paymentStatus === 'overdue'
+                              ? 'text-rose-600'
+                              : 'text-amber-600'
+                        }`}
+                      >
+                        {client.paymentStatus === 'paid'
+                          ? 'שולם'
+                          : client.paymentStatus === 'overdue'
+                            ? 'בפיגור'
+                            : 'ממתין לתשלום'}
                       </span>
                     </div>
                   </td>

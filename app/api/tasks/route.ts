@@ -13,6 +13,7 @@ import { createClient } from '@/lib/supabase';
 import { Task } from '../../../types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 function toTaskDto(row: any): Task {
     return {
         id: row.id,
@@ -56,7 +57,7 @@ function toTaskDto(row: any): Task {
     } as Task;
 }
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         const headerOrgId = request.headers.get('x-org-id');
         const queryOrgId = request.nextUrl.searchParams.get('orgId');
@@ -215,7 +216,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
         const headerOrgId = request.headers.get('x-org-id');
         const queryOrgId = request.nextUrl.searchParams.get('orgId');
@@ -458,7 +459,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function DELETE(request: NextRequest) {
+async function DELETEHandler(request: NextRequest) {
     try {
         const headerOrgId = request.headers.get('x-org-id');
         const queryOrgId = request.nextUrl.searchParams.get('orgId');
@@ -512,7 +513,7 @@ export async function DELETE(request: NextRequest) {
     }
 }
 
-export async function PATCH(request: NextRequest) {
+async function PATCHHandler(request: NextRequest) {
     try {
         const headerOrgId = request.headers.get('x-org-id');
         const queryOrgId = request.nextUrl.searchParams.get('orgId');
@@ -700,3 +701,11 @@ async function requirePermission(permission: string) {
     await reqPerm(permission as any);
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);
+
+export const PATCH = shabbatGuard(PATCHHandler);
+
+export const DELETE = shabbatGuard(DELETEHandler);

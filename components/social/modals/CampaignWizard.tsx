@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Loader2, Rocket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+import { Avatar } from '@/components/Avatar';
 
 export default function CampaignWizard() {
   const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients, addToast } = useApp();
@@ -86,7 +87,13 @@ export default function CampaignWizard() {
                   <div className="grid grid-cols-2 gap-4">
                     {clients.map(c => (
                       <button key={c.id} onClick={() => setClientId(c.id)} className={`p-4 rounded-2xl border-2 flex items-center gap-4 transition-all ${clientId === c.id ? 'border-purple-600 bg-white shadow-lg' : 'border-slate-100'}`}>
-                        <img src={c.avatar} className="w-10 h-10 rounded-lg" alt={c.companyName} />
+                        <Avatar
+                          src={String(c.avatar || '')}
+                          name={String(c.companyName || c.name || '')}
+                          alt={String(c.companyName || '')}
+                          size="lg"
+                          rounded="lg"
+                        />
                         <span className="font-bold text-sm">{c.companyName}</span>
                       </button>
                     ))}

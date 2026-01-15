@@ -14,6 +14,7 @@ export type AccountShellSection = {
   id: string;
   label: string;
   icon?: LucideIcon;
+  groupLabel?: string | null;
   content: React.ReactNode;
 };
 
@@ -79,33 +80,52 @@ export default function AccountShell({
                   <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</div>
                 </div>
                 <div className="p-2 space-y-1">
-                  {sections.map((s) => {
-                    const Icon = s.icon;
-                    const isActive = s.id === active?.id;
-                    return (
-                      <button
-                        key={s.id}
-                        onClick={() => onSectionChangeAction(s.id)}
-                        type="button"
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-right group ${
-                          isActive
-                            ? 'bg-rose-50 text-slate-900 shadow-sm ring-1 ring-rose-100'
-                            : 'text-slate-600 hover:bg-slate-50'
-                        }`}
-                      >
-                        <div
-                          className={`p-2 rounded-lg transition-colors ${
+                  {(() => {
+                    const items: React.ReactNode[] = [];
+                    let lastGroup: string | null | undefined = null;
+
+                    sections.forEach((s) => {
+                      const group = s.groupLabel ?? null;
+                      if (group && group !== lastGroup) {
+                        items.push(
+                          <div key={`group-${group}`} className="px-4 pt-3 pb-1 text-[11px] font-black text-slate-500">
+                            {group}
+                          </div>
+                        );
+                        lastGroup = group;
+                      } else if (!group) {
+                        lastGroup = null;
+                      }
+
+                      const Icon = s.icon;
+                      const isActive = s.id === active?.id;
+                      items.push(
+                        <button
+                          key={s.id}
+                          onClick={() => onSectionChangeAction(s.id)}
+                          type="button"
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-right group ${
                             isActive
-                              ? 'bg-white text-slate-900 shadow-sm'
-                              : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm'
+                              ? 'bg-rose-50 text-slate-900 shadow-sm ring-1 ring-rose-100'
+                              : 'text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          {Icon ? <Icon size={18} /> : null}
-                        </div>
-                        <div className="font-bold text-sm">{s.label}</div>
-                      </button>
-                    );
-                  })}
+                          <div
+                            className={`p-2 rounded-lg transition-colors ${
+                              isActive
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'bg-slate-100 text-slate-500 group-hover:bg-white group-hover:shadow-sm'
+                            }`}
+                          >
+                            {Icon ? <Icon size={18} /> : null}
+                          </div>
+                          <div className="font-bold text-sm">{s.label}</div>
+                        </button>
+                      );
+                    });
+
+                    return items;
+                  })()}
                 </div>
               </div>
             </div>

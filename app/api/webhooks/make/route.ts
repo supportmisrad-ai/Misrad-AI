@@ -3,11 +3,12 @@ import { createClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import crypto from 'crypto';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * POST /api/webhooks/make
  * Receives webhook from Make.com
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const rawBody = await request.text();
     const body = rawBody ? JSON.parse(rawBody) : {};
@@ -105,10 +106,14 @@ export async function POST(request: NextRequest) {
  * GET /api/webhooks/make
  * Webhook verification (Make.com ping)
  */
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
   return NextResponse.json({
     status: 'ok',
     message: 'Make.com webhook endpoint is active',
   });
 }
 
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

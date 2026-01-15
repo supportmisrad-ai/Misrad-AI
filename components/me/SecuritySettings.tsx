@@ -5,15 +5,32 @@ import { Shield, QrCode, ChevronRight, ShieldCheck, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { BiometricSetup } from '../nexus/BiometricSetup';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { upsertMyProfile } from '@/app/actions/profiles';
 
 export const SecuritySettings: React.FC = () => {
     const { currentUser, updateUser, addToast } = useData();
+    const pathname = usePathname();
+    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [is2FASetup, setIs2FASetup] = useState(false);
     const [verifyCode, setVerifyCode] = useState('');
     const [showDisableConfirm, setShowDisableConfirm] = useState(false);
 
-    const handleVerify2FA = () => {
+    const handleVerify2FA = async () => {
         if (verifyCode.length === 6) {
+            if (orgSlug) {
+                const res = await upsertMyProfile({
+                    orgSlug,
+                    updates: {
+                        twoFactorEnabled: true,
+                    },
+                });
+                if (!res.success) {
+                    addToast(res.error || 'שגיאה בהפעלת אימות דו-שלבי', 'error');
+                    return;
+                }
+            }
             updateUser(currentUser.id, { twoFactorEnabled: true });
             setIs2FASetup(false);
             setVerifyCode('');
@@ -23,7 +40,19 @@ export const SecuritySettings: React.FC = () => {
         }
     };
 
-    const confirmDisable2FA = () => {
+    const confirmDisable2FA = async () => {
+        if (orgSlug) {
+            const res = await upsertMyProfile({
+                orgSlug,
+                updates: {
+                    twoFactorEnabled: false,
+                },
+            });
+            if (!res.success) {
+                addToast(res.error || 'שגיאה בכיבוי אימות דו-שלבי', 'error');
+                return;
+            }
+        }
         updateUser(currentUser.id, { twoFactorEnabled: false });
         addToast('אימות דו-שלבי כובה', 'info');
         setShowDisableConfirm(false);

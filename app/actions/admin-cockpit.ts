@@ -594,6 +594,9 @@ export async function getFeatureFlags(): Promise<{
     maintenanceMode: boolean;
     aiEnabled: boolean;
     bannerMessage: string | null;
+    fullOfficeRequiresFinance: boolean;
+    enable_payment_manual: boolean;
+    enable_payment_credit_card: boolean;
   };
   error?: string;
 }> {
@@ -609,15 +612,26 @@ export async function getFeatureFlags(): Promise<{
 
     // Get from feature_flags table or system_settings
     const { data: flags } = await supabase
-      .from('system_settings')
+      .from('social_system_settings')
       .select('*')
       .eq('key', 'feature_flags')
       .single();
 
+    const rawValue = (flags as any)?.value;
+    let parsedValue: any = null;
+    if (rawValue && typeof rawValue === 'string') {
+      parsedValue = JSON.parse(rawValue);
+    } else if (rawValue && typeof rawValue === 'object') {
+      parsedValue = rawValue;
+    }
+
     return createSuccessResponse({
-      maintenanceMode: flags?.maintenance_mode || false,
-      aiEnabled: flags?.ai_enabled !== false, // Default true
-      bannerMessage: flags?.banner_message || null,
+      maintenanceMode: Boolean(parsedValue?.maintenanceMode ?? flags?.maintenance_mode ?? false),
+      aiEnabled: Boolean(parsedValue?.aiEnabled ?? (flags?.ai_enabled !== false)),
+      bannerMessage: (parsedValue?.bannerMessage ?? flags?.banner_message ?? null) as any,
+      fullOfficeRequiresFinance: Boolean(parsedValue?.fullOfficeRequiresFinance ?? false),
+      enable_payment_manual: Boolean(parsedValue?.enable_payment_manual ?? parsedValue?.enablePaymentManual ?? true),
+      enable_payment_credit_card: Boolean(parsedValue?.enable_payment_credit_card ?? parsedValue?.enablePaymentCreditCard ?? false),
     });
   } catch (error) {
     // If table doesn't exist, return defaults
@@ -625,6 +639,9 @@ export async function getFeatureFlags(): Promise<{
       maintenanceMode: false,
       aiEnabled: true,
       bannerMessage: null,
+      fullOfficeRequiresFinance: false,
+      enable_payment_manual: true,
+      enable_payment_credit_card: false,
     });
   }
 }
@@ -637,6 +654,9 @@ export async function updateFeatureFlags(
     maintenanceMode?: boolean;
     aiEnabled?: boolean;
     bannerMessage?: string | null;
+    fullOfficeRequiresFinance?: boolean;
+    enable_payment_manual?: boolean;
+    enable_payment_credit_card?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -649,14 +669,38 @@ export async function updateFeatureFlags(
 
     const supabase = createClient();
 
+    const { data: existing } = await supabase
+      .from('social_system_settings')
+      .select('*')
+      .eq('key', 'feature_flags')
+      .maybeSingle();
+
+    const existingRaw = (existing as any)?.value;
+    let existingValue: any = null;
+    if (existingRaw && typeof existingRaw === 'string') {
+      existingValue = JSON.parse(existingRaw);
+    } else if (existingRaw && typeof existingRaw === 'object') {
+      existingValue = existingRaw;
+    }
+
+    const nextFlags = {
+      maintenanceMode: Boolean(flags.maintenanceMode ?? existingValue?.maintenanceMode ?? (existing as any)?.maintenance_mode ?? false),
+      aiEnabled: Boolean(flags.aiEnabled ?? existingValue?.aiEnabled ?? ((existing as any)?.ai_enabled !== false)),
+      bannerMessage: (flags.bannerMessage ?? existingValue?.bannerMessage ?? (existing as any)?.banner_message ?? null) as string | null,
+      fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance ?? existingValue?.fullOfficeRequiresFinance ?? false),
+      enable_payment_manual: Boolean(flags.enable_payment_manual ?? existingValue?.enable_payment_manual ?? existingValue?.enablePaymentManual ?? true),
+      enable_payment_credit_card: Boolean(flags.enable_payment_credit_card ?? existingValue?.enable_payment_credit_card ?? existingValue?.enablePaymentCreditCard ?? false),
+    };
+
     // Upsert system settings
     await supabase
-      .from('system_settings')
+      .from('social_system_settings')
       .upsert({
         key: 'feature_flags',
-        maintenance_mode: flags.maintenanceMode,
-        ai_enabled: flags.aiEnabled,
-        banner_message: flags.bannerMessage,
+        maintenance_mode: nextFlags.maintenanceMode,
+        ai_enabled: nextFlags.aiEnabled,
+        banner_message: nextFlags.bannerMessage,
+        value: nextFlags as any,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'key',
@@ -665,7 +709,7 @@ export async function updateFeatureFlags(
     // Log the action
     await supabase.from('activity_logs').insert({
       user_id: authCheck.userId,
-      action: `עדכון הגדרות מערכת: ${JSON.stringify(flags)}`,
+      action: `עדכון הגדרות מערכת: ${JSON.stringify(nextFlags)}`,
       created_at: new Date().toISOString(),
     });
 

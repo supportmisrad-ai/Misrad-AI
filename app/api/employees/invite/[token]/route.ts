@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '../../../../../lib/supabase';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
-export async function GET(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(
     request: NextRequest,
     { params }: { params: Promise<{ token: string }> }
 ) {
@@ -134,3 +135,5 @@ export async function GET(
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);

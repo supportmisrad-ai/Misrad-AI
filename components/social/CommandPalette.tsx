@@ -1,12 +1,15 @@
 ﻿'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, HelpCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
-import { useChat } from '@ai-sdk/react';
 import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { Avatar } from '@/components/Avatar';
+import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
+import { ChatSources } from '@/components/command-palette/ChatSources';
+import { getSemanticStarters } from '@/components/command-palette/semanticStarters';
 
 export default function CommandPalette() {
   const router = useRouter();
@@ -33,21 +36,25 @@ export default function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // AI Chat hook
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = (useChat as any)({
-    api: '/api/chat',
-    headers: workspaceOrgId ? { 'x-org-id': workspaceOrgId } : undefined,
-    body: {
-      clientContext: activeClient ? {
-        companyName: activeClient.companyName,
-        name: activeClient.name,
-        brandVoice: activeClient.brandVoice,
-        dna: activeClient.dna,
-        organizationId: workspaceOrgId || (activeClient as any)?.organizationId,
-      } : undefined,
-    },
-    initialMessages: [],
-  }) as any;
+  const clientContext = useMemo(() => {
+    if (!activeClient) return undefined;
+    return {
+      companyName: activeClient.companyName,
+      name: activeClient.name,
+      brandVoice: activeClient.brandVoice,
+      dna: activeClient.dna,
+      organizationId: workspaceOrgId || (activeClient as any)?.organizationId,
+    };
+  }, [activeClient, workspaceOrgId]);
+
+  const { messages, isLoading, error, sendText, clear } = useAIModuleChat({
+    moduleOverride: 'social',
+    orgSlugOverride: workspaceOrgId,
+    context: clientContext,
+    featureKeyOverride: 'social.chat',
+  });
+
+  const [chatInput, setChatInput] = useState('');
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -104,7 +111,8 @@ export default function CommandPalette() {
     if (!isCommandPaletteOpen) {
       setQuery('');
       setIsChatMode(false);
-      setMessages([]);
+      setChatInput('');
+      clear();
     }
   }, [isCommandPaletteOpen]);
 
@@ -139,14 +147,19 @@ export default function CommandPalette() {
 
   const handleSelectClient = (id: string) => {
     setActiveClientId(id);
-    router.push(joinPath(basePath, '/workspace'));
+    const c = clients.find((x: any) => String(x?.id) === String(id));
+    const name = String(c?.companyName || c?.name || '');
+    router.push(
+      joinPath(basePath, `/workspace?clientId=${encodeURIComponent(String(id))}&clientName=${encodeURIComponent(name)}`)
+    );
     setIsCommandPaletteOpen(false);
   };
   
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) {
-      handleSubmit(e);
+    if (chatInput.trim()) {
+      sendText(chatInput);
+      setChatInput('');
       setQuery('');
       // Refocus input after sending message
       setTimeout(() => {
@@ -210,7 +223,8 @@ export default function CommandPalette() {
                      onClick={() => {
                        setIsChatMode(false);
                        setQuery('');
-                       setMessages([]);
+                       setChatInput('');
+                       clear();
                      }}
                      className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-200 transition-colors flex items-center gap-2"
                      title="חזור למצב חיפוש"
@@ -230,6 +244,25 @@ export default function CommandPalette() {
               {isChatMode ? (
                 // Chat Mode
                 <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-slate-50 via-white to-slate-50 flex flex-col gap-5 min-h-0">
+                  <div className="flex flex-wrap gap-2">
+                    {getSemanticStarters('social').map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          sendText(s.text);
+                          setChatInput('');
+                          setQuery('');
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-blue-200/70 hover:text-slate-900 transition-all"
+                        disabled={isLoading}
+                      >
+                        <Sparkles size={14} className="text-blue-600" />
+                        {s.text}
+                      </button>
+                    ))}
+                  </div>
+
                   {messages.length === 0 && (
                     <motion.div 
                       initial={{ opacity: 0, y: 20 }}
@@ -269,21 +302,9 @@ export default function CommandPalette() {
                             : 'bg-white text-slate-800 rounded-tl-md shadow-slate-200/50 border border-slate-100'
                         }`}
                       >
-                        {message.parts?.map((part: any, i: number) => {
-                          if (part.type === 'text') {
-                            return (
-                              <div 
-                                key={`${message.id}-${i}`} 
-                                className={`whitespace-pre-wrap text-[15px] ${
-                                  message.role === 'user' ? 'font-semibold' : 'font-medium'
-                                }`}
-                              >
-                                {part.text}
-                              </div>
-                            );
-                          }
-                          return null;
-                        })}
+                        <div className={`whitespace-pre-wrap text-[15px] ${message.role === 'user' ? 'font-semibold' : 'font-medium'}`}>
+                          {String(message.content || '')}
+                        </div>
                         {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
                           <span className="inline-flex gap-1 mt-2">
                             <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -291,6 +312,10 @@ export default function CommandPalette() {
                             <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </span>
                         )}
+
+                        {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
+                          <ChatSources sources={(message as any).sources} />
+                        ) : null}
                       </div>
                       
                       {message.role === 'user' && (
@@ -321,6 +346,30 @@ export default function CommandPalette() {
               ) : (
                 // Search Mode
                 <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-8 min-h-0">
+                  {query.length === 0 && (
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">שאלות מנחות</p>
+                      <div className="flex flex-wrap gap-2 px-4">
+                        {getSemanticStarters('social').map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => {
+                              setIsChatMode(true);
+                              setQuery('');
+                              sendText(s.text);
+                            }}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-blue-200/70 hover:text-slate-900 transition-all"
+                            disabled={isLoading}
+                          >
+                            <Sparkles size={14} className="text-blue-600" />
+                            {s.text}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {query.length > 0 && filteredClients.length > 0 && (
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 px-4">לקוחות</p>
@@ -331,7 +380,14 @@ export default function CommandPalette() {
                             onClick={() => handleSelectClient(c.id)} 
                             className="w-full p-5 flex items-center gap-6 hover:bg-blue-50 rounded-3xl transition-all text-right group"
                           >
-                            <img src={c.avatar} className="w-12 h-12 rounded-2xl shadow-md" alt={c.companyName} />
+                            <Avatar
+                              src={String(c.avatar || '')}
+                              name={String(c.companyName || c.name || '')}
+                              alt={String(c.companyName || '')}
+                              size="lg"
+                              rounded="2xl"
+                              className="shadow-md"
+                            />
                             <span className="font-black text-lg flex-1 text-slate-700">{c.companyName}</span>
                             <span className="text-xs font-black text-blue-600 opacity-0 group-hover:opacity-100 flex items-center gap-2">
                               ניהול לקוח <ArrowLeft size={16}/>
@@ -387,8 +443,8 @@ export default function CommandPalette() {
                   <div className="flex-1 relative">
                     <input
                       ref={chatInputRef}
-                      value={input}
-                      onChange={handleInputChange}
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
                       placeholder="שאל אותי משהו..."
                       className="w-full bg-slate-100 rounded-2xl px-5 py-4 pr-14 font-semibold text-[15px] outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all duration-200 placeholder:text-slate-400 border border-transparent focus:border-blue-200"
                       disabled={isLoading}
@@ -397,7 +453,7 @@ export default function CommandPalette() {
                   </div>
                   <button
                     type="submit"
-                    disabled={isLoading || !input.trim()}
+                    disabled={isLoading || !chatInput.trim()}
                     className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:from-blue-700 hover:to-blue-800 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
                   >
                     {isLoading ? (

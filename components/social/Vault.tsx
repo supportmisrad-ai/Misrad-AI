@@ -5,6 +5,7 @@ import { Search, Plus, BrainCircuit, Trash2, Globe } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { Idea } from '@/types/social';
+import { Avatar } from '@/components/Avatar';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 
 export default function Vault() {
@@ -55,7 +56,13 @@ export default function Vault() {
               onClick={() => setSelectedClient(client)}
               className={`p-4 flex items-center gap-3 w-full text-right transition-all border-b last:border-0 ${selectedClient.id === client.id ? 'bg-blue-50 border-r-4 border-r-blue-600' : 'hover:bg-slate-50'}`}
             >
-              <img src={client.avatar} className="w-10 h-10 rounded-xl" alt={client.companyName} />
+              <Avatar
+                src={String(client.avatar || '')}
+                name={String(client.companyName || client.name || '')}
+                alt={String(client.companyName || '')}
+                size="lg"
+                rounded="xl"
+              />
               <p className="text-sm font-extrabold">{client.companyName}</p>
             </button>
           ))}

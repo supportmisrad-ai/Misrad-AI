@@ -1,13 +1,15 @@
 ﻿'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, Building, Loader2, CheckCircle2, CreditCard, ArrowRight, Camera } from 'lucide-react';
+import { X, Building, Loader2, CheckCircle2, ArrowRight, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useUser } from '@clerk/nextjs';
 import { PricingPlan, SocialPlatform } from '@/types/social';
-import { createSocialClient } from '@/app/actions/social-clients';
+import { createClientForWorkspace } from '@/app/actions/clients';
 import { translateError } from '@/lib/errorTranslations';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 const PLANS = [
   { id: 'starter' as PricingPlan, name: 'Starter', price: 1490, desc: '2 פוסטים בשבוע' },
@@ -17,6 +19,8 @@ const PLANS = [
 
 export default function AddClientModal() {
   const { user } = useUser();
+  const pathname = usePathname();
+  const routeInfo = parseWorkspaceRoute(pathname);
   const { 
     isAddClientModalOpen, 
     setIsAddClientModalOpen, 
@@ -33,6 +37,7 @@ export default function AddClientModal() {
   const [email, setEmail] = useState(''); // Optional email
   const [phone, setPhone] = useState(''); // Optional phone
   const [selectedPlan, setSelectedPlan] = useState<PricingPlan>('pro');
+  const [monthlyFee, setMonthlyFee] = useState<number>(PLANS.find(p => p.id === 'pro')?.price ?? 2990);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -113,6 +118,12 @@ export default function AddClientModal() {
       return;
     }
 
+    const orgSlug = routeInfo.orgSlug;
+    if (!orgSlug) {
+      addToast('שגיאה: לא נמצא ארגון פעיל בכתובת. נא להיכנס דרך /w/[orgSlug]/social', 'error');
+      return;
+    }
+
     // Validate form before submitting
     const validation = validateForm();
     if (!validation.valid) {
@@ -133,7 +144,7 @@ export default function AddClientModal() {
           ? name.trim() 
           : name.trim() || 'לקוח חדש';
       
-      const result = await createSocialClient({
+      const result = await createClientForWorkspace(orgSlug, {
         name: name.trim(),
         companyName: finalCompanyName,
         ...(businessId && { businessId }),
@@ -155,10 +166,8 @@ export default function AddClientModal() {
         onboardingStatus: 'completed',
         color: '#1e293b',
         plan: selectedPlan,
-        monthlyFee: currentPlan.price,
-        nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        nextPaymentAmount: currentPlan.price,
-        paymentStatus: 'paid',
+        monthlyFee,
+        paymentStatus: 'pending',
         autoRemindersEnabled: true,
         businessMetrics: {
           timeSpentMinutes: 0,
@@ -290,7 +299,7 @@ export default function AddClientModal() {
                 { s: 1, l: 'פרטי העסק' },
                 { s: 2, l: 'חשבונאות' },
                 { s: 3, l: 'גישה לרשתות' },
-                { s: 4, l: 'חבילה ותשלום' },
+                { s: 4, l: 'בחירת חבילה' },
               ].map(item => (
                 <div key={item.s} className={`flex items-center gap-2 ${step === item.s ? 'opacity-100' : 'opacity-40'}`} title={item.l}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm shrink-0 ${
@@ -314,7 +323,7 @@ export default function AddClientModal() {
                 { s: 1, l: 'פרטי העסק' },
                 { s: 2, l: 'חשבונאות' },
                 { s: 3, l: 'גישה לרשתות' },
-                { s: 4, l: 'חבילה ותשלום' },
+                { s: 4, l: 'בחירת חבילה' },
               ].map(item => (
                 <div key={item.s} className={`flex gap-4 items-center ${step === item.s ? 'opacity-100' : 'opacity-40'}`}>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
@@ -550,12 +559,15 @@ export default function AddClientModal() {
             {step === 4 && (
               <motion.div key="s4" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="flex flex-col gap-4 md:gap-8">
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-4 md:mb-6">חבילה ותשלום</h3>
+                  <h3 className="text-xl md:text-2xl font-black mb-2">בחירת חבילה</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
                     {PLANS.map(plan => (
                       <button
                         key={plan.id}
-                        onClick={() => setSelectedPlan(plan.id)}
+                        onClick={() => {
+                          setSelectedPlan(plan.id);
+                          setMonthlyFee(plan.price);
+                        }}
                         disabled={isProcessing}
                         className={`p-4 md:p-6 rounded-2xl md:rounded-3xl border-2 transition-all ${
                           selectedPlan === plan.id 
@@ -564,10 +576,21 @@ export default function AddClientModal() {
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <p className="font-black text-base md:text-lg mb-1 md:mb-2">{plan.name}</p>
-                        <p className="text-2xl md:text-3xl font-black mb-1 md:mb-2">₪{plan.price}</p>
                         <p className="text-xs md:text-sm font-bold opacity-70">{plan.desc}</p>
                       </button>
                     ))}
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl md:rounded-3xl p-4 md:p-6">
+                    <label className="block text-sm font-black text-slate-500 mb-2">מחיר חודשי ללקוח (₪)</label>
+                    <input
+                      type="number"
+                      value={monthlyFee}
+                      onChange={(e) => setMonthlyFee(Number(e.target.value))}
+                      min={0}
+                      className="w-full px-4 md:px-6 py-4 md:py-4 bg-white border border-slate-200 rounded-xl md:rounded-2xl font-black text-base md:text-lg outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 min-h-[48px] transition-all"
+                      placeholder="לדוגמה: 2990"
+                    />
+                    <p className="text-xs text-slate-500 mt-2">ברירת המחדל מגיעה מהחבילה שבחרת — אפשר לערוך לפני יצירת הלקוח.</p>
                   </div>
                 </div>
                 <button
@@ -583,7 +606,6 @@ export default function AddClientModal() {
                     </>
                   ) : (
                     <>
-                      <CreditCard size={20} className="md:w-6 md:h-6" />
                       הוסף לקוח
                     </>
                   )}

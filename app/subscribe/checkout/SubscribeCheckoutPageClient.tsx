@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { createSubscriptionOrder, getSubscriptionPaymentConfig, submitSubscriptionPaymentProof } from '@/app/actions/subscription-orders';
+import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import type { SystemFeatureFlags } from '@/lib/server/featureFlags';
 
 type BillingCycle = 'monthly' | 'yearly';
 
@@ -12,15 +14,10 @@ function safeBillingCycle(value: string | null): BillingCycle {
   return value === 'yearly' ? 'yearly' : 'monthly';
 }
 
-function calcAmount(plan: string, billing: BillingCycle): number {
-  const baseByPlan: Record<string, number> = {
-    starter: 199,
-    pro: 499,
-    enterprise: 1500,
-    solo: 99,
-  };
-  const base = baseByPlan[plan] ?? 199;
-  return billing === 'yearly' ? Math.round(base * 0.8) : base;
+function applyYearlyDiscount(amount: number, billing: BillingCycle): number {
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  if (billing !== 'yearly') return amount;
+  return Math.round(amount * 0.8);
 }
 
 function inferPackageType(system: string | null): 'the_closer' | 'the_authority' | 'the_mentor' {
@@ -33,22 +30,86 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | null }) {
+function SubscribeCheckoutContent({
+  initialUserId,
+  initialSystemFlags,
+}: {
+  initialUserId: string | null;
+  initialSystemFlags: SystemFeatureFlags | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isSignedIn } = useAuth();
 
+  const enablePaymentManual = initialSystemFlags?.enable_payment_manual !== false;
+  const enablePaymentCreditCard = Boolean(initialSystemFlags?.enable_payment_credit_card);
+  const hasAnyPaymentOption = enablePaymentManual || enablePaymentCreditCard;
+  const shouldShowPaymentSelector = enablePaymentManual && enablePaymentCreditCard;
+
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'manual' | 'credit_card'>(() => {
+    if (!enablePaymentManual && enablePaymentCreditCard) return 'credit_card';
+    return 'manual';
+  });
+
   const plan = (searchParams.get('plan') || 'starter').toLowerCase();
   const billingCycle = safeBillingCycle(searchParams.get('billing'));
   const system = searchParams.get('system');
+  const productParam = searchParams.get('product');
   const packageType = useMemo(() => inferPackageType(system), [system]);
+
+  const productLabel = useMemo(() => {
+    const raw = (productParam || '').trim();
+    if (raw) return raw;
+    if (!system) return null;
+
+    if (system === 'full_stack') return 'משרד מלא (4 מודולים)';
+    if (system === 'bundle_combo') return 'חבילת Combo (2 מודולים)';
+
+    if (system === 'system') return getModuleLabelHe('system');
+    if (system === 'client') return getModuleLabelHe('client');
+    if (system === 'social') return getModuleLabelHe('social');
+    if (system === 'nexus') return getModuleLabelHe('nexus');
+    if (system === 'finance') return getModuleLabelHe('finance');
+
+    return null;
+  }, [productParam, system]);
+
+  const seats = useMemo(() => {
+    const seatsParam = searchParams.get('seats');
+    const parsed = seatsParam ? Number(seatsParam) : NaN;
+    if (!Number.isFinite(parsed)) return null;
+    const normalized = Math.floor(parsed);
+    if (normalized <= 0) return null;
+    return normalized;
+  }, [searchParams]);
 
   const amount = useMemo(() => {
     const amountParam = searchParams.get('amount');
     const parsed = amountParam ? Number(amountParam) : NaN;
-    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-    return calcAmount(plan, billingCycle);
-  }, [billingCycle, plan, searchParams]);
+    if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
+
+    // Fallback pricing (new model)
+    if (system === 'full_stack') {
+      const baseSeats = seats ?? 5;
+      const seatSurcharge = Math.max(0, baseSeats - 5) * 39;
+      return applyYearlyDiscount(349 + seatSurcharge, billingCycle);
+    }
+
+    if (system === 'bundle_combo') {
+      return applyYearlyDiscount(249, billingCycle);
+    }
+
+    if (system === 'system' || system === 'client' || system === 'social' || system === 'nexus') {
+      return applyYearlyDiscount(149, billingCycle);
+    }
+
+    // If someone hits checkout with legacy plan keys, fail-safe to the lowest tier.
+    if (plan === 'solo') {
+      return applyYearlyDiscount(149, billingCycle);
+    }
+
+    return applyYearlyDiscount(149, billingCycle);
+  }, [billingCycle, plan, searchParams, seats, system]);
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -81,6 +142,10 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
     setIsPendingVerification(false);
     setPaymentMethod('manual');
     setExternalPaymentUrl(null);
+    setSelectedPaymentOption(() => {
+      if (!enablePaymentManual && enablePaymentCreditCard) return 'credit_card';
+      return 'manual';
+    });
   }, [plan, billingCycle, system]);
 
   useEffect(() => {
@@ -145,6 +210,7 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
         customerName: name,
         customerEmail: email,
         customerPhone: phone,
+        seats: seats ?? undefined,
       });
 
       if (!result.success || !result.data?.id) {
@@ -191,27 +257,29 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
   const bitPayText = useMemo(() => {
     const lines = [
       `סכום לתשלום: ₪${amount}`,
+      productLabel ? `מוצר: ${productLabel}` : null,
+      seats ? `משתמשים: ${seats}` : null,
       `תוכנית: ${plan}`,
       `חיוב: ${billingCycle === 'yearly' ? 'שנתי' : 'חודשי'}`,
       orderId ? `מספר הזמנה: ${orderId}` : null,
     ].filter(Boolean);
     return lines.join('\n');
-  }, [amount, billingCycle, orderId, plan]);
+  }, [amount, billingCycle, orderId, plan, productLabel, seats]);
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-[#020617] text-slate-200" dir="rtl">
+      <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-10 text-center">
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
             <CheckCircle2 className="w-20 h-20 text-emerald-400 mx-auto mb-6" />
-            <h1 className="text-2xl sm:text-3xl font-black text-white mb-3">הבקשה נשלחה בהצלחה! אנחנו מאמתים את התשלום כעת.</h1>
-            <p className="text-sm sm:text-base text-slate-300 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-3">הבקשה נשלחה בהצלחה! אנחנו מאמתים את התשלום כעת.</h1>
+            <p className="text-sm sm:text-base text-slate-600 mb-6">
               ברגע שנאשר, המערכת תיפתח עבורך אוטומטית ותקבל מייל אישור.
             </p>
 
             <button
               onClick={() => router.push(lobbyUrl)}
-              className="w-full rounded-xl bg-white text-slate-900 font-black py-3 hover:bg-slate-100"
+              className="w-full rounded-xl bg-indigo-600 text-white font-black py-3 hover:bg-indigo-500 shadow-sm"
             >
               חזרה ללובי
             </button>
@@ -234,23 +302,31 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200" dir="rtl">
+    <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
         <button
           onClick={() => router.back()}
-          className="text-slate-400 hover:text-white mb-6 inline-flex items-center gap-2 text-sm"
+          className="text-slate-600 hover:text-slate-900 mb-6 inline-flex items-center gap-2 text-sm"
         >
           <ArrowLeft size={16} /> חזרה
         </button>
 
-        <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl font-black text-white mb-2">תשלום בביט</h1>
-          <p className="text-sm text-slate-400 mb-6">כרגע התשלום ידני. אחרי שתשלם בביט אנחנו נאשר ונפתח לך גישה.</p>
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">
+            {selectedPaymentOption === 'credit_card' ? 'תשלום באשראי' : 'תשלום ידני'}
+          </h1>
+          <p className="text-sm text-slate-600 mb-6">
+            {selectedPaymentOption === 'credit_card'
+              ? 'האינטגרציה בבדיקה. בקרוב תוכל לשלם באשראי כאן ישירות.'
+              : 'כרגע התשלום ידני. אחרי שתשלם אנחנו נאשר ונפתח לך גישה.'}
+          </p>
 
           <div className="grid grid-cols-1 gap-4 mb-6">
-            <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-              <div className="text-sm text-slate-400">סיכום</div>
-              <div className="mt-2 text-white font-bold">₪{amount} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {plan}</div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-sm text-slate-500">סיכום</div>
+              <div className="mt-2 text-slate-900 font-bold">
+                ₪{amount} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {productLabel || plan}{seats ? ` • ${seats} משתמשים` : ''}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -258,69 +334,126 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
                 value={customerName}
                 onChange={e => setCustomerName(e.target.value)}
                 placeholder="שם מלא*"
-                className="w-full rounded-xl bg-slate-950/40 border border-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-600"
+                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
               />
               <input
                 value={customerPhone}
                 onChange={e => setCustomerPhone(e.target.value)}
                 placeholder="טלפון*"
-                className="w-full rounded-xl bg-slate-950/40 border border-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-600"
+                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
               />
               <input
                 value={customerEmail}
                 onChange={e => setCustomerEmail(e.target.value)}
                 placeholder="אימייל*"
-                className="w-full rounded-xl bg-slate-950/40 border border-slate-800 px-4 py-3 text-sm text-white placeholder:text-slate-600"
+                className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
               />
             </div>
 
-            <button
-              onClick={handleCreateOrder}
-              disabled={isCreating}
-              className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3"
-            >
-              {isCreating ? 'יוצר הזמנה...' : 'קבל הוראות תשלום בביט'}
-            </button>
+            {shouldShowPaymentSelector && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="text-sm text-slate-600 mb-3">בחר שיטת תשלום</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentOption('manual')}
+                    className={`rounded-xl border px-4 py-3 text-right ${
+                      selectedPaymentOption === 'manual'
+                        ? 'border-indigo-300 bg-white text-slate-900'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="font-bold">תשלום ידני (Bit/העברה)</div>
+                    <div className="text-xs text-slate-500 mt-1">הוראות + העלאת אישור</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentOption('credit_card')}
+                    className={`rounded-xl border px-4 py-3 text-right ${
+                      selectedPaymentOption === 'credit_card'
+                        ? 'border-indigo-300 bg-white text-slate-900'
+                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className="font-bold">תשלום באשראי</div>
+                    <div className="text-xs text-slate-500 mt-1">האינטגרציה בבדיקה</div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!hasAnyPaymentOption && (
+              <div className="text-sm text-amber-700">
+                כרגע אין אפשרות תשלום זמינה. נא לפנות לתמיכה.
+              </div>
+            )}
+
+            {enablePaymentCreditCard && selectedPaymentOption === 'credit_card' && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-2">
+                <div className="text-slate-900 font-bold">תשלום באשראי (Yaad Pay)</div>
+                <div className="text-sm text-amber-700">האינטגרציה בבדיקה</div>
+                <div className="rounded-xl border border-slate-200 overflow-hidden bg-white">
+                  <iframe
+                    title="Yaad Pay"
+                    srcDoc="<!doctype html><html lang='he'><head><meta charset='utf-8' /><meta name='viewport' content='width=device-width, initial-scale=1' /></head><body style='margin:0;display:flex;align-items:center;justify-content:center;height:100%;background:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;'><div style='text-align:center;color:#0f172a;padding:24px;'><div style='font-weight:800;font-size:16px;margin-bottom:8px;'>Yaad Pay</div><div style='font-size:13px;color:#475569;'>האינטגרציה בבדיקה. בקרוב יוצג כאן iframe של התשלום.</div></div></body></html>"
+                    className="w-full h-[340px]"
+                    sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-top-navigation-by-user-activation"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+              </div>
+            )}
+
+            {enablePaymentManual && selectedPaymentOption === 'manual' && (
+              <button
+                onClick={handleCreateOrder}
+                disabled={isCreating}
+                className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold py-3 shadow-sm"
+              >
+                {isCreating ? 'יוצר הזמנה...' : 'קבל הוראות תשלום'}
+              </button>
+            )}
 
             {error && <div className="text-sm text-red-400">{error}</div>}
 
             {orderId && (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-900/10 p-4 space-y-4">
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="inline-flex items-center gap-2 text-emerald-300 font-bold">
+                    <div className="inline-flex items-center gap-2 text-emerald-700 font-bold">
                       <CheckCircle2 size={18} /> הזמנה נוצרה
                     </div>
-                    <div className="text-sm text-slate-300 mt-2 whitespace-pre-line">{bitPayText}</div>
+                    <div className="text-sm text-slate-700 mt-2 whitespace-pre-line">{bitPayText}</div>
                   </div>
                   <button
                     onClick={copyDetails}
-                    className="shrink-0 rounded-xl border border-slate-700 bg-slate-950/40 px-3 py-2 text-sm hover:bg-slate-800 inline-flex items-center gap-2"
+                    className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-2"
                   >
                     <Copy size={16} /> {copied ? 'הועתק' : 'העתק'}
                   </button>
                 </div>
 
-                <div className="mt-3 text-xs text-slate-400">
+                <div className="mt-3 text-xs text-slate-600">
                   שלח/שלם בביט לפי הפרטים, ואז נחזור אליך לאישור. (בשלב הבא נוסיף אישור אוטומטי / קישור תשלום מלא)
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-3">
-                  {paymentMethod === 'automatic' ? (
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4 space-y-3">
-                      <div className="text-white font-bold">תשלום מאובטח</div>
-                      {instructionsText && <div className="text-sm text-slate-300 whitespace-pre-line">{instructionsText}</div>}
+                  {paymentMethod === 'automatic' && enablePaymentCreditCard && selectedPaymentOption === 'credit_card' ? (
+                    <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3 shadow-sm">
+                      <div className="text-slate-900 font-bold">תשלום מאובטח</div>
+                      {instructionsText && <div className="text-sm text-slate-600 whitespace-pre-line">{instructionsText}</div>}
                       {externalPaymentUrl ? (
                         <>
                           <a
                             href={externalPaymentUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="w-full rounded-xl bg-white text-slate-900 font-black py-3 hover:bg-slate-100 text-center block"
+                            className="w-full rounded-xl bg-indigo-600 text-white font-black py-3 hover:bg-indigo-500 text-center block shadow-sm"
                           >
                             פתח עמוד תשלום
                           </a>
-                          <div className="rounded-xl border border-slate-800 overflow-hidden">
+                          <div className="rounded-xl border border-slate-200 overflow-hidden">
                             <iframe
                               src={externalPaymentUrl}
                               title="External Payment"
@@ -332,34 +465,34 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
                           </div>
                         </>
                       ) : (
-                        <div className="text-sm text-amber-300">
+                        <div className="text-sm text-amber-700">
                           חסר קישור סליקה (external_payment_url) לחבילה זו. נא להגדיר באדמין.
                         </div>
                       )}
                     </div>
                   ) : (
-                    (paymentTitle || instructionsText || qrImageUrl) && (
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-                        {paymentTitle && <div className="text-white font-bold mb-2">{paymentTitle}</div>}
-                        {instructionsText && <div className="text-sm text-slate-300 whitespace-pre-line">{instructionsText}</div>}
+                    enablePaymentManual && selectedPaymentOption === 'manual' && (paymentTitle || instructionsText || qrImageUrl) && (
+                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        {paymentTitle && <div className="text-slate-900 font-bold mb-2">{paymentTitle}</div>}
+                        {instructionsText && <div className="text-sm text-slate-600 whitespace-pre-line">{instructionsText}</div>}
                         {qrImageUrl && (
                           <div className="mt-3">
-                            <img src={qrImageUrl} alt="QR" className="max-w-full rounded-xl border border-slate-800" />
+                            <img src={qrImageUrl} alt="QR" className="max-w-full rounded-xl border border-slate-200" />
                           </div>
                         )}
                       </div>
                     )
                   )}
 
-                  {paymentMethod === 'manual' ? (
+                  {paymentMethod === 'manual' && enablePaymentManual && selectedPaymentOption === 'manual' ? (
                     <>
-                      <div className="rounded-xl border border-slate-800 bg-slate-950/40 p-4">
-                        <div className="text-sm text-slate-300 mb-3">העלה צילום מסך של אישור התשלום (אופציונלי)</div>
+                      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="text-sm text-slate-600 mb-3">העלה צילום מסך של אישור התשלום (אופציונלי)</div>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) => setProofFile(e.target.files?.[0] || null)}
-                          className="w-full text-sm text-slate-300"
+                          className="w-full text-sm text-slate-700"
                         />
                       </div>
 
@@ -394,10 +527,24 @@ function SubscribeCheckoutContent({ initialUserId }: { initialUserId: string | n
   );
 }
 
-export default function SubscribeCheckoutPageClient({ initialUserId }: { initialUserId: string | null }) {
+export default function SubscribeCheckoutPageClient({
+  initialUserId,
+  initialSystemFlags,
+}: {
+  initialUserId: string | null;
+  initialSystemFlags: SystemFeatureFlags | null;
+}) {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#020617] text-white flex items-center justify-center">טוען...</div>}>
-      <SubscribeCheckoutContent initialUserId={initialUserId} />
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16">
+          <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-10 text-center shadow-sm">
+            טוען...
+          </div>
+        </div>
+      </div>
+    }>
+      <SubscribeCheckoutContent initialUserId={initialUserId} initialSystemFlags={initialSystemFlags} />
     </Suspense>
   );
 }

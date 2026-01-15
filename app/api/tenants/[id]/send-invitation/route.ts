@@ -11,7 +11,8 @@ import { supabase } from '../../../../../lib/supabase';
 import { sendTenantInvitationEmail } from '../../../../../lib/email';
 import { getBaseUrl } from '../../../../../lib/utils';
 
-export async function POST(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -142,3 +143,5 @@ export async function POST(
         );
     }
 }
+
+export const POST = shabbatGuard(POSTHandler);

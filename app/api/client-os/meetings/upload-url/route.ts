@@ -3,13 +3,14 @@ import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
 function sanitizeFileName(name: string): string {
   return String((name as any) ?? '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
 }
 
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
 
@@ -20,16 +21,18 @@ export async function POST(req: Request) {
       mimeType?: string;
     };
 
-    const orgId = String(body.orgId || '');
+    const orgIdInput = String(body.orgId || '');
     const clientId = String(body.clientId || '');
     const fileName = String(body.fileName || 'recording');
     const mimeType = String(body.mimeType || '');
 
-    if (!orgId) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
+    if (!orgIdInput) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
     if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
 
+    let orgId: string;
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgId);
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdInput);
+      orgId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
       return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
@@ -77,3 +80,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message ?? 'Failed to prepare upload' }, { status: 500 });
   }
 }
+
+export const POST = shabbatGuard(POSTHandler);

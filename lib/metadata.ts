@@ -6,7 +6,7 @@
 
 import type { Metadata } from 'next';
 
-export type SystemType = 'misrad' | 'nexus' | 'system' | 'social' | 'scale' | 'default';
+export type SystemType = 'misrad' | 'nexus' | 'system' | 'social' | 'client' | 'finance' | 'scale' | 'default';
 
 interface SystemMetadata {
   title: string;
@@ -22,15 +22,31 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     title: 'Misrad OS - מערכת צמיחה',
     description: 'מערכת הפעלה אחת לניהול העסק שלך',
     icon: '/icons/misrad-icon.svg',
-    appleIcon: '/icons/misrad-icon-192.png',
+    appleIcon: '/icons/misrad-icon.svg',
     manifest: '/manifest.json',
     themeColor: '#0F172A',
+  },
+  client: {
+    title: 'פורטל הצלחת לקוח',
+    description: 'מערכת לניהול הצלחת לקוח',
+    icon: '/icons/misrad-icon.svg',
+    appleIcon: '/icons/misrad-icon.svg',
+    manifest: '/manifest.json',
+    themeColor: '#D97706',
+  },
+  finance: {
+    title: 'שומר הרווחים',
+    description: 'חשבוניות תשלומים דוחות',
+    icon: '/icons/finance-icon.svg',
+    appleIcon: '/icons/finance-icon.svg',
+    manifest: '/manifest.json',
+    themeColor: '#059669',
   },
   social: {
     title: 'שיווק שמייצר סמכות',
     description: 'מערכת שיווק וקמפיינים',
     icon: '/icons/social-icon.svg',
-    appleIcon: '/icon-192.png',
+    appleIcon: '/icons/social-icon.svg',
     manifest: '/manifest.json',
     themeColor: '#3B82F6',
   },
@@ -38,7 +54,7 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     title: 'מרכז הבקרה',
     description: 'מערכת ניהול צוותים ומשימות מתקדמת',
     icon: '/icons/nexus-icon.svg',
-    appleIcon: '/icon-192.png', // Fallback until nexus-icon-192.png is created
+    appleIcon: '/icons/nexus-icon.svg',
     manifest: '/manifests/nexus-manifest.json',
     themeColor: '#3730A3',
   },
@@ -46,7 +62,7 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     title: 'מכונת המכירות',
     description: 'מערכת ניהול לידים ומכירות',
     icon: '/icons/system-icon.svg',
-    appleIcon: '/icons/system-icon-192.png',
+    appleIcon: '/icons/system-icon.svg',
     manifest: '/manifests/system-manifest.json',
     themeColor: '#A21D3C',
   },
@@ -54,7 +70,7 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     title: 'Scale CRM',
     description: 'פלטפורמת CRM מתקדמת לעסקים',
     icon: '/icons/scale-icon.svg',
-    appleIcon: '/icons/scale-icon-192.png',
+    appleIcon: '/icons/scale-icon.svg',
     manifest: '/manifests/scale-manifest.json',
     themeColor: '#059669',
   },
@@ -62,7 +78,7 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     title: 'Misrad OS - מערכת צמיחה',
     description: 'מערכת הפעלה אחת לניהול העסק שלך',
     icon: '/icons/misrad-icon.svg',
-    appleIcon: '/icons/misrad-icon-192.png',
+    appleIcon: '/icons/misrad-icon.svg',
     manifest: '/manifest.json',
     themeColor: '#0F172A',
   },
@@ -101,7 +117,6 @@ export function getSystemMetadata(system: SystemType = 'misrad'): Metadata {
     icons: {
       icon: [
         { url: config.icon, type: 'image/svg+xml' },
-        { url: '/favicon.ico', type: 'image/x-icon' },
       ],
       apple: config.appleIcon,
       shortcut: config.icon,

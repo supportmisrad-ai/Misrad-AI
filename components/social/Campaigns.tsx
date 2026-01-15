@@ -7,6 +7,7 @@ import { Client } from '@/types/social';
 import EditCampaignModal from './modals/EditCampaignModal';
 import { getCampaigns, updateCampaign, type Campaign } from '@/app/actions/campaigns';
 import { translateError } from '@/lib/errorTranslations';
+import { Avatar } from '@/components/Avatar';
 
 export default function Campaigns() {
   const { clients, setIsCampaignWizardOpen, addToast } = useApp();
@@ -80,7 +81,14 @@ export default function Campaigns() {
          
          <div className="flex flex-col md:flex-row justify-between items-center gap-8">
             <div className="flex items-center gap-6">
-               <img src={client?.avatar} className="w-24 h-24 rounded-[32px] shadow-xl" alt={client?.companyName} />
+               <Avatar
+                  src={String(client?.avatar || '')}
+                  name={String(client?.companyName || client?.name || '')}
+                  alt={String(client?.companyName || '')}
+                  size="xl"
+                  rounded="3xl"
+                  className="w-24 h-24 shadow-xl"
+               />
                <div>
                   <h2 className="text-4xl font-black text-slate-800">{selectedCampaign.name}</h2>
                   <p className="text-slate-400 font-bold mt-1 uppercase tracking-widest">{client?.companyName} • מזהה קמפיין: {selectedCampaign.id}</p>
@@ -171,7 +179,14 @@ export default function Campaigns() {
             return (
               <div key={camp.id} onClick={() => setSelectedCampaignId(camp.id)} className="bg-white p-10 rounded-[48px] border border-slate-100 shadow-sm flex flex-col md:flex-row gap-10 items-center group hover:shadow-2xl transition-all cursor-pointer">
                 <div className="flex items-center gap-6 w-full md:w-1/3">
-                  <img src={client?.avatar} className="w-20 h-20 rounded-[28px] shadow-xl group-hover:scale-105 transition-transform" alt={client?.companyName} />
+                  <Avatar
+                    src={String(client?.avatar || '')}
+                    name={String(client?.companyName || client?.name || '')}
+                    alt={String(client?.companyName || '')}
+                    size="xl"
+                    rounded="3xl"
+                    className="w-20 h-20 shadow-xl group-hover:scale-105 transition-transform"
+                  />
                   <div>
                     <p className="font-black text-2xl text-slate-800">{camp.name}</p>
                     <p className="text-xs font-black text-slate-900 uppercase tracking-widest mt-1">{client?.companyName}</p>

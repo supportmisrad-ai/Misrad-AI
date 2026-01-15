@@ -124,6 +124,17 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
       });
   }
 
+  if (entitlements.client) {
+    const { count } = await supabase
+      .from('client_clients')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', workspace.id);
+
+    kpis.client = {
+      clientsTotal: typeof count === 'number' ? count : 0,
+    };
+  }
+
   if (entitlements.finance) {
     const canViewFinancials = await hasPermission('view_financials');
 

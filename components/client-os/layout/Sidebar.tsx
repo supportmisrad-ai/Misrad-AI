@@ -14,7 +14,7 @@ export const NAV_ITEMS = [
 ];
 
 const SECONDARY_NAV = [
-    { id: 'settings', label: 'הגדרות', icon: Settings, path: '/client-os/settings' },
+    { id: 'settings', label: 'הגדרות', icon: Settings, path: '/client-os/hub' },
     { id: 'support', label: 'תמיכה', icon: HelpCircle, path: '/client-os/support' },
 ];
 
@@ -29,19 +29,28 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const pathname = usePathname();
 
-  const getOrgSlugFromPathname = (p: string | null | undefined): string | null => {
+  function getOrgSlugFromPathname(p: string | null | undefined): string | null {
     if (!p) return null;
     if (!p.startsWith('/w/')) return null;
     const parts = p.split('/').filter(Boolean);
     return parts[1] ? String(parts[1]) : null;
-  };
+  }
+
+  const orgSlug = React.useMemo(() => getOrgSlugFromPathname(pathname), [pathname]);
+  const clientBasePath = React.useMemo(() => {
+    if (!orgSlug) return null;
+    return `/w/${encodeURIComponent(String(orgSlug))}/client`;
+  }, [orgSlug]);
+  const isClientHubRoute = Boolean(clientBasePath && pathname && pathname.startsWith(`${clientBasePath}/hub`));
 
   const mapToClientPath = (legacyPath: string): string => {
-    const orgSlug = getOrgSlugFromPathname(pathname);
-    if (!orgSlug) return legacyPath;
-    const base = `/w/${encodeURIComponent(String(orgSlug))}/client`;
-    if (legacyPath === '/client-os') return base;
-    if (legacyPath.startsWith('/client-os/')) return base;
+    if (!clientBasePath) return legacyPath;
+    if (legacyPath === '/client-os') return clientBasePath;
+    if (legacyPath === '/client-os/hub') {
+      const from = pathname || clientBasePath;
+      return `${clientBasePath}/hub?origin=client&drawer=client&from=${encodeURIComponent(from)}`;
+    }
+    if (legacyPath.startsWith('/client-os/')) return clientBasePath;
     return legacyPath;
   };
 
@@ -111,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                 {SECONDARY_NAV.map((item) => {
                     const Icon = item.icon;
                     const itemPath = mapToClientPath(item.path);
-                    const isActive = pathname === itemPath;
+                    const isActive = item.id === 'settings' ? isClientHubRoute : pathname === itemPath;
                     
                     return (
                         <Link

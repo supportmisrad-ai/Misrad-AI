@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import ToastContainer from '@/components/social/ToastContainer';
 import AddClientModal from '@/components/social/modals/AddClientModal';
 import InviteClientModal from '@/components/social/modals/InviteClientModal';
@@ -14,10 +14,11 @@ import NotificationCenter from '@/components/social/NotificationCenter';
 import ShabbatScreen from '@/components/social/ShabbatScreen';
 import Header from '@/components/social/Header';
 import OnboardingTour from '@/components/social/OnboardingTour';
+import ClientOnboardingPortal from '@/components/social/ClientOnboardingPortal';
 import { useShabbat } from '@/hooks/useShabbat';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AppWindow, BarChart3, Calendar, Home, LayoutGrid, Megaphone, Plus, Settings, TrendingUp, User, Users, MessageSquare, X, Sparkles, Wallet } from 'lucide-react';
+import { AppWindow, BarChart3, Calendar, Home, LayoutGrid, Megaphone, Plus, TrendingUp, User, Users, MessageSquare, X, Sparkles, Wallet } from 'lucide-react';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 
@@ -27,6 +28,7 @@ import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
 import type { SocialInitialData, SocialNavigationItem } from '@/lib/services/social-service';
+import { DataProvider } from '@/context/DataContext';
 
 function SocialShellContent({
   children,
@@ -35,10 +37,28 @@ function SocialShellContent({
   children: React.ReactNode;
   basePath: string;
 }) {
-  const { isTourActive, setIsTourActive } = useApp();
+  const {
+    isTourActive,
+    setIsTourActive,
+    isOnboardingMode,
+    isTeamManagementEnabled,
+    isCommandPaletteOpen,
+    setIsCommandPaletteOpen,
+  } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsCommandPaletteOpen(!isCommandPaletteOpen);
+      }
+    };
+    document.addEventListener('keydown', down, { capture: true });
+    return () => document.removeEventListener('keydown', down, { capture: true });
+  }, [isCommandPaletteOpen, setIsCommandPaletteOpen]);
 
   const isActive = (suffix: string) => {
     const full = joinPath(basePath, suffix);
@@ -49,11 +69,20 @@ function SocialShellContent({
     router.push(joinPath(basePath, suffix));
   };
 
+  const handlePlusClick = () => {
+    if (isActive('/machine')) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('social:machine:new'));
+      }
+      return;
+    }
+    navigate('/machine');
+  };
+
   const bottomNavItems = useMemo(
     () => [
       { id: 'dashboard', label: 'דשבורד', suffix: '/dashboard', icon: Home },
       { id: 'clients', label: 'לקוחות', suffix: '/clients', icon: Users },
-      { id: 'machine', label: 'Machine', suffix: '/machine', icon: Sparkles },
       { id: 'calendar', label: 'יומן', suffix: '/calendar', icon: Calendar },
     ],
     []
@@ -65,13 +94,12 @@ function SocialShellContent({
       { id: 'workspace', label: 'סביבת עבודה', suffix: '/workspace', icon: LayoutGrid },
       { id: 'campaigns', label: 'קמפיינים', suffix: '/campaigns', icon: Megaphone },
       { id: 'analytics', label: 'אנליטיקה', suffix: '/analytics', icon: BarChart3 },
-      { id: 'team', label: 'צוות', suffix: '/team', icon: Users },
+      ...(isTeamManagementEnabled ? [{ id: 'team', label: 'צוות', suffix: '/team', icon: Users }] : []),
       { id: 'collection', label: 'גבייה', suffix: '/collection', icon: Wallet },
       { id: 'agency-insights', label: 'תובנות', suffix: '/agency-insights', icon: TrendingUp },
-      { id: 'settings', label: 'הגדרות', suffix: '/settings', icon: Settings },
-      { id: 'profile', label: 'פרופיל', suffix: '/profile', icon: User },
+      { id: 'profile', label: 'פרופיל', suffix: '/me', icon: User },
     ],
-    []
+    [isTeamManagementEnabled]
   );
 
   const getMobileGridStyles = (suffix: string, active: boolean) => {
@@ -96,7 +124,7 @@ function SocialShellContent({
       case '/agency-insights':
         return 'bg-orange-50 text-orange-700 border-orange-100';
       case '/settings':
-      case '/profile':
+      case '/me':
       case '/workspace':
       case '/team':
       default:
@@ -108,7 +136,7 @@ function SocialShellContent({
     <>
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
         <Header />
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-32 w-full relative">
+        <div id="main-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">
           <Suspense
             fallback={
               <div className="flex items-center justify-center min-h-[400px]">
@@ -234,16 +262,16 @@ function SocialShellContent({
 
         <div className="relative -top-6 z-50">
           <button
-            onClick={() => navigate('/machine')}
+            onClick={handlePlusClick}
             aria-label="יצירת פוסט"
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 border-[4px] sm:border-[5px] border-[#f1f5f9] group relative overflow-hidden bg-nexus-gradient hover:scale-105"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 border-[4px] sm:border-[5px] border-[#f1f5f9] group relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 hover:scale-105"
             type="button"
           >
             <Plus size={26} className="sm:w-[30px] sm:h-[30px] text-white drop-shadow-md" strokeWidth={2.5} />
           </button>
         </div>
 
-        {bottomNavItems.slice(2, 4).map((item) => {
+        {bottomNavItems.slice(2, 3).map((item) => {
           const active = isActive(item.suffix);
           const Icon = item.icon;
           return (
@@ -288,6 +316,7 @@ function SocialShellContent({
       <ReportModal />
       <HelpModal />
       <OnboardingTour isOpen={isTourActive} onClose={() => setIsTourActive(false)} />
+      <AnimatePresence>{isOnboardingMode ? <ClientOnboardingPortal /> : null}</AnimatePresence>
     </>
   );
 }
@@ -296,10 +325,14 @@ export default function SocialShellClient({
   children,
   initialSocialData,
   initialNavigationMenu,
+  initialCurrentUser,
+  initialOrganization,
 }: {
   children: React.ReactNode;
   initialSocialData?: SocialInitialData;
   initialNavigationMenu?: SocialNavigationItem[];
+  initialCurrentUser?: any;
+  initialOrganization?: any;
 }) {
   const { shabbatTimes } = useShabbat();
 
@@ -315,9 +348,9 @@ export default function SocialShellClient({
       <AuthProvider>
         <ToastProvider>
           <BrandProvider>
-            <SocialShellContent basePath={basePath}>
-              {children}
-            </SocialShellContent>
+            <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+              <SocialShellContent basePath={basePath}>{children}</SocialShellContent>
+            </DataProvider>
           </BrandProvider>
         </ToastProvider>
       </AuthProvider>

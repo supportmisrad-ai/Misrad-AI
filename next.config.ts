@@ -33,6 +33,46 @@ const nextConfig: NextConfig = {
         destination: '/login',
         permanent: false,
       },
+      {
+        source: '/client-os',
+        destination: '/login?redirect=/client-os',
+        permanent: false,
+      },
+      {
+        source: '/client-os/:path*',
+        destination: '/login?redirect=/client-os/:path*',
+        permanent: false,
+      },
+      {
+        source: '/finance-os',
+        destination: '/login?redirect=/finance-os',
+        permanent: false,
+      },
+      {
+        source: '/finance-os/:path*',
+        destination: '/login?redirect=/finance-os/:path*',
+        permanent: false,
+      },
+      {
+        source: '/nexus-os',
+        destination: '/login?redirect=/nexus-os',
+        permanent: false,
+      },
+      {
+        source: '/nexus-os/:path*',
+        destination: '/login?redirect=/nexus-os/:path*',
+        permanent: false,
+      },
+      {
+        source: '/pipeline',
+        destination: '/login?redirect=/pipeline',
+        permanent: false,
+      },
+      {
+        source: '/pipeline/:path*',
+        destination: '/login?redirect=/pipeline/:path*',
+        permanent: false,
+      },
     ];
   },
   // Use 'export' for static sites, or remove for server-side rendering

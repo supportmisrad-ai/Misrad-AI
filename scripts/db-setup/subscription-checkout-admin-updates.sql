@@ -7,7 +7,30 @@
 ALTER TABLE IF EXISTS subscription_orders
   ADD COLUMN IF NOT EXISTS pending_verification_at TIMESTAMPTZ(6),
   ADD COLUMN IF NOT EXISTS proof_image_url TEXT,
-  ADD COLUMN IF NOT EXISTS proof_image_path TEXT;
+  ADD COLUMN IF NOT EXISTS proof_image_path TEXT,
+  ADD COLUMN IF NOT EXISTS seats INTEGER;
+
+ALTER TABLE IF EXISTS organizations
+  ADD COLUMN IF NOT EXISTS seats_allowed INTEGER;
+
+INSERT INTO social_system_settings (key, value, updated_at)
+VALUES (
+  'feature_flags',
+  jsonb_build_object(
+    'enable_payment_manual', true,
+    'enable_payment_credit_card', false
+  ),
+  NOW()
+)
+ON CONFLICT (key) DO UPDATE
+SET value = (
+  COALESCE(social_system_settings.value::jsonb, '{}'::jsonb)
+  || jsonb_build_object(
+    'enable_payment_manual', COALESCE((social_system_settings.value::jsonb ->> 'enable_payment_manual')::boolean, true),
+    'enable_payment_credit_card', COALESCE((social_system_settings.value::jsonb ->> 'enable_payment_credit_card')::boolean, false)
+  )
+),
+updated_at = NOW();
 
 -- Expand status enum/check constraint (idempotent)
 DO $$

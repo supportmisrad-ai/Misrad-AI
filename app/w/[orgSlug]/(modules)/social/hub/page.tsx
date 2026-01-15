@@ -5,17 +5,16 @@ import nextDynamic from 'next/dynamic';
 
 export const dynamic = 'force-dynamic';
 
-
-const SocialAccountPage = nextDynamic(() => import('@/components/social/SocialAccountPage'), {
+const GlobalProfileHub = nextDynamic(() => import('@/components/profile/GlobalProfileHub'), {
+  ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-[400px]">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
     </div>
   ),
-  ssr: false,
 });
 
-export default function ProfilePage() {
+export default function SocialHubPage() {
   return (
     <Suspense
       fallback={
@@ -24,7 +23,7 @@ export default function ProfilePage() {
         </div>
       }
     >
-      <SocialAccountPage />
+      <GlobalProfileHub defaultOrigin="social" defaultDrawer="social" />
     </Suspense>
   );
 }

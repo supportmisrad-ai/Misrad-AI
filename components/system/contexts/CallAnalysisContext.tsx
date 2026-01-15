@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { CallAnalysisState, CallAnalysisResult } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { usePathname } from 'next/navigation';
 
 interface CallAnalysisContextType {
   state: CallAnalysisState;
@@ -13,6 +14,12 @@ interface CallAnalysisContextType {
   loadFromHistory: (result: CallAnalysisResult) => void;
   deleteFromHistory: (id: string) => void;
   updateHistoryItem: (id: string, updates: Partial<CallAnalysisResult>) => void;
+  creditsModal: {
+    open: boolean;
+    outputsCount: number;
+    savedHours: number;
+  };
+  closeCreditsModal: () => void;
 }
 
 const CallAnalysisContext = createContext<CallAnalysisContextType | undefined>(undefined);
@@ -20,6 +27,7 @@ const CallAnalysisContext = createContext<CallAnalysisContextType | undefined>(u
 // Launch-safe: AI schema and client-side Gemini processing are disabled.
 
 export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const pathname = usePathname();
   const [state, setState] = useState<CallAnalysisState>({
     isProcessing: false,
     progress: 0,
@@ -30,6 +38,28 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const [history, setHistory] = useLocalStorage<CallAnalysisResult[]>('call_analysis_history', []);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const [creditsModal, setCreditsModal] = useState<{ open: boolean; outputsCount: number; savedHours: number }>({
+    open: false,
+    outputsCount: 0,
+    savedHours: 0,
+  });
+
+  const closeCreditsModal = () => setCreditsModal((p) => ({ ...p, open: false }));
+
+  const getOrgSlugFromPath = (p: string | null | undefined): string | null => {
+    if (!p) return null;
+    const parts = p.split('/').filter(Boolean);
+    const wIndex = parts.indexOf('w');
+    const orgSlug = wIndex !== -1 ? parts[wIndex + 1] : null;
+    return orgSlug ? String(orgSlug) : null;
+  };
+
+  const inferSocialProof = (items: CallAnalysisResult[]) => {
+    const outputsCount = Array.isArray(items) ? items.length : 0;
+    const savedHours = Math.round(outputsCount * 0.6 * 10) / 10;
+    return { outputsCount, savedHours };
+  };
 
   const fileToInlineData = async (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -58,8 +88,69 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
 
     try {
-      setState(prev => ({ ...prev, progress: 40, currentStep: 'מנתח שיחה (מושבת לערב השקה)...' }));
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const orgSlug = getOrgSlugFromPath(pathname);
+      if (!orgSlug) {
+        throw new Error('חסר orgSlug בכתובת. נסה לרענן את הדף.');
+      }
+
+      setState((prev) => ({ ...prev, progress: 25, currentStep: 'מעלה קובץ לתמלול...' }));
+
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
+        method: 'POST',
+        body: fd,
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (transcribeRes.status === 402) {
+        const { outputsCount, savedHours } = inferSocialProof(history);
+        setCreditsModal({ open: true, outputsCount, savedHours });
+        setState((prev) => ({ ...prev, isProcessing: false, progress: 0, currentStep: 'נגמרו נקודות AI' }));
+        return;
+      }
+
+      if (!transcribeRes.ok) {
+        const err = await transcribeRes.json().catch(() => ({} as any));
+        throw new Error(err?.error || 'שגיאה בתמלול');
+      }
+
+      const transcribeJson = (await transcribeRes.json()) as {
+        transcriptText: string;
+      };
+
+      const transcriptText = String(transcribeJson.transcriptText || '').trim();
+      if (!transcriptText) {
+        throw new Error('תמלול ריק');
+      }
+
+      setState((prev) => ({ ...prev, progress: 60, currentStep: 'מייצר תובנות והצעות מענה...' }));
+
+      const suggestRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/suggest`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ transcriptText }),
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (suggestRes.status === 402) {
+        const { outputsCount, savedHours } = inferSocialProof(history);
+        setCreditsModal({ open: true, outputsCount, savedHours });
+        setState((prev) => ({ ...prev, isProcessing: false, progress: 0, currentStep: 'נגמרו נקודות AI' }));
+        return;
+      }
+
+      if (!suggestRes.ok) {
+        const err = await suggestRes.json().catch(() => ({} as any));
+        throw new Error(err?.error || 'שגיאה בניתוח');
+      }
+
+      const suggestJson = (await suggestRes.json()) as {
+        result?: any;
+      };
+
+      const aiResult = (suggestJson as any)?.result || {};
 
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
@@ -67,30 +158,22 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         title: file.name,
         createdAt: new Date().toISOString(),
         audioUrl,
-        summary: 'ניתוח סימולציה לערב השקה: זוהו נקודות כאב מרכזיות והמלצות המשך. ניתוח AI מלא יופעל מהשרת אחרי ההשקה.',
-        score: 78,
-        intent: 'buying',
-        transcript: [],
-        topics: {
-          promises: [],
-          painPoints: [],
-          likes: [],
-          slang: [],
-          stories: [],
-          decisions: [],
-          tasks: ['לקבוע שיחת המשך', 'לשלוח הצעת מחיר']
-        } as any,
-        feedback: {
-          positive: ['טון שיחה מקצועי'],
-          improvements: ['לחדד הצעת ערך בתחילת השיחה']
-        } as any,
+        date: new Date().toISOString(),
+        duration: '0:00',
+        summary: String(aiResult.summary || ''),
+        score: Number.isFinite(Number(aiResult.score)) ? Number(aiResult.score) : 0,
+        intent: (aiResult.intent as any) || 'window_shopping',
+        objections: Array.isArray(aiResult.objections) ? aiResult.objections : [],
+        transcript: Array.isArray(aiResult.transcript) ? aiResult.transcript : [],
+        topics: aiResult.topics || { promises: [], painPoints: [], likes: [], slang: [], stories: [], decisions: [], tasks: [] },
+        feedback: aiResult.feedback || { positive: [], improvements: [] },
       } as any;
 
-      setHistory(prev => [finalResult, ...prev]);
-      setState(prev => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
+      setHistory((prev) => [finalResult, ...prev]);
+      setState((prev) => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
     } catch (error: any) {
       console.error('Analysis error:', error);
-      setState(prev => ({ ...prev, isProcessing: false, currentStep: 'שגיאה בניתוח', progress: 0 }));
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: error?.message || 'שגיאה בניתוח', progress: 0 }));
     }
   };
 
@@ -156,7 +239,9 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
   return (
     <CallAnalysisContext.Provider value={{ 
         state, history, startAnalysis, cancelAnalysis, 
-        resetAnalysis, loadFromHistory, deleteFromHistory, updateHistoryItem 
+        resetAnalysis, loadFromHistory, deleteFromHistory, updateHistoryItem,
+        creditsModal,
+        closeCreditsModal,
     }}>
       {children}
     </CallAnalysisContext.Provider>

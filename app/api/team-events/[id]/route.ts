@@ -9,7 +9,8 @@ import { getAuthenticatedUser } from '../../../../lib/auth';
 import { supabase } from '../../../../lib/supabase';
 import { getUsers } from '../../../../lib/db';
 
-export async function PATCH(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -135,7 +136,7 @@ export async function PATCH(
     }
 }
 
-export async function DELETE(
+async function DELETEHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -227,3 +228,7 @@ export async function DELETE(
         );
     }
 }
+
+export const PATCH = shabbatGuard(PATCHHandler);
+
+export const DELETE = shabbatGuard(DELETEHandler);

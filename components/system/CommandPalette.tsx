@@ -1,10 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { Search, Command, ArrowRight, User, LayoutGrid, Calculator, Calendar, Sparkles, TrendingUp, AlertCircle, CheckCircle2, Link, Copy, Send } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { Lead } from './types';
 import { NAV_ITEMS, QUICK_ASSETS } from './constants';
 import { useToast } from './contexts/ToastContext';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
+import { ChatSources } from '@/components/command-palette/ChatSources';
+import { getSemanticStarters } from '@/components/command-palette/semanticStarters';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -17,24 +22,40 @@ interface CommandPaletteProps {
 const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onSelectLead, leads }) => {
   const { addToast } = useToast();
   const [query, setQuery] = useState('');
-  const [aiResponse, setAiResponse] = useState<{type: string, text: string} | null>(null);
-  const [isThinking, setIsThinking] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname();
+  const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug, [pathname]);
+
+  const { messages, isLoading: isThinking, error, sendText, clear } = useAIModuleChat({
+    moduleOverride: 'system',
+    orgSlugOverride: orgSlug,
+  });
+
+  const lastAssistant = useMemo(() => {
+    const list = Array.isArray(messages) ? messages : [];
+    return [...list].reverse().find((m) => m.role === 'assistant') || null;
+  }, [messages]);
+
+  const aiResponse = lastAssistant
+    ? {
+        type: error ? 'error' : 'success',
+        text: String((lastAssistant as any)?.content || ''),
+        sources: Array.isArray((lastAssistant as any)?.sources) ? (lastAssistant as any).sources : [],
+      }
+    : null;
 
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
         setQuery('');
-        setAiResponse(null);
-        setIsThinking(false);
+        clear();
     }
   }, [isOpen]);
 
-  // Nexus Brain Logic - Simplified (AI integration can be added later)
+  // Nexus Brain Logic
   useEffect(() => {
       if (query.length < 3) {
-          setAiResponse(null);
           return;
       }
 
@@ -45,41 +66,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                              ['what', 'how', 'who', 'where', 'when', 'why', 'status', 'money', 'revenue', 'leads', 'מה', 'איך', 'כמה', 'מי', 'מתי', 'למה', 'מצב'].some(w => lowerQ.startsWith(w) || lowerQ.includes(w));
 
           if (isQuestion) {
-              setIsThinking(true);
-              try {
-                  // TODO: Integrate Google Gemini AI here
-                  // For now, provide a simple response based on context
-                  const stats = {
-                      totalLeads: leads.length,
-                      wonLeads: leads.filter(l => l.status === 'won').length,
-                      totalRevenue: leads.filter(l => l.status === 'won').reduce((sum, l) => sum + l.value, 0),
-                      hotLeads: leads.filter(l => l.isHot).length,
-                  };
-
-                  // Mock AI response
-                  setTimeout(() => {
-                      if (lowerQ.includes('כמה') || lowerQ.includes('כמה לידים')) {
-                          setAiResponse({ type: 'success', text: `יש לך ${stats.totalLeads} לידים במערכת, מתוכם ${stats.wonLeads} סגורים.` });
-                      } else if (lowerQ.includes('הכנסה') || lowerQ.includes('revenue')) {
-                          setAiResponse({ type: 'success', text: `ההכנסה הכוללת מלידים סגורים היא ₪${stats.totalRevenue.toLocaleString()}.` });
-                      } else {
-                          setAiResponse({ type: 'success', text: 'אני כאן לעזור! נסה לשאול על לידים, הכנסות או סטטוסים.' });
-                      }
-                      setIsThinking(false);
-                  }, 500);
-              } catch (error) {
-                  console.error("AI Error:", error);
-                  setAiResponse({ type: 'error', text: 'מצטער, לא הצלחתי לעבד את הבקשה כרגע.' });
-                  setIsThinking(false);
-              }
-          } else {
-              setAiResponse(null);
-              setIsThinking(false);
+              sendText(query);
           }
       }, 800);
 
       return () => clearTimeout(debounceTimer);
-  }, [query, leads]);
+  }, [query, sendText]);
 
   if (!isOpen) return null;
 
@@ -150,6 +142,26 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
         </div>
         
         <div className="max-h-[60vh] overflow-y-auto custom-scrollbar p-2 bg-slate-50/50">
+
+            <div className="px-2 pt-2">
+              <div className="flex flex-wrap gap-2">
+                {getSemanticStarters('system').map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      sendText(s.text);
+                      setQuery('');
+                    }}
+                    disabled={isThinking}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 border border-slate-200/60 text-slate-700 text-xs font-bold hover:bg-white hover:border-indigo-200/60 hover:text-slate-900 transition-all"
+                  >
+                    <Sparkles size={14} className="text-indigo-500" />
+                    {s.text}
+                  </button>
+                ))}
+              </div>
+            </div>
             
             {/* NEXUS AI ANSWER */}
             {aiResponse && (
@@ -163,6 +175,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                             <div>
                                 <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider mb-1">Nexus Intelligence</div>
                                 <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
+                                {Array.isArray((aiResponse as any).sources) && (aiResponse as any).sources.length ? (
+                                  <ChatSources sources={(aiResponse as any).sources} />
+                                ) : null}
                             </div>
                         </div>
                     </div>

@@ -26,7 +26,7 @@ export default function NexusHeader({
   currentUser,
   showRoomSwitcher = true,
   showNotifications = true,
-  profileHref = '/app#/me',
+  profileHref = '/me',
   onOpenCommandPaletteAction,
 }: {
   title?: string;

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, HardDrive, Calendar, Workflow, RefreshCw, X, Loader2 } from 'lucide-react';
 import {
-  getAllIntegrationsStatus,
+  getAllIntegrationsStatusForWorkspace,
   getGoogleCalendarAuthUrl,
   getGoogleDriveAuthUrl,
   getGoogleSheetsAuthUrl,
@@ -12,9 +12,12 @@ import {
   syncGoogleDrive,
   disconnectIntegration,
   saveWebhookConfig,
-  saveMorningCredentials,
+  saveMorningCredentialsForWorkspace,
+  triggerWebhookEvent,
 } from '@/app/actions/integrations';
 import { useApp } from '@/contexts/AppContext';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 interface IntegrationsTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -31,9 +34,12 @@ interface IntegrationConfig {
 
 export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
   const { addToast } = useApp();
+  const pathname = usePathname();
+  const routeInfo = parseWorkspaceRoute(pathname);
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [testing, setTesting] = useState<string | null>(null);
   const [showModal, setShowModal] = useState<string | null>(null);
   const [modalData, setModalData] = useState<any>({});
 
@@ -54,7 +60,10 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
   const loadIntegrations = async () => {
     setLoading(true);
     try {
-      const result = await getAllIntegrationsStatus();
+      const orgSlug = routeInfo.orgSlug;
+      const result = orgSlug
+        ? await getAllIntegrationsStatusForWorkspace(orgSlug)
+        : await getAllIntegrationsStatusForWorkspace('');
       if (result.success && result.data) {
         setIntegrations(result.data);
       }
@@ -62,6 +71,30 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       console.error('Error loading integrations:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTestWebhook = async (id: string) => {
+    setTesting(id);
+    try {
+      const result = await triggerWebhookEvent({
+        eventType: 'test_ping',
+        integrationName: id as 'make' | 'zapier',
+        payload: {
+          message: 'test',
+          source: 'social_os',
+        },
+      });
+
+      if (result.success) {
+        onNotify('בדיקה נשלחה בהצלחה. בדוק שהתרחיש ב-Make/Zapier הופעל.', 'success');
+      } else {
+        onNotify(result.error || 'שגיאה בבדיקת החיבור', 'error');
+      }
+    } catch (error: any) {
+      onNotify(error.message || 'שגיאה בבדיקת החיבור', 'error');
+    } finally {
+      setTesting(null);
     }
   };
 
@@ -116,7 +149,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       } else if (config.type === 'webhook') {
         // Show webhook modal
         setShowModal(id);
-        setModalData({ webhookUrl: '', events: ['post_approved', 'client_request'] });
+        setModalData({ webhookUrl: '', events: ['post_published', 'post_approved', 'client_request'] });
       } else if (config.type === 'api_key') {
         // Show API key modal
         setShowModal(id);
@@ -150,7 +183,13 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
 
   const handleSaveMorning = async () => {
     try {
-      const result = await saveMorningCredentials(modalData.apiKey);
+      const orgSlug = routeInfo.orgSlug;
+      if (!orgSlug) {
+        onNotify('שגיאה: לא נמצא ארגון פעיל בכתובת', 'error');
+        return;
+      }
+
+      const result = await saveMorningCredentialsForWorkspace(orgSlug, modalData.apiKey);
 
       if (result.success) {
         onNotify('חובר ל-Morning בהצלחה! 🎉');
@@ -245,14 +284,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                 </div>
                 <div className="relative z-10">
                   <h3 className="text-xl font-black">{integration.name}</h3>
-                  <p className="text-xs font-bold text-slate-400 leading-relaxed mt-2">
-                    {integration.desc}
-                  </p>
-                  {isConnected && lastSync && (
-                    <p className="text-[10px] text-slate-400 mt-2">
-                      סנכרון אחרון: {new Date(lastSync).toLocaleString('he-IL')}
-                    </p>
-                  )}
                 </div>
                 <div className="flex flex-col gap-3 relative z-10 mt-auto">
                   {!isConnected ? (
@@ -269,6 +300,25 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                         <CheckCircle2 size={14} />
                         {integration.id === 'make' || integration.id === 'zapier' ? 'וובוק פעיל: Listening...' : 'מסונכרן בזמן אמת'}
                       </div>
+                      {(integration.id === 'make' || integration.id === 'zapier') && (
+                        <button
+                          onClick={() => handleTestWebhook(integration.id)}
+                          disabled={testing === integration.id}
+                          className="w-full bg-slate-50 text-slate-700 py-2 rounded-xl font-black text-[10px] hover:bg-slate-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                          {testing === integration.id ? (
+                            <>
+                              <Loader2 size={12} className="animate-spin" />
+                              בודק...
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw size={12} />
+                              בדיקת חיבור
+                            </>
+                          )}
+                        </button>
+                      )}
                       {(integration.id === 'calendar' || integration.id === 'drive') && (
                         <button
                           onClick={() => handleSync(integration.id)}
@@ -327,7 +377,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
               <div>
                 <label className="block text-sm font-black mb-2">אירועים (Events)</label>
                 <div className="flex flex-col gap-2">
-                  {['post_approved', 'client_request', 'payment_received', 'task_completed'].map(event => (
+                  {['post_published', 'post_approved', 'client_request', 'payment_received', 'task_completed', 'test_ping'].map(event => (
                     <label key={event} className="flex items-center gap-2">
                       <input
                         type="checkbox"

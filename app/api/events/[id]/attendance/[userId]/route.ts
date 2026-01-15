@@ -9,7 +9,8 @@ import { getAuthenticatedUser } from '../../../../../../lib/auth';
 import { supabase } from '../../../../../../lib/supabase';
 import { getUsers } from '../../../../../../lib/db';
 
-export async function PATCH(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
@@ -152,3 +153,5 @@ export async function PATCH(
         );
     }
 }
+
+export const PATCH = shabbatGuard(PATCHHandler);

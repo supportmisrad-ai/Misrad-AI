@@ -11,10 +11,7 @@ import { getUsers, createRecord } from '../../../lib/db';
 import { LeaveRequest, User } from '../../../types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-function isUuid(value: string) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function resolveOrganizationIdFromHeader(orgHeaderValue: string): Promise<string> {
     // We accept either a workspace id (UUID) or an orgSlug.
     const key = String(orgHeaderValue || '').trim();
@@ -26,7 +23,7 @@ async function resolveOrganizationIdFromHeader(orgHeaderValue: string): Promise<
     return workspace.id;
 }
 
-export async function GET(request: NextRequest) {
+async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
@@ -44,7 +41,7 @@ export async function GET(request: NextRequest) {
         const orgHeader = request.headers.get('x-org-id');
         if (!orgHeader) {
             return NextResponse.json(
-                { error: 'Missing organization id' },
+                { error: 'Missing organization context (x-org-id)' },
                 { status: 400 }
             );
         }
@@ -160,7 +157,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
@@ -488,3 +485,7 @@ export async function POST(request: NextRequest) {
         );
     }
 }
+
+export const GET = shabbatGuard(GETHandler);
+
+export const POST = shabbatGuard(POSTHandler);

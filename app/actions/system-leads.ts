@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { createClient } from '@/lib/supabase';
+import { createClientForWorkspace } from '@/app/actions/clients';
+import { auth } from '@clerk/nextjs/server';
 
 export type SystemLeadDTO = {
   id: string;
@@ -38,6 +40,89 @@ function toDto(row: any): SystemLeadDTO {
     score: Number(row.score ?? 0),
     assigned_agent_id: row.assignedAgentId ?? null,
   };
+}
+
+async function upsertCanonicalClientByEmail(params: {
+  orgSlug: string;
+  organizationId: string;
+  clerkUserId: string;
+  email: string;
+  fullName: string;
+  companyName: string;
+  phone?: string | null;
+}): Promise<{ canonicalClientId: string | null }> {
+  const supabase = createClient();
+  const organizationId = params.organizationId;
+  const normalizedEmail = String(params.email || '').trim().toLowerCase();
+
+  if (!normalizedEmail) {
+    return { canonicalClientId: null };
+  }
+
+  const { data: existing, error: findError } = await supabase
+    .from('clients')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .ilike('email', normalizedEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (findError) {
+    console.error('[system-leads] failed to find existing canonical client', {
+      message: findError.message,
+      code: (findError as any).code,
+      details: (findError as any).details,
+    });
+    // Continue: fallback to createClientForWorkspace (which has its own dedupe).
+  }
+
+  // Use canonical action to ensure consistent schema + dedupe rules.
+  // We pass orgSlug and use orgSlug as source of truth.
+  const result = await createClientForWorkspace(
+    params.orgSlug,
+    {
+      name: params.fullName,
+      companyName: params.companyName,
+      email: normalizedEmail,
+      phone: params.phone ?? undefined,
+      status: 'Active' as any,
+      onboardingStatus: 'completed' as any,
+      postingRhythm: '3 פעמים בשבוע',
+      brandVoice: '',
+      dna: {
+        brandSummary: '',
+        voice: { formal: 50, funny: 50, length: 50 },
+        vocabulary: { loved: [], forbidden: [] },
+        colors: { primary: '#1e293b', secondary: '#334155' },
+      },
+      activePlatforms: [],
+      quotas: [],
+      credentials: [],
+      autoRemindersEnabled: true,
+      businessMetrics: {
+        timeSpentMinutes: 0,
+        expectedHours: 0,
+        punctualityScore: 100,
+        responsivenessScore: 100,
+        revisionCount: 0,
+      },
+    } as any,
+    params.clerkUserId
+  );
+
+  if (result.success && result.data?.id) {
+    return { canonicalClientId: String(result.data.id) };
+  }
+
+  if (existing?.id) {
+    return { canonicalClientId: String(existing.id) };
+  }
+
+  console.error('[system-leads] failed to upsert canonical client', {
+    error: (result as any).error,
+  });
+
+  return { canonicalClientId: null };
 }
 
 export async function getSystemLeads(orgSlug: string): Promise<SystemLeadDTO[]> {
@@ -195,6 +280,11 @@ export async function updateSystemLeadStatus(params: {
   if (!leadId) throw new Error('leadId is required');
   if (!status) throw new Error('status is required');
 
+  const { userId: clerkUserId } = await auth();
+  if (!clerkUserId) {
+    throw new Error('Unauthorized');
+  }
+
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   const existing = await prisma.systemLead.findFirst({
@@ -228,6 +318,16 @@ export async function updateSystemLeadStatus(params: {
     };
   }
 
+  const canonical = await upsertCanonicalClientByEmail({
+    orgSlug,
+    organizationId: workspace.id,
+    clerkUserId,
+    email,
+    fullName: lead.name,
+    companyName: lead.company?.trim() ? lead.company.trim() : lead.name,
+    phone: lead.phone || null,
+  });
+
   const synced = await upsertClientClientByEmail({
     organizationId: workspace.id,
     fullName: lead.company?.trim() ? lead.company.trim() : lead.name,
@@ -236,6 +336,7 @@ export async function updateSystemLeadStatus(params: {
     metadata: {
       source: 'system_leads',
       systemLeadId: lead.id,
+      canonicalClientId: canonical.canonicalClientId,
     },
   });
 

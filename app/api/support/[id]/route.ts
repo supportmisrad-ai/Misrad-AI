@@ -9,7 +9,8 @@ import { createClient } from '../../../../lib/supabase';
 import { SupportTicket } from '../../../../types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function PATCH(
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
@@ -166,3 +167,5 @@ export async function PATCH(
         );
     }
 }
+
+export const PATCH = shabbatGuard(PATCHHandler);

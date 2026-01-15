@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice } from '@/types/social';
 import PaymentCheckoutPortal from './PaymentCheckoutPortal';
+import { Avatar } from '@/components/Avatar';
 import { getInvoices } from '@/app/actions/payments';
 import ApprovalsTab from './portal/ApprovalsTab';
 import TasksTab from './portal/TasksTab';
@@ -184,7 +185,14 @@ export default function ClientPortal() {
       {/* Header */}
       <header className="h-20 md:h-28 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-50 shadow-sm">
          <div className="flex items-center gap-3 md:gap-6">
-            <img src={activeClient.avatar} className="w-10 h-10 md:w-16 md:h-16 rounded-xl md:rounded-[24px] shadow-lg border-2 border-white" alt="" />
+            <Avatar
+              src={String(activeClient.avatar || '')}
+              name={String(activeClient.companyName || activeClient.name || '')}
+              alt={String(activeClient.companyName || '')}
+              size="lg"
+              rounded="2xl"
+              className="w-10 h-10 md:w-16 md:h-16 shadow-lg border-2 border-white"
+            />
             <div className="text-right">
                <h1 className="text-base md:text-2xl font-black text-slate-800 truncate max-w-[150px] md:max-w-none">{activeClient.companyName}</h1>
                <p className="text-[8px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">פורטל לקוח</p>

@@ -68,5 +68,26 @@ export default function RootLayout({
   }
 
   // Fallback for build-time and when env vars are not available
-  return content;
+  return (
+    <html lang="he" dir="rtl" suppressHydrationWarning>
+      <body
+        className={`${heebo.variable} ${inter.variable} antialiased`}
+        suppressHydrationWarning
+      >
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+          <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="text-xl font-black text-slate-900">חסר מפתח התחברות (Clerk)</div>
+            <div className="mt-3 text-sm font-bold text-slate-600">
+              כדי להפעיל את המערכת צריך להגדיר את המשתנה
+              <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</span>
+              בקובץ
+              <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">.env.local</span>
+              ואז להפעיל מחדש את השרת.
+            </div>
+          </div>
+        </div>
+        <PWAInstaller />
+      </body>
+    </html>
+  );
 }

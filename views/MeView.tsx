@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, Activity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CheckCircle, XCircle, Lock, AlertCircle } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, Activity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CheckCircle, XCircle, Lock, AlertCircle, Target } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useClerk } from '@clerk/nextjs';
@@ -9,6 +9,7 @@ import { HoldButton } from '../components/HoldButton';
 import { LeadStatus, Status } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgIdFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 
 // Imported Settings Components
 import { PersonalSettings } from '../components/me/PersonalSettings';
@@ -19,13 +20,50 @@ import { Avatar } from '../components/Avatar';
 import { LeaveRequestModal } from '../components/nexus/team/LeaveRequestModal';
 import { EventRequestModal } from '../components/nexus/team/EventRequestModal';
 
-export const MeView: React.FC = () => {
+type MeModuleCard = {
+  title: string;
+  subtitle?: string | null;
+  href: string;
+  iconId?: 'settings' | 'target' | 'trending_up' | 'user';
+};
+
+export const MeView: React.FC<{
+  children?: React.ReactNode;
+  basePathOverride?: string;
+  moduleCards?: MeModuleCard[];
+}> = ({
+  children,
+  basePathOverride,
+  moduleCards,
+}) => {
   const { currentUser, logout, tasks, activeShift, clockIn, clockOut, timeEntries, leads, addToast, users } = useData();
   const { signOut } = useClerk();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const basePath = getNexusBasePath(pathname);
+  const workspaceInfo = parseWorkspaceRoute(pathname);
+  const orgSlug = workspaceInfo.orgSlug;
+  const basePath = basePathOverride || getNexusBasePath(pathname);
+
+  const resolvedModuleCards = useMemo(() => {
+    const list = Array.isArray(moduleCards) ? moduleCards : [];
+    return list.filter((c) => c && typeof c.href === 'string' && c.href.trim().length > 0 && typeof c.title === 'string');
+  }, [moduleCards]);
+
+  const resolveModuleCardIcon = (iconId: MeModuleCard['iconId']) => {
+    switch (iconId) {
+      case 'settings':
+        return Settings;
+      case 'target':
+        return Target;
+      case 'trending_up':
+        return TrendingUp;
+      case 'user':
+        return UserIcon;
+      default:
+        return null;
+    }
+  };
   const navigate = (path: string, opts?: { replace?: boolean }) => {
       const target = toNexusPath(basePath, path);
       if (opts?.replace) {
@@ -46,6 +84,30 @@ export const MeView: React.FC = () => {
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [eventRSVPStatus, setEventRSVPStatus] = useState<Record<string, string>>({});
+
+  const [hasNexusEntitlement, setHasNexusEntitlement] = useState<boolean | null>(null);
+
+  useEffect(() => {
+      const loadEntitlements = async () => {
+          if (!orgSlug) {
+              setHasNexusEntitlement(null);
+              return;
+          }
+          try {
+              const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/entitlements`, { cache: 'no-store' });
+              if (!res.ok) {
+                  setHasNexusEntitlement(false);
+                  return;
+              }
+              const data = await res.json().catch(() => ({}));
+              setHasNexusEntitlement(Boolean(data?.entitlements?.nexus));
+          } catch {
+              setHasNexusEntitlement(false);
+          }
+      };
+
+      loadEntitlements();
+  }, [orgSlug]);
 
   const getOrgHeaderValue = () => {
       if (typeof window === 'undefined') return null;
@@ -187,7 +249,7 @@ export const MeView: React.FC = () => {
           setIsLoadingLeaveRequests(true);
           try {
               const orgId = getOrgHeaderValue();
-              const response = await fetch('/api/leave-requests?employee_id=' + currentUser.id, {
+              const response = await fetch('/api/leave-requests?employee_id=' + encodeURIComponent(String(currentUser.id)), {
                   headers: orgId ? { 'x-org-id': orgId } : undefined
               });
               if (response.ok) {
@@ -547,6 +609,7 @@ export const MeView: React.FC = () => {
           </div>
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
+          {hasNexusEntitlement ? (
           <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-8">
                   
@@ -730,6 +793,8 @@ export const MeView: React.FC = () => {
                   </div>
               </div>
 
+          ) : null}
+
           {/* Team Events Section */}
               <div className="bg-white rounded-[2rem] border border-gray-200 shadow-sm overflow-hidden">
                   <div className="p-6 md:p-8">
@@ -877,6 +942,36 @@ export const MeView: React.FC = () => {
               )}
           </div>
 
+          {resolvedModuleCards.length ? (
+            <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4 mt-6">
+              {resolvedModuleCards.map((card, idx) => {
+                const Icon = resolveModuleCardIcon(card.iconId);
+                return (
+                  <button
+                    key={`${card.href}:${idx}`}
+                    type="button"
+                    onClick={() => {
+                      router.push(card.href);
+                    }}
+                    className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
+                    aria-label={card.title}
+                  >
+                    <div className="absolute top-0 right-0 w-1 h-full bg-slate-900 scale-y-0 group-hover:scale-y-100 transition-transform origin-top duration-300 hidden md:block"></div>
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 text-slate-700 rounded-xl md:rounded-2xl flex items-center justify-center mb-2 md:mb-4 group-hover:scale-110 transition-transform shadow-sm">
+                      {Icon ? <Icon size={18} className="md:w-6 md:h-6" /> : null}
+                    </div>
+                    <h3 className="text-[10px] md:text-lg font-bold text-gray-900">{card.title}</h3>
+                    {card.subtitle ? (
+                      <p className="text-[10px] md:text-sm text-gray-500 mt-1 hidden md:block">{card.subtitle}</p>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {children ? <div className="mt-6">{children}</div> : null}
+
           <div className="text-center text-xs text-gray-600 mt-4">
               Misrad v2.5.0 • <span className="underline cursor-pointer hover:text-gray-800">תנאי שימוש</span> • <span className="underline cursor-pointer hover:text-gray-800">מדיניות פרטיות</span>
           </div>
@@ -894,7 +989,7 @@ export const MeView: React.FC = () => {
                       // Reload data
                       const loadData = async () => {
                           const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                          const response = await fetch('/api/leave-requests?employee_id=' + currentUser.id, {
+                          const response = await fetch('/api/leave-requests?employee_id=' + encodeURIComponent(String(currentUser.id)), {
                               headers: orgId ? { 'x-org-id': orgId } : undefined
                           });
                           if (response.ok) {

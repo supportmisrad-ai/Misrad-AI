@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { 
   ChevronLeft, ChevronRight, Plus, Trash2, Edit3, 
-  Clock, X, CalendarDays, RefreshCw, Settings
+  Clock, X, CalendarDays, RefreshCw, Settings, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
@@ -12,6 +12,7 @@ import { useApp } from '@/contexts/AppContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { SocialPost, SocialPlatform } from '@/types/social';
 import { gregorianToHebrew, getHebrewDateString, isShabbat, getHoliday, isHoliday, isFastDay, getFastDay } from '@/lib/hebrewCalendar';
+import { Avatar } from '@/components/Avatar';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   facebook: Facebook,
@@ -42,9 +43,30 @@ export default function Calendar() {
 
   const [viewDate, setViewDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
-  const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showHebrewCalendar, setShowHebrewCalendar] = useState(true);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('social_calendar_show_hebrew');
+      if (stored === null) return;
+      setShowHebrewCalendar(stored === '1');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('social_calendar_show_hebrew', showHebrewCalendar ? '1' : '0');
+    } catch {
+      // ignore
+    }
+  }, [showHebrewCalendar]);
 
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
@@ -89,6 +111,7 @@ export default function Calendar() {
     const today = new Date();
     setViewDate(today);
     setSelectedDay(today.getDate());
+    setIsDetailOpen(true);
     addToast('חזרנו להיום');
   };
 
@@ -154,11 +177,14 @@ export default function Calendar() {
       const isSelected = selectedDay === date.getDate() && date.getMonth() === viewDate.getMonth() && date.getFullYear() === viewDate.getFullYear();
       
       const hebDate = showHebrewCalendar ? gregorianToHebrew(date) : null;
-      const isShabbatDay = isShabbat(date);
-      const holiday = getHoliday(date);
-      const isHolidayDay = isHoliday(date);
-      const isFastDayDate = isFastDay(date);
-      const fastDayName = getFastDay(date);
+      const isShabbatDay = showHebrewCalendar ? isShabbat(date) : false;
+      const holiday = showHebrewCalendar ? getHoliday(date) : null;
+      const isHolidayDay = showHebrewCalendar ? isHoliday(date) : false;
+      const isFastDayDate = showHebrewCalendar ? isFastDay(date) : false;
+      const fastDayName = showHebrewCalendar ? getFastDay(date) : null;
+
+      const dayBadgeLabel = holiday || (isShabbatDay ? 'שבת' : (isFastDayDate ? (fastDayName || 'צום') : null));
+      const dayBadgeClass = holiday || isShabbatDay ? 'bg-purple-100 text-purple-700' : 'bg-rose-100 text-rose-700';
       
       weekDays.push(
         <div key={i} className="flex flex-col gap-2">
@@ -170,8 +196,9 @@ export default function Calendar() {
             onClick={() => {
               setSelectedDay(date.getDate());
               setViewDate(new Date(date));
+              setIsDetailOpen(true);
             }}
-            className={`min-h-[120px] md:min-h-[200px] border border-slate-200 p-2 md:p-4 flex flex-col gap-2 transition-all rounded-lg md:rounded-2xl ${
+            className={`relative min-h-[120px] md:min-h-[200px] border border-slate-200 p-2 md:p-4 flex flex-col gap-2 transition-all rounded-lg md:rounded-2xl ${
               isSelected 
                 ? 'bg-slate-900 border-slate-900 text-white shadow-lg' 
                 : isToday 
@@ -192,17 +219,17 @@ export default function Calendar() {
                   {hebDate.dayHebrew || hebDate.day}
                 </span>
               )}
-              {(isShabbatDay || isHolidayDay) && (
-                <span className={`text-[8px] font-black px-1 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-600'}`}>
-                  {holiday || 'שבת'}
-                </span>
-              )}
-              {isFastDayDate && !isHolidayDay && (
-                <span className={`text-[8px] font-black px-1 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
-                  {fastDayName || 'צום'}
-                </span>
-              )}
             </div>
+
+            {showHebrewCalendar && dayBadgeLabel && (
+              <span
+                className={`absolute top-2 right-2 text-[8px] font-black px-2 py-0.5 rounded-full max-w-[75%] truncate ${
+                  isSelected ? 'bg-white/20 text-white' : dayBadgeClass
+                }`}
+              >
+                {dayBadgeLabel}
+              </span>
+            )}
             <div className="flex flex-col gap-1 flex-1 w-full">
               {dayPosts.slice(0, 4).map((p, idx) => (
                 <div key={idx} className={`w-full h-6 md:h-8 rounded-md flex items-center px-2 gap-1 overflow-hidden ${isSelected ? 'bg-white text-slate-900' : 'bg-blue-100'}`}>
@@ -260,17 +287,23 @@ export default function Calendar() {
 
       const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), d);
       const hebDate = showHebrewCalendar ? gregorianToHebrew(dayDate) : null;
-      const isShabbatDay = isShabbat(dayDate);
-      const holiday = getHoliday(dayDate);
-      const isHolidayDay = isHoliday(dayDate);
-      const isFastDayDate = isFastDay(dayDate);
-      const fastDayName = getFastDay(dayDate);
+      const isShabbatDay = showHebrewCalendar ? isShabbat(dayDate) : false;
+      const holiday = showHebrewCalendar ? getHoliday(dayDate) : null;
+      const isHolidayDay = showHebrewCalendar ? isHoliday(dayDate) : false;
+      const isFastDayDate = showHebrewCalendar ? isFastDay(dayDate) : false;
+      const fastDayName = showHebrewCalendar ? getFastDay(dayDate) : null;
+
+      const dayBadgeLabel = holiday || (isShabbatDay ? 'שבת' : (isFastDayDate ? (fastDayName || 'צום') : null));
+      const dayBadgeClass = holiday || isShabbatDay ? 'bg-purple-100 text-purple-700' : 'bg-rose-100 text-rose-700';
       
       grid.push(
         <motion.button
           key={d}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setSelectedDay(d)}
+          onClick={() => {
+            setSelectedDay(d);
+            setIsDetailOpen(true);
+          }}
           className={`h-16 md:h-32 border border-slate-200 p-1 md:p-3 flex flex-col items-center md:items-start gap-1 transition-all relative rounded-lg md:rounded-2xl group ${
             isSelected 
               ? 'bg-slate-900 border-slate-900 text-white shadow-lg z-10' 
@@ -290,17 +323,17 @@ export default function Calendar() {
                 {hebDate.dayHebrew || hebDate.day}
               </span>
             )}
-            {(isShabbatDay || isHolidayDay) && (
-              <span className={`text-[8px] font-black px-1 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-600'}`}>
-                {holiday || 'שבת'}
-              </span>
-            )}
-            {isFastDayDate && !isHolidayDay && (
-              <span className={`text-[8px] font-black px-1 py-0.5 rounded ${isSelected ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
-                {fastDayName || 'צום'}
-              </span>
-            )}
           </div>
+
+          {showHebrewCalendar && dayBadgeLabel && (
+            <span
+              className={`absolute top-2 right-2 text-[8px] font-black px-2 py-0.5 rounded-full max-w-[75%] truncate ${
+                isSelected ? 'bg-white/20 text-white' : dayBadgeClass
+              }`}
+            >
+              {dayBadgeLabel}
+            </span>
+          )}
           
           <div className="flex flex-wrap md:flex-col gap-0.5 md:gap-1 w-full mt-auto justify-center md:justify-start">
             {dayPosts.slice(0, 2).map((p, idx) => (
@@ -343,15 +376,23 @@ export default function Calendar() {
           </div>
           
           <div className="hidden lg:flex gap-2">
-            <button 
-              onClick={() => setShowHebrewCalendar(!showHebrewCalendar)}
-              className={`px-4 py-2 font-black text-xs rounded-xl border transition-all ${
-                showHebrewCalendar 
-                  ? 'bg-purple-50 text-purple-600 border-purple-200' 
-                  : 'bg-slate-50 text-slate-600 border-slate-200'
+            <button
+              type="button"
+              onClick={() => setShowHebrewCalendar((v) => !v)}
+              className={`flex items-center gap-2 px-4 py-2 font-black text-xs rounded-xl border transition-all ${
+                showHebrewCalendar
+                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                  : 'bg-slate-50 text-slate-700 border-slate-200'
               }`}
             >
-              {showHebrewCalendar ? 'לוח עברי' : 'לוח רגיל'}
+              <span
+                className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                  showHebrewCalendar ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-300 text-transparent'
+                }`}
+              >
+                <Check size={14} />
+              </span>
+              לוח עברי
             </button>
             <button 
               onClick={handleBackToToday} 
@@ -399,6 +440,24 @@ export default function Calendar() {
         </div>
 
         <div className="flex lg:hidden gap-2 w-full">
+          <button
+            type="button"
+            onClick={() => setShowHebrewCalendar((v) => !v)}
+            className={`flex-1 py-3 font-black text-xs rounded-xl border transition-all flex items-center justify-center gap-2 ${
+              showHebrewCalendar
+                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                : 'bg-slate-50 text-slate-700 border-slate-200'
+            }`}
+          >
+            <span
+              className={`w-5 h-5 rounded-md border flex items-center justify-center ${
+                showHebrewCalendar ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-300 text-transparent'
+              }`}
+            >
+              <Check size={14} />
+            </span>
+            לוח עברי
+          </button>
           <button onClick={handleBackToToday} className="flex-1 py-3 bg-slate-50 text-blue-600 font-black text-xs rounded-xl border border-blue-50">
             חזרה להיום
           </button>
@@ -434,7 +493,7 @@ export default function Calendar() {
         </div>
 
         <AnimatePresence>
-          {selectedDay && (
+          {isDetailOpen && selectedDay && (
             <motion.div 
               key="detail"
               initial={{ opacity: 0, y: 100 }}
@@ -442,7 +501,7 @@ export default function Calendar() {
               exit={{ opacity: 0, y: 100 }}
               className="fixed md:relative inset-x-0 bottom-0 md:inset-auto z-[200] md:z-10 lg:col-span-5 h-[80vh] md:h-auto overflow-y-auto"
             >
-              <div className="bg-white p-6 md:p-12 rounded-t-[40px] md:rounded-[48px] border-t md:border-2 border-slate-200 shadow-2xl flex flex-col gap-6 md:gap-8 h-full md:h-auto">
+              <div className="bg-white p-6 pb-[calc(env(safe-area-inset-bottom)+96px)] md:p-12 md:pb-12 rounded-t-[40px] md:rounded-[48px] border-t md:border-2 border-slate-200 shadow-2xl flex flex-col gap-6 md:gap-8 h-full md:h-auto">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
                     <h3 className="text-2xl md:text-5xl font-black text-slate-900">
@@ -474,7 +533,7 @@ export default function Calendar() {
                     )}
                   </div>
                   <button 
-                    onClick={() => setSelectedDay(null)} 
+                    onClick={() => setIsDetailOpen(false)} 
                     className="w-10 h-10 md:w-12 md:h-12 bg-slate-50 text-slate-400 rounded-xl md:rounded-2xl flex items-center justify-center transition-all"
                   >
                     <X size={20}/>
@@ -488,7 +547,14 @@ export default function Calendar() {
                       <div key={post.id} className="bg-slate-50 p-4 md:p-6 rounded-2xl md:rounded-[32px] border border-slate-100 flex flex-col gap-4 group">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <img src={client?.avatar} className="w-8 h-8 md:w-10 md:h-10 rounded-lg shadow-sm" alt={client?.companyName} />
+                            <Avatar
+                              src={String(client?.avatar || '')}
+                              name={String(client?.companyName || client?.name || '')}
+                              alt={String(client?.companyName || '')}
+                              size="lg"
+                              rounded="lg"
+                              className="w-8 h-8 md:w-10 md:h-10 shadow-sm"
+                            />
                             <div className="min-w-0">
                               <p className="font-black text-sm md:text-base text-slate-800 truncate max-w-[120px]">
                                 {client?.companyName}

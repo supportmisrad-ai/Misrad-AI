@@ -21,6 +21,7 @@ import type {
   SuccessGoal,
 } from '@/components/client-os-full/types';
 import { analyzeMeetingTranscriptAction } from '@/app/actions/ai';
+import { AIService } from '@/lib/services/ai/AIService';
 
 const db = prisma as any;
 
@@ -568,6 +569,17 @@ export async function analyzeAndStoreMeeting(params: {
 
   const analysis = await analyzeMeetingTranscriptAction(transcript);
 
+  const warmthRaw = (analysis as any).relationshipWarmth;
+  const warmthNum = typeof warmthRaw === 'number' ? warmthRaw : Number(warmthRaw);
+  const warmth = Number.isFinite(warmthNum) ? warmthNum : null;
+
+  const ratingWithRelationship = {
+    ...((analysis as any).rating ?? {}),
+    relationshipWarmth: warmth,
+    relationshipNote: (analysis as any).relationshipNote ?? null,
+    commitments: Array.isArray((analysis as any).commitments) ? (analysis as any).commitments : [],
+  };
+
   const analysisRow = await db.misradMeetingAnalysisResult.create({
     data: {
       organization_id: orgId,
@@ -582,10 +594,48 @@ export async function analyzeAndStoreMeeting(params: {
       intents: (analysis as any).intents ?? [],
       stories: (analysis as any).stories ?? [],
       slang: (analysis as any).slang ?? [],
-      rating: (analysis as any).rating ?? {},
+      rating: ratingWithRelationship,
     },
     select: { id: true },
   });
+
+  // Best-effort: ingest meeting transcript + analysis into organizational memory (pgvector).
+  try {
+    const ai = AIService.getInstance();
+    await ai.ingestText({
+      featureKey: 'client_os.meetings.memory_ingest',
+      organizationId: orgId,
+      moduleId: 'client',
+      docKey: `client:meeting:${meeting.id}`,
+      text: `פגישת לקוח\nכותרת: ${title}\nמיקום: ${location}\n\nתמלול:\n${transcript}\n\nסיכום ותובנות:\n${JSON.stringify(
+        {
+          summary: (analysis as any).summary,
+          sentimentScore: (analysis as any).sentimentScore,
+          relationshipWarmth: (analysis as any).relationshipWarmth,
+          relationshipNote: (analysis as any).relationshipNote,
+          decisions: (analysis as any).decisions,
+          objections: (analysis as any).objections,
+          compliments: (analysis as any).compliments,
+          commitments: (analysis as any).commitments,
+        },
+        null,
+        2
+      )}`,
+      isPublicInOrg: true,
+      metadata: {
+        source_type: 'misrad_meetings',
+        source_id: meeting.id,
+        client_id: clientId,
+        analysis_id: analysisRow.id,
+        title,
+        location,
+        recording_url: recordingUrl ?? null,
+      },
+    });
+  } catch (e) {
+    // best-effort
+    console.warn('[analyzeAndStoreMeeting] memory ingest skipped', e);
+  }
 
   const agencyTasks = (analysis.agencyTasks ?? []).map((t: any) => ({
     organization_id: orgId,
@@ -630,59 +680,4 @@ export async function analyzeAndStoreMeeting(params: {
   }
 
   return { meetingId: meeting.id, analysis };
-}
-
-export async function getProfileSettings(clerkUserId: string): Promise<{
-  clerkUserId: string;
-  email: string | null;
-  fullName: string | null;
-  avatarUrl: string | null;
-  role: string | null;
-  organizationId: string | null;
-}> {
-  if (!clerkUserId) throw new Error('clerkUserId is required');
-
-  const user = await db.social_users.findUnique({
-    where: { clerk_user_id: clerkUserId },
-    select: {
-      clerk_user_id: true,
-      email: true,
-      full_name: true,
-      avatar_url: true,
-      role: true,
-      organization_id: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error('User not found in social_users');
-  }
-
-  return {
-    clerkUserId: user.clerk_user_id,
-    email: user.email ?? null,
-    fullName: user.full_name ?? null,
-    avatarUrl: user.avatar_url ?? null,
-    role: user.role ?? null,
-    organizationId: user.organization_id ?? null,
-  };
-}
-
-export async function updateProfile(params: {
-  clerkUserId: string;
-  fullName?: string | null;
-  avatarUrl?: string | null;
-}): Promise<{ ok: true }> {
-  const { clerkUserId, fullName, avatarUrl } = params;
-  if (!clerkUserId) throw new Error('clerkUserId is required');
-
-  await db.social_users.update({
-    where: { clerk_user_id: clerkUserId },
-    data: {
-      ...(fullName !== undefined ? { full_name: fullName } : null),
-      ...(avatarUrl !== undefined ? { avatar_url: avatarUrl } : null),
-    },
-  });
-
-  return { ok: true };
 }

@@ -17,7 +17,8 @@ import { listDriveFiles, searchDriveFiles } from '../../../../../lib/integration
 import { getUsers } from '../../../../../lib/db';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-export async function GET(request: NextRequest) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function GETHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
         if (orgIdFromHeader) {
@@ -56,3 +57,5 @@ export async function GET(request: NextRequest) {
     }
 }
 
+
+export const GET = shabbatGuard(GETHandler);

@@ -2,6 +2,10 @@
 
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendInvitationEmail } from './email';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { countOrganizationActiveUsers } from '@/lib/server/seats';
 
 /**
  * Server Action: Send team member invitation via Clerk
@@ -16,6 +20,36 @@ export async function inviteTeamMember(
       return {
         success: false,
         error: 'נדרש אימייל',
+      };
+    }
+
+    if (!orgSlug) {
+      return {
+        success: false,
+        error: 'חסרה סביבת עבודה (orgSlug)',
+      };
+    }
+
+    const ws = await requireWorkspaceAccessByOrgSlug(String(orgSlug));
+
+    const flags = await getSystemFeatureFlags();
+    const caps = computeWorkspaceCapabilities({
+      entitlements: ws?.entitlements,
+      fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+    });
+
+    if (!caps.isTeamManagementEnabled) {
+      return {
+        success: false,
+        error: 'ניהול צוות זמין רק בחבילת משרד מלא',
+      };
+    }
+
+    const activeUsers = await countOrganizationActiveUsers(ws.id);
+    if (activeUsers >= caps.seatsAllowed) {
+      return {
+        success: false,
+        error: `הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). כדי להוסיף משתמשים יש לשדרג חבילה`,
       };
     }
 

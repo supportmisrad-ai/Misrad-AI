@@ -9,6 +9,7 @@ import { WorkspaceSwitcher } from '../os/WorkspaceSwitcher';
 import { NAV_ITEMS } from './layout.types';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { SharedHeader } from '@/components/shared/SharedHeader';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 interface HeaderProps {
   location: { pathname: string };
@@ -42,9 +43,10 @@ export const Header: React.FC<HeaderProps> = ({
   navigate,
   openSupport,
 }) => {
-  const renderCountRef = React.useRef(0);
-  renderCountRef.current += 1;
-  console.log(`[Nexus][Header] render #${renderCountRef.current}`);
+  const [isHydrated, setIsHydrated] = React.useState(false);
+  React.useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const { RoomIcon, room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(location?.pathname?.startsWith('/w/'));
@@ -61,19 +63,22 @@ export const Header: React.FC<HeaderProps> = ({
   ) : null;
 
   const notificationsSlot = (
-    <>
+    <div className="flex items-center gap-2">
+      <AttendanceMiniStatus />
       <button
         id="notification-trigger"
         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
         className={`relative p-2 rounded-full transition-colors ${isNotificationsOpen ? 'bg-black text-white' : 'hover:bg-white/50 text-gray-600'}`}
-        aria-label={hasUnread ? 'התראות - יש התראות חדשות' : 'התראות'}
+        aria-label={isHydrated && hasUnread ? 'התראות - יש התראות חדשות' : 'התראות'}
         type="button"
       >
         <Bell size={18} />
-        {hasUnread ? <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> : null}
+        {isHydrated && hasUnread ? (
+          <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+        ) : null}
       </button>
       <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
-    </>
+    </div>
   );
 
   const switcherSlot = isWorkspaceRoute ? (

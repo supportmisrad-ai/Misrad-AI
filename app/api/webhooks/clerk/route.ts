@@ -4,7 +4,8 @@ import { WebhookEvent } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 
-export async function POST(req: Request) {
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+async function POSTHandler(req: Request) {
   // Get the Svix headers for verification
   const headerPayload = await headers();
   const svix_id = headerPayload.get('svix-id');
@@ -132,3 +133,5 @@ export async function POST(req: Request) {
   return new Response('Webhook received', { status: 200 });
 }
 
+
+export const POST = shabbatGuard(POSTHandler);
