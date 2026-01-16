@@ -6,7 +6,6 @@ import { useRoomBranding } from '@/hooks/useRoomBranding';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
-import { useRouter } from 'next/navigation';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 
 interface SidebarProps {
@@ -33,7 +32,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isActive,
   navigate,
 }) => {
-  const router = useRouter();
   const renderCountRef = React.useRef(0);
   renderCountRef.current += 1;
   console.log(`[Nexus][Sidebar] render #${renderCountRef.current}`);
@@ -57,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         fallbackIcon,
       }}
       brandSubtitle={roomName || roomNameHebrew || null}
-      onBrandClickAction={() => router.push('/workspaces')}
+      onBrandClickAction={() => navigate('/')}
       topSlot={
         <div className="flex flex-col gap-2">
           <BusinessSwitcher currentTenantName={organization.name} />
