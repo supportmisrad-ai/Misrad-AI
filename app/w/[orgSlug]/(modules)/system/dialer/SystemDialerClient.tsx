@@ -10,20 +10,39 @@ import type { Activity, Lead } from '@/components/system/types';
 import { createSystemLeadActivity, type SystemCallHistoryDTO, type SystemLeadDTO } from '@/app/actions/system-leads';
 import { uploadCallRecordingFile } from '@/app/actions/files';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
+import type { SystemPipelineStageDTO } from '@/app/actions/system-pipeline-stages';
 import { useSystemShell } from '../SystemShellGateClient';
 
 export default function SystemDialerClient({
   orgSlug,
   initialLeads,
   callHistory,
+  initialStages,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
   callHistory: SystemCallHistoryDTO[];
+  initialStages: SystemPipelineStageDTO[];
 }) {
   const toast = useToast();
   const { currentUser } = useSystemShell();
   const [leads, setLeads] = useState<Lead[]>(() => initialLeads.map(mapDtoToLead));
+
+  const stagesForUi = useMemo(() => {
+    const rows = Array.isArray(initialStages) && initialStages.length
+      ? initialStages
+      : (STAGES as any[]).map((s: any, idx: number) => ({
+          id: String(s.id),
+          label: String(s.label),
+          accent: String(s.accent || ''),
+          color: String(s.color || ''),
+          order: idx * 10,
+          isActive: true,
+        }));
+    return rows
+      .filter((s: any) => (s as any).isActive !== false)
+      .sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
+  }, [initialStages]);
 
   const calls = useMemo(() => {
     return (callHistory || []).map((c) => ({
@@ -226,7 +245,7 @@ export default function SystemDialerClient({
         useOnClickOutside={useOnClickOutside as any}
         CallButton={CallButton as any}
         QUICK_ASSETS={QUICK_ASSETS as any}
-        STAGES={STAGES as any}
+        STAGES={stagesForUi as any}
         aiDraft={aiDraft as any}
       />
     </div>

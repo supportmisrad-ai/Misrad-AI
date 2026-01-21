@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WebhookLog, Lead, FieldAgent } from './types';
-import { Settings, Bot, Webhook, BrainCircuit } from 'lucide-react';
-import AutomationsView from './AutomationsView';
+import { Settings, Webhook, BrainCircuit } from 'lucide-react';
 import IntegrationsView from './IntegrationsView';
 import AIAnalyticsView from './AIAnalyticsView';
 import { useAuth } from './contexts/AuthContext';
@@ -23,7 +22,6 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents, onAddTask, o
 
   const TABS = [
       { id: 'analytics', label: 'ניתוח נתונים חכם', icon: BrainCircuit, allowed: true },
-      { id: 'automations', label: 'אוטומציות', icon: Bot, allowed: true },
       { id: 'integrations', label: 'חיבורים ו-API', icon: Webhook, allowed: canAccess('integrations_config') },
       { id: 'settings', label: 'הגדרות מערכת', icon: Settings, allowed: true },
   ].filter(t => t.allowed);
@@ -60,13 +58,6 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents, onAddTask, o
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto">
             {activeTab === 'analytics' && <AIAnalyticsView leads={leads} />}
-            {activeTab === 'automations' && (
-              <AutomationsView 
-                leads={leads} 
-                onAddTask={onAddTask || (() => {})}
-                onAddActivity={onAddActivity || (() => {})}
-              />
-            )}
             {activeTab === 'integrations' && canAccess('integrations_config') && <IntegrationsView logs={logs} />}
             {activeTab === 'settings' && <GlobalProfileHub defaultOrigin="system" defaultDrawer="system" />}
         </div>

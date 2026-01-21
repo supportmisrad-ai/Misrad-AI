@@ -8,7 +8,6 @@ import { useToast } from '@/components/system/contexts/ToastContext';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import PipelineBoard from '@/components/system/PipelineBoard';
-import { STAGES } from '@/components/system/constants';
 import {
   createSystemLead,
   createSystemLeadActivity,
@@ -18,6 +17,13 @@ import {
   updateSystemLeadFollowUp,
   updateSystemLeadStatus,
 } from '@/app/actions/system-leads';
+import {
+  createSystemPipelineStage,
+  deleteSystemPipelineStage,
+  getSystemPipelineStages,
+  type SystemPipelineStageDTO,
+  updateSystemPipelineStage,
+} from '@/app/actions/system-pipeline-stages';
 
 function isSameLocalDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -26,42 +32,150 @@ function isSameLocalDay(a: Date, b: Date): boolean {
 export default function SystemSalesPipelineClient({
   orgSlug,
   initialLeads,
+  initialStages,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
+  initialStages: SystemPipelineStageDTO[];
 }) {
   const { addToast } = useToast();
   const [leads, setLeads] = useState<SystemLeadDTO[]>(initialLeads);
+  const [pipelineStages, setPipelineStages] = useState<SystemPipelineStageDTO[]>(initialStages || []);
+  const [isStagesModalOpen, setIsStagesModalOpen] = useState(false);
+  const [isStagesSaving, setIsStagesSaving] = useState(false);
+  const [newStageKey, setNewStageKey] = useState('');
+  const [newStageLabel, setNewStageLabel] = useState('');
   const [assignees, setAssignees] = useState<Array<{ id: string; name: string; email: string | null; avatarUrl: string | null }>>([]);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
 
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | PipelineStage>('all');
-  const [todayOnly, setTodayOnly] = useState(false);
-  const [sortKey, setSortKey] = useState<'created_desc' | 'created_asc' | 'value_desc' | 'value_asc' | 'name_asc' | 'name_desc'>(
-    'created_desc'
-  );
+  const stagesForUi = useMemo(() => {
+    const rows = Array.isArray(pipelineStages) && pipelineStages.length
+      ? pipelineStages
+      : (STAGES as any[]).map((s: any, idx: number) => ({
+          id: String(s.id),
+          key: String(s.id),
+          label: String(s.label),
+          color: String(s.color || ''),
+          accent: String(s.accent || ''),
+          order: idx * 10,
+          isActive: true,
+        }));
+    const normalized = rows
+      .filter((s: any) => (s as any).isActive !== false)
+      .map((s: any) => ({
+        id: String(s.key || s.id),
+        key: String(s.key || s.id),
+        label: String(s.label || ''),
+        color: String(s.color || ''),
+        accent: String(s.accent || ''),
+        order: Number(s.order || 0),
+        isActive: true,
+      }));
 
-  useEffect(() => {
-    if (!selectedLeadId) return;
-    if (assignees.length) return;
-    let cancelled = false;
-    getSystemLeadAssignees({ orgSlug })
-      .then((rows) => {
-        if (cancelled) return;
-        setAssignees(rows);
-      })
-      .catch((e: any) => {
-        if (cancelled) return;
-        addToast(e?.message || 'שגיאה בטעינת אנשי צוות', 'error');
+    const stageKeys = new Set(normalized.map((s: any) => String(s.id)));
+    const missing = new Set<string>();
+    leads.forEach((l) => {
+      const k = String((l as any).status || '').trim();
+      if (k && !stageKeys.has(k)) missing.add(k);
+    });
+
+    const synthesized = Array.from(missing).map((k, idx) => ({
+      id: k,
+      key: k,
+      label: k,
+      color: 'border-slate-200',
+      accent: 'bg-slate-300',
+      order: 10000 + idx,
+      isActive: true,
+    }));
+
+    const all = [...normalized, ...synthesized];
+    all.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
+    return all;
+  }, [pipelineStages]);
+
+  const refreshStages = async () => {
+    try {
+      const rows = await getSystemPipelineStages({ orgSlug });
+      setPipelineStages(Array.isArray(rows) ? rows : []);
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה בטעינת שלבים', 'error');
+    }
+  };
+
+  const handleCreateStage = async () => {
+    const key = newStageKey.trim();
+    const label = newStageLabel.trim();
+    if (!key || !label) {
+      addToast('חובה להזין key ושם שלב', 'error');
+      return;
+    }
+
+    setIsStagesSaving(true);
+    try {
+      const maxOrder = stagesForUi.reduce((m: number, s: any) => Math.max(m, Number(s.order || 0)), 0);
+      const res = await createSystemPipelineStage({
+        orgSlug,
+        key,
+        label,
+        order: maxOrder + 10,
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [addToast, assignees.length, orgSlug, selectedLeadId]);
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה ביצירת שלב', 'error');
+        return;
+      }
+      setNewStageKey('');
+      setNewStageLabel('');
+      await refreshStages();
+      addToast('שלב נוסף', 'success');
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה ביצירת שלב', 'error');
+    } finally {
+      setIsStagesSaving(false);
+    }
+  };
+
+  const handleUpdateStage = async (id: string, patch: { label?: string; order?: number | null; accent?: string | null; color?: string | null }) => {
+    setIsStagesSaving(true);
+    try {
+      const res = await updateSystemPipelineStage({
+        orgSlug,
+        id,
+        label: patch.label,
+        order: patch.order,
+        accent: patch.accent,
+        color: patch.color,
+      });
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה בעדכון שלב', 'error');
+        return;
+      }
+      await refreshStages();
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה בעדכון שלב', 'error');
+    } finally {
+      setIsStagesSaving(false);
+    }
+  };
+
+  const handleDeleteStage = async (id: string) => {
+    setIsStagesSaving(true);
+    try {
+      const res = await deleteSystemPipelineStage({ orgSlug, id });
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה במחיקת שלב', 'error');
+        return;
+      }
+      await refreshStages();
+      addToast('שלב נמחק', 'success');
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה במחיקת שלב', 'error');
+    } finally {
+      setIsStagesSaving(false);
+    }
+  };
 
   const leadCards = useMemo(() => leads.map(mapDtoToLead), [leads]);
 
@@ -213,7 +327,7 @@ export default function SystemSalesPipelineClient({
         addToast(res.message || 'שגיאה בעדכון סטטוס', 'error');
         return;
       }
-      setLeads((prev) => prev.map((l) => (String(l.id) === String(leadId) ? res.lead : l)));
+      setLeads((prev) => prev.map((l) => (String(l.id) === leadId ? res.lead : l)));
     } catch (e: any) {
       setLeads(prevSnapshot);
       addToast(e?.message || 'שגיאה בעדכון סטטוס', 'error');
@@ -293,13 +407,25 @@ export default function SystemSalesPipelineClient({
           <div className="text-xs font-black text-slate-400 uppercase tracking-widest">מכירות</div>
           <div className="text-2xl md:text-3xl font-black text-slate-900 truncate">לידים</div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowNewLeadModal(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-2xl text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-2"
-        >
-          <UserPlus size={16} /> ליד חדש
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setIsStagesModalOpen(true);
+              void refreshStages();
+            }}
+            className="bg-white border border-slate-200 text-slate-800 px-4 py-2.5 rounded-2xl text-sm font-black shadow-sm transition-all"
+          >
+            ניהול שלבים
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowNewLeadModal(true)}
+            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2.5 rounded-2xl text-sm font-black shadow-lg shadow-slate-900/20 transition-all inline-flex items-center gap-2"
+          >
+            <UserPlus size={16} /> ליד חדש
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
@@ -317,9 +443,9 @@ export default function SystemSalesPipelineClient({
             className="w-full md:w-[220px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
           >
             <option value="all">כל הסטטוסים</option>
-            {STAGES.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
+            {stagesForUi.map((s) => (
+              <option key={String(s.id)} value={String(s.key)}>
+                {String(s.label)}
               </option>
             ))}
           </select>
@@ -416,9 +542,9 @@ export default function SystemSalesPipelineClient({
                         onChange={(e) => void handleStatusChange(String(lead.id), e.target.value as any)}
                         className="w-full bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-black"
                       >
-                        {STAGES.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.label}
+                        {stagesForUi.map((s) => (
+                          <option key={String(s.id)} value={String(s.key)}>
+                            {String(s.label)}
                           </option>
                         ))}
                       </select>
@@ -454,6 +580,94 @@ export default function SystemSalesPipelineClient({
           onClose={() => (isSaving ? null : setShowNewLeadModal(false))}
           onSave={(lead) => void handleCreateLead(lead)}
         />
+      ) : null}
+
+      {isStagesModalOpen ? (
+        <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsStagesModalOpen(false)}>
+          <div className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <div className="text-lg font-black text-slate-900">ניהול שלבי פייפליין</div>
+                <div className="text-xs font-bold text-slate-500">נשמר ב-DB ומשפיע מיידית על לוח ה-Kanban</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsStagesModalOpen(false)}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold"
+              >
+                סגור
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
+              <input
+                value={newStageKey}
+                onChange={(e) => setNewStageKey(e.target.value)}
+                placeholder="key (למשל: qualified)"
+                className="md:col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                dir="ltr"
+              />
+              <input
+                value={newStageLabel}
+                onChange={(e) => setNewStageLabel(e.target.value)}
+                placeholder="שם שלב"
+                className="md:col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+              />
+              <button
+                type="button"
+                onClick={() => void handleCreateStage()}
+                disabled={isStagesSaving}
+                className="bg-slate-900 text-white rounded-2xl px-4 py-3 text-sm font-black disabled:opacity-60"
+              >
+                הוסף
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {stagesForUi.map((s) => (
+                <div key={String(s.id)} className="border border-slate-200 rounded-2xl p-3 bg-white">
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <div className="text-[11px] font-black text-slate-500 md:w-40" dir="ltr">
+                      {String(s.key)}
+                    </div>
+                    <input
+                      defaultValue={String(s.label || '')}
+                      onBlur={(e) => void handleUpdateStage(String(s.id), { label: e.target.value })}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                    />
+                    <input
+                      defaultValue={String(s.order ?? 0)}
+                      onBlur={(e) => {
+                        const v = Number(e.target.value);
+                        void handleUpdateStage(String(s.id), { order: Number.isFinite(v) ? v : 0 });
+                      }}
+                      className="w-24 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      dir="ltr"
+                    />
+                    <input
+                      defaultValue={String(s.accent || '')}
+                      onBlur={(e) => void handleUpdateStage(String(s.id), { accent: e.target.value || null })}
+                      className="w-40 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold"
+                      dir="ltr"
+                      placeholder="accent"
+                    />
+                    <button
+                      type="button"
+                      disabled={isStagesSaving}
+                      onClick={() => void handleDeleteStage(String(s.id))}
+                      className="px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-black disabled:opacity-60"
+                    >
+                      מחק
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {(pipelineStages || []).length === 0 ? (
+                <div className="text-sm font-bold text-slate-500">אין עדיין שלבים. הוסף שלב ראשון.</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );
