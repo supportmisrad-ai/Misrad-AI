@@ -1,22 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
-import { Camera, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Camera } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import { upsertMyProfile } from '@/app/actions/profiles';
+import { getMyProfile, upsertMyProfile } from '@/app/actions/profiles';
 
 interface PersonalSettingsProps {
     onClose: () => void;
 }
 
 export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) => {
-    const { currentUser, updateUser, addToast, requestNameChange, openSupport } = useData();
+    const { currentUser, updateUser, addToast } = useData();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pathname = usePathname();
     const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
-    const [showNameRequestInput, setShowNameRequestInput] = useState(false);
-    const [requestedName, setRequestedName] = useState('');
 
     const [form, setForm] = useState({
         name: currentUser.name,
@@ -26,55 +23,80 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         bio: currentUser.bio || ''
     });
 
-    const isCEO = currentUser.role.includes('מנכ');
-
     const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const nextAvatar = String(reader.result || '');
-                if (!orgSlug) {
-                    updateUser(currentUser.id, { avatar: nextAvatar });
-                    addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
+        if (!file) return;
+
+        (async () => {
+            try {
+                if (file.size > 5 * 1024 * 1024) {
+                    addToast('הקובץ גדול מדי. מקסימום מותר: 5MB.', 'error');
                     return;
                 }
 
-                (async () => {
+                const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+                if (!validTypes.includes(file.type)) {
+                    addToast('סוג קובץ לא נתמך. אנא בחר תמונה (PNG, JPG או WebP)', 'error');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('bucket', 'attachments');
+                formData.append('folder', 'avatars');
+
+                const response = await fetch('/api/storage/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errText = await response.text().catch(() => '');
+                    throw new Error(errText || 'שגיאה בהעלאת תמונה');
+                }
+
+                const data = await response.json().catch(() => null);
+                const avatarUrl = String(data?.url || '').trim();
+                if (!avatarUrl) {
+                    throw new Error('שגיאה בהעלאת תמונה (חסר URL).');
+                }
+
+                if (orgSlug) {
+                    let uiPreferences: any = { profileCompleted: true };
+                    try {
+                        const current = await getMyProfile({ orgSlug });
+                        const p: any = current.success ? (current as any).data?.profile : null;
+                        const existing = p?.ui_preferences;
+                        if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+                            uiPreferences = { ...existing, profileCompleted: true };
+                        }
+                    } catch {
+                        // best-effort
+                    }
+
                     const res = await upsertMyProfile({
                         orgSlug,
                         updates: {
-                            avatarUrl: nextAvatar || null,
+                            avatarUrl,
+                            uiPreferences,
                         },
                     });
                     if (!res.success) {
                         addToast(res.error || 'שגיאה בעדכון תמונת פרופיל', 'error');
                         return;
                     }
-                    updateUser(currentUser.id, { avatar: nextAvatar });
-                    addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
-                })();
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+                }
 
-    const handleNameChangeRequest = () => {
-        if (isCEO) {
-            // For CEO/Admins, open the dedicated support ticket
-            openSupport({
-                category: 'Account',
-                subject: 'בקשה לשינוי שם (חשבון מנהל)',
-                message: `שלום, אבקש לשנות את שם התצוגה שלי במערכת ל: `
-            });
-            onClose();
-        } else {
-            // For regular users, use the internal request flow
-            if (requestedName && requestedName !== currentUser.name) {
-                requestNameChange(requestedName);
-                setShowNameRequestInput(false);
+                updateUser(currentUser.id, { avatar: avatarUrl });
+                addToast('תמונת הפרופיל עודכנה בהצלחה', 'success');
+            } catch (err: any) {
+                addToast(err?.message || 'שגיאה בעדכון תמונת פרופיל', 'error');
+            } finally {
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
             }
-        }
+        })();
     };
 
     const validatePhone = (phone: string): boolean => {
@@ -100,6 +122,11 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
     };
 
     const handleSave = async () => {
+        if (!String(form.name || '').trim()) {
+            addToast('נא להזין שם מלא', 'error');
+            return;
+        }
+
         // Validate phone if provided
         if (form.phone && form.phone.trim() !== '' && !validatePhone(form.phone)) {
             addToast('נא להזין מספר טלפון תקין (לדוגמה: 050-1234567)', 'error');
@@ -110,12 +137,26 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         const cleanedPhone = form.phone ? form.phone.replace(/[\s\-\(\)]/g, '') : '';
 
         if (orgSlug) {
+            let uiPreferences: any = { profileCompleted: true };
+            try {
+                const current = await getMyProfile({ orgSlug });
+                const p: any = current.success ? (current as any).data?.profile : null;
+                const existing = p?.ui_preferences;
+                if (existing && typeof existing === 'object' && !Array.isArray(existing)) {
+                    uiPreferences = { ...existing, profileCompleted: true };
+                }
+            } catch {
+                // best-effort
+            }
+
             const res = await upsertMyProfile({
                 orgSlug,
                 updates: {
+                    fullName: String(form.name || '').trim() || null,
                     phone: cleanedPhone || null,
                     location: form.location || null,
                     bio: form.bio || null,
+                    uiPreferences,
                 },
             });
 
@@ -126,6 +167,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
         }
 
         updateUser(currentUser.id, {
+            name: String(form.name || '').trim(),
             phone: cleanedPhone,
             location: form.location,
             bio: form.bio
@@ -171,42 +213,11 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                             id="personal-name-input"
                             type="text" 
                             value={form.name}
-                            readOnly
+                            onChange={(e) => setForm({ ...form, name: e.target.value })}
                             aria-label="שם משתמש"
-                            className="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-sm outline-none text-gray-500 cursor-not-allowed" 
+                            className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none text-gray-900 focus:border-black transition-all" 
                         />
-                        <div className="absolute top-1/2 left-3 -translate-y-1/2 flex items-center gap-2">
-                            <Lock size={14} className="text-gray-400" />
-                            {isCEO ? (
-                                <button 
-                                    onClick={() => handleNameChangeRequest()}
-                                    className="text-xs text-blue-600 font-bold hover:underline"
-                                    aria-label="פנה לתמיכה לשינוי שם"
-                                >
-                                    פנה לתמיכה לשינוי
-                                </button>
-                            ) : (
-                                <button 
-                                    onClick={() => { setShowNameRequestInput(!showNameRequestInput); setRequestedName(form.name); }}
-                                    className="text-xs text-blue-600 font-bold hover:underline"
-                                    aria-label="בקש שינוי שם"
-                                >
-                                    בקש שינוי
-                                </button>
-                            )}
-                        </div>
                     </div>
-                    {showNameRequestInput && !isCEO && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-2 flex gap-2">
-                            <input 
-                                value={requestedName}
-                                onChange={(e) => setRequestedName(e.target.value)}
-                                placeholder="השם החדש..."
-                                className="flex-1 p-2 border border-blue-200 bg-blue-50 rounded-lg text-sm outline-none focus:border-blue-500"
-                            />
-                            <button onClick={handleNameChangeRequest} className="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-bold">שלח בקשה</button>
-                        </motion.div>
-                    )}
                 </div>
                 <div>
                     <label htmlFor="personal-role-input" className="block text-xs font-bold text-gray-500 uppercase mb-2">תפקיד (מוגדר ע״י מערכת)</label>

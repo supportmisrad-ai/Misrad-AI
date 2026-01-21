@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { requireSuperAdmin } from '@/lib/auth';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 
 /**
  * Get live KPIs for Overview & Pulse screen
@@ -597,6 +598,7 @@ export async function getFeatureFlags(): Promise<{
     fullOfficeRequiresFinance: boolean;
     enable_payment_manual: boolean;
     enable_payment_credit_card: boolean;
+    launch_scope_modules: Record<OSModuleKey, boolean>;
   };
   error?: string;
 }> {
@@ -632,6 +634,26 @@ export async function getFeatureFlags(): Promise<{
       fullOfficeRequiresFinance: Boolean(parsedValue?.fullOfficeRequiresFinance ?? false),
       enable_payment_manual: Boolean(parsedValue?.enable_payment_manual ?? parsedValue?.enablePaymentManual ?? true),
       enable_payment_credit_card: Boolean(parsedValue?.enable_payment_credit_card ?? parsedValue?.enablePaymentCreditCard ?? false),
+      launch_scope_modules: (() => {
+        const defaults: Record<OSModuleKey, boolean> = {
+          nexus: true,
+          system: true,
+          social: true,
+          finance: true,
+          client: true,
+          operations: true,
+        };
+        const raw = parsedValue?.launch_scope_modules ?? parsedValue?.launchScopeModules;
+        if (!raw || typeof raw !== 'object') return defaults;
+        return {
+          nexus: Boolean((raw as any).nexus ?? defaults.nexus),
+          system: Boolean((raw as any).system ?? defaults.system),
+          social: Boolean((raw as any).social ?? defaults.social),
+          finance: Boolean((raw as any).finance ?? defaults.finance),
+          client: Boolean((raw as any).client ?? defaults.client),
+          operations: Boolean((raw as any).operations ?? defaults.operations),
+        };
+      })(),
     });
   } catch (error) {
     // If table doesn't exist, return defaults
@@ -642,6 +664,14 @@ export async function getFeatureFlags(): Promise<{
       fullOfficeRequiresFinance: false,
       enable_payment_manual: true,
       enable_payment_credit_card: false,
+      launch_scope_modules: {
+        nexus: true,
+        system: true,
+        social: true,
+        finance: true,
+        client: true,
+        operations: true,
+      },
     });
   }
 }
@@ -657,6 +687,7 @@ export async function updateFeatureFlags(
     fullOfficeRequiresFinance?: boolean;
     enable_payment_manual?: boolean;
     enable_payment_credit_card?: boolean;
+    launch_scope_modules?: Partial<Record<OSModuleKey, boolean>> | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -683,6 +714,39 @@ export async function updateFeatureFlags(
       existingValue = existingRaw;
     }
 
+    const defaultScope: Record<OSModuleKey, boolean> = {
+      nexus: true,
+      system: true,
+      social: true,
+      finance: true,
+      client: true,
+      operations: true,
+    };
+
+    const existingScopeRaw = existingValue?.launch_scope_modules ?? existingValue?.launchScopeModules;
+    const existingScope = !existingScopeRaw || typeof existingScopeRaw !== 'object'
+      ? defaultScope
+      : {
+          nexus: Boolean((existingScopeRaw as any).nexus ?? defaultScope.nexus),
+          system: Boolean((existingScopeRaw as any).system ?? defaultScope.system),
+          social: Boolean((existingScopeRaw as any).social ?? defaultScope.social),
+          finance: Boolean((existingScopeRaw as any).finance ?? defaultScope.finance),
+          client: Boolean((existingScopeRaw as any).client ?? defaultScope.client),
+          operations: Boolean((existingScopeRaw as any).operations ?? defaultScope.operations),
+        };
+
+    const requestedScopeRaw = flags.launch_scope_modules;
+    const requestedScope = !requestedScopeRaw || typeof requestedScopeRaw !== 'object'
+      ? null
+      : {
+          nexus: Boolean((requestedScopeRaw as any).nexus ?? existingScope.nexus),
+          system: Boolean((requestedScopeRaw as any).system ?? existingScope.system),
+          social: Boolean((requestedScopeRaw as any).social ?? existingScope.social),
+          finance: Boolean((requestedScopeRaw as any).finance ?? existingScope.finance),
+          client: Boolean((requestedScopeRaw as any).client ?? existingScope.client),
+          operations: Boolean((requestedScopeRaw as any).operations ?? existingScope.operations),
+        };
+
     const nextFlags = {
       maintenanceMode: Boolean(flags.maintenanceMode ?? existingValue?.maintenanceMode ?? (existing as any)?.maintenance_mode ?? false),
       aiEnabled: Boolean(flags.aiEnabled ?? existingValue?.aiEnabled ?? ((existing as any)?.ai_enabled !== false)),
@@ -690,6 +754,7 @@ export async function updateFeatureFlags(
       fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance ?? existingValue?.fullOfficeRequiresFinance ?? false),
       enable_payment_manual: Boolean(flags.enable_payment_manual ?? existingValue?.enable_payment_manual ?? existingValue?.enablePaymentManual ?? true),
       enable_payment_credit_card: Boolean(flags.enable_payment_credit_card ?? existingValue?.enable_payment_credit_card ?? existingValue?.enablePaymentCreditCard ?? false),
+      launch_scope_modules: requestedScope ?? existingScope,
     };
 
     // Upsert system settings

@@ -1,16 +1,16 @@
 
 import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { FileText, Link, Lock, Search, ExternalLink, Copy, HardDrive, FileSpreadsheet, File as FileIcon, Image as ImageIcon, Folder, FileQuestion, Cloud, Loader2, Check, Trash2, Edit2, Plus, Eye, EyeOff, Shield, Key, X, Upload, Briefcase, ChevronDown } from 'lucide-react';
+import { FileText, Link, Lock, Search, ExternalLink, Copy, File as FileIcon, Check, Trash2, Edit2, Plus, Eye, EyeOff, Shield, Key, X, Upload, Briefcase, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset } from '../types';
 import { CustomSelect } from '../components/CustomSelect';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 export const AssetsView: React.FC = () => {
-  const { assets, isDriveConnected, driveFiles, isConnectingDrive, connectGoogleDrive, addAsset, deleteAsset, updateAsset, clients } = useData();
+  const { assets, addAsset, deleteAsset, updateAsset, clients } = useData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'credentials' | 'files' | 'drive'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'credentials' | 'files'>('all');
   const [revealedPasswords, setRevealedPasswords] = useState<Set<string>>(new Set());
   
   // Modal State
@@ -147,18 +147,6 @@ export const AssetsView: React.FC = () => {
       if (e.target.files && e.target.files[0]) {
           setFileName(e.target.files[0].name);
           setFormValue(URL.createObjectURL(e.target.files[0])); // Mock URL
-      }
-  };
-
-  const getDriveFileIcon = (mimeType: string) => {
-      switch(mimeType) {
-          case 'document': return <FileText className="text-blue-500" size={24} />;
-          case 'spreadsheet': return <FileSpreadsheet className="text-green-500" size={24} />;
-          case 'presentation': return <FileText className="text-orange-500" size={24} />;
-          case 'pdf': return <FileText className="text-red-500" size={24} />;
-          case 'image': return <ImageIcon className="text-purple-500" size={24} />;
-          case 'folder': return <Folder className="text-gray-400 fill-gray-100" size={24} />;
-          default: return <FileQuestion className="text-gray-400" size={24} />;
       }
   };
 
@@ -353,7 +341,6 @@ export const AssetsView: React.FC = () => {
                   { id: 'all', label: 'כל הנכסים' },
                   { id: 'credentials', label: 'סיסמאות וגישות' },
                   { id: 'files', label: 'קבצים וקישורים' },
-                  { id: 'drive', label: 'Google Drive' },
               ].map(tab => (
                   <button
                     key={tab.id}
@@ -372,83 +359,27 @@ export const AssetsView: React.FC = () => {
 
       {/* Content Area */}
       <div className="min-h-[400px]">
-          
-          {/* DRIVE TAB */}
-          {activeTab === 'drive' ? (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {!isDriveConnected ? (
-                      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-12 text-center max-w-2xl mx-auto mt-8">
-                          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                              <HardDrive size={40} />
-                          </div>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-2">חיבור ל-Google Drive</h3>
-                          <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm leading-relaxed">
-                              חבר את חשבון ה-Google Drive העסקי כדי לגשת לכל המסמכים, המצגות והקבצים ישירות מתוך המערכת.
-                          </p>
-                          <button 
-                            onClick={connectGoogleDrive}
-                            disabled={isConnectingDrive}
-                            className="bg-white border border-gray-300 text-gray-800 font-bold py-3.5 px-8 rounded-xl shadow-sm hover:bg-gray-50 hover:shadow-md transition-all flex items-center gap-3 mx-auto disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                              {isConnectingDrive ? <Loader2 size={20} className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5" />}
-                              {isConnectingDrive ? 'מתחבר...' : 'התחבר עם Google'}
-                          </button>
-                      </div>
-                  ) : (
-                       <div className="space-y-6">
-                            <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white rounded-lg shadow-sm border border-blue-50">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-sm font-bold text-blue-900">מחובר כ-Nexus Team</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-blue-700">
-                                    <Check size={14} /> סנכרון פעיל
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
-                                {driveFiles.map((file: any) => {
-                                    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-                                    return (
-                                    <motion.a 
-                                        key={file.id}
-                                        href={file.url}
-                                        {...(!isMobile && { whileHover: { y: -4 } })}
-                                        className="block bg-white p-3 md:p-5 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative"
-                                        onClick={(e) => e.preventDefault()}
-                                    >
-                                        <div className="flex justify-between items-start mb-3 md:mb-4">
-                                            {getDriveFileIcon(file.mimeType)}
-                                            <ExternalLink size={12} className="md:w-3.5 md:h-3.5 text-gray-300 group-hover:text-gray-500" />
-                                        </div>
-                                        <h4 className="text-xs md:text-sm font-bold text-gray-900 truncate mb-1" title={file.name}>{file.name}</h4>
-                                        <div className="text-[9px] md:text-[10px] text-gray-400">{file.modifiedAt}</div>
-                                    </motion.a>
-                                    );
-                                })}
-                            </div>
-                       </div>
-                  )}
-              </div>
-          ) : (
-              /* INTERNAL ASSETS GRID */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {filteredAssets.map((asset: Asset) => (
-                      <div 
-                        key={asset.id}
-                        className="bg-white p-4 md:p-5 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group flex flex-col"
-                      >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {filteredAssets.map((asset: Asset) => (
+                  <div 
+                    key={asset.id}
+                    className="bg-white p-4 md:p-5 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group flex flex-col"
+                  >
                           <div className="flex justify-between items-start mb-3 md:mb-4">
                               <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center border ${
                                   asset.type === 'credential' ? 'bg-amber-50 border-amber-100' : 
                                   asset.type === 'link' ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-100'
-                              }`}>
+                              }`}> 
                                   {getIcon(asset.type)}
                               </div>
                               <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => openEditModal(asset)} className="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600" aria-label={`ערוך נכס ${asset.title}`}><Edit2 size={14} className="md:w-4 md:h-4" /></button>
+                                  <button
+                                    onClick={() => openEditModal(asset)}
+                                    className="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"
+                                    aria-label={`ערוך נכס ${asset.title}`}
+                                  >
+                                    <Edit2 size={14} className="md:w-4 md:h-4" />
+                                  </button>
                                   <button 
                                     onClick={(e) => handleDeleteClick(e, asset.id, asset.title)} 
                                     className="p-1.5 md:p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500"
@@ -510,14 +441,12 @@ export const AssetsView: React.FC = () => {
                     onClick={openAddModal}
                     className="border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl flex flex-col items-center justify-center p-4 md:p-6 text-gray-600 hover:text-gray-800 hover:border-gray-300 hover:bg-gray-50 transition-all min-h-[200px] md:min-h-[250px] group"
                   >
-                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
-                          <Plus size={20} className="md:w-6 md:h-6" />
-                      </div>
-                      <span className="text-xs md:text-sm font-bold text-gray-700">הוסף נכס חדש</span>
+                      <Plus size={26} className="text-gray-300 group-hover:text-gray-400 transition-colors mb-3" />
+                      <div className="font-bold text-sm">הוסף נכס</div>
+                      <div className="text-xs text-gray-400 mt-1">קישור / קובץ / סיסמה</div>
                   </button>
               </div>
-          )}
-      </div>
+          </div>
     </div>
   );
 };

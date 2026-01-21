@@ -216,7 +216,7 @@ export const CalendarView: React.FC = () => {
           <div className="pt-6 pb-4 px-6 border-b border-gray-100 shrink-0">
               <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-4">
                   <div>
-                      <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-1">יומן</h1>
+                      <h1 className="text-3xl font-black text-gray-900 tracking-tight mb-1">אירועים</h1>
                       <p className="text-gray-500 text-sm">
                           {showHebrewCalendar 
                             ? `${getHebrewMonthName(currentDate)} ${getHebrewYearLetters(currentDate)} - ${currentDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}`
@@ -704,7 +704,7 @@ export const CalendarView: React.FC = () => {
                                         <div>
                                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 px-1 flex items-center gap-2">
                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-400"></div>
-                                                אירועים ביומן
+                                                אירועים בלוח השנה
                                             </h4>
                                             <div className="space-y-2">
                                                 {dayEvents.map((event: any) => (
@@ -714,7 +714,7 @@ export const CalendarView: React.FC = () => {
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="font-medium text-gray-700 truncate">{event.title}</div>
-                                                            <div className="text-xs text-blue-500">יומן Google</div>
+                                                            <div className="text-xs text-blue-500">לוח שנה Google</div>
                                                         </div>
                                                     </div>
                                                 ))}

@@ -158,7 +158,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
             >
                 {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : syncSuccess ? <Check size={16} /> : <RefreshCw size={16} />}
                 <span className="hidden md:inline">
-                    {isSyncing ? 'מסנכרן...' : syncSuccess ? 'פיקס!' : 'סנכרון יומן'}
+                    {isSyncing ? 'מסנכרן...' : syncSuccess ? 'פיקס!' : 'סנכרון אירועים'}
                 </span>
             </button>
 

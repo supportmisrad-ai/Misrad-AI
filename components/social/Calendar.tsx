@@ -465,7 +465,7 @@ export default function Calendar() {
             onClick={handleGoogleSync} 
             className="flex-1 py-3 bg-blue-50 text-blue-600 font-black text-xs rounded-xl border border-blue-100 flex items-center justify-center gap-2"
           >
-            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> סנכרן יומן
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> סנכרן אירועים
           </button>
         </div>
       </section>

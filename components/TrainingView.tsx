@@ -6,12 +6,16 @@ import {
 } from 'lucide-react';
 import { useToast } from './system/contexts/ToastContext';
 import CallAnalyzerView from './CallAnalyzerView';
-import { Lead } from '../types';
+
+type LeadLite = {
+    id: string;
+    name: string;
+};
 
 const GOLDEN_CALLS: { id: number; agent: string; title: string; duration: string; rating: number }[] = [];
 
 interface TrainingViewProps {
-    leads?: Lead[];
+    leads?: LeadLite[];
 }
 
 const TrainingView: React.FC<TrainingViewProps> = ({ leads = [] }) => {

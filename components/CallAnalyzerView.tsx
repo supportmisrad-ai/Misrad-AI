@@ -9,10 +9,14 @@ import {
 } from 'lucide-react';
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
 import { useToast } from '../contexts/ToastContext';
-import { Lead } from '../types';
+
+type LeadLite = {
+    id: string;
+    name: string;
+};
 
 interface CallAnalyzerViewProps {
-    leads?: Lead[];
+    leads?: LeadLite[];
 }
 
 const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {

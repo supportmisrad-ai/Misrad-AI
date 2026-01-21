@@ -19,6 +19,9 @@ export async function getOrCreateSupabaseUserAction(
   preferredOrganizationKey?: string
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
+    const preferredKeyRaw = preferredOrganizationKey ? String(preferredOrganizationKey).trim() : '';
+    const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
+
     let supabase;
     try {
       supabase = createClient();
@@ -90,9 +93,14 @@ export async function getOrCreateSupabaseUserAction(
           .eq('id', existingUser.id);
       }
 
+      // Special mode: when preferred key is invite:<token>, the webhook will create the organization.
+      if (!existingUser.organization_id && isOrgInviteMode) {
+        return { success: true, userId: existingUser.id };
+      }
+
       // If user has no organization but we got a preferred organization from invite flow -> attach and skip provisioning
-      if (!existingUser.organization_id && preferredOrganizationKey) {
-        const orgKey = String(preferredOrganizationKey).trim();
+      if (!existingUser.organization_id && preferredKeyRaw) {
+        const orgKey = preferredKeyRaw;
         const { data: targetOrg } = await supabase
           .from('organizations')
           .select('id')
@@ -235,9 +243,14 @@ export async function getOrCreateSupabaseUserAction(
       return createErrorResponse(createError || new Error(errorMessage), errorMessage);
     }
 
+    // Special mode: when preferred key is invite:<token>, the webhook will create the organization.
+    if (isOrgInviteMode) {
+      return { success: true, userId: newUser.id };
+    }
+
     // If invited to an existing organization, attach and skip auto-provisioning
-    if (preferredOrganizationKey) {
-      const orgKey = String(preferredOrganizationKey).trim();
+    if (preferredKeyRaw) {
+      const orgKey = preferredKeyRaw;
       const { data: targetOrg } = await supabase
         .from('organizations')
         .select('id')

@@ -2,14 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, HardDrive, Calendar, Workflow, RefreshCw, X, Loader2 } from 'lucide-react';
+import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, Calendar, Workflow, RefreshCw, X, Loader2 } from 'lucide-react';
 import {
   getAllIntegrationsStatusForWorkspace,
   getGoogleCalendarAuthUrl,
-  getGoogleDriveAuthUrl,
   getGoogleSheetsAuthUrl,
   syncGoogleCalendar,
-  syncGoogleDrive,
   disconnectIntegration,
   saveWebhookConfig,
   saveMorningCredentialsForWorkspace,
@@ -46,8 +44,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
   const integrationConfigs: IntegrationConfig[] = [
     { id: 'make', name: 'Make.com', icon: Workflow, color: 'bg-[#6D28D9]', desc: 'חיבור וובוקים (Webhooks) ואוטומציות מורכבות לניהול זרימת עבודה חכמה.', type: 'webhook' },
     { id: 'morning', name: 'Morning', icon: Zap, color: 'bg-[#00d07d]', desc: 'הפקת חשבוניות אוטומטית ברגע שהלקוח משלם בפורטל.', type: 'api_key' },
-    { id: 'drive', name: 'Google Drive', icon: HardDrive, color: 'bg-white border border-slate-100 text-blue-500', desc: 'סנכרון אוטומטי של חומרי מדיה מתיקיות לקוח ישירות לבנק התכנים.', type: 'oauth' },
-    { id: 'calendar', name: 'Google Calendar', icon: Calendar, color: 'bg-white border border-slate-100 text-red-500', desc: 'סנכרון לוח השידורים של המשרד עם היומן האישי והיומן של הלקוח.', type: 'oauth' },
+    { id: 'calendar', name: 'Google Calendar', icon: Calendar, color: 'bg-white border border-slate-100 text-red-500', desc: 'סנכרון לוח השידורים של המשרד עם לוח השנה האישי ולוח השנה של הלקוח.', type: 'oauth' },
     { id: 'zapier', name: 'Zapier', icon: Link2, color: 'bg-[#ff4f00]', desc: 'חבר את Social לאלפי אפליקציות וייעל תהליכי עבודה.', type: 'webhook' },
     { id: 'slack', name: 'Slack Notifications', icon: MessageSquare, color: 'bg-[#4a154b]', desc: 'קבל עדכונים על אישורי פוסטים ובקשות לקוח ישירות לערוץ הצוות.', type: 'webhook' },
     { id: 'sheets', name: 'Google Sheets', icon: FileSpreadsheet, color: 'bg-[#0f9d58]', desc: 'ייצא נתוני אנליטיקה וסטטיסטיקות פרסום באופן אוטומטי לגיליון נתונים.', type: 'oauth' },
@@ -102,7 +99,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
     const integration = integrations.find(i => {
       const nameMap: Record<string, string> = {
         'calendar': 'google_calendar',
-        'drive': 'google_drive',
         'sheets': 'google_sheets',
       };
       return i.name === (nameMap[id] || id);
@@ -114,7 +110,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
     const integration = integrations.find(i => {
       const nameMap: Record<string, string> = {
         'calendar': 'google_calendar',
-        'drive': 'google_drive',
         'sheets': 'google_sheets',
       };
       return i.name === (nameMap[id] || id);
@@ -132,8 +127,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
         let result;
         if (id === 'calendar') {
           result = await getGoogleCalendarAuthUrl();
-        } else if (id === 'drive') {
-          result = await getGoogleDriveAuthUrl();
         } else if (id === 'sheets') {
           result = await getGoogleSheetsAuthUrl();
         }
@@ -141,7 +134,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
         if (result?.success && result.authUrl) {
           // Add state parameter with integration name
           const url = new URL(result.authUrl);
-          url.searchParams.set('state', id === 'calendar' ? 'google_calendar' : id === 'drive' ? 'google_drive' : 'google_sheets');
+          url.searchParams.set('state', id === 'calendar' ? 'google_calendar' : 'google_sheets');
           window.location.href = url.toString();
         } else {
           onNotify(result?.error || 'שגיאה ביצירת קישור הרשאה', 'error');
@@ -210,8 +203,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
       let result;
       if (id === 'calendar') {
         result = await syncGoogleCalendar();
-      } else if (id === 'drive') {
-        result = await syncGoogleDrive();
       }
 
       if (result?.success) {
@@ -233,7 +224,6 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
     try {
       const nameMap: Record<string, string> = {
         'calendar': 'google_calendar',
-        'drive': 'google_drive',
         'sheets': 'google_sheets',
       };
       const integrationName = nameMap[id] || id;
@@ -292,7 +282,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                       className={`w-full ${integration.color.includes('bg-') && !integration.color.includes('text-') ? integration.color : 'bg-blue-600'} ${integration.color.includes('text-') ? integration.color.split(' ')[integration.color.split(' ').length - 1] : 'text-white'} py-4 rounded-xl font-black text-xs shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2`}
                     >
                       חבר {integration.name.includes('Google') ? integration.name : `חשבון ${integration.name}`}
-                      {(integration.id === 'drive' || integration.id === 'calendar' || integration.id === 'zapier') && <ExternalLink size={14} />}
+                      {(integration.id === 'calendar' || integration.id === 'zapier') && <ExternalLink size={14} />}
                     </button>
                   ) : (
                     <div className="flex flex-col gap-2">
@@ -319,7 +309,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                           )}
                         </button>
                       )}
-                      {(integration.id === 'calendar' || integration.id === 'drive') && (
+                      {integration.id === 'calendar' && (
                         <button
                           onClick={() => handleSync(integration.id)}
                           disabled={syncing === integration.id}

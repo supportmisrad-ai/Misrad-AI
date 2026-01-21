@@ -6,6 +6,8 @@ import { User, TimeEntry, RoleDefinition, PermissionId, ChangeRequest } from '..
 import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
 const isNetworkError = (err: any): boolean => {
     return err?.name === 'TypeError' &&
         (String(err?.message || '').includes('Failed to fetch') ||
@@ -146,7 +148,10 @@ export const useAuth = (
         const loadCurrentUser = async () => {
             if (!isClerkLoaded) return;
 
-            if (initialCurrentUser?.id) {
+            // If the server provided an initial user, we still need to hydrate
+            // the canonical DB user (UUID) + profile fields (uiPreferences, phone, etc.).
+            // Otherwise, the UI will behave like a demo after refresh.
+            if (initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) {
                 setIsLoadingCurrentUser(false);
                 setIsAuthenticated(true);
                 return;
@@ -163,7 +168,7 @@ export const useAuth = (
             if (loadCurrentUserInFlightRef.current) return;
             
             // If user is already loaded and matches current Clerk user, skip
-            if (currentUser.id && isAuthenticated) {
+            if (currentUser.id && isUUID(String(currentUser.id)) && isAuthenticated) {
                 return; // Already loaded (DB UUID)
             }
 

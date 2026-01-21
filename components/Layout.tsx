@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Task, Notification } from '../types';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ import { MemoHeader } from './layout/Header';
 import { LayoutModals } from './layout/LayoutModals';
 import { MobileMenu } from './layout/MobileMenu';
 import { NAV_ITEMS } from './layout/layout.types';
-import { getMyProfile } from '@/app/actions/profiles';
+import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 
 interface LayoutProps {
   children?: React.ReactNode;
@@ -33,28 +33,38 @@ export const Layout = ({ children }: LayoutProps) => {
   const basePath: string = getNexusBasePath(pathname);
   const moduleDef = useMemo(() => getModuleDefinition('nexus'), []);
   const location = useMemo(() => ({ pathname: pathname || '/' }) as any, [pathname]);
-  const navigate = useCallback(
-    (path: string) => {
-      const raw = String(path || '/');
-      const [rawPath, rawQuery] = raw.split('?');
-      const query = new URLSearchParams(rawQuery || '');
+  const navigate = (path: string) => {
+    const raw = String(path || '/');
+    const [rawPath, rawQuery] = raw.split('?');
+    const query = new URLSearchParams(rawQuery || '');
 
-      const from = pathname || toNexusPath(basePath, '/');
+    const from = pathname || toNexusPath(basePath, '/');
 
-      // Normalize Nexus profile/settings navigation so the unified hub can provide
-      // correct back behavior without changing every call site.
-      if (rawPath === '/settings') {
-        if (!query.has('origin')) query.set('origin', 'nexus');
-        if (!query.has('drawer')) query.set('drawer', 'ai');
-        if (!query.has('from')) query.set('from', from);
+    // Normalize Nexus profile/settings navigation so the unified hub can provide
+    // correct back behavior without changing every call site.
+    if (rawPath === '/settings') {
+      if (!query.has('origin')) query.set('origin', 'nexus');
+      if (!query.has('drawer')) query.set('drawer', 'ai');
+      if (!query.has('from')) query.set('from', from);
+    }
+
+    if (rawPath === '/me' && systemIdentity?.needsProfileCompletion && !query.has('edit')) {
+      query.set('edit', 'profile');
+    }
+
+    const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
+
+    if (finalPath === '/operations') {
+      const workspaceOrg = getWorkspaceOrgIdFromPathname(pathname);
+      if (workspaceOrg) {
+        router.push(`/w/${encodeURIComponent(workspaceOrg)}/operations`);
+        return;
       }
+    }
 
-      const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
-      const target = toNexusPath(basePath, finalPath);
-      router.push(target);
-    },
-    [basePath, router]
-  );
+    const target = toNexusPath(basePath, finalPath);
+    router.push(target);
+  };
   const mainScrollRef = useRef<HTMLElement>(null);
   const { showMorningBrief, setShowMorningBrief, notifications, lastDeletedTask, undoDelete, currentUser, isCreateTaskOpen, openCreateTask, closeCreateTask, incomingCall, dismissCall, toasts, removeToast, openedTaskId, closeTask, tasks, hasPermission, setCommandPaletteOpen, isCommandPaletteOpen, organization, taskToComplete, isSupportModalOpen, openSupport, activeCelebration, startTutorial, leads } = useData();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -67,8 +77,24 @@ export const Layout = ({ children }: LayoutProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('טוען...');
   const [isMounted, setIsMounted] = useState(false);
-  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
   const orgSlug = useMemo(() => getWorkspaceOrgIdFromPathname(pathname || ''), [pathname]);
+
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+    name: (currentUser as any)?.name ?? null,
+    role: (currentUser as any)?.role ?? null,
+    avatarUrl: (currentUser as any)?.avatar ?? null,
+  });
+
+  const allowMorningBrief = useMemo(() => {
+    // Only on Nexus home dashboard
+    return location.pathname === toNexusPath(basePath, '/');
+  }, [basePath, location.pathname]);
+
+  useEffect(() => {
+    if (!allowMorningBrief && showMorningBrief) {
+      setShowMorningBrief(false);
+    }
+  }, [allowMorningBrief, showMorningBrief, setShowMorningBrief]);
   
   // Check Shabbat status
   const { isShabbat, isLoading: shabbatLoading } = useShabbat();
@@ -78,28 +104,6 @@ export const Layout = ({ children }: LayoutProps) => {
       setIsMounted(true);
       setCurrentDate(new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }));
   }, []);
-
-  useEffect(() => {
-      const load = async () => {
-          if (!orgSlug) {
-              setProfileIdentity(null);
-              return;
-          }
-          try {
-              const res = await getMyProfile({ orgSlug });
-              if (!res.success || !res.data?.profile) return;
-              const p: any = res.data.profile;
-              setProfileIdentity({
-                  name: p.full_name ? String(p.full_name) : null,
-                  role: p.role ? String(p.role) : null,
-              });
-          } catch {
-              // Best-effort
-          }
-      };
-
-      load();
-  }, [orgSlug]);
 
   // Lightweight client navigation timing for internal Nexus route changes
   useEffect(() => {
@@ -292,7 +296,13 @@ export const Layout = ({ children }: LayoutProps) => {
       };
   }, [currentUser?.isSuperAdmin, router, setCommandPaletteOpen]);
 
-  const isActive = (path: string) => location.pathname === toNexusPath(basePath, path);
+  const isActive = (path: string) => {
+    if (path === '/operations') {
+      if (!orgSlug) return false;
+      return location.pathname === `/w/${encodeURIComponent(orgSlug)}/operations`;
+    }
+    return location.pathname === toNexusPath(basePath, path);
+  };
   
   // Filter notifications for current user only
   const hasUnread = notifications
@@ -303,10 +313,11 @@ export const Layout = ({ children }: LayoutProps) => {
     const base: any = currentUser || { name: 'משתמש', role: '' };
     return {
       ...base,
-      name: profileIdentity?.name || base.name || 'משתמש',
-      role: profileIdentity?.role || base.role || '',
+      name: systemIdentity?.name || base.name || 'משתמש',
+      role: systemIdentity?.role || base.role || '',
+      avatar: systemIdentity?.avatarUrl || base.avatar || '',
     };
-  }, [currentUser, profileIdentity?.name, profileIdentity?.role]);
+  }, [currentUser, systemIdentity?.avatarUrl, systemIdentity?.name, systemIdentity?.role]);
 
   const togglePlusMenu = () => { setIsMobileMenuOpen(false); setIsPlusMenuOpen(!isPlusMenuOpen); };
   const toggleMobileMenu = () => { setIsPlusMenuOpen(false); setIsMobileMenuOpen(!isMobileMenuOpen); };
@@ -515,6 +526,7 @@ export const Layout = ({ children }: LayoutProps) => {
       {isMounted && (
         <LayoutModals
           showMorningBrief={showMorningBrief}
+          allowMorningBrief={allowMorningBrief}
           isVoiceRecorderOpen={isVoiceRecorderOpen}
           setIsVoiceRecorderOpen={setIsVoiceRecorderOpen}
           isCreateTaskOpen={isCreateTaskOpen}
@@ -562,7 +574,7 @@ export const Layout = ({ children }: LayoutProps) => {
         />
 
         <main ref={mainScrollRef} className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0 touch-pan-y" id="main-scroll-container" style={{ WebkitOverflowScrolling: 'touch' }}>
-          <div className="flex flex-col min-h-0 pb-16 md:pb-0">
+          <div className="flex flex-col min-h-0 pb-24 md:pb-0">
             {children}
           </div>
         </main>
@@ -582,6 +594,7 @@ export const Layout = ({ children }: LayoutProps) => {
             isActive={isActive}
             hasPermission={hasPermission}
             organization={organization}
+            allowMorningBrief={allowMorningBrief}
             setShowMorningBrief={setShowMorningBrief}
             openSupport={openSupport}
             startTutorial={startTutorial}

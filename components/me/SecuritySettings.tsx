@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { Shield, QrCode, ChevronRight, ShieldCheck, Check } from 'lucide-react';
+import { Shield, QrCode, ChevronRight, ShieldCheck, Check, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { BiometricSetup } from '../nexus/BiometricSetup';
@@ -16,6 +16,9 @@ export const SecuritySettings: React.FC = () => {
     const [is2FASetup, setIs2FASetup] = useState(false);
     const [verifyCode, setVerifyCode] = useState('');
     const [showDisableConfirm, setShowDisableConfirm] = useState(false);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
 
     const handleVerify2FA = async () => {
         if (verifyCode.length === 6) {
@@ -79,11 +82,42 @@ export const SecuritySettings: React.FC = () => {
             </div>
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה נוכחית</label>
-                <input type="password" value="********" readOnly className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black" />
+                <div className="relative">
+                    <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value="********"
+                        readOnly
+                        className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((v) => !v)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                        aria-label={showCurrentPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                    >
+                        {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                </div>
             </div>
             <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-2">סיסמה חדשה</label>
-                <input type="password" placeholder="הקלד סיסמה חזקה..." className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black" />
+                <div className="relative">
+                    <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="הקלד סיסמה חזקה..."
+                        className="w-full p-3 pl-12 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => setShowNewPassword((v) => !v)}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                        aria-label={showNewPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
+                    >
+                        {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                </div>
             </div>
             
             {/* Biometric Setup (Passkeys) */}

@@ -1,12 +1,13 @@
 import { NavItem } from '../../types';
-import { Home, CheckSquare, Calendar, Briefcase, Users, PieChart, FolderOpen, Trash2, Settings, Atom } from 'lucide-react';
+import { Home, CheckSquare, Calendar, Briefcase, Users, PieChart, FolderOpen, Trash2, Settings, Atom, Wrench } from 'lucide-react';
 
 // Updated with module links and screen IDs
 export const NAV_ITEMS: NavItem[] = [
   { label: 'לוח בקרה', path: '/', icon: Home, screenId: 'dashboard' }, 
   { label: 'משימות', path: '/tasks', icon: CheckSquare, screenId: 'tasks' }, 
-  { label: 'יומן', path: '/calendar', icon: Calendar, screenId: 'calendar' }, 
+  { label: 'אירועים', path: '/calendar', icon: Calendar, screenId: 'calendar' }, 
   { label: 'לקוחות', path: '/clients', icon: Briefcase, moduleId: 'crm', screenId: 'clients' }, 
+  { label: 'תפעול', path: '/operations', icon: Wrench, moduleId: 'operations', screenId: 'operations' },
   { label: 'ניהול צוות', path: '/team', icon: Users, moduleId: 'team', screenId: 'team' },
   { label: 'דוחות ומדדים', path: '/reports', icon: PieChart, moduleId: 'finance', screenId: 'reports' }, 
   { label: 'נכסים ותיקיות', path: '/assets', icon: FolderOpen, screenId: 'assets' },

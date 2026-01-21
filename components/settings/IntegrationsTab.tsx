@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Calendar, HardDrive, Webhook, Copy, Check, Code, Play, FileText, BrainCircuit, AlertTriangle } from 'lucide-react';
+import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
 
 export const IntegrationsTab: React.FC = () => {
-    const { isCalendarConnected, connectGoogleCalendar, isDriveConnected, connectGoogleDrive, isGreenInvoiceConnected, connectGreenInvoice } = useData();
+    const { isCalendarConnected, connectGoogleCalendar, isGreenInvoiceConnected, connectGreenInvoice } = useData();
     const [webhookUrl] = useState('');
     const [copied, setCopied] = useState('');
     const [showGreenInvoiceModal, setShowGreenInvoiceModal] = useState(false);
@@ -82,7 +82,7 @@ export const IntegrationsTab: React.FC = () => {
         }
         
         if (success) {
-            if (success === 'calendar_connected' || success === 'drive_connected' || success === 'green_invoice_connected') {
+            if (success === 'calendar_connected' || success === 'green_invoice_connected') {
                 setOauthSuccess(success);
                 // Clean URL after showing success message
                 setTimeout(() => {
@@ -129,15 +129,11 @@ export const IntegrationsTab: React.FC = () => {
                                 <h3 className="font-bold text-sm text-green-900 mb-1">
                                     {oauthSuccess === 'calendar_connected' 
                                         ? '✅ Google Calendar מחובר בהצלחה!' 
-                                        : oauthSuccess === 'drive_connected'
-                                        ? '✅ Google Drive מחובר בהצלחה!'
                                         : '✅ מורנינג מחובר בהצלחה!'}
                                 </h3>
                                 <p className="text-xs text-green-700">
                                     {oauthSuccess === 'calendar_connected' 
                                         ? 'החיבור ל-Google Calendar הושלם בהצלחה. המשימות שלך יסתנכרנו אוטומטית.' 
-                                        : oauthSuccess === 'drive_connected'
-                                        ? 'החיבור ל-Google Drive הושלם בהצלחה. אתה יכול לגשת לקבצים שלך ישירות מהמערכת.'
                                         : 'החיבור למורנינג הושלם בהצלחה. אתה יכול ליצור חשבוניות ישירות מהמערכת.'}
                                 </p>
                             </div>
@@ -268,6 +264,21 @@ export const IntegrationsTab: React.FC = () => {
                             {isGreenInvoiceConnected ? 'מחובר' : 'התחבר'}
                         </button>
                     </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                            <div>
+                                <div className="text-sm font-bold text-gray-900">מדריך התחברות</div>
+                                <div className="text-xs text-gray-500">בקרוב: סרטון הסבר קצר (YouTube)</div>
+                            </div>
+                            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-700">
+                                <Play size={16} />
+                            </div>
+                        </div>
+                        <div className="aspect-video bg-black/5 flex items-center justify-center text-xs text-gray-500">
+                            Placeholder: YouTube Embed
+                        </div>
+                    </div>
                 </div>
 
                 {/* Google Services */}
@@ -331,37 +342,6 @@ export const IntegrationsTab: React.FC = () => {
                             </div>
                         </div>
                     )}
-
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
-                                <img 
-                                    src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" 
-                                    alt="Google Drive" 
-                                    className="w-6 h-6"
-                                    onError={(e) => {
-                                        // Fallback to icon if image fails to load
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        const parent = (e.target as HTMLImageElement).parentElement;
-                                        if (parent) {
-                                            parent.innerHTML = '<svg class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 24 24"><path d="M7.71 2.5L2.5 7.71l5.21 5.21L12.92 7.71 7.71 2.5zm1.42 0L12.92 7.71l5.21-5.21L14.33 2.5 9.13 7.71zm-1.42 14.58L2.5 16.29l5.21-5.21 5.21 5.21-5.21 5.21zm1.42 0l5.21-5.21 5.21 5.21-5.21 5.21-5.21-5.21z"/></svg>';
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <div>
-                                <div className="font-bold text-sm text-gray-900">Google Drive</div>
-                                <div className="text-xs text-gray-500">{isDriveConnected ? 'מחובר ופעיל' : 'לא מחובר'}</div>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={() => connectGoogleDrive()}
-                            disabled={isDriveConnected}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${isDriveConnected ? 'bg-green-100 text-green-700 cursor-default' : 'bg-black text-white hover:bg-gray-800'}`}
-                        >
-                            {isDriveConnected ? 'מחובר' : 'התחבר'}
-                        </button>
-                    </div>
                 </div>
 
                 {/* AI Configuration */}

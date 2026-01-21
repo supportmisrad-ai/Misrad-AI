@@ -113,7 +113,7 @@ async function POSTHandler(
 
         if (!caps.isTeamManagementEnabled) {
             return NextResponse.json(
-                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { error: 'ניהול צוות זמין רק עם מודול Nexus' },
                 { status: 403 }
             );
         }

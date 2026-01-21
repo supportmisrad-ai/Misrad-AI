@@ -1,0 +1,96 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { getSecurityAuditLog } from '@/app/actions/admin';
+import { useData } from '@/context/DataContext';
+
+type AuditItem = {
+  action: string;
+  user: string;
+  time: string;
+  timestamp: string;
+};
+
+export default function AdminLogsPage() {
+  const { addToast } = useData();
+  const [isLoading, setIsLoading] = useState(true);
+  const [items, setItems] = useState<AuditItem[]>([]);
+
+  const load = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getSecurityAuditLog({ limit: 100, offset: 0 });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בטעינת לוגים', 'error');
+        setItems([]);
+        return;
+      }
+      setItems((res.data || []) as any);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <div className="text-2xl font-black text-slate-900">לוגים</div>
+          <div className="text-sm font-bold text-slate-500 mt-1">Audit Log</div>
+        </div>
+
+        <button
+          type="button"
+          onClick={load}
+          className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
+        >
+          <RefreshCw size={16} />
+          רענון
+        </button>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-right">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">זמן</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">משתמש</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">פעולה</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {isLoading ? (
+                <tr>
+                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={3}>
+                    טוען...
+                  </td>
+                </tr>
+              ) : items.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={3}>
+                    אין נתונים
+                  </td>
+                </tr>
+              ) : (
+                items.map((it, idx) => (
+                  <tr key={`${it.timestamp}_${idx}`} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm text-slate-700">{it.time}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{it.user}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{it.action}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}

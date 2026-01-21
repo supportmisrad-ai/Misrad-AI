@@ -129,7 +129,7 @@ export const TemplatesTab: React.FC = () => {
                 <>
                     <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
                         <div>
-                            <h2 className="text-xl font-black text-gray-900">אדריכלות תהליכים</h2>
+                            <h2 className="text-xl font-black text-gray-900">תהליכים</h2>
                             <p className="text-sm text-gray-500 mt-1">הגדרת "השיטה" של העסק: קליטת לקוח, הפקת תוכן וניהול פרויקטים.</p>
                         </div>
                         <button 
@@ -199,7 +199,7 @@ export const TemplatesTab: React.FC = () => {
                 <motion.div 
                     initial={{ opacity: 0, y: 20 }} 
                     animate={{ opacity: 1, y: 0 }} 
-                    className="bg-white border border-gray-200 rounded-[2rem] shadow-xl overflow-hidden flex flex-col h-[80vh] md:h-[80vh]"
+                    className="bg-white border border-gray-200 rounded-[2rem] shadow-xl overflow-hidden flex flex-col h-auto md:h-[80vh]"
                 >
                     {/* Editor Header */}
                     <div className="p-4 md:p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -219,7 +219,7 @@ export const TemplatesTab: React.FC = () => {
 
                     <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
                         {/* Left Settings Panel */}
-                        <div className="w-full md:w-80 border-b md:border-b-0 md:border-l border-gray-100 p-4 md:p-6 bg-white overflow-y-auto custom-scrollbar shrink-0 max-h-[40vh] md:max-h-none">
+                        <div className="w-full md:w-80 border-b md:border-b-0 md:border-l border-gray-100 p-4 md:p-6 bg-white overflow-visible md:overflow-y-auto custom-scrollbar shrink-0 max-h-none md:max-h-none">
                             <div className="space-y-6">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2">שם התהליך</label>
@@ -268,7 +268,7 @@ export const TemplatesTab: React.FC = () => {
                         </div>
 
                         {/* Main Editor Area (Flow Builder) */}
-                        <div className="flex-1 bg-gray-50/30 p-4 md:p-8 overflow-y-auto custom-scrollbar">
+                        <div className="flex-1 bg-gray-50/30 p-4 md:p-8 overflow-visible md:overflow-y-auto custom-scrollbar">
                             <div className="max-w-3xl mx-auto">
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 md:mb-6">
                                     <h4 className="font-bold text-gray-900 text-base md:text-lg flex items-center gap-2">

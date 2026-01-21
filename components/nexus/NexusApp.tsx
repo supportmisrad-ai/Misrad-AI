@@ -105,7 +105,7 @@ const NexusOSApp = () => {
 
   const NAV_ITEMS = [
       { id: 'tasks', label: 'משימות', icon: CheckSquare },
-      { id: 'calendar', label: 'יומן', icon: Calendar },
+      { id: 'calendar', label: 'אירועים', icon: Calendar },
       { id: 'headquarters', label: 'מפקדה', icon: Home },
       { id: 'team', label: 'צוות', icon: Users },
       { id: 'reports', label: 'דוחות', icon: PieChart },

@@ -39,6 +39,7 @@ import { IntegrationsTab } from '../components/saas/social/tabs/IntegrationsTab'
 import { AutomationTab } from '../components/saas/social/tabs/AutomationTab';
 import { QuotasTab } from '../components/saas/social/tabs/QuotasTab';
 import { TeamTab } from '../components/saas/social/tabs/TeamTab';
+import { getSystemMetrics } from '@/app/actions/admin';
 
 type SystemType = 'global' | 'nexus' | 'system' | 'client' | 'landing' | 'social' | null;
 type GlobalTab = 'control' | 'ai' | 'versions' | 'data' | 'updates' | 'approvals' | 'users' | 'announcements';
@@ -59,6 +60,7 @@ export const SaaSAdminView: React.FC = () => {
     const [socialTab, setSocialTab] = useState<SocialTab>('overview');
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoadingTenants, setIsLoadingTenants] = useState(false);
+    const [adminSystemMetrics, setAdminSystemMetrics] = useState<any>(null);
     
     // Modal States
     const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
@@ -205,6 +207,26 @@ export const SaaSAdminView: React.FC = () => {
             loadTenants();
         }
     }, [currentUser?.isSuperAdmin, currentUser?.id]); // Load when super admin status is known
+
+    useEffect(() => {
+        if (!currentUser?.isSuperAdmin) return;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await getSystemMetrics();
+                if (!cancelled && res?.success && res.data) {
+                    setAdminSystemMetrics(res.data);
+                }
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentUser?.isSuperAdmin]);
     
     // Stats
     const totalMRR = tenants.filter((t: Tenant) => t.status === 'Active').reduce((acc: number, t: Tenant) => acc + t.mrr, 0);
@@ -1031,6 +1053,8 @@ export const SaaSAdminView: React.FC = () => {
                                         activeTenants={activeTenants}
                                         trialTenants={trialTenants}
                                         totalUsers={totalUsers}
+                                        mrrTrendPct={adminSystemMetrics?.trends?.mrr ?? null}
+                                        apiHealthScore={adminSystemMetrics?.apiHealthScore ?? null}
                                         filteredTenants={filteredTenants}
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}

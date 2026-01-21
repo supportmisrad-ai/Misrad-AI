@@ -86,15 +86,18 @@ export function SharedHeader({
           <Search size={18} />
         </button>
 
-        <button
-          onClick={() => onOpenSupportAction?.()}
-          className="p-2 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-          aria-label="תמיכה"
-          title="תמיכה"
-          type="button"
-        >
-          <Headphones size={18} />
-        </button>
+        {onOpenSupportAction ? (
+          <button
+            id="support-trigger"
+            onClick={() => onOpenSupportAction?.()}
+            className="p-2 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+            aria-label="תמיכה"
+            title="תמיכה"
+            type="button"
+          >
+            <Headphones size={18} />
+          </button>
+        ) : null}
 
         <div className="hidden md:flex items-center gap-2">{switcherSlot}</div>
 

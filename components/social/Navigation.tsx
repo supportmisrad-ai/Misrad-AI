@@ -38,6 +38,7 @@ const DEFAULT_ITEMS = [
   { id: 'team', label: 'צוות', icon: 'Users', view: 'team', section: 'management', order: 1, isVisible: true },
   { id: 'collection', label: 'גבייה', icon: 'Wallet', view: 'collection', section: 'management', order: 2, isVisible: true },
   { id: 'agency-insights', label: 'תובנות', icon: 'TrendingUp', view: 'agency-insights', section: 'management', order: 3, isVisible: true },
+  { id: 'settings', label: 'הגדרות', icon: 'Settings', view: 'settings', section: 'settings', order: 1, isVisible: true },
 ];
 
 function NavigationImpl({
@@ -107,7 +108,6 @@ function NavigationImpl({
       .filter((item: any) => {
         if (item.section !== section) return false;
         if (!item.isVisible) return false;
-        if (item.view === 'settings') return false;
         if (item.id === 'team' && isTeamEnabled === false) return false;
         return true;
       })

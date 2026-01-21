@@ -11,12 +11,12 @@ export const LeadsView: React.FC = () => {
     const [isSyncing, setIsSyncing] = useState(false);
 
     // KPI Calculations
-    const totalRevenue = leads.reduce((sum, lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
-    const potentialRevenue = leads.reduce((sum, lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0);
-    const winRate = leads.filter(l => l.status === LeadStatus.WON).length / (leads.filter(l => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1) * 100;
+    const totalRevenue = leads.reduce((sum: number, lead: Lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
+    const potentialRevenue = leads.reduce((sum: number, lead: Lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0);
+    const winRate = leads.filter((l: Lead) => l.status === LeadStatus.WON).length / (leads.filter((l: Lead) => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1) * 100;
     
     const KANBAN_COLUMNS = [
-        { id: LeadStatus.NEW, label: 'ליד חדש', color: 'bg-blue-50 text-blue-700' },
+        { id: LeadStatus.NEW, label: 'ליד נפתח', color: 'bg-blue-50 text-blue-700' },
         { id: LeadStatus.QUALIFIED, label: 'סונן/מתאים', color: 'bg-purple-50 text-purple-700' },
         { id: LeadStatus.MEETING, label: 'פגישה נקבעה', color: 'bg-orange-50 text-orange-700' },
         { id: LeadStatus.NEGOTIATION, label: 'משא ומתן', color: 'bg-yellow-50 text-yellow-700' },
@@ -118,7 +118,7 @@ export const LeadsView: React.FC = () => {
                          <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
                             <Users size={14} className="text-orange-600" /> לידים חדשים
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === LeadStatus.NEW).length}</div>
+                        <div className="text-2xl font-bold text-gray-900">{(leads as Lead[]).filter((l: Lead) => l.status === LeadStatus.NEW).length}</div>
                     </div>
                 </div>
             </div>
@@ -127,7 +127,7 @@ export const LeadsView: React.FC = () => {
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
                 <div className="flex h-full min-w-max gap-4 px-1">
                     {KANBAN_COLUMNS.map(col => {
-                        const colLeads = leads.filter(l => l.status === col.id);
+                        const colLeads = (leads as Lead[]).filter((l: Lead) => l.status === col.id);
                         return (
                             <div 
                                 key={col.id}
@@ -141,13 +141,13 @@ export const LeadsView: React.FC = () => {
                                         <span className="text-xs text-gray-400 font-mono">({colLeads.length})</span>
                                     </div>
                                     <div className="text-[10px] text-gray-400 font-medium">
-                                        {formatCurrency(colLeads.reduce((acc, curr) => acc + curr.value, 0))}
+                                        {formatCurrency(colLeads.reduce((acc: number, curr: Lead) => acc + curr.value, 0))}
                                     </div>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-                                    {colLeads.map(lead => {
-                                        const product = products.find(p => p.name === lead.interestedIn);
+                                    {colLeads.map((lead: Lead) => {
+                                        const product = (products as any[]).find((p: any) => p.name === (lead as any).interestedIn);
                                         return (
                                             <motion.div
                                                 key={lead.id}

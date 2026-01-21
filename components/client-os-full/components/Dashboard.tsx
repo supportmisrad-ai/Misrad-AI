@@ -4,7 +4,6 @@ import { HealthStatus, GroupEvent, ClientStatus } from '../types';
 import DailyBriefing from './DailyBriefing';
 import { useNexus } from '../context/ClientContext';
 import { getClientDashboardData } from '@/app/actions/client-portal-clinic';
-import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 
 type FeedItemType = 'RISK' | 'OPPORTUNITY' | 'OPS';
 
@@ -218,58 +217,86 @@ const Dashboard: React.FC = () => {
 
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end pb-2 gap-4">
         <div className="flex-1 w-full md:w-auto">
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-nexus-primary tracking-tight mb-2">מה המצב?</h1>
-          <p className="text-nexus-muted text-base font-medium">ניהול {dashboardData?.activeClientsCount ?? activeClients.length} לקוחות פעילים</p>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mb-1">לוח בקרה</h1>
+          <p className="text-slate-500 text-sm md:text-base font-medium">
+            {dashboardData?.activeClientsCount ?? activeClients.length} פרויקטים פעילים
+          </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
-            {/* Global Search Trigger (Visual) */}
-            <div className="flex items-center gap-3">
-              <div 
-                  onClick={triggerSearch}
-                  className="flex-1 sm:w-64 bg-white border border-gray-200 rounded-xl px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:border-nexus-primary/50 transition-all shadow-sm group"
-              >
-                  <Search size={18} className="text-gray-400 group-hover:text-nexus-primary" />
-                  <span className="text-sm text-gray-400 font-medium">חיפוש מהיר...</span>
-                  <div className="mr-auto flex items-center gap-1 opacity-50">
-                      <Command size={12} />
-                      <span className="text-[10px] font-bold">K</span>
-                  </div>
-              </div>
-              <RoomSwitcher />
-            </div>
 
-            <div className="flex gap-2">
-                <button onClick={() => setShowDailyBriefing(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-nexus-primary text-white rounded-xl shadow-lg hover:bg-nexus-accent transition-all">
-                    <Sun size={16} /> <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
-                </button>
-                <div className="glass-card px-6 py-3 rounded-xl border-l-4 border-l-nexus-accent flex-1 md:flex-none">
-                    <span className="text-[10px] text-nexus-muted uppercase font-bold block">MRR פעיל</span>
-                    <span className="text-2xl font-mono font-bold">₪{totalRevenue.toLocaleString()}</span>
-                </div>
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
+          <div
+            onClick={triggerSearch}
+            className="flex-1 sm:w-64 bg-white/70 border border-white/60 rounded-2xl px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:bg-white hover:border-[color:var(--theme-border)] transition-all shadow-sm"
+          >
+            <Search size={18} className="text-slate-400" />
+            <span className="text-sm text-slate-400 font-medium">חיפוש מהיר...</span>
+            <div className="mr-auto flex items-center gap-1 opacity-50">
+              <Command size={12} />
+              <span className="text-[10px] font-bold">K</span>
             </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowDailyBriefing(true)}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-[color:var(--os-accent)] text-white rounded-2xl shadow-lg ring-1 ring-[color:var(--theme-border)] hover:opacity-95 transition-all"
+              type="button"
+            >
+              <Sun size={16} />
+              <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
+            </button>
+
+            <div className="ui-card px-6 py-3 flex-1 md:flex-none">
+              <span className="text-[10px] text-slate-500 uppercase font-bold block">MRR פעיל</span>
+              <span className="text-2xl font-mono font-black text-slate-900">₪{totalRevenue.toLocaleString()}</span>
+            </div>
+          </div>
         </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="glass-card p-8 rounded-2xl">
-          <span className="text-xs font-bold text-nexus-muted uppercase mb-2 block">כסף בסיכון</span>
-          <div className="text-4xl font-display font-semibold text-nexus-primary">₪{revenueAtRisk.toLocaleString()}</div>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-4">
-             <div className="h-full bg-signal-danger" style={{ width: `${riskPercentage}%` }}></div>
+        <div className="ui-card p-7 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-500 uppercase">כסף בסיכון</span>
+              <AlertTriangle size={18} className="text-amber-700" />
+            </div>
+            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">₪{revenueAtRisk.toLocaleString()}</div>
+            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
+              <div className="h-full bg-signal-danger" style={{ width: `${riskPercentage}%` }} />
+            </div>
           </div>
         </div>
-        <div className="glass-card p-8 rounded-2xl">
-          <span className="text-xs font-bold text-nexus-muted uppercase mb-2 block">חשבוניות באיחור</span>
-          <div className="text-4xl font-display font-semibold text-nexus-primary">{overdueInvoicesCount}</div>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-4">
-             <div className="h-full bg-signal-warning" style={{ width: `${Math.min(100, overdueInvoicesCount * 10)}%` }}></div>
+
+        <div className="ui-card p-7 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-500 uppercase">חשבוניות באיחור</span>
+              <FileText size={18} className="text-orange-700" />
+            </div>
+            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{overdueInvoicesCount}</div>
+            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
+              <div className="h-full bg-signal-warning" style={{ width: `${Math.min(100, overdueInvoicesCount * 10)}%` }} />
+            </div>
           </div>
         </div>
-        <div className="glass-card p-8 rounded-2xl">
-          <span className="text-xs font-bold text-nexus-muted uppercase mb-2 block">משימות פתוחות</span>
-          <div className="text-4xl font-display font-semibold text-nexus-primary">{openClientTasksCount + openAgencyTasksCount}</div>
-          <div className="w-full bg-gray-200 h-1.5 rounded-full overflow-hidden mt-4">
-             <div className="h-full bg-nexus-primary" style={{ width: `${Math.min(100, (openClientTasksCount + openAgencyTasksCount) * 5)}%` }}></div>
+
+        <div className="ui-card p-7 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-[color:var(--os-accent)]/12 via-transparent to-transparent" />
+          <div className="relative">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-500 uppercase">משימות פתוחות</span>
+              <CheckSquare size={18} className="text-[color:var(--os-accent)]" />
+            </div>
+            <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{openClientTasksCount + openAgencyTasksCount}</div>
+            <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[color:var(--os-accent)]"
+                style={{ width: `${Math.min(100, (openClientTasksCount + openAgencyTasksCount) * 5)}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

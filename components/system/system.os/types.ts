@@ -95,6 +95,7 @@ export interface Invoice {
 export interface CalendarEvent {
     id: string;
     title: string; 
+    leadId?: string | null;
     leadName: string;
     leadCompany: string;
     dayName: string;

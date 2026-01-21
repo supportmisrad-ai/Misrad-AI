@@ -137,7 +137,7 @@ export const RequestsTab: React.FC = () => {
             case 'done': return { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2, label: 'בוצע' };
             case 'approved': return { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Zap, label: 'אושר' };
             case 'reviewing': return { color: 'bg-orange-50 text-orange-700 border-orange-200', icon: Clock, label: 'בבדיקה' };
-            default: return { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: Tag, label: 'חדש' };
+            default: return { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: Tag, label: 'נפתח' };
         }
     };
 
@@ -145,7 +145,7 @@ export const RequestsTab: React.FC = () => {
         switch (type) {
             case 'bug': return { label: 'תקלה', icon: Bug, color: 'text-red-500 bg-red-50 border-red-100' };
             case 'change': return { label: 'שיפור', icon: Wrench, color: 'text-orange-500 bg-orange-50 border-orange-100' };
-            default: return { label: 'פיצ׳ר חדש', icon: Sparkles, color: 'text-purple-500 bg-purple-50 border-purple-100' };
+            default: return { label: 'פיצ׳ר', icon: Sparkles, color: 'text-purple-500 bg-purple-50 border-purple-100' };
         }
     };
 

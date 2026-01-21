@@ -3,7 +3,7 @@ import { Lead, PipelineStage, FieldAgent, Campaign, Student, Task, ContentItem, 
 import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, BrainCircuit, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
 export const STAGES: { id: PipelineStage; label: string; color: string; accent: string }[] = [
-  { id: 'incoming', label: 'חדש', color: 'border-slate-200', accent: 'bg-slate-400' }, 
+  { id: 'incoming', label: 'נכנס', color: 'border-slate-200', accent: 'bg-slate-400' }, 
   { id: 'contacted', label: 'דיברנו', color: 'border-slate-200', accent: 'bg-slate-500' }, 
   { id: 'meeting', label: 'יש פגישה', color: 'border-indigo-100', accent: 'bg-indigo-600' }, 
   { id: 'proposal', label: 'קיבל הצעה', color: 'border-indigo-200', accent: 'bg-indigo-800' }, 
@@ -25,7 +25,7 @@ export const NAV_GROUPS = [
     items: [
       { id: 'sales_pipeline', label: 'לוח עבודה', icon: Kanban }, 
       { id: 'sales_leads', label: 'לידים', icon: Users }, 
-      { id: 'calendar', label: 'יומן ופגישות', icon: CalendarDays }, 
+      { id: 'calendar', label: 'אירועים ופגישות', icon: CalendarDays }, 
       { id: 'comms', label: 'דואר נכנס', icon: MessageSquare }, 
       { id: 'tasks', label: 'משימות שוטפות', icon: CheckSquare }, 
     ]

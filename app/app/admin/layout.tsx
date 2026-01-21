@@ -1,0 +1,56 @@
+import React from 'react';
+import { redirect } from 'next/navigation';
+import { currentUser } from '@clerk/nextjs/server';
+import { DataProvider } from '@/context/DataContext';
+import AdminShell from './AdminShell';
+
+export const dynamic = 'force-dynamic';
+
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const clerk = await currentUser();
+
+  if (!clerk?.id) {
+    redirect('/sign-in');
+  }
+
+  const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;
+
+  const initialCurrentUser = {
+    id: '',
+    name: clerk.fullName || clerk.username || clerk.primaryEmailAddress?.emailAddress || '',
+    email: clerk.primaryEmailAddress?.emailAddress || '',
+    role: (clerk.publicMetadata?.role as string) || 'עובד',
+    avatar: clerk.imageUrl || '',
+    online: false,
+    capacity: 0,
+    isSuperAdmin,
+    isTenantAdmin: false,
+    tenantId: null,
+    notificationPreferences: {
+      emailNewTask: true,
+      browserPush: true,
+      morningBrief: true,
+      soundEffects: false,
+      marketing: true,
+    },
+  };
+
+  return (
+    <DataProvider initialCurrentUser={initialCurrentUser}>
+      {isSuperAdmin ? (
+        <AdminShell>{children}</AdminShell>
+      ) : (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+          <div className="max-w-lg w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div className="text-xl font-black text-slate-900">גישה נדחתה</div>
+            <div className="mt-3 text-sm font-bold text-slate-600">רק Super Admin יכול לגשת לאזור הזה.</div>
+          </div>
+        </div>
+      )}
+    </DataProvider>
+  );
+}

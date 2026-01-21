@@ -193,7 +193,7 @@ const SystemOSApp = () => {
 
   const handleSaveNewLead = (newLead: any) => {
       setLeads(prev => [newLead as any, ...prev]);
-      addToast("נקלט ליד חדש", 'success');
+      addToast("נקלט ליד", 'success');
   };
 
   const handleHandoverConfirm = (handoverData: HandoverData) => {
@@ -222,7 +222,7 @@ const SystemOSApp = () => {
 
   const handleSaveMeeting = (newMeeting: CalendarEvent) => {
       setCalendarEvents([...calendarEvents, newMeeting]);
-      addToast("הפגישה ביומן");
+      addToast("הפגישה נשמרה");
       setShowNewMeetingModal(false);
   };
 

@@ -7,6 +7,6 @@
  }: {
    params: Promise<{ orgSlug: string }>;
  }) {
-   const { orgSlug } = await params;
-   redirect(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
+   await params;
+   redirect('/app/admin');
  }

@@ -148,7 +148,7 @@ export default function PricingSection({
       key: 'nexus',
       title: `${getModuleLabelHe('nexus')} (למנהלים)`,
       price: 149,
-      features: ['משתמש אחד (ללא ניהול צוות)', 'משימות', 'יומן', 'ניהול צוות'],
+      features: ['משתמש אחד (ללא ניהול צוות)', 'משימות', 'אירועים', 'ניהול צוות'],
       checkout: { plan: 'solo', system: 'nexus', amount: 149, product: getModuleLabelHe('nexus') },
     },
   ];

@@ -417,13 +417,14 @@ input[type="datetime-local"]:hover::-webkit-datetime-edit {
 
 /* Custom scrollbar for chat and other components */
 .custom-scrollbar {
-  scrollbar-width: thin;
+  scrollbar-width: thin !important;
   scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
+  height: 10px;
+  display: block !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {

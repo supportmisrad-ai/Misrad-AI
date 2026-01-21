@@ -89,11 +89,11 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
       
       {/* --- LAUNCHPAD: Pill Shaped Buttons --- */}
       <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-          {[
+          {[ 
               { id: 'sales_mgmt', icon: Zap, label: 'ניהול שוטף', color: 'text-slate-700', bg: 'bg-slate-100' },
               { id: 'pipeline', icon: Layers, label: 'צנרת עסקאות', color: 'text-indigo-700', bg: 'bg-indigo-50' },
               { id: 'comms', icon: PhoneCall, label: 'מרכזיה', color: 'text-rose-700', bg: 'bg-rose-50' },
-              { id: 'calendar', icon: Calendar, label: 'יומן', color: 'text-slate-700', bg: 'bg-slate-100' },
+              { id: 'calendar', icon: Calendar, label: 'אירועים', color: 'text-slate-700', bg: 'bg-slate-100' },
               { id: 'marketing', icon: Megaphone, label: 'קמפיינים', color: 'text-slate-700', bg: 'bg-slate-100' },
               { id: 'finance', icon: Wallet, label: 'כספים', color: 'text-emerald-700', bg: 'bg-emerald-50' },
           ].map((item) => (
@@ -198,7 +198,7 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
                           fontWeight: 'bold',
                           fontSize: '12px'
                       }}
-                      formatter={(value: number) => [value, 'כמות']}
+                      formatter={(value) => [value ?? 0, 'כמות']}
                     />
                     <Bar dataKey="count" radius={[8, 8, 8, 8]}>
                         {funnelData.map((entry, index) => (

@@ -39,6 +39,10 @@
   "exclude": [
     "node_modules",
     "**/*.legacy.ts",
-    "**/*.legacy.tsx"
+    "**/*.legacy.tsx",
+    "components/App.tsx",
+    "components/system/system.os/App.tsx",
+    "components/system/system.os/components/App.tsx",
+    "components/system/system.os/index.tsx"
   ]
 }

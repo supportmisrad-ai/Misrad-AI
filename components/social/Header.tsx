@@ -6,13 +6,13 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { getUnreadUpdatesCount } from '@/app/actions/updates';
-import { getMyProfile } from '@/app/actions/profiles';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 
 const titles: Record<string, string> = {
   dashboard: 'מרכז שליטה',
@@ -61,7 +61,6 @@ export default function Header() {
   const currentView = getViewFromPath(pathname);
   const { activeClient, setIsCommandPaletteOpen, setIsNotificationCenterOpen, setIsHelpModalOpen } = useApp();
   const { isLoaded, isSignedIn, user } = useUser();
-  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
   const [hasMounted, setHasMounted] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
@@ -70,6 +69,12 @@ export default function Header() {
   const isWorkspaceSocial = Boolean(workspaceInfo.orgSlug && workspaceInfo.module === 'social');
   const basePath = getSocialBasePath(pathname);
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(workspaceInfo.orgSlug || null, {
+    name: user?.fullName ?? user?.username ?? null,
+    role: null,
+    avatarUrl: user?.imageUrl ?? null,
+  });
 
   useEffect(() => {
     setHasMounted(true);
@@ -97,29 +102,6 @@ export default function Header() {
       setProfileImageUrl(null);
     }
   }, [user?.imageUrl]);
-
-  useEffect(() => {
-    const load = async () => {
-      if (!workspaceInfo.orgSlug) {
-        setProfileIdentity(null);
-        return;
-      }
-      if (!isSignedIn) return;
-      try {
-        const res = await getMyProfile({ orgSlug: workspaceInfo.orgSlug });
-        if (!res.success || !res.data?.profile) return;
-        const p: any = res.data.profile;
-        setProfileIdentity({
-          name: p.full_name ? String(p.full_name) : null,
-          role: p.role ? String(p.role) : null,
-        });
-      } catch {
-        // Best-effort
-      }
-    };
-
-    load();
-  }, [isSignedIn, workspaceInfo.orgSlug]);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -197,7 +179,7 @@ export default function Header() {
       ) : isSignedIn && user ? (
         <button
           onClick={() => {
-            router.push(joinPath(basePath, '/me'));
+            router.push(joinPath(basePath, `/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`));
           }}
           className={`md:hidden w-9 h-9 rounded-full bg-gradient-to-br ${
             gradient || 'from-indigo-600 via-purple-600 to-pink-600'
@@ -205,10 +187,14 @@ export default function Header() {
           aria-label="פרופיל"
           type="button"
         >
-          {profileImageUrl || user.imageUrl ? (
-            <img src={profileImageUrl || user.imageUrl || ''} alt={user.fullName || 'User'} className="w-full h-full object-cover" />
+          {systemIdentity?.avatarUrl || profileImageUrl || user.imageUrl ? (
+            <img
+              src={systemIdentity?.avatarUrl || profileImageUrl || user.imageUrl || ''}
+              alt={systemIdentity?.name || user.fullName || 'User'}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            (user.firstName || user.fullName || user.emailAddresses[0]?.emailAddress || 'U').charAt(0).toUpperCase()
+            (systemIdentity?.name || user.firstName || user.fullName || user.emailAddresses[0]?.emailAddress || 'U').charAt(0).toUpperCase()
           )}
         </button>
       ) : null}
@@ -223,17 +209,19 @@ export default function Header() {
   ) : isSignedIn && user ? (
     <div className="hidden md:block">
       <button
-        onClick={() => router.push(joinPath(basePath, '/me'))}
+        onClick={() =>
+          router.push(joinPath(basePath, `/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`))
+        }
         className="flex items-center gap-3 pl-0.5 pr-0.5 md:pr-4 rounded-full transition-all hover:bg-white/50"
         type="button"
         aria-label="פרופיל"
       >
         <div className="text-right hidden md:block">
           <p className="text-sm font-bold text-gray-900 leading-none" suppressHydrationWarning>
-            {profileIdentity?.name || user.firstName || user.fullName || user.emailAddresses[0]?.emailAddress || 'משתמש'}
+            {systemIdentity?.name || user.firstName || user.fullName || user.emailAddresses[0]?.emailAddress || 'משתמש'}
           </p>
           <p className="text-[10px] text-gray-500 font-medium" suppressHydrationWarning>
-            {profileIdentity?.role || 'מנהל סושיאל'}
+            {systemIdentity?.role || 'מנהל סושיאל'}
           </p>
         </div>
         <div
@@ -241,10 +229,16 @@ export default function Header() {
             gradient || 'from-indigo-600 via-purple-600 to-pink-600'
           } flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden`}
         >
-          {profileImageUrl || user.imageUrl ? (
-            <img src={profileImageUrl || user.imageUrl || ''} alt={user.fullName || 'User'} className="w-full h-full object-cover" />
+          {systemIdentity?.avatarUrl || profileImageUrl || user.imageUrl ? (
+            <img
+              src={systemIdentity?.avatarUrl || profileImageUrl || user.imageUrl || ''}
+              alt={systemIdentity?.name || user.fullName || 'User'}
+              className="w-full h-full object-cover"
+            />
           ) : (
-            (user.firstName || user.emailAddresses[0]?.emailAddress || 'U').charAt(0).toUpperCase()
+            (systemIdentity?.name || user.firstName || user.fullName || user.emailAddresses[0]?.emailAddress || 'U')
+              .charAt(0)
+              .toUpperCase()
           )}
         </div>
       </button>
@@ -279,7 +273,7 @@ export default function Header() {
       onOpenSupportAction={() => setIsHelpModalOpen(true)}
       switcherSlot={switcherSlot}
       notificationsSlot={notificationsSlot}
-      user={{ name: profileIdentity?.name || roomNameHebrew || 'סושיאל', role: profileIdentity?.role || null }}
+      user={{ name: systemIdentity?.name || roomNameHebrew || 'סושיאל', role: systemIdentity?.role || null }}
       onProfileClickAction={undefined}
       userAvatarSlot={null}
       profileSlot={profileSlot}

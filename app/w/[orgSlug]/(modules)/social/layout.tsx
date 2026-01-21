@@ -3,13 +3,11 @@ import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation, requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import SocialShell from '@/components/social/SocialShell';
-import Navigation from '@/components/social/Navigation';
 import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/services/social-service';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 
 export const dynamic = 'force-dynamic';
-
 
 export default async function SocialModuleLayout({
   children,
@@ -20,7 +18,8 @@ export default async function SocialModuleLayout({
 }) {
   const { orgSlug } = await params;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'social' });
-  await persistCurrentUserLastLocation({ orgSlug, module: 'social' });
+  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
+  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
   const def = getModuleDefinition('social');
   const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
@@ -49,16 +48,10 @@ export default async function SocialModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]">
-      <div className="min-h-screen bg-slate-50 flex" suppressHydrationWarning>
-        <Navigation
-          initialMenuItems={initialNavigationMenu}
-          basePath={`/w/${orgSlug}/social`}
-          isSidebarOpen={true}
-          roomNameHebrew={'סושיאל OS'}
-          gradient={null}
-          isTeamEnabled={caps.isTeamManagementEnabled}
-        />
+      <div className="min-h-screen bg-slate-50" suppressHydrationWarning>
         <SocialShell
+          orgSlug={orgSlug}
+          isTeamEnabled={caps.isTeamManagementEnabled}
           initialSocialData={initialSocialData}
           initialNavigationMenu={initialNavigationMenu}
           initialCurrentUser={initialCurrentUser}

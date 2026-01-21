@@ -3,11 +3,14 @@ import {
   Target, 
   CreditCard, 
   BrainCircuit, 
-  GraduationCap 
+  GraduationCap,
+  Wrench
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
-export type OSModule = 'social' | 'system' | 'finance' | 'nexus' | 'client';
+import type { OSModuleKey } from '../lib/os/modules/types';
+
+export type OSModule = OSModuleKey;
 
 export interface OSModuleInfo {
   id: OSModule;
@@ -21,8 +24,8 @@ export interface OSModuleInfo {
   route: string;
 }
 
-export const OS_MODULES: OSModuleInfo[] = [
-  {
+const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
+  social: {
     id: 'social',
     name: 'Social',
     nameHebrew: 'שיווק שמייצר סמכות',
@@ -33,7 +36,7 @@ export const OS_MODULES: OSModuleInfo[] = [
     purchased: true, // Ready for integration
     route: '/w/[orgSlug]/social'
   },
-  {
+  system: {
     id: 'system',
     name: 'System',
     nameHebrew: 'מכונת המכירות',
@@ -44,7 +47,7 @@ export const OS_MODULES: OSModuleInfo[] = [
     purchased: true, // Currently exists
     route: '/w/[orgSlug]/system'
   },
-  {
+  finance: {
     id: 'finance',
     name: 'Finance',
     nameHebrew: 'שומר הרווחים',
@@ -55,18 +58,18 @@ export const OS_MODULES: OSModuleInfo[] = [
     purchased: false, // Ready for use
     route: '/w/[orgSlug]/finance'
   },
-  {
+  nexus: {
     id: 'nexus',
     name: 'Nexus',
     nameHebrew: 'מרכז הבקרה',
     icon: BrainCircuit,
     color: 'text-indigo-600',
     gradient: 'from-indigo-500 to-purple-600',
-    description: 'משימות יומן צוות',
+    description: 'משימות ואירועים צוות',
     purchased: true, // Currently exists
     route: '/w/[orgSlug]/nexus'
   },
-  {
+  client: {
     id: 'client',
     name: 'Client',
     nameHebrew: 'פורטל הצלחת לקוח',
@@ -76,11 +79,24 @@ export const OS_MODULES: OSModuleInfo[] = [
     description: 'לקוחות תמלול תובנות',
     purchased: true, // Ready for use
     route: '/w/[orgSlug]/client'
+  },
+  operations: {
+    id: 'operations',
+    name: 'Operations',
+    nameHebrew: 'תפעול ושטח',
+    icon: Wrench,
+    color: 'text-sky-600',
+    gradient: 'from-sky-500 to-cyan-600',
+    description: 'פרויקטים פקודות עבודה מלאי',
+    purchased: true,
+    route: '/w/[orgSlug]/operations'
   }
-];
+};
+
+export const OS_MODULES: OSModuleInfo[] = Object.values(OS_MODULES_BY_ID);
 
 export const getOSModule = (id: OSModule): OSModuleInfo | undefined => {
-  return OS_MODULES.find(m => m.id === id);
+  return OS_MODULES_BY_ID[id];
 };
 
 export const getPurchasedModules = (): OSModuleInfo[] => {

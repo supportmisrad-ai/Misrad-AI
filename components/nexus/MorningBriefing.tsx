@@ -497,7 +497,7 @@ export const MorningBriefing: React.FC = () => {
                                 {redFlags.length === 0 && existingToday.length === 0 && opportunities.length === 0 && (
                                     <div className="flex flex-col items-center justify-center h-48 text-center bg-white rounded-2xl border border-dashed border-gray-300">
                                         <CheckCircle2 size={32} className="text-green-500 mb-2" />
-                                        <p className="text-gray-900 font-bold">היומן נקי!</p>
+                                        <p className="text-gray-900 font-bold">הלו"ז נקי!</p>
                                         <p className="text-gray-500 text-sm">אין משימות מערכת דחופות.</p>
                                     </div>
                                 )}
@@ -592,7 +592,7 @@ export const MorningBriefing: React.FC = () => {
                                 <p className="text-gray-500 text-xs md:text-sm">גרור משימות לשינוי סדר.</p>
                             </div>
                             <div className="flex gap-2 text-[10px] md:text-xs">
-                                <span className="flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100"><Lock size={10} /> יומן</span>
+                                <span className="flex items-center gap-1 bg-purple-50 text-purple-700 px-2 py-1 rounded border border-purple-100"><Lock size={10} /> אירועים</span>
                                 <span className="flex items-center gap-1 bg-white text-gray-700 px-2 py-1 rounded border border-gray-200"><GripVertical size={10} /> משימה</span>
                             </div>
                         </div>
@@ -644,7 +644,7 @@ export const MorningBriefing: React.FC = () => {
                                                         )}
                                                         {slot.isFixed && (
                                                             <p className="text-[10px] text-purple-600 mt-0.5 flex items-center gap-1">
-                                                                <Lock size={10} /> אירוע יומן
+                                                                <Lock size={10} /> אירוע קבוע
                                                             </p>
                                                         )}
                                                     </div>

@@ -1,9 +1,10 @@
-
+'use client';
 
 import React, { useState } from 'react';
 import { Save, Shield, DollarSign, Cpu, Bell, Building2, Key, Info, GitMerge, AlertTriangle, ShoppingBag, ListPlus, Tag, Star, Trash2, Edit2, MessageSquare, Clock, LayoutTemplate, FileText, Upload } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { GlassCard } from './ui/GlassCard';
+
 import { UPSELL_CATALOG } from '../constants';
 
 type SettingsTab = 'general' | 'financials' | 'catalog' | 'intelligence' | 'automation';

@@ -14,7 +14,8 @@ export default async function NexusModuleLayout({
 }) {
   const { orgSlug } = await params;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });
-  await persistCurrentUserLastLocation({ orgSlug, module: 'nexus' });
+  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'nexus' }).catch(() => undefined);
+  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
   const def = getModuleDefinition('nexus');
 
   const style = {

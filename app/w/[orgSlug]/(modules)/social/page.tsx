@@ -1,6 +1,6 @@
-import { redirect } from 'next/navigation';
-
 export const dynamic = 'force-dynamic';
+
+import Dashboard from '@/components/social/Dashboard';
 
 
 export default async function SocialModuleHome({
@@ -9,5 +9,5 @@ export default async function SocialModuleHome({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  redirect(`/w/${encodeURIComponent(orgSlug)}/social/dashboard`);
+  return <Dashboard orgSlug={orgSlug} />;
 }

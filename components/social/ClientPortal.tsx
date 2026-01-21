@@ -16,6 +16,7 @@ import UploadTab from './portal/UploadTab';
 import BillingTab from './portal/BillingTab';
 import AnalyticsTab from './portal/AnalyticsTab';
 import { useChat } from '@ai-sdk/react';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 export default function ClientPortal() {
   const { 
@@ -136,31 +137,19 @@ export default function ClientPortal() {
   const totalCartPrice = cart.reduce((sum, item) => sum + (item.service.basePrice * item.qty), 0);
 
   const handleApprove = (postId: string) => {
-    setPosts(prev => prev.map(p => p.id === postId ? {...p, status: 'scheduled'} : p));
-    addToast('הפוסט אושר לפרסום! ✅');
+    openComingSoon();
   };
 
   const handleReject = (postId: string, note: string) => {
-    setPosts(prev => prev.map(p => p.id === postId ? {...p, status: 'draft'} : p));
-    addToast('הפוסט נדחה והוחזר למנהל 📝');
+    openComingSoon();
   };
 
   const handleUpload = (media: string, text: string) => {
-    setClientRequests(prev => [{
-      id: `req-${Date.now()}`,
-      clientId: activeClient.id,
-      type: 'media',
-      content: text,
-      mediaUrl: media,
-      timestamp: new Date().toISOString(),
-      status: 'new'
-    }, ...prev]);
-    addToast('החומרים נשלחו למנהל הסושיאל! 📤');
+    openComingSoon();
   };
 
   const handleCompleteRequest = (reqId: string) => {
-    setManagerRequests(prev => prev.map(r => r.id === reqId ? {...r, status: 'completed'} : r));
-    addToast('המשימה סומנה כבוצעה! ✨');
+    openComingSoon();
   };
 
   const renderTabContent = () => {

@@ -6,6 +6,65 @@ import { GlobalSystemMetrics, ClientStatus } from '@/types/social';
 import { translateError } from '@/lib/errorTranslations';
 import { updateClinicClient } from '@/app/actions/client-clinic';
 import { requireSuperAdmin } from '@/lib/auth';
+import { randomUUID } from 'crypto';
+
+export type AdminClientLite = {
+  id: string;
+  organizationId: string | null;
+  fullName: string;
+  companyName: string;
+  email: string | null;
+  createdAt: string | null;
+};
+
+export async function getAdminClients(params?: {
+  query?: string;
+  limit?: number;
+}): Promise<{ success: boolean; data?: AdminClientLite[]; error?: string }> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const supabase = createClient();
+    const limit = Math.max(1, Math.min(500, Number(params?.limit ?? 200)));
+    const query = String(params?.query ?? '').trim();
+
+    let q = supabase
+      .from('client_clients')
+      .select('id, organization_id, full_name, metadata, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (query) {
+      q = q.ilike('full_name', `%${query}%`);
+    }
+
+    const { data, error } = await q;
+    if (error) return createErrorResponse(error, 'שגיאה בטעינת לקוחות') as any;
+
+    const clients: AdminClientLite[] = (data || []).map((row: any) => {
+      const md = row?.metadata ?? {};
+      const companyName = (md.companyName || md.name || row.full_name || '').toString();
+      const email = (md.email || row.email || null) as string | null;
+      return {
+        id: String(row.id),
+        organizationId: row.organization_id ? String(row.organization_id) : null,
+        fullName: String(row.full_name || ''),
+        companyName,
+        email: email ? String(email) : null,
+        createdAt: row.created_at ? String(row.created_at) : null,
+      };
+    });
+
+    return createSuccessResponse(clients);
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה בטעינת לקוחות');
+  }
+}
 
 /**
  * Get global system metrics with trends
@@ -381,20 +440,33 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
     }
 
     // Create impersonation session record
-    const { data: session, error: sessionError } = await supabase
-      .from('impersonation_sessions')
-      .insert({
-        admin_user_id: authCheck.userId,
-        client_id: clientId,
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
-      })
-      .select()
-      .single();
+    // Note: in DB schema `token` is required (unique), and in some deployments the table name is `social_impersonation_sessions`.
+    const token = randomUUID();
+    const sessionPayload: any = {
+      admin_user_id: authCheck.userId,
+      client_id: clientId,
+      token,
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
+    };
+
+    let session: any = null;
+    let sessionError: any = null;
+
+    const tryInsert = async (table: string) => {
+      const res = await supabase.from(table).insert(sessionPayload).select().single();
+      session = res.data as any;
+      sessionError = res.error as any;
+      return res;
+    };
+
+    await tryInsert('impersonation_sessions');
+    if (sessionError) {
+      await tryInsert('social_impersonation_sessions');
+    }
 
     if (sessionError) {
-      // If table doesn't exist, create a simple token
-      const token = Buffer.from(`${authCheck.userId}:${clientId}:${Date.now()}`).toString('base64');
+      // If table doesn't exist / RLS / schema mismatch - still allow navigation, but return token for traceability.
       return createSuccessResponse({ impersonationToken: token });
     }
 
@@ -412,7 +484,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
       console.warn('[impersonateUser] Failed to log action:', logError);
     }
 
-    return createSuccessResponse({ impersonationToken: session.id });
+    return createSuccessResponse({ impersonationToken: session?.token ? String(session.token) : token });
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בכניסה כמשתמש אחר');
   }

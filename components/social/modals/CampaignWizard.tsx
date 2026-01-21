@@ -5,9 +5,10 @@ import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Loader2, Rocke
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 export default function CampaignWizard() {
-  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients, addToast } = useApp();
+  const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients } = useApp();
   const [step, setStep] = useState(1);
   const [clientId, setClientId] = useState(clients[0]?.id || '');
   const [objective, setObjective] = useState('engagement');
@@ -20,12 +21,10 @@ export default function CampaignWizard() {
     if (step < 3) setStep(step + 1);
     else {
       setIsSubmitting(true);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        addToast('הקמפיין נוצר בהצלחה!');
-        setIsCampaignWizardOpen(false);
-        setStep(1);
-      }, 2000);
+      openComingSoon();
+      setIsSubmitting(false);
+      setIsCampaignWizardOpen(false);
+      setStep(1);
     }
   };
 

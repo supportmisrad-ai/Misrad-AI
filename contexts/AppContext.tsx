@@ -226,7 +226,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         }
 
         const ent = ws?.entitlements;
-        setIsTeamManagementEnabled(Boolean(ent?.nexus && ent?.system && ent?.social && ent?.client));
+        setIsTeamManagementEnabled(Boolean(ent?.nexus));
       } catch {
         setIsTeamManagementEnabled(false);
       }

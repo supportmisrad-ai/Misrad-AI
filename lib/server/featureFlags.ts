@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createClient } from '@/lib/supabase';
+import { OSModuleKey } from '@/lib/os/modules/types';
 
 export type SystemFeatureFlags = {
   maintenanceMode: boolean;
@@ -9,7 +10,29 @@ export type SystemFeatureFlags = {
   fullOfficeRequiresFinance: boolean;
   enable_payment_manual: boolean;
   enable_payment_credit_card: boolean;
+  launch_scope_modules: Record<OSModuleKey, boolean>;
 };
+
+const DEFAULT_LAUNCH_SCOPE_MODULES: Record<OSModuleKey, boolean> = {
+  nexus: true,
+  system: true,
+  social: true,
+  finance: true,
+  client: true,
+  operations: true,
+};
+
+function normalizeLaunchScopeModules(input: any): Record<OSModuleKey, boolean> {
+  if (!input || typeof input !== 'object') return { ...DEFAULT_LAUNCH_SCOPE_MODULES };
+  return {
+    nexus: Boolean((input as any).nexus ?? DEFAULT_LAUNCH_SCOPE_MODULES.nexus),
+    system: Boolean((input as any).system ?? DEFAULT_LAUNCH_SCOPE_MODULES.system),
+    social: Boolean((input as any).social ?? DEFAULT_LAUNCH_SCOPE_MODULES.social),
+    finance: Boolean((input as any).finance ?? DEFAULT_LAUNCH_SCOPE_MODULES.finance),
+    client: Boolean((input as any).client ?? DEFAULT_LAUNCH_SCOPE_MODULES.client),
+    operations: Boolean((input as any).operations ?? DEFAULT_LAUNCH_SCOPE_MODULES.operations),
+  };
+}
 
 export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
   try {
@@ -29,6 +52,7 @@ export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
         fullOfficeRequiresFinance: false,
         enable_payment_manual: true,
         enable_payment_credit_card: false,
+        launch_scope_modules: { ...DEFAULT_LAUNCH_SCOPE_MODULES },
       };
     }
 
@@ -47,6 +71,7 @@ export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
       fullOfficeRequiresFinance: Boolean(parsedValue?.fullOfficeRequiresFinance ?? false),
       enable_payment_manual: Boolean(parsedValue?.enable_payment_manual ?? parsedValue?.enablePaymentManual ?? true),
       enable_payment_credit_card: Boolean(parsedValue?.enable_payment_credit_card ?? parsedValue?.enablePaymentCreditCard ?? false),
+      launch_scope_modules: { ...DEFAULT_LAUNCH_SCOPE_MODULES },
     };
   } catch {
     return {
@@ -56,6 +81,7 @@ export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
       fullOfficeRequiresFinance: false,
       enable_payment_manual: true,
       enable_payment_credit_card: false,
+      launch_scope_modules: { ...DEFAULT_LAUNCH_SCOPE_MODULES },
     };
   }
 }

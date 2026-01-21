@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LogOut, X, Search, CalendarDays, UserPlus, Kanban, Plus, Play, Sparkles, Home, Megaphone, Settings, FileText, Target, AppWindow, PhoneCall } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from './types';
-import { NAV_ITEMS, INITIAL_LEADS, INITIAL_CAMPAIGNS, INITIAL_AGENTS, INITIAL_TASKS, INITIAL_CONTENT, INITIAL_STUDENTS, INITIAL_INVOICES } from './constants';
+import { NAV_ITEMS, INITIAL_CAMPAIGNS, INITIAL_AGENTS, INITIAL_TASKS, INITIAL_CONTENT, INITIAL_STUDENTS, INITIAL_INVOICES } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { CallAnalysisProvider } from './contexts/CallAnalysisContext';
@@ -17,21 +17,15 @@ import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrand } from './contexts/BrandContext';
 import { SystemHeader } from './SystemHeader';
-
-// Import converted components
 import Sidebar from './Sidebar';
 import LeadsHub from './LeadsHub';
 import LoginView from './LoginView';
 import { ErrorBoundary } from './ErrorBoundary';
-
-// Import converted components
 import WorkspaceHub from './WorkspaceHub';
 import LeadModal from './LeadModal';
 import NewLeadModal from './NewLeadModal';
 import CalendarView from './system.os/components/CalendarView';
 import NewMeetingModal from './NewMeetingModal';
-
-// Stub components - will be replaced with real components later
 import HandoverDialog from './HandoverDialog';
 import MarketingView from './MarketingView';
 import CommandPalette from './CommandPalette';
@@ -51,8 +45,10 @@ import AIAnalyticsView from './AIAnalyticsView';
 import DataConnectivityView from './DataConnectivityView';
 import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 import { getMyProfile } from '@/app/actions/profiles';
+import { getSystemLeads, type SystemLeadDTO } from '@/app/actions/system-leads';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
+import { mapDtoToLead } from './utils/mapDtoToLead';
 
 declare const confetti: any;
 
@@ -65,41 +61,42 @@ type StrategicContentItem = {
 };
 
 const SystemBootScreen = ({ onComplete }: { onComplete: () => void }) => {
-    const [progress, setProgress] = useState(0);
-    useEffect(() => {
-        let timeoutId: any = null;
-        const interval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(interval);
-                    timeoutId = setTimeout(onComplete, 500);
-                    return 100;
-                }
-                return prev + 5;
-            });
-        }, 30);
-        return () => {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    let timeoutId: any = null;
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
           clearInterval(interval);
-          if (timeoutId) clearTimeout(timeoutId);
-        };
-    }, [onComplete]);
+          timeoutId = setTimeout(onComplete, 500);
+          return 100;
+        }
+        return prev + 5;
+      });
+    }, 30);
 
-    return (
-        <div className="fixed inset-0 h-[100dvh] w-screen bg-[#F8FAFC] flex flex-col items-center justify-center z-[100] overflow-hidden overscroll-none touch-none">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-[100px] animate-blob pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none"></div>
+    return () => {
+      clearInterval(interval);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [onComplete]);
 
-            <div className="relative z-10 flex flex-col items-center px-6 text-center">
-                <div className="w-24 h-24 bg-nexus-gradient rounded-[40px] flex items-center justify-center text-white mb-8 shadow-2xl shadow-rose-500/30 animate-bounce">
-                    <Target size={48} strokeWidth={1.5} />
-                </div>
-                <div className="w-64 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-nexus-gradient transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
-                </div>
-                <p className="mt-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">מתניע מנועים...</p>
-            </div>
+  return (
+    <div className="fixed inset-0 h-[100dvh] w-screen bg-[#F8FAFC] flex flex-col items-center justify-center z-[100] overflow-hidden overscroll-none touch-none">
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-[100px] animate-blob pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none"></div>
+
+      <div className="relative z-10 flex flex-col items-center px-6 text-center">
+        <div className="w-24 h-24 bg-nexus-gradient rounded-[40px] flex items-center justify-center text-white mb-8 shadow-2xl shadow-rose-500/30 animate-bounce">
+          <Target size={48} strokeWidth={1.5} />
         </div>
-    );
+        <div className="w-64 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div className="h-full bg-nexus-gradient transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
+        </div>
+        <p className="mt-6 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">מתניע מנועים...</p>
+      </div>
+    </div>
+  );
 };
 
 const TAB_IDS = new Set([
@@ -284,7 +281,7 @@ const SystemOSApp = ({
     setShowAdminNextActionCard(false);
   };
 
-  const [storedLeads, setStoredLeads] = useLocalStorage<Lead[]>('sales_os_leads_v1', []);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [storedTasks, setStoredTasks] = useLocalStorage<Task[]>('sales_os_tasks_v1', []);
   const [storedContent, setStoredContent] = useLocalStorage<ContentItem[]>('sales_os_content_v1', []);
   const [storedStudents, setStoredStudents] = useLocalStorage<Student[]>('sales_os_students_v1', []);
@@ -293,16 +290,6 @@ const SystemOSApp = ({
   
   const [storedEvents, setStoredEvents] = useLocalStorage<CalendarEvent[]>('sales_os_events_v1', []);
 
-  const leads = useMemo(() => {
-      return storedLeads.map(l => ({
-          ...l,
-          lastContact: new Date(l.lastContact),
-          createdAt: new Date(l.createdAt),
-          subscriptionEndDate: l.subscriptionEndDate ? new Date(l.subscriptionEndDate) : undefined,
-          activities: l.activities.map(a => ({...a, timestamp: new Date(a.timestamp)}))
-      }));
-  }, [storedLeads]);
-
   const tasks = useMemo(() => {
       return storedTasks.map(t => ({
           ...t,
@@ -310,13 +297,20 @@ const SystemOSApp = ({
       }));
   }, [storedTasks]);
 
-  const setLeads = (newLeadsInput: Lead[] | ((prev: Lead[]) => Lead[])) => {
-      if (typeof newLeadsInput === 'function') {
-          setStoredLeads(newLeadsInput(leads));
-      } else {
-          setStoredLeads(newLeadsInput);
+  useEffect(() => {
+    const load = async () => {
+      if (!orgSlug) return;
+      try {
+        const rows = await getSystemLeads(orgSlug);
+        const mapped = Array.isArray(rows) ? rows.map(mapDtoToLead) : [];
+        setLeads(mapped);
+      } catch {
+        setLeads([]);
+        addToast('שגיאה בטעינת לידים', 'error');
       }
-  };
+    };
+    load();
+  }, [addToast, orgSlug]);
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [webhookLogs, setWebhookLogs] = useState<WebhookLog[]>([]);
@@ -508,7 +502,7 @@ const SystemOSApp = ({
 
   const handleSaveNewLead = (newLead: Lead) => {
       setLeads(prev => [newLead, ...prev]);
-      addToast("ליד חדש נוצר", 'success');
+      addToast("ליד נוצר", 'success');
   };
 
   const handleHandoverConfirm = (handoverData: HandoverData) => {
@@ -537,7 +531,7 @@ const SystemOSApp = ({
 
   const handleSaveMeeting = (newMeeting: CalendarEvent) => {
       setCalendarEvents([...calendarEvents, newMeeting]);
-      addToast("הפגישה ביומן");
+      addToast("הפגישה נוספה לאירועים");
       setShowNewMeetingModal(false);
   };
 

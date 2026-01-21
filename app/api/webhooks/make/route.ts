@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import crypto from 'crypto';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 /**
  * POST /api/webhooks/make
  * Receives webhook from Make.com
@@ -80,7 +82,109 @@ async function POSTHandler(request: NextRequest) {
 
     // Process webhook based on event type
     const eventType = body.event_type || 'unknown';
-    
+
+    const normalizeSource = (src: string) => {
+      const s = String(src || '').trim().toLowerCase();
+      if (!s) return 'Social';
+      if (s.includes('facebook') || s === 'fb' || s.includes('meta')) return 'Facebook';
+      if (s.includes('instagram') || s === 'ig') return 'Instagram';
+      if (s.includes('whatsapp') || s === 'wa') return 'WhatsApp';
+      return String(src || '').trim();
+    };
+
+    const normalizePhoneDigits = (phone: string) => {
+      const p = String(phone || '').trim();
+      const digits = p.replace(/[^0-9]/g, '');
+      return digits;
+    };
+
+    const resolveOrgId = async (orgKey: string) => {
+      const key = String(orgKey || '').trim();
+      if (!key) return null;
+      const row = await prisma.social_organizations.findFirst({
+        where: {
+          OR: [{ id: key }, { slug: key }],
+        },
+        select: { id: true },
+      });
+      return row?.id ? String(row.id) : null;
+    };
+
+    const isLeadEvent = (t: string) => {
+      const tt = String(t || '').toLowerCase();
+      return tt === 'social.lead.created' || tt === 'social.lead.upsert' || tt === 'lead.created' || tt === 'lead';
+    };
+
+    if (isLeadEvent(eventType)) {
+      const payload = (body?.payload && typeof body.payload === 'object' ? body.payload : body) as any;
+      const orgSlug = String(payload.orgSlug || payload.org_slug || payload.organization || payload.organization_id || '').trim();
+
+      if (!orgSlug) {
+        return NextResponse.json({ error: 'Missing orgSlug' }, { status: 400 });
+      }
+
+      const organizationId = await resolveOrgId(orgSlug);
+      if (!organizationId) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+      }
+
+      const name = String(payload.name || payload.full_name || payload.fullName || '').trim();
+      const emailRaw = String(payload.email || payload.email_address || '').trim();
+      const phone = String(payload.phone || payload.phone_number || payload.mobile || '').trim();
+      const phoneDigits = normalizePhoneDigits(phone);
+      const source = normalizeSource(String(payload.source || payload.platform || payload.channel || ''));
+
+      if (!name || !phone) {
+        return NextResponse.json({ error: 'Missing lead name/phone' }, { status: 400 });
+      }
+
+      const email = emailRaw || '';
+      const now = new Date();
+
+      const or: any[] = [];
+      if (phone) or.push({ phone });
+      if (phoneDigits && phoneDigits !== phone) or.push({ phone: phoneDigits });
+      if (email) or.push({ email });
+
+      const existing = await prisma.systemLead.findFirst({
+        where: {
+          organizationId,
+          ...(or.length ? { OR: or } : {}),
+        },
+        select: { id: true, status: true },
+      });
+
+      if (existing?.id) {
+        const updated = await prisma.systemLead.update({
+          where: { id: existing.id },
+          data: {
+            name,
+            phone,
+            email,
+            source: source || undefined,
+            lastContact: now,
+          },
+          select: { id: true },
+        });
+        return NextResponse.json({ success: true, leadId: updated.id, created: false }, { status: 200 });
+      }
+
+      const created = await prisma.systemLead.create({
+        data: {
+          organizationId,
+          name,
+          phone,
+          email,
+          source: source || 'Social',
+          status: 'incoming',
+          lastContact: now,
+        },
+        select: { id: true },
+      });
+
+      return NextResponse.json({ success: true, leadId: created.id, created: true }, { status: 200 });
+    }
+
     // Log the webhook
     console.log('Make.com webhook received:', {
       eventType,

@@ -6,10 +6,10 @@ import {
     TrendingUp, Shield, Star, Phone, Video,
     User, Gauge
 } from 'lucide-react';
-import { UserProfile, CalendarEvent, Lead } from '../types';
+import { CalendarEvent, Lead, LeadStatus, User as AppUser } from '../types';
 
 interface MobileFrontWingProps {
-    user: UserProfile;
+    user: AppUser;
     leads: Lead[];
     onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
     onNavigate: (tab: string) => void;
@@ -24,8 +24,8 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
     
     const stats = useMemo(() => {
         const total = leads.length;
-        const won = leads.filter(l => l.status === 'won').length;
-        const hot = leads.filter(l => l.isHot && l.status !== 'won' && l.status !== 'lost').length;
+        const won = leads.filter(l => l.status === LeadStatus.WON).length;
+        const hot = leads.filter(l => (l.probability ?? 0) >= 70 && l.status !== LeadStatus.WON && l.status !== LeadStatus.LOST).length;
         const conversionRate = total > 0 ? Math.round((won / total) * 100) : 0;
         
         return { total, won, hot, conversionRate };
@@ -33,10 +33,18 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
 
     const activeCases = useMemo(() => {
         return leads
-            .filter(l => l.status !== 'won' && l.status !== 'lost')
+            .filter(l => l.status !== LeadStatus.WON && l.status !== LeadStatus.LOST)
             .sort((a,b) => new Date(b.lastContact).getTime() - new Date(a.lastContact).getTime())
             .slice(0, 10); // Show top 10 recent active cases
     }, [leads]);
+
+    const formatMeetingTime = (d: Date) => {
+        try {
+            return d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        } catch {
+            return '';
+        }
+    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -57,7 +65,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                 {/* Top Tag */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="inline-flex items-center gap-1.5 bg-white/10 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-rose-300 shadow-sm">
-                        <Activity size={12} className="animate-pulse" /> Front Wing
+                        <Activity size={12} className="animate-pulse" /> חזית
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-slate-400">{new Date().toLocaleDateString('he-IL')}</span>
@@ -88,12 +96,12 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                         </div>
                         <div className="text-xs font-bold text-indigo-300 uppercase mb-1">הפגישה הבאה</div>
                         <div className="flex items-center gap-2 mb-2">
-                            <h3 className="text-lg font-bold">{nextMeeting.time}</h3>
+                            <h3 className="text-lg font-bold">{formatMeetingTime(nextMeeting.start)}</h3>
                             <span className="text-sm text-slate-300">|</span>
-                            <h3 className="text-lg font-bold truncate">{nextMeeting.leadName}</h3>
+                            <h3 className="text-lg font-bold truncate">{nextMeeting.title}</h3>
                         </div>
                         <div className="flex items-center gap-3 text-xs text-slate-300">
-                            <span className="flex items-center gap-1"><Video size={12} /> {nextMeeting.type === 'zoom' ? 'Zoom' : 'Frontal'}</span>
+                            <span className="flex items-center gap-1"><Video size={12} /> פגישה</span>
                             <span className="flex items-center gap-1 text-emerald-300 font-bold"><ArrowRight size={12} /> כנס לפגישה</span>
                         </div>
                     </div>
@@ -114,7 +122,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                             className="bg-white text-slate-900 py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-white/10 flex items-center justify-center gap-2 active:scale-95 transition-transform"
                         >
                             <Zap size={18} className="text-indigo-600 fill-indigo-600" />
-                            Focus
+                            פוקוס
                         </button>
                     </div>
                     <button 
@@ -183,7 +191,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                         className="snap-center shrink-0 w-24 h-24 flex flex-col items-center justify-center p-3 gap-2 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 active:scale-95 transition-transform bg-slate-50"
                     >
                         <Plus size={24} />
-                        <span className="text-[10px] font-bold">חדש</span>
+                        <span className="text-[10px] font-bold">הוסף</span>
                     </div>
 
                     {/* Active Leads Cards */}
@@ -193,7 +201,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                             onClick={() => onLeadClick(lead)}
                             className="snap-center shrink-0 w-24 h-24 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center p-3 gap-2 active:scale-95 transition-transform relative overflow-hidden"
                         >
-                            {lead.isHot && <div className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-bl-lg"></div>}
+                            {(lead.probability ?? 0) >= 70 && <div className="absolute top-0 right-0 w-3 h-3 bg-rose-500 rounded-bl-lg"></div>}
                             
                             <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-sm border border-slate-200">
                                 {lead.name.charAt(0)}

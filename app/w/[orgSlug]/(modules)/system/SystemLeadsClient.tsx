@@ -5,27 +5,8 @@ import { Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import { Lead } from '@/components/system/types';
+import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { createSystemLead, SystemLeadDTO, updateSystemLeadStatus } from '@/app/actions/system-leads';
-
-function dtoToLead(dto: SystemLeadDTO): Lead {
-  return {
-    id: dto.id,
-    name: dto.name,
-    company: dto.company ?? undefined,
-    phone: dto.phone,
-    email: dto.email ?? '',
-    source: dto.source,
-    status: dto.status as any,
-    value: dto.value,
-    lastContact: new Date(dto.last_contact),
-    createdAt: new Date(dto.created_at),
-    activities: [],
-    isHot: dto.is_hot,
-    assignedAgentId: dto.assigned_agent_id ?? undefined,
-    productInterest: (dto as any).productInterest,
-    score: dto.score,
-  };
-}
 
 export default function SystemLeadsClient({
   orgSlug,
@@ -44,7 +25,7 @@ export default function SystemLeadsClient({
   const [deepLinkedLeadId, setDeepLinkedLeadId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
-  const leadCards = useMemo(() => leads.map(dtoToLead), [leads]);
+  const leadCards = useMemo(() => leads.map(mapDtoToLead), [leads]);
 
   useEffect(() => {
     const leadId = searchParams?.get('leadId');

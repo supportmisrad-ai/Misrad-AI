@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Client, Lead, Asset, Invoice, Product, Tenant, DriveFile, LeadStatus } from '../types';
+import { Client, Lead, Asset, Invoice, Product, Tenant, LeadStatus } from '../types';
 import { DEFAULT_PRODUCTS } from '../constants';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 
@@ -26,9 +26,6 @@ export const useCRM = (
     const [trashAssets, setTrashAssets] = useState<Asset[]>([]);
 
     // External Integration State
-    const [isDriveConnected, setIsDriveConnected] = useState(false);
-    const [isConnectingDrive, setIsConnectingDrive] = useState(false);
-    const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
     const [isGreenInvoiceConnected, setIsGreenInvoiceConnected] = useState(false);
     const [incomingCall, setIncomingCall] = useState<any>(null);
 
@@ -69,7 +66,7 @@ export const useCRM = (
     // --- Lead Logic ---
     const addLead = (lead: Lead) => {
         setLeads(prev => [...prev, lead]);
-        addToast('ליד חדש נוצר', 'success');
+        addToast('ליד נוצר', 'success');
     };
 
     const updateLead = (id: string, updates: Partial<Lead>) => {
@@ -302,18 +299,6 @@ export const useCRM = (
         }
     };
 
-    const connectGoogleDrive = async () => {
-        setIsConnectingDrive(true);
-        try {
-            // Redirect to OAuth authorization (real Google OAuth, not demo)
-            window.location.href = '/api/integrations/google/authorize?service=drive';
-        } catch (error: any) {
-            console.error('[CRM] Error connecting Google Drive:', error);
-            addToast('שגיאה בחיבור ל-Google Drive', 'error');
-            setIsConnectingDrive(false);
-        }
-    };
-
     // Load Green Invoice connection status on mount
     useEffect(() => {
         let mounted = true;
@@ -347,67 +332,6 @@ export const useCRM = (
         checkGreenInvoiceStatus();
         return () => { mounted = false; };
     }, []);
-
-    // Load drive connection status and files on mount (only once, with error handling)
-    useEffect(() => {
-        let mounted = true;
-        const checkDriveStatus = async () => {
-            try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                const response = await fetch('/api/integrations/google/status?service=drive', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
-                });
-                if (!mounted) return;
-                
-                // Check if response is JSON before parsing
-                const contentType = response.headers.get('content-type');
-                if (response.ok && contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    const connected = data.status?.drive?.connected || false;
-                    setIsDriveConnected(connected);
-                    
-                    // Load files if connected
-                    if (connected && mounted) {
-                        try {
-                            const filesResponse = await fetch('/api/integrations/drive/files?pageSize=20', {
-                                headers: orgId ? { 'x-org-id': orgId } : undefined
-                            });
-                            if (mounted && filesResponse.ok) {
-                                const filesContentType = filesResponse.headers.get('content-type');
-                                if (filesContentType && filesContentType.includes('application/json')) {
-                                    const filesData = await filesResponse.json();
-                                    setDriveFiles((filesData.files || []).map((f: any) => ({
-                                        id: f.id,
-                                        name: f.name,
-                                        mimeType: f.mimeType,
-                                        url: f.webViewLink || '#',
-                                        modifiedAt: f.modifiedTime,
-                                        owner: 'me'
-                                    })));
-                                }
-                            }
-                        } catch (filesError) {
-                            // Silently fail - files loading is optional
-                            console.warn('[CRM] Could not load drive files:', filesError);
-                        }
-                    }
-                } else {
-                    // Not connected or error - set to false
-                    if (mounted) {
-                        setIsDriveConnected(false);
-                    }
-                }
-            } catch (error) {
-                // Silently fail - integration is optional
-                console.warn('[CRM] Error checking Drive status:', error);
-                if (mounted) {
-                    setIsDriveConnected(false);
-                }
-            }
-        };
-        checkDriveStatus();
-        return () => { mounted = false; };
-    }, []); // Only run once on mount
 
     const connectGreenInvoice = async () => {
         try {
@@ -509,14 +433,14 @@ export const useCRM = (
     const dismissCall = () => setIncomingCall(null);
 
     return {
-        clients, leads, assets, products, invoices, tenants, driveFiles,
+        clients, leads, assets, products, invoices, tenants,
         trashClients, trashLeads, trashAssets,
-        isDriveConnected, isConnectingDrive, isGreenInvoiceConnected, incomingCall,
+        isGreenInvoiceConnected, incomingCall,
         addClient, updateClient, deleteClient, restoreClient, permanentlyDeleteClient,
         addLead, updateLead, deleteLead, restoreLead, permanentlyDeleteLead, convertLeadToClient,
         addAsset, updateAsset, deleteAsset, restoreAsset, permanentlyDeleteAsset,
         generateInvoice, addTenant, updateTenant, deleteTenant, deleteProduct,
-        connectGoogleCalendar, connectGoogleDrive, connectGreenInvoice, onboardClientFromWebhook, simulateIncomingCall, dismissCall,
+        connectGoogleCalendar, connectGreenInvoice, onboardClientFromWebhook, simulateIncomingCall, dismissCall,
         setProducts,
         // NEW: Version and Email Management
         updateTenantVersion, addAllowedEmail, removeAllowedEmail

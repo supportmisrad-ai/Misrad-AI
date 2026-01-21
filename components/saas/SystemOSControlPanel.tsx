@@ -14,7 +14,7 @@ const SYSTEM_OS_SCREENS = [
     { id: 'workspace', label: 'השולחן שלי', category: 'main' },
     { id: 'sales_pipeline', label: 'לוח עבודה', category: 'sales' },
     { id: 'sales_leads', label: 'לידים', category: 'sales' },
-    { id: 'calendar', label: 'יומן', category: 'sales' },
+    { id: 'calendar', label: 'אירועים', category: 'sales' },
     { id: 'comms', label: 'הודעות', category: 'sales' },
     { id: 'tasks', label: 'משימות', category: 'sales' },
     { id: 'mkt_campaigns', label: 'קמפיינים', category: 'marketing' },

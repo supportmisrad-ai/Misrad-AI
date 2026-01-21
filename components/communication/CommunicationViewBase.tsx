@@ -49,6 +49,7 @@ export interface CommunicationActivity {
   content: string;
   timestamp: any;
   direction?: 'outbound' | 'inbound' | string;
+  metadata?: any;
 }
 
 export interface CommunicationLead {
@@ -121,6 +122,8 @@ export interface CommunicationViewBaseProps {
   initialTab?: 'phone' | 'inbox';
   user?: { id: string; phone?: string; [key: string]: any };
 
+  onUploadRecordingAction?: (params: { leadId: string; file: File }) => Promise<void> | void;
+
   useToast: UseToastHook;
   useOnClickOutside: UseOnClickOutsideHook;
   CallButton: CallButtonComponent;
@@ -138,6 +141,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   onAddTask,
   initialTab = 'inbox',
   user,
+  onUploadRecordingAction,
   useToast,
   useOnClickOutside,
   CallButton,
@@ -158,6 +162,8 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [transcript, setTranscript] = useState<{ sender: string; text: string }[]>([]);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+
+  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
@@ -190,6 +196,20 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
       addToast('שגיאה בייצור טיוטה', 'error');
     } finally {
       setIsDrafting(false);
+    }
+  };
+
+  const handleUploadRecording = async (file: File) => {
+    if (!onUploadRecordingAction) return;
+    if (!selectedChatId) {
+      addToast('בחר לקוח/ליד כדי לשייך אליו את ההקלטה', 'warning');
+      return;
+    }
+    setIsUploadingRecording(true);
+    try {
+      await onUploadRecordingAction({ leadId: String(selectedChatId), file });
+    } finally {
+      setIsUploadingRecording(false);
     }
   };
 
@@ -245,9 +265,97 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: a.type,
           subject: a.type === 'email' ? 'תגובה לפנייה שלכם' : undefined,
+          metadata: (a as any)?.metadata,
         };
       });
   }, [activeLead]);
+
+  const renderCallAnalysisActivity = (metadata: any) => {
+    const ca = metadata?.callAnalysis;
+    if (!ca) return null;
+
+    const audio = ca?.audio || {};
+    const audioSrc = String(audio?.signedUrl || audio?.url || '').trim();
+    const analysis = ca?.analysis || {};
+    const score = Number.isFinite(Number(analysis?.score)) ? Number(analysis.score) : null;
+    const summary = String(analysis?.summary || '').trim();
+    const tasks = Array.isArray(analysis?.topics?.tasks) ? analysis.topics.tasks : [];
+    const promises = Array.isArray(analysis?.topics?.promises) ? analysis.topics.promises : [];
+    const objections = Array.isArray(analysis?.objections) ? analysis.objections : [];
+    const transcript = Array.isArray(analysis?.transcript) ? analysis.transcript : [];
+
+    return (
+      <div className="mt-3 space-y-3">
+        {audioSrc ? (
+          <audio controls className="w-full">
+            <source src={audioSrc} />
+          </audio>
+        ) : null}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">ציון</div>
+            <div className="text-lg font-black text-slate-900">{score == null ? '—' : score}</div>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 md:col-span-2">
+            <div className="text-[11px] font-black text-slate-500">סיכום</div>
+            <div className="text-sm font-bold text-slate-800 whitespace-pre-wrap">{summary || '—'}</div>
+          </div>
+        </div>
+
+        {promises.length || tasks.length ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="bg-white border border-slate-200 rounded-2xl p-3">
+              <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
+              <div className="mt-2 space-y-1">
+                {(promises.length ? promises : ['—']).slice(0, 8).map((p: any, idx: number) => (
+                  <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-3">
+              <div className="text-[11px] font-black text-slate-500">משימות</div>
+              <div className="mt-2 space-y-1">
+                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: any, idx: number) => (
+                  <div key={idx} className="text-sm font-bold text-slate-800">{String(t)}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {objections.length ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
+            <div className="mt-2 space-y-2">
+              {objections.slice(0, 6).map((o: any, idx: number) => (
+                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                  <div className="text-xs font-black text-slate-900">{String(o?.objection || '')}</div>
+                  <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String(o?.reply || '')}</div>
+                  {o?.next_question ? (
+                    <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(o.next_question)}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {transcript.length ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
+            <div className="mt-2 space-y-2">
+              {transcript.slice(0, 10).map((t: any, idx: number) => (
+                <div key={idx} className="text-sm font-bold text-slate-800">
+                  <span className="text-slate-500">{String(t?.speaker || '')}:</span> {String(t?.text || '')}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (isCalling) {
@@ -671,6 +779,8 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                             <div className="p-4">
                               <p className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${isMe ? 'text-white' : 'text-slate-700'}`}>{msg.text}</p>
 
+                              {String(msg.type) === 'call' ? renderCallAnalysisActivity((msg as any)?.metadata) : null}
+
                               <div className={`text-[10px] mt-2 flex items-center justify-end gap-1.5 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
                                 <span className="font-mono">{msg.time}</span>
                                 {isMe && (
@@ -920,6 +1030,36 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
             ) : (
               <div className="flex-1 flex items-center justify-center p-8 bg-slate-50/30">
                 <div className="w-full max-w-sm bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-200">
+                  {onUploadRecordingAction ? (
+                    <div className="mb-5 flex justify-center">
+                      <label
+                        className={`px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black cursor-pointer ${
+                          isUploadingRecording ? 'opacity-60 pointer-events-none' : ''
+                        }`}
+                      >
+                        {isUploadingRecording ? (
+                          <>
+                            <Loader2 size={16} className="inline-block ml-2 animate-spin" /> מעבד...
+                          </>
+                        ) : (
+                          <>
+                            <Paperclip size={16} className="inline-block ml-2" /> העלה הקלטה
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="audio/*"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            e.currentTarget.value = '';
+                            if (!f) return;
+                            void handleUploadRecording(f);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                   <div className="mb-8 relative">
                     <input
                       type="text"

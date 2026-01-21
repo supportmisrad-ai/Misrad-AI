@@ -45,6 +45,7 @@ export default async function NexusModuleHome({
       'ai',
       'team',
       ...(workspace.entitlements?.finance ? (['finance'] as const) : []),
+      ...(workspace.entitlements?.operations ? (['operations'] as const) : []),
     ],
   };
 

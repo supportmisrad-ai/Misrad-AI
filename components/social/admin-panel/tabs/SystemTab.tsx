@@ -49,7 +49,7 @@ export default function SystemTab({
         </div>
       </div>
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 p-10 rounded-3xl flex flex-col gap-8 shadow-md">
-        <h3 className="text-xl font-black text-slate-900">יומן פעולות</h3>
+        <h3 className="text-xl font-black text-slate-900">אירועי מערכת</h3>
         <div className="flex gap-2 justify-end">
           <button
             onClick={onPrevAuditPage}

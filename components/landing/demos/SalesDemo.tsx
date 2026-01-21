@@ -15,7 +15,7 @@ export const SalesDemo = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setActivities(prev => [
-                { text: 'ליד חדש נקלט', type: 'lead', time: 'עכשיו' },
+                { text: 'ליד נקלט', type: 'lead', time: 'עכשיו' },
                 ...prev.slice(0, 2)
             ]);
         }, 4000);

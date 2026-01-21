@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, BrainCircuit, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Sparkles, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from '../types';
@@ -11,7 +13,7 @@ import NewMeetingModal from './NewMeetingModal';
 import FocusModeView from './FocusModeView';
 import FinanceView from './FinanceView';
 import NotificationsView from './NotificationsView';
-import LeadsHub from './LeadsHub';
+import LeadsHub from './SalesHub';
 import HeadquartersView from '../../../nexus/HeadquartersView';
 import WorkspaceHub from './WorkspaceHub';
 import OperationsHub from './OperationsHub';
@@ -193,7 +195,7 @@ const SystemOSApp = () => {
 
   const handleSaveNewLead = (newLead: Lead) => {
       setLeads(prev => [newLead, ...prev]);
-      addToast("נקלט ליד חדש", 'success');
+      addToast("נקלט ליד", 'success');
   };
 
   const handleHandoverConfirm = (handoverData: HandoverData) => {
@@ -222,7 +224,7 @@ const SystemOSApp = () => {
 
   const handleSaveMeeting = (newMeeting: CalendarEvent) => {
       setCalendarEvents([...calendarEvents, newMeeting]);
-      addToast("הפגישה ביומן");
+      addToast("הפגישה נוספה לאירועים");
       setShowNewMeetingModal(false);
   };
 

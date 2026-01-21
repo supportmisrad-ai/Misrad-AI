@@ -13,6 +13,7 @@ import { TaskDetailModal } from '../nexus/TaskDetailModal';
 
 interface LayoutModalsProps {
   showMorningBrief: boolean;
+  allowMorningBrief: boolean;
   isVoiceRecorderOpen: boolean;
   setIsVoiceRecorderOpen: (open: boolean) => void;
   isCreateTaskOpen: boolean;
@@ -36,6 +37,7 @@ interface LayoutModalsProps {
 
 export const LayoutModals: React.FC<LayoutModalsProps> = ({
   showMorningBrief,
+  allowMorningBrief,
   isVoiceRecorderOpen,
   setIsVoiceRecorderOpen,
   isCreateTaskOpen,
@@ -54,7 +56,7 @@ export const LayoutModals: React.FC<LayoutModalsProps> = ({
 }) => {
   return (
     <>
-      <AnimatePresence>{showMorningBrief && <MorningBriefing />}</AnimatePresence>
+      <AnimatePresence>{allowMorningBrief && showMorningBrief && <MorningBriefing />}</AnimatePresence>
       <AnimatePresence>{isVoiceRecorderOpen && <VoiceRecorder onClose={() => setIsVoiceRecorderOpen(false)} />}</AnimatePresence>
       <AnimatePresence>{isCreateTaskOpen && <CreateTaskModal onClose={closeCreateTask} />}</AnimatePresence>
       <AnimatePresence>{taskToComplete && <TaskCompletionModal />}</AnimatePresence>

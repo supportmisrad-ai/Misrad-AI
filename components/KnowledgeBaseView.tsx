@@ -7,7 +7,32 @@ import {
     GraduationCap, Layout, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { useToast } from './system/contexts/ToastContext';
-import { KnowledgeItem, OnboardingTask, UserRole, Task } from '../types';
+import type { Task, UserRole } from './system/types';
+
+type KnowledgeCategory = 'sales' | 'ops' | 'tech' | 'hr';
+type KnowledgeType = 'Tutorial' | 'SOP' | 'Policy';
+
+type KnowledgeItem = {
+    id: string;
+    title: string;
+    category: KnowledgeCategory;
+    type: KnowledgeType;
+    lastUpdated: Date;
+    author: string;
+    readTime: string;
+    requiredRoles: UserRole[];
+    verificationRequired: boolean;
+    tags: string[];
+    content: React.ReactNode;
+};
+
+type OnboardingTask = {
+    id: string;
+    title: string;
+    type: 'read' | 'video' | 'quiz';
+    itemId?: string;
+    completed: boolean;
+};
 
 // --- MOCK DATA ---
 
@@ -79,7 +104,7 @@ const KNOWLEDGE_ITEMS: KnowledgeItem[] = [
                     </li>
                     <li className="flex gap-3 items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">4</span>
-                        <strong>קריטי:</strong> תאם פגישת קיק-אוף ביומן של איתמר (רק לימי שלישי/חמישי).
+                        <strong>קריטי:</strong> תאם פגישת קיק-אוף בלו"ז של איתמר (רק לימי שלישי/חמישי).
                     </li>
                 </ul>
             </div>
@@ -119,9 +144,9 @@ const KnowledgeBaseView: React.FC<KnowledgeBaseViewProps> = ({ onAddTask }) => {
     const [selectedDoc, setSelectedDoc] = useState<KnowledgeItem | null>(null);
     const [myTrack, setMyTrack] = useState(ONBOARDING_TRACK);
 
-    const filteredDocs = KNOWLEDGE_ITEMS.filter(doc => {
+    const filteredDocs = KNOWLEDGE_ITEMS.filter((doc) => {
         const matchesCategory = activeCategory === 'all' || doc.category === activeCategory;
-        const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase()) || doc.tags.some(t => t.includes(search));
+        const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase()) || doc.tags.some((t) => t.includes(search));
         return matchesCategory && matchesSearch;
     });
 

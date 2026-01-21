@@ -135,6 +135,7 @@ async function POSTHandler(
                 social: (org as any)?.has_social ?? false,
                 finance: (org as any)?.has_finance ?? false,
                 client: (org as any)?.has_client ?? false,
+                operations: (org as any)?.has_operations ?? false,
             },
             fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
             seatsAllowedOverride: (org as any)?.seats_allowed ?? null,
@@ -142,7 +143,7 @@ async function POSTHandler(
 
         if (!caps.isTeamManagementEnabled) {
             return NextResponse.json(
-                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { error: 'ניהול צוות זמין רק עם מודול Nexus' },
                 { status: 403 }
             );
         }

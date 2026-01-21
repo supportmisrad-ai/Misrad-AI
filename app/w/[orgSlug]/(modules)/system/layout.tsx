@@ -1,6 +1,8 @@
 import React from 'react';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
+import { getSystemBootstrap } from '@/lib/services/system-service';
+import SystemShellGateClient from './SystemShellGateClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,7 @@ export default async function SystemModuleLayout({
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
   await persistCurrentUserLastLocation({ orgSlug, module: 'system' });
   const def = getModuleDefinition('system');
+  const { initialCurrentUser, initialOrganization } = await getSystemBootstrap(orgSlug);
 
   const style = {
     '--os-accent': def.theme.accent,
@@ -29,7 +32,13 @@ export default async function SystemModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      {children}
+      <SystemShellGateClient
+        orgSlug={orgSlug}
+        initialCurrentUser={initialCurrentUser}
+        initialOrganization={initialOrganization}
+      >
+        {children}
+      </SystemShellGateClient>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, PenTool, Sun, Settings, Headphones, Sparkles, Home, CheckSquare, Plus, Briefcase, User, AppWindow } from 'lucide-react';
 import { NAV_ITEMS, getMobileGridStyles } from './layout.types';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
+import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
 interface MobileMenuProps {
   isPlusMenuOpen: boolean;
@@ -23,6 +24,7 @@ interface MobileMenuProps {
     enabledModules: string[];
     systemFlags?: Record<string, string>;
   };
+  allowMorningBrief: boolean;
   setShowMorningBrief: (show: boolean) => void;
   openSupport: () => void;
   startTutorial: () => void;
@@ -43,6 +45,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   isActive,
   hasPermission,
   organization,
+  allowMorningBrief,
   setShowMorningBrief,
   openSupport,
   startTutorial,
@@ -118,6 +121,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                 if (shouldClose) setIsMobileMenuOpen(false);
               }}
               className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-8 opacity-50"></div>
               <div className="space-y-6">
@@ -144,18 +148,20 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                       </button>
                     )
                   })}
-                  <button 
-                    onClick={() => { setShowMorningBrief(true); setIsMobileMenuOpen(false); }} 
-                    className="relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-md shadow-orange-200/50 group"
-                    aria-label="תדריך בוקר"
-                  >
-                    <Sun size={24} strokeWidth={2} />
-                    <span className="text-sm font-bold text-orange-700">תדריך בוקר</span>
-                    <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
-                    </span>
-                  </button>
+                  {allowMorningBrief ? (
+                    <button 
+                      onClick={() => { setShowMorningBrief(true); setIsMobileMenuOpen(false); }} 
+                      className="relative flex items-center justify-center gap-3 px-6 py-4 rounded-2xl transition-all duration-200 bg-orange-50 text-orange-700 hover:bg-orange-100 shadow-md shadow-orange-200/50 group"
+                      aria-label="תדריך בוקר"
+                    >
+                      <Sun size={24} strokeWidth={2} />
+                      <span className="text-sm font-bold text-orange-700">תדריך בוקר</span>
+                      <span className="absolute top-2 right-2 flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                      </span>
+                    </button>
+                  ) : null}
                 </div>
 
                 {/* Separator */}
@@ -228,88 +234,50 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
         )}
       </AnimatePresence>
 
-      <nav className={`md:hidden fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] h-16 shadow-[0_8px_30px_rgba(0,0,0,0.1)] px-2 sm:px-4 flex items-center justify-evenly transition-all duration-300 ${isPlusMenuOpen ? 'z-[60]' : 'z-40'}`} style={{ paddingBottom: 'env(safe-area-inset-bottom)', marginBottom: 'env(safe-area-inset-bottom)' }}>
-        <button 
-          onClick={() => handleNavClick('/')} 
-          className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-            isActive('/') 
-              ? 'bg-black text-white shadow-lg shadow-black/20' 
-              : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-          }`} 
-          aria-label="לוח בקרה"
-        >
-          <Home size={18} className="sm:w-5 sm:h-5" strokeWidth={isActive('/') ? 2.5 : 2} />
-        </button>
-        
-        <button 
-          onClick={() => handleNavClick('/tasks')} 
-          className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-            isActive('/tasks') 
-              ? 'bg-black text-white shadow-lg shadow-black/20' 
-              : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-          }`} 
-          aria-label="משימות"
-        >
-          <CheckSquare size={18} className="sm:w-5 sm:h-5" strokeWidth={isActive('/tasks') ? 2.5 : 2} />
-        </button>
-        
-        <div className="relative -top-6 z-50">
-          <button 
-            onClick={togglePlusMenu} 
-            aria-label={isPlusMenuOpen ? "סגור תפריט" : "פתח תפריט"}
-            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 border-[4px] sm:border-[5px] border-[#f1f5f9] group relative overflow-hidden ${
-              isPlusMenuOpen 
-              ? 'bg-slate-900 rotate-45 scale-90' 
-              : 'bg-gradient-to-br from-slate-800 to-black hover:scale-105'
-            }`}
-          >
-            {/* Subtle inner gradient/glow */}
-            <div className={`absolute inset-0 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 opacity-100 transition-opacity ${isPlusMenuOpen ? 'opacity-0' : ''}`}></div>
-            
-            <Plus size={26} className="sm:w-[30px] sm:h-[30px] text-white drop-shadow-md" strokeWidth={2.5} />
-          </button>
-        </div>
-        
-        {hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden' ? (
-          <button 
-            onClick={() => handleNavClick('/clients')} 
-            className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-              isActive('/clients') 
-                ? 'bg-black text-white shadow-lg shadow-black/20' 
-                : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-            }`} 
-            aria-label="לקוחות"
-          >
-            <Briefcase size={18} className="sm:w-5 sm:h-5" strokeWidth={isActive('/clients') ? 2.5 : 2} />
-          </button>
-        ) : (
-          <button 
-            onClick={() => handleNavClick('/me')} 
-            className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-              isActive('/me') 
-                ? 'bg-black text-white shadow-lg shadow-black/20' 
-                : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-            }`} 
-            aria-label="פרופיל שלי"
-          >
-            <User size={18} className="sm:w-5 sm:h-5" strokeWidth={isActive('/me') ? 2.5 : 2} />
-          </button>
-        )}
-        
-        <button 
-          onClick={() => {
-            toggleMobileMenu();
-          }} 
-          className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 relative z-10 ${
-            isActive('/settings') || isActive('/me') 
-              ? 'bg-black text-white shadow-lg shadow-black/20' 
-              : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-          }`}
-          aria-label="הגדרות ותפריט"
-        >
-          <AppWindow size={18} className="sm:w-5 sm:h-5" strokeWidth={isActive('/settings') || isActive('/me') ? 2.5 : 2} />
-        </button>
-      </nav>
+      <MobileBottomNav
+        className={isPlusMenuOpen ? 'z-[60]' : 'z-40'}
+        rightItems={[
+          {
+            id: 'home',
+            label: 'לוח בקרה',
+            icon: Home,
+            active: isActive('/'),
+            onClick: () => handleNavClick('/'),
+          },
+          {
+            id: 'tasks',
+            label: 'משימות',
+            icon: CheckSquare,
+            active: isActive('/tasks'),
+            onClick: () => handleNavClick('/tasks'),
+          },
+        ]}
+        leftItems={[
+          {
+            id: 'clients',
+            label: hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden' ? 'לקוחות' : 'פרופיל',
+            icon: hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden' ? Briefcase : User,
+            active:
+              hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden'
+                ? isActive('/clients')
+                : isActive('/me'),
+            onClick: () =>
+              hasPermission('view_crm') && organization.enabledModules.includes('crm') && organization.systemFlags?.['clients'] !== 'hidden'
+                ? handleNavClick('/clients')
+                : handleNavClick('/me'),
+          },
+          {
+            id: 'menu',
+            label: 'תפריט',
+            icon: AppWindow,
+            active: Boolean(isMobileMenuOpen || isActive('/settings') || isActive('/me')),
+            onClick: () => toggleMobileMenu(),
+          },
+        ]}
+        onPlusClickAction={togglePlusMenu}
+        plusAriaLabel={isPlusMenuOpen ? 'סגור תפריט' : 'פתח תפריט'}
+        plusActive={isPlusMenuOpen}
+      />
     </>
   );
 };

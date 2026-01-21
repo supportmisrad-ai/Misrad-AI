@@ -12,6 +12,7 @@ import {
     BarChart, Bar, Cell, PieChart, Pie, Legend, ComposedChart, Line
 } from 'recharts';
 import { useToast } from '../contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 interface CampaignLike {
     spent?: number;
@@ -107,7 +108,7 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
                         ))}
                     </div>
                     <button 
-                        onClick={() => addToast('מייצא דוח מסכם...', 'success')}
+                        onClick={() => openComingSoon()}
                         className="bg-primary text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-rose-200 hover:bg-primary-dark transition-all flex items-center gap-2"
                     >
                         <DownloadCloud size={18} />

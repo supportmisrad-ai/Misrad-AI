@@ -1,5 +1,6 @@
 'use server';
 
+import { randomBytes } from 'crypto';
 import { createClient } from '@/lib/supabase';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -17,6 +18,7 @@ export type OrganizationRecord = {
   has_system: boolean | null;
   has_finance: boolean | null;
   has_client: boolean | null;
+  has_operations: boolean | null;
   subscription_status: string | null;
   subscription_plan: string | null;
   trial_start_date: string | null;
@@ -49,6 +51,36 @@ function normalizeSlug(input: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 64);
+}
+
+function normalizeEmail(input: string): string {
+  return String(input || '')
+    .trim()
+    .toLowerCase();
+}
+
+async function generateUniqueOrgInviteToken(supabase: any): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const token = randomBytes(16).toString('hex').toUpperCase().slice(0, 32);
+
+    const { data, error } = await supabase
+      .from('organization_signup_invitations')
+      .select('id')
+      .eq('token', token)
+      .maybeSingle();
+
+    if (error) {
+      const msg = String(error.message || '').toLowerCase();
+      if (msg.includes('does not exist') || String((error as any).code || '') === '42P01') {
+        return token;
+      }
+      continue;
+    }
+
+    if (!data) return token;
+  }
+
+  throw new Error('Failed to generate invite token');
 }
 
 async function requireSuperAdmin(): Promise<{ success: true } | { success: false; error: string }> {
@@ -178,6 +210,7 @@ export async function createOrganization(input: {
   has_system?: boolean;
   has_finance?: boolean;
   has_client?: boolean;
+  has_operations?: boolean;
   subscription_status?: string;
   subscription_plan?: string;
   trial_days?: number;
@@ -226,6 +259,7 @@ export async function createOrganization(input: {
         has_system: input.has_system ?? false,
         has_finance: input.has_finance ?? false,
         has_client: input.has_client ?? false,
+        has_operations: input.has_operations ?? false,
         subscription_status: input.subscription_status ?? 'trial',
         subscription_plan: input.subscription_plan ?? null,
         trial_start_date: now,
@@ -277,6 +311,142 @@ export async function createOrganization(input: {
   }
 }
 
+export async function createOrganizationOrInviteOwner(input: {
+  name: string;
+  slug: string;
+  ownerEmail: string;
+}): Promise<
+  | { success: true; data: { kind: 'organization'; organizationId: string } }
+  | { success: true; data: { kind: 'invitation'; token: string; signupUrl: string } }
+  | { success: false; error: string }
+> {
+  try {
+    const guard = await requireSuperAdmin();
+    if (!guard.success) return guard;
+
+    const supabase = createClient();
+
+    const name = (input.name || '').trim();
+    if (!name) return createErrorResponse(null, 'שם ארגון חובה') as any;
+
+    const desiredSlug = normalizeSlug(input.slug || '');
+    if (!desiredSlug) return createErrorResponse(null, 'Slug לא תקין') as any;
+
+    const ownerEmail = normalizeEmail(input.ownerEmail || '');
+    if (!ownerEmail || !ownerEmail.includes('@')) {
+      return createErrorResponse(null, 'אימייל בעלים לא תקין') as any;
+    }
+
+    const { data: existingOrgBySlug, error: existsOrgError } = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('slug', desiredSlug)
+      .maybeSingle();
+
+    if (existsOrgError) return createErrorResponse(existsOrgError, 'שגיאה בבדיקת slug') as any;
+    if (existingOrgBySlug?.id) return createErrorResponse(null, 'Slug כבר תפוס') as any;
+
+    const { data: existingOwner } = await supabase
+      .from('social_users')
+      .select('id, email, full_name')
+      .eq('email', ownerEmail)
+      .maybeSingle();
+
+    if (existingOwner?.id) {
+      const now = new Date().toISOString();
+
+      const { data: createdOrg, error: createOrgError } = await supabase
+        .from('organizations')
+        .insert({
+          name,
+          slug: desiredSlug,
+          owner_id: existingOwner.id,
+          has_nexus: true,
+          has_social: false,
+          has_system: false,
+          has_finance: false,
+          has_client: false,
+          has_operations: false,
+          subscription_status: 'trial',
+          subscription_plan: null,
+          trial_start_date: now,
+          trial_days: 30,
+          created_at: now,
+          updated_at: now,
+        } as any)
+        .select('id')
+        .single();
+
+      if (createOrgError || !createdOrg?.id) {
+        return createErrorResponse(createOrgError || new Error('Failed to create org'), 'שגיאה ביצירת ארגון') as any;
+      }
+
+      const { error: linkOwnerError } = await supabase
+        .from('social_users')
+        .update({ organization_id: createdOrg.id, updated_at: now } as any)
+        .eq('id', existingOwner.id);
+
+      if (linkOwnerError) {
+        return createErrorResponse(linkOwnerError, 'הארגון נוצר, אך נכשל שיוך הבעלים לארגון') as any;
+      }
+
+      try {
+        const baseUrl = getBaseUrl();
+        const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(desiredSlug))}`;
+        const ownerEmailForSend = existingOwner?.email ? String(existingOwner.email) : ownerEmail;
+        if (ownerEmailForSend) {
+          await sendOrganizationWelcomeEmail({
+            ownerEmail: ownerEmailForSend,
+            organizationName: name,
+            ownerName: existingOwner?.full_name ? String(existingOwner.full_name) : null,
+            portalUrl,
+          });
+        }
+      } catch {
+        // ignore
+      }
+
+      return createSuccessResponse({ kind: 'organization', organizationId: createdOrg.id }) as any;
+    }
+
+    const token = await generateUniqueOrgInviteToken(supabase);
+    const now = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+
+    const { error: inviteInsertError } = await supabase
+      .from('organization_signup_invitations')
+      .insert({
+        token,
+        owner_email: ownerEmail,
+        organization_name: name,
+        desired_slug: desiredSlug,
+        is_used: false,
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+        expires_at: expiresAt,
+        metadata: {},
+      } as any);
+
+    if (inviteInsertError) {
+      return createErrorResponse(inviteInsertError, 'שגיאה ביצירת הזמנה') as any;
+    }
+
+    const baseUrl = getBaseUrl();
+    const claimUrl = `${baseUrl}/sign-up?invite=${encodeURIComponent(token)}&redirect_url=${encodeURIComponent('/workspaces/new')}`;
+    const { sendTenantInvitationEmail } = await import('@/lib/email');
+    try {
+      await sendTenantInvitationEmail(ownerEmail, name, claimUrl, { ownerName: null });
+    } catch {
+      // ignore
+    }
+
+    return createSuccessResponse({ kind: 'invitation', token, signupUrl: claimUrl }) as any;
+  } catch (error: any) {
+    return createErrorResponse(error, error?.message || 'שגיאה ביצירת הזמנה') as any;
+  }
+}
+
 export async function updateOrganization(input: {
   organizationId: string;
   name?: string;
@@ -287,6 +457,7 @@ export async function updateOrganization(input: {
   has_system?: boolean;
   has_finance?: boolean;
   has_client?: boolean;
+  has_operations?: boolean;
   subscription_status?: string;
   subscription_plan?: string;
 }): Promise<{ success: boolean; data?: true; error?: string }> {
@@ -324,7 +495,7 @@ export async function updateOrganization(input: {
       patch.slug = desired;
     }
 
-    const boolFields: Array<keyof typeof input> = ['has_nexus', 'has_social', 'has_system', 'has_finance', 'has_client'];
+    const boolFields: Array<keyof typeof input> = ['has_nexus', 'has_social', 'has_system', 'has_finance', 'has_client', 'has_operations'];
     for (const f of boolFields) {
       if (input[f] !== undefined) patch[f] = input[f];
     }

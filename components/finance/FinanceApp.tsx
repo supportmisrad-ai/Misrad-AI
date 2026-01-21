@@ -1,21 +1,26 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, Bell } from 'lucide-react';
+import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, Bell, User, Compass } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import Sidebar from './Sidebar';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { buildDocumentTitle } from '@/lib/room-branding';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import { getMyProfile } from '@/app/actions/profiles';
-import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
 import CommandPalette from './CommandPalette';
+import { SharedHeader } from '@/components/shared/SharedHeader';
+import { SharedSidebar } from '@/components/shared/SharedSidebar';
+import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
+import { BusinessSwitcher } from '@/components/BusinessSwitcher';
+import { Avatar } from '@/components/Avatar';
+import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
 // Import placeholder components
 import InvoicesView from './invoices/InvoicesView';
@@ -61,11 +66,10 @@ const FinanceOSApp: React.FC<{
 }> = ({ initialFinanceOverview, initialCurrentUser, initialOrganization }) => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
-  const { pathname } = useRoomBranding();
+  const { pathname, roomNameHebrew, roomName, RoomIcon } = useRoomBranding();
   const nextPathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [profileIdentity, setProfileIdentity] = useState<{ name: string | null; role: string | null } | null>(null);
   const [booted, setBooted] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -73,27 +77,13 @@ const FinanceOSApp: React.FC<{
 
   const orgSlug = React.useMemo(() => parseWorkspaceRoute(nextPathname).orgSlug, [nextPathname]);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!orgSlug) {
-        setProfileIdentity(null);
-        return;
-      }
-      try {
-        const res = await getMyProfile({ orgSlug });
-        if (!res.success || !res.data?.profile) return;
-        const p: any = res.data.profile;
-        setProfileIdentity({
-          name: p.full_name ? String(p.full_name) : null,
-          role: p.role ? String(p.role) : null,
-        });
-      } catch {
-        // Best-effort
-      }
-    };
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+    name: (user as any)?.name ?? null,
+    role: (user as any)?.role ?? null,
+    avatarUrl: (user as any)?.avatar ?? null,
+  });
 
-    load();
-  }, [orgSlug]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const onBootComplete = useCallback(() => {
     setBooted(true);
@@ -140,6 +130,24 @@ const FinanceOSApp: React.FC<{
     return '/finance';
   }, [nextPathname]);
 
+  const tourUrl = React.useMemo(() => {
+    if (orgSlug) return `/w/${encodeURIComponent(orgSlug)}/nexus?tour=1`;
+    return null;
+  }, [orgSlug]);
+
+  const [showTourPrompt, setShowTourPrompt] = useState(false);
+  useEffect(() => {
+    if (!orgSlug) return;
+    if (typeof window === 'undefined') return;
+    const key = `nexus_seen_tour_prompt_v1:finance:${encodeURIComponent(String(orgSlug))}`;
+    try {
+      const seen = window.localStorage.getItem(key);
+      if (!seen) setShowTourPrompt(true);
+    } catch {
+      // ignore
+    }
+  }, [orgSlug]);
+
   const isMeRoute = React.useMemo(() => {
     return Boolean(nextPathname && nextPathname.startsWith(`${basePath}/me`));
   }, [basePath, nextPathname]);
@@ -147,6 +155,14 @@ const FinanceOSApp: React.FC<{
   const isHubRoute = React.useMemo(() => {
     return Boolean(nextPathname && nextPathname.startsWith(`${basePath}/hub`));
   }, [basePath, nextPathname]);
+
+  React.useEffect(() => {
+    if (!booted) return;
+    if (!isHubRoute) return;
+    const drawer = searchParams?.get('drawer');
+    if (drawer !== 'finance') return;
+    router.replace(`${basePath}/hub`);
+  }, [basePath, booted, isHubRoute, router, searchParams]);
 
   React.useEffect(() => {
     if (!booted) return;
@@ -172,8 +188,7 @@ const FinanceOSApp: React.FC<{
     if (!booted) return;
     if (activeTab !== 'hub') return;
     if (isHubRoute) return;
-    const from = nextPathname || basePath;
-    router.push(`${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(from)}`);
+    router.push(`${basePath}/hub`);
   }, [activeTab, basePath, booted, isHubRoute, nextPathname, router]);
 
   React.useEffect(() => {
@@ -190,9 +205,66 @@ const FinanceOSApp: React.FC<{
         if (user) setIsCommandPaletteOpen((open) => !open);
       }
     };
+
     document.addEventListener('keydown', down, { capture: true });
     return () => document.removeEventListener('keydown', down, { capture: true });
   }, [user]);
+
+  const tourPrompt =
+    showTourPrompt && !isMeRoute ? (
+      <div className="mb-6 rounded-[1.5rem] bg-white/80 backdrop-blur border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 shrink-0">
+              <Compass size={18} />
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-black text-slate-900">חדש כאן?</div>
+              <div className="text-xs text-slate-500 mt-1">סיור 30 שניות שמסביר איפה הדברים נמצאים במערכת.</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 justify-end">
+            <button
+              type="button"
+              className="h-11 px-5 inline-flex items-center justify-center rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-black transition-colors"
+              onClick={() => {
+                try {
+                  if (typeof window !== 'undefined' && orgSlug) {
+                    const key = `nexus_seen_tour_prompt_v1:finance:${encodeURIComponent(String(orgSlug))}`;
+                    window.localStorage.setItem(key, 'true');
+                  }
+                } catch {
+                  // ignore
+                }
+                setShowTourPrompt(false);
+                if (tourUrl) router.push(tourUrl);
+              }}
+              disabled={!tourUrl}
+            >
+              התחל סיור
+            </button>
+            <button
+              type="button"
+              className="h-11 px-5 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 transition-all"
+              onClick={() => {
+                try {
+                  if (typeof window !== 'undefined' && orgSlug) {
+                    const key = `nexus_seen_tour_prompt_v1:finance:${encodeURIComponent(String(orgSlug))}`;
+                    window.localStorage.setItem(key, 'true');
+                  }
+                } catch {
+                  // ignore
+                }
+                setShowTourPrompt(false);
+              }}
+            >
+              לא עכשיו
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null;
 
   if (!user) {
     return <div className="p-8 text-center">נדרש התחברות</div>;
@@ -215,13 +287,11 @@ const FinanceOSApp: React.FC<{
     ? (String(user?.email ?? '').split('@')[0] || 'משתמש')
     : String(user?.name ?? '');
 
-  const headerName = profileIdentity?.name || safeUserName;
-  const headerRole = profileIdentity?.role || null;
+  const headerName = systemIdentity?.name || safeUserName;
+  const headerRole = systemIdentity?.role || null;
 
-  const avatarValue = String(user?.avatar ?? '').trim();
-  const hasValidAvatarSrc =
-    !!avatarValue &&
-    (avatarValue.startsWith('http') || avatarValue.startsWith('data:') || avatarValue.startsWith('/'));
+  const moduleTitle = roomNameHebrew || roomName || 'Finance';
+  const screenTitle = activeNavItem?.label || null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -250,9 +320,7 @@ const FinanceOSApp: React.FC<{
                       {
                         title: 'הגדרות פיננסיות',
                         subtitle: 'מסמכים, אינטגרציות ותשלומים',
-                        href: `${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(
-                          `${basePath}/me`
-                        )}`,
+                        href: `${basePath}/hub`,
                         iconId: 'settings',
                       },
                     ]
@@ -262,24 +330,23 @@ const FinanceOSApp: React.FC<{
           </DataProvider>
         );
       case 'hub':
-        return <GlobalProfileHub defaultOrigin="finance" defaultDrawer="finance" />;
+        return <IntegrationsView />;
       default:
         return <OverviewView />;
     }
   };
 
   const goToMe = () => {
-    router.push(`${basePath}/me`);
+    router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
   };
 
   const navigateToTab = (tabId: string) => {
-    const from = nextPathname || basePath;
     if (tabId === 'me') {
-      router.push(`${basePath}/me`);
+      router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
       return;
     }
     if (tabId === 'hub') {
-      router.push(`${basePath}/hub?origin=finance&drawer=finance&from=${encodeURIComponent(from)}`);
+      router.push(`${basePath}/hub`);
       return;
     }
     if (tabId === 'overview') {
@@ -289,103 +356,232 @@ const FinanceOSApp: React.FC<{
     router.push(`${basePath}?tab=${encodeURIComponent(tabId)}`);
   };
 
+  const isActiveAction = (path: string) => {
+    const id = path.replace('/', '');
+    return id === activeTab;
+  };
+
+  const onNavigateAction = (path: string) => {
+    const id = path.replace('/', '');
+    navigateToTab(id);
+    setIsMobileMenuOpen(false);
+  };
+
+  const viewNavItems = navItems.map((item) => ({ label: item.label, path: `/${item.id}`, icon: item.icon }));
+
+  const avatarSlot = (
+    <Avatar
+      src={systemIdentity?.avatarUrl || null}
+      alt={headerName}
+      name={headerName}
+      size="md"
+      rounded="full"
+      className="border-2 border-white shadow-sm"
+    />
+  );
+
+  const notificationsSlot = (
+    <div className="flex items-center gap-2">
+      <AttendanceMiniStatus />
+      <button
+        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+        aria-label="התראות"
+        type="button"
+      >
+        <Bell size={18} />
+      </button>
+    </div>
+  );
+
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar */}
-      <div className="hidden md:flex">
-        <Sidebar 
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          user={user}
-          logout={logout}
-          navItems={navItems}
-        />
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setIsMobileMenuOpen(true)} 
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100"
-            >
-              <Menu size={24} />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">{activeNavItem?.label || 'Finance'}</h1>
-              <p className="text-xs text-slate-500">ניהול כספים מקצועי</p>
-            </div>
+    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
+      <SharedSidebar
+        isOpen={isSidebarOpen}
+        onSetOpenAction={setIsSidebarOpen}
+        brand={{
+          name: initialOrganization?.name || moduleTitle,
+          logoUrl: initialOrganization?.logo || null,
+          fallbackIcon: RoomIcon ? <RoomIcon size={20} className="text-gray-900" /> : <CreditCard size={20} className="text-gray-900" />,
+        }}
+        brandSubtitle={moduleTitle}
+        onBrandClickAction={() => router.push('/workspaces')}
+        topSlot={
+          <div className="flex flex-col gap-2">
+            <BusinessSwitcher currentTenantName={initialOrganization?.name || moduleTitle} />
+            <WorkspaceSwitcher className="w-full" />
           </div>
+        }
+        navItems={viewNavItems}
+        primaryNavPaths={viewNavItems.map((n) => n.path)}
+        isActiveAction={isActiveAction}
+        onNavigateAction={onNavigateAction}
+        bottomSlot={
+          <OSAppSwitcher
+            compact={true}
+            buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+            buttonLabel="מודולים"
+            className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+            orgSlug={orgSlug || undefined}
+            currentModule="finance"
+          />
+        }
+      />
 
-          <div className="flex items-center gap-3">
-            <AttendanceMiniStatus />
-            <button type="button" onClick={() => setIsCommandPaletteOpen(true)} className="p-2 rounded-lg hover:bg-slate-100">
-              <Search size={20} />
-            </button>
-            <button className="p-2 rounded-lg hover:bg-slate-100 relative">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full"></span>
-            </button>
-
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+        <SharedHeader
+          title={moduleTitle}
+          subtitle={screenTitle}
+          currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
+          mobileBrand={{
+            name: moduleTitle,
+            logoUrl: initialOrganization?.logo || null,
+            fallbackIcon: RoomIcon ? <RoomIcon size={18} className="text-gray-900" /> : null,
+          }}
+          mobileLeadingSlot={
             <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 rounded-full hover:bg-white/50 text-gray-600"
+              aria-label="פתח תפריט"
               type="button"
-              onClick={goToMe}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
-              aria-label="פרופיל"
             >
-              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold overflow-hidden">
-                {hasValidAvatarSrc ? (
-                  <img src={avatarValue} alt={headerName} className="w-full h-full object-cover" />
-                ) : (
-                  headerName.charAt(0)
-                )}
-              </div>
-              <div className="hidden md:flex flex-col items-end leading-tight">
-                <span className="font-bold text-sm text-slate-900">{headerName}</span>
-                <span className="text-[10px] text-slate-500 font-medium">{headerRole || ''}</span>
-              </div>
+              <Menu size={18} />
             </button>
-          </div>
-        </header>
+          }
+          onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
+          onOpenSupportAction={undefined}
+          switcherSlot={null}
+          notificationsSlot={notificationsSlot}
+          user={{ name: headerName, role: headerRole }}
+          onProfileClickAction={goToMe}
+          profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}
+          userAvatarSlot={avatarSlot}
+          profileSlot={undefined}
+          className="bg-transparent"
+        />
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative" id="main-scroll-container">
+          {tourPrompt}
           {renderContent()}
         </main>
-      </div>
+      </main>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
-        {isMobileMenuOpen && (
+        {isMobileMenuOpen ? (
           <>
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              className="md:hidden fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
               onClick={() => setIsMobileMenuOpen(false)}
             />
             <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              className="fixed left-0 top-0 bottom-0 z-50 md:hidden"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.35 }}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 110 || info.velocity.y > 900;
+                if (shouldClose) setIsMobileMenuOpen(false);
+              }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="תפריט"
             >
-              <Sidebar 
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                user={user}
-                logout={logout}
-                mobile={true}
-                onClose={() => setIsMobileMenuOpen(false)}
-                navItems={navItems}
-              />
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
+
+              <div className="grid grid-cols-4 gap-4">
+                {[
+                  { id: 'overview', label: 'סקירה', icon: TrendingUp, onClick: () => navigateToTab('overview') },
+                  { id: 'invoices', label: 'חשבוניות', icon: FileText, onClick: () => navigateToTab('invoices') },
+                  { id: 'reports', label: 'דוחות', icon: BarChart, onClick: () => navigateToTab('reports') },
+                  { id: 'integrations', label: 'אינטגרציות', icon: Plug, onClick: () => navigateToTab('integrations') },
+                  { id: 'hub', label: 'הגדרות', icon: Settings, onClick: () => navigateToTab('hub') },
+                  { id: 'me', label: 'פרופיל', icon: User, onClick: goToMe },
+                ].map((item) => {
+                  const isActiveItem = item.id === 'me' ? activeTab === 'me' : activeTab === item.id;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        item.onClick();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                          isActiveItem
+                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <Icon size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+
+              <div className="space-y-3">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="finance" />
+              </div>
             </motion.div>
           </>
-        )}
+        ) : null}
       </AnimatePresence>
+
+      <MobileBottomNav
+        rightItems={[
+          {
+            id: 'overview',
+            label: 'סקירה',
+            icon: TrendingUp,
+            active: activeTab === 'overview',
+            onClick: () => navigateToTab('overview'),
+          },
+          {
+            id: 'invoices',
+            label: 'חשבוניות',
+            icon: FileText,
+            active: activeTab === 'invoices',
+            onClick: () => navigateToTab('invoices'),
+          },
+        ]}
+        leftItems={[
+          {
+            id: 'reports',
+            label: 'דוחות',
+            icon: BarChart,
+            active: activeTab === 'reports',
+            onClick: () => navigateToTab('reports'),
+          },
+          {
+            id: 'menu',
+            label: 'תפריט',
+            icon: Menu,
+            active: isMobileMenuOpen,
+            onClick: () => setIsMobileMenuOpen(true),
+          },
+        ]}
+        onPlusClickAction={() => setIsCommandPaletteOpen((open) => !open)}
+        plusAriaLabel={isCommandPaletteOpen ? 'סגור פעולות' : 'פתח פעולות'}
+        plusActive={isCommandPaletteOpen}
+      />
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}

@@ -193,7 +193,7 @@ async function POSTHandler(request: NextRequest) {
 
         if (!caps.isTeamManagementEnabled) {
             return NextResponse.json(
-                { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                { error: 'ניהול צוות זמין רק עם מודול Nexus' },
                 { status: 403 }
             );
         }
@@ -263,7 +263,9 @@ async function POSTHandler(request: NextRequest) {
 
         // 10. Generate invitation URL
         const baseUrl = getBaseUrl(request);
-        const invitationUrl = `${baseUrl}/employee-invite/${token}`;
+        const finalizePath = `/employee-invite/${encodeURIComponent(String(token))}/finalize`;
+        const finalizeUrl = `${baseUrl}${finalizePath}`;
+        const invitationUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(normalizedEmployeeEmail)}&invited=true&employee=true&redirect_url=${encodeURIComponent(finalizeUrl)}`;
 
         // 11. Send invitation email automatically
         try {

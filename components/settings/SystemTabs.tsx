@@ -82,7 +82,7 @@ export const DepartmentsTab: React.FC = () => {
     };
 
     return (
-        <motion.div key="departments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-16 md:pb-20">
+        <motion.div key="departments" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-24 md:pb-20">
             <DeleteConfirmationModal
                 isOpen={!!deptToDelete}
                 onClose={() => setDeptToDelete(null)}
@@ -158,8 +158,8 @@ export const DepartmentsTab: React.FC = () => {
                 </motion.div>
             )}
 
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm max-w-2xl">
-                <form onSubmit={addDepartment} className="flex gap-2 mb-6">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm max-w-2xl">
+                <form onSubmit={addDepartment} className="flex flex-col sm:flex-row gap-2 mb-6">
                     <input 
                         ref={inputRef}
                         value={newDept}
@@ -167,9 +167,9 @@ export const DepartmentsTab: React.FC = () => {
                         placeholder="שם המחלקה (למשל: שיווק)"
                         className={`flex-1 p-3 bg-gray-50 border rounded-xl outline-none focus:border-black transition-all ${isShaking ? 'border-red-500 ring-2 ring-red-200 animate-shake' : 'border-gray-200'}`}
                     />
-                    <button type="submit" className="bg-black text-white px-6 rounded-xl font-bold hover:bg-gray-800 transition-colors">הוסף</button>
+                    <button type="submit" className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors w-full sm:w-auto">הוסף</button>
                 </form>
-                <div className="space-y-3">
+                <div className="space-y-3 pb-28 md:pb-10">
                     {departments.map((dept: string) => {
                         // Find department manager
                         const deptManager = users.find((u: any) => u.managedDepartment === dept);
@@ -579,7 +579,7 @@ export const AuditTab: React.FC = () => {
         <motion.div key="audit" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4 md:space-y-6 pb-16 md:pb-20">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900">יומן אירועים ארגוני</h2>
+                    <h2 className="text-xl font-bold text-gray-900">אירועים ארגוניים</h2>
                     <p className="text-sm text-gray-500 mt-1">
                         תיעוד פעולות שבוצעו בתוך <span className="font-bold text-gray-700">{organization.name}</span>.
                     </p>
@@ -597,8 +597,8 @@ export const AuditTab: React.FC = () => {
             <div className="bg-blue-50 border border-blue-100 p-3 md:p-4 rounded-xl flex items-start gap-3">
                 <Building size={18} className="md:w-5 md:h-5 text-blue-600 mt-0.5 shrink-0" />
                 <div>
-                    <h4 className="font-bold text-blue-900 text-sm">יומן פעילות למנכ״ל</h4>
-                    <p className="text-xs text-blue-700">כאן מוצגים שינויים ופעולות שביצעו עובדי החברה. ליומן שגיאות מערכת גלובלי, פנה ל-SaaS Admin.</p>
+                    <h4 className="font-bold text-blue-900 text-sm">אירועי פעילות למנכ״ל</h4>
+                    <p className="text-xs text-blue-700">כאן מוצגים שינויים ופעולות שביצעו עובדי החברה. לאירועי שגיאות מערכת גלובלי, פנה ל-SaaS Admin.</p>
                 </div>
             </div>
 
@@ -647,7 +647,7 @@ export const AuditTab: React.FC = () => {
                             <tr>
                                 <td colSpan={4} className="p-12 text-center text-gray-400">
                                     <ShieldCheck size={48} className="mx-auto mb-3 text-gray-200" />
-                                    <p>היומן נקי. לא נרשמו אירועים חריגים לאחרונה.</p>
+                                    <p>אין אירועים. לא נרשמו אירועים חריגים לאחרונה.</p>
                                 </td>
                             </tr>
                         )}
@@ -690,7 +690,7 @@ export const AuditTab: React.FC = () => {
                 ) : (
                     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center text-gray-400">
                         <ShieldCheck size={48} className="mx-auto mb-3 text-gray-200" />
-                        <p>היומן נקי. לא נרשמו אירועים חריגים לאחרונה.</p>
+                        <p>אין אירועים. לא נרשמו אירועים חריגים לאחרונה.</p>
                     </div>
                 )}
             </div>

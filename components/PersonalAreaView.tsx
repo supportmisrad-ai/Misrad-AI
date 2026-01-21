@@ -126,7 +126,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                 {[
                     { id: 'overview', label: 'סקירה אישית', icon: Activity },
                     { id: 'settings', label: 'הגדרות חשבון', icon: Settings },
-                    { id: 'activity', label: 'יומן פעילות', icon: Clock },
+                    { id: 'activity', label: 'רישום פעילות', icon: Clock },
                 ].map(tab => (
                     <button
                         key={tab.id}
@@ -352,7 +352,7 @@ const PersonalAreaView: React.FC<PersonalAreaViewProps> = ({ leads = [], tasks =
                     <div className="max-w-4xl mx-auto">
                         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                                <h3 className="font-bold text-slate-800 text-lg">יומן פעילות אישי</h3>
+                                <h3 className="font-bold text-slate-800 text-lg">רישום פעילות אישי</h3>
                             </div>
                             <div className="divide-y divide-slate-100">
                                 {[

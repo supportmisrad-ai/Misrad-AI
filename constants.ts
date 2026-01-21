@@ -23,8 +23,9 @@ export const QUICK_ASSETS = [
 export const SYSTEM_SCREENS: ScreenDefinition[] = [
     { id: 'dashboard', label: 'לוח בקרה ראשי', category: 'main' },
     { id: 'tasks', label: 'משימות', category: 'main' },
-    { id: 'calendar', label: 'יומן', category: 'main' },
+    { id: 'calendar', label: 'אירועים', category: 'main' },
     { id: 'clients', label: 'לקוחות', category: 'main' },
+    { id: 'operations', label: 'תפעול', category: 'main' },
     { id: 'team', label: 'ניהול צוות', category: 'main' },
     { id: 'reports', label: 'דוחות ומדדים', category: 'main' },
     { id: 'assets', label: 'נכסים וכספת', category: 'main' },
@@ -33,12 +34,11 @@ export const SYSTEM_SCREENS: ScreenDefinition[] = [
     
     // Settings Tabs
     { id: 'settings_organization', label: 'הגדרות ארגון', category: 'settings' },
-    { id: 'settings_audit', label: 'יומן אירועים', category: 'settings' },
+    { id: 'settings_audit', label: 'אירועים', category: 'settings' },
     { id: 'settings_updates', label: 'עדכוני מערכת', category: 'settings' },
     { id: 'settings_requests', label: 'בקשות פיצ׳רים', category: 'settings' },
     { id: 'settings_integrations', label: 'אינטגרציות', category: 'settings' },
     { id: 'settings_team', label: 'ניהול משתמשים', category: 'settings' },
-    { id: 'settings_goals', label: 'יעדים', category: 'settings' },
     { id: 'settings_products', label: 'מוצרים ומחירים', category: 'settings' },
     { id: 'settings_templates', label: 'תבניות ותהליכים', category: 'settings' },
     { id: 'settings_workflow', label: 'תהליכי עבודה', category: 'settings' },

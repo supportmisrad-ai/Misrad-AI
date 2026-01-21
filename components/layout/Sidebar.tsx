@@ -68,7 +68,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       primaryNavPaths={PRIMARY_NAV_PATHS}
       isActiveAction={isActive}
       onNavigateAction={navigate}
-      bottomSlot={<OSAppSwitcher mode="inlineGrid" compact={true} className={isSidebarOpen ? '' : 'w-full'} />}
+      bottomSlot={
+        <OSAppSwitcher
+          compact={true}
+          buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+          buttonLabel="מודולים"
+          className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+        />
+      }
     />
   );
 };

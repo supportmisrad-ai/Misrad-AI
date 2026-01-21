@@ -20,9 +20,9 @@ import { EmailCenter } from './components/EmailCenter';
 import { ToastManager } from './components/ui/ToastManager';
 import { ClientProvider } from './context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
+import Settings from './components/Settings';
 
 export default function App({
   userData,
@@ -53,7 +53,7 @@ export default function App({
   const isMeRoute = Boolean(pathname && pathname.startsWith(`${basePath}/me`));
 
   const initialView = useMemo(() => {
-    if (isHubRoute) return 'hub';
+    if (isHubRoute) return 'settings';
     if (isMeRoute) return 'me';
     const tab = searchParams?.get('tab');
     const meetingId = searchParams?.get('meetingId');
@@ -74,10 +74,17 @@ export default function App({
   }, [currentView, isHubRoute, searchParams]);
 
   useEffect(() => {
-    if (isHubRoute && currentView !== 'hub') {
-      setCurrentView('hub');
+    if (isHubRoute && currentView !== 'settings') {
+      setCurrentView('settings');
     }
   }, [currentView, isHubRoute]);
+
+  useEffect(() => {
+    if (!isHubRoute) return;
+    const drawer = searchParams?.get('drawer');
+    if (drawer !== 'client') return;
+    router.replace(`${basePath}/hub`);
+  }, [basePath, isHubRoute, router, searchParams]);
 
   useEffect(() => {
     if (isMeRoute && currentView !== 'me') {
@@ -98,8 +105,8 @@ export default function App({
     }
     if (view === 'settings' || view === 'personal') {
       const from = pathname || basePath;
-      router.push(`${basePath}/hub?origin=client&drawer=client&from=${encodeURIComponent(from)}`);
-      setCurrentView('hub');
+      router.push(`${basePath}/hub`);
+      setCurrentView('settings');
       return;
     }
     setCurrentView(view);
@@ -180,7 +187,7 @@ export default function App({
                       {
                         title: 'הגדרות לקוחות',
                         subtitle: 'פורטל, אוטומציות וחיבורים',
-                        href: `${basePath}/hub?origin=client&drawer=client&from=${encodeURIComponent(`${basePath}/me`)}`,
+                        href: `${basePath}/hub`,
                         iconId: 'settings',
                       },
                       {
@@ -195,8 +202,8 @@ export default function App({
             />
           </DataProvider>
         );
-      case 'hub':
-        return <GlobalProfileHub defaultOrigin="client" defaultDrawer="client" />;
+      case 'settings':
+        return <Settings />;
       case 'client-portal':
         return <ClientPortal clientId={portalClientId || '1'} onBack={() => setCurrentView('clients')} />;
       default:

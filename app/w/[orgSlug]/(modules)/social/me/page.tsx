@@ -16,9 +16,7 @@ export default async function SocialMePage({
         {
           title: 'הגדרות סושיאל',
           subtitle: 'חיבורים, צוות, והתראות',
-          href: `/w/${encodeURIComponent(orgSlug)}/social/hub?origin=social&drawer=social&from=${encodeURIComponent(
-            `/w/${encodeURIComponent(orgSlug)}/social/me`
-          )}`,
+          href: `/w/${encodeURIComponent(orgSlug)}/social/settings`,
           iconId: 'settings',
         },
         {

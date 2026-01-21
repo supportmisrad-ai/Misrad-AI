@@ -11,6 +11,7 @@ export type SystemBootstrap = {
     online: boolean;
     capacity: number;
     email: string;
+    phone: string | null;
     isSuperAdmin: boolean;
     tenantId: string;
   };

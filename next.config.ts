@@ -82,7 +82,7 @@ const nextConfig: NextConfig = {
   experimental: {
     forceSwcTransforms: true,
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', '*.vercel.app', '*.netlify.app', '*.railway.app']
+      allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com', 'www.misrad-ai.com', '*.vercel.app', '*.netlify.app', '*.railway.app']
     }
   },
   // Optimize for Netlify

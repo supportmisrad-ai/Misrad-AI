@@ -10,7 +10,7 @@ export type PermissionId =
     | 'view_crm'       // Clients & Leads access
     | 'view_assets';   // Files & Credentials access
 
-export type ModuleId = 'crm' | 'finance' | 'ai' | 'team' | 'content' | 'assets';
+export type ModuleId = 'crm' | 'finance' | 'ai' | 'team' | 'content' | 'assets' | 'operations';
 
 export type SystemScreenStatus = 'active' | 'maintenance' | 'hidden';
 

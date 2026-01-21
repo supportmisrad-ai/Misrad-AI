@@ -91,6 +91,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
     const newEvent: CalendarEvent = {
       id: Date.now().toString(),
       title: selectedLead ? selectedLead.name : formData.title,
+      leadId: formData.leadId ? formData.leadId : null,
       leadName: selectedLead ? selectedLead.name : formData.title,
       leadCompany: selectedLead?.company || 'לקוח פרטי',
       date: formData.date,

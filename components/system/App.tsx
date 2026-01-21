@@ -195,7 +195,7 @@ const SystemOSApp = () => {
 
   const handleSaveNewLead = (newLead: Lead) => {
       setLeads(prev => [newLead, ...prev]);
-      addToast("נקלט ליד חדש", 'success');
+      addToast("נקלט ליד", 'success');
   };
 
   const handleHandoverConfirm = (handoverData: HandoverData) => {
@@ -224,7 +224,7 @@ const SystemOSApp = () => {
 
   const handleSaveMeeting = (newMeeting: CalendarEvent) => {
       setCalendarEvents([...calendarEvents, newMeeting]);
-      addToast("הפגישה ביומן");
+      addToast("הפגישה נוספה לאירועים");
       setShowNewMeetingModal(false);
   };
 

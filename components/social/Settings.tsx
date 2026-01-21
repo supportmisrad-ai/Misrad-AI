@@ -43,7 +43,7 @@ export default function Settings() {
   // Set default view if none is selected or if it's 'main'
   const activeView =
     settingsSubView === 'main' || !settingsSubView || settingsSubView === 'infrastructure'
-      ? 'integrations'
+      ? 'pricing'
       : settingsSubView;
 
   const renderContent = () => {

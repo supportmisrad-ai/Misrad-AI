@@ -72,7 +72,7 @@ async function ensureProfileRow(params: {
     avatar_url: params.avatarUrl,
     notification_preferences: {},
     two_factor_enabled: false,
-    ui_preferences: {},
+    ui_preferences: { profileCompleted: false },
     social_profile: {},
     billing_info: {},
     created_at: new Date().toISOString(),
@@ -188,7 +188,10 @@ async function ensureNexusUserRow(params: {
 
 export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  return resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+}
 
+export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceId: string) {
   const clerk = await currentUser();
   const clerkUserId = clerk?.id || null;
   if (!clerkUserId) {
@@ -205,8 +208,8 @@ export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
   const avatarUrl = clerk?.imageUrl ?? null;
   const isSuperAdmin = Boolean((clerk as any)?.publicMetadata?.isSuperAdmin);
 
-  await ensureProfileRow({
-    organizationId: workspace.id,
+  const profileRow = await ensureProfileRow({
+    organizationId: workspaceId,
     clerkUserId,
     email,
     fullName: clerk?.fullName ?? null,
@@ -215,7 +218,7 @@ export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
   });
 
   const nexusUser = await ensureNexusUserRow({
-    organizationId: workspace.id,
+    organizationId: workspaceId,
     email: String(email).trim().toLowerCase(),
     name,
     role,
@@ -231,8 +234,9 @@ export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
     online: true,
     capacity: Number((nexusUser as any).capacity || 0),
     email: String((nexusUser as any).email || email),
+    phone: (profileRow as any)?.phone != null ? String((profileRow as any).phone) : null,
     isSuperAdmin: Boolean((nexusUser as any).is_super_admin ?? (nexusUser as any).isSuperAdmin ?? isSuperAdmin),
-    tenantId: workspace.id,
+    tenantId: workspaceId,
   };
 }
 

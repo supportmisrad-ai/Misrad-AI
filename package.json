@@ -15,6 +15,7 @@
     "prisma:validate": "dotenv -e .env -e .env.local -- prisma validate --schema prisma/schema.prisma",
     "prisma:format": "dotenv -e .env -e .env.local -- prisma format --schema prisma/schema.prisma",
     "prisma:generate": "dotenv -e .env -e .env.local -- prisma generate --schema prisma/schema.prisma",
+    "prisma:db:pull": "dotenv -e .env -e .env.local -- prisma db pull --schema prisma/schema.prisma",
     "prisma:migrate:dev": "dotenv -e .env -e .env.local -- prisma migrate dev --schema prisma/schema.prisma",
     "prisma:db:push": "dotenv -e .env -e .env.local -- prisma db push --schema prisma/schema.prisma",
     "prisma:studio": "dotenv -e .env -e .env.local -- prisma studio --schema prisma/schema.prisma",

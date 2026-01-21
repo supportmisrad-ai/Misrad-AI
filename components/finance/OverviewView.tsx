@@ -7,6 +7,8 @@ const OverviewView: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
   const totalRevenue = Number(initialFinanceOverview?.totalRevenue || 0);
   const totalCost = Number(initialFinanceOverview?.totalCost || 0);
   const netProfit = Number(initialFinanceOverview?.netProfit || 0);
+  const openInvoicesCount = Number(initialFinanceOverview?.openInvoicesCount || 0);
+  const pendingReceivables = Number(initialFinanceOverview?.pendingReceivables || 0);
 
   return (
     <div className="p-8">
@@ -45,7 +47,7 @@ const OverviewView: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
                 <FileText className="text-amber-600" size={24} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">0</div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">{openInvoicesCount.toFixed(0)}</div>
             <div className="text-sm text-slate-500">חשבוניות פתוחות</div>
           </div>
 
@@ -55,7 +57,7 @@ const OverviewView: React.FC<{ initialFinanceOverview?: any }> = ({ initialFinan
                 <AlertCircle className="text-rose-600" size={24} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-slate-900 mb-1">₪{netProfit.toFixed(0)}</div>
+            <div className="text-2xl font-bold text-slate-900 mb-1">₪{pendingReceivables.toFixed(0)}</div>
             <div className="text-sm text-slate-500">ממתין לתשלום</div>
           </div>
         </div>

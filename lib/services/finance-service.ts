@@ -27,6 +27,8 @@ export type FinanceOverviewData = {
   totalRevenue: number;
   totalCost: number;
   netProfit: number;
+  openInvoicesCount: number;
+  pendingReceivables: number;
   organizationId: string;
   chart: FinanceChartPoint[];
 };
@@ -39,6 +41,15 @@ export async function getFinanceOverviewData(params: {
 }): Promise<FinanceOverviewData> {
   const supabase = createClient();
 
+  let invoicesQuery = supabase
+    .from('misrad_invoices')
+    .select('amount,status,date')
+    .eq('organization_id', params.organizationId)
+    .limit(5000);
+
+  const dateFrom = params.dateRange?.from;
+  const dateTo = params.dateRange?.to;
+
   let timeEntriesQuery = supabase
     .from('nexus_time_entries')
     .select('id,organization_id,user_id,duration_minutes,date')
@@ -46,14 +57,13 @@ export async function getFinanceOverviewData(params: {
     .order('date', { ascending: false })
     .limit(2000);
 
-  const dateFrom = params.dateRange?.from;
-  const dateTo = params.dateRange?.to;
-
   if (dateFrom) {
     timeEntriesQuery = timeEntriesQuery.gte('date', dateFrom);
+    invoicesQuery = invoicesQuery.gte('date', dateFrom);
   }
   if (dateTo) {
     timeEntriesQuery = timeEntriesQuery.lte('date', dateTo);
+    invoicesQuery = invoicesQuery.lte('date', dateTo);
   }
   if (params.userId) {
     timeEntriesQuery = timeEntriesQuery.eq('user_id', params.userId);
@@ -64,7 +74,13 @@ export async function getFinanceOverviewData(params: {
     throw new Error(timeEntriesError.message);
   }
 
+  const { data: invoicesRows, error: invoicesError } = await invoicesQuery;
+  if (invoicesError) {
+    throw new Error(invoicesError.message);
+  }
+
   const entries = Array.isArray(timeEntries) ? timeEntries : [];
+  const invoices = Array.isArray(invoicesRows) ? invoicesRows : [];
 
   const userIds = Array.from(new Set(entries.map((e: any) => String(e.user_id)).filter(Boolean)));
   const dbUsers = userIds.length > 0 ? await getUsers({ tenantId: params.organizationId }) : [];
@@ -117,6 +133,15 @@ export async function getFinanceOverviewData(params: {
 
   const totalCost = scopedUsers.reduce((sum: number, u: any) => sum + Number(u.estimatedCost || 0), 0);
 
+  const paidInvoices = invoices.filter((i: any) => String(i?.status || '').toUpperCase() === 'PAID');
+  const openInvoices = invoices.filter((i: any) => {
+    const s = String(i?.status || '').toUpperCase();
+    return s === 'PENDING' || s === 'OVERDUE';
+  });
+  const totalRevenue = paidInvoices.reduce((sum: number, i: any) => sum + Number(i?.amount || 0), 0);
+  const pendingReceivables = openInvoices.reduce((sum: number, i: any) => sum + Number(i?.amount || 0), 0);
+  const openInvoicesCount = openInvoices.length;
+
   const chart: FinanceChartPoint[] = Array.from(totalsByDate.entries())
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([date, totals]) => {
@@ -132,9 +157,11 @@ export async function getFinanceOverviewData(params: {
 
   return {
     users: scopedUsers,
-    totalRevenue: 0,
+    totalRevenue,
     totalCost,
-    netProfit: 0 - totalCost,
+    netProfit: totalRevenue - totalCost,
+    openInvoicesCount,
+    pendingReceivables,
     organizationId: params.organizationId,
     chart,
   };

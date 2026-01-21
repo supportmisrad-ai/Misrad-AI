@@ -8,6 +8,9 @@ export function getNexusBasePath(pathname: string | null | undefined): string {
   if (info.orgSlug && info.module === 'nexus') {
     return `/w/${encodeURIComponent(info.orgSlug)}/nexus`;
   }
+  if (info.orgSlug && info.module === 'system') {
+    return `/w/${encodeURIComponent(info.orgSlug)}/system`;
+  }
   return '/app';
 }
 

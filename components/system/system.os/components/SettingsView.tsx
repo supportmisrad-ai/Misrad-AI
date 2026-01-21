@@ -461,7 +461,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                           </h3>
                           <div className="space-y-6">
                               {[
-                                  { title: 'ליד חדש נכנס', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
+                                  { title: 'ליד נפתח', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
                                   { title: 'משימות ופולואפ', desc: 'כשמנהל מעביר אליך משימה או שהגיע זמן לפולואפ', email: true, push: true },
                                   { title: 'דוח יומי במייל', desc: 'סיכום מספרים כל בוקר ב-08:00', email: true, push: false },
                                   { title: 'עדכוני מערכת', desc: 'חידושים ותחזוקה', email: false, push: true }

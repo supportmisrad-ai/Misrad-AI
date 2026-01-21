@@ -184,7 +184,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                         className="snap-center shrink-0 w-24 h-24 flex flex-col items-center justify-center p-3 gap-2 border-2 border-dashed border-slate-300 rounded-2xl text-slate-400 active:scale-95 transition-transform bg-slate-50"
                     >
                         <Plus size={24} />
-                        <span className="text-[10px] font-bold">חדש</span>
+                        <span className="text-[10px] font-bold">הוסף</span>
                     </div>
 
                     {/* Active Leads Cards */}

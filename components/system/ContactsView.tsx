@@ -1,11 +1,15 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Lead, PipelineStage } from './types';
 import { STAGES } from './constants';
 import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
 import useLocalStorage from './hooks/useLocalStorage';
 import { useToast } from './contexts/ToastContext';
+import LogCallModal from './LogCallModal';
+import { createSystemLeadActivity } from '@/app/actions/system-leads';
+import { uploadCallRecordingFile } from '@/app/actions/files';
 
 interface ContactsViewProps {
   leads: Lead[];
@@ -15,8 +19,10 @@ interface ContactsViewProps {
 
 const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', onLeadClick }) => {
   const { addToast } = useToast();
+  const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useLocalStorage<string>('contacts_search', '');
   const [statusFilter, setStatusFilter] = useLocalStorage<PipelineStage | 'all'>('contacts_filter', 'all');
+  const [logCallLead, setLogCallLead] = useState<Lead | null>(null);
 
   // Rule 9: Performance Strategy - Memoized Filtering
   const filteredLeads = useMemo(() => {
@@ -43,6 +49,20 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
     if (s.includes('facebook')) return <Facebook size={14} className="text-[#1877F2]" />;
     if (s.includes('instagram')) return <Instagram size={14} className="text-[#E1306C]" />;
     return <Globe size={14} className="text-slate-400" />;
+  };
+
+  const orgSlugFromPathname = () => {
+    const parts = String(pathname || '').split('/').filter(Boolean);
+    const wIndex = parts.indexOf('w');
+    if (wIndex === -1) return null;
+    return parts[wIndex + 1] || null;
+  };
+
+  const handleQuickCall = (lead: Lead) => {
+    const phone = String((lead as any)?.phone || '').trim();
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+    setLogCallLead(lead);
   };
 
   return (
@@ -169,7 +189,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                                         <MessageSquare size={16} />
                                     </button>
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${lead.phone}`; }} 
+                                        onClick={(e) => { e.stopPropagation(); handleQuickCall(lead); }} 
                                         className="p-2 hover:bg-indigo-50 text-slate-400 hover:text-indigo-600 rounded-lg transition-colors border border-transparent hover:border-indigo-100"
                                         title="חייג"
                                     >
@@ -231,7 +251,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                       {/* Actions */}
                       <div className="flex gap-2">
                           <button 
-                              onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${lead.phone}`; }}
+                              onClick={(e) => { e.stopPropagation(); handleQuickCall(lead); }}
                               className="flex-1 py-2 bg-slate-50 text-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-slate-200"
                           >
                               <Phone size={14} /> חייג
@@ -247,6 +267,125 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
               ))}
           </div>
       </div>
+
+      <LogCallModal
+        open={Boolean(logCallLead)}
+        leadName={String(logCallLead?.name || '')}
+        leadPhone={String((logCallLead as any)?.phone || '')}
+        onCloseAction={() => setLogCallLead(null)}
+        onUploadRecordingAction={async (file: File) => {
+          const lead = logCallLead;
+          if (!lead) return;
+          const orgSlug = orgSlugFromPathname();
+          if (!orgSlug) {
+            addToast('לא ניתן להעלות הקלטה (orgSlug חסר)', 'error');
+            return;
+          }
+
+          const uploadRes = await uploadCallRecordingFile(file, file.name, String(lead.id));
+          if (!uploadRes.success) {
+            addToast(uploadRes.error || 'שגיאה בהעלאת הקלטה', 'error');
+            return;
+          }
+
+          const fd = new FormData();
+          fd.append('file', file);
+
+          const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
+            method: 'POST',
+            body: fd,
+          });
+
+          if (!transcribeRes.ok) {
+            const err = await transcribeRes.json().catch(() => ({} as any));
+            addToast(err?.error || 'שגיאה בתמלול', 'error');
+            return;
+          }
+
+          const transcribeJson = (await transcribeRes.json().catch(() => ({} as any))) as any;
+          const transcriptText = String(transcribeJson?.transcriptText || '').trim();
+          if (!transcriptText) {
+            addToast('תמלול ריק', 'error');
+            return;
+          }
+
+          const suggestRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/suggest`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ transcriptText }),
+          });
+
+          if (!suggestRes.ok) {
+            const err = await suggestRes.json().catch(() => ({} as any));
+            addToast(err?.error || 'שגיאה בניתוח', 'error');
+            return;
+          }
+
+          const suggestJson = (await suggestRes.json().catch(() => ({} as any))) as any;
+          const analysisResult = suggestJson?.result || {};
+          const summaryText = String(analysisResult?.summary || '').trim();
+
+          const activityContent = summaryText ? `ניתוח שיחה (AI):\n${summaryText}` : 'ניתוח שיחה (AI)';
+          const res = await createSystemLeadActivity({
+            orgSlug,
+            leadId: String(lead.id),
+            type: 'call',
+            content: activityContent,
+            direction: 'outbound',
+            metadata: {
+              callAnalysis: {
+                kind: 'call_recording_ai',
+                audio: {
+                  bucket: (uploadRes as any).bucket,
+                  path: uploadRes.path,
+                  url: uploadRes.url,
+                  signedUrl: (uploadRes as any).signedUrl,
+                  fileName: file.name,
+                  mimeType: file.type,
+                },
+                transcriptText,
+                analysis: analysisResult,
+              },
+            },
+          });
+
+          if (!res.ok) {
+            addToast(res.message || 'שגיאה בשמירת פעילות ניתוח שיחה', 'error');
+            return;
+          }
+
+          addToast('הקלטה נותחה ונשמרה', 'success');
+          setLogCallLead(null);
+        }}
+        onSaveAction={async (content) => {
+          const lead = logCallLead;
+          if (!lead) return;
+          const text = String(content || '').trim();
+          if (!text) return;
+
+          const orgSlug = orgSlugFromPathname();
+          if (!orgSlug) {
+            addToast('לא ניתן לשמור סיכום שיחה (orgSlug חסר)', 'error');
+            return;
+          }
+
+          const res = await createSystemLeadActivity({
+            orgSlug,
+            leadId: String(lead.id),
+            type: 'call',
+            content: text,
+            direction: 'outbound',
+          });
+
+          if (!res.ok) {
+            addToast(res.message || 'שגיאה בשמירת סיכום שיחה', 'error');
+            return;
+          }
+
+          addToast('סיכום השיחה נשמר', 'success');
+          setLogCallLead(null);
+        }}
+      />
 
     </div>
   );

@@ -106,7 +106,14 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
         primaryNavPaths={PRIMARY_NAV_IDS}
         isActiveAction={(tabId) => tabId === activeTab}
         onNavigateAction={onNavigate}
-        bottomSlot={<OSAppSwitcher mode="inlineGrid" compact={true} className={isOpen ? '' : 'w-full'} />}
+        bottomSlot={
+          <OSAppSwitcher
+            compact={true}
+            buttonVariant={isOpen ? 'wide' : 'icon'}
+            buttonLabel="מודולים"
+            className={isOpen ? '' : 'w-full flex justify-center'}
+          />
+        }
         showCollapseControls={false}
         containerClassName={
           mobile

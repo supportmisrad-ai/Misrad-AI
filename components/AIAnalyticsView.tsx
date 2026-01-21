@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
 import { 
-  BrainCircuit, Sparkles, TrendingUp, AlertTriangle, 
-  CheckCircle, RefreshCw, Download, Save, History, 
-  Users, Target, ShieldAlert, Cpu, X, Lightbulb, ArrowRight, RotateCcw
+  BrainCircuit,
+  Sparkles,
+  CheckCircle,
+  RefreshCw,
+  History,
+  Target,
+  ShieldAlert,
+  Lightbulb,
 } from 'lucide-react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  ScatterChart, Scatter, Legend, Cell
-} from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
-import { Lead, FieldAgent, AIReport } from '../types';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import type { Lead } from '../types';
+import type { FieldAgent, AIReport } from '@/components/system/types';
 
 interface AIAnalyticsViewProps {
   leads: Lead[];
@@ -19,66 +21,15 @@ interface AIAnalyticsViewProps {
 
 const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
   const { user } = useAuth();
-  const { addToast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [report, setReport] = useState<AIReport | null>(null);
-  const [history, setHistory] = useState<AIReport[]>([]);
+  const [isGenerating] = useState(false);
+  const [report] = useState<AIReport | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  const generateReport = () => {
-    setIsGenerating(true);
-    setReport(null);
+  void leads;
+  void agents;
 
-    setTimeout(() => {
-        const isAdmin = user.role === 'admin';
-        const churnedCount = leads.filter(l => l.status === 'churned').length;
-        
-        const newReport: AIReport = {
-            id: `rep_${Date.now()}`,
-            date: new Date(),
-            type: isAdmin ? 'team' : 'personal',
-            score: Math.max(0, 90 - (churnedCount * 10)), 
-            summary: isAdmin 
-                ? `ניתוח מערכתי מראה יציבות גבוהה, אך זיהיתי ${churnedCount} מקרי נטישה החודש. רובם הגיעו ממקור "פייסבוק". מומלץ להחמיר את סינון הלידים בשלב ה-Discovery.`
-                : "ביצועים טובים, אך שיעור ההחזרים שלך עלה ב-2%. זיהיתי שרוב ההחזרים קורים בלקוחות שקנו את קורס הדיגיטל ללא שיחת ייעוץ.",
-            insights: isAdmin ? [
-                {
-                    title: "זיהוי דפוס נטישה",
-                    description: `${churnedCount} לקוחות נטשו בשלב ה-Onboarding. זה מצביע על פער בין הבטחת המכירה לביצוע בפועל.`,
-                    severity: 'critical',
-                    actionItem: "שיחת רענון עם צוות המכירות על תיאום ציפיות."
-                },
-                {
-                    title: "רווחיות נקייה",
-                    description: "למרות ההחזרים, הרווח הנקי עלה ב-12% עקב צמצום הוצאות פרסום לא יעילות.",
-                    severity: 'positive'
-                }
-            ] : [
-                {
-                    title: "מכירה איכותית",
-                    description: "אפס החזרים על לקוחות ה-Premium שסגרת החודש. איכות הלידים מצוינת.",
-                    severity: 'positive'
-                },
-                {
-                    title: "התראת שימור",
-                    description: "2 לקוחות שלך לא פתחו את הפורטל מעל שבוע. סיכון נטישה בינוני.",
-                    severity: 'warning',
-                    actionItem: "שלח הודעת וואטסאפ אישית לחימום הקשר."
-                }
-            ],
-            metrics: isAdmin ? [
-                { label: 'שיעור נטישה', value: (churnedCount / leads.length) * 100, target: 5, unit: '%' },
-                { label: 'החזרים החודש', value: 12500, target: 5000, unit: '₪' }
-            ] : [
-                { label: 'Retention', value: 95, target: 98, unit: '%' },
-                { label: 'בונוס נטו', value: 3400, target: 5000, unit: '₪' }
-            ]
-        };
-        
-        setReport(newReport);
-        setIsGenerating(false);
-        addToast('הניתוח הושלם בהצלחה', 'success');
-    }, 2000);
+  const generateReport = () => {
+    openComingSoon();
   };
 
   return (
@@ -88,7 +39,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
               <div>
                   <div className="flex items-center gap-2 text-indigo-600 font-mono text-xs font-bold uppercase tracking-widest mb-3"><BrainCircuit size={16} /> ניתוח נתונים ומשוב</div>
-                  <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">{user.role === 'admin' ? 'ניתוח נתונים מתקדם' : 'מדדי הצלחה אישיים'}</h2>
+                  <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">{user?.role === 'admin' ? 'ניתוח נתונים מתקדם' : 'מדדי הצלחה אישיים'}</h2>
                   <p className="text-slate-500 max-w-2xl text-lg leading-relaxed font-medium">המערכת מנתחת הצלחות, כשלונות, החזרים וביטולים כדי לייצר עבורך תובנות אופרטיביות לשיפור הרווח הנקי.</p>
               </div>
               <div className="flex gap-4">

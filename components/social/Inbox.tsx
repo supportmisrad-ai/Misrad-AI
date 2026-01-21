@@ -3,15 +3,16 @@
 import React, { useState } from 'react';
 import { MessageSquare, Send, Clock } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 export default function Inbox() {
-  const { clients, conversations, addToast } = useApp();
+  const { clients, conversations } = useApp();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [messageText, setMessageText] = useState('');
 
   const handleSendMessage = (convId: string) => {
     if (!messageText.trim()) return;
-    addToast('הודעה נשלחה');
+    openComingSoon();
     setMessageText('');
   };
 

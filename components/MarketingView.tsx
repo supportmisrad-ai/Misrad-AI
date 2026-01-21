@@ -17,6 +17,7 @@ import FormsView from './FormsView';
 import PartnersView from './PartnersView';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 interface MarketingViewProps {
   campaigns: Campaign[];
@@ -57,15 +58,7 @@ const MarketingView: React.FC<MarketingViewProps> = ({
   });
 
   const handleToggleConnection = (platform: string) => {
-      setConnectedPlatforms(prev => {
-          const newState = { ...prev, [platform]: !prev[platform] };
-          if (newState[platform]) {
-              addToast('החיבור בוצע בהצלחה! מסנכרן נתונים...', 'success');
-          } else {
-              addToast('החיבור נותק.', 'warning');
-          }
-          return newState;
-      });
+      openComingSoon();
   };
 
   // Extract unique platforms dynamically from existing campaigns
@@ -127,28 +120,11 @@ const MarketingView: React.FC<MarketingViewProps> = ({
   };
 
   const handleOptimize = () => {
-      addToast('האופטימיזציה בוצעה בהצלחה! התקציב עודכן.', 'success');
+      openComingSoon();
   };
 
   const handleCreateCampaign = (campaignData: Pick<Campaign, 'name' | 'platform' | 'budget' | 'status'>) => {
-      if (!connectedPlatforms[campaignData.platform] && ['facebook', 'google', 'tiktok', 'linkedin'].includes(campaignData.platform)) {
-          addToast(`שים לב: ${campaignData.platform} לא מחובר. הקמפיין יווצר כטיוטה מקומית.`, 'warning');
-      }
-      
-      const newCampaign: Campaign = {
-          id: `c_${Date.now()}`,
-          ...campaignData,
-          spent: 0,
-          leads: 0,
-          cpl: 0,
-          roas: 0,
-          impressions: 0
-      };
-      
-      if (onAddCampaign) {
-          onAddCampaign(newCampaign);
-          addToast('קמפיין חדש נוצר בהצלחה!', 'success');
-      }
+      openComingSoon();
   };
 
   // Helper for dynamic colors

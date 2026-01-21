@@ -339,7 +339,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
                     <div className="p-4 md:p-8 max-w-[1920px] mx-auto space-y-6 animate-slide-up pb-20">
                         <div className="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
                             <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Receipt size={20} className="text-slate-500" /> יומן חשבוניות וזיכויים</h3>
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2"><Receipt size={20} className="text-slate-500" /> אירועי חשבוניות וזיכויים</h3>
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-right">

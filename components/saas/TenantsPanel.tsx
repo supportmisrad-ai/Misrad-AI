@@ -13,6 +13,8 @@ interface TenantsPanelProps {
     activeTenants: number;
     trialTenants: number;
     totalUsers: number;
+    mrrTrendPct?: string | number | null;
+    apiHealthScore?: number | null;
     filteredTenants: Tenant[];
     searchTerm: string;
     setSearchTerm: (val: string) => void;
@@ -23,7 +25,7 @@ interface TenantsPanelProps {
 }
 
 export const TenantsPanel: React.FC<TenantsPanelProps> = ({ 
-    tenants, totalMRR, activeTenants, trialTenants, totalUsers, filteredTenants, 
+    tenants, totalMRR, activeTenants, trialTenants, totalUsers, mrrTrendPct, apiHealthScore, filteredTenants, 
     searchTerm, setSearchTerm, onAddClick, onSimulate, onEditModules, onToggleStatus 
 }) => {
     const [provisioningId, setProvisioningId] = useState<string | null>(null);
@@ -116,9 +118,11 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                             <CreditCard size={20} />
                         </div>
                     </div>
-                    <div className="text-xs text-emerald-700 font-bold flex items-center gap-1">
-                        <ArrowUpRight size={14} /> +8% החודש
-                    </div>
+                    {mrrTrendPct !== null && typeof mrrTrendPct !== 'undefined' ? (
+                        <div className="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                            <ArrowUpRight size={14} /> {String(mrrTrendPct)}% החודש
+                        </div>
+                    ) : null}
                 </div>
 
                 <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl hover:border-slate-300/80 transition-all">
@@ -155,14 +159,14 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                     <div className="flex justify-between items-start mb-4">
                         <div>
                             <p className="text-xs font-bold text-slate-600 uppercase">בריאות שרתים</p>
-                            <h3 className="text-3xl font-black text-green-400 mt-1">100%</h3>
+                            <h3 className="text-3xl font-black text-green-400 mt-1">{typeof apiHealthScore === 'number' ? `${apiHealthScore}%` : '—'}</h3>
                         </div>
                         <div className="p-3 bg-slate-100 text-slate-700 rounded-xl border border-slate-200">
                             <Server size={20} />
                         </div>
                     </div>
                     <div className="text-xs text-slate-600">
-                        זמינות מערכת 99.99%
+                        ציון בריאות מערכת (API)
                     </div>
                 </div>
             </div>

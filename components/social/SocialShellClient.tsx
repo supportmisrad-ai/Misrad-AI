@@ -12,15 +12,16 @@ import HelpModal from '@/components/social/modals/HelpModal';
 import CommandPalette from '@/components/social/CommandPalette';
 import NotificationCenter from '@/components/social/NotificationCenter';
 import ShabbatScreen from '@/components/social/ShabbatScreen';
-import Header from '@/components/social/Header';
 import OnboardingTour from '@/components/social/OnboardingTour';
 import ClientOnboardingPortal from '@/components/social/ClientOnboardingPortal';
 import { useShabbat } from '@/hooks/useShabbat';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AppWindow, BarChart3, Calendar, Home, LayoutGrid, Megaphone, Plus, TrendingUp, User, Users, MessageSquare, X, Sparkles, Wallet } from 'lucide-react';
+import * as Icons from 'lucide-react';
+import { AppWindow, Bell, Calendar, Home, Users, X } from 'lucide-react';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
-import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
+import { joinPath } from '@/lib/os/social-routing';
+import MobileBottomNav from '@/components/shared/MobileBottomNav';
 
 import { AppProvider } from '@/contexts/AppContext';
 import { useApp } from '@/contexts/AppContext';
@@ -29,13 +30,30 @@ import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
 import type { SocialInitialData, SocialNavigationItem } from '@/lib/services/social-service';
 import { DataProvider } from '@/context/DataContext';
+import { SharedHeader } from '@/components/shared/SharedHeader';
+import { SharedSidebar } from '@/components/shared/SharedSidebar';
+import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
+import { Avatar } from '@/components/Avatar';
+import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+import { useRoomBranding } from '@/hooks/useRoomBranding';
+import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { getUnreadUpdatesCount } from '@/app/actions/updates';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 function SocialShellContent({
   children,
   basePath,
+  orgSlug,
+  isTeamEnabled,
+  initialOrganization,
+  initialCurrentUser,
 }: {
   children: React.ReactNode;
   basePath: string;
+  orgSlug: string;
+  isTeamEnabled?: boolean;
+  initialOrganization?: any;
+  initialCurrentUser?: any;
 }) {
   const {
     isTourActive,
@@ -44,10 +62,22 @@ function SocialShellContent({
     isTeamManagementEnabled,
     isCommandPaletteOpen,
     setIsCommandPaletteOpen,
+    setIsNotificationCenterOpen,
+    setIsHelpModalOpen,
+    activeClient,
   } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const { roomNameHebrew, roomName, gradient } = useRoomBranding();
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+    name: initialCurrentUser?.name ?? null,
+    role: initialCurrentUser?.role ?? null,
+    avatarUrl: initialCurrentUser?.avatarUrl ?? null,
+  });
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -60,6 +90,10 @@ function SocialShellContent({
     return () => document.removeEventListener('keydown', down, { capture: true });
   }, [isCommandPaletteOpen, setIsCommandPaletteOpen]);
 
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }));
+  }, []);
+
   const isActive = (suffix: string) => {
     const full = joinPath(basePath, suffix);
     return (pathname || '') === full;
@@ -67,6 +101,185 @@ function SocialShellContent({
 
   const navigate = (suffix: string) => {
     router.push(joinPath(basePath, suffix));
+  };
+
+  const titles: Record<string, string> = {
+    dashboard: 'מרכז שליטה',
+    machine: 'פוסט בקליק ✨',
+    calendar: 'לוח שידורים',
+    workspace: 'סביבת עבודה ללקוח',
+    campaigns: 'ניהול קמפיינים',
+    analytics: 'נתונים וביצועים',
+    inbox: 'הודעות ותגובות',
+    settings: 'הגדרות מערכת',
+    'all-clients': 'כל הלקוחות שלי',
+    profile: 'פרופיל אישי',
+    team: 'צוות',
+    collection: 'גבייה',
+    'agency-insights': 'תובנות',
+    'admin-panel': 'ניהול מערכת',
+  };
+
+  const getViewFromPath = (pathnameValue: string | null): string => {
+    const p = pathnameValue || '';
+    const sub = p.startsWith(basePath) ? p.slice(basePath.length) : p;
+    const map: Record<string, string> = {
+      '/dashboard': 'dashboard',
+      '/clients': 'all-clients',
+      '/calendar': 'calendar',
+      '/inbox': 'inbox',
+      '/workspace': 'workspace',
+      '/machine': 'machine',
+      '/campaigns': 'campaigns',
+      '/analytics': 'analytics',
+      '/team': 'team',
+      '/collection': 'collection',
+      '/agency-insights': 'agency-insights',
+      '/admin': 'admin-panel',
+      '/settings': 'settings',
+      '/me': 'profile',
+    };
+    return map[sub] || 'dashboard';
+  };
+
+  const currentView = useMemo(() => getViewFromPath(pathname), [pathname]);
+  const moduleTitle = useMemo(() => roomNameHebrew || roomName || 'סושיאל', [roomName, roomNameHebrew]);
+  const screenTitle = useMemo(() => titles[currentView] || 'סושיאל', [currentView]);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const result = await getUnreadUpdatesCount();
+        if (result.success && result.count !== undefined) {
+          setUnreadCount(result.count);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const resolvedUser = useMemo(
+    () => ({
+      name: systemIdentity?.name || initialCurrentUser?.name || moduleTitle,
+      role: systemIdentity?.role || initialCurrentUser?.role || null,
+      avatarUrl: systemIdentity?.avatarUrl || initialCurrentUser?.avatarUrl || null,
+      needsProfileCompletion: Boolean(systemIdentity?.needsProfileCompletion),
+    }),
+    [initialCurrentUser?.avatarUrl, initialCurrentUser?.name, initialCurrentUser?.role, moduleTitle, systemIdentity?.avatarUrl, systemIdentity?.name, systemIdentity?.needsProfileCompletion, systemIdentity?.role]
+  );
+
+  const avatarSlot = useMemo(
+    () => (
+      <Avatar
+        src={resolvedUser.avatarUrl || null}
+        alt={resolvedUser.name}
+        name={resolvedUser.name}
+        size="md"
+        rounded="full"
+        className="border-2 border-white shadow-sm"
+      />
+    ),
+    [resolvedUser.avatarUrl, resolvedUser.name]
+  );
+
+  const mobileLeadingSlot = (
+    <button
+      type="button"
+      onClick={() => setIsMobileMenuOpen(true)}
+      className="w-10 h-10 rounded-full bg-white/70 border border-white/60 text-slate-700 flex items-center justify-center shadow-sm"
+      aria-label="פתח תפריט"
+    >
+      <AppWindow size={18} />
+    </button>
+  );
+
+  const notificationsSlot = (
+    <div className="flex items-center gap-2">
+      <AttendanceMiniStatus />
+      <button
+        onClick={() => setIsNotificationCenterOpen(true)}
+        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+        aria-label="התראות"
+        type="button"
+      >
+        <Bell size={18} />
+        {unreadCount > 0 ? (
+          <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        ) : null}
+      </button>
+    </div>
+  );
+
+  const menuItems = useMemo(
+    () => [
+      { id: 'dashboard', label: 'דשבורד', view: 'dashboard', icon: 'Home' },
+      { id: 'all-clients', label: 'לקוחות', view: 'all-clients', icon: 'Users' },
+      { id: 'calendar', label: 'אירועים', view: 'calendar', icon: 'Calendar' },
+      { id: 'inbox', label: 'הודעות', view: 'inbox', icon: 'MessageSquare' },
+      { id: 'workspace', label: 'סביבת עבודה', view: 'workspace', icon: 'LayoutGrid', requiresClient: true },
+      { id: 'machine', label: 'פוסט בקליק ✨', view: 'machine', icon: 'Sparkles', requiresClient: true },
+      { id: 'campaigns', label: 'קמפיינים', view: 'campaigns', icon: 'Megaphone', requiresClient: true },
+      { id: 'analytics', label: 'אנליטיקה', view: 'analytics', icon: 'BarChart3', requiresClient: true },
+      ...(isTeamEnabled || isTeamManagementEnabled ? [{ id: 'team', label: 'צוות', view: 'team', icon: 'Users' }] : []),
+      { id: 'collection', label: 'גבייה', view: 'collection', icon: 'Wallet' },
+      { id: 'agency-insights', label: 'תובנות', view: 'agency-insights', icon: 'TrendingUp' },
+      { id: 'settings', label: 'הגדרות', view: 'settings', icon: 'Settings' },
+      { id: 'profile', label: 'פרופיל', view: 'profile', icon: 'User' },
+    ],
+    [isTeamEnabled, isTeamManagementEnabled]
+  );
+
+  const getRouteForView = (view: string) => {
+    const map: Record<string, string> = {
+      dashboard: '/dashboard',
+      'all-clients': '/clients',
+      calendar: '/calendar',
+      inbox: '/inbox',
+      workspace: '/workspace',
+      machine: '/machine',
+      campaigns: '/campaigns',
+      analytics: '/analytics',
+      team: '/team',
+      collection: '/collection',
+      'agency-insights': '/agency-insights',
+      settings: '/settings',
+      profile: '/me',
+    };
+    return map[view] || '/dashboard';
+  };
+
+  const navItems = useMemo(
+    () =>
+      menuItems.map((item) => {
+        const IconComponent = ((Icons as any)[item.icon] as any) || Icons.Home;
+        return {
+          label: item.label,
+          path: getRouteForView(item.view),
+          icon: IconComponent,
+        };
+      }),
+    [menuItems]
+  );
+
+  const primaryNavPaths = useMemo(
+    () => ['/dashboard', '/clients', '/calendar', '/inbox'],
+    []
+  );
+
+  const isActiveAction = (path: string) => {
+    const full = `${basePath}${path}`;
+    return (pathname || '') === full || (pathname || '').startsWith(`${full}/`);
+  };
+
+  const onNavigateAction = (path: string) => {
+    router.push(`${basePath}${path}`);
   };
 
   const handlePlusClick = () => {
@@ -83,71 +296,79 @@ function SocialShellContent({
     () => [
       { id: 'dashboard', label: 'דשבורד', suffix: '/dashboard', icon: Home },
       { id: 'clients', label: 'לקוחות', suffix: '/clients', icon: Users },
-      { id: 'calendar', label: 'יומן', suffix: '/calendar', icon: Calendar },
+      { id: 'calendar', label: 'אירועים', suffix: '/calendar', icon: Calendar },
     ],
     []
   );
 
-  const menuItems = useMemo(
-    () => [
-      { id: 'inbox', label: 'הודעות', suffix: '/inbox', icon: MessageSquare },
-      { id: 'workspace', label: 'סביבת עבודה', suffix: '/workspace', icon: LayoutGrid },
-      { id: 'campaigns', label: 'קמפיינים', suffix: '/campaigns', icon: Megaphone },
-      { id: 'analytics', label: 'אנליטיקה', suffix: '/analytics', icon: BarChart3 },
-      ...(isTeamManagementEnabled ? [{ id: 'team', label: 'צוות', suffix: '/team', icon: Users }] : []),
-      { id: 'collection', label: 'גבייה', suffix: '/collection', icon: Wallet },
-      { id: 'agency-insights', label: 'תובנות', suffix: '/agency-insights', icon: TrendingUp },
-      { id: 'profile', label: 'פרופיל', suffix: '/me', icon: User },
-    ],
-    [isTeamManagementEnabled]
-  );
-
-  const getMobileGridStyles = (suffix: string, active: boolean) => {
-    if (active) return 'bg-slate-800 text-white shadow-xl scale-105 ring-2 ring-slate-700/30 border-slate-800';
-    switch (suffix) {
-      case '/dashboard':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-      case '/clients':
-        return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-      case '/calendar':
-        return 'bg-red-50 text-red-600 border-red-100';
-      case '/inbox':
-        return 'bg-blue-50 text-blue-600 border-blue-100';
-      case '/machine':
-        return 'bg-indigo-50 text-indigo-600 border-indigo-100';
-      case '/campaigns':
-        return 'bg-rose-50 text-rose-600 border-rose-100';
-      case '/analytics':
-        return 'bg-cyan-50 text-cyan-700 border-cyan-100';
-      case '/collection':
-        return 'bg-green-50 text-green-700 border-green-100';
-      case '/agency-insights':
-        return 'bg-orange-50 text-orange-700 border-orange-100';
-      case '/settings':
-      case '/me':
-      case '/workspace':
-      case '/team':
-      default:
-        return 'bg-slate-200 text-slate-700 border-slate-200';
-    }
-  };
-
   return (
     <>
-      <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
-        <Header />
-        <div id="main-scroll-container" className="flex-1 overflow-y-scroll overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
+        <SharedSidebar
+          isOpen={isSidebarOpen}
+          onSetOpenAction={setIsSidebarOpen}
+          brand={{
+            name: initialOrganization?.name || 'Workspace',
+            logoUrl: initialOrganization?.logo || null,
+            fallbackIcon: (
+              <div
+                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient || 'from-indigo-600 via-purple-600 to-pink-600'} flex items-center justify-center text-white font-black`}
+              >
+                S
               </div>
-            }
-          >
-            {children}
-          </Suspense>
-        </div>
-      </main>
+            ),
+          }}
+          brandSubtitle={moduleTitle}
+          onBrandClickAction={() => onNavigateAction('/dashboard')}
+          topSlot={<WorkspaceSwitcher className="w-full" />}
+          navItems={navItems}
+          primaryNavPaths={primaryNavPaths}
+          isActiveAction={isActiveAction}
+          onNavigateAction={onNavigateAction}
+          bottomSlot={
+            <OSAppSwitcher
+              compact={true}
+              buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+              buttonLabel="מודולים"
+              className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+              orgSlug={orgSlug}
+              currentModule="social"
+            />
+          }
+        />
+
+        <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+          <SharedHeader
+            title={moduleTitle}
+            subtitle={screenTitle}
+            currentDate={currentDate || ' '}
+            mobileBrand={{ name: moduleTitle, logoUrl: initialOrganization?.logo || null }}
+            mobileLeadingSlot={mobileLeadingSlot}
+            onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
+            onOpenSupportAction={() => setIsHelpModalOpen(true)}
+            switcherSlot={null}
+            notificationsSlot={notificationsSlot}
+            user={{ name: resolvedUser.name, role: resolvedUser.role }}
+            onProfileClickAction={undefined}
+            profileHref={joinPath(basePath, `/me${resolvedUser.needsProfileCompletion ? '?edit=profile' : ''}`)}
+            userAvatarSlot={avatarSlot}
+            profileSlot={undefined}
+            className="bg-transparent"
+          />
+
+          <div id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-32 w-full relative">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-[400px]">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                </div>
+              }
+            >
+              {children}
+            </Suspense>
+          </div>
+        </main>
+      </div>
 
       <AnimatePresence>
         {isMobileMenuOpen ? (
@@ -171,139 +392,98 @@ function SocialShellContent({
                 const shouldClose = info.offset.y > 110 || info.velocity.y > 900;
                 if (shouldClose) setIsMobileMenuOpen(false);
               }}
-              className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[101] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="תפריט"
             >
               <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <div className="text-lg font-black text-slate-900">תפריט</div>
-                  <div className="text-xs text-slate-500 font-bold">מסכים ומודולים</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-500 flex items-center justify-center shadow-sm"
-                  aria-label="סגור"
-                >
-                  <X size={18} />
-                </button>
+
+              <div className="grid grid-cols-4 gap-4">
+                {menuItems.map((item) => {
+                  const isActiveItem = currentView === item.view;
+                  const IconComponent = ((Icons as any)[item.icon] as any) || Icons.Home;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        if ((item as any).requiresClient && !activeClient) {
+                          openComingSoon();
+                          return;
+                        }
+                        onNavigateAction(getRouteForView(item.view));
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                          isActiveItem
+                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="space-y-5">
-                <div className="grid grid-cols-4 gap-4">
-                  {menuItems
-                    .filter((i) => !bottomNavItems.some((b) => b.suffix === i.suffix))
-                    .map((item) => {
-                      const active = isActive(item.suffix);
-                      const Icon = item.icon;
-                      const style = getMobileGridStyles(item.suffix, active);
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            navigate(item.suffix);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className="flex flex-col items-center gap-2 group"
-                          aria-label={item.label}
-                          type="button"
-                        >
-                          <div
-                            className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${style} ${
-                              active ? 'shadow-slate-800/30' : 'shadow-slate-200/60'
-                            }`}
-                          >
-                            <Icon size={22} strokeWidth={active ? 2.5 : 2} />
-                          </div>
-                          <span
-                            className={`text-[10px] font-bold text-center leading-tight transition-colors ${
-                              active ? 'text-slate-900' : 'text-slate-500'
-                            }`}
-                          >
-                            {item.label}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
 
-                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent"></div>
-
-                <div className="space-y-3">
-                  <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
-                  <OSAppSwitcher mode="inlineGrid" compact={true} />
-                </div>
+              <div className="space-y-3">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="social" />
               </div>
             </motion.div>
           </>
         ) : null}
       </AnimatePresence>
 
-      <nav className="md:hidden fixed bottom-6 left-4 right-4 bg-white/80 backdrop-blur-xl border border-white/40 rounded-[2rem] h-16 shadow-[0_8px_30px_rgba(0,0,0,0.1)] px-2 sm:px-4 flex items-center justify-evenly transition-all duration-300 z-40">
-        {bottomNavItems.slice(0, 2).map((item) => {
-          const active = isActive(item.suffix);
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.suffix)}
-              className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-                active
-                  ? 'bg-black text-white shadow-lg shadow-black/20'
-                  : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-              }`}
-              aria-label={item.label}
-              type="button"
-            >
-              <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={active ? 2.5 : 2} />
-            </button>
-          );
-        })}
-
-        <div className="relative -top-6 z-50">
-          <button
-            onClick={handlePlusClick}
-            aria-label="יצירת פוסט"
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-[1.25rem] flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.25)] transition-all duration-300 border-[4px] sm:border-[5px] border-[#f1f5f9] group relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 hover:scale-105"
-            type="button"
-          >
-            <Plus size={26} className="sm:w-[30px] sm:h-[30px] text-white drop-shadow-md" strokeWidth={2.5} />
-          </button>
-        </div>
-
-        {bottomNavItems.slice(2, 3).map((item) => {
-          const active = isActive(item.suffix);
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => navigate(item.suffix)}
-              className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-                active
-                  ? 'bg-black text-white shadow-lg shadow-black/20'
-                  : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-              }`}
-              aria-label={item.label}
-              type="button"
-            >
-              <Icon size={18} className="sm:w-5 sm:h-5" strokeWidth={active ? 2.5 : 2} />
-            </button>
-          );
-        })}
-
-        <button
-          onClick={() => setIsMobileMenuOpen(true)}
-          className={`flex flex-col items-center justify-center w-11 h-11 sm:w-12 sm:h-12 rounded-2xl transition-all duration-200 ${
-            isMobileMenuOpen
-              ? 'bg-black text-white shadow-lg shadow-black/20'
-              : 'bg-white text-gray-500 border border-gray-100 shadow-sm hover:bg-gray-50 hover:border-gray-200'
-          }`}
-          aria-label="תפריט"
-          type="button"
-        >
-          <AppWindow size={18} className="sm:w-5 sm:h-5" strokeWidth={2} />
-        </button>
-      </nav>
+      <MobileBottomNav
+        rightItems={[
+          {
+            id: 'dashboard',
+            label: 'דשבורד',
+            icon: Home,
+            active: isActive('/dashboard'),
+            onClick: () => navigate('/dashboard'),
+          },
+          {
+            id: 'clients',
+            label: 'לקוחות',
+            icon: Users,
+            active: isActive('/clients'),
+            onClick: () => navigate('/clients'),
+          },
+        ]}
+        leftItems={[
+          {
+            id: 'calendar',
+            label: 'אירועים',
+            icon: Calendar,
+            active: isActive('/calendar'),
+            onClick: () => navigate('/calendar'),
+          },
+          {
+            id: 'menu',
+            label: 'תפריט',
+            icon: AppWindow,
+            active: isMobileMenuOpen,
+            onClick: () => setIsMobileMenuOpen(true),
+          },
+        ]}
+        onPlusClickAction={handlePlusClick}
+        plusAriaLabel="יצירת פוסט"
+        plusActive={isActive('/machine')}
+      />
 
       <ToastContainer />
       <CommandPalette />
@@ -323,12 +503,16 @@ function SocialShellContent({
 
 export default function SocialShellClient({
   children,
+  orgSlug,
+  isTeamEnabled,
   initialSocialData,
-  initialNavigationMenu,
+  initialNavigationMenu: _initialNavigationMenu,
   initialCurrentUser,
   initialOrganization,
 }: {
   children: React.ReactNode;
+  orgSlug: string;
+  isTeamEnabled?: boolean;
   initialSocialData?: SocialInitialData;
   initialNavigationMenu?: SocialNavigationItem[];
   initialCurrentUser?: any;
@@ -336,8 +520,7 @@ export default function SocialShellClient({
 }) {
   const { shabbatTimes } = useShabbat();
 
-  const pathname = usePathname();
-  const basePath = getSocialBasePath(pathname);
+  const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/social`, [orgSlug]);
 
   if (shabbatTimes?.isShabbat) {
     return <ShabbatScreen />;
@@ -349,7 +532,15 @@ export default function SocialShellClient({
         <ToastProvider>
           <BrandProvider>
             <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-              <SocialShellContent basePath={basePath}>{children}</SocialShellContent>
+              <SocialShellContent
+                basePath={basePath}
+                orgSlug={orgSlug}
+                isTeamEnabled={isTeamEnabled}
+                initialOrganization={initialOrganization}
+                initialCurrentUser={initialCurrentUser}
+              >
+                {children}
+              </SocialShellContent>
             </DataProvider>
           </BrandProvider>
         </ToastProvider>

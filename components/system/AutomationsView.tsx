@@ -354,8 +354,8 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                     className="w-4 h-4 text-primary"
                   />
                   <div className="flex-1">
-                    <div className="font-bold text-slate-800">ליד חדש נוצר</div>
-                    <div className="text-xs text-slate-500">כאשר נוצר ליד חדש במערכת</div>
+                    <div className="font-bold text-slate-800">ליד נפתח</div>
+                    <div className="text-xs text-slate-500">כאשר נפתח ליד במערכת</div>
                   </div>
                 </label>
 
@@ -472,7 +472,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                       ...formData,
                       action: {
                         type: 'create_task',
-                        taskTitle: formData.action.taskTitle || 'מעקב לליד חדש',
+                        taskTitle: formData.action.taskTitle || 'מעקב לליד',
                         taskDueDays: formData.action.taskDueDays || 1,
                         taskPriority: formData.action.taskPriority || 'medium'
                       }
@@ -496,7 +496,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                           ...formData,
                           action: { ...formData.action, taskTitle: e.target.value }
                         })}
-                        placeholder="לדוגמה: להגיע לליד חדש"
+                        placeholder="לדוגמה: להגיע לליד"
                         className="w-full border border-slate-200 bg-slate-50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
@@ -681,7 +681,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                 <div className="w-2 h-2 rounded-full bg-amber-400"></div>
                 <span className="text-slate-600 font-medium">
                   {automation.trigger.type === 'lead_created' 
-                    ? 'ליד חדש נוצר'
+                    ? 'ליד נפתח'
                     : `סטטוס שונה ל-${STAGES.find(s => s.id === automation.trigger.status)?.label}`
                   }
                 </span>

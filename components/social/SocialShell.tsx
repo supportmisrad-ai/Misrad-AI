@@ -5,12 +5,16 @@ import type { SocialInitialData, SocialNavigationItem } from '@/lib/services/soc
 import SocialShellClient from '@/components/social/SocialShellClient';
 
 export default function SocialShell({
+  orgSlug,
+  isTeamEnabled,
   children,
   initialSocialData,
   initialNavigationMenu,
   initialCurrentUser,
   initialOrganization,
 }: {
+  orgSlug: string;
+  isTeamEnabled?: boolean;
   children: React.ReactNode;
   initialSocialData?: SocialInitialData;
   initialNavigationMenu?: SocialNavigationItem[];
@@ -19,6 +23,8 @@ export default function SocialShell({
 }) {
   return (
     <SocialShellClient
+      orgSlug={orgSlug}
+      isTeamEnabled={isTeamEnabled}
       initialSocialData={initialSocialData}
       initialNavigationMenu={initialNavigationMenu}
       initialCurrentUser={initialCurrentUser}

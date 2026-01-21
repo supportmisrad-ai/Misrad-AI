@@ -186,7 +186,7 @@ const PersonalArea: React.FC = () => {
           <div className="space-y-6">
               <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 h-full">
                   <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
-                      <Shield size={20} className="text-gray-400"/> יומן פעילות
+                      <Shield size={20} className="text-gray-400"/> אירועי פעילות
                   </h3>
 
                   <div className="text-center py-10 text-gray-400 text-sm">

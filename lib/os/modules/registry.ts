@@ -31,7 +31,24 @@ export const modulesRegistry: Record<OSModuleKey, OSModuleDefinition> = {
     labelHe: 'פורטל הצלחת לקוח',
     theme: { accent: '#D97706', background: '#FFFBEB' },
   },
+  operations: {
+    key: 'operations',
+    label: 'Operations',
+    labelHe: 'תפעול ושטח',
+    theme: { accent: '#0EA5E9', background: '#F8FAFC' },
+  },
 };
+
+export const ALL_OS_MODULE_KEYS = Object.keys(modulesRegistry) as OSModuleKey[];
+
+export function isOSModuleKey(value: unknown): value is OSModuleKey {
+  return typeof value === 'string' && (ALL_OS_MODULE_KEYS as string[]).includes(value);
+}
+
+export const DEFAULT_OS_MODULE_PRIORITY: OSModuleKey[] = [
+  'nexus',
+  ...ALL_OS_MODULE_KEYS.filter((m) => m !== 'nexus'),
+];
 
 export function buildWorkspaceModulePath(orgSlug: string, module: OSModuleKey): string {
   return `/w/${encodeURIComponent(orgSlug)}/${module}`;

@@ -323,7 +323,7 @@ export const TimeClockView: React.FC = () => {
                 <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <History size={20} className="text-gray-500" />
-                        <h3 className="font-bold text-gray-900 text-lg">יומן כניסות ויציאות</h3>
+                        <h3 className="font-bold text-gray-900 text-lg">רישום כניסות ויציאות</h3>
                     </div>
                     <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
                         {filteredEntries.length} רשומות

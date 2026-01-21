@@ -78,6 +78,7 @@ async function GETHandler(request: NextRequest) {
             tasks: 'active',
             calendar: 'active',
             clients: 'active',
+            operations: 'active',
             team: 'active',
             reports: 'active',
             assets: 'active',

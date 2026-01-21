@@ -83,6 +83,70 @@ export class OpenAIProvider {
     });
   }
 
+  async generateVisionJson(params: {
+    model: string;
+    prompt: string;
+    imageDataUrl: string;
+    systemInstruction?: string;
+    timeoutMs: number;
+  }): Promise<{ text: string }> {
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      const body: any = {
+        model: params.model,
+        messages: [
+          ...(params.systemInstruction ? [{ role: 'system', content: params.systemInstruction }] : []),
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: params.prompt },
+              { type: 'image_url', image_url: { url: params.imageDataUrl } },
+            ],
+          },
+        ],
+        response_format: { type: 'json_object' },
+      };
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new AIProviderError({ provider: 'openai', status: res.status, message: `OpenAI error (${res.status}): ${txt}` });
+      }
+
+      const json: any = await res.json();
+      const text = json?.choices?.[0]?.message?.content;
+
+      if (!text) {
+        throw new AIProviderError({ provider: 'openai', message: 'OpenAI returned empty response' });
+      }
+
+      return { text };
+    } catch (err: any) {
+      if (String(err?.name || '') === 'AbortError') {
+        throw new AIProviderError({
+          provider: 'openai',
+          status: 504,
+          message: 'השרת עמוס כרגע ולא הצלחנו לבצע זיהוי תמונה בזמן. נסה שוב בעוד דקה.',
+          cause: err,
+        });
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   private async chat(params: {
     model: string;
     prompt: string;

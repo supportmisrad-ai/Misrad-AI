@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 
 export type PackageType = 'the_closer' | 'the_authority' | 'the_mentor';
 
@@ -30,7 +31,67 @@ type OrganizationModuleFlags = {
   has_social: boolean | null;
   has_finance: boolean | null;
   has_client: boolean | null;
+  has_operations: boolean | null;
 };
+
+function parseEnvCsv(value: string | undefined | null): string[] {
+  return String(value || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function isInternalWorkspace(params: {
+  organizationId?: string | null;
+  orgSlug?: string | null;
+}): boolean {
+  const orgId = params.organizationId ? String(params.organizationId).trim() : '';
+  const orgSlug = params.orgSlug ? String(params.orgSlug).trim() : '';
+
+  const envIds = new Set([
+    ...parseEnvCsv(process.env.MISRAD_INTERNAL_ORG_ID),
+    ...parseEnvCsv(process.env.MISRAD_INTERNAL_ORG_IDS),
+  ]);
+  const envSlugs = new Set([
+    ...parseEnvCsv(process.env.MISRAD_INTERNAL_ORG_SLUG),
+    ...parseEnvCsv(process.env.MISRAD_INTERNAL_ORG_SLUGS),
+  ]);
+
+  if (orgId && envIds.has(orgId)) return true;
+  if (orgSlug && envSlugs.has(orgSlug)) return true;
+  return false;
+}
+
+async function applyLaunchScopeToEntitlements(
+  entitlements: WorkspaceEntitlements,
+  ctx?: { organizationId?: string | null; orgSlug?: string | null }
+): Promise<WorkspaceEntitlements> {
+  try {
+    if (isInternalWorkspace({ organizationId: ctx?.organizationId ?? null, orgSlug: ctx?.orgSlug ?? null })) {
+      return {
+        nexus: true,
+        system: true,
+        social: true,
+        finance: true,
+        client: true,
+        operations: true,
+      };
+    }
+
+    const flags = await getSystemFeatureFlags();
+    const scope = flags.launch_scope_modules;
+    return {
+      nexus: Boolean(entitlements.nexus && scope.nexus),
+      system: Boolean(entitlements.system && scope.system),
+      social: Boolean(entitlements.social && scope.social),
+      finance: Boolean(entitlements.finance && scope.finance),
+      client: Boolean(entitlements.client && scope.client),
+      operations: Boolean(entitlements.operations && scope.operations),
+    };
+  } catch {
+    return entitlements;
+  }
+}
 
 function buildEntitlementsFromAllowedModules(allowed: Iterable<OSModuleKey>): WorkspaceEntitlements {
   const set = new Set<OSModuleKey>(allowed);
@@ -40,6 +101,7 @@ function buildEntitlementsFromAllowedModules(allowed: Iterable<OSModuleKey>): Wo
     social: set.has('social'),
     finance: set.has('finance'),
     client: set.has('client'),
+    operations: set.has('operations'),
   };
 }
 
@@ -66,31 +128,55 @@ export function inferOrganizationPackageType(flags: OrganizationModuleFlags): Pa
 
 async function loadOrganizationModuleFlags(organizationId: string): Promise<OrganizationModuleFlags> {
   const supabase = createClient();
-  const { data: org } = await supabase
+  const { data: org, error } = await supabase
     .from('organizations')
-    .select('has_nexus, has_system, has_social, has_finance, has_client')
+    .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations')
     .eq('id', organizationId)
     .single();
 
+  if (error && (error as any).code === '42703') {
+    const fallback = await supabase
+      .from('organizations')
+      .select('has_nexus, has_system, has_social, has_finance, has_client')
+      .eq('id', organizationId)
+      .single();
+    return {
+      has_nexus: fallback.data?.has_nexus ?? true,
+      has_system: fallback.data?.has_system ?? true,
+      has_social: fallback.data?.has_social ?? true,
+      has_finance: fallback.data?.has_finance ?? true,
+      has_client: fallback.data?.has_client ?? true,
+      has_operations: true,
+    };
+  }
+
   return {
     has_nexus: org?.has_nexus ?? true,
-    has_system: org?.has_system ?? false,
-    has_social: org?.has_social ?? false,
-    has_finance: org?.has_finance ?? false,
-    has_client: org?.has_client ?? false,
+    has_system: org?.has_system ?? true,
+    has_social: org?.has_social ?? true,
+    has_finance: org?.has_finance ?? true,
+    has_client: org?.has_client ?? true,
+    has_operations: (org as any)?.has_operations ?? true,
   };
 }
 
 export async function getOrganizationPackageEntitlements(
   organizationId: string,
-  socialUserId?: string
+  socialUserId?: string,
+  orgSlug?: string
 ): Promise<{ packageType: PackageType; entitlements: WorkspaceEntitlements }> {
   const supabase = createClient();
   const flags = await loadOrganizationModuleFlags(organizationId);
   const packageType = inferOrganizationPackageType(flags);
 
-  // Base package entitlements (UI-level): based on package definition.
-  const packageEntitlements = buildEntitlementsFromAllowedModules(getPackageModules(packageType));
+  const orgEntitlements: WorkspaceEntitlements = {
+    nexus: flags.has_nexus ?? true,
+    system: flags.has_system ?? false,
+    social: flags.has_social ?? false,
+    finance: flags.has_finance ?? false,
+    client: flags.has_client ?? false,
+    operations: flags.has_operations ?? false,
+  };
 
   // If socialUserId is provided, intersect with user's allowed modules.
   if (socialUserId) {
@@ -102,34 +188,32 @@ export async function getOrganizationPackageEntitlements(
 
     // Owners and Super Admins should not see locked modules in the UI.
     if (user?.role === 'owner' || user?.role === 'super_admin') {
-      return {
-        packageType,
-        entitlements: {
-          nexus: true,
-          system: true,
-          social: true,
-          finance: true,
-          client: true,
-        },
-      };
+      const entitlements = await applyLaunchScopeToEntitlements(orgEntitlements, { organizationId, orgSlug });
+
+      return { packageType, entitlements };
     }
 
     if (user?.allowed_modules && Array.isArray(user.allowed_modules)) {
       const userModules = new Set(user.allowed_modules);
-      return {
-        packageType,
-        entitlements: {
-          nexus: packageEntitlements.nexus && userModules.has('nexus'),
-          system: packageEntitlements.system && userModules.has('system'),
-          social: packageEntitlements.social && userModules.has('social'),
-          finance: packageEntitlements.finance && userModules.has('finance'),
-          client: packageEntitlements.client && userModules.has('client'),
+      const entitlements = await applyLaunchScopeToEntitlements(
+        {
+          nexus: orgEntitlements.nexus && userModules.has('nexus'),
+          system: orgEntitlements.system && userModules.has('system'),
+          social: orgEntitlements.social && userModules.has('social'),
+          finance: orgEntitlements.finance && userModules.has('finance'),
+          client: orgEntitlements.client && userModules.has('client'),
+          operations: orgEntitlements.operations && userModules.has('operations'),
         },
-      };
+        { organizationId, orgSlug }
+      );
+
+      return { packageType, entitlements };
     }
   }
 
-  return { packageType, entitlements: packageEntitlements };
+  const entitlements = await applyLaunchScopeToEntitlements(orgEntitlements, { organizationId, orgSlug });
+
+  return { packageType, entitlements };
 }
 
 export async function requireClerkUserId(): Promise<string> {
@@ -256,14 +340,63 @@ export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: s
   return data as any;
 }
 
-export async function getOrganizationEntitlements(organizationId: string, socialUserId?: string): Promise<WorkspaceEntitlements> {
+export async function getOrganizationEntitlements(
+  organizationId: string,
+  socialUserId?: string,
+  orgSlug?: string
+): Promise<WorkspaceEntitlements> {
   const supabase = createClient();
 
-  const { data: org } = await supabase
+  const { data: org, error } = await supabase
     .from('organizations')
-    .select('has_nexus, has_system, has_social, has_finance, has_client')
+    .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations')
     .eq('id', organizationId)
     .single();
+
+  if (error && (error as any).code === '42703') {
+    const fallback = await supabase
+      .from('organizations')
+      .select('has_nexus, has_system, has_social, has_finance, has_client')
+      .eq('id', organizationId)
+      .single();
+    const fallbackEntitlements = {
+      nexus: fallback.data?.has_nexus ?? true,
+      system: fallback.data?.has_system ?? false,
+      social: fallback.data?.has_social ?? false,
+      finance: fallback.data?.has_finance ?? false,
+      client: fallback.data?.has_client ?? false,
+      operations: false,
+    };
+
+    if (socialUserId) {
+      const { data: user } = await supabase
+        .from('social_users')
+        .select('allowed_modules, role')
+        .eq('id', socialUserId)
+        .single();
+
+      if (user?.role === 'owner' || user?.role === 'super_admin') {
+        return await applyLaunchScopeToEntitlements(fallbackEntitlements, { organizationId, orgSlug });
+      }
+
+      if (user?.allowed_modules && Array.isArray(user.allowed_modules)) {
+        const userModules = new Set(user.allowed_modules);
+        return await applyLaunchScopeToEntitlements(
+          {
+            nexus: fallbackEntitlements.nexus && userModules.has('nexus'),
+            system: fallbackEntitlements.system && userModules.has('system'),
+            social: fallbackEntitlements.social && userModules.has('social'),
+            finance: fallbackEntitlements.finance && userModules.has('finance'),
+            client: fallbackEntitlements.client && userModules.has('client'),
+            operations: false,
+          },
+          { organizationId, orgSlug }
+        );
+      }
+    }
+
+    return await applyLaunchScopeToEntitlements(fallbackEntitlements, { organizationId, orgSlug });
+  }
 
   const orgEntitlements = {
     nexus: org?.has_nexus ?? true,
@@ -271,6 +404,7 @@ export async function getOrganizationEntitlements(organizationId: string, social
     social: org?.has_social ?? false,
     finance: org?.has_finance ?? false,
     client: org?.has_client ?? false,
+    operations: (org as any)?.has_operations ?? false,
   };
 
   // If socialUserId is provided, intersect with user's allowed modules
@@ -283,22 +417,26 @@ export async function getOrganizationEntitlements(organizationId: string, social
 
     // Owners and Super Admins get everything the organization has
     if (user?.role === 'owner' || user?.role === 'super_admin') {
-      return orgEntitlements;
+      return await applyLaunchScopeToEntitlements(orgEntitlements, { organizationId, orgSlug });
     }
 
     if (user?.allowed_modules && Array.isArray(user.allowed_modules)) {
       const userModules = new Set(user.allowed_modules);
-      return {
-        nexus: orgEntitlements.nexus && userModules.has('nexus'),
-        system: orgEntitlements.system && userModules.has('system'),
-        social: orgEntitlements.social && userModules.has('social'),
-        finance: orgEntitlements.finance && userModules.has('finance'),
-        client: orgEntitlements.client && userModules.has('client'),
-      };
+      return await applyLaunchScopeToEntitlements(
+        {
+          nexus: orgEntitlements.nexus && userModules.has('nexus'),
+          system: orgEntitlements.system && userModules.has('system'),
+          social: orgEntitlements.social && userModules.has('social'),
+          finance: orgEntitlements.finance && userModules.has('finance'),
+          client: orgEntitlements.client && userModules.has('client'),
+          operations: orgEntitlements.operations && userModules.has('operations'),
+        },
+        { organizationId, orgSlug }
+      );
     }
   }
 
-  return orgEntitlements;
+  return await applyLaunchScopeToEntitlements(orgEntitlements, { organizationId, orgSlug });
 }
 
 async function hasTeamMembership({
@@ -330,7 +468,7 @@ async function hasTeamMembership({
 }
 
 export function getFirstAllowedModule(entitlements: WorkspaceEntitlements): OSModuleKey | null {
-  const order: OSModuleKey[] = ['nexus', 'system', 'social', 'finance', 'client'];
+  const order: OSModuleKey[] = ['nexus', 'system', 'operations', 'social', 'finance', 'client'];
   for (const key of order) {
     if (entitlements[key]) return key;
   }
@@ -355,7 +493,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   const organizationKey = orgSlug;
 
   if (socialUser?.organization_id && String(socialUser.organization_id) === String(organizationKey)) {
-    const entitlements = await getOrganizationEntitlements(socialUser.organization_id, socialUser.id);
+    const entitlements = await getOrganizationEntitlements(socialUser.organization_id, socialUser.id, orgSlug);
 
     return {
       id: organizationKey,
@@ -443,7 +581,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     redirect('/');
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id);
+  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, orgSlug);
 
   return {
     id: org.id,
@@ -459,7 +597,7 @@ export async function requireWorkspaceAccessByOrgSlugUi(orgSlug: string): Promis
   const clerkUserId = await requireClerkUserId();
   const socialUser = await getCurrentSocialUser(clerkUserId);
 
-  const { packageType, entitlements } = await getOrganizationPackageEntitlements(workspace.id, socialUser?.id);
+  const { packageType, entitlements } = await getOrganizationPackageEntitlements(workspace.id, socialUser?.id, orgSlug);
 
   return {
     ...workspace,
@@ -540,7 +678,7 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
     throw err;
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id);
+  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, orgSlug);
 
   return {
     id: org.id,

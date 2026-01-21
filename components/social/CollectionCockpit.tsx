@@ -30,7 +30,7 @@ export default function CollectionCockpit() {
     if (client.phone) {
       const text = encodeURIComponent(`היי ${client.name}, רציתי לוודא שהלינק לתשלום הגיע אליך. חשוב לנו להמשיך ברצף העבודה על הסושיאל שלך.`);
       window.open(`https://wa.me/972${client.phone.substring(1)}?text=${text}`, '_blank');
-      addToast(`תזכורת ידנית נשלחה ל-${client.companyName}`);
+      addToast(`נפתחה תזכורת ב-WhatsApp עבור ${client.companyName}`, 'success');
     }
   };
 

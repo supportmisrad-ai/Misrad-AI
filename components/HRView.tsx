@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_AGENTS } from './system/constants';
 import { useToast } from './system/contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 const KUDOS: { id: number; from: string; to: string; text: string; time: string }[] = [];
 
@@ -15,7 +16,7 @@ const HRView: React.FC = () => {
     const [mood, setMood] = useState<number | null>(null);
 
     const handleKudos = () => {
-        addToast('פרגון נשלח בהצלחה!', 'success');
+        openComingSoon();
     };
 
     return (

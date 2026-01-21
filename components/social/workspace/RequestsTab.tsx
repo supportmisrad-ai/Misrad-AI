@@ -36,7 +36,7 @@ const RequestsTab: React.FC<RequestsTabProps> = ({ client, requests, managerRequ
                 </div>
                 <div className="flex-1 flex flex-col gap-2">
                   <div className="flex justify-between items-start">
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${req.status === 'processed' ? 'bg-slate-200 text-slate-500' : 'bg-blue-100 text-blue-600'}`}>{req.status === 'processed' ? 'בוצע' : 'חדש'}</span>
+                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-md ${req.status === 'processed' ? 'bg-slate-200 text-slate-500' : 'bg-blue-100 text-blue-600'}`}>{req.status === 'processed' ? 'בוצע' : 'נפתח'}</span>
                     <p className="text-[10px] font-black text-slate-400 uppercase">{new Date(req.timestamp).toLocaleDateString('he-IL')}</p>
                   </div>
                   <p className="font-bold text-slate-800 text-base leading-relaxed">"{req.content}"</p>

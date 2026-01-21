@@ -78,7 +78,20 @@ export const TeamView: React.FC = () => {
   // TABS STATE
   const [activeTab, setActiveTab] = useState<'workload' | 'invitations' | 'events' | 'leave'>('workload');
 
-  // Load roles from API to ensure we have all roles
+  useEffect(() => {
+      if (typeof window === 'undefined') return;
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('newEmployee') !== '1') return;
+
+      setEditingUser(undefined);
+      setModalMode('add');
+      setIsMemberModalOpen(true);
+
+      url.searchParams.delete('newEmployee');
+      const nextSearch = url.searchParams.toString();
+      window.history.replaceState({}, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
+  }, []);
+
   useEffect(() => {
       const loadRoles = async () => {
           try {

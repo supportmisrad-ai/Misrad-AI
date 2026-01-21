@@ -21,11 +21,25 @@ const STEPS = [
         position: 'left' // Sidebar is on the right (RTL), so tooltip goes left
     },
     {
+        id: 'support',
+        targetId: 'support-trigger',
+        title: 'תמיכה וסיור מודרך',
+        description: 'נתקעת? כאן פותחים תמיכה וגם אפשר להתחיל סיור מודרך מחדש בכל רגע.',
+        position: 'bottom'
+    },
+    {
         id: 'create',
         targetId: 'create-task-btn',
         title: 'המנוע של העסק',
         description: 'כל רעיון או מטלה מתחילים כאן. אל תשאיר כלום בראש, תשפוך לתוך המערכת.',
         position: 'left' // Button is on the right, tooltip goes left
+    },
+    {
+        id: 'attendance',
+        targetId: 'time-clock-widget',
+        title: 'נוכחות',
+        description: 'כאן נכנסים/יוצאים ממשמרת ורואים סטטוס נוכחות.',
+        position: 'top'
     },
     {
         id: 'search',

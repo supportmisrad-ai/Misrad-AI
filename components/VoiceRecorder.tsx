@@ -84,7 +84,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
 
   const startSimulation = () => {
       setIsSimulation(true);
-      addToast('מיקרופון לא נמצא - עבר למצב סימולציה', 'warning');
+      addToast('מיקרופון לא נמצא - עבר למצב ללא מיקרופון', 'warning');
       try {
           const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
           const ctx = new AudioContextClass();
@@ -113,8 +113,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
 
           handleStreamSetup(dest.stream);
       } catch (e) {
-          console.error("Simulation setup failed", e);
-          alert("לא ניתן לגשת למיקרופון ולא ניתן להפעיל סימולציה.");
+          console.error("Fallback audio setup failed", e);
+          alert("לא ניתן לגשת למיקרופון.");
           onClose();
       }
   };
@@ -228,7 +228,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
         // Marketing-safe: no client-side AI processing.
         await new Promise(resolve => setTimeout(resolve, 600));
         aiResult = {
-          title: isSimulation ? 'משימה קולית חדשה (סימולציה)' : 'משימה קולית חדשה',
+          title: isSimulation ? 'משימה קולית חדשה (ללא מיקרופון)' : 'משימה קולית חדשה',
           description: 'נשמרה הקלטה. תמלול/AI ירוץ בצד שרת בגרסה הבאה.',
           priority: Priority.MEDIUM,
           tags: ['Voice'],
@@ -274,7 +274,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
         )}
         {isSimulation && (
             <div className="flex items-center gap-2 text-orange-400 text-xs font-bold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
-                <AlertCircle size={12} /> מצב סימולציה (ללא מיקרופון)
+                <AlertCircle size={12} /> מצב ללא מיקרופון
             </div>
         )}
       </div>

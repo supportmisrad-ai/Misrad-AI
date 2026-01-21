@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { getUsers, getTenants } from '../../../../lib/db';
 import { OSModule } from '../../../../types/os-modules';
+import { createServiceRoleClient } from '../../../../lib/supabase';
+
+import { ALL_OS_MODULE_KEYS } from '@/lib/os/modules/registry';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -19,7 +22,7 @@ async function GETHandler(request: NextRequest) {
         // 2. Super admins get all modules
         if (clerkUser.isSuperAdmin) {
             return NextResponse.json({
-                modules: ['system', 'nexus', 'social', 'finance', 'client'] as OSModule[]
+                modules: ALL_OS_MODULE_KEYS as OSModule[]
             });
         }
 
@@ -33,6 +36,55 @@ async function GETHandler(request: NextRequest) {
 
         const dbUsers = await getUsers({ email: clerkUser.email });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+
+        const getOrgModulesFallback = async (): Promise<OSModule[] | null> => {
+            const orgId = dbUser?.tenantId ? String(dbUser.tenantId) : null;
+            if (!orgId) return null;
+
+            let db = null as any;
+            try {
+                db = createServiceRoleClient();
+            } catch {
+                return null;
+            }
+
+            try {
+                const { data: org, error } = await db
+                    .from('organizations')
+                    .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations')
+                    .eq('id', orgId)
+                    .maybeSingle();
+
+                if (error && (error as any).code === '42703') {
+                    const fallback = await db
+                        .from('organizations')
+                        .select('has_nexus, has_system, has_social, has_finance, has_client')
+                        .eq('id', orgId)
+                        .maybeSingle();
+                    if (fallback.error) return null;
+
+                    const o = fallback.data as any;
+                    const modules: OSModule[] = ['nexus'];
+                    if (o?.has_system) modules.push('system');
+                    if (o?.has_social) modules.push('social');
+                    if (o?.has_finance) modules.push('finance');
+                    if (o?.has_client) modules.push('client');
+                    return modules;
+                }
+
+                if (error || !org) return null;
+
+                const modules: OSModule[] = ['nexus'];
+                if ((org as any)?.has_system) modules.push('system');
+                if ((org as any)?.has_social) modules.push('social');
+                if ((org as any)?.has_finance) modules.push('finance');
+                if ((org as any)?.has_client) modules.push('client');
+                if ((org as any)?.has_operations) modules.push('operations');
+                return modules;
+            } catch {
+                return null;
+            }
+        };
 
         // 4. Try to find tenant in two ways:
         //    a. By ownerEmail (if user owns the tenant)
@@ -53,10 +105,9 @@ async function GETHandler(request: NextRequest) {
 
         // 5. Get modules from tenant
         if (!tenant || !tenant.modules || tenant.modules.length === 0) {
-            // No tenant or no modules - return empty array
-            // In production, you might want to return a default set or error
+            const fallbackModules = await getOrgModulesFallback();
             return NextResponse.json({
-                modules: [] as OSModule[]
+                modules: (fallbackModules || []) as OSModule[]
             });
         }
 
@@ -78,6 +129,7 @@ async function GETHandler(request: NextRequest) {
             'nexus': ['nexus'],
             'social': ['social'],
             'client': ['client'],
+            'operations': ['operations'],
         };
 
         // Convert ModuleId[] to OSModule[] by mapping each module

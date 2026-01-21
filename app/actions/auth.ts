@@ -6,6 +6,7 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
+import { getBaseUrl } from '@/lib/utils';
 
 /**
  * Server Action: Send team member invitation via Clerk
@@ -41,7 +42,7 @@ export async function inviteTeamMember(
     if (!caps.isTeamManagementEnabled) {
       return {
         success: false,
-        error: 'ניהול צוות זמין רק בחבילת משרד מלא',
+        error: 'ניהול צוות זמין רק עם מודול Nexus',
       };
     }
 
@@ -65,7 +66,7 @@ export async function inviteTeamMember(
 
     // Create invitation link - Clerk will send the invitation email automatically
     // We can also send a custom email with a link to sign-in
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
     const lobbyRedirect = orgSlug ? `${baseUrl}/w/${encodeURIComponent(orgSlug)}/lobby` : `${baseUrl}/`;
     const invitationLink = `${baseUrl}/sign-up?redirect_url=${encodeURIComponent(lobbyRedirect)}`;
     

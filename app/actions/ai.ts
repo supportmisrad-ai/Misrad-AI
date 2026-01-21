@@ -131,15 +131,15 @@ export async function analyzeMeetingTranscriptAction(transcript: string) {
     return data;
   } catch {
     return {
-      summary: 'ניתוח סימולציה: הלקוח מביע עניין אך דורש הבהרות לגבי לוחות זמנים. הסוכנות הבטיחה מענה עד סוף השבוע.',
-      sentimentScore: 75,
-      frictionKeywords: ['זמנים', 'לו"ז', 'דחוף'],
-      objections: ['המחיר גבוה מדי'],
-      compliments: ['העיצוב מרשים'],
-      decisions: ['פגישת המשך ביום שלישי'],
-      agencyTasks: [{ id: 'at1', task: 'שליחת הצעת מחיר מעודכנת', deadline: 'מחר', priority: 'HIGH', status: 'PENDING' }],
-      clientTasks: [{ id: 'ct1', task: "אישור שלב א'", deadline: 'סוף שבוע', priority: 'NORMAL', status: 'PENDING' }],
-      liabilityRisks: [{ quote: 'נעשה הכל עד מחר', context: 'הבטחה לא ריאלית', riskLevel: 'HIGH' }],
+      summary: 'לא הצלחנו לנתח את השיחה כרגע.',
+      sentimentScore: 0,
+      frictionKeywords: [],
+      objections: [],
+      compliments: [],
+      decisions: [],
+      agencyTasks: [],
+      clientTasks: [],
+      liabilityRisks: [],
     };
   }
 }

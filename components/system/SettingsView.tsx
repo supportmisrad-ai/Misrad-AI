@@ -25,7 +25,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   const { addToast } = useToast();
   const { brandName, brandLogo, setBrandName, setBrandLogo } = useBrand();
   
-  const [activeTab, setActiveTab] = useState<'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'pipeline' | 'team' | 'billing' | 'notifications'>('general');
   const [teamMembers, setTeamMembers] = useState(INITIAL_AGENTS);
   
   // Local state for brand editing
@@ -76,7 +76,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   // Filter Tabs based on RBAC
   const TABS = [
       { id: 'general', label: 'על העסק', icon: Building, desc: 'פרטים ומיתוג', allowed: true },
-      { id: 'targets', label: 'יעדים', icon: Target, desc: 'ניהול יעדי מכירות', allowed: true },
       { id: 'pipeline', label: 'תהליך המכירה', icon: Kanban, desc: 'עריכת שלבים', allowed: canAccess('settings_team') },
       { id: 'team', label: 'צוות והרשאות', icon: Users, desc: 'מי במערכת', allowed: canAccess('settings_team') },
       { id: 'billing', label: 'תוכנית ותשלום', icon: CreditCard, desc: 'חשבוניות', allowed: canAccess('billing') },
@@ -137,13 +136,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
           {/* Content Area */}
           <div className="flex-1 space-y-6">
               
-              {/* TARGETS TAB */}
-              {activeTab === 'targets' && (
-                  <div className="animate-slide-up h-full">
-                      <SystemTargetsView leads={leads} />
-                  </div>
-              )}
-
               {/* GENERAL TAB */}
               {activeTab === 'general' && (
                 <div className="space-y-6 animate-slide-up">
@@ -463,7 +455,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                           </h3>
                           <div className="space-y-6">
                               {[
-                                  { title: 'ליד חדש נכנס', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
+                                  { title: 'ליד נפתח', desc: 'קבל עדכון ברגע שלקוח משאיר פרטים', email: true, push: true },
                                   { title: 'משימות ומעקב', desc: 'כשמנהל מעביר אליך משימה או שהגיע זמן למעקב', email: true, push: true },
                                   { title: 'דוח יומי במייל', desc: 'סיכום מספרים כל בוקר ב-08:00', email: true, push: false },
                                   { title: 'עדכוני מערכת', desc: 'חידושים ותחזוקה', email: false, push: true }

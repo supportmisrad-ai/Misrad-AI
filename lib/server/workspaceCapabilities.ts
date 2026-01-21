@@ -17,13 +17,15 @@ export function computeWorkspaceCapabilities(params: {
   const baseFullOffice = Boolean(ent?.nexus && ent?.system && ent?.social && ent?.client);
   const isFullOffice = params.fullOfficeRequiresFinance ? Boolean(baseFullOffice && ent?.finance) : baseFullOffice;
 
+  const isTeamManagementEnabled = Boolean(ent?.nexus);
+
   const overrideRaw = params.seatsAllowedOverride;
   const overrideNormalized = Number.isFinite(Number(overrideRaw)) ? Math.floor(Number(overrideRaw)) : null;
   const override = overrideNormalized && overrideNormalized > 0 ? overrideNormalized : null;
 
   return {
     isFullOffice,
-    isTeamManagementEnabled: isFullOffice,
-    seatsAllowed: isFullOffice ? (override ?? 5) : 1,
+    isTeamManagementEnabled,
+    seatsAllowed: isTeamManagementEnabled ? (override ?? 5) : 1,
   };
 }

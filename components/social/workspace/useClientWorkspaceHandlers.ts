@@ -1,6 +1,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { SocialPost, AIOpportunity, Client, ClientRequest, ManagerRequest } from '@/types/social';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 interface UseClientWorkspaceHandlersProps {
   activeClient: Client;
@@ -62,7 +63,7 @@ export function useClientWorkspaceHandlers({
   };
 
   const handleSendMessage = (convId: string, text: string) => {
-    addToast('הודעה נשלחה');
+    openComingSoon();
   };
 
   const handleNewPostFromContext = (context?: Partial<AIOpportunity>) => {
@@ -72,11 +73,11 @@ export function useClientWorkspaceHandlers({
   };
 
   const handleSendManagerRequest = (clientId: string, title: string, description: string, type: ManagerRequest['type']) => {
-    addToast('בקשה נשלחה ללקוח! 📤');
+    openComingSoon();
   };
 
   const handleUpdateRequestStatus = (reqId: string, status: ClientRequest['status'], comment?: string) => {
-    addToast('סטטוס הבקשה עודכן');
+    openComingSoon();
   };
 
   return {

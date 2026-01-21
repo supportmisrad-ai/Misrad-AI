@@ -23,6 +23,13 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
 }) => {
   const router = useRouter();
 
+  const lgColsClass =
+    purchasedModules.length >= 6
+      ? 'lg:grid-cols-6'
+      : purchasedModules.length === 5
+        ? 'lg:grid-cols-5'
+        : 'lg:grid-cols-4';
+
   const resolveVillaRoute = (route: string): string => {
     if (!route.includes('[orgSlug]')) return route;
     const orgSlug = orgSlugProp ? String(orgSlugProp) : null;
@@ -87,7 +94,7 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
           </div>
 
           {/* OS Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+          <div className={`grid grid-cols-2 md:grid-cols-3 ${lgColsClass} gap-3 md:gap-4`}>
             {purchasedModules.map((module, index) => {
               const Icon = module.icon;
               const logoSrc = (OS_METADATA as any)?.[module.id]?.icon ?? null;

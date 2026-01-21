@@ -52,7 +52,8 @@ export const OSModuleProvider: React.FC<OSModuleProviderProps> = ({
           getOSModule('nexus'),
           getOSModule('social'),
           getOSModule('finance'),
-          getOSModule('client')
+          getOSModule('client'),
+          getOSModule('operations')
         ].filter((m): m is OSModuleInfo => m !== undefined && m.purchased);
         setPurchasedModules(allPurchased);
       });
@@ -63,7 +64,8 @@ export const OSModuleProvider: React.FC<OSModuleProviderProps> = ({
         getOSModule('nexus'),
         getOSModule('social'),
         getOSModule('finance'),
-        getOSModule('client')
+        getOSModule('client'),
+        getOSModule('operations')
       ].filter((m): m is OSModuleInfo => m !== undefined && m.purchased);
       setPurchasedModules(allPurchased);
     }

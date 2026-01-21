@@ -1337,6 +1337,108 @@ model NexusTenant {
   @@map("nexus_tenants")
 }
 
+model OperationsSupplier {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  name           String   @db.Text
+  contactName    String?  @map("contact_name") @db.Text
+  phone          String?  @db.Text
+  email          String?  @db.Text
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items          OperationsItem[]
+
+  @@index([organizationId], map: "idx_operations_suppliers_organization_id")
+  @@map("operations_suppliers")
+}
+
+model OperationsItem {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  supplierId     String?  @map("supplier_id") @db.Uuid
+  sku            String?  @db.Text
+  name           String   @db.Text
+  unit           String?  @db.Text
+  cost           Decimal? @db.Decimal(12, 2)
+  imageUrl       String?  @map("image_url") @db.Text
+  imageVector    Unsupported("vector")? @map("image_vector")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier       OperationsSupplier?  @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  inventory      OperationsInventory[]
+
+  @@index([organizationId], map: "idx_operations_items_organization_id")
+  @@index([supplierId], map: "idx_operations_items_supplier_id")
+  @@map("operations_items")
+}
+
+model OperationsProject {
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  canonicalClientId    String?  @map("canonical_client_id") @db.Uuid
+  title                String   @db.Text
+  status               String   @default("ACTIVE") @db.Text
+  installationAddress  String?  @map("installation_address") @db.Text
+  addressNormalized    String?  @map("address_normalized") @db.Text
+  source               String?  @db.Text
+  sourceRefId          String?  @map("source_ref_id") @db.Text
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization         social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workOrders           OperationsWorkOrder[]
+
+  @@index([organizationId], map: "idx_operations_projects_organization_id")
+  @@index([canonicalClientId], map: "idx_operations_projects_canonical_client_id")
+  @@map("operations_projects")
+}
+
+model OperationsWorkOrder {
+  id                  String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  projectId           String   @map("project_id") @db.Uuid
+  title               String   @db.Text
+  description         String?  @db.Text
+  status              String   @default("NEW") @db.Text
+  createdByType       String   @default("INTERNAL") @map("created_by_type") @db.Text
+  createdByRef        String?  @map("created_by_ref") @db.Text
+  installationAddress String?  @map("installation_address") @db.Text
+  addressNormalized   String?  @map("address_normalized") @db.Text
+  scheduledStart      DateTime? @map("scheduled_start") @db.Timestamptz(6)
+  scheduledEnd        DateTime? @map("scheduled_end") @db.Timestamptz(6)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization        social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project             OperationsProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_operations_work_orders_organization_id")
+  @@index([projectId], map: "idx_operations_work_orders_project_id")
+  @@map("operations_work_orders")
+}
+
+model OperationsInventory {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  itemId         String   @map("item_id") @db.Uuid
+  onHand         Decimal  @default(0) @map("on_hand") @db.Decimal(12, 3)
+  minLevel       Decimal  @default(0) @map("min_level") @db.Decimal(12, 3)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  item           OperationsItem        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_operations_inventory_organization_id")
+  @@index([itemId], map: "idx_operations_inventory_item_id")
+  @@map("operations_inventory")
+}
+
 model ClientClient {
   id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   organizationId  String    @map("organization_id") @db.Uuid
@@ -1682,6 +1784,7 @@ model SystemLead {
   isHot               Boolean?               @default(false) @map("is_hot")
   score               Int?                   @default(0)
   address             String?
+  installationAddress String?                @map("installation_address")
   locationX           Decimal?               @map("location_x") @db.Decimal(10, 6)
   locationY           Decimal?               @map("location_y") @db.Decimal(10, 6)
   assignedAgentId     String?                @map("assigned_agent_id") @db.Uuid
@@ -1691,6 +1794,8 @@ model SystemLead {
   budgetHours         Int?                   @map("budget_hours")
   loggedHours         Int?                   @map("logged_hours")
   aiTags              Json?                  @default("[]") @map("ai_tags")
+  nextActionDate      DateTime?              @map("next_action_date") @db.Timestamptz(6)
+  nextActionNote      String?                @map("next_action_note") @db.Text
   updatedAt           DateTime?              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   calendarEvents      SystemCalendarEvent[]
   callAnalyses        SystemCallAnalysis[]
@@ -1709,6 +1814,7 @@ model SystemLead {
   @@index([customerAccountId], map: "idx_system_leads_customer_account_id")
   @@index([createdAt], map: "idx_system_leads_created_at")
   @@index([isHot], map: "idx_system_leads_is_hot")
+  @@index([nextActionDate], map: "idx_system_leads_next_action_date")
   @@index([status], map: "idx_system_leads_status")
   @@map("system_leads")
 }
@@ -2757,6 +2863,11 @@ model social_organizations {
   nexusLeaveRequests      nexus_leave_requests[]
   nexusTeamEvents         nexus_team_events[]
   organizationFeatures    organization_features[]
+  operationsSuppliers     OperationsSupplier[]
+  operationsItems         OperationsItem[]
+  operationsProjects      OperationsProject[]
+  operationsWorkOrders    OperationsWorkOrder[]
+  operationsInventory     OperationsInventory[]
 
   @@index([owner_id], map: "organizations_owner_id_idx")
   @@map("organizations")

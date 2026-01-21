@@ -6,6 +6,7 @@ import {
     ArrowRight, Wallet, Percent, CheckCircle
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 interface Partner {
     id: string;
@@ -289,7 +290,7 @@ const PartnersView: React.FC = () => {
                         
                         <input type="email" placeholder="email@partner.com" className="w-full border border-slate-200 rounded-xl px-4 py-3 mb-4 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
                         
-                        <button onClick={() => { addToast('הזמנה נשלחה בהצלחה', 'success'); setShowInviteModal(false); }} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
+                        <button onClick={() => { openComingSoon(); setShowInviteModal(false); }} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
                             שלח הזמנה
                         </button>
                     </div>

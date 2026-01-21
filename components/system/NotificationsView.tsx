@@ -25,7 +25,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     { id: '1', title: 'עסקה נסגרה!', description: 'יואב כהן חתם על הצטרפות למאסטרמיינד (₪15,000).', time: 'לפני 10 דק\'', type: 'success', category: 'leads', isRead: false, actionLabel: 'צפה בתיק' },
     { id: '2', title: 'תשלום נכשל', description: 'חיוב חודשי עבור "רון שוורץ" נדחה ע"י חברת האשראי.', time: 'לפני 45 דק\'', type: 'error', category: 'finance', isRead: false, actionLabel: 'נסה שנית' },
     { id: '3', title: 'משימה באיחור', description: 'הכנת מצגת למשקיעים (דדליין: אתמול).', time: 'לפני שעתיים', type: 'warning', category: 'tasks', isRead: false, actionLabel: 'סמן כבוצע' },
-    { id: '4', title: 'ליד חדש ("חם")', description: 'שרה נתניהו השאירה פרטים בקמפיין פייסבוק.', time: 'לפני 3 שעות', type: 'info', category: 'leads', isRead: true },
+    { id: '4', title: 'ליד נפתח ("חם")', description: 'שרה נתניהו השאירה פרטים בקמפיין פייסבוק.', time: 'לפני 3 שעות', type: 'info', category: 'leads', isRead: true },
     { id: '5', title: 'גיבוי מערכת', description: 'גיבוי לילי של בסיס הנתונים בוצע בהצלחה.', time: 'אתמול, 23:00', type: 'info', category: 'system', isRead: true },
     { id: '6', title: 'חשבונית הופקה', description: 'חשבונית מס #1023 נשלחה ללקוח "הייטק סולושנס".', time: 'אתמול, 14:30', type: 'financial', category: 'finance', isRead: true, actionLabel: 'הורד PDF' },
 ];

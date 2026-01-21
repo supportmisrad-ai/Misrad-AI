@@ -14,7 +14,8 @@ export default async function FinanceModuleLayout({
 }) {
   const { orgSlug } = await params;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
-  await persistCurrentUserLastLocation({ orgSlug, module: 'finance' });
+  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
+  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
   const def = getModuleDefinition('finance');
 
   const style = {

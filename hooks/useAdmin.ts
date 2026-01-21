@@ -69,12 +69,14 @@ export const useAdmin = (
                 if (!ws) return;
 
                 const financeEnabled = Boolean(ws.entitlements?.finance);
+                const operationsEnabled = Boolean((ws.entitlements as any)?.operations);
 
                 const teamEnabled = Boolean(ws.capabilities?.isTeamManagementEnabled);
 
                 setOrganization(prev => {
                     const base: ModuleId[] = teamEnabled ? ['crm', 'ai', 'team'] : ['crm', 'ai'];
-                    const next: ModuleId[] = financeEnabled ? [...base, 'finance'] : base;
+                    const financeNext: ModuleId[] = financeEnabled ? [...base, 'finance'] : base;
+                    const next: ModuleId[] = operationsEnabled ? [...financeNext, 'operations'] : financeNext;
                     if (Array.isArray(prev.enabledModules) && prev.enabledModules.join('|') === next.join('|')) {
                         return prev;
                     }

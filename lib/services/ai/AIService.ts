@@ -428,6 +428,109 @@ export class AIService {
     }
   }
 
+  async generateVisionJson<T = any>(params: {
+    featureKey: string;
+    organizationId?: string;
+    userId?: string;
+    bypassAuth?: boolean;
+    prompt: string;
+    imageDataUrl: string;
+    systemInstruction?: string;
+    responseSchema?: any;
+    meta?: Record<string, any>;
+  }): Promise<AIGenerateJsonResult<T>> {
+    const ctx = params.bypassAuth
+      ? (() => {
+          const organizationId = String(params.organizationId || '').trim();
+          const userId = String(params.userId || '').trim();
+          if (!organizationId || !userId) {
+            throw new Error('Unauthorized');
+          }
+          return { organizationId, userId };
+        })()
+      : await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
+
+    const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
+
+    const chargedCents = await this.reserveCredits({ organizationId: ctx.organizationId, reserveCents: feature.settings.reserve_cost_cents });
+    const start = Date.now();
+
+    const providerUsed: AIProviderName = 'openai';
+    const modelUsed = String(feature.settings.primary_model || 'gpt-4o');
+
+    try {
+      const apiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
+      const openai = new OpenAIProvider(apiKey);
+
+      const out = await openai.generateVisionJson({
+        model: modelUsed,
+        prompt: String(params.prompt || ''),
+        imageDataUrl: String(params.imageDataUrl || ''),
+        systemInstruction: this.mergeSystemInstruction(params.systemInstruction),
+        timeoutMs: feature.settings.timeout_ms,
+      });
+
+      const modelDisplayName = await this.getModelDisplayName({
+        organizationId: ctx.organizationId,
+        provider: providerUsed,
+        model: modelUsed,
+      });
+
+      const parsed = JSON.parse(out.text || '{}');
+
+      await this.logUsage({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        featureKey: params.featureKey,
+        taskKind: 'json',
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName,
+        chargedCents,
+        latencyMs: Date.now() - start,
+        status: 'success',
+        meta: {
+          ...(params.meta || {}),
+          responseSchema: params.responseSchema ? true : false,
+          kind: 'vision_json',
+        },
+      });
+
+      return {
+        result: parsed as T,
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName,
+        chargedCents,
+      };
+    } catch (err: any) {
+      await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
+
+      const modelDisplayName = await this.getModelDisplayName({
+        organizationId: ctx.organizationId,
+        provider: providerUsed,
+        model: modelUsed,
+      });
+
+      await this.logUsage({
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+        featureKey: params.featureKey,
+        taskKind: 'json',
+        provider: providerUsed,
+        model: modelUsed,
+        modelDisplayName,
+        chargedCents: 0,
+        latencyMs: Date.now() - start,
+        status: 'error',
+        errorMessage: String(err?.message || err),
+        meta: { ...(params.meta || {}), refundedCents: chargedCents, kind: 'vision_json' },
+      });
+
+      throw err;
+    }
+  }
+
   async generateText(params: AIGenerateTextParams): Promise<AIGenerateTextResult> {
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
     const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
@@ -754,6 +857,7 @@ export class AIService {
       const isClientMeetingsAnalyze = fk.includes('client_os.meetings.analyze') || fk.includes('client-os.meetings.analyze');
       const isObjection = fk.includes('objection') || fk.includes('objections') || fk.includes('handler');
       const isEmbedding = fk.includes('embedding') || fk.includes('embed') || fk.includes('vector');
+      const isVision = fk.includes('vision');
 
       const defaultTimeoutMs = isClientMeetingsTranscription ? 180000 : isClientMeetings ? 120000 : 30000;
 
@@ -764,6 +868,8 @@ export class AIService {
         enabled: true,
         primary_provider: isEmbedding
           ? 'openai'
+          : isVision
+            ? 'openai'
           : isTranscription
             ? isClientMeetingsTranscription
               ? 'google'
@@ -773,6 +879,8 @@ export class AIService {
               : 'google',
         primary_model: isEmbedding
           ? 'text-embedding-3-small'
+          : isVision
+            ? 'gpt-4o'
           : isTranscription
             ? isClientMeetingsTranscription
               ? 'gemini-2.0-pro'
@@ -784,8 +892,8 @@ export class AIService {
                 : 'gemini-2.5-flash',
         fallback_provider: null,
         fallback_model: null,
-        reserve_cost_cents: isEmbedding ? 10 : 25,
-        timeout_ms: defaultTimeoutMs,
+        reserve_cost_cents: isEmbedding ? 10 : isVision ? 35 : 25,
+        timeout_ms: isVision ? 45000 : defaultTimeoutMs,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       } as AIFeatureSettingsRow;

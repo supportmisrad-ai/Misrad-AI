@@ -5,6 +5,18 @@
 import { supabase } from './supabase';
 import { NextRequest } from 'next/server';
 
+function normalizeBaseUrl(input: string): string {
+    const raw = (input || '').trim();
+    if (!raw) return raw;
+
+    const withProtocol = /^https?:\/\//i.test(raw)
+        ? raw
+        : `${/^(localhost|127\.0\.0\.1|\[::1\])/i.test(raw) ? 'http' : 'https'}://${raw}`;
+
+    const url = new URL(withProtocol);
+    return `${url.protocol}//${url.host}`;
+}
+
 /**
  * Get the base URL for the application
  * Handles production, Vercel, and localhost environments
@@ -13,36 +25,29 @@ export function getBaseUrl(request?: NextRequest): string {
     // 1. Check explicit environment variable (highest priority)
     if (process.env.NEXT_PUBLIC_APP_URL) {
         const url = process.env.NEXT_PUBLIC_APP_URL.trim();
-        // Remove trailing slash and check it's not a placeholder
         const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        if (!cleanUrl.includes('your-domain') && !cleanUrl.includes('localhost')) {
-            return cleanUrl;
+        if (!cleanUrl.includes('your-domain')) {
+            return normalizeBaseUrl(cleanUrl);
         }
     }
 
-    // 2. Check Vercel URL (automatically set by Vercel)
-    if (process.env.VERCEL_URL) {
-        const protocol = process.env.VERCEL_ENV === 'production' ? 'https' : 'https';
-        return `${protocol}://${process.env.VERCEL_URL}`;
-    }
-
-    // 3. Check request origin header (if available)
+    // 2. Check request origin/host headers (if available)
     if (request) {
         const origin = request.headers.get('origin');
-        if (origin && !origin.includes('localhost') && !origin.includes('127.0.0.1') && !origin.includes('your-domain')) {
-            return origin;
+        if (origin && !origin.includes('your-domain')) {
+            return normalizeBaseUrl(origin);
         }
 
         // Try to get from host header
-        const host = request.headers.get('host');
-        if (host && !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('your-domain')) {
-            const protocol = request.headers.get('x-forwarded-proto') || 'https';
-            return `${protocol}://${host}`;
+        const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+        if (host && !host.includes('your-domain')) {
+            const protocol = request.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
+            return normalizeBaseUrl(`${protocol}://${host}`);
         }
     }
 
-    // 4. Fallback to localhost (development only)
-    console.warn('[getBaseUrl] No valid URL found, falling back to localhost. Please set NEXT_PUBLIC_APP_URL in Vercel.');
+    // 3. Fallback to localhost (development only)
+    console.warn('[getBaseUrl] NEXT_PUBLIC_APP_URL is not set; falling back to localhost.');
     return 'http://localhost:4000';
 }
 
@@ -54,7 +59,7 @@ export async function generateInvitationToken(): Promise<string> {
         throw new Error('Database not configured');
     }
     
-    let token: string;
+    let token = '';
     let isUnique = false;
     let attempts = 0;
     const maxAttempts = 10;

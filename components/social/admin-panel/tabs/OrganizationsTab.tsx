@@ -23,6 +23,7 @@ type CreateFormState = {
   has_system: boolean;
   has_finance: boolean;
   has_client: boolean;
+  has_operations: boolean;
 };
 
 type EditFormState = {
@@ -34,6 +35,7 @@ type EditFormState = {
   has_system: boolean;
   has_finance: boolean;
   has_client: boolean;
+  has_operations: boolean;
 };
 
 function bool(v: any): boolean {
@@ -58,6 +60,7 @@ export default function OrganizationsTab() {
     has_system: false,
     has_finance: false,
     has_client: false,
+    has_operations: false,
   });
 
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
@@ -118,6 +121,7 @@ export default function OrganizationsTab() {
       has_system: bool(org.has_system),
       has_finance: bool(org.has_finance),
       has_client: bool(org.has_client),
+      has_operations: bool((org as any).has_operations),
     });
   };
 
@@ -138,6 +142,7 @@ export default function OrganizationsTab() {
       has_system: editForm.has_system,
       has_finance: editForm.has_finance,
       has_client: editForm.has_client,
+      has_operations: editForm.has_operations,
     });
 
     if (!res.success) {
@@ -201,6 +206,7 @@ export default function OrganizationsTab() {
       has_system: createForm.has_system,
       has_finance: createForm.has_finance,
       has_client: createForm.has_client,
+      has_operations: createForm.has_operations,
     });
 
     if (!res.success) {
@@ -219,6 +225,7 @@ export default function OrganizationsTab() {
       has_system: false,
       has_finance: false,
       has_client: false,
+      has_operations: false,
     });
     await load();
   };
@@ -353,13 +360,14 @@ export default function OrganizationsTab() {
               </select>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3">
               {([
                 ['has_nexus', 'Nexus'],
                 ['has_social', 'Social'],
                 ['has_system', 'System'],
                 ['has_finance', 'Finance'],
                 ['has_client', 'Client'],
+                ['has_operations', 'Operations'],
               ] as const).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700">
                   <input
@@ -477,6 +485,7 @@ export default function OrganizationsTab() {
                             ['has_system', 'System'],
                             ['has_finance', 'Finance'],
                             ['has_client', 'Client'],
+                            ['has_operations', 'Operations'],
                           ] as const).map(([key, label]) => (
                             <label key={key} className="flex items-center gap-2 text-xs font-bold text-slate-700">
                               <input
@@ -495,6 +504,9 @@ export default function OrganizationsTab() {
                           {bool(org.has_system) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-blue-100 text-blue-700">SYSTEM</span>}
                           {bool(org.has_finance) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-emerald-100 text-emerald-700">FINANCE</span>}
                           {bool(org.has_client) && <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-amber-100 text-amber-700">CLIENT</span>}
+                          {bool((org as any).has_operations) && (
+                            <span className="px-2 py-1 rounded-lg text-[9px] font-black bg-sky-100 text-sky-700">OPERATIONS</span>
+                          )}
                         </div>
                       )}
                     </td>

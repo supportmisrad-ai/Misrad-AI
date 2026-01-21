@@ -10,6 +10,13 @@ import { LeadStatus, Status } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgIdFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import NexusCard from '@/components/shared/NexusCard';
+import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+
+import SystemSettingsDrawerContent from '@/components/me/module-settings/SystemSettingsDrawerContent';
+import SocialSettingsDrawerContent from '@/components/me/module-settings/SocialSettingsDrawerContent';
+import ClientSettingsDrawerContent from '@/components/me/module-settings/ClientSettingsDrawerContent';
+import FinanceSettingsDrawerContent from '@/components/me/module-settings/FinanceSettingsDrawerContent';
 
 // Imported Settings Components
 import { PersonalSettings } from '../components/me/PersonalSettings';
@@ -45,9 +52,19 @@ export const MeView: React.FC<{
   const orgSlug = workspaceInfo.orgSlug;
   const basePath = basePathOverride || getNexusBasePath(pathname);
 
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+    name: currentUser?.name,
+    role: currentUser?.role,
+    avatarUrl: (currentUser as any)?.avatar,
+  });
+
+  const needsProfileCompletion = Boolean(systemIdentity?.needsProfileCompletion);
+
   const resolvedModuleCards = useMemo(() => {
     const list = Array.isArray(moduleCards) ? moduleCards : [];
-    return list.filter((c) => c && typeof c.href === 'string' && c.href.trim().length > 0 && typeof c.title === 'string');
+    return list
+      .filter((c) => c && typeof c.href === 'string' && c.href.trim().length > 0 && typeof c.title === 'string')
+      .filter((c) => c.title !== 'הגדרות מערכת' && !c.href.includes('drawer=system'));
   }, [moduleCards]);
 
   const resolveModuleCardIcon = (iconId: MeModuleCard['iconId']) => {
@@ -72,6 +89,16 @@ export const MeView: React.FC<{
           router.push(target);
       }
   };
+
+  const openProfileEditor = () => {
+    if (needsProfileCompletion) {
+      const target = `${toNexusPath(basePath, '/me')}?edit=profile`;
+      router.push(target);
+      setActiveSettingModal('personal');
+      return;
+    }
+    setActiveSettingModal('personal');
+  };
   const [activeSettingModal, setActiveSettingModal] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(true); // Start with history tab open
   const [showLeaveRequestModal, setShowLeaveRequestModal] = useState(false);
@@ -86,6 +113,53 @@ export const MeView: React.FC<{
   const [eventRSVPStatus, setEventRSVPStatus] = useState<Record<string, string>>({});
 
   const [hasNexusEntitlement, setHasNexusEntitlement] = useState<boolean | null>(null);
+
+  const [activeModuleSettingsDrawer, setActiveModuleSettingsDrawer] = useState<
+    'system' | 'social' | 'client' | 'finance' | null
+  >(null);
+
+  const currentInsightsModule = useMemo(() => {
+      const mod = workspaceInfo.module;
+      if (mod === 'system' || mod === 'client' || mod === 'finance' || mod === 'social') {
+          return mod;
+      }
+      return null;
+  }, [workspaceInfo.module]);
+
+  const [meInsightsLoading, setMeInsightsLoading] = useState(false);
+  const [meInsightsData, setMeInsightsData] = useState<any>(null);
+
+  useEffect(() => {
+      if (!orgSlug || !currentInsightsModule) {
+          setMeInsightsData(null);
+          setMeInsightsLoading(false);
+          return;
+      }
+
+      const controller = new AbortController();
+      setMeInsightsLoading(true);
+
+      (async () => {
+          try {
+              const res = await fetch(
+                  `/api/workspaces/${encodeURIComponent(orgSlug)}/me-insights?module=${encodeURIComponent(currentInsightsModule)}`,
+                  { cache: 'no-store', signal: controller.signal }
+              );
+              if (!res.ok) {
+                  setMeInsightsData(null);
+                  return;
+              }
+              const data = await res.json().catch(() => null);
+              setMeInsightsData(data);
+          } catch {
+              setMeInsightsData(null);
+          } finally {
+              setMeInsightsLoading(false);
+          }
+      })();
+
+      return () => controller.abort();
+  }, [orgSlug, currentInsightsModule]);
 
   useEffect(() => {
       const loadEntitlements = async () => {
@@ -366,6 +440,19 @@ export const MeView: React.FC<{
 
   const closeModal = () => setActiveSettingModal(null);
 
+  const closeModuleSettingsDrawer = () => setActiveModuleSettingsDrawer(null);
+
+  const getDrawerFromHref = (href: string): 'system' | 'social' | 'client' | 'finance' | null => {
+    try {
+      const url = href.startsWith('http') ? new URL(href) : new URL(href, window.location.origin);
+      const drawer = url.searchParams.get('drawer');
+      if (drawer === 'system' || drawer === 'social' || drawer === 'client' || drawer === 'finance') return drawer;
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
@@ -419,6 +506,64 @@ export const MeView: React.FC<{
           )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {activeModuleSettingsDrawer ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm"
+              onClick={closeModuleSettingsDrawer}
+            />
+            <motion.aside
+              initial={{ x: 520 }}
+              animate={{ x: 0 }}
+              exit={{ x: 520 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="fixed top-0 right-0 z-[111] h-[100dvh] w-full sm:w-[520px] bg-white shadow-2xl border-l border-slate-200 flex flex-col"
+              role="dialog"
+              aria-modal="true"
+              aria-label="הגדרות מערכת"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-lg font-black text-slate-900 truncate">
+                    {activeModuleSettingsDrawer === 'system'
+                      ? 'הגדרות מערכת'
+                      : activeModuleSettingsDrawer === 'social'
+                        ? 'הגדרות סושיאל'
+                        : activeModuleSettingsDrawer === 'client'
+                          ? 'הגדרות לקוחות'
+                          : 'הגדרות פיננסיות'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={closeModuleSettingsDrawer}
+                  className="p-2 rounded-full hover:bg-white border border-slate-200 text-slate-700"
+                  aria-label="סגור"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-6 md:p-8 overflow-y-auto flex-1">
+                {activeModuleSettingsDrawer === 'system' ? (
+                  <SystemSettingsDrawerContent />
+                ) : activeModuleSettingsDrawer === 'social' ? (
+                  <SocialSettingsDrawerContent />
+                ) : activeModuleSettingsDrawer === 'client' ? (
+                  <ClientSettingsDrawerContent />
+                ) : activeModuleSettingsDrawer === 'finance' ? (
+                  <FinanceSettingsDrawerContent />
+                ) : null}
+              </div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
+
       <div className="flex flex-col gap-4">
           
           {/* Main Profile Card */}
@@ -432,6 +577,24 @@ export const MeView: React.FC<{
               
               {/* Content Wrapper */}
               <div className="px-8 pb-8">
+                  {needsProfileCompletion ? (
+                      <div className="pt-6">
+                          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                                  <AlertCircle size={18} className="text-amber-700" />
+                                  השלם פרופיל כדי להמשיך בצורה חלקה
+                              </div>
+                              <button
+                                  type="button"
+                                  onClick={openProfileEditor}
+                                  className="px-4 py-2 rounded-xl bg-amber-600 text-white font-bold text-sm hover:bg-amber-700 transition-colors"
+                              >
+                                  השלם פרופיל
+                              </button>
+                          </div>
+                      </div>
+                  ) : null}
+
                   {/* Top Row: Avatar & Actions */}
                   <div className="flex flex-col md:flex-row items-start justify-between relative">
                       
@@ -472,7 +635,7 @@ export const MeView: React.FC<{
                       {/* Actions Toolbar - Aligned to bottom of banner visually, then wraps */}
                       <div className="flex gap-3 mt-4 md:mt-4 md:mb-0 w-full md:w-auto justify-end relative z-50">
                           <button 
-                            onClick={() => setActiveSettingModal('personal')} 
+                            onClick={openProfileEditor} 
                             className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
                             aria-label="ערוך פרופיל"
                           >
@@ -496,8 +659,6 @@ export const MeView: React.FC<{
                        
                        <div className="flex items-center gap-4 text-gray-500 font-medium text-base mb-6 flex-wrap">
                             <span>{currentUser.role}</span>
-                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                            <span className="flex items-center gap-1 text-gray-500 text-sm"><MapPin size={14} /> {currentUser.location || 'לא צוין מיקום'}</span>
                             {currentUser.phone && (
                                 <>
                                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
@@ -512,17 +673,10 @@ export const MeView: React.FC<{
                            </p>
                        )}
 
-                       {/* Tags / Badges */}
-                       <div className="flex gap-2 mb-8">
-                            <span className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1.5 rounded-lg font-bold border border-indigo-100 flex items-center gap-1.5">
-                                <Crown size={12} className="text-indigo-500 fill-indigo-500" />
-                                משתמש פרו
-                            </span>
-                            <span className="bg-emerald-50 text-emerald-700 text-xs px-3 py-1.5 rounded-lg font-bold border border-emerald-100 flex items-center gap-1.5">
-                                <Zap size={12} className="text-emerald-500" />
-                                מצטיין צוות
-                            </span>
-                       </div>
+                       {(() => {
+                           // Hidden: demo-like badges until backed by real data.
+                           return null;
+                       })()}
                   </div>
 
                   {/* Stats Grid - Enhanced */}
@@ -547,66 +701,57 @@ export const MeView: React.FC<{
                           <div className="text-xs font-bold text-slate-500 uppercase tracking-wide mt-1">סטטוס מערכת</div>
                       </div>
                   </div>
+
+                  {orgSlug && currentInsightsModule && currentInsightsModule !== 'social' ? (
+                      <div className="mt-8 min-h-[152px]">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                              {meInsightsLoading ? (
+                                  <NexusCard title="טוען נתונים" subtitle={null} metric={null} metricLabel={null} className="min-h-[132px] opacity-70" />
+                              ) : currentInsightsModule === 'system' ? (
+                                  <NexusCard
+                                      title="לידים חמים"
+                                      subtitle={null}
+                                      icon={Target}
+                                      metric={meInsightsData?.hotLeads?.totalLeads ?? null}
+                                      metricLabel="לידים"
+                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/system`)}
+                                      className="min-h-[132px]"
+                                  />
+                              ) : currentInsightsModule === 'client' ? (
+                                  <NexusCard
+                                      title="התחייבויות"
+                                      subtitle={null}
+                                      icon={CheckCircle}
+                                      metric={meInsightsData?.commitments?.count ?? null}
+                                      metricLabel={null}
+                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/client`)}
+                                      className="min-h-[132px]"
+                                  />
+                              ) : currentInsightsModule === 'finance' ? (
+                                  <NexusCard
+                                      title="צפי הכנסות"
+                                      subtitle={null}
+                                      icon={Wallet}
+                                      metric={
+                                          typeof meInsightsData?.expectedMonthlyRevenue === 'number'
+                                              ? `₪${Number(meInsightsData.expectedMonthlyRevenue).toLocaleString()}`
+                                              : null
+                                      }
+                                      metricLabel={null}
+                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/finance`)}
+                                      className="min-h-[132px]"
+                                  />
+                              ) : null}
+                          </div>
+                      </div>
+                  ) : null}
               </div>
           </div>
 
-          {/* Gamification / Performance Wallet Card */}
-          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 rounded-[2rem] border border-indigo-500/30 shadow-xl overflow-hidden p-8 text-white relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-              
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-8">
-                  <div className="flex-1 text-center md:text-right">
-                      <h2 className="text-xl font-bold flex items-center justify-center md:justify-start gap-2 mb-1">
-                          <Wallet className="text-white/90" /> הארנק שלי
-                      </h2>
-                      <p className="text-white/70 text-sm mb-6">תגמולים ובונוסים שנצברו החודש</p>
-                      
-                      <div className="flex items-end justify-center md:justify-start gap-2">
-                          <span className="text-5xl font-black tracking-tight">₪{currentMonthBonus.toLocaleString()}</span>
-                          <span className="text-white/80 font-bold mb-2">בונוס מצטבר</span>
-                      </div>
-                      
-                      <div className="mt-4 flex gap-4 justify-center md:justify-start">
-                          <div className="bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10">
-                              {bonusPerTask > 0 ? `₪${bonusPerTask} / משימה` : 'אין בונוס למשימה'}
-                          </div>
-                          <div className="bg-white/10 px-3 py-1.5 rounded-lg text-xs font-bold border border-white/10">
-                              {commissionPct > 0 ? `${commissionPct}% עמלת מכירות` : 'אין עמלות מכירה'}
-                          </div>
-                      </div>
-                  </div>
-
-                  <div className="w-px h-24 bg-white/10 hidden md:block"></div>
-
-                  <div className="flex-1 flex flex-col items-center">
-                      <div className="relative mb-3">
-                          <div className="absolute inset-0 bg-orange-500/30 blur-xl rounded-full animate-pulse"></div>
-                          <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-red-600 rounded-2xl flex items-center justify-center shadow-lg border border-orange-300/50 relative z-10 transform rotate-3">
-                              <Flame size={32} className="text-white fill-white" />
-                          </div>
-                      </div>
-                      <div className="text-center">
-                          <div className="text-3xl font-black">{streak} ימים</div>
-                          <div className="text-orange-200 text-xs font-bold uppercase tracking-widest">רצף הצלחות (Streak)</div>
-                      </div>
-                  </div>
-
-                  <div className="w-px h-24 bg-white/10 hidden md:block"></div>
-
-                  <div className="flex-1 flex flex-col items-center">
-                      <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-3 border border-white/20">
-                          <Trophy size={32} className="text-yellow-400" />
-                      </div>
-                      <div className="text-center">
-                          <div className="text-sm font-bold text-white/90">היעד הבא</div>
-                          <div className="text-xs text-white/70 mt-1">בונוס על רצף 7 ימים</div>
-                          <div className="w-24 h-1.5 bg-black/30 rounded-full mt-2 overflow-hidden mx-auto">
-                              <div className="h-full bg-yellow-400 w-[60%]"></div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
+          {(() => {
+              // Hidden: demo-like wallet/gamification card until backed by real payroll/commission data.
+              return null;
+          })()}
 
           {/* UNIFIED ATTENDANCE PANEL - Consolidated "One Box" */}
           {hasNexusEntitlement ? (
@@ -639,8 +784,10 @@ export const MeView: React.FC<{
                           <div className="flex items-center gap-3">
                               <div className="p-2 bg-gray-50 rounded-xl text-gray-500"><MapPinned size={18} /></div>
                               <div className="text-right">
-                                  <div className="text-[10px] text-gray-600 font-bold uppercase tracking-wide">מיקום</div>
-                                  <div className="font-bold text-gray-900 text-sm">{currentUser.location || 'משרד'}</div>
+                                  {(() => {
+                                      // Hidden: demo-like "מיקום" until backed by real data.
+                                      return null;
+                                  })()}
                               </div>
                           </div>
                           <div className="flex items-center gap-3">
@@ -863,7 +1010,7 @@ export const MeView: React.FC<{
           {/* Settings Grid */}
           <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
               <button 
-                onClick={() => setActiveSettingModal('personal')}
+                onClick={openProfileEditor}
                 className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"
                 aria-label="פתח הגדרות פרטים אישיים"
               >
@@ -951,6 +1098,11 @@ export const MeView: React.FC<{
                     key={`${card.href}:${idx}`}
                     type="button"
                     onClick={() => {
+                      const drawer = getDrawerFromHref(card.href);
+                      if (drawer) {
+                        setActiveModuleSettingsDrawer(drawer);
+                        return;
+                      }
                       router.push(card.href);
                     }}
                     className="bg-white p-3 md:p-6 rounded-xl md:rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-gray-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"

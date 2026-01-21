@@ -109,6 +109,9 @@ async function GETHandler(request: NextRequest) {
             }
             if (status) {
                 query = query.eq('status', status);
+            } else {
+                // Default: exclude completed tasks
+                query = query.neq('status', 'Done').neq('status', 'done');
             }
             if (assigneeId) {
                 query = query.or(`assignee_id.eq.${assigneeId},assignee_ids.cs.{${assigneeId}}`);

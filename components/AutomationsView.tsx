@@ -6,12 +6,12 @@ import {
     CheckCircle, X, MoreHorizontal, Layout, Save, Trash2, Workflow
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { AutomationRule, VisualNode, VisualEdge } from '../types';
+import { AutomationRule, VisualNode, VisualEdge } from './system/types';
 
 // --- MOCK DATA FOR VISUAL BUILDER ---
 
 const AVAILABLE_TRIGGERS = [
-    { id: 't_lead_new', label: 'ליד חדש נוצר', icon: 'UserPlus' },
+    { id: 't_lead_new', label: 'ליד נפתח', icon: 'UserPlus' },
     { id: 't_status_change', label: 'סטטוס שונה ל...', icon: 'GitCommit' },
     { id: 't_form_submit', label: 'טופס נשלח באתר', icon: 'FileText' },
     { id: 't_deal_won', label: 'עסקה נסגרה (זכייה)', icon: 'Trophy' },
@@ -29,12 +29,12 @@ const AVAILABLE_ACTIONS = [
 const INITIAL_RULES: AutomationRule[] = [
     {
         id: '1',
-        name: 'קבלת פנים לליד חדש',
+        name: 'קבלת פנים לליד נפתח',
         description: 'שליחת וואטסאפ ומייל אוטומטי בעת יצירת ליד.',
         active: true,
         stats: { runs: 142, lastRun: new Date(), successRate: 98 },
         nodes: [
-            { id: 'n1', type: 'trigger', label: 'ליד חדש', iconName: 'UserPlus', x: 50, y: 100 },
+            { id: 'n1', type: 'trigger', label: 'ליד נפתח', iconName: 'UserPlus', x: 50, y: 100 },
             { id: 'n2', type: 'action', label: 'שליחת וואטסאפ', iconName: 'MessageSquare', x: 300, y: 50 },
             { id: 'n3', type: 'action', label: 'שליחת אימייל', iconName: 'Mail', x: 300, y: 150 },
         ],

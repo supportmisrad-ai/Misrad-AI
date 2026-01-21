@@ -73,7 +73,7 @@ export const RolesTab: React.FC = () => {
     };
 
     return (
-        <motion.div key="roles" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 pb-16 md:pb-20">
+        <motion.div key="roles" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-24 md:pb-20">
             
             <DeleteConfirmationModal 
                 isOpen={!!roleToDelete}
@@ -85,15 +85,15 @@ export const RolesTab: React.FC = () => {
                 isHardDelete={true}
             />
 
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
                     <div>
                         <h3 className="font-bold text-lg flex items-center gap-2"><Shield size={20} className="text-gray-400" /> הגדרת הרשאות ותפקידים</h3>
                         <p className="text-sm text-gray-500 mt-1">שלוט בדיוק על מה כל עובד יכול לראות ולעשות במערכת.</p>
                     </div>
                     <button 
                         onClick={() => setIsAddingRole(true)} 
-                        className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-gray-800"
+                        className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 w-full md:w-auto"
                     >
                         <Plus size={18} /> תפקיד חדש
                     </button>
@@ -116,7 +116,7 @@ export const RolesTab: React.FC = () => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {roleDefinitions.map((role: RoleDefinition) => (
-                        <div key={role.name} className="border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors bg-white relative">
+                        <div key={role.name} className="border border-gray-200 rounded-xl p-4 md:p-5 hover:border-gray-300 transition-colors bg-white relative overflow-hidden">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-2">
                                     <div className={`p-2 rounded-lg ${role.isSystem ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>
@@ -144,7 +144,7 @@ export const RolesTab: React.FC = () => {
                                                 key={perm.id}
                                                 onClick={() => { if (!role.isSystem) togglePermission(role.name, perm.id); }}
                                                 disabled={role.isSystem} 
-                                                className={`flex items-start gap-2 p-2 rounded-lg text-right transition-all border ${
+                                                className={`flex items-start gap-2 p-2.5 rounded-xl text-right transition-all border ${
                                                     hasPerm 
                                                     ? 'bg-blue-50 border-blue-200' 
                                                     : 'bg-white border-gray-100 hover:bg-gray-50'
@@ -155,9 +155,9 @@ export const RolesTab: React.FC = () => {
                                                 }`}>
                                                     {hasPerm && <Check size={10} className="text-white" />}
                                                 </div>
-                                                <div>
-                                                    <div className={`text-xs font-bold ${hasPerm ? 'text-blue-800' : 'text-gray-700'}`}>{perm.label}</div>
-                                                    <div className="text-[10px] text-gray-500 leading-tight">{perm.desc}</div>
+                                                <div className="min-w-0">
+                                                    <div className={`text-xs font-bold break-words ${hasPerm ? 'text-blue-800' : 'text-gray-700'}`}>{perm.label}</div>
+                                                    <div className="text-[10px] text-gray-500 leading-tight break-words">{perm.desc}</div>
                                                 </div>
                                             </button>
                                         );

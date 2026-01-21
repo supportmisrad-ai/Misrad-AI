@@ -1,16 +1,21 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Task, Lead } from '../types';
+import type { Task } from '../system/types';
 import { Heart, Book, Activity, Lock, Building2, Users } from 'lucide-react';
 import HRView from '../HRView';
 import KnowledgeBaseView from '../KnowledgeBaseView';
 import TrainingView from '../TrainingView';
 import AssetsView from '../AssetsView';
 
+type LeadLite = {
+    id: string;
+    name: string;
+};
+
 interface HeadquartersViewProps {
     onAddTask?: (task: Task) => void;
-    leads?: Lead[];
+    leads?: LeadLite[];
 }
 
 const HeadquartersView: React.FC<HeadquartersViewProps> = ({ onAddTask, leads = [] }) => {

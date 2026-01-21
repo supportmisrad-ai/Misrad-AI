@@ -2,8 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutGrid, Lock, Target, X } from 'lucide-react';
-import { useUser } from '@clerk/nextjs';
+import { LayoutGrid, Lock, Target, X, Wrench } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath, modulesRegistry } from '@/lib/os/modules/registry';
@@ -60,7 +59,10 @@ interface OSAppSwitcherProps {
   orgSlug?: string;
   currentModule?: OSModuleKey;
   entitlements?: Record<OSModuleKey, boolean> | null;
+  launchScopeModules?: Record<OSModuleKey, boolean> | null;
   mode?: 'button' | 'inlineGrid';
+  buttonVariant?: 'icon' | 'wide';
+  buttonLabel?: string;
   compact?: boolean;
 }
 
@@ -121,6 +123,14 @@ function InlineModuleIcon({ module }: { module: OSModuleKey }) {
     );
   }
 
+  if (module === 'operations') {
+    return (
+      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-600 flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
+        <Wrench size={18} />
+      </div>
+    );
+  }
+
   return (
     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
       <span className="text-base font-black leading-none">S</span>
@@ -133,12 +143,13 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   orgSlug: orgSlugProp,
   currentModule: currentModuleProp,
   entitlements: entitlementsProp,
+  launchScopeModules: launchScopeModulesProp,
   mode = 'button',
+  buttonVariant = 'icon',
+  buttonLabel = 'מודולים',
   compact = true,
 }) => {
   const router = useRouter();
-  const { user: clerkUser } = useUser();
-  const isSuperAdmin = clerkUser?.publicMetadata?.isSuperAdmin === true;
   const [hasMounted, setHasMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const switcherRef = useRef<HTMLDivElement>(null);
@@ -158,6 +169,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   const routeInfo = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
   const orgSlug = orgSlugProp ?? routeInfo.orgSlug;
   const currentModule = currentModuleProp ?? routeInfo.module;
+
+  const scope = useMemo<Record<OSModuleKey, boolean> | null>(() => {
+    if (launchScopeModulesProp) return launchScopeModulesProp;
+    // When not provided, fall back to showing all modules and let entitlements handle access.
+    return null;
+  }, [launchScopeModulesProp]);
 
   const calculateDropdownPosition = () => {
     if (!buttonRef.current || typeof window === 'undefined') return;
@@ -252,7 +269,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   }, [entitlementsProp, orgSlug]);
 
   const moduleKeys: OSModuleKey[] = getOrderedModuleKeys();
-  const visibleModules = moduleKeys.filter((k) => k !== currentModule);
+  const visibleModules = moduleKeys.filter((k) => k !== currentModule).filter((k) => (scope ? Boolean(scope[k]) : true));
   const enabledCount = entitlements
     ? visibleModules.filter((k) => Boolean(entitlements[k])).length
     : 0;
@@ -271,20 +288,17 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   }, []);
 
   if (mode === 'inlineGrid') {
-    const effectiveIsSuperAdmin = hasMounted ? isSuperAdmin : false;
     const effectiveEntitlements = hasMounted ? entitlements : null;
-    const isReady = Boolean(effectiveEntitlements) || effectiveIsSuperAdmin;
-    const modulesToRender = effectiveIsSuperAdmin
-      ? visibleModules
-      : visibleModules.filter((key) => key === 'nexus' || Boolean(effectiveEntitlements?.[key]));
-    const gridColsClass = modulesToRender.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
+    const isReady = Boolean(effectiveEntitlements);
+    const modulesToRender = visibleModules;
+    const gridColsClass = modulesToRender.length >= 5 ? 'grid-cols-3' : modulesToRender.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
     return (
       <div className={className} aria-label="מעבר בין מערכות">
         <div className={`grid ${gridColsClass} ${compact ? 'gap-2' : 'gap-3'}`}>
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
-            const enabled = effectiveIsSuperAdmin || key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
+            const enabled = key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
             const logoSrc = key === 'client' ? null : ((OS_METADATA as any)?.[key]?.icon ?? null);
 
             return (
@@ -350,7 +364,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
           })}
         </div>
 
-        {locked && !isSuperAdmin ? <LockedModuleUpgradeModal module={locked} onCloseAction={() => setLocked(null)} /> : null}
+        {locked ? <LockedModuleUpgradeModal module={locked} onCloseAction={() => setLocked(null)} /> : null}
       </div>
     );
   }
@@ -370,18 +384,24 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
             // Close via backdrop or the X button.
           }}
           className={`
-            w-10 h-10 rounded-xl flex items-center justify-center
+            ${buttonVariant === 'wide'
+              ? 'w-full h-12 rounded-2xl px-4 flex items-center justify-center gap-3 flex-row-reverse'
+              : 'w-10 h-10 rounded-xl flex items-center justify-center'}
             transition-all duration-200 relative
-            ${isOpen 
-              ? 'bg-slate-200 text-slate-900 shadow-sm' 
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-            }
+            ${isOpen
+              ? 'bg-slate-200/80 text-slate-900 shadow-sm'
+              : 'bg-white/60 text-slate-700 hover:bg-white/80 hover:text-slate-900 shadow-sm'}
+            backdrop-blur-xl
+            border border-slate-200/70
           `}
           aria-label="מעבר בין מערכות"
           title="מעבר בין מערכות"
           disabled={!orgSlug}
         >
           <LayoutGrid size={20} />
+          {buttonVariant === 'wide' ? (
+            <span className="text-sm font-black text-slate-700">{buttonLabel}</span>
+          ) : null}
           {enabledCount > 0 && (
             <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full border-2 border-white flex items-center justify-center leading-none">
               {enabledCount}
@@ -398,7 +418,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         const content = (
           <>
             <div
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2147483646]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9000]"
               onClick={() => setIsOpen(false)}
             />
 
@@ -415,7 +435,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 transform: isMobile || !dropdownPosition ? 'translate(-50%, -50%)' : undefined,
                 width: isMobile ? 'calc(100vw - 16px)' : '320px',
                 maxHeight: isMobile ? 'calc(100vh - 24px)' : undefined,
-                zIndex: 2147483647,
+                zIndex: 9001,
               }}
               className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
             >
@@ -438,8 +458,8 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 {visibleModules.map((key) => {
                   const def = modulesRegistry[key];
                   const ui = getOSModuleInfo(key);
-                  const enabled = isSuperAdmin || key === 'nexus' ? true : Boolean(entitlements?.[key]);
-                  const entitlementsReady = Boolean(entitlements) || isSuperAdmin;
+                  const enabled = key === 'nexus' ? true : Boolean(entitlements?.[key]);
+                  const entitlementsReady = Boolean(entitlements);
                   const isLoadingEntitlements = !entitlementsReady && key !== 'nexus';
                   const Icon = ui?.icon;
                   const SafeIcon = typeof Icon === 'function' ? Icon : null;
@@ -528,7 +548,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         return portalTarget ? createPortal(content, portalTarget) : content;
       })()}
     </div>
-      {locked && !isSuperAdmin && (
+      {locked && (
         <LockedModuleUpgradeModal module={locked} onCloseAction={() => setLocked(null)} />
       )}
     </>

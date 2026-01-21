@@ -5,7 +5,8 @@
  * In production, this should fetch from your database/subscription service.
  */
 
-import { OSModule, OSModuleInfo, OS_MODULES } from '../types/os-modules';
+import { DEFAULT_OS_MODULE_PRIORITY, isOSModuleKey } from '@/lib/os/modules/registry';
+import { OSModule, OS_MODULES } from '../types/os-modules';
 
 /**
  * Get purchased modules for a user
@@ -38,7 +39,7 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
       // In development, return all modules for testing
       if (process.env.NODE_ENV === 'development') {
         console.warn('[Subscription] Development mode: API error, returning all modules as fallback');
-        return ['system', 'nexus', 'social', 'finance', 'client'];
+        return DEFAULT_OS_MODULE_PRIORITY;
       }
       return [];
     }
@@ -47,9 +48,7 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
     const modules = data.modules || [];
     
     // Validate that all returned modules are valid OSModule types
-    const validModules: OSModule[] = modules.filter((m: string): m is OSModule => 
-      ['system', 'nexus', 'social', 'finance', 'client'].includes(m)
-    );
+    const validModules: OSModule[] = modules.filter((m: unknown): m is OSModule => isOSModuleKey(m));
 
     return validModules;
   } catch (error: any) {
@@ -61,7 +60,7 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
       // Network errors are common in dev - don't spam console
       if (process.env.NODE_ENV === 'development') {
         console.warn('[Subscription] Development mode: Network error, returning all modules as fallback');
-        return ['system', 'nexus', 'social', 'finance', 'client'];
+        return DEFAULT_OS_MODULE_PRIORITY;
       }
       // In production, silently return empty array
       return [];
@@ -74,7 +73,7 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
     // In development, you might want to return all modules for testing
     if (process.env.NODE_ENV === 'development') {
       console.warn('[Subscription] Development mode: Returning all modules as fallback');
-      return ['system', 'nexus', 'social', 'finance', 'client'];
+      return DEFAULT_OS_MODULE_PRIORITY;
     }
     return [];
   }
@@ -93,7 +92,7 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
  * @returns First available OS module route, or null if none
  */
 export function getFirstAvailableOSRoute(purchasedModules: OSModule[]): string | null {
-  const priorityOrder: OSModule[] = ['nexus', 'system', 'social', 'finance', 'client'];
+  const priorityOrder: OSModule[] = DEFAULT_OS_MODULE_PRIORITY;
   
   for (const moduleId of priorityOrder) {
     if (purchasedModules.includes(moduleId)) {

@@ -41,6 +41,7 @@ export default async function NexusCatchAllPage({
       'ai',
       'team',
       ...(workspace.entitlements?.finance ? (['finance'] as const) : []),
+      ...(workspace.entitlements?.operations ? (['operations'] as const) : []),
     ],
   };
 

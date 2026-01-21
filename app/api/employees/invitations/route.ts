@@ -107,7 +107,7 @@ async function GETHandler(request: NextRequest) {
 
             if (!caps.isTeamManagementEnabled) {
                 return NextResponse.json(
-                    { error: 'ניהול צוות זמין רק בחבילת משרד מלא' },
+                    { error: 'ניהול צוות זמין רק עם מודול Nexus' },
                     { status: 403 }
                 );
             }
@@ -147,7 +147,7 @@ async function GETHandler(request: NextRequest) {
         const invitationsWithUrls = (invitations || []).map((inv: any) => ({
             id: inv.id,
             token: inv.token,
-            url: `${baseUrl}/employee-invite/${inv.token}`,
+            url: `${baseUrl}/sign-up?email=${encodeURIComponent(String(inv.employee_email || ''))}&invited=true&employee=true&redirect_url=${encodeURIComponent(`${baseUrl}/employee-invite/${encodeURIComponent(String(inv.token))}/finalize`)}`,
             employeeEmail: inv.employee_email,
             employeeName: inv.employee_name,
             employeePhone: inv.employee_phone,

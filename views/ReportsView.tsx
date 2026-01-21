@@ -761,7 +761,7 @@ export const ReportsView: React.FC = () => {
                             <div className="p-4 md:p-6 border-b border-gray-100 bg-gray-50/30 flex flex-col sm:flex-row justify-between items-center gap-3">
                                 <div className="flex items-center gap-2">
                                     <History size={18} className="md:w-5 md:h-5 text-gray-500" />
-                                    <h2 className="font-bold text-gray-900 text-base md:text-lg">יומן כניסות ויציאות</h2>
+                                    <h2 className="font-bold text-gray-900 text-base md:text-lg">רישום כניסות ויציאות</h2>
                                 </div>
                                 <div className="flex items-center gap-2 w-full sm:w-auto">
                                     {isTeamManager && (

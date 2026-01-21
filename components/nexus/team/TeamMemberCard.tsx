@@ -63,7 +63,7 @@ export const TeamMemberCard: React.FC<TeamMemberCardProps> = ({
                             <span className="truncate">{user.name}</span>
                             {workloadData.performanceDiff > 10 && <Zap size={11} className="md:w-3 md:h-3 text-yellow-500 fill-yellow-500 shrink-0" />}
                         </div>
-                        <p className="text-[10px] md:text-xs text-gray-500 truncate">{user.role} • {user.department}</p>
+                        <p className="text-[10px] md:text-xs text-gray-500 truncate">{user.role} • {user.department || 'לא מוגדר'}</p>
                     </div>
                 </div>
                 

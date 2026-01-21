@@ -141,10 +141,10 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                    </div>
 
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                       {[
+                       {[ 
                            { id: 'SUMMARY', icon: Send, label: 'שלח סיכום מעוצב', desc: 'מייל ממותג ללקוח עם עיקרי הדברים' },
                            { id: 'TASKS', icon: Clock, label: 'מעקב משימות (Chaser)', desc: 'תזכורות אוטומטיות לביצוע מטלות' },
-                           { id: 'MEETING', icon: CalendarCheck, label: 'זימון פגישת המשך', desc: 'קביעת מועד חדש ביומן מול הלקוח' }
+                           { id: 'MEETING', icon: CalendarCheck, label: 'זימון פגישת המשך', desc: 'קביעת מועד חדש בלו\"ז מול הלקוח' }
                        ].map((auto) => (
                            <button 
                                key={auto.id}

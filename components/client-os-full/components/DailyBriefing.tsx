@@ -57,7 +57,7 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ isOpen, onClose }) => {
                         <div className="w-20 h-20 rounded-full border-2 border-white/20 border-t-nexus-accent animate-spin"></div>
                         <h2 className="text-2xl font-display font-light tracking-widest uppercase animate-pulse">מכין לך קפה (סתם, אוסף נתונים)...</h2>
                         <div className="flex gap-2 text-xs text-nexus-accent font-mono opacity-70">
-                            <span>בודק יומן</span>
+                            <span>בודק לו"ז</span>
                             <span>•</span>
                             <span>בודק מי עצבני</span>
                             <span>•</span>

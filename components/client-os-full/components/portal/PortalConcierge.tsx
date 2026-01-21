@@ -32,7 +32,7 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
             
             <div className="space-y-4">
               <button className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-xl">
-                <Calendar size={20} /> תאם שיחה ביומן
+                <Calendar size={20} /> תאם שיחה בלו"ז
               </button>
               <button className="w-full py-5 bg-green-500 text-white rounded-3xl font-bold text-sm hover:bg-green-600 flex items-center justify-center gap-3 shadow-lg shadow-green-500/20">
                 <MessageCircle size={20} /> שלח הודעת וואטסאפ

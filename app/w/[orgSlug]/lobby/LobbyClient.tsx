@@ -2,7 +2,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreditCard, GraduationCap, Megaphone, Target } from 'lucide-react';
+import { CreditCard, GraduationCap, Megaphone, Target, Wrench } from 'lucide-react';
 import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
 import { CommandPaletteChat } from '@/components/command-palette/CommandPaletteChat';
 import NexusCard from '@/components/shared/NexusCard';
@@ -79,6 +79,7 @@ export default function LobbyClient({
   const socialMetric = kpis?.social?.postsScheduled ?? kpis?.social?.postsTotal ?? null;
   const financeMetric = kpis?.finance?.totalHours ?? kpis?.finance?.totalMinutes ?? null;
   const clientMetric = kpis?.client?.clientsTotal ?? null;
+  const operationsMetric = kpis?.operations?.activeProjects ?? null;
 
   return (
     <NexusMasterLayout title="מפקדה" workspace={workspace} user={user} profileHref={profileHref}>
@@ -92,7 +93,7 @@ export default function LobbyClient({
 
       <div className="mt-10">
         <div className="text-sm font-black text-slate-700 mb-4">Power Tiles</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <NexusCard
             title="System"
             subtitle="מכונת המכירות"
@@ -100,6 +101,16 @@ export default function LobbyClient({
             metric={systemMetric}
             metricLabel="לידים"
             onClickAction={() => openModule('system')}
+            className="min-h-[132px]"
+          />
+
+          <NexusCard
+            title="Operations"
+            subtitle="תפעול ושטח"
+            icon={Wrench}
+            metric={operationsMetric}
+            metricLabel={kpis?.operations?.locked ? 'אין הרשאה' : 'פרויקטים'}
+            onClickAction={() => openModule('operations')}
             className="min-h-[132px]"
           />
 

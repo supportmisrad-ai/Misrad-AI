@@ -5,8 +5,9 @@ import {
     Clock, Zap, ArrowRight, Code2, ShieldCheck, RefreshCw, Cpu, 
     Link, MessageSquare, Mail, Smartphone, Globe, Settings2, Plus, ExternalLink
 } from 'lucide-react';
-import { WebhookLog } from '../types';
+import type { WebhookLog } from '@/components/system/types';
 import { useToast } from '../contexts/ToastContext';
+import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 
 interface IntegrationsViewProps {
   logs: WebhookLog[];
@@ -14,7 +15,6 @@ interface IntegrationsViewProps {
 
 const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
   const { addToast } = useToast();
-  const [connectingId, setConnectingId] = useState<string | null>(null);
 
   // Mock Connectivity States
   const [channels, setChannels] = useState([
@@ -25,12 +25,7 @@ const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
   ]);
 
   const handleConnect = (id: string) => {
-      setConnectingId(id);
-      setTimeout(() => {
-          setChannels(prev => prev.map(c => c.id === id ? { ...c, status: 'active' } : c));
-          setConnectingId(null);
-          addToast(`חיבור ל-${id} בוצע בהצלחה!`, 'success');
-      }, 2000);
+      openComingSoon();
   };
 
   const webhookSpec = {
@@ -98,10 +93,9 @@ const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
                   ) : (
                       <button 
                         onClick={() => handleConnect(channel.id)}
-                        disabled={connectingId === channel.id}
                         className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
                       >
-                          {connectingId === channel.id ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
+                          <Plus size={14} />
                           הגדר חיבור עכשיו
                       </button>
                   )}

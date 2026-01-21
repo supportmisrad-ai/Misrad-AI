@@ -10,11 +10,31 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/webm'];
 const ALLOWED_DOCUMENT_TYPES = ['application/pdf'];
 
+const CALL_RECORDINGS_BUCKET = 'call-recordings';
+const MAX_CALL_RECORDING_SIZE = 200 * 1024 * 1024; // 200MB
+
 export interface UploadResult {
   success: boolean;
   url?: string;
   path?: string;
+  bucket?: string;
+  signedUrl?: string;
   error?: string;
+}
+
+async function ensureBucketExists(supabase: ReturnType<typeof createClient>, bucketName: string) {
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) {
+    throw new Error(listError.message || 'Failed to list storage buckets');
+  }
+
+  const exists = Array.isArray(buckets) && buckets.some((b: any) => String(b?.name || '') === bucketName);
+  if (exists) return;
+
+  const { error: createError } = await supabase.storage.createBucket(bucketName, { public: false });
+  if (createError) {
+    throw new Error(createError.message || `Failed to create bucket ${bucketName}`);
+  }
 }
 
 /**
@@ -111,6 +131,84 @@ export async function uploadFile(
       success: false, 
       error: translateError(error.message || 'שגיאה בהעלאת הקובץ') 
     };
+  }
+}
+
+export async function uploadCallRecordingFile(
+  file: File | Blob,
+  fileName: string,
+  leadId: string
+): Promise<UploadResult> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, error: 'לא מחובר' };
+    }
+
+    const userResult = await getOrCreateSupabaseUserAction(userId);
+    if (!userResult.success || !userResult.userId) {
+      return { success: false, error: userResult.error || 'שגיאה בקבלת משתמש' };
+    }
+
+    const supabaseUserId = userResult.userId;
+
+    if (file.size > MAX_CALL_RECORDING_SIZE) {
+      return { success: false, error: 'הקובץ גדול מדי (מקסימום 200MB)' };
+    }
+
+    const fileType = String((file as any)?.type || '');
+    if (!fileType.startsWith('audio/')) {
+      return { success: false, error: 'סוג קובץ לא נתמך. מותר: קבצי אודיו בלבד (MP3/WAV/M4A וכו׳).' };
+    }
+
+    const supabase = createClient();
+    await ensureBucketExists(supabase, CALL_RECORDINGS_BUCKET);
+
+    const timestamp = Date.now();
+    const sanitizedFileName = String(fileName ?? '').replace(/[^a-zA-Z0-9.-]/g, '_');
+    const safeLeadId = String(leadId ?? '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filePath = `${supabaseUserId}/system-leads/${safeLeadId}/${timestamp}-${sanitizedFileName}`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
+
+    const { error } = await supabase.storage.from(CALL_RECORDINGS_BUCKET).upload(filePath, fileBuffer, {
+      contentType: fileType || 'application/octet-stream',
+      upsert: false,
+    });
+
+    if (error) {
+      console.error('Storage upload error:', error);
+      const raw = String((error as any)?.message || '').toLowerCase();
+      if (raw.includes('permission') || raw.includes('not authorized') || raw.includes('rls') || raw.includes('row-level')) {
+        return {
+          success: false,
+          error: 'אין הרשאות להעלאת הקלטות (Storage/RLS). נא לוודא מדיניות הרשאות ל-bucket call-recordings או שימוש ב-Service Role במקומות המתאימים.',
+        };
+      }
+      return { success: false, error: translateError(error.message || 'שגיאה בהעלאת הקובץ') };
+    }
+
+    const { data: urlData } = supabase.storage.from(CALL_RECORDINGS_BUCKET).getPublicUrl(filePath);
+    const publicUrl = urlData?.publicUrl;
+
+    const { data: signedData } = await supabase.storage
+      .from(CALL_RECORDINGS_BUCKET)
+      .createSignedUrl(filePath, 60 * 60 * 24 * 365)
+      .catch(() => ({ data: null as any }));
+
+    const signedUrl = signedData?.signedUrl;
+
+    return {
+      success: true,
+      url: signedUrl || publicUrl,
+      signedUrl,
+      path: filePath,
+      bucket: CALL_RECORDINGS_BUCKET,
+    };
+  } catch (error: any) {
+    console.error('Error uploading call recording:', error);
+    return { success: false, error: translateError(error.message || 'שגיאה בהעלאת הקובץ') };
   }
 }
 

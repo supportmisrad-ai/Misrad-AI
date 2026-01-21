@@ -81,7 +81,7 @@ const KNOWLEDGE_ITEMS: KnowledgeItem[] = [
                     </li>
                     <li className="flex gap-3 items-center bg-slate-50 p-3 rounded-lg border border-slate-100">
                         <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">4</span>
-                        <strong>קריטי:</strong> תאם פגישת קיק-אוף ביומן של איתמר (רק לימי שלישי/חמישי).
+                        <strong>קריטי:</strong> תאם פגישת קיק-אוף באירועים של איתמר (רק לימי שלישי/חמישי).
                     </li>
                 </ul>
             </div>

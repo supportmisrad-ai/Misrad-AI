@@ -97,7 +97,7 @@ const MorningBriefingView: React.FC<MorningBriefingViewProps> = ({ leads, events
                       {todaysEvents.length === 0 ? (
                           <div className="bg-white border border-slate-200 rounded-3xl p-12 text-center text-slate-400 shadow-sm">
                               <Coffee size={40} className="mx-auto mb-3 opacity-30" />
-                              <p className="font-bold text-lg text-slate-500">היומן פנוי להיום!</p>
+                              <p className="font-bold text-lg text-slate-500">האירועים פנויים להיום!</p>
                               <p className="text-sm mt-1">זמן טוב לעבור על רשימת הקצב.</p>
                           </div>
                       ) : (

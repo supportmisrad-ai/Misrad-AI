@@ -5,6 +5,7 @@ import "./globals.css";
 import { PWAInstaller } from "@/components/PWAInstaller";
 import { PasskeyOnboardingPrompt } from "@/components/PasskeyOnboardingPrompt";
 import { getSystemMetadata, getThemeColor } from '@/lib/metadata';
+import ComingSoonPortal from '@/components/shared/ComingSoonPortal';
 
 // Heebo - Main text font (font-sans)
 // Geometric modern font with excellent Hebrew/English support, critical for RTL interface
@@ -44,6 +45,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
+        <ComingSoonPortal />
         <PWAInstaller />
       </body>
     </html>
@@ -56,6 +58,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         {children}
+        <ComingSoonPortal />
         <PWAInstaller />
         <PasskeyOnboardingPrompt />
       </body>
@@ -86,6 +89,7 @@ export default function RootLayout({
             </div>
           </div>
         </div>
+        <ComingSoonPortal />
         <PWAInstaller />
       </body>
     </html>
