@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, memo } from 'react';
 import { Lead, PipelineStage, ProductType } from './types';
-import { STAGES } from './constants';
 import { Phone, MessageSquare, Clock, User, GripVertical, Crown, Users, BookOpen, Flame, Zap, ArrowRight, MoreHorizontal, AlertCircle } from 'lucide-react';
 
 interface PipelineBoardProps {
   leads: Lead[];
+  stages: Array<{ id: PipelineStage; label: string; accent?: string; color?: string }>;
   onLeadClick: (lead: Lead) => void;
   onStatusChange: (leadId: string, newStatus: PipelineStage) => void;
   onUpdateFollowUp?: (params: { leadId: string; nextActionDate: Date | null; nextActionNote: string | null }) => void;
@@ -240,7 +240,7 @@ const PipelineCard = memo(({
     );
 });
 
-const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, onLeadClick, onStatusChange, onUpdateFollowUp }) => {
+const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClick, onStatusChange, onUpdateFollowUp }) => {
     const [now, setNow] = useState(new Date());
     const [isCoarsePointer, setIsCoarsePointer] = useState(false);
 
@@ -280,7 +280,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, onLeadClick, onSta
     return (
         <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth custom-scrollbar touch-pan-x" dir="rtl">
             <div className="flex gap-4 md:gap-6 h-full min-h-0 min-w-[300px] w-max px-2 md:px-0">
-                {STAGES.map(stage => {
+                {stages.map(stage => {
                     const stageLeads = leads.filter(l => l.status === stage.id);
                     const totalValue = stageLeads.reduce((sum, l) => sum + l.value, 0);
 

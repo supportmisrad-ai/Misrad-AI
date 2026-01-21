@@ -8,6 +8,7 @@ import { useToast } from '@/components/system/contexts/ToastContext';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import PipelineBoard from '@/components/system/PipelineBoard';
+import { STAGES } from '@/components/system/constants';
 import {
   createSystemLead,
   createSystemLeadActivity,
@@ -49,6 +50,14 @@ export default function SystemSalesPipelineClient({
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
+
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | PipelineStage>('all');
+  const [todayOnly, setTodayOnly] = useState(false);
+  const [sortKey, setSortKey] = useState<'created_desc' | 'created_asc' | 'value_desc' | 'value_asc' | 'name_asc' | 'name_desc'>(
+    'created_desc'
+  );
 
   const stagesForUi = useMemo(() => {
     const rows = Array.isArray(pipelineStages) && pipelineStages.length
@@ -94,7 +103,7 @@ export default function SystemSalesPipelineClient({
     const all = [...normalized, ...synthesized];
     all.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
     return all;
-  }, [pipelineStages]);
+  }, [leads, pipelineStages]);
 
   const refreshStages = async () => {
     try {
@@ -500,6 +509,12 @@ export default function SystemSalesPipelineClient({
         {viewMode === 'board' ? (
           <PipelineBoard
             leads={visibleLeads}
+            stages={stagesForUi.map((s: any) => ({
+              id: String(s.key) as any,
+              label: String(s.label),
+              accent: String(s.accent || ''),
+              color: String(s.color || ''),
+            }))}
             onLeadClick={(lead) => setSelectedLeadId(String(lead.id))}
             onStatusChange={(leadId, status) => void handleStatusChange(leadId, status)}
             onUpdateFollowUp={(p) => void handleUpdateFollowUp(p)}
@@ -570,6 +585,7 @@ export default function SystemSalesPipelineClient({
           onStatusChange={(id, status) => void handleStatusChange(String(id), status)}
           onOpenClientPortal={() => handleOpenClientPortal(selectedLead)}
           assignees={assignees}
+          stages={stagesForUi.map((s: any) => ({ id: String(s.key), label: String(s.label), accent: String(s.accent || '') }))}
           onUpdateLead={(p) => void handleUpdateLead(p)}
           onAddTask={() => addToast('משימות יתווספו בהמשך', 'info')}
         />
@@ -624,7 +640,10 @@ export default function SystemSalesPipelineClient({
             </div>
 
             <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {stagesForUi.map((s) => (
+              {(pipelineStages || [])
+                .slice()
+                .sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0))
+                .map((s: any) => (
                 <div key={String(s.id)} className="border border-slate-200 rounded-2xl p-3 bg-white">
                   <div className="flex flex-col md:flex-row md:items-center gap-2">
                     <div className="text-[11px] font-black text-slate-500 md:w-40" dir="ltr">
