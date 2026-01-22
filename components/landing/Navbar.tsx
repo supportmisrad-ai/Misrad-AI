@@ -45,7 +45,7 @@ export const Navbar = () => {
 
                 <div className="hidden md:flex items-center gap-8 bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-slate-200/70 shadow-lg shadow-slate-200/50">
                     <button onClick={() => handleNavClick('features')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">פיצ׳רים</button>
-                    <button onClick={() => window.open('/login?redirect=/app', '_blank', 'noopener,noreferrer')} className="text-sm font-medium text-slate-900 hover:text-slate-700 transition-colors">מרכז הבקרה</button>
+                    <button onClick={() => window.open('/login?redirect=/app', '_blank', 'noopener,noreferrer')} className="text-sm font-medium text-slate-900 hover:text-slate-700 transition-colors">ניהול, משימות וצוות</button>
                     <button onClick={() => handleNavClick('comparison')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">למה אנחנו</button>
                     <button onClick={() => handleNavClick('pricing')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</button>
                 </div>
@@ -79,7 +79,7 @@ export const Navbar = () => {
                     >
                         <div className="p-6 space-y-4 flex flex-col">
                             <button onClick={() => { setIsMenuOpen(false); handleNavClick('features'); }} className="text-lg font-medium text-slate-700 text-right">פיצ׳רים</button>
-                            <button onClick={() => { setIsMenuOpen(false); window.open('/login?redirect=/app', '_blank', 'noopener,noreferrer'); }} className="text-lg font-medium text-slate-900 text-right">מרכז הבקרה</button>
+                            <button onClick={() => { setIsMenuOpen(false); window.open('/login?redirect=/app', '_blank', 'noopener,noreferrer'); }} className="text-lg font-medium text-slate-900 text-right">ניהול, משימות וצוות</button>
                             <button onClick={() => { setIsMenuOpen(false); handleNavClick('pricing'); }} className="text-lg font-medium text-slate-700 text-right">מחירים</button>
                             <div className="h-px bg-slate-200 my-2"></div>
                             <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-xl font-bold shadow-xl shadow-slate-900/10">התחל חינם</button>

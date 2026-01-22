@@ -1,5 +1,5 @@
 import { getSystemLeads } from '@/app/actions/system-leads';
-import SystemLeadsClient from '../SystemLeadsClient';
+import SystemSalesLeadsClient from './SystemSalesLeadsClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,5 +11,5 @@ export default async function SystemSalesLeadsPage({
   const { orgSlug } = await params;
   const initialLeads = await getSystemLeads(orgSlug);
 
-  return <SystemLeadsClient orgSlug={orgSlug} initialLeads={initialLeads} />;
+  return <SystemSalesLeadsClient orgSlug={orgSlug} initialLeads={initialLeads} />;
 }

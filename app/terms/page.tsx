@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
+import { getContentByKey } from '@/app/actions/site-content';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export const dynamic = 'force-dynamic';
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const result = await getContentByKey('legal', 'documents', 'terms_markdown');
+  const markdown = typeof result.data === 'string' ? result.data : null;
+
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
@@ -17,29 +22,32 @@ export default function TermsPage() {
               <span>תנאי שימוש</span>
             </div>
             <h1 className="mt-6 text-4xl sm:text-5xl font-black leading-tight">תנאי שימוש</h1>
-            <p className="mt-6 text-lg text-slate-600 leading-relaxed">
-              דף זה הוא placeholder זמני. לפני השקה נכניס כאן תנאים מלאים ומדויקים.
-            </p>
+            {markdown ? (
+              <div className="mt-10 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+                <MarkdownRenderer content={markdown} />
+              </div>
+            ) : (
+              <>
+                <p className="mt-6 text-lg text-slate-600 leading-relaxed">
+                  דף זה עדיין לא הוגדר במערכת. מנהל מערכת יכול לעדכן אותו דרך פאנל הניהול.
+                </p>
 
-            <div className="mt-10 space-y-4">
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
-                <div className="font-black text-slate-900">שימוש בשירות</div>
-                <div className="mt-2 text-sm text-slate-600">השירות מיועד לשימוש עסקי. יש להשתמש בו בהתאם לחוק ולהנחיות המוצר.</div>
-              </div>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
-                <div className="font-black text-slate-900">תשלומים וחיוב</div>
-                <div className="mt-2 text-sm text-slate-600">החיוב מתבצע דרך עמוד התשלום החדש. מחירים עשויים להשתנות בכפוף לעדכון במחירון.</div>
-                <div className="mt-4">
-                  <Link href="/subscribe/checkout" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg shadow-slate-900/10">
-                    מעבר לתשלום
-                  </Link>
+                <div className="mt-10 space-y-4">
+                  <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
+                    <div className="font-black text-slate-900">תשלומים וחיוב</div>
+                    <div className="mt-2 text-sm text-slate-600">החיוב מתבצע דרך עמוד התשלום החדש.</div>
+                    <div className="mt-4">
+                      <Link
+                        href="/subscribe/checkout"
+                        className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold shadow-lg shadow-slate-900/10"
+                      >
+                        מעבר לתשלום
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
-                <div className="font-black text-slate-900">אחריות</div>
-                <div className="mt-2 text-sm text-slate-600">דף זה אינו משפטי ואינו מחייב, והוא יוחלף במסמך רשמי.</div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </section>
       </main>

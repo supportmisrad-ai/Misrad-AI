@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Loader2, Rocket } from 'lucide-react';
+import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Rocket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
@@ -131,7 +131,7 @@ export default function CampaignWizard() {
             disabled={isSubmitting}
             className="bg-purple-600 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-purple-700 transition-all flex items-center gap-3 ml-auto"
           >
-            {isSubmitting ? <Loader2 className="animate-spin" size={20}/> : step === 3 ? 'הקמה' : 'הבא'}
+            {isSubmitting ? 'מעבד...' : step === 3 ? 'הקמה' : 'הבא'}
             {!isSubmitting && step < 3 && <ChevronLeft size={20}/>}
           </button>
         </div>

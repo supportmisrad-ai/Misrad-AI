@@ -35,6 +35,15 @@ const ClientView: React.FC = () => {
   const [newClientEmail, setNewClientEmail] = useState('');
   const [createClientError, setCreateClientError] = useState<string | null>(null);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
+
+  useEffect(() => {
+    const onCreateClient = () => {
+      setCreateClientError(null);
+      setIsCreateClientOpen(true);
+    };
+    window.addEventListener('client-os:create-client', onCreateClient);
+    return () => window.removeEventListener('client-os:create-client', onCreateClient);
+  }, []);
   
   // States for Churn & Refunds
   const [showChurnModal, setShowChurnModal] = useState(false);
@@ -207,14 +216,7 @@ const ClientView: React.FC = () => {
   if (viewMode === 'LIST') {
       return (
           <div className="space-y-8 animate-fade-in pb-12 pt-safe">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                   <div>
-                       <h1 className="text-4xl font-display font-bold text-nexus-primary tracking-tight mb-2">
-                           {showArchived ? 'ארכיון לקוחות' : 'תיקי לקוחות'}
-                       </h1>
-                       <p className="text-nexus-muted text-base tracking-wide font-medium">ניהול הפורטפוליו.</p>
-                   </div>
-                   
+               <div className="flex flex-col md:flex-row justify-end items-start md:items-end gap-6">
                    <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto items-stretch sm:items-center">
                        <div className="flex items-center gap-3">
                          <div className="relative flex-1 sm:w-64">
@@ -260,7 +262,7 @@ const ClientView: React.FC = () => {
                {isCreateClientOpen && (
                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-nexus-primary/50 backdrop-blur-sm">
                        <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-                           <div className="p-6 border-b flex items-center justify-between">
+                           <div className="p-6 border-b border-slate-200/70 flex items-center justify-between">
                                <div className="font-bold text-lg">יצירת לקוח</div>
                                <button
                                    onClick={() => setIsCreateClientOpen(false)}

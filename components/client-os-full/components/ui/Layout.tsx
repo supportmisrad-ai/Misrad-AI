@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, Users, BrainCircuit, Settings, Sparkles, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers } from 'lucide-react';
+import { LayoutDashboard, Users, BrainCircuit, Settings, Sparkles, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '../../types';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
@@ -18,6 +18,8 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,8 +33,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const { notifications: contextNotifications } = useNexus();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSupportOpen, setIsSupportOpen] = useState(false);
+  const [supportDraft, setSupportDraft] = useState({ category: 'Tech', subject: '', message: '' });
+  const [supportError, setSupportError] = useState<string | null>(null);
+  const [supportTicketId, setSupportTicketId] = useState<string | null>(null);
+  const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(contextNotifications);
-  const { title, roomName, roomNameHebrew, RoomIcon } = useRoomBranding();
+  const { title, roomName, roomNameHebrew, roomIconName } = useRoomBranding();
   const isWorkspaceRoute = Boolean(pathname?.startsWith('/w/'));
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -41,8 +48,37 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     logoUrl: null,
   });
 
+  const fallbackIcon = (
+    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-200">
+      {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-slate-900" /> : null}
+    </div>
+  );
+
+  const [clientUserData, setClientUserData] = useState<any>(null);
+  const [currentDate, setCurrentDate] = useState<string>('—');
+  const [greeting, setGreeting] = useState<string>('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+
+    try {
+      setClientUserData(((window as any).__CLIENT_OS_USER__ as any) || null);
+    } catch {
+      setClientUserData(null);
+    }
+
+    const now = new Date();
+    const hour = now.getHours();
+    if (hour < 12) setGreeting('בוקר טוב');
+    else if (hour < 18) setGreeting('צהריים טובים');
+    else setGreeting('ערב טוב');
+
+    setCurrentDate(now.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }));
+  }, []);
+
   const userLabel = useMemo(() => {
-    const userData = (typeof window !== 'undefined' ? ((window as any).__CLIENT_OS_USER__ as any) : null);
+    const userData = clientUserData;
     const rawName = userData?.identity?.name || userData?.name || '';
     const rawRole = userData?.identity?.role || userData?.role || '';
     const name = String(rawName || '').trim();
@@ -57,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           .toUpperCase()
       : '';
     return { name: name || null, roleLabel: roleLabel || null, initials: initials || null };
-  }, []);
+  }, [clientUserData]);
 
   const orgSlug = useMemo(() => parseWorkspaceRoute(pathname).orgSlug, [pathname]);
 
@@ -124,18 +160,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     { id: 'feedback', icon: MessageSquareQuote, label: 'משובים' },
     { id: 'intelligence', icon: BrainCircuit, label: 'פענוח' },
     { id: 'analyzer', icon: Sparkles, label: 'ניתוח' },
+    { id: 'settings', icon: Settings, label: 'הגדרות' },
   ];
 
   const navItems = ALL_NAV_ITEMS.filter((item) => featureFlags[item.id] !== false);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'בוקר טוב';
-    if (hour < 18) return 'צהריים טובים';
-    return 'ערב טוב';
-  }, []);
 
   const firstName = useMemo(() => {
     const name = String(systemIdentity?.name || userLabel.name || '').trim();
@@ -145,13 +175,25 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
   const moduleTitle = useMemo(() => roomNameHebrew || roomName || 'Client', [roomName, roomNameHebrew]);
 
-  const screenTitle = useMemo(() => {
+  const headerTitle = useMemo(() => {
+    if (activeView === 'dashboard') return 'לוח בקרה';
+    const found = navItems.find((n) => n.id === activeView);
+    return found?.label || moduleTitle;
+  }, [activeView, moduleTitle, navItems]);
+
+  const headerSubtitle = useMemo(() => {
+    if (!isMounted) return null;
     if (activeView === 'dashboard') {
+      if (!greeting) return null;
       return `${greeting}${firstName ? `, ${firstName}` : ''}`;
     }
+    return null;
+  }, [activeView, firstName, greeting, isMounted]);
+
+  const screenTitle = useMemo(() => {
     const found = navItems.find((n) => n.id === activeView);
     return found?.label || null;
-  }, [activeView, firstName, greeting, navItems]);
+  }, [activeView, navItems]);
 
   const viewNavItems = useMemo(
     () => navItems.map((item) => ({ label: item.label, path: `/${item.id}`, icon: item.icon })),
@@ -209,6 +251,88 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
       window.dispatchEvent(new CustomEvent('open-nexus-command'));
   };
 
+  const plusConfig = useMemo(() => {
+    if (activeView === 'dashboard') {
+      return {
+        ariaLabel: 'אירוע חדש',
+        onClick: () => window.dispatchEvent(new CustomEvent('client-os:create-event')),
+      };
+    }
+
+    if (activeView === 'clients') {
+      return {
+        ariaLabel: 'לקוח חדש',
+        onClick: () => window.dispatchEvent(new CustomEvent('client-os:create-client')),
+      };
+    }
+
+    if (activeView === 'email') {
+      return {
+        ariaLabel: 'הודעה חדשה',
+        onClick: () => window.dispatchEvent(new CustomEvent('client-os:compose-email')),
+      };
+    }
+
+    return {
+      ariaLabel: 'פעולה מהירה',
+      onClick: triggerCommand,
+    };
+  }, [activeView]);
+
+  const openSupport = () => {
+    setSupportError(null);
+    setSupportTicketId(null);
+    setIsSupportOpen(true);
+  };
+
+  const closeSupport = () => {
+    setIsSupportOpen(false);
+  };
+
+  const submitSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmittingSupport) return;
+
+    setIsSubmittingSupport(true);
+    setSupportError(null);
+    setSupportTicketId(null);
+
+    try {
+      const organizationId =
+        (typeof window !== 'undefined'
+          ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId
+          : null) ?? null;
+
+      const response = await fetch('/api/support', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(organizationId ? { 'x-org-id': String(organizationId) } : {}),
+        },
+        body: JSON.stringify({
+          category: supportDraft.category,
+          subject: supportDraft.subject,
+          message: supportDraft.message,
+          priority: 'medium',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error || 'שגיאה ביצירת קריאת תמיכה');
+      }
+
+      const data = await response.json().catch(() => ({}));
+      const ticketNumber = String(data?.ticket?.ticket_number || '').trim();
+      setSupportTicketId(ticketNumber || '');
+      setSupportDraft({ category: 'Tech', subject: '', message: '' });
+    } catch (err: any) {
+      setSupportError(err?.message || 'שגיאה ביצירת קריאת תמיכה. אנא נסה שוב.');
+    } finally {
+      setIsSubmittingSupport(false);
+    }
+  };
+
   const handleMobileNavClick = (id: string) => {
       if (id === 'MENU') {
           setIsMobileMenuOpen(true);
@@ -260,9 +384,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         brand={{
           name: workspaceBrand.name,
           logoUrl: workspaceBrand.logoUrl || null,
-          fallbackIcon: RoomIcon ? <RoomIcon size={20} className="text-gray-900" /> : null,
+          fallbackIcon,
+          badgeIcon: <OSModuleIcon moduleKey="client" size={12} className="text-slate-900" />,
         }}
-        brandSubtitle={roomNameHebrew || roomName || 'פורטל הצלחת לקוח'}
+        brandSubtitle={roomNameHebrew || roomName || 'מעקב לקוחות ומתאמנים'}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">
@@ -275,24 +400,48 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         isActiveAction={isActiveAction}
         onNavigateAction={onNavigateAction}
         bottomSlot={
-          <OSAppSwitcher
-            compact={true}
-            buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
-            buttonLabel="מודולים"
-            className={isSidebarOpen ? '' : 'w-full flex justify-center'}
-          />
+          <div className={isSidebarOpen ? 'w-full px-1' : 'w-full'}>
+            <button
+              onClick={() => onNavigateAction('/settings')}
+              className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)] ${
+                !isSidebarOpen ? 'justify-center px-0 aspect-square' : ''
+              }`}
+              aria-label="הגדרות"
+              title="הגדרות"
+              type="button"
+            >
+              <span className="relative z-10 flex items-center justify-center w-5 h-5">
+                <Settings size={20} strokeWidth={2} className="text-current" />
+              </span>
+              {isSidebarOpen ? <span className="relative z-10">הגדרות</span> : null}
+            </button>
+
+            <div
+              className={`shrink-0 h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent ${
+                isSidebarOpen ? 'mx-6 my-4' : 'mx-2 my-3'
+              }`}
+            ></div>
+
+            <OSAppSwitcher
+              compact={true}
+              buttonVariant={isSidebarOpen ? 'wide' : 'icon'}
+              buttonLabel="מודולים"
+              className={isSidebarOpen ? '' : 'w-full flex justify-center'}
+            />
+          </div>
         }
       />
 
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
-          title={moduleTitle}
-          subtitle={screenTitle}
-          currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
+          title={headerTitle}
+          subtitle={headerSubtitle}
+          currentDate={currentDate}
           mobileBrand={{
             name: moduleTitle,
             logoUrl: workspaceBrand.logoUrl || null,
-            fallbackIcon: RoomIcon ? <RoomIcon size={18} className="text-gray-900" /> : null,
+            fallbackIcon,
+            badgeIcon: <OSModuleIcon moduleKey="client" size={10} className="text-slate-900" />,
           }}
           mobileLeadingSlot={
             <button
@@ -305,7 +454,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             </button>
           }
           onOpenCommandPaletteAction={triggerCommand}
-          onOpenSupportAction={undefined}
+          onOpenSupportAction={openSupport}
           switcherSlot={switcherSlot}
           notificationsSlot={notificationsSlot}
           user={{
@@ -356,8 +505,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             onClick: () => handleMobileNavClick('MENU'),
           },
         ]}
-        onPlusClickAction={triggerCommand}
-        plusAriaLabel="Quick Action"
+        onPlusClickAction={plusConfig.onClick}
+        plusAriaLabel={plusConfig.ariaLabel}
       />
 
       {/* DRAWER */}
@@ -371,23 +520,37 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] z-[100] p-6 pb-6 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-white/50">
             <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50" />
 
-            <div className="grid grid-cols-2 gap-4">
-              {mobileExtraItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => handleDrawerNav(item.id)}
-                  className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center gap-3 active:scale-[0.98] transition-all"
-                  type="button"
-                >
-                  <div className="w-12 h-12 bg-[#f1f5f9] rounded-xl flex items-center justify-center text-gray-900">
-                    <item.icon size={24} />
-                  </div>
-                  <div>
-                    <span className="block font-bold text-gray-900">{item.label}</span>
-                    <span className="text-[10px] text-gray-500">{item.desc}</span>
-                  </div>
-                </button>
-              ))}
+            <div className="grid grid-cols-4 gap-4">
+              {navItems.map((item) => {
+                const isActiveItem = item.id === activeView;
+                const IconComponent = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleDrawerNav(item.id)}
+                    className="flex flex-col items-center gap-2 group"
+                    aria-label={item.label}
+                    type="button"
+                  >
+                    <div
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                        isActiveItem
+                          ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                      }`}
+                    >
+                      <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold text-center leading-tight ${
+                        isActiveItem ? 'text-slate-900' : 'text-slate-500'
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             <button
@@ -400,7 +563,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
               </div>
               <div className="flex-1 text-right">
                 <span className="block font-bold text-gray-900" suppressHydrationWarning>
-                  {systemIdentity?.name || userLabel.name || 'משתמש'}
+                  {systemIdentity?.name || userLabel.name || '—'}
                 </span>
                 <span className="text-xs text-gray-500" suppressHydrationWarning>
                   {systemIdentity?.role || userLabel.roleLabel || 'אזור אישי'}
@@ -410,6 +573,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
                 <ChevronRight size={20} className="rotate-180" />
               </div>
             </button>
+
+            <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+
+            <div className="space-y-3">
+              <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+              <OSAppSwitcher compact={true} orgSlug={orgSlug || undefined} currentModule="client" />
+            </div>
           </div>
         </div>
       ) : null}
@@ -422,6 +592,115 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         onDismiss={handleDismiss}
         onClearAll={handleClearAll}
       />
+
+      {isSupportOpen ? (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          onClick={closeSupport}
+          role="dialog"
+          aria-modal="true"
+          aria-label="תמיכה"
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-slate-200/70 flex items-center justify-between">
+              <div className="font-bold text-lg text-slate-900">תמיכה</div>
+              <button
+                onClick={closeSupport}
+                className="p-2 text-slate-400 hover:text-slate-700"
+                aria-label="סגור"
+                type="button"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {supportTicketId ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+                  <div className="text-emerald-800 font-bold">פנייתך התקבלה בהצלחה</div>
+                  <div className="mt-1 text-sm text-emerald-700">מספר קריאה: {supportTicketId}</div>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      onClick={closeSupport}
+                      className="px-5 py-2.5 rounded-xl bg-white border border-emerald-200 text-emerald-800 font-bold hover:bg-emerald-50 transition-colors"
+                      type="button"
+                    >
+                      סגור
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={submitSupport} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">קטגוריה</label>
+                      <select
+                        value={supportDraft.category}
+                        onChange={(e) => setSupportDraft((prev) => ({ ...prev, category: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-nexus-primary"
+                      >
+                        <option value="Tech">תמיכה טכנית</option>
+                        <option value="Account">חשבון ופרטים</option>
+                        <option value="Billing">חיוב ומנויים</option>
+                        <option value="Feature">בקשת פיצ׳ר</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">כותרת</label>
+                      <input
+                        value={supportDraft.subject}
+                        onChange={(e) => setSupportDraft((prev) => ({ ...prev, subject: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-nexus-primary"
+                        placeholder="במה נוכל לעזור?"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-2">פירוט</label>
+                    <textarea
+                      value={supportDraft.message}
+                      onChange={(e) => setSupportDraft((prev) => ({ ...prev, message: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-nexus-primary min-h-[140px] resize-none"
+                      placeholder="תאר את הבעיה/הבקשה..."
+                      required
+                    />
+                  </div>
+
+                  {supportError ? (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-medium">
+                      {supportError}
+                    </div>
+                  ) : null}
+
+                  <div className="pt-2 flex justify-end gap-3">
+                    <button
+                      onClick={closeSupport}
+                      className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+                      type="button"
+                      disabled={isSubmittingSupport}
+                    >
+                      ביטול
+                    </button>
+                    <button
+                      className="px-6 py-3 rounded-xl bg-nexus-primary text-white font-bold hover:opacity-95 transition-all disabled:opacity-50 flex items-center gap-2"
+                      type="submit"
+                      disabled={isSubmittingSupport}
+                    >
+                      <Send size={16} className="rotate-180" />
+                      {isSubmittingSupport ? 'שולח...' : 'שלח'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

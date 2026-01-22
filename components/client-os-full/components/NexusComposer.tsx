@@ -3,6 +3,7 @@ import { X, Send, Sparkles, Copy, RefreshCw, Paperclip, ChevronDown, Check } fro
 import { generateEmailDraft } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface NexusComposerProps {
     isOpen: boolean;
@@ -106,11 +107,13 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
             <div className="flex-1 p-6 overflow-y-auto bg-white custom-scrollbar relative">
                 {isGenerating ? (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 backdrop-blur-sm z-10">
-                        <div className="relative">
-                            <div className="w-16 h-16 border-4 border-gray-100 border-t-nexus-accent rounded-full animate-spin"></div>
-                            <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-nexus-primary" size={24} />
+                        <div className="w-full max-w-sm space-y-3">
+                            <Skeleton className="h-6 w-4/6 rounded-xl" />
+                            <Skeleton className="h-4 w-full rounded-xl" />
+                            <Skeleton className="h-4 w-5/6 rounded-xl" />
+                            <Skeleton className="h-4 w-4/6 rounded-xl" />
                         </div>
-                        <p className="mt-4 text-sm font-bold text-gray-600 animate-pulse">הרובוט כותב...</p>
+                        <p className="mt-4 text-sm font-bold text-gray-600">הרובוט כותב...</p>
                     </div>
                 ) : generatedContent ? (
                     <div className="space-y-4 animate-fade-in">
@@ -142,7 +145,7 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
                     disabled={isGenerating}
                     className="flex items-center gap-2 text-nexus-primary hover:bg-white px-3 py-2 rounded-lg transition-colors text-sm font-bold border border-transparent hover:border-gray-200"
                 >
-                    <RefreshCw size={16} className={isGenerating ? 'animate-spin' : ''} /> 
+                    <RefreshCw size={16} className={isGenerating ? 'opacity-60' : ''} /> 
                     {generatedContent ? 'נסה שוב' : 'תכתוב לי משהו'}
                 </button>
 

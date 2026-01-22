@@ -43,7 +43,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                   <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
                     {isUploading === action.id ? (
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-nexus-accent" />
+                        <RefreshCw size={24} className="text-nexus-accent opacity-70" />
                         <span className="text-xs font-bold text-slate-400">מעלה ומאבטח...</span>
                       </div>
                     ) : (

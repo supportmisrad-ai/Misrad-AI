@@ -48,9 +48,22 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const orgId = useMemo(() => {
-    const userData = (typeof window !== 'undefined' ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined) : undefined);
-    return userData?.organizationId ?? null;
+  const [orgId, setOrgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const readOrgId = (payload?: any) => {
+      const userData = payload ?? ((window as any).__CLIENT_OS_USER__ as any);
+      const nextOrgId = userData?.organizationId ?? null;
+      setOrgId(nextOrgId ? String(nextOrgId) : null);
+    };
+
+    const onUserUpdated = (e: any) => readOrgId(e?.detail);
+
+    readOrgId();
+    window.addEventListener('client-os-user-updated', onUserUpdated);
+    return () => window.removeEventListener('client-os-user-updated', onUserUpdated);
   }, []);
 
   const refreshClients = async () => {

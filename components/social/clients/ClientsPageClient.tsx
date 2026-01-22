@@ -169,7 +169,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
               <div className="flex flex-col items-center">
                 <h3 className="text-2xl font-black text-slate-800">{String(client.companyName || '')}</h3>
                 {client.onboardingStatus === 'invited' && (
-                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg mt-2 animate-pulse">ממתין להקמה</span>
+                  <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1 rounded-lg mt-2">ממתין להקמה</span>
                 )}
               </div>
               <span className="text-xs font-black text-slate-900 bg-slate-50 px-6 py-2 rounded-xl">

@@ -62,7 +62,7 @@ export default function ComingSoonPortal() {
             >
               <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 text-amber-700 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-2xl bg-[color:color-mix(in_srgb,var(--os-accent)_12%,white)] border border-[color:color-mix(in_srgb,var(--os-accent)_22%,white)] text-[color:var(--os-accent)] flex items-center justify-center">
                     <Rocket size={18} />
                   </div>
                   <div className="font-black text-slate-900">בקרוב</div>

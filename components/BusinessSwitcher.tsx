@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Building2, Check, Search, Loader2, Plus } from 'lucide-react';
+import { ChevronDown, Building2, Check, Search, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tenant } from '../types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface BusinessSwitcherProps {
     currentTenantId?: string;
@@ -241,7 +242,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                 <div className="max-h-96 overflow-y-auto">
                                     {isLoading ? (
                                         <div className="flex items-center justify-center py-8">
-                                            <Loader2 size={20} className="animate-spin text-gray-400" />
+                                            <Skeleton className="w-8 h-8 rounded-full" />
                                         </div>
                                     ) : filteredBusinesses.length === 0 ? (
                                         <div className="p-4 text-center text-sm text-gray-500">

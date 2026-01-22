@@ -10,12 +10,12 @@ export const KanbanDemo = () => {
             <div className="flex justify-between items-center border-b border-slate-800/50 pb-3">
                 <div className="flex gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#C5A572]/15 border border-[#C5A572]/45"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50"></div>
                 </div>
                 <div className="flex gap-2 text-slate-400">
-                    <div className="w-6 h-6 rounded bg-slate-800/50"></div>
-                    <div className="w-20 h-6 rounded bg-slate-800/50"></div>
+                    <div className="w-8 h-2 bg-slate-800 rounded"></div>
+                    <div className="w-6 h-2 bg-slate-800 rounded"></div>
                 </div>
             </div>
 
@@ -50,7 +50,7 @@ export const KanbanDemo = () => {
                                 </div>
                                 <div className="text-[11px] text-slate-200 font-medium leading-tight">עיצוב מחדש לדף הבית</div>
                                 <div className="flex items-center gap-2 mt-1">
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 text-[9px] border border-orange-500/20">דחוף</span>
+                                    <span className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 text-[9px] border border-red-500/20">דחוף</span>
                                     <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 text-[9px]">Frontend</span>
                                 </div>
                             </motion.div>

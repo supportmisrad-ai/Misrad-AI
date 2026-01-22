@@ -1,13 +1,14 @@
 ﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Megaphone, TrendingUp, Target, DollarSign, ExternalLink, Pause, Play, Edit3, Loader2, ArrowRight } from 'lucide-react';
+import { Plus, Megaphone, TrendingUp, Target, DollarSign, ExternalLink, Pause, Play, Edit3, ArrowRight } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Client } from '@/types/social';
 import EditCampaignModal from './modals/EditCampaignModal';
 import { getCampaigns, updateCampaign, type Campaign } from '@/app/actions/campaigns';
 import { translateError } from '@/lib/errorTranslations';
 import { Avatar } from '@/components/Avatar';
+import { SkeletonGrid } from '@/components/ui/skeletons';
 
 export default function Campaigns() {
   const { clients, setIsCampaignWizardOpen, addToast } = useApp();
@@ -164,8 +165,8 @@ export default function Campaigns() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="animate-spin text-slate-400" size={32} />
+        <div className="py-10">
+          <SkeletonGrid cards={6} columns={3} />
         </div>
       ) : campaigns.length === 0 ? (
         <div className="bg-white p-20 rounded-[48px] border border-slate-200 text-center">

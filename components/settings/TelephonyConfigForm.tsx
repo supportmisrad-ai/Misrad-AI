@@ -5,18 +5,17 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useData } from '../../context/DataContext';
-import { Phone, Save, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Phone, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 // Zod schema for form validation
 const telephonyConfigSchema = z.object({
-    provider: z.enum(['voicenter'], {
-        required_error: 'נא לבחור ספק טלפוניה'
-    }),
+    provider: z.literal('voicenter'),
     credentials: z.object({
         UserCode: z.string().min(1, 'UserCode הוא שדה חובה'),
         OrganizationCode: z.string().min(1, 'OrganizationCode הוא שדה חובה')
     }),
-    isActive: z.boolean().default(false)
+    isActive: z.boolean()
 });
 
 type TelephonyConfigFormData = z.infer<typeof telephonyConfigSchema>;
@@ -161,7 +160,7 @@ export const TelephonyConfigForm: React.FC = () => {
         return (
             <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+                    <Skeleton className="w-8 h-8 rounded-full bg-indigo-100" />
                     <span className="mr-3 text-gray-600">טוען תצורה...</span>
                 </div>
             </div>
@@ -287,7 +286,7 @@ export const TelephonyConfigForm: React.FC = () => {
                     >
                         {isSaving ? (
                             <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                 שומר...
                             </>
                         ) : (

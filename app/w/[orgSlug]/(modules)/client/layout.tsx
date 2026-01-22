@@ -19,11 +19,11 @@ export default async function ClientModuleLayout({
 
   const style = {
     '--os-accent': def.theme.accent,
-    '--os-bg': '#F8FAFC',
+    '--os-bg': '#F5F5F7',
     '--os-sidebar-active-bg': 'var(--os-accent)',
-    '--os-sidebar-active-bg-image': 'linear-gradient(135deg, rgba(217,119,6,0.95), rgba(161,98,7,0.95))',
+    '--os-sidebar-active-bg-image': 'linear-gradient(135deg, rgba(197,165,114,0.95), rgba(148,115,63,0.95))',
     '--os-sidebar-active-text': '#ffffff',
-    '--os-sidebar-active-ring': 'rgba(217,119,6,0.25)',
+    '--os-sidebar-active-ring': 'rgba(197,165,114,0.25)',
     '--os-header-title': '#111827',
     '--os-header-mobile-text': '#111827',
     '--os-header-action-icon': '#4b5563',
@@ -33,7 +33,7 @@ export default async function ClientModuleLayout({
     <div
       style={style}
       data-module={def.key}
-      className="min-h-screen bg-[#f1f5f9] text-slate-900"
+      className="min-h-screen bg-[color:var(--os-bg)] text-slate-900"
       dir="rtl"
     >
       <div className="w-full">{children}</div>

@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { analyzeMeetingTranscript } from '../services/geminiService'; 
 // Fix: Removed Modality from local types import as it should come from the GenAI SDK
 import { MeetingAnalysisResult } from '../types';
-import { BrainCircuit, UploadCloud, Video, UserPlus, Trash2, ArrowRight, X, Check, Loader2, UserCircle, Mic, MicOff, Zap } from 'lucide-react';
+import { BrainCircuit, UploadCloud, Video, UserPlus, Trash2, ArrowRight, X, Check, UserCircle, Mic, MicOff, Zap } from 'lucide-react';
 import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
 import { supabase } from '@/lib/supabase-client';
+import { Skeleton } from '@/components/ui/skeletons';
 
 const MeetingIntelligence: React.FC = () => {
   const { clients, meetings: contextMeetings } = useNexus();
@@ -156,14 +157,11 @@ const MeetingIntelligence: React.FC = () => {
   return (
     <div className="h-full flex flex-col animate-fade-in">
       {activeView !== 'RESULT' && activeView !== 'LIVE' && (
-          <header className="mb-8 flex justify-between items-end border-b pb-6">
-            <div>
-              <h1 className="text-3xl font-display font-bold text-gray-900">פענוח פגישות</h1>
-              <p className="text-gray-500">תזרוק לפה הקלטות או פתח שיחה חיה, נקסוס כבר יבין מה קרה שם.</p>
-            </div>
+          <header className="mb-6 flex justify-end items-end pb-2">
             <button 
                 onClick={startLiveSession}
                 className="flex items-center gap-2 px-6 py-3 bg-nexus-primary text-white rounded-xl font-bold hover:bg-nexus-accent transition-all shadow-lg"
+                type="button"
             >
                 <Mic size={18} /> התחל שיחה חיה
             </button>
@@ -212,7 +210,7 @@ const MeetingIntelligence: React.FC = () => {
               <div className="h-full flex flex-col items-center justify-center gap-6 animate-fade-in">
                   <div className="w-full max-w-2xl bg-white border border-gray-200 rounded-3xl p-10 shadow-sm text-center">
                       <div className="mx-auto w-16 h-16 rounded-2xl bg-nexus-primary/10 flex items-center justify-center mb-5">
-                          <Loader2 size={34} className="text-nexus-primary animate-spin" />
+                          <Skeleton className="w-10 h-10 rounded-xl" />
                       </div>
                       <h3 className="text-2xl font-bold text-gray-900">מנתח את ההקלטה...</h3>
                       <p className="text-gray-500 mt-2">{processingFileName ?? 'הקובץ נטען'} </p>
@@ -234,7 +232,7 @@ const MeetingIntelligence: React.FC = () => {
           {activeView === 'LIST' && (
               <div className="space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-white border rounded-2xl p-4">
+                      <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
                           <div className="text-gray-400 uppercase text-[10px] font-bold mb-2">לקוח</div>
                           <select
                               className="w-full bg-transparent border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
@@ -247,7 +245,7 @@ const MeetingIntelligence: React.FC = () => {
                               ))}
                           </select>
                       </div>
-                      <div className="bg-white border rounded-2xl p-4">
+                      <div className="bg-white border border-slate-200/70 rounded-2xl p-4">
                           <div className="text-gray-400 uppercase text-[10px] font-bold mb-2">סוג פגישה</div>
                           <select
                               className="w-full bg-transparent border border-gray-200 rounded-xl p-3 text-sm font-bold outline-none focus:border-nexus-primary"
@@ -260,7 +258,7 @@ const MeetingIntelligence: React.FC = () => {
                           </select>
                       </div>
                   </div>
-                  <div className="relative border-2 border-dashed rounded-3xl p-12 text-center bg-white hover:border-nexus-primary transition-all cursor-pointer">
+                  <div className="relative border-2 border-dashed border-slate-200/70 rounded-3xl p-12 text-center bg-white hover:border-nexus-primary transition-all cursor-pointer">
                       <input type="file" accept="audio/*,video/*" onChange={handleFileUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
                       <UploadCloud size={48} className="mx-auto text-nexus-primary mb-4" />
                       <h3 className="text-xl font-bold">העלאת הקלטה קיימת</h3>

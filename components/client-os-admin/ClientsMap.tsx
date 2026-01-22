@@ -2,14 +2,15 @@
 
 import React, { useMemo, useState } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
-import type { Client, ClientStatus } from '@/components/client-portal/types';
+import type { Client } from '@/components/client-portal/types';
+import { ClientStatus } from '@/components/client-portal/types';
 
 export function ClientsMap({
   clients,
-  onSelectClient,
+  onSelectClientAction,
 }: {
   clients: Client[];
-  onSelectClient: (clientId: string) => void;
+  onSelectClientAction: (clientId: string) => void;
 }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'ALL' | 'ACTIVE' | 'PENDING'>('ALL');
@@ -67,13 +68,13 @@ export function ClientsMap({
             const statusLabel = isActive ? 'פעיל' : 'בהמתנה';
             const statusClass = isActive
               ? 'bg-signal-success/10 text-signal-success border-signal-success/20'
-              : 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+              : 'bg-signal-warning/10 text-signal-warning border-signal-warning/20';
 
             return (
               <button
                 key={client.id}
                 type="button"
-                onClick={() => onSelectClient(String(client.id))}
+                onClick={() => onSelectClientAction(String(client.id))}
                 className="text-right rounded-2xl p-5 bg-white/5 backdrop-blur-md border border-white/10 shadow-sm hover:bg-white/10 transition-all"
               >
                 <div className="flex items-start justify-between gap-3">

@@ -67,6 +67,7 @@ const PipelineCard = memo(({
     onDragStart,
     onClick,
     now,
+    stages,
     isCoarsePointer,
     onStatusChange,
     onUpdateFollowUp,
@@ -75,6 +76,7 @@ const PipelineCard = memo(({
     onDragStart: (e: React.DragEvent, id: string) => void,
     onClick: (lead: Lead) => void,
     now: Date,
+    stages: Array<{ id: PipelineStage; label: string; accent?: string; color?: string }>,
     isCoarsePointer: boolean,
     onStatusChange: (leadId: string, newStatus: PipelineStage) => void,
     onUpdateFollowUp?: (params: { leadId: string; nextActionDate: Date | null; nextActionNote: string | null }) => void,
@@ -215,7 +217,7 @@ const PipelineCard = memo(({
                                 onChange={(e) => onStatusChange(lead.id, e.target.value as PipelineStage)}
                                 className="bg-white border border-slate-200 rounded-full px-3 py-1 text-[11px] font-black text-slate-700"
                             >
-                                {STAGES.map((s) => (
+                                {stages.map((s) => (
                                     <option key={s.id} value={s.id}>
                                         {s.label}
                                     </option>
@@ -318,6 +320,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
                                         onDragStart={handleDragStart} 
                                         onClick={onLeadClick} 
                                         now={now}
+                                        stages={stages}
                                         isCoarsePointer={isCoarsePointer}
                                         onStatusChange={onStatusChange}
                                         onUpdateFollowUp={onUpdateFollowUp}

@@ -1,12 +1,12 @@
-import { redirect } from 'next/navigation';
-
 export const dynamic = 'force-dynamic';
+
+import Settings from '@/components/social/Settings';
 
 export default async function SocialHubPage({
   params,
 }: {
   params: Promise<{ orgSlug: string }>;
 }) {
-  const { orgSlug } = await params;
-  redirect(`/w/${encodeURIComponent(orgSlug)}/social/settings`);
+  await params;
+  return <Settings />;
 }

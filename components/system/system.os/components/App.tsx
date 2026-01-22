@@ -352,7 +352,7 @@ const SystemOSApp = () => {
         aria-label="פתח עוזר חכם"
       >
           <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping group-hover:hidden"></div>
-          <Sparkles size={24} className="group-hover:animate-spin-slow" />
+          <Sparkles size={24} className="group-hover:opacity-80" />
       </motion.button>
 
       {/* Mobile Bottom Navigation - Rounded Icons */}

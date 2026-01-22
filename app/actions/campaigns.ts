@@ -16,6 +16,31 @@ export interface Campaign {
   clicks?: number;
 }
 
+function isMissingTableError(err: any) {
+  const msg = String(err?.message || '').toLowerCase();
+  const code = String((err as any)?.code || '').toUpperCase();
+  return (
+    msg.includes('could not find the table') ||
+    msg.includes('does not exist') ||
+    code === '42P01' ||
+    code === 'PGRST205'
+  );
+}
+
+async function resolveFirstExistingTable(
+  supabase: ReturnType<typeof createClient>,
+  candidates: string[]
+): Promise<string | null> {
+  for (const table of candidates) {
+    const probe = await supabase.from(table).select('id').limit(1);
+    if (!probe.error) return table;
+    if (isMissingTableError(probe.error)) continue;
+    // Any other error means the table likely exists but query failed for another reason (RLS, permissions, etc.)
+    return table;
+  }
+  return null;
+}
+
 /**
  * Server Action: Get all campaigns
  */
@@ -27,13 +52,50 @@ export async function getCampaigns(
     const supabase = createClient();
     const organizationId = orgId ? (await requireWorkspaceAccessByOrgSlug(orgId))?.id : null;
 
-    let query = supabase
-      .from('campaigns')
-      .select('*, clients!inner (organization_id)')
-      .order('created_at', { ascending: false });
+    const clientsTable = await resolveFirstExistingTable(supabase, ['clients', 'social_clients']);
+    const campaignsTable = await resolveFirstExistingTable(supabase, ['campaigns', 'social_campaigns']);
 
-    if (organizationId) {
-      query = query.eq('clients.organization_id', organizationId);
+    if (!campaignsTable) {
+      console.warn('[getCampaigns] No campaigns table found in Supabase (campaigns/social_campaigns). Returning empty list.');
+      return { success: true, data: [] };
+    }
+
+    let allowedClientIds: string[] | null = null;
+    if (organizationId && clientsTable) {
+      const { data: clients, error: clientsError } = await supabase
+        .from(clientsTable)
+        .select('id')
+        .eq('organization_id', organizationId);
+
+      if (clientsError) {
+        if (isMissingTableError(clientsError)) {
+          console.warn('[getCampaigns] Clients table missing in Supabase. Returning empty list.');
+          return { success: true, data: [] };
+        }
+        const errInfo = {
+          message: clientsError.message,
+          code: (clientsError as any).code,
+          details: (clientsError as any).details,
+          hint: (clientsError as any).hint,
+        };
+        console.error('Error fetching campaigns clients:', errInfo);
+        return {
+          success: false,
+          error: clientsError.message || 'שגיאה בטעינת לקוחות לקמפיינים',
+        };
+      }
+
+      allowedClientIds = (clients || []).map((c: any) => String(c.id));
+
+      if (!allowedClientIds.length) {
+        return { success: true, data: [] };
+      }
+    }
+
+    let query = supabase.from(campaignsTable).select('*').order('created_at', { ascending: false });
+
+    if (allowedClientIds) {
+      query = query.in('client_id', allowedClientIds);
     }
 
     if (clientId) {
@@ -43,10 +105,20 @@ export async function getCampaigns(
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching campaigns:', error);
+      if (isMissingTableError(error)) {
+        console.warn('[getCampaigns] Campaigns table missing in Supabase. Returning empty list.');
+        return { success: true, data: [] };
+      }
+      const errInfo = {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      };
+      console.error('Error fetching campaigns:', errInfo);
       return {
         success: false,
-        error: error.message,
+        error: error.message || 'שגיאה בטעינת קמפיינים',
       };
     }
 
@@ -85,8 +157,13 @@ export async function createCampaign(
   try {
     const supabase = createClient();
 
+    const campaignsTable = await resolveFirstExistingTable(supabase, ['campaigns', 'social_campaigns']);
+    if (!campaignsTable) {
+      return { success: false, error: 'טבלת קמפיינים לא קיימת במסד הנתונים' };
+    }
+
     const { data, error } = await supabase
-      .from('campaigns')
+      .from(campaignsTable)
       .insert({
         client_id: campaignData.clientId,
         name: campaignData.name,
@@ -102,10 +179,16 @@ export async function createCampaign(
       .single();
 
     if (error) {
-      console.error('Error creating campaign:', error);
+      const errInfo = {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      };
+      console.error('Error creating campaign:', errInfo);
       return {
         success: false,
-        error: error.message,
+        error: error.message || 'שגיאה ביצירת קמפיין',
       };
     }
 
@@ -145,6 +228,11 @@ export async function updateCampaign(
   try {
     const supabase = createClient();
 
+    const campaignsTable = await resolveFirstExistingTable(supabase, ['campaigns', 'social_campaigns']);
+    if (!campaignsTable) {
+      return { success: false, error: 'טבלת קמפיינים לא קיימת במסד הנתונים' };
+    }
+
     const updateData: any = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.status !== undefined) updateData.status = updates.status;
@@ -156,17 +244,23 @@ export async function updateCampaign(
     if (updates.clicks !== undefined) updateData.clicks = updates.clicks;
 
     const { data, error } = await supabase
-      .from('campaigns')
+      .from(campaignsTable)
       .update(updateData)
       .eq('id', campaignId)
       .select()
       .single();
 
     if (error) {
-      console.error('Error updating campaign:', error);
+      const errInfo = {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      };
+      console.error('Error updating campaign:', errInfo);
       return {
         success: false,
-        error: error.message,
+        error: error.message || 'שגיאה בעדכון קמפיין',
       };
     }
 
@@ -203,16 +297,27 @@ export async function deleteCampaign(campaignId: string): Promise<{ success: boo
   try {
     const supabase = createClient();
 
+    const campaignsTable = await resolveFirstExistingTable(supabase, ['campaigns', 'social_campaigns']);
+    if (!campaignsTable) {
+      return { success: false, error: 'טבלת קמפיינים לא קיימת במסד הנתונים' };
+    }
+
     const { error } = await supabase
-      .from('campaigns')
+      .from(campaignsTable)
       .delete()
       .eq('id', campaignId);
 
     if (error) {
-      console.error('Error deleting campaign:', error);
+      const errInfo = {
+        message: error.message,
+        code: (error as any).code,
+        details: (error as any).details,
+        hint: (error as any).hint,
+      };
+      console.error('Error deleting campaign:', errInfo);
       return {
         success: false,
-        error: error.message,
+        error: error.message || 'שגיאה במחיקת קמפיין',
       };
     }
 

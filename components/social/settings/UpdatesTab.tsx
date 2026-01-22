@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkles, Shield, Zap, Wrench, Bug, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Sparkles, Shield, Zap, Wrench, Bug, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { getUpdatesWithStatus, markUpdateAsViewed, AppUpdate } from '@/app/actions/updates';
 import { useApp } from '@/contexts/AppContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface UpdatesTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -80,8 +81,36 @@ export default function UpdatesTab({ onNotify }: UpdatesTabProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+      <div className="flex flex-col gap-6" dir="rtl">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-56 rounded-2xl" />
+              <Skeleton className="h-4 w-72 rounded-xl" />
+            </div>
+            <Skeleton className="h-10 w-40 rounded-xl" />
+          </div>
+        </div>
+        <div className="space-y-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-xl">
+              <div className="flex items-start justify-between gap-6 mb-4">
+                <div className="flex items-start gap-4 flex-1">
+                  <Skeleton className="w-12 h-12 rounded-2xl" />
+                  <div className="flex-1 space-y-3">
+                    <Skeleton className="h-6 w-48 rounded-2xl" />
+                    <Skeleton className="h-4 w-[92%] rounded-xl" />
+                    <Skeleton className="h-4 w-[78%] rounded-xl" />
+                  </div>
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <Skeleton className="h-4 w-40 rounded-xl" />
+                <Skeleton className="h-9 w-28 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -174,14 +203,7 @@ export default function UpdatesTab({ onNotify }: UpdatesTabProps) {
                       disabled={markingAsRead === update.id}
                       className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs hover:bg-blue-100 transition-all disabled:opacity-50 flex items-center gap-2"
                     >
-                      {markingAsRead === update.id ? (
-                        <>
-                          <Loader2 size={14} className="animate-spin" />
-                          מסמן...
-                        </>
-                      ) : (
-                        'סמן כנקרא'
-                      )}
+                      {markingAsRead === update.id ? 'מסמן...' : 'סמן כנקרא'}
                     </button>
                   )}
                 </div>

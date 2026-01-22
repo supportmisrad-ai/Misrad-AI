@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, MoreHorizontal, X, Loader2, Check, AlertTriangle, Calendar, Layout, Trash2, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, MoreHorizontal, X, Check, AlertTriangle, Calendar, Layout, Trash2, ArrowLeft } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { Task, Priority, Status, CalendarEvent } from '../types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { STATUS_COLORS, PRIORITY_COLORS } from '../constants';
 import { TaskItem } from '../components/nexus/TaskItem';
 import { formatHebrewDate, getHebrewDay, getHebrewMonthName, getHebrewYear, getHebrewYearLetters, isShabbat, isJewishHoliday, getJewishHolidayName, getJewishHolidays } from '../lib/hebrew-calendar';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const CalendarView: React.FC = () => {
   const { tasks, users, openCreateTask, isCalendarConnected, isConnectingCalendar, calendarEvents, connectGoogleCalendar, openTask, updateTask } = useData();
@@ -262,7 +263,7 @@ export const CalendarView: React.FC = () => {
                         }`}
                       >
                           {isConnectingCalendar ? (
-                              <Loader2 size={12} className="animate-spin" />
+                              <Skeleton className="w-3 h-3 md:w-4 md:h-4 rounded-full" />
                           ) : isCalendarConnected ? (
                               <Check size={12} />
                           ) : (

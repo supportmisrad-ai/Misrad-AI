@@ -1,35 +1,29 @@
 'use client';
 
-import { useChat } from '@ai-sdk/react';
 import { useState, useEffect, useRef } from 'react';
-import { Send, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface ChatInterfaceProps {
   className?: string;
   initialMessage?: string;
 }
 
+type ChatMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  parts: Array<{ type: 'text'; text: string }>;
+};
+
 export default function ChatInterface({ className = '', initialMessage }: ChatInterfaceProps) {
   const [input, setInput] = useState(initialMessage || '');
   const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  
-  let chatHook;
-  try {
-    chatHook = useChat({
-      api: '/api/chat',
-    });
-  } catch (error) {
-    console.error('Error initializing useChat:', error);
-    return (
-      <div className={`flex flex-col h-full ${className} items-center justify-center p-4`}>
-        <div className="text-red-600 text-sm">שגיאה בטעינת Chat. נא לרענן את הדף.</div>
-      </div>
-    );
-  }
-  
-  const { messages, sendMessage, isLoading, error } = chatHook;
+
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -65,13 +59,48 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    
-    sendMessage({ text: input });
+
+    const userText = input;
+    const userMessage: ChatMessage = {
+      id: `user_${Date.now()}`,
+      role: 'user',
+      parts: [{ type: 'text', text: userText }],
+    };
+
     setInput('');
-    // Reset textarea height
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
+    if (inputRef.current) inputRef.current.style.height = 'auto';
+
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    setError(null);
+
+    (async () => {
+      try {
+        const nextMessages = [...messages, userMessage];
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: nextMessages }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(String((data as any)?.error || 'שגיאה בבוט. נסה שוב.'));
+        }
+
+        const text = await res.text();
+        const assistantMessage: ChatMessage = {
+          id: `assistant_${Date.now()}`,
+          role: 'assistant',
+          parts: [{ type: 'text', text: text || '' }],
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+      } catch (err: any) {
+        setError(String(err?.message || 'שגיאה בבוט. נסה שוב.'));
+      } finally {
+        setIsLoading(false);
+      }
+    })();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -136,62 +165,11 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
               }`}
             >
               <div className="whitespace-pre-wrap break-words">
-                {message.parts.map((part, i) => {
-                  switch (part.type) {
-                    case 'text':
-                      return (
-                        <div key={`${message.id}-${i}`} className="text-sm leading-relaxed">
-                          {part.text}
-                        </div>
-                      );
-                    case 'tool-call':
-                      return (
-                        <div
-                          key={`${message.id}-${i}`}
-                          className="mt-2 p-2 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono"
-                        >
-                          <div className="text-gray-600 dark:text-gray-300">
-                            🔧 קריאה לכלי: {part.toolName}
-                          </div>
-                          <pre className="mt-1 text-xs overflow-x-auto">
-                            {JSON.stringify(part.args, null, 2)}
-                          </pre>
-                        </div>
-                      );
-                    case 'tool-result':
-                      return (
-                        <div
-                          key={`${message.id}-${i}`}
-                          className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded text-xs"
-                        >
-                          <div className="text-green-700 dark:text-green-400">
-                            ✅ תוצאה: {part.toolName}
-                          </div>
-                          <pre className="mt-1 text-xs overflow-x-auto text-gray-700 dark:text-gray-300">
-                            {JSON.stringify(part.result, null, 2)}
-                          </pre>
-                        </div>
-                      );
-                    default:
-                      // Handle tool-specific parts (tool-weather, tool-getCRMStats, etc.)
-                      if (part.type.startsWith('tool-')) {
-                        return (
-                          <div
-                            key={`${message.id}-${i}`}
-                            className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs"
-                          >
-                            <div className="text-blue-700 dark:text-blue-400">
-                              🔧 {part.type}
-                            </div>
-                            <pre className="mt-1 text-xs overflow-x-auto text-gray-700 dark:text-gray-300">
-                              {JSON.stringify(part, null, 2)}
-                            </pre>
-                          </div>
-                        );
-                      }
-                      return null;
-                  }
-                })}
+                {message.parts.map((part, i) => (
+                  <div key={`${message.id}-${i}`} className="text-sm leading-relaxed">
+                    {part.text}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -204,7 +182,7 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
               <Bot className="w-4 h-4 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              <Skeleton className="w-4 h-4 rounded-full" />
             </div>
           </div>
         )}
@@ -212,7 +190,7 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
         {/* Error Message */}
         {error && (
           <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
-            שגיאה: {error.message || 'אירעה שגיאה. נסה שוב.'}
+            שגיאה: {error}
           </div>
         )}
 
@@ -249,7 +227,7 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
             title="שלח (Enter)"
           >
             {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Skeleton className="w-5 h-5 rounded-full bg-white/30" />
             ) : (
               <Send className="w-5 h-5" />
             )}

@@ -89,11 +89,11 @@ export const ClientOSDemo = () => {
                                     ))}
                                 </div>
                                 
-                                <div className="mt-auto bg-amber-50 border-r-2 border-amber-300 p-2.5 flex items-start gap-2">
-                                    <AlertTriangle size={12} className="text-amber-500 shrink-0 mt-0.5" />
+                                <div className="mt-auto bg-[#C5A572]/10 border-r-2 border-[#C5A572]/50 p-2.5 flex items-start gap-2">
+                                    <AlertTriangle size={12} className="text-[#C5A572] shrink-0 mt-0.5" />
                                     <div className="space-y-0.5">
-                                        <div className="text-[10px] text-amber-800 font-bold">התראת נטישה</div>
-                                        <div className="text-[10px] text-amber-700 leading-tight">זוהתה ירידה בפעילות בתיק CyberArk. מומלץ ליזום שיחה.</div>
+                                        <div className="text-[10px] text-slate-900 font-bold">התראת נטישה</div>
+                                        <div className="text-[10px] text-slate-700 leading-tight">זוהתה ירידה בפעילות בתיק CyberArk. מומלץ ליזום שיחה.</div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -178,7 +178,7 @@ export const ClientOSDemo = () => {
                                     { task: "שליחת דוח סיכום חודש", client: "Fiverr", time: "מחר", urgent: false },
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center gap-3 p-3 rounded border border-slate-200 bg-white">
-                                        <div className={`w-1 h-8 rounded-full ${item.urgent ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
+                                        <div className={`w-1 h-8 rounded-full ${item.urgent ? 'bg-[#C5A572]' : 'bg-slate-300'}`}></div>
                                         <div className="flex-1">
                                             <div className="text-xs text-slate-900 font-medium">{item.task}</div>
                                             <div className="text-[10px] text-slate-500 mt-0.5 flex gap-2">
@@ -205,7 +205,7 @@ export const ClientOSDemo = () => {
                 </div>
             </div>
 
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-amber-200/30 blur-[100px] pointer-events-none rounded-full"></div>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-[#C5A572]/20 blur-[100px] pointer-events-none rounded-full"></div>
         </div>
     );
 };

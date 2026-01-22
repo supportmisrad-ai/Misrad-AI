@@ -49,6 +49,7 @@ export const DynamicFavicon: React.FC = () => {
             if (/(^|\/)(system(-os)?)(\/|$)/i.test(p) || /(^|\/)w\/[^/]+\/system(\/|$)/i.test(p)) return '/icons/system-icon.svg';
             if (/(^|\/)(social)(\/|$)/i.test(p) || /(^|\/)w\/[^/]+\/social(\/|$)/i.test(p)) return '/icons/social-icon.svg';
             if (/(^|\/)(finance)(\/|$)/i.test(p) || /(^|\/)w\/[^/]+\/finance(\/|$)/i.test(p)) return '/icons/finance-icon.svg';
+            if (/(^|\/)(client)(\/|$)/i.test(p) || /(^|\/)w\/[^/]+\/client(\/|$)/i.test(p)) return '/icons/client-icon.svg';
             return '/icons/misrad-icon.svg';
         };
 

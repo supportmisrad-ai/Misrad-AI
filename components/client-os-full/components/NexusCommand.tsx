@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Search, Command, ArrowRight, UserCircle, LayoutDashboard, Briefcase, Calculator, Users, Zap, CheckSquare, Sparkles, MessageSquare, CornerDownLeft, Loader2, FileText } from 'lucide-react';
+import { Search, Command, ArrowRight, UserCircle, LayoutDashboard, Briefcase, Calculator, Users, Zap, CheckSquare, Sparkles, MessageSquare, CornerDownLeft, FileText } from 'lucide-react';
 import { useNexus } from '../context/ClientContext';
 import { HealthStatus } from '../types';
 import { usePathname } from 'next/navigation';
@@ -7,6 +7,7 @@ import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
 import { getSemanticStarters } from '@/components/command-palette/semanticStarters';
 import { ChatSources } from '@/components/command-palette/ChatSources';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface NexusCommandProps {
   onNavigate: (view: string) => void;
@@ -256,7 +257,7 @@ const NexusCommand: React.FC<NexusCommandProps> = ({ onNavigate, onSelectClient 
         {/* AI Response Area */}
         {isAiThinking && (
           <div className="p-6 bg-nexus-bg border-b border-gray-100 flex items-center gap-3">
-            <Loader2 className="animate-spin text-nexus-accent" size={20} />
+            <Skeleton className="w-5 h-5 rounded-full" />
             <span className="text-sm font-medium text-gray-600">חושב על זה...</span>
           </div>
         )}

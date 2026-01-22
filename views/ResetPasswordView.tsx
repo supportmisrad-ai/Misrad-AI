@@ -396,7 +396,7 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <>טוען...</>
                                     ) : (
                                         <>
                                             שלח קוד אימות <ArrowLeft size={18} />
@@ -462,7 +462,7 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <>טוען...</>
                                     ) : (
                                         <>
                                             אמת קוד <ArrowLeft size={18} />
@@ -571,7 +571,7 @@ export const ResetPasswordView: React.FC = () => {
                                     className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {isLoading ? (
-                                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <>טוען...</>
                                     ) : success ? (
                                         <>
                                             מפנה אותך... <ArrowRight size={18} />

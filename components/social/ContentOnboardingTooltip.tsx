@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Copy, X, Sparkles } from 'lucide-react';
 
-const STORAGE_KEY = 'seen_content_tooltip_v2';
+let hasSeenContentTooltip = false;
 
 interface ContentOnboardingTooltipProps {
   targetElementId?: string; // ID of the element to attach tooltip to
@@ -18,8 +18,7 @@ export default function ContentOnboardingTooltip({ targetElementId, onClose }: C
 
   useEffect(() => {
     // Check if user has seen this tooltip
-    const hasSeen = localStorage.getItem(STORAGE_KEY);
-    if (hasSeen) return;
+    if (hasSeenContentTooltip) return;
 
     // Wait a bit for the page to render
     const timer = setTimeout(() => {
@@ -39,7 +38,7 @@ export default function ContentOnboardingTooltip({ targetElementId, onClose }: C
   }, []);
 
   const handleClose = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    hasSeenContentTooltip = true;
     setIsVisible(false);
     if (onClose) onClose();
   };

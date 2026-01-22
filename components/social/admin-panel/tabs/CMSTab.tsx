@@ -12,6 +12,10 @@ interface CMSTabProps {
 }
 
 export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps) {
+  const getContentValue = (page: 'landing' | 'pricing' | 'legal', key: string) => {
+    return siteContent?.[page]?.find((c: any) => c.key === key)?.content;
+  };
+
   return (
     <motion.div key="cms" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8 w-full">
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 rounded-3xl overflow-hidden w-full shadow-md">
@@ -358,6 +362,120 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 rows={10}
                 className="w-full p-4 bg-white border border-emerald-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-emerald-400 resize-none"
               />
+            </div>
+
+            <div className="bg-slate-50/50 p-8 rounded-3xl border border-slate-200">
+              <h4 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
+                <FileText className="text-slate-700" size={24} />
+                מסמכי מדיניות (Legal) - Markdown
+              </h4>
+
+              <div className="grid grid-cols-1 gap-6">
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2">מדיניות פרטיות - Markdown</label>
+                  <textarea
+                    defaultValue={String(getContentValue('legal', 'privacy_markdown') || '')}
+                    onBlur={async (e) => {
+                      const result = await bulkUpdateSiteContent([{
+                        page: 'legal',
+                        section: 'documents',
+                        key: 'privacy_markdown',
+                        content: e.target.value,
+                      }]);
+                      if (result.success) {
+                        addToast('מדיניות פרטיות עודכנה', 'success');
+                        onRefresh();
+                      }
+                    }}
+                    rows={10}
+                    className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-slate-300 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2">תנאי שימוש - Markdown</label>
+                  <textarea
+                    defaultValue={String(getContentValue('legal', 'terms_markdown') || '')}
+                    onBlur={async (e) => {
+                      const result = await bulkUpdateSiteContent([{
+                        page: 'legal',
+                        section: 'documents',
+                        key: 'terms_markdown',
+                        content: e.target.value,
+                      }]);
+                      if (result.success) {
+                        addToast('תנאי שימוש עודכנו', 'success');
+                        onRefresh();
+                      }
+                    }}
+                    rows={10}
+                    className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-slate-300 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2">מדיניות החזרים וזיכויים - Markdown</label>
+                  <textarea
+                    defaultValue={String(getContentValue('legal', 'refund_policy_markdown') || '')}
+                    onBlur={async (e) => {
+                      const result = await bulkUpdateSiteContent([{
+                        page: 'legal',
+                        section: 'documents',
+                        key: 'refund_policy_markdown',
+                        content: e.target.value,
+                      }]);
+                      if (result.success) {
+                        addToast('מדיניות החזרים עודכנה', 'success');
+                        onRefresh();
+                      }
+                    }}
+                    rows={10}
+                    className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-slate-300 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2">הצהרת נגישות - Markdown</label>
+                  <textarea
+                    defaultValue={String(getContentValue('legal', 'accessibility_markdown') || '')}
+                    onBlur={async (e) => {
+                      const result = await bulkUpdateSiteContent([{
+                        page: 'legal',
+                        section: 'documents',
+                        key: 'accessibility_markdown',
+                        content: e.target.value,
+                      }]);
+                      if (result.success) {
+                        addToast('הצהרת נגישות עודכנה', 'success');
+                        onRefresh();
+                      }
+                    }}
+                    rows={10}
+                    className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-slate-300 resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-black text-slate-700 mb-2">מדיניות אבטחת מידע - Markdown</label>
+                  <textarea
+                    defaultValue={String(getContentValue('legal', 'security_markdown') || '')}
+                    onBlur={async (e) => {
+                      const result = await bulkUpdateSiteContent([{
+                        page: 'legal',
+                        section: 'documents',
+                        key: 'security_markdown',
+                        content: e.target.value,
+                      }]);
+                      if (result.success) {
+                        addToast('מדיניות אבטחת מידע עודכנה', 'success');
+                        onRefresh();
+                      }
+                    }}
+                    rows={10}
+                    className="w-full p-4 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono text-sm outline-none focus:border-slate-300 resize-none"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

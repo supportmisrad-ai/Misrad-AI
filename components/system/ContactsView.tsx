@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { Lead, PipelineStage } from './types';
 import { STAGES } from './constants';
 import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
-import useLocalStorage from './hooks/useLocalStorage';
 import { useToast } from './contexts/ToastContext';
 import LogCallModal from './LogCallModal';
 import { createSystemLeadActivity } from '@/app/actions/system-leads';
@@ -20,8 +19,8 @@ interface ContactsViewProps {
 const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', onLeadClick }) => {
   const { addToast } = useToast();
   const pathname = usePathname();
-  const [searchTerm, setSearchTerm] = useLocalStorage<string>('contacts_search', '');
-  const [statusFilter, setStatusFilter] = useLocalStorage<PipelineStage | 'all'>('contacts_filter', 'all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<PipelineStage | 'all'>('all');
   const [logCallLead, setLogCallLead] = useState<Lead | null>(null);
 
   // Rule 9: Performance Strategy - Memoized Filtering

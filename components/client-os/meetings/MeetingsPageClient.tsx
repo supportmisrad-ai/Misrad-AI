@@ -4,10 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Meeting, Client, MeetingAnalysisResult } from '@/components/client-os-full/types';
 import { MeetingResultDashboard } from './MeetingResultDashboard';
-import { Video, UploadCloud, Mic, MicOff, Zap, Loader2, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
+import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
 import { createClinicSession, createClinicClient } from '@/app/actions/client-clinic';
 import { supabase } from '@/lib/supabase-client';
 import { motion } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface MeetingsPageClientProps {
   initialMeetings: Meeting[];
@@ -364,7 +365,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                                   disabled={isCreatingClient}
                                   className="bg-primary text-white text-xs px-6 py-2.5 rounded-xl font-bold hover:bg-primary-glow flex items-center gap-2 shadow-lg shadow-primary/20"
                               >
-                                  {isCreatingClient && <Loader2 size={12} className="animate-spin" />}
+                                  {isCreatingClient && <Skeleton className="w-3 h-3 rounded-full bg-white/30" />}
                                   צור לקוח
                               </button>
                           </div>
@@ -398,7 +399,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                       disabled={isAdding}
                       className="flex-[2] bg-nexus-gradient text-white py-5 rounded-[2rem] font-black text-lg hover:shadow-2xl hover:shadow-primary/30 transition-all flex justify-center items-center gap-3 active:scale-[0.98]"
                     >
-                      {isAdding && <Loader2 size={24} className="animate-spin" />}
+                      {isAdding && <Skeleton className="w-6 h-6 rounded-full bg-white/30" />}
                       שמור פגישה במערכת
                     </button>
                     <button 
@@ -450,7 +451,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                       <div className="space-y-6">
                         <div className="ui-card p-8 bg-nexus-gradient text-white flex flex-col gap-6">
                             <div className="flex items-center gap-3 text-white/80 font-black uppercase text-xs tracking-widest">
-                                <Zap size={18} className="text-yellow-400 fill-yellow-400" />
+                                <Zap size={18} className="text-[color:var(--os-accent)]" />
                                 <span>תובנות AI בזמן אמת</span>
                             </div>
                             <div className="p-6 bg-black/20 backdrop-blur-md rounded-[2rem] border border-white/10 shadow-inner min-h-[150px] flex items-center justify-center text-center">
@@ -458,7 +459,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                             </div>
                             <div className="space-y-2">
                                 <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <motion.div className="h-full bg-yellow-400" animate={{ width: ['0%', '100%'] }} transition={{ duration: 5, repeat: Infinity }} />
+                                    <motion.div className="h-full bg-[color:var(--os-accent)]" animate={{ width: ['0%', '100%'] }} transition={{ duration: 5, repeat: Infinity }} />
                                 </div>
                                 <p className="text-[10px] text-white/40 text-center uppercase tracking-widest font-black">מנתח סנטימנט לקוח</p>
                             </div>
@@ -479,7 +480,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                           />
                       </div>
                       <div className="mx-auto w-24 h-24 rounded-[2rem] bg-primary/5 flex items-center justify-center mb-5 border border-primary/10">
-                          <Loader2 size={48} className="text-primary animate-spin" />
+                          <Skeleton className="w-12 h-12 rounded-full bg-primary/10" />
                       </div>
                       <div className="space-y-3">
                         <h3 className="text-4xl font-black text-slate-900 tracking-tight">מנתח את ההקלטה</h3>
@@ -589,7 +590,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                                 className="ui-card p-8 bg-white cursor-pointer group relative overflow-hidden flex flex-col h-full"
                             >
                                 <div className="flex justify-between items-start mb-6">
-                                    <div className={`p-4 rounded-2xl transition-all duration-500 ${m.location === 'ZOOM' ? 'bg-blue-50 text-blue-600' : m.location === 'FRONTAL' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                                    <div className={`p-4 rounded-2xl transition-all duration-500 ${m.location === 'ZOOM' ? 'bg-blue-50 text-blue-600' : m.location === 'FRONTAL' ? 'bg-emerald-50 text-emerald-600' : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)]'}`}>
                                         <Video size={24} />
                                     </div>
                                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{m.date}</span>

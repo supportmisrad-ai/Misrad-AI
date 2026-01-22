@@ -4,9 +4,10 @@ import { Lead } from '../types';
 import { 
     X, Presentation, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, 
     Download, BarChart3, PieChart, TrendingUp, Target, Calendar, 
-    Briefcase, Loader2, ArrowRight
+    Briefcase, ArrowRight
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface QBRGeneratorModalProps {
     lead: Lead;
@@ -168,7 +169,7 @@ const QBRGeneratorModal: React.FC<QBRGeneratorModalProps> = ({ lead, onClose }) 
                             
                             <div className="relative w-64 h-64 mb-8">
                                 <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
-                                <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                                <Skeleton className="absolute inset-0 rounded-full bg-indigo-100" />
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="text-center">
                                         <Briefcase size={48} className="text-indigo-600 mx-auto mb-2 animate-bounce" />

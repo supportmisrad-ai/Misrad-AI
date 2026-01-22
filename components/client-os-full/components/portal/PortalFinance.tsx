@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Wallet, CreditCard, Zap, Loader2, Receipt, Download, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
+import { Wallet, CreditCard, Zap, Receipt, Download, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 
 interface PortalFinanceProps {
   client: any;
@@ -64,7 +64,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
                 disabled={isPaying}
                 className="w-full py-4 bg-nexus-accent text-slate-900 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
               >
-                {isPaying ? <Loader2 className="animate-spin" /> : <><Zap size={18} fill="currentColor" /> שלם עכשיו (QuickPay)</>}
+                {isPaying ? 'משלם...' : <><Zap size={18} fill="currentColor" /> שלם עכשיו (QuickPay)</>}
               </button>
             </div>
           </div>
@@ -92,7 +92,7 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
                     <td className="px-6 py-5 text-sm text-slate-500">{inv.date}</td>
                     <td className="px-6 py-5 font-bold">₪{inv.amount.toLocaleString()}</td>
                     <td className="px-6 py-5">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${inv.status === 'PAID' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-yellow-50 text-yellow-600 border-yellow-100'}`}>
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold border ${inv.status === 'PAID' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] border-[color:var(--os-accent)]/30'}`}>
                         {inv.status === 'PAID' ? 'שולם' : 'ממתין'}
                       </span>
                     </td>

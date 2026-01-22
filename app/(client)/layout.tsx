@@ -10,14 +10,14 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   ...getSystemMetadata('client'),
   icons: {
-    icon: [{ url: '/icons/misrad-icon.svg', type: 'image/svg+xml' }],
-    apple: '/icons/misrad-icon.svg',
-    shortcut: '/icons/misrad-icon.svg',
+    icon: [{ url: '/icons/client-icon.svg', type: 'image/svg+xml' }],
+    apple: '/icons/client-icon.svg',
+    shortcut: '/icons/client-icon.svg',
   },
   other: {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'theme-color': '#D97706',
+    'theme-color': '#0F172A',
   },
 };
 

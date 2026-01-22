@@ -44,8 +44,8 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
       <div className="px-6 mb-2 flex-shrink-0">
          <div className="h-[80px] md:h-[100px] flex items-center justify-between mb-3">
             <div className="flex items-center gap-4 flex-shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-nexus-accent to-[#A38650] flex items-center justify-center text-white font-display font-bold text-xl shadow-glow-gold border border-white/10">
-                  C
+                <div className="w-10 h-10 rounded-xl bg-[#0F172A] flex items-center justify-center shadow-glow-gold border border-white/10 overflow-hidden">
+                  <img src="/icons/client-icon.svg" alt="Client" className="w-full h-full object-contain p-1.5" />
                 </div>
                 <div className="flex flex-col">
                     <span className="font-display font-semibold text-2xl tracking-tight text-slate-900 leading-none">Client</span>
@@ -81,7 +81,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                                     key={item.id}
                                     onClick={() => handleNavClick(item.id)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleNavClick(item.id)}
-                                    className={`w-full flex items-center relative px-6 py-3.5 transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-amber-500 border-2 ${
+                                    className={`w-full flex items-center relative px-6 py-3.5 transition-all duration-300 group outline-none focus-visible:ring-2 focus-visible:ring-[#C5A572] border-2 ${
                                         isActive 
                                           ? 'border-transparent' 
                                           : 'border-transparent hover:bg-slate-50/80 rounded-2xl'
@@ -91,13 +91,13 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                                     {isActive && (
                                         <motion.div
                                             layoutId="active-nav-bg-client"
-                                            className="absolute inset-0 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-xl shadow-amber-500/20"
+                                            className="absolute inset-0 bg-[#0F172A] rounded-2xl shadow-xl shadow-black/10"
                                             transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                         />
                                     )}
                                     
                                     <div className={`relative z-10 flex items-center gap-4 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-900'}`}>
-                                        <Icon size={20} strokeWidth={isActive ? 3 : 2} className={`transition-colors duration-200 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-amber-500'}`} />
+                                        <Icon size={20} strokeWidth={isActive ? 3 : 2} className={`transition-colors duration-200 ${isActive ? 'text-[#C5A572]' : 'text-slate-400 group-hover:text-[#C5A572]'}`} />
                                         <span className="text-sm font-bold tracking-tight">{item.label}</span>
                                     </div>
                                 </button>

@@ -3,13 +3,16 @@
 import React, { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { LifeBuoy, Send, ArrowRight } from 'lucide-react';
+import { LifeBuoy, Send, ArrowRight, MessageCircle } from 'lucide-react';
+import { getContentByKey } from '@/app/actions/site-content';
 
 function SupportPageInner() {
   const searchParams = useSearchParams();
   const topic = searchParams?.get('topic') || '';
 
   const [backHref, setBackHref] = useState<string>('/');
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
 
   React.useEffect(() => {
     let cancelled = false;
@@ -19,14 +22,32 @@ function SupportPageInner() {
         if (!res.ok) return;
         const data = await res.json();
         const first = Array.isArray(data?.workspaces) ? data.workspaces[0] : null;
-        const orgId = first?.slug || first?.id;
-        if (!orgId) return;
-        const href = `/w/${encodeURIComponent(String(orgId))}/client`;
+        const nextOrgId = first?.slug || first?.id;
+        if (!nextOrgId) return;
+        const href = `/w/${encodeURIComponent(String(nextOrgId))}/client`;
         if (!cancelled) setBackHref(href);
+        if (!cancelled) setOrgId(String(nextOrgId));
       } catch {
         // ignore
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getContentByKey('landing', 'support', 'support_whatsapp_group_url');
+        const next = typeof res.data === 'string' ? res.data : '';
+        if (!cancelled) setWhatsappGroupUrl(next);
+      } catch {
+        // ignore
+      }
+    })();
+
     return () => {
       cancelled = true;
     };
@@ -69,7 +90,10 @@ function SupportPageInner() {
     try {
       const res = await fetch('/api/support', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          ...(orgId ? { 'x-org-id': orgId } : {}),
+        },
         body: JSON.stringify({
           category,
           subject: subject.trim(),
@@ -117,8 +141,24 @@ function SupportPageInner() {
         <div className="bg-white/70 backdrop-blur-2xl border border-white/60 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.06)] p-6">
           {successId ? (
             <div className="space-y-3">
-              <div className="text-lg font-black text-slate-900">הקריאה נשלחה בהצלחה</div>
+              <div className="text-lg font-black text-slate-900">תודה על הפידבק!</div>
+              <div className="text-sm text-slate-600">הצוות קיבל את הבקשה והוא מטפל בזה בהקדם האפשרי.</div>
               <div className="text-sm text-slate-600">מספר/מזהה: {String(successId)}</div>
+
+              {whatsappGroupUrl && whatsappGroupUrl.trim() ? (
+                <div className="pt-2">
+                  <a
+                    href={whatsappGroupUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-black hover:bg-emerald-100 transition-all"
+                  >
+                    <MessageCircle size={16} />
+                    הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ
+                  </a>
+                </div>
+              ) : null}
+
               <div className="pt-2">
                 <Link
                   href={backHref}

@@ -1,59 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Rocket, Sparkles, ShieldCheck, Zap, 
-  CheckCircle2, ChevronLeft, ArrowRight, Play, X, Video, Activity, Quote, Star,
-  Users, TrendingUp, Clock, Award, Shield, ChevronDown, Accessibility, Calendar, Moon, Sun
-} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { getContentByKey } from '@/app/actions/site-content';
-
-// Default content (fallback)
-const DEFAULT_TESTIMONIALS = [
-  {
-    name: 'לירון אביב',
-    role: 'בעלים, AVIV Digital',
-    quote: 'המעבר ל-Social חסך לנו 15 שעות עבודה בשבוע רק על אישורים מול לקוחות. זה פשוט מוצר מטורף.',
-    avatar: 'https://i.pravatar.cc/150?u=liron'
-  },
-  {
-    name: 'יונתן לוי',
-    role: 'מנהל קריאייטיב, Blue Ocean',
-    quote: 'ה-DNA של ה-AI כל כך מדויק שהלקוחות שלי בטוחים שאני כותב כל מילה בעצמי. מומלץ בחום.',
-    avatar: 'https://i.pravatar.cc/150?u=yonatan'
-  },
-  {
-    name: 'מיכל כהן',
-    role: 'פרילנסרית סושיאל',
-    quote: 'הגבייה האוטומטית שינתה לי את החיים. אני כבר לא צריכה לרדוף אחרי כסף, המערכת עושה את זה בשבילי.',
-    avatar: 'https://i.pravatar.cc/150?u=michal'
-  }
-];
-
-const DEFAULT_FEATURES = [
-  { title: 'הקמת לקוח ב-60 שניות', desc: 'שלחו לינק וואטסאפ ללקוח, והוא כבר יזין הכל: לוגו, DNA, פרטי תשלום וגישה לרשתות.', icon: Rocket, color: 'bg-blue-600' },
-  { title: 'The Machine ✨', desc: 'Gemini 3 בונה עבורכם פוסטים בטון המדויק של המותג. מכירתי, מצחיק או רשמי - בלחיצת כפתור.', icon: Zap, color: 'bg-purple-600' },
-  { title: 'גבייה ללא מגע אדם', desc: 'תזכורות אוטומטיות, חסימת גישה לפורטל בפיגור וסנכרון מלא מול מורנינג/חשבונית ירוקה.', icon: ShieldCheck, color: 'bg-red-600' },
-  { title: 'מצב שבת אוטומטי', desc: 'המערכת שומרת שבת בשבילך - חוסמת את עצמה אוטומטית מרגע הדלקת נרות ועד צאת הכוכבים. ללא צורך בהתערבות ידנית.', icon: Moon, color: 'bg-indigo-600' },
-];
-
-const ICON_MAP: Record<string, any> = {
-  Rocket,
+import { 
+  CheckCircle2,
+  ChevronLeft,
+  ArrowRight,
+  Play,
+  X,
+  Video,
+  Activity,
+  Quote,
+  Star,
+  Users,
+  TrendingUp,
+  Clock,
+  MessageSquare,
+  Shield,
+  Sparkles,
+  Target,
   Zap,
+  Award,
+  Calendar,
+  Moon,
+  Sun,
   ShieldCheck,
-};
+  Rocket,
+  ChevronDown,
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
+import { useLandingContent } from '@/components/social/landing/useLandingContent';
 
 export default function LandingPage() {
   const router = useRouter();
+  const { heroTitle, heroSubtitle, features, testimonials, isLoading } = useLandingContent();
   const [demoStep, setDemoStep] = useState(0);
   const [activeVideo, setActiveVideo] = useState<any>(null);
-  const [heroTitle, setHeroTitle] = useState('נהלו את הסושיאל באפס מאמץ.');
-  const [heroSubtitle, setHeroSubtitle] = useState('שחררו את המחסומים. פוסטים ב-DNA של המותג בלחיצת כפתור, גבייה אוטומטית ופורטלים ממותגים ללקוחות - הכל במקום אחד, שקט ומאורגן.');
-  const [features, setFeatures] = useState(DEFAULT_FEATURES);
-  const [testimonials, setTestimonials] = useState(DEFAULT_TESTIMONIALS);
-  const [isLoading, setIsLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
   const [fontSize, setFontSize] = useState(100); // percentage
@@ -70,53 +54,6 @@ export default function LandingPage() {
     }, 100);
     
     return () => clearTimeout(timeout);
-  }, []);
-
-  // Load dynamic content from DB
-  useEffect(() => {
-    const loadContent = async () => {
-      // Set a timeout to ensure loading state doesn't persist forever
-      const timeoutId = setTimeout(() => {
-        setIsLoading(false);
-      }, 3000); // Max 3 seconds loading
-
-      try {
-        const [titleResult, subtitleResult, featuresResult, testimonialsResult] = await Promise.all([
-          getContentByKey('landing', 'hero', 'hero_title').catch(() => ({ success: false, data: null })),
-          getContentByKey('landing', 'hero', 'hero_subtitle').catch(() => ({ success: false, data: null })),
-          getContentByKey('landing', 'features', 'features').catch(() => ({ success: false, data: null })),
-          getContentByKey('landing', 'testimonials', 'testimonials').catch(() => ({ success: false, data: null })),
-        ]);
-
-        clearTimeout(timeoutId);
-
-        if (titleResult.success && titleResult.data) {
-          setHeroTitle(titleResult.data);
-        }
-        if (subtitleResult.success && subtitleResult.data) {
-          setHeroSubtitle(subtitleResult.data);
-        }
-        if (featuresResult.success && featuresResult.data) {
-          // Map icon strings to actual components
-          const mappedFeatures = featuresResult.data.map((f: any) => ({
-            ...f,
-            icon: ICON_MAP[f.icon] || Rocket,
-          }));
-          setFeatures(mappedFeatures);
-        }
-        if (testimonialsResult.success && testimonialsResult.data) {
-          setTestimonials(testimonialsResult.data);
-        }
-      } catch (error) {
-        clearTimeout(timeoutId);
-        console.error('Error loading site content:', error);
-        // Use defaults on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadContent();
   }, []);
 
   useEffect(() => {
@@ -159,7 +96,7 @@ export default function LandingPage() {
           className="w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all"
           aria-label="נגישות"
         >
-          <Accessibility size={24} />
+          <Shield size={24} />
         </button>
         {accessibilityOpen && (
           <motion.div
@@ -215,9 +152,12 @@ export default function LandingPage() {
             <button onClick={handleGetStarted} className="text-slate-500 font-black text-sm px-6 py-2 hover:bg-slate-50 rounded-xl transition-all">התחברות</button>
             <button 
               onClick={handleGetStarted}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_20px_40px_-12px_rgba(59,130,246,0.3)] hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_20px_40px_-12px_rgba(59,130,246,0.3)] hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
             >
-              התחל בחינם
+              <span className="relative z-10 flex items-center gap-3">
+                התחל בחינם <ChevronLeft size={24} />
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </button>
           </div>
         </div>
@@ -233,7 +173,7 @@ export default function LandingPage() {
             className="flex flex-col gap-10 text-right relative z-10"
           >
             <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-100/50 text-blue-600 px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest self-start shadow-sm">
-              <Sparkles size={14} className="animate-pulse" /> המערכת שמשנה את כללי המשחק
+              <Sparkles size={14} /> המערכת שמשנה את כללי המשחק
             </div>
             
             <h1 className="text-6xl md:text-8xl font-black text-slate-900 tracking-tighter leading-[0.95]">
@@ -261,10 +201,10 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               <button 
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-6 rounded-[32px] font-black text-xl shadow-[0_30px_60px_-15px_rgba(59,130,246,0.4)] flex items-center justify-center gap-4 hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-6 rounded-2xl font-black text-xl shadow-[0_30px_60px_-15px_rgba(59,130,246,0.4)] flex items-center justify-center gap-4 hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-3">
-                  התחל ניסיון חינם <ChevronLeft size={24} />
+                  התחל בחינם <ChevronLeft size={24} />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
@@ -297,9 +237,8 @@ export default function LandingPage() {
                       className="w-full max-w-md bg-white border border-slate-200 p-8 rounded-[32px] shadow-sm"
                     >
                       <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4">שלב 1: הבריף</p>
-                      <p className="text-xl font-black text-slate-900 leading-relaxed">
-                        "הכנס את הבריף שלך כאן..."
-                      </p>
+                      <Skeleton className="h-6 w-full" />
+                      <Skeleton className="h-6 w-full mt-4" />
                     </motion.div>
                   )}
                   {demoStep === 1 && (
@@ -310,17 +249,8 @@ export default function LandingPage() {
                       exit={{ opacity: 0, scale: 1.1 }}
                       className="flex flex-col items-center gap-6"
                     >
-                      <div className="relative">
-                        <motion.div 
-                          animate={{ rotate: 360 }} 
-                          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                          className="w-24 h-24 border-t-4 border-blue-500 border-r-4 border-transparent rounded-full"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Zap className="text-blue-500 animate-pulse" size={40} />
-                        </div>
-                      </div>
-                      <p className="text-blue-400 font-black tracking-widest uppercase text-sm animate-pulse">Gemini מנתח DNA מותג...</p>
+                      <Skeleton className="w-24 h-24 rounded-full" />
+                      <p className="text-blue-400 font-black tracking-widest uppercase text-sm">Gemini מנתח DNA מותג...</p>
                     </motion.div>
                   )}
                   {demoStep === 2 && (
@@ -332,9 +262,8 @@ export default function LandingPage() {
                       className="w-full max-w-md bg-blue-600 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
                     >
                       <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-4">גרסת ה-AI מוכנה</p>
-                      <p className="text-2xl font-black text-white leading-tight">
-                        "חוץ סוער אבל בפנים... חגיגה טבעונית לוהטת! 🔥 הפיצה החדשה שלנו מחכה לכם עם 20% הנחה לכל הסופ״ש."
-                      </p>
+                      <Skeleton className="h-6 w-full" />
+                      <Skeleton className="h-6 w-full mt-4" />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -388,7 +317,7 @@ export default function LandingPage() {
               className="flex flex-col gap-8"
             >
               <div className="flex items-center gap-3 bg-purple-100/50 border border-purple-200/50 text-purple-700 px-5 py-2 rounded-full text-[11px] font-black uppercase tracking-widest self-start shadow-sm">
-                <Calendar size={14} className="animate-pulse" /> יתרון תחרותי בלעדי
+                <Calendar size={14} /> יתרון תחרותי בלעדי
               </div>
               
               <h2 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[0.95]">
@@ -636,7 +565,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center relative z-10 flex flex-col gap-12">
           <div className="flex flex-col gap-8">
             <div className="flex items-center justify-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 text-white px-6 py-3 rounded-full text-sm font-black uppercase tracking-widest self-center shadow-lg">
-              <Sparkles size={16} className="animate-pulse" /> מוכן להתחיל?
+              <Sparkles size={16} /> מוכן להתחיל?
             </div>
             
             <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-[0.95]">

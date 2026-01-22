@@ -2,8 +2,9 @@
 import React from 'react';
 import { 
   LayoutDashboard, FileText, Map, BarChart3, CreditCard, 
-  HelpCircle, MessageSquareWarning, LogOut, ShieldCheck 
+  HelpCircle, MessageSquareWarning, LogOut 
 } from 'lucide-react';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface PortalSidebarProps {
   activeScreen: string;
@@ -34,7 +35,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
       <div className="p-8">
         <div className="flex items-center gap-3 mb-12">
           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm">
-            <ShieldCheck size={24} />
+            <OSModuleIcon moduleKey="client" size={22} className="text-white" />
           </div>
           <div>
             <h1 className="font-display font-bold text-lg text-slate-900 leading-none">Nexus</h1>

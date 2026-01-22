@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { X, Send, Copy, Check, MessageCircle, Loader2, Link as LinkIcon, Zap, Eye } from 'lucide-react';
+import { X, Send, Copy, Check, MessageCircle, Link as LinkIcon, Zap, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { PricingPlan } from '@/types/social';
@@ -290,7 +290,7 @@ export default function InviteClientModal() {
                   className="w-full bg-slate-900 text-white py-4 sm:py-6 rounded-2xl sm:rounded-[28px] font-black text-lg sm:text-xl shadow-xl flex items-center justify-center gap-3 sm:gap-4 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800 min-h-[48px] sm:min-h-[56px]"
                 >
                   {isGenerating ? (
-                    <><Loader2 className="animate-spin sm:w-6 sm:h-6" size={20} /> מעבד...</>
+                    <>מעבד...</>
                   ) : (
                     <><Zap size={20} className="sm:w-6 sm:h-6" /> צור לינק הקמה</>
                   )}

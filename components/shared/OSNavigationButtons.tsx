@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { OS_MODULES, OSModule } from '../../types/os-modules';
-import { useOSModule } from '../../contexts/OSModuleContext';
 import { motion } from 'framer-motion';
+import { OS_MODULES, type OSModule } from '@/types/os-modules';
+import { useOSModule } from '@/contexts/OSModuleContext';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 
 interface OSNavigationButtonsProps {
   currentModule?: OSModule;
@@ -23,6 +24,15 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
 }) => {
   const { purchasedModules } = useOSModule();
 
+  const shouldOpenInNewTab = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      (window.navigator as any)?.standalone ||
+      Boolean((window as any)?.Capacitor?.isNativePlatform?.());
+    return !isStandalone;
+  };
+
   const resolveVillaRoute = (route: string): string => {
     if (!route.includes('[orgSlug]')) return route;
     if (typeof window === 'undefined') return '/';
@@ -37,7 +47,12 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
   const handleModuleClick = (moduleId: OSModule) => {
     const module = OS_MODULES.find(m => m.id === moduleId);
     if (module && typeof window !== 'undefined') {
-      window.location.href = resolveVillaRoute(module.route);
+      const href = resolveVillaRoute(module.route);
+      if (shouldOpenInNewTab()) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      window.location.href = href;
     }
   };
 
@@ -50,7 +65,6 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
     return (
       <div className={`flex flex-wrap gap-1.5 ${className}`}>
         {availableModules.map((module) => {
-          const Icon = module.icon;
           const isCurrent = currentModule === module.id;
           return (
             <motion.button
@@ -67,7 +81,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
               `}
               title={module.nameHebrew}
             >
-              <Icon size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+              <DynamicIcon name={module.iconName} size={16} strokeWidth={isCurrent ? 2.5 : 2} />
             </motion.button>
           );
         })}
@@ -83,7 +97,6 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
         </p>
       </div>
       {availableModules.map((module, index) => {
-        const Icon = module.icon;
         const isCurrent = currentModule === module.id;
         return (
           <motion.button
@@ -120,7 +133,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
                 : `bg-gradient-to-br ${module.gradient} text-white shadow-sm`
               }
             `}>
-              <Icon size={20} strokeWidth={isCurrent ? 2.5 : 2} />
+              <DynamicIcon name={module.iconName} size={20} strokeWidth={isCurrent ? 2.5 : 2} />
             </div>
             
             {/* Text */}

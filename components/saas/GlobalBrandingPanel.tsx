@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, Upload, Trash2, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const GlobalBrandingPanel: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -133,7 +134,7 @@ export const GlobalBrandingPanel: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="w-24 h-24 rounded-2xl border border-slate-200 bg-white flex items-center justify-center overflow-hidden">
                 {isLoading ? (
-                  <Loader2 size={28} className="animate-spin text-slate-500" />
+                  <Skeleton className="w-7 h-7 rounded-full" />
                 ) : defaultLogoUrl ? (
                   <img src={defaultLogoUrl} alt="Default Logo" className="w-full h-full object-contain p-3" />
                 ) : (
@@ -152,7 +153,7 @@ export const GlobalBrandingPanel: React.FC = () => {
                     disabled={isSaving || isLoading}
                     className="px-5 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black flex items-center gap-2 transition-all disabled:opacity-50"
                   >
-                    {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />}
+                    {isSaving ? <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" /> : <Upload size={18} />}
                     {defaultLogoUrl ? 'החלף לוגו' : 'העלה לוגו'}
                   </button>
 

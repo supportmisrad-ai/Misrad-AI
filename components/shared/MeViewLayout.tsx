@@ -55,7 +55,7 @@ export default function MeViewLayout({
                 <h1 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight" suppressHydrationWarning>
                   {name}
                 </h1>
-                {isCrowned ? <Crown size={24} className="text-yellow-500 fill-yellow-500" /> : null}
+                {isCrowned ? <Crown size={24} className="text-[color:var(--os-accent)] fill-[color:var(--os-accent)]" /> : null}
               </div>
 
               <div className="flex items-center gap-4 text-gray-500 font-medium text-base mb-6 flex-wrap">

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TrendingUp, Download, Sparkles, Target, BarChart, Loader2, ChevronLeft } from 'lucide-react';
+import { TrendingUp, Download, Sparkles, Target, BarChart, ChevronLeft } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 interface PortalMetricsProps {
@@ -95,7 +95,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
               </div>
               <div className="bg-white/5 px-4 py-2 rounded-xl border border-white/10">
                 <span className="text-[10px] text-slate-500 uppercase font-bold block">מלכודות פוטנציאליות</span>
-                <span className="text-sm font-bold text-yellow-400">—</span>
+                <span className="text-sm font-bold text-[color:var(--os-accent)]">—</span>
               </div>
             </div>
           </div>
@@ -150,7 +150,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
                     disabled={isAnalyzingMetrics}
                     className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:border-nexus-accent hover:text-nexus-accent transition-all flex items-center justify-center gap-2 mb-6"
                   >
-                    {isAnalyzingMetrics ? <Loader2 size={16} className="animate-spin" /> : <><Sparkles size={16} /> נתח התקדמות עם AI</>}
+                    {isAnalyzingMetrics ? 'מנתח...' : <><Sparkles size={16} /> נתח התקדמות עם AI</>}
                   </button>
                 )}
 

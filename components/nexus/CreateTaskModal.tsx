@@ -10,9 +10,79 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { CustomTimePicker } from '../CustomTimePicker';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CreateTaskModalProps {
     onClose: () => void;
+}
+
+function getPrioritySolidColor(p: Priority) {
+    switch(p) {
+        case Priority.URGENT: return 'bg-red-600';
+        case Priority.HIGH: return 'bg-orange-600';
+        case Priority.MEDIUM: return 'bg-amber-500';
+        case Priority.LOW: return 'bg-slate-500';
+        default: return 'bg-gray-500';
+    }
+}
+
+function getStatusSolidColor(colorClass: string) {
+    if (colorClass.includes('green')) return 'bg-green-600';
+    if (colorClass.includes('blue')) return 'bg-gray-600';
+    if (colorClass.includes('orange')) return 'bg-orange-600';
+    if (colorClass.includes('red')) return 'bg-red-600';
+    return 'bg-gray-600';
+}
+
+function TagSuggestionsPortal({
+    show,
+    filteredTags,
+    tagInputRect,
+    tagDropdownRef,
+    onSelectTag,
+}: {
+    show: boolean;
+    filteredTags: string[];
+    tagInputRect: DOMRect | null;
+    tagDropdownRef: React.RefObject<HTMLDivElement | null>;
+    onSelectTag: (tag: string) => void;
+}) {
+    if (!show || filteredTags.length === 0 || !tagInputRect) return null;
+    if (typeof window === 'undefined') return null;
+
+    return createPortal(
+        <motion.div 
+            ref={tagDropdownRef}
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            style={{
+                position: 'fixed',
+                top: tagInputRect.bottom + 8,
+                right: window.innerWidth - tagInputRect.right,
+                zIndex: 99999,
+                width: '200px'
+            }}
+            className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden"
+        >
+            <div className="px-3 py-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                הצעות
+            </div>
+            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                {filteredTags.map(t => (
+                    <button 
+                        type="button"
+                        key={t}
+                        onClick={() => onSelectTag(t)}
+                        className="w-full text-right px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors block flex items-center gap-2"
+                    >
+                        <Hash size={12} className="opacity-50" /> {t}
+                    </button>
+                ))}
+            </div>
+        </motion.div>,
+        document.body
+    );
 }
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => {
@@ -97,27 +167,6 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     // Logic for Approval Requirement (e.g., tasks > 4 hours)
     const estimateHoursNum = Number(manualHours) || 0;
     const requiresApproval = estimateHoursNum >= 4;
-
-    // Helper for solid priority color
-    const getPrioritySolidColor = (p: Priority) => {
-        switch(p) {
-            case Priority.URGENT: return 'bg-red-600';
-            case Priority.HIGH: return 'bg-orange-600';
-            case Priority.MEDIUM: return 'bg-amber-500';
-            case Priority.LOW: return 'bg-slate-500';
-            default: return 'bg-gray-500';
-        }
-    };
-
-    // Helper for solid status color
-    const getStatusSolidColor = (colorClass: string) => {
-        // Simple heuristic to grab the text-color or similar and make it bg
-        if (colorClass.includes('green')) return 'bg-green-600';
-        if (colorClass.includes('blue')) return 'bg-gray-600';
-        if (colorClass.includes('orange')) return 'bg-orange-600';
-        if (colorClass.includes('red')) return 'bg-red-600';
-        return 'bg-gray-600';
-    };
 
     // Calculate popover positions
     useEffect(() => {
@@ -656,7 +705,10 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             }`}
                         >
                             {isSubmitting || isCreatingTask ? (
-                                <>שומר... <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div></>
+                                <>
+                                  שומר...
+                                  <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
+                                </>
                             ) : (
                                 <> {requiresApproval ? 'שלח לאישור' : 'צור משימה'} {requiresApproval ? <AlertTriangle size={18} /> : <ArrowUpRight size={18} />}</>
                             )}
@@ -945,39 +997,13 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
         )}
 
         {/* Portal for Tag Suggestions */}
-        {showTagSuggestions && filteredTags.length > 0 && tagInputRect && createPortal(
-            <motion.div 
-                ref={tagDropdownRef}
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                style={{
-                    position: 'fixed',
-                    top: tagInputRect.bottom + 8,
-                    right: window.innerWidth - tagInputRect.right,
-                    zIndex: 99999,
-                    width: '200px'
-                }}
-                className="bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden"
-            >
-                <div className="px-3 py-2 bg-gray-50 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100">
-                    הצעות
-                </div>
-                <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                    {filteredTags.map(t => (
-                        <button 
-                            type="button"
-                            key={t}
-                            onClick={() => { setTag(t); setShowTagSuggestions(false); }}
-                            className="w-full text-right px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors block flex items-center gap-2"
-                        >
-                            <Hash size={12} className="opacity-50" /> {t}
-                        </button>
-                    ))}
-                </div>
-            </motion.div>,
-            document.body
-        )}
+        <TagSuggestionsPortal
+            show={showTagSuggestions}
+            filteredTags={filteredTags}
+            tagInputRect={tagInputRect}
+            tagDropdownRef={tagDropdownRef}
+            onSelectTag={(t) => { setTag(t); setShowTagSuggestions(false); }}
+        />
         </>
     );
 };

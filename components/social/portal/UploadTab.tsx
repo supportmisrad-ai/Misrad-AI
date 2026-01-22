@@ -2,7 +2,7 @@
 
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Camera, FileText, Send, Loader2, Upload, AlertCircle, ImageIcon } from 'lucide-react';
+import { Camera, FileText, Send, Upload, AlertCircle, ImageIcon } from 'lucide-react';
 import { Client, ClientRequest, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
 
@@ -145,7 +145,13 @@ const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload 
             </div>
 
             <button onClick={handleUploadSubmit} disabled={isUploading || (!selectedFile && !uploadText)} className="w-full bg-slate-900 text-white py-6 rounded-[28px] font-black text-xl shadow-2xl flex items-center justify-center gap-4 disabled:opacity-50 active:scale-95 transition-all">
-               {isUploading ? <Loader2 size={24} className="animate-spin"/> : <><Send size={24} className="rotate-180"/> שלח למנהל הסושיאל</>}
+               {isUploading ? (
+                 <>שולח...</>
+               ) : (
+                 <>
+                   <Send size={24} className="rotate-180"/> שלח למנהל הסושיאל
+                 </>
+               )}
             </button>
           </div>
         </div>

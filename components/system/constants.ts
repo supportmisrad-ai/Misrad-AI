@@ -30,7 +30,6 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: 'תקשורת',
     items: [
-      { id: 'comms', label: 'שיחות', icon: MessageSquare },
       { id: 'dialer', label: 'חייגן', icon: PhoneCall },
     ]
   },
@@ -46,8 +45,9 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'ניהול מערכת',
     items: [
       { id: 'reports', label: 'דוחות', icon: BarChart3 },
-      { id: 'headquarters', label: 'צוות', icon: Users },
-      { id: 'system', label: 'הגדרות', icon: Settings },
+      { id: 'analytics', label: 'אנליטיקס', icon: BrainCircuit },
+      { id: 'notifications', label: 'התראות', icon: Bell },
+      { id: 'settings', label: 'הגדרות', icon: Settings },
     ]
   }
 ];

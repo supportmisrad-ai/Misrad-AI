@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, HelpCircle, MessageSquare, Send, Loader2 } from 'lucide-react';
+import { Search, X, Users, Sparkles, Megaphone, Calendar, Home, ArrowLeft, HelpCircle, MessageSquare, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
@@ -10,6 +10,7 @@ import { Avatar } from '@/components/Avatar';
 import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
 import { ChatSources } from '@/components/command-palette/ChatSources';
 import { getSemanticStarters } from '@/components/command-palette/semanticStarters';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export default function CommandPalette() {
   const router = useRouter();
@@ -306,11 +307,10 @@ export default function CommandPalette() {
                           {String(message.content || '')}
                         </div>
                         {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
-                          <span className="inline-flex gap-1 mt-2">
-                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </span>
+                          <div className="mt-3 space-y-2">
+                            <Skeleton className="h-3 w-40 rounded-xl bg-blue-200/60" />
+                            <Skeleton className="h-3 w-52 rounded-xl bg-blue-200/60" />
+                          </div>
                         )}
 
                         {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
@@ -336,7 +336,10 @@ export default function CommandPalette() {
                         <Sparkles size={16} className="text-white" />
                       </div>
                       <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-md shadow-lg shadow-slate-200/50 border border-slate-100">
-                        <Loader2 size={18} className="animate-spin text-blue-600" />
+                        <div className="space-y-2 w-40">
+                          <Skeleton className="h-3 w-32 rounded-xl" />
+                          <Skeleton className="h-3 w-28 rounded-xl" />
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -457,7 +460,7 @@ export default function CommandPalette() {
                     className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:from-blue-700 hover:to-blue-800 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
                   >
                     {isLoading ? (
-                      <Loader2 size={22} className="animate-spin" />
+                      <span className="text-sm font-black">...</span>
                     ) : (
                       <Send size={22} />
                     )}

@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { Prisma } from '@prisma/client';
 
 export type SystemPipelineStageDTO = {
   id: string;
@@ -42,38 +43,117 @@ function toDto(row: any): SystemPipelineStageDTO {
   };
 }
 
+async function resolveStageKeyColumn(): Promise<'stage_key' | 'key'> {
+  try {
+    const rows = await prisma.$queryRaw<{ column_name: string }[]>(Prisma.sql`
+      select column_name
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'system_pipeline_stages'
+    `);
+    const names = new Set((rows || []).map((r) => String(r.column_name)));
+    if (names.has('stage_key')) return 'stage_key';
+    if (names.has('key')) return 'key';
+    return 'stage_key';
+  } catch {
+    return 'stage_key';
+  }
+}
+
+async function resolveSortOrderColumn(): Promise<'sort_order' | 'order' | 'position' | null> {
+  try {
+    const rows = await prisma.$queryRaw<{ column_name: string }[]>(Prisma.sql`
+      select column_name
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'system_pipeline_stages'
+    `);
+    const names = new Set((rows || []).map((r) => String(r.column_name)));
+    if (names.has('sort_order')) return 'sort_order';
+    if (names.has('order')) return 'order';
+    if (names.has('position')) return 'position';
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function ensureSeededForOrg(params: { organizationId: string }) {
-  const existing = await prisma.systemPipelineStage.findMany({
-    where: { organizationId: params.organizationId },
-    select: { id: true },
-    take: 1,
+  const col = await resolveStageKeyColumn();
+  const sortCol = await resolveSortOrderColumn();
+
+  const existing = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    select id
+    from system_pipeline_stages
+    where organization_id::text = ${String(params.organizationId)}
+    limit 1
+  `);
+
+  if ((existing || []).length) return;
+
+  const values = DEFAULT_STAGES.map((s) => {
+    const rowParts: Prisma.Sql[] = [
+      Prisma.sql`${String(params.organizationId)}::uuid`,
+      Prisma.sql`${String(s.key)}`,
+      Prisma.sql`${String(s.label)}`,
+      Prisma.sql`${String(s.color)}`,
+      Prisma.sql`${String(s.accent)}`,
+      ...(sortCol ? [Prisma.sql`${Number(s.order)}`] : []),
+      Prisma.sql`${true}`,
+    ];
+    return Prisma.sql`(${Prisma.join(rowParts)})`;
   });
 
-  if (existing.length) return;
+  const insertColumns: Prisma.Sql[] = [
+    Prisma.sql`organization_id`,
+    Prisma.sql`${Prisma.raw(`"${col}"`)}`,
+    Prisma.sql`label`,
+    Prisma.sql`color`,
+    Prisma.sql`accent`,
+    ...(sortCol ? [Prisma.sql`${Prisma.raw(`"${sortCol}"`)}`] : []),
+    Prisma.sql`is_active`,
+  ];
 
-  await prisma.systemPipelineStage.createMany({
-    data: DEFAULT_STAGES.map((s) => ({
-      organizationId: params.organizationId,
-      key: s.key,
-      label: s.label,
-      color: s.color,
-      accent: s.accent,
-      order: s.order,
-      isActive: true,
-    })),
-    skipDuplicates: true,
-  });
+  await prisma.$executeRaw(Prisma.sql`
+    insert into system_pipeline_stages (
+      ${Prisma.join(insertColumns)}
+    )
+    values ${Prisma.join(values)}
+    on conflict (organization_id, ${Prisma.raw(`"${col}"`)}) do nothing
+  `);
 }
 
 export async function getSystemPipelineStages(params: { orgSlug: string }): Promise<SystemPipelineStageDTO[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   await ensureSeededForOrg({ organizationId: workspace.id });
 
-  const rows = await prisma.systemPipelineStage.findMany({
-    where: { organizationId: workspace.id, isActive: true },
-    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
-    take: 100,
-  });
+  const col = await resolveStageKeyColumn();
+  const sortCol = await resolveSortOrderColumn();
+
+  const orderSelect = sortCol
+    ? Prisma.sql`${Prisma.raw(`"${sortCol}"`)} as "order"`
+    : Prisma.sql`0 as "order"`;
+
+  const orderBy = sortCol
+    ? Prisma.sql`order by ${Prisma.raw(`"${sortCol}"`)} asc, created_at asc`
+    : Prisma.sql`order by created_at asc`;
+
+  const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+    select
+      id,
+      ${Prisma.raw(`"${col}"`)} as "key",
+      label,
+      color,
+      accent,
+      ${orderSelect},
+      coalesce(is_active, true) as "isActive",
+      created_at as "createdAt"
+    from system_pipeline_stages
+    where organization_id::text = ${String(workspace.id)}
+      and coalesce(is_active, true) = true
+    ${orderBy}
+    limit 100
+  `);
 
   return rows.map(toDto);
 }
@@ -95,19 +175,65 @@ export async function createSystemPipelineStage(params: {
     if (!key) return { ok: false, message: 'חובה להזין מזהה שלב (key)' };
     if (!label) return { ok: false, message: 'חובה להזין שם שלב' };
 
-    const created = await prisma.systemPipelineStage.create({
-      data: {
-        organizationId: workspace.id,
-        key,
-        label,
-        color: params.color != null ? String(params.color) : null,
-        accent: params.accent != null ? String(params.accent) : null,
-        order: params.order == null ? 0 : Number(params.order),
-        isActive: true,
-      },
-    });
+    const col = await resolveStageKeyColumn();
+    const sortCol = await resolveSortOrderColumn();
+    const color = params.color != null ? String(params.color) : null;
+    const accent = params.accent != null ? String(params.accent) : null;
+    const order = params.order == null ? 0 : Number(params.order);
 
-    return { ok: true, stage: toDto(created) };
+    const insertColumns: Prisma.Sql[] = [
+      Prisma.sql`organization_id`,
+      Prisma.sql`${Prisma.raw(`"${col}"`)}`,
+      Prisma.sql`label`,
+      Prisma.sql`color`,
+      Prisma.sql`accent`,
+      ...(sortCol ? [Prisma.sql`${Prisma.raw(`"${sortCol}"`)}`] : []),
+      Prisma.sql`is_active`,
+      Prisma.sql`created_at`,
+      Prisma.sql`updated_at`,
+    ];
+
+    const valueParts: Prisma.Sql[] = [
+      Prisma.sql`${String(workspace.id)}::uuid`,
+      Prisma.sql`${String(key)}`,
+      Prisma.sql`${String(label)}`,
+      Prisma.sql`${color}`,
+      Prisma.sql`${accent}`,
+      ...(sortCol ? [Prisma.sql`${order}`] : []),
+      Prisma.sql`true`,
+      Prisma.sql`now()`,
+      Prisma.sql`now()`,
+    ];
+
+    const orderReturning = sortCol
+      ? Prisma.sql`${Prisma.raw(`"${sortCol}"`)} as "order"`
+      : Prisma.sql`0 as "order"`;
+
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      insert into system_pipeline_stages (
+        ${Prisma.join(insertColumns)}
+      )
+      values (${Prisma.join(valueParts)})
+      on conflict (organization_id, ${Prisma.raw(`"${col}"`)}) do update set
+        label = excluded.label,
+        color = excluded.color,
+        accent = excluded.accent,
+        ${sortCol ? Prisma.sql`${Prisma.raw(`"${sortCol}"`)} = ${Prisma.raw(`excluded."${sortCol}"`)},` : Prisma.sql``}
+        is_active = true,
+        updated_at = now()
+      returning
+        id,
+        ${Prisma.raw(`"${col}"`)} as "key",
+        label,
+        color,
+        accent,
+        ${orderReturning},
+        coalesce(is_active, true) as "isActive"
+    `);
+
+    const row = rows?.[0];
+    if (!row) return { ok: false, message: 'שגיאה ביצירת שלב' };
+    return { ok: true, stage: toDto(row) };
   } catch (e: any) {
     return { ok: false, message: e?.message || 'שגיאה ביצירת שלב' };
   }
@@ -127,28 +253,49 @@ export async function updateSystemPipelineStage(params: {
     const id = String(params.id || '').trim();
     if (!id) return { ok: false, message: 'id חסר' };
 
-    const existing = await prisma.systemPipelineStage.findFirst({
-      where: { id, organizationId: workspace.id },
-    });
-    if (!existing) return { ok: false, message: 'Stage not found' };
+    const col = await resolveStageKeyColumn();
+    const sortCol = await resolveSortOrderColumn();
 
-    const data: any = {};
-    if (params.label !== undefined) {
-      const label = String(params.label || '').trim();
-      if (!label) return { ok: false, message: 'חובה להזין שם שלב' };
-      data.label = label;
-    }
-    if (params.color !== undefined) data.color = params.color == null ? null : String(params.color);
-    if (params.accent !== undefined) data.accent = params.accent == null ? null : String(params.accent);
-    if (params.order !== undefined) data.order = params.order == null ? 0 : Number(params.order);
-    if (params.isActive !== undefined) data.isActive = Boolean(params.isActive);
+    const existing = await prisma.$queryRaw<any[]>(Prisma.sql`
+      select id
+      from system_pipeline_stages
+      where id::text = ${String(id)}
+        and organization_id::text = ${String(workspace.id)}
+      limit 1
+    `);
+    if (!existing?.[0]?.id) return { ok: false, message: 'Stage not found' };
 
-    const updated = await prisma.systemPipelineStage.update({
-      where: { id },
-      data,
-    });
+    const nextLabel = params.label !== undefined ? String(params.label || '').trim() : null;
+    if (params.label !== undefined && !nextLabel) return { ok: false, message: 'חובה להזין שם שלב' };
 
-    return { ok: true, stage: toDto(updated) };
+    const orderReturning = sortCol
+      ? Prisma.sql`${Prisma.raw(`"${sortCol}"`)} as "order"`
+      : Prisma.sql`0 as "order"`;
+
+    const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      update system_pipeline_stages
+      set
+        label = ${params.label !== undefined ? String(nextLabel) : Prisma.raw('label')},
+        color = ${params.color !== undefined ? (params.color == null ? null : String(params.color)) : Prisma.raw('color')},
+        accent = ${params.accent !== undefined ? (params.accent == null ? null : String(params.accent)) : Prisma.raw('accent')},
+        ${sortCol ? Prisma.sql`${Prisma.raw(`"${sortCol}"`)} = ${params.order !== undefined ? (params.order == null ? 0 : Number(params.order)) : Prisma.raw(`"${sortCol}"`)},` : Prisma.sql``}
+        is_active = ${params.isActive !== undefined ? Boolean(params.isActive) : Prisma.raw('is_active')},
+        updated_at = now()
+      where id::text = ${String(id)}
+        and organization_id::text = ${String(workspace.id)}
+      returning
+        id,
+        ${Prisma.raw(`"${col}"`)} as "key",
+        label,
+        color,
+        accent,
+        ${orderReturning},
+        coalesce(is_active, true) as "isActive"
+    `);
+
+    const row = rows?.[0];
+    if (!row) return { ok: false, message: 'Stage not found' };
+    return { ok: true, stage: toDto(row) };
   } catch (e: any) {
     return { ok: false, message: e?.message || 'שגיאה בעדכון שלב' };
   }
@@ -163,22 +310,36 @@ export async function deleteSystemPipelineStage(params: {
     const id = String(params.id || '').trim();
     if (!id) return { ok: false, message: 'id חסר' };
 
-    const existing = await prisma.systemPipelineStage.findFirst({
-      where: { id, organizationId: workspace.id },
-      select: { id: true, key: true },
-    });
-    if (!existing) return { ok: false, message: 'Stage not found' };
+    const col = await resolveStageKeyColumn();
 
-    const leadCount = await prisma.systemLead.count({
-      where: { organizationId: workspace.id, status: String(existing.key) },
-    });
+    const existingRows = await prisma.$queryRaw<any[]>(Prisma.sql`
+      select
+        id,
+        ${Prisma.raw(`"${col}"`)} as "key"
+      from system_pipeline_stages
+      where id::text = ${String(id)}
+        and organization_id::text = ${String(workspace.id)}
+      limit 1
+    `);
+    const existing = existingRows?.[0];
+    if (!existing?.id) return { ok: false, message: 'Stage not found' };
+
+    const leadCountRows = await prisma.$queryRaw<{ cnt: number }[]>(Prisma.sql`
+      select count(*)::int as cnt
+      from system_leads
+      where organization_id::text = ${String(workspace.id)}
+        and status = ${String(existing.key)}
+    `);
+    const leadCount = Number(leadCountRows?.[0]?.cnt ?? 0);
     if (leadCount > 0) {
       return { ok: false, message: 'לא ניתן למחוק שלב שיש בו לידים' };
     }
 
-    await prisma.systemPipelineStage.delete({
-      where: { id: existing.id },
-    });
+    await prisma.$executeRaw(Prisma.sql`
+      delete from system_pipeline_stages
+      where id::text = ${String(existing.id)}
+        and organization_id::text = ${String(workspace.id)}
+    `);
 
     return { ok: true };
   } catch (e: any) {
@@ -196,11 +357,16 @@ export async function assertSystemPipelineStageExists(params: {
   const key = String(params.key || '').trim();
   if (!key) return { ok: false, message: 'סטטוס חסר' };
 
-  const row = await prisma.systemPipelineStage.findFirst({
-    where: { organizationId: workspace.id, key, isActive: true },
-    select: { id: true },
-  });
+  const col = await resolveStageKeyColumn();
+  const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    select id
+    from system_pipeline_stages
+    where organization_id::text = ${String(workspace.id)}
+      and ${Prisma.raw(`"${col}"`)} = ${String(key)}
+      and coalesce(is_active, true) = true
+    limit 1
+  `);
 
-  if (!row?.id) return { ok: false, message: 'סטטוס לא קיים במערכת' };
+  if (!rows?.[0]?.id) return { ok: false, message: 'סטטוס לא קיים במערכת' };
   return { ok: true };
 }

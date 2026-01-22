@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Sparkles, Target, ArrowLeft, PenTool, FileSignature, CheckCircle2, ThumbsUp, RefreshCw, ThumbsDown, MessageSquarePlus, Check, Loader2 } from 'lucide-react';
+import { Sparkles, Target, ArrowLeft, PenTool, FileSignature, CheckCircle2, ThumbsUp, RefreshCw, ThumbsDown, MessageSquarePlus, Check } from 'lucide-react';
 import TestimonialPrompt from '../TestimonialPrompt';
 
 interface PortalDashboardProps {
@@ -139,7 +139,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                 <div className="grid grid-cols-3 gap-4 animate-fade-in">
                   {[
                     { icon: ThumbsUp, label: 'מעולה', color: 'text-green-600 bg-green-50', hover: 'hover:border-green-400' },
-                    { icon: RefreshCw, label: 'בסדר', color: 'text-yellow-600 bg-yellow-50', hover: 'hover:border-yellow-400' },
+                    { icon: RefreshCw, label: 'בסדר', color: 'text-[color:var(--os-accent)] bg-[color:var(--os-accent)]/10', hover: 'hover:border-[color:var(--os-accent)]' },
                     { icon: ThumbsDown, label: 'טעון שיפור', color: 'text-red-600 bg-red-50', hover: 'hover:border-red-400' }
                   ].map(opt => (
                     <button 
@@ -175,7 +175,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                       disabled={isSubmittingMood}
                       className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-all shadow-lg flex items-center justify-center gap-2"
                     >
-                      {isSubmittingMood ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> שלח עדכון</>}
+                      {isSubmittingMood ? 'שולח...' : <><Check size={16} /> שלח עדכון</>}
                     </button>
                   </div>
                 </div>

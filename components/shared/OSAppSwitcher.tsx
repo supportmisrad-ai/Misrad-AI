@@ -2,13 +2,21 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutGrid, Lock, Target, X, Wrench } from 'lucide-react';
+import { LayoutGrid, Lock, Target, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath, modulesRegistry } from '@/lib/os/modules/registry';
 import { OS_MODULES, type OSModuleInfo } from '@/types/os-modules';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
-import { OS_METADATA } from '@/lib/metadata';
+
+function shouldOpenModuleInNewTab(): boolean {
+  if (typeof window === 'undefined') return false;
+  const isStandalone =
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    (window.navigator as any)?.standalone ||
+    Boolean((window as any)?.Capacitor?.isNativePlatform?.());
+  return !isStandalone;
+}
 
 function getUpsellCopy(module: OSModuleKey): { title: string; message: string } {
   const def = modulesRegistry[module];
@@ -23,7 +31,7 @@ function getUpsellCopy(module: OSModuleKey): { title: string; message: string } 
   if (module === 'system') {
     return {
       title: def.label,
-      message: 'אל תיתן לאף ליד ליפול בין הכיסאות. שדרג ל"מכונת המכירות" והפוך את תהליך הסגירה שלך למדויק, מהיר ועקבי.',
+      message: 'אל תיתן לאף ליד ליפול בין הכיסאות. שדרג ל"מרכז המכירות והלידים" והפוך את תהליך הסגירה שלך למדויק, מהיר ועקבי.',
     };
   }
 
@@ -37,14 +45,14 @@ function getUpsellCopy(module: OSModuleKey): { title: string; message: string } 
   if (module === 'client') {
     return {
       title: def.label,
-      message: 'רוצה לתת ללקוחות שלך חוויית VIP? שדרג לפורטל הצלחת לקוח והפוך כל שירות למוצר פרימיום שאי אפשר לעזוב.',
+      message: 'רוצה לתת ללקוחות שלך חוויית VIP? שדרג ל"מעקב לקוחות ומתאמנים" והפוך כל שירות למוצר פרימיום שאי אפשר לעזוב.',
     };
   }
 
   if (module === 'finance') {
     return {
       title: def.label,
-      message: 'רוצה לוודא שהכסף לא בורח מהצדדים? שדרג עכשיו לשומר הרווחים',
+      message: 'רוצה לוודא שהכסף לא בורח מהצדדים? שדרג עכשיו ל"שליטה פיננסית מלאה"',
     };
   }
 
@@ -90,50 +98,65 @@ function getOrderedModuleKeys(): OSModuleKey[] {
   return ['nexus', ...keys.filter((k) => k !== 'nexus')];
 }
 
-function InlineModuleIcon({ module }: { module: OSModuleKey }) {
+function InlineModuleIcon({ module, accent }: { module: OSModuleKey; accent?: string }) {
   if (module === 'client') {
     return (
-      <div className="w-12 h-12 rounded-2xl bg-[#B08A3C] flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-        <span className="text-base font-black leading-none">C</span>
+      <div className="w-14 h-14 rounded-2xl bg-[#0F172A] flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M23.2 8.2l2.0 2.0 2.0-2.0 1.6 1.6-3.6 3.6-3.6-3.6 1.6-1.6Z" fill="#C5A572" opacity="0.9" />
+          <circle cx="25.2" cy="13.2" r="3.0" fill="#C5A572" opacity="0.92" />
+          <circle cx="25.2" cy="13.2" r="1.8" fill="#0F172A" opacity="0.35" />
+          <rect x="7" y="6" width="18" height="20" rx="4" stroke="#C5A572" strokeWidth="1.8" />
+          <path d="M11 8v16" stroke="#C5A572" strokeWidth="1.6" strokeLinecap="round" opacity="0.9" />
+          <circle cx="17.5" cy="15" r="3.2" stroke="#C5A572" strokeWidth="1.6" />
+          <path d="M15.6 18.0l-1.2 3.6 3.1-1.8 3.1 1.8-1.2-3.6" stroke="#C5A572" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M16.3 11.8h2.4" stroke="#C5A572" strokeWidth="1.4" strokeLinecap="round" opacity="0.9" />
+        </svg>
       </div>
     );
   }
 
   if (module === 'nexus') {
     return (
-      <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-        <div className="w-3 h-3 rounded-full bg-white" />
+      <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
+        <div className="w-3.5 h-3.5 rounded-full bg-white" />
       </div>
     );
   }
 
   if (module === 'system') {
     return (
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-700 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-        <Target size={18} />
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-700 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
+        <Target size={20} />
       </div>
     );
   }
 
   if (module === 'finance') {
     return (
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-        <div className="w-6 h-4 rounded-md border-2 border-white/95" />
+      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
+        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <ellipse cx="14" cy="14" rx="7" ry="5" stroke="rgba(255,255,255,0.95)" strokeWidth="2" />
+          <path d="M7 14v6c0 2.8 3.1 5 7 5s7-2.2 7-5v-6" stroke="rgba(255,255,255,0.95)" strokeWidth="2" strokeLinejoin="round" />
+          <ellipse cx="20.5" cy="10.5" rx="5.5" ry="4" stroke="rgba(255,255,255,0.75)" strokeWidth="2" opacity="0.9" />
+          <path d="M15 10.5v4.5" stroke="rgba(255,255,255,0.75)" strokeWidth="2" opacity="0.9" />
+        </svg>
       </div>
     );
   }
 
   if (module === 'operations') {
+    const hole = accent || '#0EA5E9';
     return (
-      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-cyan-600 flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-        <Wrench size={18} />
+      <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.18)] border border-slate-200/70">
+        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: hole }} />
       </div>
     );
   }
 
   return (
-    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)]">
-      <span className="text-base font-black leading-none">S</span>
+    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
+      <span className="text-lg font-black leading-none">S</span>
     </div>
   );
 }
@@ -179,10 +202,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   const calculateDropdownPosition = () => {
     if (!buttonRef.current || typeof window === 'undefined') return;
     const rect = buttonRef.current.getBoundingClientRect();
-    const dropdownHeight = 500; // Approximate height
-    const dropdownWidth = 320; // w-80
+    const dropdownHeight = Math.min(560, Math.max(420, window.innerHeight - 140)); // Approximate height
+    const dropdownWidth = 384;
+
+    const desiredBottom = window.innerHeight - 16;
     const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceBelow = desiredBottom - rect.bottom;
     const shouldPlaceAbove = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
 
     let left = rect.left;
@@ -191,10 +216,10 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     }
     if (left < 8) left = 8;
 
-    let top = shouldPlaceAbove ? rect.top - dropdownHeight - 12 : rect.bottom + 12;
+    let top = shouldPlaceAbove ? desiredBottom - dropdownHeight : rect.bottom + 12;
     if (top < 8) top = 8;
-    if (top + dropdownHeight > window.innerHeight - 8) {
-      top = window.innerHeight - dropdownHeight - 8;
+    if (top + dropdownHeight > desiredBottom) {
+      top = desiredBottom - dropdownHeight;
     }
 
     setDropdownPosition({
@@ -275,7 +300,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     : 0;
 
   const navigateTo = (targetOrgSlug: string, module: OSModuleKey) => {
-    router.push(buildWorkspaceModulePath(targetOrgSlug, module));
+    const href = buildWorkspaceModulePath(targetOrgSlug, module);
+    if (shouldOpenModuleInNewTab()) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    router.push(href);
   };
 
   const currentModuleInfo = currentModule ? modulesRegistry[currentModule] : null;
@@ -299,7 +329,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
             const enabled = key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
-            const logoSrc = key === 'client' ? null : ((OS_METADATA as any)?.[key]?.icon ?? null);
+            const accent = def?.theme?.accent || '#0F172A';
 
             return (
               <button
@@ -332,23 +362,8 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 />
 
                 <div className="relative flex flex-col items-center justify-center h-full">
-                  <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 overflow-hidden ${
-                      enabled && logoSrc ? 'bg-white/70 border border-white/70' : ''
-                    } ${!enabled ? 'bg-slate-200/60 shadow-inner' : ''}`}
-                    style={
-                      enabled
-                        ? logoSrc
-                          ? undefined
-                          : { background: `linear-gradient(135deg, ${def.theme.accent} 0%, rgba(0,0,0,0.75) 120%)` }
-                        : undefined
-                    }
-                  >
-                    {enabled && logoSrc ? (
-                      <img src={logoSrc} alt={def.label} className="w-8 h-8 object-contain" />
-                    ) : (
-                      <InlineModuleIcon module={key} />
-                    )}
+                  <div className="relative flex items-center justify-center mx-auto mb-3">
+                    <InlineModuleIcon module={key} accent={accent} />
                   </div>
 
                   <div className={`text-sm font-black leading-none ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>
@@ -430,16 +445,16 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 left: isMobile
                   ? '50%'
                   : dropdownPosition
-                    ? Math.max(8, Math.min(dropdownPosition.left, window.innerWidth - 328))
+                    ? Math.max(8, Math.min(dropdownPosition.left, window.innerWidth - 392))
                     : '50%',
                 transform: isMobile || !dropdownPosition ? 'translate(-50%, -50%)' : undefined,
-                width: isMobile ? 'calc(100vw - 16px)' : '320px',
-                maxHeight: isMobile ? 'calc(100vh - 24px)' : undefined,
+                width: isMobile ? 'min(420px, calc(100vw - 16px))' : '384px',
+                maxHeight: 'calc(100vh - 32px)',
                 zIndex: 9001,
               }}
               className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
             >
-              <div className={isMobile ? 'max-h-[calc(100vh-24px)] overflow-y-auto' : undefined}>
+              <div className="max-h-[calc(100vh-32px)] overflow-y-auto">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
                 <div>
                   <h3 className="font-bold text-slate-900 text-sm">מעבר בין מערכות</h3>
@@ -454,24 +469,21 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 </button>
               </div>
 
-              <div className="p-4 grid grid-cols-2 gap-3">
+              <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {visibleModules.map((key) => {
                   const def = modulesRegistry[key];
                   const ui = getOSModuleInfo(key);
-                  const enabled = key === 'nexus' ? true : Boolean(entitlements?.[key]);
-                  const entitlementsReady = Boolean(entitlements);
-                  const isLoadingEntitlements = !entitlementsReady && key !== 'nexus';
+                  const isKnownLocked = key !== 'nexus' && Boolean(entitlements) && !Boolean(entitlements?.[key]);
+                  const enabled = key === 'nexus' ? true : !isKnownLocked;
                   const Icon = ui?.icon;
                   const SafeIcon = typeof Icon === 'function' ? Icon : null;
+                  const accent = def?.theme?.accent || '#0F172A';
 
                   return (
                     <button
                       key={key}
                       onClick={() => {
                         if (!orgSlug) return;
-                        if (isLoadingEntitlements) {
-                          return;
-                        }
                         setIsOpen(false);
                         if (enabled) {
                           navigateTo(orgSlug, key);
@@ -479,53 +491,51 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                         }
                         setLocked(key);
                       }}
-                      disabled={isLoadingEntitlements}
-                      className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-right overflow-hidden ${
+                      className={`group relative p-5 rounded-3xl border transition-all duration-200 overflow-hidden flex flex-col items-center justify-center text-center min-h-[144px] ${
                         enabled
-                          ? 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md cursor-pointer'
-                          : isLoadingEntitlements
-                            ? 'border-slate-200 bg-slate-50 text-slate-400 opacity-60 cursor-not-allowed'
-                            : 'border-slate-200 bg-slate-50 text-slate-400'
+                          ? 'border-slate-200/70 bg-white/70 hover:bg-white hover:border-slate-300 hover:shadow-md cursor-pointer'
+                          : 'border-slate-200/70 bg-slate-50/80 text-slate-400'
                       }`}
                       title={def.label}
                       type="button"
                     >
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 shadow-lg">
-                        <div
-                          className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                            enabled
-                              ? ui?.gradient
-                                ? `bg-gradient-to-br ${ui.gradient}`
-                                : ''
-                              : 'bg-gradient-to-br from-slate-200 to-slate-100'
-                          }`}
-                          style={
-                            enabled && !ui?.gradient
-                              ? { background: `linear-gradient(135deg, ${def.theme.accent} 0%, rgba(0,0,0,0.75) 120%)` }
-                              : undefined
-                          }
-                        >
-                          {SafeIcon ? (
-                            <SafeIcon size={24} className={enabled ? 'text-white' : 'text-slate-400'} />
-                          ) : (
-                            <span
-                              className="w-4 h-4 rounded-full"
-                              style={{ background: enabled ? 'rgba(255,255,255,0.95)' : 'rgba(148,163,184,0.7)' }}
-                            />
-                          )}
-                        </div>
+                      <div
+                        className="absolute inset-0 opacity-100"
+                        style={{
+                          background: enabled
+                            ? `radial-gradient(520px circle at 35% 20%, ${accent}14, transparent 45%)`
+                            : 'radial-gradient(520px circle at 35% 20%, rgba(148,163,184,0.16), transparent 45%)',
+                        }}
+                      />
+
+                      <div className="relative flex items-center justify-center mb-3">
+                        {enabled ? (
+                          <InlineModuleIcon module={key} accent={accent} />
+                        ) : SafeIcon ? (
+                          <div className="w-14 h-14 rounded-2xl bg-slate-200/70 flex items-center justify-center shadow-inner">
+                            <SafeIcon size={22} style={{ color: '#94A3B8' }} />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-slate-200/70 flex items-center justify-center shadow-inner">
+                            <span className="w-4 h-4 rounded-full" style={{ background: 'rgba(148,163,184,0.7)' }} />
+                          </div>
+                        )}
                       </div>
 
-                      <div className="text-right">
-                        <div className={`font-bold text-sm mb-1 flex items-center justify-end gap-2 ${enabled ? 'text-slate-700' : 'text-slate-400'}`}>
-                          {!enabled ? <Lock size={14} className="text-slate-400" /> : null}
+                      <div className="relative w-full min-w-0">
+                        <div className={`text-sm font-black leading-none truncate ${enabled ? 'text-slate-900' : 'text-slate-400'}`} title={def.label}>
                           {def.label}
                         </div>
-                        <div className="text-[10px] text-slate-500 line-clamp-2">{def.labelHe}</div>
+                        <div
+                          className={`mt-1 text-xs font-bold leading-none truncate ${enabled ? 'text-slate-600' : 'text-slate-400'}`}
+                          title={def.labelHe}
+                        >
+                          {def.labelHe}
+                        </div>
                       </div>
 
-                      {!enabled && (
-                        <span className="absolute -top-1 -right-1 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center">
+                      {isKnownLocked && (
+                        <span className="absolute top-2 right-2 w-6 h-6 bg-white/80 backdrop-blur border border-slate-200 rounded-full flex items-center justify-center">
                           <Lock size={12} className="text-slate-500" />
                         </span>
                       )}
@@ -534,7 +544,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                 })}
               </div>
 
-              <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
                 <p className="text-xs text-slate-500 text-center">
                   {enabledCount} מערכות זמינות
                   {currentModuleInfo && <span className="block mt-1 text-[10px]">נוכחי: {currentModuleInfo.labelHe}</span>}

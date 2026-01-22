@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Client } from '../../types';
-import { Briefcase, Image, FolderOpen, FileText, Download, Plus, X, Loader2 } from 'lucide-react';
+import { Briefcase, Image, FolderOpen, FileText, Download, Plus, X } from 'lucide-react';
 import { useNexus } from '../../context/ClientContext';
 
 interface ClientWorkTabProps {
@@ -148,8 +148,7 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                             type="button"
                             disabled={isCreating || !newProject.title.trim()}
                         >
-                            {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                            צור פרויקט
+                            {isCreating ? 'יוצר...' : <><Plus size={16} /> צור פרויקט</>}
                         </button>
                     </div>
                 </div>
@@ -192,7 +191,7 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                                 <span>{del.date}</span>
                                 <span className={`font-bold ${
                                     del.status === 'PUBLISHED' ? 'text-green-600' : 
-                                    del.status === 'APPROVED' ? 'text-blue-600' : 'text-yellow-600'
+                                    del.status === 'APPROVED' ? 'text-blue-600' : 'text-[color:var(--os-accent)]'
                                 }`}>
                                     {del.status}
                                 </span>

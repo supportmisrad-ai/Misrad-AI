@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Lead, CalendarEvent, Task, Activity, Campaign, Student, ContentItem } from './types';
 import SystemCommandCenter from './SystemCommandCenter';
 import MorningBriefingView from './MorningBriefingView';
+import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
 
 interface WorkspaceHubProps {
   leads: Lead[];
@@ -12,6 +13,7 @@ interface WorkspaceHubProps {
   campaigns: Campaign[];
   tasks: Task[];
   events: CalendarEvent[];
+  notifications?: SystemNotificationDTO[];
   onLeadClick: (lead: Lead) => void;
   onNavigate: (tabId: string) => void;
   onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
@@ -25,7 +27,7 @@ interface WorkspaceHubProps {
 }
 
 const WorkspaceHub: React.FC<WorkspaceHubProps> = ({ 
-    leads, content, students, campaigns, tasks, events,
+    leads, content, students, campaigns, tasks, events, notifications,
     onLeadClick, onNavigate, onQuickAction, onAddEvent, onNewMeetingClick,
     onAddActivity, onAddContact, onUpdateTask, onAddTask,
     initialTab = 'overview'
@@ -60,6 +62,7 @@ const WorkspaceHub: React.FC<WorkspaceHubProps> = ({
                         campaigns={campaigns}
                         tasks={tasks}
                         events={events}
+                        notifications={notifications}
                         onLeadClick={onLeadClick}
                         onNavigate={handleInternalNavigate}
                         onQuickAction={onQuickAction}

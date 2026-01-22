@@ -50,6 +50,12 @@ export const EmailCenter: React.FC = () => {
         void load();
     }, [orgId, isClientView]);
 
+    useEffect(() => {
+        const onCompose = () => handleOpenCompose();
+        window.addEventListener('client-os:compose-email', onCompose);
+        return () => window.removeEventListener('client-os:compose-email', onCompose);
+    }, []);
+
     const refreshInbox = async () => {
         if (!orgId) return;
         const inbox = await getInbox({ orgId, scope: isClientView ? 'client_by_clerk_email' : 'org' });
@@ -172,6 +178,9 @@ export const EmailCenter: React.FC = () => {
             setIsSendingCompose(true);
             try {
                 const mapping = await getClientIdByClerkEmail({ orgId });
+                if (!mapping?.clientId) {
+                    throw new Error('לא ניתן לשלוח הודעה: לא זוהה לקוח שולח');
+                }
                 await sendMessage({
                     orgId,
                     senderId: mapping.clientId,
@@ -412,7 +421,7 @@ export const EmailCenter: React.FC = () => {
                                                 className="text-xs font-bold text-nexus-accent hover:underline flex items-center gap-1"
                                                 disabled={isGenerating}
                                             >
-                                                <RefreshCw size={12} className={isGenerating ? 'animate-spin' : ''} /> נסח מחדש
+                                                <RefreshCw size={12} className={isGenerating ? 'opacity-60' : ''} /> {isGenerating ? 'מנסח...' : 'נסח מחדש'}
                                             </button>
                                             <GlowButton onClick={handleSend} className="px-6 py-2 text-sm h-auto">
                                                 <Send size={14} className="mr-2" /> שלח
@@ -427,12 +436,8 @@ export const EmailCenter: React.FC = () => {
                                         disabled={isGenerating}
                                         className="flex-1 py-4 bg-white border border-nexus-accent/30 rounded-xl text-nexus-primary font-bold text-sm hover:bg-nexus-accent/5 hover:border-nexus-accent transition-all flex items-center justify-center gap-2 shadow-sm group"
                                     >
-                                        {isGenerating ? (
-                                            <RefreshCw size={18} className="animate-spin text-nexus-accent" />
-                                        ) : (
-                                            <Sparkles size={18} className="text-nexus-accent group-hover:scale-110 transition-transform" />
-                                        )}
-                                        {isGenerating ? 'חושב...' : 'צור תשובה חכמה'}
+                                        <Sparkles size={18} className={isGenerating ? 'text-nexus-accent opacity-60' : 'text-nexus-accent group-hover:scale-110 transition-transform'} />
+                                        {isGenerating ? 'מנסח...' : 'צור תשובה חכמה'}
                                     </button>
                                     <button 
                                         onClick={() => setReplyText(' ')}

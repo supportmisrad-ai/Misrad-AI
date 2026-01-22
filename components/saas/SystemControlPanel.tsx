@@ -1,7 +1,8 @@
+'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, XCircle, Download, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Download } from 'lucide-react';
 import { SYSTEM_SCREENS } from '../../constants';
 import { OrganizationProfile, SystemScreenStatus } from '../../types';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
@@ -66,7 +67,7 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
                     className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-50"
                 >
                     {isExporting ? (
-                        <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> מייצא...</span>
+                        <span className="inline-flex items-center gap-2">מייצא...</span>
                     ) : (
                         <span className="inline-flex items-center gap-2"><Download size={14} /> גיבוי הגדרות AI</span>
                     )}

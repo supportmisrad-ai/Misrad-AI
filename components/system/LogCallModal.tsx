@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2, Paperclip } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export default function LogCallModal({
   open,
@@ -111,7 +112,10 @@ export default function LogCallModal({
               >
                 {isUploading ? (
                   <>
-                    <Loader2 size={16} className="inline-block ml-2 animate-spin" /> מעבד...
+                    <span className="inline-flex items-center gap-2">
+                      <Skeleton className="w-4 h-4 rounded-full" />
+                      מעבד...
+                    </span>
                   </>
                 ) : (
                   <>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { MessageSquareWarning, X, Send, Loader2, Star, Quote, Copy, Sparkles } from 'lucide-react';
+import { MessageSquareWarning, X, Send, Star, Quote, Copy, Sparkles } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PortalModalsProps {
   showFrictionModal: boolean;
@@ -64,7 +65,7 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
                 disabled={!frictionText.trim() || isSubmittingFeedback}
                 className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-lg hover:bg-nexus-accent transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-3"
               >
-                {isSubmittingFeedback ? <Loader2 className="animate-spin" /> : <><Send size={20} /> שלח למנהל הפרויקט</>}
+                {isSubmittingFeedback ? <Skeleton className="w-5 h-5 rounded-full bg-white/30" /> : <><Send size={20} /> שלח למנהל הפרויקט</>}
               </button>
             </div>
           </div>
@@ -105,7 +106,7 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
                     className="flex-1 py-4 bg-slate-900 text-white rounded-3xl font-bold hover:bg-nexus-accent transition-all flex items-center justify-center gap-2"
                   >
                     {isGeneratingTestimonial ? (
-                      <Loader2 size={18} className="animate-spin" />
+                      <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" />
                     ) : (
                       <>
                         <Sparkles size={18} /> הפוך את זה להמלצה יפה

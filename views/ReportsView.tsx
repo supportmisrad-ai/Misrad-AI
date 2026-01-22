@@ -9,6 +9,7 @@ import { Status, TimeEntry, User } from '../types';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TimeEntryModal } from '../components/nexus/TimeEntryModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const ReportsView: React.FC = () => {
     const { tasks, currentUser, hasPermission, addToast, departments, users: contextUsers, timeEntries: contextTimeEntries, deleteTimeEntry, updateTimeEntry, addManualTimeEntry } = useData();
@@ -436,7 +437,7 @@ export const ReportsView: React.FC = () => {
                             <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">מרכז דוחות ומדדים</h1>
                             {isRefreshing && (
                                 <div className="flex items-center gap-2 px-2 md:px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
-                                    <RefreshCw size={12} className="md:w-3.5 md:h-3.5 text-blue-600 animate-spin" />
+                                    <Skeleton className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full" />
                                     <span className="text-[10px] md:text-xs font-bold text-blue-700">מתעדכן...</span>
                                 </div>
                             )}

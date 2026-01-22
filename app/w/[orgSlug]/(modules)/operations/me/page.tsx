@@ -46,7 +46,7 @@ export default async function OperationsMePage({
   }
 
   return (
-    <PremiumFrame moduleLabel="Operations" title="אזור אישי" subtitle="תפעול ושטח">
+    <PremiumFrame moduleLabel="Operations" title="אזור אישי" subtitle="תפעול, מלאי ושטח">
       <DataProvider initialCurrentUser={user} initialOrganization={workspace}>
         <MeView
           basePathOverride={`/w/${encodeURIComponent(orgSlug)}/operations`}

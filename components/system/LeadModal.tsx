@@ -6,12 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Lead, Activity, Task } from './types';
 import { STAGES } from './constants';
 import { 
-    X, Phone, Mail, ArrowRight, MessageSquare, CalendarClock, Paperclip, Loader2
+    X, Phone, Mail, ArrowRight, MessageSquare, CalendarClock, Paperclip
 } from 'lucide-react';
 import LogCallModal from './LogCallModal';
 import { useToast } from './contexts/ToastContext';
 import { createSystemLeadActivity } from '@/app/actions/system-leads';
 import { uploadCallRecordingFile } from '@/app/actions/files';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface LeadModalProps {
   lead: Lead;
@@ -586,7 +587,10 @@ const LeadModal: React.FC<LeadModalProps> = ({
               >
                 {isUploadingRecording ? (
                   <>
-                    <Loader2 size={14} className="inline-block ml-1 animate-spin" /> מעבד...
+                    <span className="inline-flex items-center gap-2">
+                      <Skeleton className="w-4 h-4 rounded-full" />
+                      מעבד...
+                    </span>
                   </>
                 ) : (
                   <>

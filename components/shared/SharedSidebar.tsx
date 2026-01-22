@@ -31,6 +31,7 @@ export function SharedSidebar({
     name: string;
     logoUrl?: string | null;
     fallbackIcon?: React.ReactNode;
+    badgeIcon?: React.ReactNode;
   };
   brandSubtitle?: string | null;
   onBrandClickAction?: () => void;
@@ -65,12 +66,17 @@ export function SharedSidebar({
                 aria-label="מעבר בין עסקים"
                 title="מעבר בין עסקים"
               >
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
+                <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
                   {brand.logoUrl ? (
                     <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
                   ) : (
                     brand.fallbackIcon || null
                   )}
+                  {brand.badgeIcon ? (
+                    <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                      {brand.badgeIcon}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
                   <span
@@ -94,12 +100,17 @@ export function SharedSidebar({
               {topSlot ? <div className="w-full">{topSlot}</div> : null}
             </div>
           ) : (
-            <div className="w-10 h-10 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] rounded-xl flex items-center justify-center shadow-md overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
+            <div className="relative w-10 h-10 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] rounded-xl flex items-center justify-center shadow-md overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
               {brand.logoUrl ? (
                 <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
               ) : (
                 brand.fallbackIcon || null
               )}
+              {brand.badgeIcon ? (
+                <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                  {brand.badgeIcon}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -152,7 +163,7 @@ export function SharedSidebar({
                   className={`w-full flex items-center gap-3 px-3 py-3 rounded-2xl text-sm font-medium transition-all duration-150 group relative
                     ${
                       isActiveAction(item.path)
-                        ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-lg shadow-gray-900/30 font-bold'
+                        ? 'text-[color:var(--os-sidebar-active-text,#ffffff)] shadow-[0_18px_40px_var(--os-sidebar-active-shadow,rgba(17,24,39,0.30))] font-bold'
                         : 'text-[color:var(--os-sidebar-text-muted,#6b7280)] hover:bg-[color:var(--os-sidebar-item-hover,rgba(255,255,255,0.50))] hover:text-[color:var(--os-sidebar-text,#111827)]'
                     }
                     ${!isOpen ? 'justify-center px-0 aspect-square' : ''}`}

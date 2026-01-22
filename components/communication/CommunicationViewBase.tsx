@@ -16,7 +16,6 @@ import {
   GripHorizontal,
   Layers,
   Link,
-  Loader2,
   Mail,
   MessageSquare,
   Mic,
@@ -40,6 +39,7 @@ import {
   Zap,
   ChevronDown,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export type CommunicationActivityType = 'whatsapp' | 'sms' | 'email' | 'note' | 'call' | string;
 
@@ -786,7 +786,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                                 {isMe && (
                                   <div className="flex items-center">
                                     {sendingStatus[msg.id] === 'sending' ? (
-                                      <Loader2 size={10} className="animate-spin" />
+                                      <Skeleton className="w-2.5 h-2.5 rounded-full" />
                                     ) : sendingStatus[msg.id] === 'sent' ? (
                                       <Check size={12} />
                                     ) : (
@@ -844,7 +844,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                           className="p-3 rounded-2xl bg-onyx-900 text-white hover:bg-black transition-all shadow-xl active:scale-95 disabled:opacity-50"
                           title="טיוטת AI"
                         >
-                          {isDrafting ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />}
+                          {isDrafting ? <Skeleton className="w-5 h-5 rounded-full bg-white/30" /> : <Wand2 size={20} />}
                         </button>
                       </div>
 
@@ -1039,7 +1039,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                       >
                         {isUploadingRecording ? (
                           <>
-                            <Loader2 size={16} className="inline-block ml-2 animate-spin" /> מעבד...
+                            <Skeleton className="inline-block ml-2 w-4 h-4 rounded-full" /> מעבד...
                           </>
                         ) : (
                           <>

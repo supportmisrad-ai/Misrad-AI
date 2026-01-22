@@ -81,7 +81,7 @@ const Settings: React.FC = () => {
                            </button>
                        </div>
                    ))}
-                   <button className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-400 hover:text-nexus-primary hover:border-nexus-primary hover:bg-nexus-primary/5 transition-all">
+                   <button className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-slate-200/70 rounded-xl text-gray-400 hover:text-nexus-primary hover:border-nexus-primary hover:bg-nexus-primary/5 transition-all">
                        <Upload size={16}/> תעלה קובץ חדש
                    </button>
                </div>
@@ -98,7 +98,7 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Cost Configuration */}
-            <div className="glass-card p-6 border-nexus-border rounded-xl">
+            <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-warning/10 text-signal-warning border border-signal-warning/20">
                      <DollarSign size={24} />
@@ -126,7 +126,7 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Margin Configuration */}
-            <div className="glass-card p-6 border-nexus-border rounded-xl">
+            <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-success/10 text-signal-success border border-signal-success/20">
                      <AlertTriangle size={24} />
@@ -183,7 +183,7 @@ const Settings: React.FC = () => {
                               <div className="flex-1">
                                   <div className="flex items-center gap-2 mb-1">
                                       <h4 className="font-bold text-gray-900">{item.title}</h4>
-                                      {item.isPopular && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full flex items-center gap-1 font-bold"><Star size={8} fill="currentColor"/> הולך חזק</span>}
+                                      {item.isPopular && <span className="text-[10px] bg-[color:var(--os-accent)]/15 text-[color:var(--os-accent)] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold"><Star size={8} fill="currentColor"/> הולך חזק</span>}
                                   </div>
                                   <p className="text-xs text-gray-500 line-clamp-1">{item.description}</p>
                               </div>
@@ -212,7 +212,7 @@ const Settings: React.FC = () => {
             </div>
 
             {/* Liability Shield Sensitivity */}
-            <div className="glass-card p-6 border-nexus-border rounded-xl">
+            <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-nexus-accent/10 text-nexus-accent border border-nexus-accent/20">
                      <Shield size={24} />
@@ -258,7 +258,7 @@ const Settings: React.FC = () => {
               <p className="text-sm text-gray-500">לשלוח דברים לבד.</p>
             </div>
 
-            <div className="glass-card p-6 border-nexus-border rounded-xl">
+            <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-nexus-primary/10 text-nexus-primary border border-nexus-primary/20">
                      <MessageSquare size={24} />
@@ -287,7 +287,7 @@ const Settings: React.FC = () => {
                </div>
             </div>
 
-            <div className="glass-card p-6 border-nexus-border rounded-xl">
+            <div className="glass-card p-6 border border-slate-200/70 rounded-xl">
                <div className="flex items-start gap-4 mb-6">
                   <div className="p-3 rounded-lg bg-signal-danger/10 text-signal-danger border border-signal-danger/20">
                      <AlertTriangle size={24} />
@@ -366,7 +366,7 @@ const Settings: React.FC = () => {
          </div>
 
          {/* Sticky Footer for Actions */}
-         <div className="pt-6 border-t border-nexus-border flex justify-end gap-4 lg:pb-0 pb-20">
+         <div className="pt-6 border-t border-slate-200/70 flex justify-end gap-4 lg:pb-0 pb-20">
             <button className="px-6 py-3 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors font-medium">
                בטל
             </button>

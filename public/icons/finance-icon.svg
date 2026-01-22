@@ -8,18 +8,14 @@
   </defs>
 
   <g opacity="0.92">
-    <ellipse cx="210" cy="330" rx="86" ry="22" fill="white"/>
-    <path d="M124 330V286" stroke="white" stroke-width="18" stroke-linecap="round"/>
-    <path d="M296 330V286" stroke="white" stroke-width="18" stroke-linecap="round"/>
-    <ellipse cx="210" cy="286" rx="86" ry="22" fill="white" fill-opacity="0.92"/>
+    <!-- Bars -->
+    <rect x="140" y="300" width="44" height="110" rx="18" fill="white"/>
+    <rect x="224" y="252" width="44" height="158" rx="18" fill="white" fill-opacity="0.95"/>
+    <rect x="308" y="206" width="44" height="204" rx="18" fill="white" fill-opacity="0.9"/>
 
-    <ellipse cx="302" cy="280" rx="86" ry="22" fill="white" fill-opacity="0.92"/>
-    <path d="M216 280V236" stroke="white" stroke-width="18" stroke-linecap="round"/>
-    <path d="M388 280V236" stroke="white" stroke-width="18" stroke-linecap="round"/>
-    <ellipse cx="302" cy="236" rx="86" ry="22" fill="white" fill-opacity="0.86"/>
-
-    <path d="M150 220L228 164L276 192L356 132" stroke="white" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M356 132L352 166" stroke="white" stroke-width="20" stroke-linecap="round"/>
-    <path d="M356 132L322 136" stroke="white" stroke-width="20" stroke-linecap="round"/>
+    <!-- Upward trend line -->
+    <path d="M140 250L224 210L308 232L372 176" stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M372 176L370 214" stroke="white" stroke-width="22" stroke-linecap="round"/>
+    <path d="M372 176L336 180" stroke="white" stroke-width="22" stroke-linecap="round"/>
   </g>
 </svg>

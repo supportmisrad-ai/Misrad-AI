@@ -1,8 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getContentByKey } from '@/app/actions/site-content';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const SupportModal: React.FC = () => {
     const { isSupportModalOpen, closeSupport, currentUser, addNotification, supportDraft, setSupportDraft, startTutorial } = useData();
@@ -10,10 +13,28 @@ export const SupportModal: React.FC = () => {
     const [ticketId, setTicketId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
 
     const setCategory = (category: any) => setSupportDraft((prev: any) => ({ ...prev, category }));
     const setSubject = (subject: string) => setSupportDraft((prev: any) => ({ ...prev, subject }));
     const setMessage = (message: string) => setSupportDraft((prev: any) => ({ ...prev, message }));
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await getContentByKey('landing', 'support', 'support_whatsapp_group_url');
+                const next = typeof res.data === 'string' ? res.data : '';
+                if (!cancelled) setWhatsappGroupUrl(next);
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,10 +42,13 @@ export const SupportModal: React.FC = () => {
         setError(null);
 
         try {
+            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+
             const response = await fetch('/api/support', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgId ? { 'x-org-id': orgId } : {}),
                 },
                 body: JSON.stringify({
                     category: supportDraft.category,
@@ -75,6 +99,8 @@ export const SupportModal: React.FC = () => {
     }
 
     if (!isSupportModalOpen) return null;
+
+    const hasWhatsAppGroup = Boolean(whatsappGroupUrl && whatsappGroupUrl.trim());
 
     const CATEGORIES = [
         { id: 'Tech', label: 'תמיכה טכנית', icon: LifeBuoy, sla: 'עד שעתיים' },
@@ -182,7 +208,7 @@ export const SupportModal: React.FC = () => {
                                 >
                                     {isSubmitting ? (
                                         <>
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                             שולח...
                                         </>
                                     ) : (
@@ -204,12 +230,14 @@ export const SupportModal: React.FC = () => {
                                 
                                 <div className="text-center">
                                     <a 
-                                        href="https://wa.me/972500000000" // Replace with real number
+                                        href={hasWhatsAppGroup ? whatsappGroupUrl : '#'} // Replace with real number
                                         target="_blank" 
                                         rel="noreferrer"
-                                        className="inline-flex items-center gap-2 text-green-600 text-xs font-bold hover:text-green-700 transition-colors"
+                                        className={`inline-flex items-center gap-2 text-green-600 text-xs font-bold hover:text-green-700 transition-colors ${
+                                            hasWhatsAppGroup ? '' : 'opacity-50 pointer-events-none'
+                                        }`}
                                     >
-                                        <MessageCircle size={14} /> דחוף? דבר איתנו ב-WhatsApp
+                                        <MessageCircle size={14} /> הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ
                                     </a>
                                 </div>
                             </div>
@@ -224,11 +252,21 @@ export const SupportModal: React.FC = () => {
                             <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6 animate-[bounce_1s_infinite]">
                                 <CheckCircle2 size={40} />
                             </div>
-                            <h2 className="text-2xl font-black text-gray-900 mb-2">הפנייה התקבלה!</h2>
+                            <h2 className="text-2xl font-black text-gray-900 mb-2">תודה על הפידבק!</h2>
                             <p className="text-gray-500 mb-6 max-w-xs">
-                                מספר המעקב שלך הוא <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{ticketId}</span>.<br/>
-                                אנו נעשה מאמץ לחזור אליך תוך <b>{activeCategory?.sla}</b>.
+                                הצוות קיבל את הבקשה והוא מטפל בזה בהקדם האפשרי.<br />
+                                מספר המעקב שלך הוא <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{ticketId}</span>.
                             </p>
+                            {hasWhatsAppGroup ? (
+                                <a
+                                    href={whatsappGroupUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full max-w-xs mb-3 inline-flex items-center justify-center gap-2 bg-green-50 text-green-700 py-3 rounded-xl text-sm font-black hover:bg-green-100 transition-colors border border-green-100"
+                                >
+                                    <MessageCircle size={16} /> הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ
+                                </a>
+                            ) : null}
                             <button 
                                 onClick={handleClose}
                                 className="px-8 py-3 bg-gray-100 text-gray-900 font-bold rounded-xl hover:bg-gray-200 transition-colors"

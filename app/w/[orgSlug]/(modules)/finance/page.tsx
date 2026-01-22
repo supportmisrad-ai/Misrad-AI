@@ -1,8 +1,7 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
 import { getFinanceOverviewData } from '@/lib/services/finance-service';
-import FinanceModuleEntryClient from './FinanceModuleEntryClient';
-import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
+import OverviewView from '@/components/finance/OverviewView';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,14 +12,6 @@ export default async function FinanceModuleHome({
 }) {
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
-
-  const initialOrganization = {
-    name: workspace.name,
-    logo: workspace.logo || '',
-    primaryColor: '#000000',
-  };
 
   let initialFinanceOverview: any = null;
   const canViewFinancials = await hasPermission('view_financials');
@@ -36,11 +27,5 @@ export default async function FinanceModuleHome({
     });
   }
 
-  return (
-    <FinanceModuleEntryClient
-      initialCurrentUser={initialCurrentUser}
-      initialOrganization={initialOrganization}
-      initialFinanceOverview={initialFinanceOverview}
-    />
-  );
+  return <OverviewView initialFinanceOverview={initialFinanceOverview} />;
 }

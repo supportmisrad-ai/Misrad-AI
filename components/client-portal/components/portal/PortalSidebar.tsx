@@ -9,6 +9,7 @@ import {
   MessageSquareWarning,
 } from 'lucide-react';
 import { getOSModule } from '@/types/os-modules';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface PortalSidebarProps {
   activeScreen: string;
@@ -24,7 +25,6 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
   client,
 }) => {
   const clientModule = getOSModule('client');
-  const ClientRoomIcon = clientModule?.icon;
 
   const menuItems = [
     { id: 'dashboard', label: 'מה קורה עכשיו?', icon: LayoutDashboard },
@@ -40,7 +40,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
       <div className="p-8">
         <div className="flex items-center gap-3 mb-12">
           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm">
-            {ClientRoomIcon ? <ClientRoomIcon size={22} /> : null}
+            <OSModuleIcon moduleKey="client" size={22} className="text-white" />
           </div>
           <div>
             <h1 className="font-display font-bold text-lg text-slate-900 leading-none">{clientModule?.name || 'Client'}</h1>

@@ -11,6 +11,7 @@ import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
 import { getWorkspaceOrgIdFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
+import { Skeleton } from '@/components/ui/skeletons';
 
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
@@ -894,7 +895,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         className="h-11 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-sm font-bold flex items-center gap-2 text-slate-700 transition-colors"
                                         aria-label="רענן תא טייס"
                                     >
-                                        <RefreshCw size={16} className={isPilotLoading ? 'animate-spin' : ''} />
+                                        {isPilotLoading ? <Skeleton className="w-4 h-4 rounded-full" /> : <RefreshCw size={16} />}
                                         רענן
                                     </button>
                                 </div>

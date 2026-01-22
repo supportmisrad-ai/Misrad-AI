@@ -159,10 +159,11 @@ export default function AdminPanelLayout({
           </button>
           <button
             onClick={onRefresh}
+            disabled={isRefreshing}
             className="w-full mt-2 flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all"
           >
-            <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''}/>
-            <span>רענון</span>
+            <RefreshCw size={18} className={isRefreshing ? 'opacity-60' : undefined}/>
+            <span>{isRefreshing ? 'מרענן...' : 'רענון'}</span>
           </button>
         </div>
       </aside>
@@ -181,7 +182,7 @@ export default function AdminPanelLayout({
         
         <footer className="mt-auto pt-8 pb-8 border-t border-indigo-200 flex flex-col md:flex-row justify-between items-center gap-4 relative z-10 w-full px-8 flex-shrink-0 bg-gradient-to-br from-indigo-50/50 via-white/50 to-purple-50/50 backdrop-blur-sm">
           <div className="flex items-center gap-6 text-[10px] font-black text-slate-600 uppercase tracking-widest">
-            <span className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> בסיס נתונים: מיועל</span>
+            <span className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full"></div> בסיס נתונים: מיועל</span>
             <span className="flex items-center gap-2"><div className="w-2 h-2 bg-indigo-500 rounded-full"></div> גרסה: v2.4.12-admin</span>
             <span className="flex items-center gap-2 text-indigo-600"><Key size={12}/> חיבור מוצפן פעיל</span>
           </div>

@@ -218,7 +218,7 @@ export const VersionManagementPanel: React.FC<VersionManagementPanelProps> = ({
                                                 >
                                                     {isUpdating ? (
                                                         <>
-                                                            <RefreshCw size={14} className="animate-spin" /> מעדכן...
+                                                            <RefreshCw size={14} className="opacity-70" /> מעדכן...
                                                         </>
                                                     ) : (
                                                         <>

@@ -12,6 +12,8 @@ import { X, Calendar, MapPin, Users, Clock, FileText } from 'lucide-react';
 import { TeamEvent, TeamEventType } from '../../../types';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 
+let showHebrewDatesPreference = false;
+
 interface EventRequestModalProps {
     event?: TeamEvent | null;
     onClose: () => void;
@@ -26,12 +28,7 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
     addToast
 }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showHebrewDates, setShowHebrewDates] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('showHebrewDates') === 'true';
-        }
-        return false;
-    });
+    const [showHebrewDates, setShowHebrewDates] = useState(() => showHebrewDatesPreference);
     const [formData, setFormData] = useState({
         title: event?.title || '',
         description: event?.description || '',
@@ -47,9 +44,7 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
     });
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('showHebrewDates', showHebrewDates.toString());
-        }
+        showHebrewDatesPreference = showHebrewDates;
     }, [showHebrewDates]);
 
     const handleSubmit = async (e: React.FormEvent) => {

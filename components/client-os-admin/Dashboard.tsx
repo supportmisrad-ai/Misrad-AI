@@ -286,7 +286,7 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[600px]">
         <div className={`lg:col-span-${modules.cycles ? '2' : '3'} flex flex-col gap-6`}>
-          <ClientsMap clients={filteredMapClients as any} onSelectClient={openClientDashboard} />
+          <ClientsMap clients={filteredMapClients as any} onSelectClientAction={openClientDashboard} />
 
           {modules.cycles && (
             <div className="glass-card p-6 rounded-2xl border-l-4 border-l-nexus-accent animate-fade-in">
@@ -327,7 +327,7 @@ const Dashboard: React.FC = () => {
                     <span className="text-[10px] text-gray-400">{item.priority}</span>
                   </div>
                   <div className="flex gap-3">
-                    <item.icon size={16} className={item.type === 'RISK' ? 'text-red-500' : 'text-amber-500'} />
+                    <item.icon size={16} className={item.type === 'RISK' ? 'text-red-500' : 'text-[color:var(--os-accent)]'} />
                     <span className="text-sm font-medium">{item.message}</span>
                   </div>
                 </div>

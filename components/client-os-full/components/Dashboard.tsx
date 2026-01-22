@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, AlertCircle, DollarSign, Activity, Ghost, Clock, Zap, ShieldAlert, Sparkles, ArrowRight, Filter, AlertTriangle, Share2, MessageCircle, Star, Sun, Users, Video, Calendar, X, Check, Search, Mail, Plus, Layers, UserCheck, CheckSquare, Square, Smartphone, FileText, Command } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertCircle, DollarSign, Activity, Ghost, Clock, Zap, ShieldAlert, Sparkles, ArrowRight, Filter, AlertTriangle, Share2, MessageCircle, Star, Sun, Users, Video, Calendar, X, Check, Search, Mail, Plus, Layers, UserCheck, CheckSquare, Square, Smartphone, FileText } from 'lucide-react';
 import { HealthStatus, GroupEvent, ClientStatus } from '../types';
 import DailyBriefing from './DailyBriefing';
 import { useNexus } from '../context/ClientContext';
@@ -127,6 +127,12 @@ const Dashboard: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const onCreateEvent = () => setShowCreateEvent(true);
+    window.addEventListener('client-os:create-event', onCreateEvent);
+    return () => window.removeEventListener('client-os:create-event', onCreateEvent);
+  }, []);
+
   const totalRevenue = dashboardData?.totalMRR ?? activeClients.reduce((acc, c) => acc + c.monthlyRetainer, 0);
   const revenueAtRisk =
     dashboardData?.revenueAtRisk ??
@@ -154,10 +160,6 @@ const Dashboard: React.FC = () => {
 
   const openClientDashboard = (clientId: string) => {
     window.dispatchEvent(new CustomEvent('open-client-portal', { detail: clientId }));
-  };
-
-  const triggerSearch = () => {
-      window.dispatchEvent(new CustomEvent('open-nexus-command'));
   };
 
   const smartFeed = useMemo((): FeedItem[] => {
@@ -215,52 +217,29 @@ const Dashboard: React.FC = () => {
           </div>
       )}
 
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end pb-2 gap-4">
-        <div className="flex-1 w-full md:w-auto">
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mb-1">לוח בקרה</h1>
-          <p className="text-slate-500 text-sm md:text-base font-medium">
-            {dashboardData?.activeClientsCount ?? activeClients.length} פרויקטים פעילים
-          </p>
+      <div className="flex flex-col sm:flex-row gap-3 w-full items-stretch sm:items-center justify-end pb-2">
+        <button
+          onClick={() => setShowDailyBriefing(true)}
+          className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-[color:var(--os-accent)] text-white rounded-2xl shadow-lg ring-1 ring-[color:var(--theme-border)] hover:opacity-95 transition-all"
+          type="button"
+        >
+          <Sun size={16} />
+          <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
+        </button>
+
+        <div className="ui-card px-6 py-3 flex-1 md:flex-none">
+          <span className="text-[10px] text-slate-500 uppercase font-bold block">MRR פעיל</span>
+          <span className="text-2xl font-mono font-black text-slate-900">₪{totalRevenue.toLocaleString()}</span>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto items-stretch sm:items-center">
-          <div
-            onClick={triggerSearch}
-            className="flex-1 sm:w-64 bg-white/70 border border-white/60 rounded-2xl px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:bg-white hover:border-[color:var(--theme-border)] transition-all shadow-sm"
-          >
-            <Search size={18} className="text-slate-400" />
-            <span className="text-sm text-slate-400 font-medium">חיפוש מהיר...</span>
-            <div className="mr-auto flex items-center gap-1 opacity-50">
-              <Command size={12} />
-              <span className="text-[10px] font-bold">K</span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowDailyBriefing(true)}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-[color:var(--os-accent)] text-white rounded-2xl shadow-lg ring-1 ring-[color:var(--theme-border)] hover:opacity-95 transition-all"
-              type="button"
-            >
-              <Sun size={16} />
-              <span className="font-bold text-sm whitespace-nowrap">עדכון בוקר</span>
-            </button>
-
-            <div className="ui-card px-6 py-3 flex-1 md:flex-none">
-              <span className="text-[10px] text-slate-500 uppercase font-bold block">MRR פעיל</span>
-              <span className="text-2xl font-mono font-black text-slate-900">₪{totalRevenue.toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-      </header>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="ui-card p-7 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-signal-danger/10 via-transparent to-transparent" />
           <div className="relative">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-500 uppercase">כסף בסיכון</span>
-              <AlertTriangle size={18} className="text-amber-700" />
+              <AlertTriangle size={18} className="text-signal-danger" />
             </div>
             <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">₪{revenueAtRisk.toLocaleString()}</div>
             <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
@@ -270,11 +249,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="ui-card p-7 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-signal-warning/10 via-transparent to-transparent" />
           <div className="relative">
             <div className="flex items-center justify-between">
               <span className="text-xs font-black text-slate-500 uppercase">חשבוניות באיחור</span>
-              <FileText size={18} className="text-orange-700" />
+              <FileText size={18} className="text-signal-warning" />
             </div>
             <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900">{overdueInvoicesCount}</div>
             <div className="mt-4 w-full bg-gray-200/80 h-1.5 rounded-full overflow-hidden">
@@ -340,7 +319,7 @@ const Dashboard: React.FC = () => {
                     const statusLabel = isActive ? 'פעיל' : 'בהמתנה';
                     const statusClass = isActive
                       ? 'bg-signal-success/10 text-signal-success border-signal-success/20'
-                      : 'bg-amber-500/10 text-amber-700 border-amber-500/20';
+                      : 'bg-signal-warning/10 text-signal-warning border-signal-warning/20';
 
                     return (
                       <div
@@ -400,7 +379,7 @@ const Dashboard: React.FC = () => {
 
         <div className="glass-card p-0 rounded-2xl flex flex-col h-full bg-white">
            <div className="p-6"><h3 className="font-bold uppercase tracking-widest">חדשות ומשימות</h3></div>
-           <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
               {filteredFeed.map((item) => (
                 <div key={item.id} className="p-4 hover:bg-gray-50 cursor-pointer">
                     <div className="flex justify-between mb-1">
@@ -408,7 +387,7 @@ const Dashboard: React.FC = () => {
                         <span className="text-[10px] text-gray-400">{item.priority}</span>
                     </div>
                     <div className="flex gap-3">
-                        <item.icon size={16} className={item.type === 'RISK' ? 'text-red-500' : 'text-amber-500'} />
+                        <item.icon size={16} className={item.type === 'RISK' ? 'text-red-500' : 'text-[color:var(--os-accent)]'} />
                         <span className="text-sm font-medium">{item.message}</span>
                     </div>
                 </div>

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, Video, MapPin, Plus, ChevronLeft, ChevronRight, RefreshCw, Phone, ExternalLink, Check, Users, Zap } from 'lucide-react';
 import { Lead, CalendarEvent } from '../../types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CalendarViewProps {
   leads: Lead[];
@@ -156,7 +157,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
                     : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
             >
-                {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : syncSuccess ? <Check size={16} /> : <RefreshCw size={16} />}
+                {isSyncing ? <Skeleton className="w-4 h-4 rounded-full" /> : syncSuccess ? <Check size={16} /> : <RefreshCw size={16} />}
                 <span className="hidden md:inline">
                     {isSyncing ? 'מסנכרן...' : syncSuccess ? 'פיקס!' : 'סנכרון אירועים'}
                 </span>

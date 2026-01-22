@@ -228,6 +228,7 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
 
   return {
     id: String(nexusUser.id),
+    profileId: String((profileRow as any)?.id || ''),
     name: String(nexusUser.name || name),
     role: String(nexusUser.role || role || 'עובד'),
     avatar: String((nexusUser as any).avatar || avatarUrl || ''),

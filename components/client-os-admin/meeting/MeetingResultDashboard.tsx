@@ -84,7 +84,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                 className={`text-lg md:text-xl font-bold px-3 py-2 rounded-xl border whitespace-nowrap ${
                   analysisResult?.sentimentScore && analysisResult.sentimentScore > 70
                     ? 'bg-green-50 text-green-600 border-green-200'
-                    : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                    : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] border-[color:var(--os-accent)]/30'
                 }`}
               >
                 {analysisResult?.sentimentScore}/100
@@ -125,14 +125,14 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
           </div>
           <div className="glass-card p-4 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+              <div className="p-2 bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] rounded-lg">
                 <Lightbulb size={18} />
               </div>
               <span className="font-bold text-gray-700">בהירות</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-16 md:w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="bg-amber-600 h-full" style={{ width: `${analysisResult?.rating?.clarity}%` }}></div>
+                <div className="bg-[color:var(--os-accent)] h-full" style={{ width: `${analysisResult?.rating?.clarity}%` }}></div>
               </div>
               <span className="font-mono font-bold">{analysisResult?.rating?.clarity}</span>
             </div>

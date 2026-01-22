@@ -44,7 +44,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
               </div>
               <div className="flex gap-4">
                   <button onClick={() => setShowHistory(!showHistory)} className="px-6 py-3.5 bg-white text-slate-600 border border-slate-200 hover:border-slate-300 rounded-2xl font-bold transition-all flex items-center gap-2 shadow-sm"><History size={18} /> היסטוריה</button>
-                  <button onClick={generateReport} disabled={isGenerating} className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-3 disabled:opacity-70">{isGenerating ? <RefreshCw size={20} className="animate-spin" /> : <Sparkles size={20} className="text-yellow-300 fill-yellow-300" />}{isGenerating ? 'מעבד...' : 'הפעל ניתוח מלא'}</button>
+                  <button onClick={generateReport} disabled={isGenerating} className="px-8 py-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-3 disabled:opacity-70">{isGenerating ? <RefreshCw size={20} className="opacity-70" /> : <Sparkles size={20} className="text-yellow-300 fill-yellow-300" />}{isGenerating ? 'מעבד...' : 'הפעל ניתוח מלא'}</button>
               </div>
           </div>
       </div>

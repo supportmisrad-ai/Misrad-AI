@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Shield, Users, Trash2, X, Edit2, Save, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
+import { UserPlus, Shield, Users, Trash2, X, Edit2, Save, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { TeamMember } from '@/types/social';
 import { useApp } from '@/contexts/AppContext';
 import { translateError } from '@/lib/errorTranslations';
@@ -180,14 +180,7 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                   disabled={isInviting}
                   className="bg-blue-600 text-white px-8 py-3.5 rounded-xl font-black text-xs shadow-lg h-[46px] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  {isInviting ? (
-                    <>
-                      <Loader2 className="animate-spin" size={16} />
-                      שולח...
-                    </>
-                  ) : (
-                    'שלח הזמנה'
-                  )}
+                  {isInviting ? 'שולח...' : 'שלח הזמנה'}
                 </button>
                 <button onClick={() => setIsInviteOpen(false)} className="p-3 text-slate-400"><X size={20}/></button>
               </div>

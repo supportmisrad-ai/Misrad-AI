@@ -121,6 +121,7 @@ export default function App({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__CLIENT_OS_USER__ = userData;
+      window.dispatchEvent(new CustomEvent('client-os-user-updated', { detail: userData }));
     }
   }, [userData]);
 

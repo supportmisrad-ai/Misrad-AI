@@ -101,8 +101,8 @@ const IntegrationsView: React.FC<IntegrationsViewProps> = ({ logs }) => {
                         disabled={connectingId === channel.id}
                         className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2"
                       >
-                          {connectingId === channel.id ? <RefreshCw size={14} className="animate-spin" /> : <Plus size={14} />}
-                          הגדר חיבור עכשיו
+                          {connectingId === channel.id ? <RefreshCw size={14} className="opacity-60" /> : <Plus size={14} />}
+                          {connectingId === channel.id ? 'מחבר...' : 'הגדר חיבור עכשיו'}
                       </button>
                   )}
               </div>

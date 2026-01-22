@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { randomUUID } from 'crypto';
 import type { PackageType } from '@/lib/server/workspace';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 import { uploadFile } from '@/app/actions/files';
+import { calculateOrderAmount } from '@/lib/billing/pricing';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
 export type BillingCycle = 'monthly' | 'yearly';
@@ -12,9 +14,9 @@ export type BillingCycle = 'monthly' | 'yearly';
 export type CreateSubscriptionOrderInput = {
   organizationId?: string;
   packageType?: PackageType;
-  planKey?: string;
+  soloModuleKey?: OSModuleKey;
   billingCycle: BillingCycle;
-  amount: number;
+  amount?: number;
   currency?: string;
   customerName: string;
   customerEmail: string;
@@ -79,19 +81,39 @@ export async function createSubscriptionOrder(
 
     const organizationId = input.organizationId || socialUser?.organization_id || null;
 
+    const packageType = (input.packageType || 'solo') as PackageType;
+    const soloModuleKey = input.soloModuleKey ?? null;
+
+    if (packageType === 'solo' && !soloModuleKey) {
+      return createErrorResponse(null, 'בחירת מודול חובה (Solo)');
+    }
+
     const seatsRaw = input.seats;
     const seatsNormalized = Number.isFinite(Number(seatsRaw)) ? Math.floor(Number(seatsRaw)) : null;
     const seats = seatsNormalized && seatsNormalized > 0 ? seatsNormalized : null;
+
+    let calculatedAmount = 0;
+    try {
+      const calc = calculateOrderAmount({
+        packageType: packageType as any,
+        soloModuleKey: soloModuleKey as any,
+        billingCycle: input.billingCycle,
+        seats,
+      });
+      calculatedAmount = calc.amount;
+    } catch (e: any) {
+      return createErrorResponse(e, e?.message || 'שגיאה בחישוב מחיר');
+    }
 
     const insertPayload: any = {
       id,
       clerk_user_id: clerkUserId,
       social_user_id: socialUser?.id || null,
       organization_id: organizationId,
-      package_type: input.packageType || null,
-      plan_key: input.planKey || null,
+      package_type: packageType,
+      plan_key: packageType === 'solo' ? String(soloModuleKey) : null,
       billing_cycle: input.billingCycle,
-      amount: input.amount,
+      amount: calculatedAmount,
       currency: input.currency || 'ILS',
       status: 'pending',
       payment_method: 'bit',
@@ -134,7 +156,7 @@ export async function createSubscriptionOrder(
       packageType: insertPayload.package_type,
       planKey: insertPayload.plan_key,
       billingCycle: input.billingCycle,
-      amount: Number(input.amount) || 0,
+      amount: Number(calculatedAmount) || 0,
       currency: insertPayload.currency,
       status: 'pending',
       paymentMethod: 'bit',

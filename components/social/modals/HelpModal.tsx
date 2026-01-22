@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { X, MessageSquare, LifeBuoy, User, FileText, CreditCard, Send, Loader2 } from 'lucide-react';
+import { X, MessageSquare, LifeBuoy, User, FileText, CreditCard, Send } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 type SupportSubject = 'technical' | 'account' | 'feature' | 'billing';
@@ -114,7 +114,7 @@ export default function HelpModal() {
                 disabled={isSending || !title || !detail}
                 className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
               >
-                {isSending ? <><Loader2 className="animate-spin" size={20}/> שולח...</> : <>שלח פנייה <Send size={18}/></>}
+                {isSending ? <>שולח...</> : <>שלח פנייה <Send size={18}/></>}
               </button>
             </div>
           </form>

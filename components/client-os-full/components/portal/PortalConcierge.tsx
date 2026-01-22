@@ -52,7 +52,7 @@ export const PortalConcierge: React.FC<PortalConciergeProps> = ({ client, client
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-slate-900 text-lg leading-tight">{meeting.title}</h4>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${meeting.location === 'ZOOM' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>{meeting.location}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${meeting.location === 'ZOOM' ? 'bg-blue-50 text-blue-600' : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)]'}`}>{meeting.location}</span>
                     </div>
                     <span className="text-xs text-gray-400 font-bold mt-1 block">{meeting.date}</span>
                   </div>

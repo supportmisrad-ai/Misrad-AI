@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Mic, FileText, Sparkles, AlertCircle } from 'lucide-react';
 import { useToast } from '../../system/contexts/ToastContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 /**
  * Session Transcription Component
@@ -53,8 +54,8 @@ const SessionTranscription: React.FC<{ sessionId: string }> = ({ sessionId }) =>
     <div className="p-6 space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-            <Mic className="text-amber-600" size={24} />
+          <div className="w-12 h-12 bg-[#0F172A] rounded-xl flex items-center justify-center border border-white/10 shadow-sm">
+            <Mic className="text-[#C5A572]" size={24} />
           </div>
           <div>
             <h3 className="text-lg font-bold text-slate-900">תמלול פגישה</h3>
@@ -74,8 +75,8 @@ const SessionTranscription: React.FC<{ sessionId: string }> = ({ sessionId }) =>
         />
 
         {isProcessing && (
-          <div className="mt-4 flex items-center gap-3 text-amber-600">
-            <div className="w-5 h-5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="mt-4 flex items-center gap-3 text-[#0F172A]">
+            <Skeleton className="w-5 h-5 rounded-full bg-[#C5A572]/30" />
             <span className="text-sm font-medium">מעבד תמלול...</span>
           </div>
         )}
@@ -84,7 +85,7 @@ const SessionTranscription: React.FC<{ sessionId: string }> = ({ sessionId }) =>
       {transcription && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <FileText className="text-amber-600" size={20} />
+            <FileText className="text-[#C5A572]" size={20} />
             <h3 className="text-lg font-bold text-slate-900">תמלול</h3>
           </div>
           <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
@@ -96,10 +97,10 @@ const SessionTranscription: React.FC<{ sessionId: string }> = ({ sessionId }) =>
       {summary && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <Sparkles className="text-amber-600" size={20} />
+            <Sparkles className="text-[#C5A572]" size={20} />
             <h3 className="text-lg font-bold text-slate-900">סיכום אוטומטי</h3>
           </div>
-          <div className="bg-amber-50 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
+          <div className="bg-[#0F172A]/5 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
             {summary}
           </div>
         </div>
@@ -108,12 +109,12 @@ const SessionTranscription: React.FC<{ sessionId: string }> = ({ sessionId }) =>
       {insights.length > 0 && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <AlertCircle className="text-amber-600" size={20} />
+            <AlertCircle className="text-[#C5A572]" size={20} />
             <h3 className="text-lg font-bold text-slate-900">תובנות</h3>
           </div>
           <div className="space-y-2">
             {insights.map((insight, index) => (
-              <div key={index} className="bg-amber-50 rounded-xl p-3 text-sm text-slate-700">
+              <div key={index} className="bg-[#0F172A]/5 rounded-xl p-3 text-sm text-slate-700">
                 {insight}
               </div>
             ))}

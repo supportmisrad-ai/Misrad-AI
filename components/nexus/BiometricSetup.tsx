@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { Fingerprint, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Fingerprint, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const BiometricSetup: React.FC = () => {
     const { user } = useUser();
@@ -223,7 +224,7 @@ export const BiometricSetup: React.FC = () => {
                         >
                             {isLoading ? (
                                 <>
-                                    <Loader2 size={18} className="animate-spin" />
+                                    <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" />
                                     <span>מפעיל...</span>
                                 </>
                             ) : hasPasskeys ? (

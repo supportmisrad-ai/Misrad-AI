@@ -56,7 +56,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                         <div className="flex flex-col items-end gap-2">
                             {meeting.aiAnalysis && (
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
-                                    meeting.aiAnalysis.sentimentScore > 70 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                    meeting.aiAnalysis.sentimentScore > 70 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] border-[color:var(--os-accent)]/30'
                                 }`}>
                                     ציון AI: {meeting.aiAnalysis.sentimentScore}
                                 </span>

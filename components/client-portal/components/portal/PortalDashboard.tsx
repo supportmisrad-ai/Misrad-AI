@@ -11,9 +11,9 @@ import {
   ThumbsDown,
   MessageSquarePlus,
   Check,
-  Loader2,
 } from 'lucide-react';
 import TestimonialPrompt from '../TestimonialPrompt';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PortalDashboardProps {
   client: any;
@@ -271,7 +271,7 @@ export const PortalDashboard: React.FC<PortalDashboardProps> = ({
                       className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-nexus-accent transition-all shadow-lg flex items-center justify-center gap-2"
                     >
                       {isSubmittingMood ? (
-                        <Loader2 size={16} className="animate-spin" />
+                        <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                       ) : (
                         <>
                           <Check size={16} /> שלח עדכון

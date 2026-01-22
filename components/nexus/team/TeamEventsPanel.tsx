@@ -14,6 +14,9 @@ import { EventRequestModal } from './EventRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { CustomSelect } from '../../CustomSelect';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { Skeleton } from '@/components/ui/skeletons';
+
+let showHebrewDatesPreference = false;
 
 interface TeamEventsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -30,17 +33,10 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
     const [filterStatus, setFilterStatus] = useState<TeamEventStatus | 'all'>('all');
     const [attendanceMap, setAttendanceMap] = useState<Record<string, EventAttendance[]>>({});
     const [viewingAttendance, setViewingAttendance] = useState<string | null>(null);
-    const [showHebrewDates, setShowHebrewDates] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('showHebrewDates') === 'true';
-        }
-        return false;
-    });
+    const [showHebrewDates, setShowHebrewDates] = useState(() => showHebrewDatesPreference);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('showHebrewDates', showHebrewDates.toString());
-        }
+        showHebrewDatesPreference = showHebrewDates;
     }, [showHebrewDates]);
 
     const loadEvents = async () => {
@@ -298,7 +294,7 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
                             className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:border-gray-300 hover:text-gray-900 transition-all disabled:opacity-50"
                             title="רענן"
                         >
-                            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                            {isLoading ? <Skeleton className="w-[18px] h-[18px] rounded-full" /> : <RefreshCw size={18} />}
                         </button>
                         <button
                             onClick={() => {
@@ -363,8 +359,23 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
 
             {/* Events List */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12 bg-white rounded-2xl border border-gray-200">
-                    <RefreshCw size={24} className="animate-spin text-gray-400" />
+                <div className="space-y-4">
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                        <div key={idx} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-5 w-56 rounded-xl" />
+                                    <Skeleton className="h-4 w-72 rounded-lg" />
+                                </div>
+                                <Skeleton className="h-6 w-24 rounded-full" />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Skeleton className="h-9 w-28 rounded-xl" />
+                                <Skeleton className="h-9 w-28 rounded-xl" />
+                                <Skeleton className="h-9 w-28 rounded-xl" />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             ) : events.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">

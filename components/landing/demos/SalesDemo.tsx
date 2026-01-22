@@ -69,7 +69,7 @@ export const SalesDemo = () => {
             <div className="grid grid-cols-3 gap-3 flex-1 z-10 relative">
                 {[
                     { title: 'לידים', count: 12, color: 'bg-blue-500' },
-                    { title: 'מו״מ', count: 5, color: 'bg-yellow-500' },
+                    { title: 'מו״מ', count: 5, color: 'bg-[#C5A572]' },
                     { title: 'סגירה', count: 8, color: 'bg-emerald-500' }
                 ].map((col, i) => (
                     <div key={i} className="flex flex-col h-full">

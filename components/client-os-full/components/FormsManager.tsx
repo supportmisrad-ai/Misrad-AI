@@ -336,11 +336,7 @@ export const FormsManager: React.FC = () => {
 
       {/* Header - Hidden on Mobile when editing to save space */}
       {(!activeTemplate || window.innerWidth >= 1024) && (
-        <header className="mb-4 flex justify-between items-end pb-4">
-            <div>
-            <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">הטפסים שלנו</h1>
-            <p className="text-gray-500 font-light">שאלונים שהלקוחות צריכים למלא.</p>
-            </div>
+        <header className="mb-4 flex justify-end items-end pb-4">
             <div className="hidden lg:flex gap-3">
                 {activeTemplate && (
                     <>
@@ -600,13 +596,13 @@ export const FormsManager: React.FC = () => {
 
                                             {/* Conditional Options Editor */}
                                             {(field.type === 'SELECT' || field.type === 'RADIO' || field.type === 'CHECKBOX') && (
-                                                <div className="mt-3 pl-2 border-r-2 border-orange-100">
+                                                <div className="mt-3 pl-2 border-r-2 border-[color:var(--os-accent)]/20">
                                                     <div className="flex items-start gap-2">
-                                                        <LayoutList size={14} className="text-orange-400 mt-1" />
+                                                        <LayoutList size={14} className="text-[color:var(--os-accent)] mt-1" />
                                                         <div className="flex-1">
                                                             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide block mb-1">אפשרויות בחירה (מופרדות בפסיק)</label>
                                                             <textarea
-                                                                className="w-full text-xs text-gray-700 bg-orange-50/50 border border-orange-100 rounded-lg p-2 outline-none focus:border-orange-300 resize-none" 
+                                                                className="w-full text-xs text-gray-700 bg-[color:var(--os-accent)]/5 border border-[color:var(--os-accent)]/20 rounded-lg p-2 outline-none focus:border-[color:var(--os-accent)]/50 resize-none" 
                                                                 defaultValue={field.options?.join(', ')}
                                                                 onBlur={(e) => handleUpdateField(editingStepId!, field.id, { options: e.target.value.split(',').map(s => s.trim()) })}
                                                                 placeholder="כתוב אפשרויות מופרדות בפסיק"

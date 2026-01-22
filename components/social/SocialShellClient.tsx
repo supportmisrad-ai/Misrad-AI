@@ -39,6 +39,9 @@ import { useRoomBranding } from '@/hooks/useRoomBranding';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { getUnreadUpdatesCount } from '@/app/actions/updates';
 import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { Skeleton } from '@/components/ui/skeletons';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 function SocialShellContent({
   children,
@@ -70,7 +73,7 @@ function SocialShellContent({
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { roomNameHebrew, roomName, gradient } = useRoomBranding();
+  const { roomNameHebrew, roomName, gradient, roomIconName } = useRoomBranding();
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
     name: initialCurrentUser?.name ?? null,
     role: initialCurrentUser?.role ?? null,
@@ -314,9 +317,10 @@ function SocialShellContent({
               <div
                 className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient || 'from-indigo-600 via-purple-600 to-pink-600'} flex items-center justify-center text-white font-black`}
               >
-                S
+                {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-white" /> : null}
               </div>
             ),
+            badgeIcon: <OSModuleIcon moduleKey="social" size={12} className="text-slate-900" />,
           }}
           brandSubtitle={moduleTitle}
           onBrandClickAction={() => onNavigateAction('/dashboard')}
@@ -342,7 +346,11 @@ function SocialShellContent({
             title={moduleTitle}
             subtitle={screenTitle}
             currentDate={currentDate || ' '}
-            mobileBrand={{ name: moduleTitle, logoUrl: initialOrganization?.logo || null }}
+            mobileBrand={{
+              name: moduleTitle,
+              logoUrl: initialOrganization?.logo || null,
+              badgeIcon: <OSModuleIcon moduleKey="social" size={10} className="text-slate-900" />,
+            }}
             mobileLeadingSlot={mobileLeadingSlot}
             onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
             onOpenSupportAction={() => setIsHelpModalOpen(true)}
@@ -360,7 +368,7 @@ function SocialShellContent({
             <Suspense
               fallback={
                 <div className="flex items-center justify-center min-h-[400px]">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  <Skeleton className="h-8 w-8 rounded-full" />
                 </div>
               }
             >

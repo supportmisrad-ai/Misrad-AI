@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { MeetingAnalysisResult } from '../types';
-import { Sparkles, BrainCircuit, CheckSquare, ShieldAlert, UserCircle, Briefcase, ArrowRight, Eraser, Loader2, ArrowLeft } from 'lucide-react';
+import { Sparkles, BrainCircuit, CheckSquare, ShieldAlert, UserCircle, Briefcase, ArrowRight, Eraser, ArrowLeft } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal-clinic';
+import { Skeleton } from '@/components/ui/skeletons';
 
 const SAMPLE_TRANSCRIPT = `נציג: היי דני, מה שלומך? רציתי לעדכן לגבי הקמפיין החדש.
 לקוח: האמת שאני קצת מודאג. עדיין לא קיבלנו את הלידים שהבטחתם לשבוע שעבר.
@@ -74,14 +75,11 @@ const MeetingAnalyzer: React.FC = () => {
     <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500">
       
       {/* Header */}
-      <div className="flex justify-between items-end pb-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">מנתח טקסט חופשי</h1>
-          <p className="text-gray-500 font-light">תדביק לפה טקסט של שיחה, אני אגיד לך מה פספסת.</p>
-        </div>
+      <div className="flex justify-end items-end pb-2">
         <button 
            onClick={() => setTranscript(SAMPLE_TRANSCRIPT)}
            className="text-xs text-nexus-accent hover:text-nexus-primary border border-nexus-accent/30 hover:bg-nexus-accent/10 px-3 py-1.5 rounded transition-all"
+           type="button"
         >
            טען דוגמה
         </button>
@@ -91,7 +89,7 @@ const MeetingAnalyzer: React.FC = () => {
         
         {/* Input Section (Left - 4 Cols) */}
         <div className="lg:col-span-4 flex flex-col gap-4 h-full">
-           <div className="glass-card p-4 rounded-2xl border-nexus-border space-y-3">
+           <div className="glass-card p-4 rounded-2xl border border-slate-200/70 space-y-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">לקוח</label>
                 <select
@@ -127,7 +125,7 @@ const MeetingAnalyzer: React.FC = () => {
                 </select>
               </div>
            </div>
-           <div className="glass-card flex-1 p-4 rounded-2xl border-nexus-border flex flex-col relative group focus-within:border-nexus-primary/50 transition-colors">
+           <div className="glass-card flex-1 p-4 rounded-2xl border border-slate-200/70 flex flex-col relative group focus-within:border-nexus-primary/50 transition-colors">
               <textarea
                 className="flex-1 bg-transparent border-none outline-none resize-none text-gray-700 font-mono leading-relaxed text-sm p-2 placeholder-gray-400 custom-scrollbar"
                 placeholder={`נציג: שלום...\nלקוח: היי...`}
@@ -162,7 +160,7 @@ const MeetingAnalyzer: React.FC = () => {
 
            {isAnalyzing && (
               <div className="h-full flex flex-col items-center justify-center space-y-4">
-                 <Loader2 size={48} className="text-nexus-primary animate-spin" />
+                 <Skeleton className="w-12 h-12 rounded-full" />
                  <div className="text-center">
                     <h3 className="text-gray-900 font-display font-bold text-xl">עובר על הטקסט...</h3>
                     <p className="text-gray-500 text-sm mt-1">מחפש איפה הבטחתם דברים ולא שמתם לב</p>
@@ -266,7 +264,7 @@ const MeetingAnalyzer: React.FC = () => {
 
                 {/* Keywords Cloud */}
                 {result.frictionKeywords.length > 0 && (
-                   <div className="pt-4 border-t border-nexus-border">
+                   <div className="pt-4 border-t border-slate-200/70">
                       <p className="text-xs text-gray-500 mb-2 uppercase tracking-widest">מילים שחזרו על עצמן</p>
                       <div className="flex flex-wrap gap-2">
                          {result.frictionKeywords.map((word, i) => (

@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { Avatar } from '@/components/Avatar';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 export default function NexusMasterLayout({
   title,
@@ -49,7 +50,11 @@ export default function NexusMasterLayout({
         title={title}
         subtitle={null}
         currentDate={currentDate || ' '}
-        mobileBrand={{ name: workspace.name, logoUrl: workspace.logoUrl || null }}
+        mobileBrand={{
+          name: workspace.name,
+          logoUrl: workspace.logoUrl || null,
+          badgeIcon: <OSModuleIcon moduleKey="nexus" size={10} className="text-slate-900" />,
+        }}
         onOpenCommandPaletteAction={undefined}
         onOpenSupportAction={undefined}
         switcherSlot={null}

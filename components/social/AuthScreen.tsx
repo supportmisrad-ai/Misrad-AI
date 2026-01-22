@@ -14,8 +14,8 @@ export default function AuthScreen() {
     <div className="min-h-screen w-full bg-slate-50 flex flex-col md:flex-row overflow-hidden" dir="rtl">
       <div className="hidden md:flex md:w-[55%] bg-slate-950 relative flex-col items-center justify-center p-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/20 rounded-full blur-[120px] animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] bg-blue-600/20 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-purple-600/20 rounded-full blur-[120px]" style={{ animationDelay: '2s' }}></div>
         </div>
         
         <div className="relative z-10 flex flex-col gap-12 text-white text-right w-full max-w-lg">

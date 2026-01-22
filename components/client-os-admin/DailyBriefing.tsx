@@ -3,6 +3,7 @@ import { X, Calendar, Briefcase, Zap, CheckCircle2 } from 'lucide-react';
 import { generateDailyBriefing } from '@/components/client-portal/services/geminiService';
 import { MOCK_CLIENTS, MOCK_MEETINGS } from '@/components/client-portal/constants';
 import { HealthStatus } from '@/components/client-portal/types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface DailyBriefingProps {
   isOpen: boolean;
@@ -51,16 +52,17 @@ const DailyBriefing: React.FC<DailyBriefingProps> = ({ isOpen, onClose }) => {
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center gap-6">
-            <div className="w-20 h-20 rounded-full border-2 border-white/20 border-t-nexus-accent animate-spin"></div>
-            <h2 className="text-2xl font-display font-light tracking-widest uppercase animate-pulse">
-              מכין לך קפה (סתם, אוסף נתונים)...
-            </h2>
+            <Skeleton className="w-20 h-20 rounded-full bg-white/10" />
+            <div className="space-y-3 w-full max-w-md">
+              <Skeleton className="h-8 w-3/4 mx-auto rounded-2xl bg-white/10" />
+              <Skeleton className="h-4 w-2/3 mx-auto rounded-xl bg-white/10" />
+            </div>
             <div className="flex gap-2 text-xs text-nexus-accent font-mono opacity-70">
-              <span>בודק לו"ז</span>
+              <Skeleton className="h-3 w-16 rounded-lg bg-white/10" />
               <span>•</span>
-              <span>בודק מי עצבני</span>
+              <Skeleton className="h-3 w-20 rounded-lg bg-white/10" />
               <span>•</span>
-              <span>בודק איפה הכסף</span>
+              <Skeleton className="h-3 w-20 rounded-lg bg-white/10" />
             </div>
           </div>
         ) : (

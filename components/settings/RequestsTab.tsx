@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, Tag, Bug, Zap, CheckCircle2, Clock, Sparkles, Wrench, AlertOctagon, Plus, Send, RefreshCw } from 'lucide-react';
 import { FeatureRequest, FeatureRequestType, Priority, ChangeRequest, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
+import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 export const RequestsTab: React.FC = () => {
     const { 
@@ -178,7 +179,7 @@ export const RequestsTab: React.FC = () => {
                         className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50"
                         title="רענן"
                     >
-                        <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                        {isLoading ? <Skeleton className="w-4 h-4 rounded-full" /> : <RefreshCw size={16} />}
                     </button>
                 <button onClick={() => setIsRequestModalOpen(true)} className="bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2 w-full md:w-auto justify-center"><Plus size={18} /> הגש בקשה</button>
                 </div>
@@ -214,9 +215,8 @@ export const RequestsTab: React.FC = () => {
             )}
 
             {isLoading ? (
-                <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-200 text-gray-400">
-                    <RefreshCw size={24} className="animate-spin mx-auto mb-2" />
-                    טוען בקשות...
+                <div className="py-6">
+                    <SkeletonGrid cards={6} columns={2} />
                 </div>
             ) : featureRequests.length === 0 && pendingRequests.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-200 text-gray-400">אין בקשות כרגע</div>
@@ -378,7 +378,7 @@ export const RequestsTab: React.FC = () => {
                                 >
                                     {isSubmitting ? (
                                         <>
-                                            <RefreshCw size={16} className="animate-spin" />
+                                            <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                             שולח...
                                         </>
                                     ) : (

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Crown, BrainCircuit, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar } from 'lucide-react';
+import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, BrainCircuit, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { ClientOSDemo } from '@/components/landing/demos/ClientOSDemo';
@@ -25,12 +25,12 @@ export default function ClientOSPage() {
       {/* Hero Section */}
       <section className="relative pt-20 sm:pt-24 md:pt-32 pb-12 sm:pb-16 md:pb-20 px-4 sm:px-6 overflow-hidden bg-white">
         {/* Background with Better Contrast */}
-        <div className="absolute inset-0 bg-gradient-to-b from-amber-50 via-white to-slate-50"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F5F5F7] via-white to-slate-50"></div>
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[#C5A572]/15 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-amber-200 text-[#C5A572] text-[10px] sm:text-xs font-bold mb-4 sm:mb-6 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white border border-[#C5A572]/30 text-[#C5A572] text-[10px] sm:text-xs font-bold mb-4 sm:mb-6 shadow-sm">
               <HeartPulse size={12} className="sm:w-[14px] sm:h-[14px]" /> {getModuleLabelHe('client')}
               <span className="ml-2 px-2 py-0.5 bg-[#3F6212]/40 text-[#84CC16] text-[10px] rounded-full border border-[#3F6212]/60">
                 AI-Powered
@@ -56,7 +56,7 @@ export default function ClientOSPage() {
                 { text: 'מעקב פגישות', icon: CalendarDays, desc: 'ניהול פגישות עם קישורים לזום וגוגל מיט' },
                 { text: 'מעקב מתאמנים', icon: UserCircle, desc: 'מעקב התקדמות ותוכניות אימון' },
               ].map((item, i) => (
-                <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 hover:border-amber-200 hover:bg-slate-50 transition-all text-right shadow-sm">
+                <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 hover:border-[#C5A572]/30 hover:bg-slate-50 transition-all text-right shadow-sm">
                   <div className="flex items-start gap-2">
                     <div className="w-8 h-8 rounded-lg bg-[#C5A572]/20 border border-[#C5A572]/40 flex items-center justify-center text-[#C5A572] shrink-0">
                       <item.icon size={16} strokeWidth={2.5} />
@@ -302,14 +302,14 @@ export default function ClientOSPage() {
           {/* Upgrade Path */}
           <div className="bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-sm">
             <div className="flex items-start gap-6">
-              <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
-                <Crown size={32} className="text-yellow-400" />
+              <div className="w-16 h-16 rounded-2xl bg-[#C5A572]/10 border border-[#C5A572]/25 flex items-center justify-center shrink-0">
+                <Medal size={32} className="text-[#C5A572]" />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 mb-3 sm:mb-4 leading-tight">רוצה ניהול ארגוני מלא?</h3>
-                <p className="text-lg text-slate-600 mb-4 leading-relaxed">
-                  אם אתה רוצה לדעת <strong className="text-slate-900">כמה הם עובדים, מי עמוס ומי פנוי, כמה לשלם להם בסוף החודש</strong>, ולנהל את המשימות הגדולות של העסק שלא קשורות ללקוח ספציפי – 
-                  <span className="text-[#C5A572] font-bold"> אתה חייב את ה-{getModuleLabelHe('nexus')}.</span>
+                <p className="text-sm sm:text-base text-slate-600 mb-6 leading-relaxed">
+                  זה הזמן להפוך את העסק שלך למערכת מתקדמת. <strong className="text-[#C5A572]">Misrad OS</strong> כולל את כל מה שצריך לניהול עסק אמיתי.
+                  <strong className="text-slate-900">אתה חייב את ה-{getModuleLabelHe('nexus')}.</strong>
                 </p>
                 <p className="text-base text-slate-600 mb-6 leading-relaxed">
                   <strong className="text-slate-900">{getModuleLabelHe('client')}</strong> - כל עובד מקבל את הכלים שלו. <strong className="text-[#C5A572]">{getModuleLabelHe('nexus')}</strong> - זה מה שאתה צריך כדי לנהל את כל העסק.
@@ -372,7 +372,7 @@ export default function ClientOSPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-amber-200 transition-all group shadow-sm hover:shadow-md"
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#C5A572]/30 transition-all group shadow-sm hover:shadow-md"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#C5A572]/20 border border-[#C5A572]/40 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                   <feature.icon size={24} className="text-[#C5A572]" />
@@ -431,7 +431,7 @@ export default function ClientOSPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-amber-200 transition-all shadow-sm"
+                className="bg-white border border-slate-200 rounded-2xl p-6 hover:border-[#C5A572]/30 transition-all shadow-sm"
               >
                 <div className="w-12 h-12 rounded-xl bg-[#C5A572]/10 border border-[#C5A572]/20 flex items-center justify-center mb-4">
                   <benefit.icon size={24} className="text-[#C5A572]" />
@@ -489,7 +489,7 @@ export default function ClientOSPage() {
                   <span className="text-[#C5A572] font-bold">₪99/חודש</span>
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+              <div className="bg-[#C5A572]/10 border border-[#C5A572]/20 rounded-xl p-3 text-center">
                 <div className="text-xs text-slate-600 mb-1">החזר השקעה</div>
                 <div className="text-xl font-black text-[#C5A572]">4,000%+</div>
               </div>
@@ -516,7 +516,7 @@ export default function ClientOSPage() {
                   <span className="text-[#C5A572] font-bold">₪199/חודש</span>
                 </div>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
+              <div className="bg-[#C5A572]/10 border border-[#C5A572]/20 rounded-xl p-3 text-center">
                 <div className="text-xs text-slate-600 mb-1">החזר השקעה</div>
                 <div className="text-xl font-black text-[#C5A572]">4,500%+</div>
               </div>
@@ -540,13 +540,15 @@ export default function ClientOSPage() {
         
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-amber-200 text-[#C5A572] text-xs font-bold mb-6 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-[#C5A572]/30 text-[#C5A572] text-xs font-bold mb-6 shadow-sm">
               <DollarSign size={14} className="text-[#C5A572]" />
               <span>תמחור שקוף</span>
             </div>
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-slate-900 mb-4 sm:mb-6 leading-tight">
               בחר את התוכנית<br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A]">שמתאימה לך</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A]">
+                שמתאימה לך
+              </span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-4">
               ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 14 יום.
@@ -660,7 +662,7 @@ export default function ClientOSPage() {
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-2">
             <button
               onClick={() => router.push('/sign-up')}
-              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-slate-900 border border-amber-200 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-slate-900 border border-[#C5A572]/30 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
             >
               התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
             </button>

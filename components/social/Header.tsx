@@ -13,6 +13,8 @@ import { SharedHeader } from '@/components/shared/SharedHeader';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
+import { Skeleton } from '@/components/ui/skeletons';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 const titles: Record<string, string> = {
   dashboard: 'מרכז שליטה',
@@ -175,7 +177,7 @@ export default function Header() {
       </button>
 
       {!hasMounted || !isLoaded ? (
-        <div className="md:hidden w-9 h-9 rounded-full bg-white/40 border-2 border-white animate-pulse" />
+        <Skeleton className="md:hidden w-9 h-9 rounded-full bg-white/40 border-2 border-white" />
       ) : isSignedIn && user ? (
         <button
           onClick={() => {
@@ -203,8 +205,8 @@ export default function Header() {
 
   const profileSlot = !hasMounted || !isLoaded ? (
     <div className="flex items-center gap-3">
-      <div className="hidden md:block w-32 h-9 rounded-xl bg-white/40 border border-white/30 animate-pulse" />
-      <div className="w-10 h-10 rounded-full bg-white/40 border-2 border-white animate-pulse" />
+      <Skeleton className="hidden md:block w-32 h-9 rounded-xl bg-white/40 border border-white/30" />
+      <Skeleton className="w-10 h-10 rounded-full bg-white/40 border-2 border-white" />
     </div>
   ) : isSignedIn && user ? (
     <div className="hidden md:block">
@@ -261,6 +263,7 @@ export default function Header() {
         S
       </div>
     ),
+    badgeIcon: <OSModuleIcon moduleKey="social" size={10} className="text-slate-900" />,
   };
 
   return (

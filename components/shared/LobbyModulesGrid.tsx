@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
-import { OS_METADATA } from '@/lib/metadata';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
 import { OS_MODULES } from '@/types/os-modules';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 export default function LobbyModulesGrid({
   orgSlug,
@@ -27,7 +27,6 @@ export default function LobbyModulesGrid({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {ordered.map((key) => {
           const def = modulesRegistry[key];
-          const logoSrc = (OS_METADATA as any)?.[key]?.icon ?? null;
           const enabled = key === 'nexus' ? true : Boolean(entitlements[key]);
 
           return (
@@ -58,20 +57,19 @@ export default function LobbyModulesGrid({
                 <div className="flex items-center gap-4">
                   <div
                     className={`w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center overflow-hidden ${
-                      enabled && logoSrc ? 'bg-white/80 border border-white/70' : ''
+                      enabled ? 'bg-white/80 border border-white/70' : ''
                     } ${!enabled ? 'bg-slate-200/60 shadow-inner' : ''}`}
                     style={
                       enabled
-                        ? logoSrc
-                          ? undefined
-                          : { background: `linear-gradient(135deg, ${def.theme.accent} 0%, rgba(0,0,0,0.75) 120%)` }
+                        ? { background: `linear-gradient(135deg, ${def.theme.accent} 0%, rgba(0,0,0,0.75) 120%)` }
                         : undefined
                     }
                   >
-                    {enabled && logoSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={logoSrc} alt={def.label} className="w-8 h-8 object-contain" />
-                    ) : null}
+                    <OSModuleIcon
+                      moduleKey={key}
+                      size={24}
+                      className={enabled ? 'text-white' : 'text-slate-500'}
+                    />
                   </div>
                   <div>
                     <div className={`font-black text-lg flex items-center gap-2 ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>

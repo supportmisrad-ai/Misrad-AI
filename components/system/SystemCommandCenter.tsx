@@ -35,6 +35,14 @@ interface SystemCommandCenterProps {
   campaigns?: Campaign[];
   tasks?: Task[];
   events?: CalendarEvent[];
+  notifications?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    time: string;
+    type: 'success' | 'warning' | 'error' | 'info' | 'financial';
+    isRead: boolean;
+  }>;
   onLeadClick: (lead: Lead) => void;
   onNavigate: (tabId: string) => void;
   onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
@@ -51,6 +59,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
     campaigns = [],
     tasks = [],
     events = [],
+    notifications = [],
     onLeadClick, 
     onNavigate, 
     onQuickAction
@@ -125,6 +134,29 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
       if (step.includes('וואטסאפ') || step.includes('הודעה')) return <MessageSquare size={14} />;
       return <Phone size={14} />;
   };
+
+  const pulseItems = useMemo(() => {
+      const toPresentation = (n: (typeof notifications)[number]) => {
+          if (n.type === 'success') {
+              return { icon: CircleCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' };
+          }
+          if (n.type === 'error') {
+              return { icon: TriangleAlert, color: 'text-red-600', bg: 'bg-red-100' };
+          }
+          if (n.type === 'warning') {
+              return { icon: TriangleAlert, color: 'text-amber-600', bg: 'bg-amber-100' };
+          }
+          if (n.type === 'financial') {
+              return { icon: Coins, color: 'text-blue-600', bg: 'bg-blue-100' };
+          }
+          return { icon: Video, color: 'text-indigo-600', bg: 'bg-indigo-100' };
+      };
+
+      return (Array.isArray(notifications) ? notifications : []).slice(0, 5).map((n) => ({
+          ...n,
+          ...toPresentation(n),
+      }));
+  }, [notifications]);
 
   return (
     <>
@@ -444,33 +476,36 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
             </div>
             
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8">
-                {[
-                    { icon: CircleCheck, color: 'text-emerald-600', bg: 'bg-emerald-100', title: 'תשלום התקבל', desc: 'יואב כהן שילם מקדמה על סך ₪5,000.', time: 'לפני 12 דק\'' },
-                    { icon: Video, color: 'text-indigo-600', bg: 'bg-indigo-100', title: 'תוכן חדש מוכן', desc: 'העורך סיים את הסרטון "איך למנף".', time: 'לפני 38 דק\'' },
-                    { icon: TriangleAlert, color: 'text-amber-600', bg: 'bg-amber-100', title: 'התראת נטישה', desc: 'רון שוורץ לא פתח את הפורטל השבוע.', time: 'לפני שעה' },
-                    { icon: Mic, color: 'text-purple-600', bg: 'bg-purple-100', title: 'ניתוח שיחה', desc: 'זיהיתי 2 התנגדויות בשיחה עם דניאל.', time: 'לפני שעתיים' },
-                    { icon: Layers, color: 'text-slate-600', bg: 'bg-slate-200', title: 'אוטומציה', desc: 'נשלחו 42 הודעות מעקב אוטומטיות.', time: 'לפני 4 שעות' }
-                ].map((item, idx) => (
-                    <div key={idx} className="flex gap-5 group">
+                {pulseItems.length === 0 ? (
+                    <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 shadow-sm">
+                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                            <Activity size={32} />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800">הכל מעודכן!</h3>
+                        <p className="text-slate-500 mt-2 font-bold">אין עדכונים חדשים כרגע.</p>
+                    </div>
+                ) : (
+                pulseItems.map((item, idx) => (
+                    <div key={String(item.id)} className="flex gap-5 group">
                         <div className="flex flex-col items-center">
                             <div className={`w-12 h-12 rounded-[20px] ${item.bg} ${item.color} flex items-center justify-center shrink-0 shadow-lg border border-white/5 backdrop-blur-sm z-10 transition-all group-hover:scale-110 group-hover:rotate-3`}>
                                 <item.icon size={22} />
                             </div>
-                            {idx !== 4 && <div className="w-0.5 flex-1 bg-slate-200/50 mt-3 rounded-full group-hover:bg-indigo-400 transition-colors"></div>}
+                            {idx !== pulseItems.length - 1 && <div className="w-0.5 flex-1 bg-slate-200/50 mt-3 rounded-full group-hover:bg-indigo-400 transition-colors"></div>}
                         </div>
                         <div className="pb-4 flex-1">
                             <div className="flex justify-between items-start w-full">
                                 <h4 className="font-black text-slate-800 text-base group-hover:text-indigo-600 transition-colors">{item.title}</h4>
                                 <span className="text-[11px] font-mono font-bold text-slate-400">{item.time}</span>
                             </div>
-                            <p className="text-sm text-slate-500 font-bold mt-1 leading-relaxed opacity-80">{item.desc}</p>
+                            <p className="text-sm text-slate-500 font-bold mt-1 leading-relaxed opacity-80">{item.description}</p>
                         </div>
                     </div>
-                ))}
+                ))) }
             </div>
             
             <button 
-                onClick={() => onNavigate('notifications_center')}
+                onClick={() => onNavigate('notifications')}
                 className="p-6 text-center text-sm font-black text-indigo-600 hover:bg-white transition-all border-t border-slate-100 active:bg-slate-50 uppercase tracking-[0.2em]"
             >
                 צפה בכל העדכונים <ArrowRight size={14} className="inline ml-2" />

@@ -11,6 +11,7 @@ import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, DollarSign, Briefcase, Users, Clock, CheckCircle2 } from 'lucide-react';
+import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 interface EmployeeInvitation {
     id: string;
@@ -267,7 +268,7 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
                             className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:border-gray-300 hover:text-gray-900 transition-all disabled:opacity-50"
                             title="רענן"
                         >
-                            <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                            {isLoading ? <Skeleton className="w-[18px] h-[18px] rounded-full" /> : <RefreshCw size={18} />}
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
@@ -282,8 +283,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
 
             {/* Invitations List */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12 bg-white rounded-2xl border border-gray-200">
-                    <RefreshCw size={24} className="animate-spin text-gray-400" />
+                <div className="py-6">
+                    <SkeletonGrid cards={4} columns={1} />
                 </div>
             ) : invitations.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">

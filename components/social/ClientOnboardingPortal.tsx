@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, BrainCircuit, Building, Loader2, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
+import { CheckCircle2, ArrowRight, BrainCircuit, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform } from '@/types/social';
 import { updateClientForWorkspace } from '@/app/actions/clients';
@@ -240,8 +240,8 @@ export default function ClientOnboardingPortal() {
                     disabled={isUploadingLogo}
                     className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black flex items-center gap-2"
                   >
-                    {isUploadingLogo ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-                    {logo ? 'החלף תמונה' : 'העלה תמונה'}
+                    <Camera size={20} className={isUploadingLogo ? 'opacity-60' : undefined} />
+                    {isUploadingLogo ? 'מעלה...' : logo ? 'החלף תמונה' : 'העלה תמונה'}
                   </button>
                   <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 </div>
@@ -353,14 +353,7 @@ export default function ClientOnboardingPortal() {
                 disabled={isSubmitting}
                 className="w-full py-5 bg-green-600 text-white rounded-2xl font-black text-xl flex items-center justify-center gap-3 disabled:opacity-50"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={24} className="animate-spin" />
-                    מעבד...
-                  </>
-                ) : (
-                  <>{isEditMode ? 'שמור שינויים' : 'סיים הקמה'}</>
-                )}
+                {isSubmitting ? <>מעבד...</> : <>{isEditMode ? 'שמור שינויים' : 'סיים הקמה'}</>}
               </button>
             </motion.div>
           )}

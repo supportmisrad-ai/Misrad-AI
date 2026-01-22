@@ -21,7 +21,7 @@ export const Footer = () => {
     return (
         <footer className="border-t border-slate-200 bg-white pt-12 md:pt-16 pb-8 px-4 sm:px-6 relative z-10 font-sans overflow-hidden" dir="rtl">
             <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white pointer-events-none"></div>
-            <div className="absolute -top-24 -right-24 w-[420px] h-[420px] bg-amber-200/25 rounded-full blur-[110px] pointer-events-none"></div>
+            <div className="absolute -top-24 -right-24 w-[420px] h-[420px] bg-slate-200/25 rounded-full blur-[110px] pointer-events-none"></div>
             <div className="absolute -bottom-32 -left-24 w-[520px] h-[520px] bg-indigo-200/20 rounded-full blur-[130px] pointer-events-none"></div>
             <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
                 <div className="col-span-1 sm:col-span-2 md:col-span-1">
@@ -61,6 +61,8 @@ export const Footer = () => {
                     <ul className="space-y-2 text-sm text-slate-600">
                         <li><button onClick={() => router.push('/privacy')} className="hover:text-slate-900 transition-colors">פרטיות</button></li>
                         <li><button onClick={() => router.push('/terms')} className="hover:text-slate-900 transition-colors">תנאי שימוש</button></li>
+                        <li><button onClick={() => router.push('/refund-policy')} className="hover:text-slate-900 transition-colors">מדיניות החזרים</button></li>
+                        <li><button onClick={() => router.push('/accessibility')} className="hover:text-slate-900 transition-colors">נגישות</button></li>
                         <li><button onClick={() => router.push('/security')} className="hover:text-slate-900 transition-colors">אבטחת מידע</button></li>
                     </ul>
                 </div>

@@ -58,18 +58,15 @@ const CyclesManager: React.FC = () => {
     if (viewMode === 'LIST') {
         return (
             <div className="space-y-8 animate-fade-in pb-12 pt-safe">
-                <header className="flex justify-between items-end">
-                    <div>
-                        <h1 className="text-4xl font-display font-bold text-nexus-primary tracking-tight mb-2">ניהול מחזורים</h1>
-                        <p className="text-nexus-muted font-medium">קבוצות לקוחות ומרחבים משותפים.</p>
-                    </div>
+                <div className="flex justify-end">
                     <button 
                         onClick={handleCreateCycle}
                         className="px-6 py-3 bg-nexus-primary text-white rounded-xl font-bold flex items-center gap-2 hover:bg-nexus-accent transition-all shadow-lg shadow-nexus-primary/20"
+                        type="button"
                     >
                         <Plus size={18} /> צור מחזור חדש
                     </button>
-                </header>
+                </div>
 
                 <div className="relative max-w-md">
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />

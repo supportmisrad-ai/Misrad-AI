@@ -5,6 +5,7 @@ import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 export type SystemBootstrap = {
   initialCurrentUser: {
     id: string;
+    profileId?: string;
     name: string;
     role: string;
     avatar: string;

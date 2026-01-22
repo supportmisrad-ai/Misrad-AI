@@ -85,14 +85,9 @@ const FeedbackLoop: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex justify-between items-end border-b border-nexus-border pb-6">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">משובים</h1>
-          <p className="text-gray-500 font-light">מה הלקוחות חושבים עלינו באמת.</p>
-        </div>
-        
+      <header className="flex justify-end items-end border-b border-slate-200/70 pb-4">
         {/* Automation Control Panel */}
-        <div className="glass-panel px-4 py-2 rounded-xl border border-nexus-border flex items-center gap-4">
+        <div className="glass-panel px-4 py-2 rounded-xl border border-slate-200/70 flex items-center gap-4">
              <div className="flex flex-col items-end">
                 <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">סקר אוטומטי</span>
                 <span className={`text-xs font-bold flex items-center gap-1 ${automationEnabled ? 'text-signal-success' : 'text-gray-400'}`}>
@@ -102,6 +97,7 @@ const FeedbackLoop: React.FC = () => {
              <button 
                 onClick={() => setAutomationEnabled(!automationEnabled)}
                 className={`w-10 h-6 rounded-full p-1 transition-colors ${automationEnabled ? 'bg-nexus-primary' : 'bg-gray-300'}`}
+                type="button"
              >
                  <div className={`w-4 h-4 bg-white rounded-full transition-transform ${automationEnabled ? 'translate-x-0' : '-translate-x-4'}`}></div>
              </button>
@@ -175,7 +171,7 @@ const FeedbackLoop: React.FC = () => {
       </div>
 
       {/* Middle Row: Word Cloud Analysis */}
-      <div className="glass-card p-6 rounded-2xl border-nexus-border relative overflow-hidden">
+      <div className="glass-card p-6 rounded-2xl border border-slate-200/70 relative overflow-hidden">
           <div className="flex items-center gap-3 mb-6 relative z-10">
               <div className="p-2 bg-nexus-accent/10 rounded-lg text-nexus-accent border border-nexus-accent/20">
                   <MessageSquareQuote size={20} />
@@ -219,7 +215,7 @@ const FeedbackLoop: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {feedback.map((feedbackItem) => (
-                  <div key={feedbackItem.id} className="glass-card p-5 rounded-xl border-nexus-border hover:border-nexus-primary/30 transition-all flex flex-col gap-3 group">
+                  <div key={feedbackItem.id} className="glass-card p-5 rounded-xl border border-slate-200/70 hover:border-nexus-primary/30 transition-all flex flex-col gap-3 group">
                        <div className="flex justify-between items-start">
                            <div className="flex items-center gap-3">
                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold font-mono text-sm border ${getScoreColor(feedbackItem.score)}`}>

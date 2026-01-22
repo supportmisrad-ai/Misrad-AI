@@ -3,9 +3,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LayoutGrid, Lock, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { OS_METADATA } from '@/lib/metadata';
 import { usePathname } from 'next/navigation';
-import { getOSModule, OS_MODULES, type OSModule } from '@/types/os-modules';
+import { OS_MODULES, type OSModule } from '@/types/os-modules';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 type OSRoomId = OSModule;
 
@@ -15,12 +15,12 @@ const DEFAULT_ROOMS: Record<OSRoomId, boolean> = {
   system: true,
   finance: false,
   client: false,
+  operations: false,
 };
 
-const ROOM_META: Array<{ id: OSRoomId; title: string; icon?: string; gradient: string }> = OS_MODULES.map((m) => ({
+const ROOM_META: Array<{ id: OSRoomId; title: string; gradient: string }> = OS_MODULES.map((m) => ({
   id: m.id,
   title: m.name,
-  icon: (OS_METADATA as any)?.[m.id]?.icon,
   gradient: m.gradient,
 }));
 
@@ -69,6 +69,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
     if (roomId === 'system') return `${base}/system`;
     if (roomId === 'social') return `${base}/social`;
     if (roomId === 'finance') return `${base}/finance`;
+    if (roomId === 'operations') return `${base}/operations`;
     return `${base}/client`;
   };
 
@@ -81,6 +82,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
       if (parts[2] === 'finance') return 'finance';
       if (parts[2] === 'client') return 'client';
       if (parts[2] === 'nexus') return 'nexus';
+      if (parts[2] === 'operations') return 'operations';
     }
     return null;
   })();
@@ -143,8 +145,6 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
                   <div className="grid grid-cols-5 gap-2">
                     {visibleRooms.map((room) => {
                       const enabled = !!rooms[room.id];
-                      const module = getOSModule(room.id);
-                      const ModuleIcon = module?.icon;
                       return (
                         <button
                           key={room.id}
@@ -165,11 +165,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
                         >
                           <span className="relative z-10 flex flex-col items-center justify-center gap-1">
                             <span className="w-7 h-7 rounded-xl bg-white/15 border border-white/15 flex items-center justify-center">
-                              {room.icon ? (
-                                <img src={room.icon} alt={room.title} className="w-4 h-4 object-contain" />
-                              ) : ModuleIcon ? (
-                                <ModuleIcon className="w-4 h-4" />
-                              ) : null}
+                              <OSModuleIcon moduleKey={room.id} size={16} className="text-white" />
                             </span>
                             <span className="text-[10px] font-black leading-none">{room.title}</span>
                           </span>

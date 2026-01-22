@@ -44,11 +44,11 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                 <>
                     <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl ${
                         isGold
-                            ? 'bg-gradient-to-r from-[#C5A572]/10 via-amber-500/10 to-[#E5C17A]/10'
+                            ? 'bg-gradient-to-r from-[#FFD700]/10 via-[#FFD700]/10 to-[#FFD700]/10'
                             : 'bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5'
                     }`} />
                     <motion.div
-                        className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none ${isGold ? 'bg-[#C5A572]/20' : 'bg-indigo-500/20'}`}
+                        className={`absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl pointer-events-none ${isGold ? 'bg-[#FFD700]/20' : 'bg-indigo-500/20'}`}
                         animate={{
                             scale: isHovered ? [1, 1.2, 1] : 1,
                             opacity: isHovered ? [0.3, 0.5, 0.3] : 0.2,
@@ -71,13 +71,13 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                         <div className={`absolute inset-0 blur-xl opacity-75 animate-pulse -z-10 ${isGold ? 'bg-[#C5A572]' : 'bg-indigo-500'}`} />
                         <div className={`relative text-white text-xs font-black px-5 py-2 rounded-full uppercase tracking-wider shadow-2xl border-2 border-white/20 backdrop-blur-sm whitespace-nowrap ${
                             isGold
-                                ? 'bg-gradient-to-r from-[#C5A572] via-amber-500 to-[#E5C17A]'
+                                ? 'bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A]'
                                 : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500'
                         }`}>
                             <div className="flex items-center gap-2">
-                                <Crown size={14} className="fill-yellow-300 text-yellow-300 shrink-0" />
+                                <Crown size={14} className="fill-white/90 text-white/90 shrink-0" />
                                 <span>הכי משתלם</span>
-                                <Sparkles size={12} className="text-yellow-300 shrink-0" />
+                                <Sparkles size={12} className="text-white/90 shrink-0" />
                             </div>
                         </div>
                     </div>
@@ -106,7 +106,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                             transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                             className="shrink-0 ml-2"
                         >
-                            <Zap size={20} className="text-yellow-400 fill-yellow-400/30" />
+                            <Zap size={20} className={isGold ? 'text-[#C5A572] fill-[#C5A572]/30' : 'text-indigo-200 fill-indigo-200/30'} />
                         </motion.div>
                     )}
                 </div>
@@ -180,11 +180,11 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                 className={`relative w-full py-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn ${
                     recommended
                         ? (isGold
-                            ? 'bg-gradient-to-r from-[#C5A572] via-amber-500 to-[#E5C17A] text-slate-900 shadow-xl shadow-amber-500/20 hover:shadow-2xl hover:shadow-amber-500/30 mb-6'
+                            ? 'bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A] text-slate-900 shadow-xl shadow-[#C5A572]/20 hover:shadow-2xl hover:shadow-[#C5A572]/30 mb-6'
                             : 'bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white shadow-xl shadow-indigo-900/40 hover:shadow-2xl hover:shadow-indigo-900/60 mb-6'
                         )
                         : (isGold
-                            ? 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200 shadow-sm hover:shadow-md mb-6'
+                            ? 'bg-[#C5A572]/10 text-slate-900 hover:bg-[#C5A572]/15 border border-[#C5A572]/30 shadow-sm hover:shadow-md mb-6'
                             : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 shadow-sm hover:shadow-md mb-6'
                         )
                 }`}

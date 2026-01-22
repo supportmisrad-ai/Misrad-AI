@@ -99,10 +99,10 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   // Show loading state while Clerk is loading
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">טוען...</p>
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center" dir="rtl">
+        <div className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-8 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
+          <div className="text-slate-900 font-black">מכינים את החשבון שלך…</div>
+          <div className="text-sm text-slate-600 mt-2">רגע אחד</div>
         </div>
       </div>
     );

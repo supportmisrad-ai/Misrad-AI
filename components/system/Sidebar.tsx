@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Target, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { NAV_ITEMS } from './constants';
 import { useBrand } from './contexts/BrandContext';
 import { BusinessSwitcher } from '../BusinessSwitcher';
@@ -10,6 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 
 interface SidebarProps {
   activeTab: string;
@@ -25,7 +26,7 @@ interface SidebarProps {
 const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps) => {
   const { brandName, brandLogo } = useBrand();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { roomName, RoomIcon, room } = useRoomBranding();
+  const { roomName, roomIconName, room } = useRoomBranding();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -48,11 +49,9 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
   const fallbackIcon =
     room === 'system' ? (
       <img src="/icons/system-icon.svg" alt="System" className="w-full h-full object-cover" />
-    ) : RoomIcon ? (
-      <RoomIcon size={20} className="text-slate-900" />
-    ) : (
-      <Target size={20} className="text-slate-900" />
-    );
+    ) : roomIconName ? (
+      <DynamicIcon name={roomIconName} size={20} className="text-slate-900" />
+    ) : null;
 
   const onNavigate = (tabId: string) => {
     if (!basePath) return;
@@ -94,7 +93,7 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
           logoUrl: brandLogo,
           fallbackIcon,
         }}
-        brandSubtitle={roomName || 'מכונת המכירות'}
+        brandSubtitle={roomName || 'מרכז המכירות והלידים'}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">

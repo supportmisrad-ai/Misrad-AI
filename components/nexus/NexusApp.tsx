@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrainCircuit, CheckSquare, Calendar, Users, Home, Settings, FolderOpen, Trash2, PieChart, Briefcase, Search } from 'lucide-react';
-import { Task, CalendarEvent } from '../../types';
+import type { Task as SystemTask } from '@/components/system/types';
+import { CalendarEvent } from '../../types';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
-import useLocalStorage from '../system/hooks/useLocalStorage';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Import Nexus OS components
@@ -49,12 +49,7 @@ const NexusOSApp = () => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
   
-  const [booted, setBooted] = useState(() => {
-      if (typeof window !== 'undefined') {
-          return sessionStorage.getItem('nexus_booted') === 'true';
-      }
-      return false;
-  });
+  const [booted, setBooted] = useState(false);
 
   const [activeTab, setActiveTab] = useState('tasks'); 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -62,27 +57,21 @@ const NexusOSApp = () => {
   const profileRef = useRef<HTMLDivElement>(null);
   useOnClickOutside(profileRef, () => setIsProfileOpen(false));
 
-  const [storedTasks, setStoredTasks] = useLocalStorage<Task[]>('nexus_os_tasks_v1', []);
-  const [storedEvents, setStoredEvents] = useLocalStorage<CalendarEvent[]>('nexus_os_events_v1', []);
+  const [storedTasks, setStoredTasks] = useState<SystemTask[]>([]);
+  const [storedEvents, setStoredEvents] = useState<CalendarEvent[]>([]);
 
-  const tasks = useMemo(() => {
-      return storedTasks.map(t => ({
-          ...t,
-          dueDate: t.dueDate ? new Date(t.dueDate) : new Date(),
-          createdAt: t.createdAt ? new Date(t.createdAt) : new Date()
-      }));
-  }, [storedTasks]);
+  const tasks = useMemo(() => storedTasks, [storedTasks]);
 
   const calendarEvents = useMemo(() => {
       return storedEvents;
   }, [storedEvents]);
 
-  const handleUpdateTask = (task: Task) => {
+  const handleUpdateTask = (task: SystemTask) => {
       setStoredTasks(prev => prev.map(t => t.id === task.id ? task : t));
       addToast('משימה עודכנה', 'success');
   };
 
-  const handleAddTask = (task: Task) => {
+  const handleAddTask = (task: SystemTask) => {
       setStoredTasks(prev => [task, ...prev]);
       addToast('משימה נוספה', 'success');
   };
@@ -94,9 +83,6 @@ const NexusOSApp = () => {
 
   const handleBootComplete = () => {
       setBooted(true);
-      if (typeof window !== 'undefined') {
-          sessionStorage.setItem('nexus_booted', 'true');
-      }
   };
 
   if (!booted) {

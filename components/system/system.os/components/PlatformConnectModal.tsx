@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, AlertCircle, Loader2, Globe, Layout, Smartphone, Video } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, Globe, Layout, Smartphone, Video } from 'lucide-react';
 
 interface PlatformConnectModalProps {
   onClose: () => void;
@@ -107,13 +107,7 @@ const PlatformConnectModal: React.FC<PlatformConnectModalProps> = ({ onClose, co
                                 : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/10'
                             }`}
                         >
-                            {isConnecting ? (
-                                <Loader2 size={16} className="animate-spin" />
-                            ) : isConnected ? (
-                                'התנתק'
-                            ) : (
-                                'חבר חשבון'
-                            )}
+                            {isConnecting ? 'מחבר...' : isConnected ? 'התנתק' : 'חבר חשבון'}
                         </button>
                     </div>
                 );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Fingerprint, Loader2, X } from 'lucide-react';
+import { Fingerprint, X } from 'lucide-react';
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -162,10 +162,7 @@ export function PasskeyOnboardingPrompt() {
                 className="flex-1 bg-slate-900 text-white rounded-xl px-4 py-2.5 font-black text-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isCreating ? (
-                  <>
-                    <Loader2 size={18} className="animate-spin" />
-                    מפעיל...
-                  </>
+                  <>מפעיל...</>
                 ) : (
                   'הפעל עכשיו'
                 )}

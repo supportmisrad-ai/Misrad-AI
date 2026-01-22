@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Crown, Sparkles } from 'lucide-react';
 import { useShabbat } from '@/hooks/useShabbat';
 import { formatShabbatTime, formatCountdown, calculateShabbatTimes } from '@/lib/shabbat';
+import { Skeleton } from '@/components/ui/skeletons';
 
 const SHABBAT_MESSAGES = [
   "אנו מאמינים שמקור הברכה בפרנסה הוא דווקא יום המנוחה בשבת - רוגע ומרפא לנפש כדי שנוכל להתחיל שבוע מלא באנרגיות",
@@ -178,7 +179,7 @@ export default function ShabbatScreen() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#070A13] via-[#0B1022] to-[#070A13] text-[#F8F1D6]" dir="rtl">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full border-2 border-[#D4AF37]/50 border-t-[#F8F1D6] animate-spin" />
+          <Skeleton className="mx-auto w-12 h-12 rounded-full bg-white/10" />
           <p className="mt-4 text-lg font-bold text-[#F8F1D6]/80">טוען…</p>
         </div>
       </div>

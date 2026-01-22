@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 
-export type PackageType = 'the_closer' | 'the_authority' | 'the_mentor';
+export type PackageType = import('@/lib/billing/pricing').PackageType;
 
 export type WorkspaceInfo = {
   id: string;
@@ -106,16 +107,15 @@ function buildEntitlementsFromAllowedModules(allowed: Iterable<OSModuleKey>): Wo
 }
 
 export function getPackageModules(packageType: PackageType): OSModuleKey[] {
-  switch (packageType) {
-    case 'the_closer':
-      return ['system', 'nexus'];
-    case 'the_authority':
-      return ['social', 'nexus'];
-    case 'the_mentor':
-      return ['client', 'finance', 'nexus'];
-    default:
-      return ['nexus'];
+  const def = (BILLING_PACKAGES as any)[packageType];
+  if (def?.modules && Array.isArray(def.modules)) {
+    return def.modules as OSModuleKey[];
   }
+  // Backwards compatible fail-safe.
+  if (packageType === 'the_closer') return ['system', 'nexus'];
+  if (packageType === 'the_authority') return ['social', 'nexus'];
+  if (packageType === 'the_mentor') return ['client', 'finance', 'nexus'];
+  return ['nexus'];
 }
 
 export function inferOrganizationPackageType(flags: OrganizationModuleFlags): PackageType {

@@ -6,7 +6,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Palette, Image, Type, FileText, Check, Loader2 } from 'lucide-react';
+import { X, Palette, Image, Type, FileText, Check } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CreateInvoiceModalProps {
     isOpen: boolean;
@@ -425,7 +426,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                         >
                             {isCreating ? (
                                 <>
-                                    <Loader2 size={16} className="animate-spin" />
+                                    <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                     יוצר חשבונית...
                                 </>
                             ) : (

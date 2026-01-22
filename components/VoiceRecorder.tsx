@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, X, Check, BrainCircuit, Loader2, Save, AlertCircle } from 'lucide-react';
+import { Mic, Square, X, Check, BrainCircuit, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { AIAnalysisResult, Priority } from '../types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface VoiceRecorderProps {
   onClose: () => void;
@@ -313,7 +314,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
            </div>
         ) : isProcessing ? (
             <div className="flex justify-center">
-                <Loader2 size={48} className="text-white animate-spin" />
+                <Skeleton className="w-12 h-12 rounded-full bg-white/20" />
             </div>
         ) : (
            <div className="flex gap-6 w-full justify-center">

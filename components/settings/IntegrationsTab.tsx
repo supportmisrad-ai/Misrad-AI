@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const IntegrationsTab: React.FC = () => {
     const { isCalendarConnected, connectGoogleCalendar, isGreenInvoiceConnected, connectGreenInvoice } = useData();
@@ -353,7 +354,7 @@ export const IntegrationsTab: React.FC = () => {
                     <div className="space-y-3">
                         {isCheckingAiKey ? (
                             <div className="flex items-center justify-center p-4 bg-gray-50 rounded-xl">
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                                <Skeleton className="h-5 w-5 rounded-full" />
                                 <span className="mr-2 text-sm text-gray-600">בודק סטטוס...</span>
                             </div>
                         ) : (

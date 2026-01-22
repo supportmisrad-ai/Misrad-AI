@@ -1,6 +1,8 @@
+'use client';
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, UserPlus, Mail, User, Loader2, Shield } from 'lucide-react';
+import { X, UserPlus, Mail, User, Shield } from 'lucide-react';
 import { Tenant } from '../../types';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 
@@ -223,10 +225,7 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSubmitting ? (
-                                        <>
-                                            <Loader2 size={16} className="animate-spin" />
-                                            יוצר...
-                                        </>
+                                        <>יוצר...</>
                                     ) : (
                                         <>
                                             <UserPlus size={16} />

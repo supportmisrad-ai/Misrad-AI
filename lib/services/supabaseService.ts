@@ -107,7 +107,7 @@ export async function fetchCampaigns(clientId?: string): Promise<any[]> {
   }
 
   try {
-    let query = supabase.from('campaigns').select('*');
+    let query = supabase.from('social_campaigns').select('*');
     
     if (clientId) {
       query = query.eq('client_id', clientId);

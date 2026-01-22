@@ -25,11 +25,14 @@
     "electron:build": "npm run build && electron-builder",
     "electron:build:win": "npm run build && electron-builder --win",
     "electron:build:mac": "npm run build && electron-builder --mac",
-    "electron:build:linux": "npm run build && electron-builder --linux"
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "build:windows": "electron-builder --win",
+    "build:android": "(npx cap add android || echo Android platform already exists) && npx cap sync android"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.1",
     "@ai-sdk/react": "^3.0.3",
+    "@capacitor/core": "^7.0.0",
     "@clerk/nextjs": "^6.36.2",
     "@google/genai": "^1.33.0",
     "@hebcal/core": "^6.0.6",
@@ -39,6 +42,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/recharts": "^1.8.29",
+    "@upstash/redis": "^1.35.0",
     "ai": "^6.0.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.23.26",
@@ -50,14 +54,18 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-hook-form": "^7.69.0",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.10.1",
     "recharts": "^3.6.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.6.0",
     "svix": "^1.82.0",
-    "@upstash/redis": "^1.35.0",
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -82,9 +90,8 @@
       "output": "dist"
     },
     "files": [
-      ".next/**/*",
+      "electron/**/*",
       "public/**/*",
-      "node_modules/**/*",
       "package.json"
     ],
     "win": {

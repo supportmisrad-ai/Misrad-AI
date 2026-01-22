@@ -43,7 +43,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
         endDate: request?.endDate || '',
         daysRequested: request?.daysRequested || 0,
         reason: request?.reason || '',
-        isUrgent: request?.metadata?.isUrgent || false
+        isUrgent: Boolean((request as any)?.metadata?.isUrgent)
     });
 
     // Calculate days automatically when dates change
@@ -117,7 +117,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
             const method = request ? 'PATCH' : 'POST';
 
             const orgId = typeof window !== 'undefined'
-                ? (getWorkspaceOrgIdFromPathname(window.location.pathname) || localStorage.getItem('currentTenantId') || null)
+                ? (getWorkspaceOrgIdFromPathname(window.location.pathname) || null)
                 : null;
 
             // Prepare request body - only include employeeId if canCreateForOthers is true
@@ -325,7 +325,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                             <label className="flex items-center gap-3 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    checked={formData.isUrgent}
+                                    checked={Boolean(formData.isUrgent)}
                                     onChange={(e) => setFormData({ ...formData, isUrgent: e.target.checked })}
                                     className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-2"
                                 />
@@ -355,7 +355,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                             }`}
                             rows={3}
                             placeholder={formData.isUrgent ? "חובה להזין סיבה מפורטת (לפחות 10 תווים)" : "הערות נוספות (אופציונלי)"}
-                            required={formData.isUrgent}
+                            required={Boolean(formData.isUrgent)}
                         />
                         {formData.isUrgent && (
                             <p className="text-xs text-red-600 mt-1">

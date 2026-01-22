@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useRef } from 'react';
-import { X, Building, Loader2, CheckCircle2, ArrowRight, Camera } from 'lucide-react';
+import { X, Building, CheckCircle2, ArrowRight, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useUser } from '@clerk/nextjs';
@@ -599,16 +599,7 @@ export default function AddClientModal() {
                   disabled={isProcessing}
                   className="w-full py-4 md:py-5 bg-green-600 text-white rounded-xl md:rounded-2xl font-black text-lg md:text-xl flex items-center justify-center gap-2 md:gap-3 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition-all shadow-lg hover:shadow-xl"
                 >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 size={20} className="animate-spin md:w-6 md:h-6" />
-                      מעבד...
-                    </>
-                  ) : (
-                    <>
-                      הוסף לקוח
-                    </>
-                  )}
+                  {isProcessing ? <>מעבד...</> : <>הוסף לקוח</>}
                 </button>
               </motion.div>
             )}

@@ -19,7 +19,7 @@ export const ClientFeedbackTab: React.FC<ClientFeedbackTabProps> = ({ feedback }
               <div className="flex items-center gap-2">
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white ${
-                    fb.score >= 9 ? 'bg-green-500' : fb.score <= 6 ? 'bg-red-500' : 'bg-yellow-500'
+                    fb.score >= 9 ? 'bg-green-500' : fb.score <= 6 ? 'bg-red-500' : 'bg-[color:var(--os-accent)]'
                   }`}
                 >
                   {fb.score}

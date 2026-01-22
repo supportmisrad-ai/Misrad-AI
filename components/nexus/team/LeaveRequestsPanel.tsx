@@ -14,6 +14,10 @@ import { LeaveRequestModal } from './LeaveRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { CustomSelect } from '../../CustomSelect';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
+
+let leaveRequestsCache: LeaveRequest[] = [];
+let showHebrewDatesPreference = false;
 
 interface LeaveRequestsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -22,38 +26,18 @@ interface LeaveRequestsPanelProps {
 }
 
 export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast, currentUser, users = [] }) => {
-    const [requests, setRequests] = useState<LeaveRequest[]>(() => {
-        // Load from cache immediately if available
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('leave_requests_cache');
-            return stored ? JSON.parse(stored) : [];
-        }
-        return [];
-    });
-    const [cachedRequests, setCachedRequests] = useState<LeaveRequest[]>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('leave_requests_cache');
-            return stored ? JSON.parse(stored) : [];
-        }
-        return [];
-    });
+    const [requests, setRequests] = useState<LeaveRequest[]>(() => leaveRequestsCache);
+    const [cachedRequests, setCachedRequests] = useState<LeaveRequest[]>(() => leaveRequestsCache);
     const [isLoading, setIsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRequest, setEditingRequest] = useState<LeaveRequest | null>(null);
     const [filterType, setFilterType] = useState<LeaveRequestType | 'all'>('all');
     const [filterStatus, setFilterStatus] = useState<LeaveRequestStatus | 'all'>('all');
     const [filterEmployee, setFilterEmployee] = useState<string>('all');
-    const [showHebrewDates, setShowHebrewDates] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('showHebrewDates') === 'true';
-        }
-        return false;
-    });
+    const [showHebrewDates, setShowHebrewDates] = useState(() => showHebrewDatesPreference);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('showHebrewDates', showHebrewDates.toString());
-        }
+        showHebrewDatesPreference = showHebrewDates;
     }, [showHebrewDates]);
 
     const loadRequests = async (skipDebounce = false) => {
@@ -91,9 +75,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
             // Update cache only if no filters (full list)
             if (filterType === 'all' && filterStatus === 'all' && filterEmployee === 'all') {
                 setCachedRequests(newRequests);
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('leave_requests_cache', JSON.stringify(newRequests));
-                }
+                leaveRequestsCache = newRequests;
             }
         } catch (error: any) {
             console.error('[LeaveRequests] Error loading requests:', error);
@@ -338,7 +320,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                         className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:border-gray-300 hover:text-gray-900 transition-all disabled:opacity-50"
                         title="רענן"
                     >
-                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        {isLoading ? <Skeleton className="w-[18px] h-[18px] rounded-full" /> : <RefreshCw size={18} />}
                     </button>
                 </div>
             </div>
@@ -401,8 +383,8 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
 
             {/* Requests List */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12 bg-white rounded-2xl border border-gray-200">
-                    <RefreshCw size={24} className="animate-spin text-gray-400" />
+                <div className="py-6">
+                    <SkeletonGrid cards={4} columns={1} />
                 </div>
             ) : requests.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-12 text-center">
@@ -427,7 +409,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                                             <span className={`text-xs px-2 py-1 rounded-full font-bold ${getStatusColor(request.status)}`}>
                                                 {getStatusLabel(request.status)}
                                             </span>
-                                            {request.metadata?.isUrgent && (
+                                            {Boolean((request as any)?.metadata?.isUrgent) && (
                                                 <span className="text-xs px-2 py-1 rounded-full font-bold bg-amber-100 text-amber-700 flex items-center gap-1">
                                                     <AlertCircle size={12} />
                                                     דחוף
@@ -454,10 +436,10 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                                             {request.reason && (
                                                 <p className="text-sm text-gray-600 mt-2">{request.reason}</p>
                                             )}
-                                            {request.metadata?.needsMoreInfo && (
+                                            {Boolean((request as any)?.metadata?.needsMoreInfo) && (
                                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
                                                     <p className="text-sm font-bold text-amber-900 mb-1">נדרש מידע נוסף:</p>
-                                                    <p className="text-sm text-amber-800">{request.metadata.moreInfoRequest || 'נא לספק סיבה מפורטת יותר'}</p>
+                                                    <p className="text-sm text-amber-800">{String((request as any)?.metadata?.moreInfoRequest || 'נא לספק סיבה מפורטת יותר')}</p>
                                                 </div>
                                             )}
                                             {request.rejectionReason && (

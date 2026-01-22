@@ -76,7 +76,7 @@ const LeadScoringTool: React.FC<LeadScoringToolProps> = ({ lead }) => {
             disabled={isAnalyzing}
             className="p-1.5 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white"
         >
-            <RefreshCw size={14} className={isAnalyzing ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={isAnalyzing ? 'opacity-60' : ''} />
         </button>
       </div>
 

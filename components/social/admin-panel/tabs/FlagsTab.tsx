@@ -2,7 +2,10 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { updateFeatureFlags } from '@/app/actions/admin-cockpit';
+import { getModuleIcons, updateFeatureFlags, updateModuleIcons } from '@/app/actions/admin-cockpit';
+import { modulesRegistry } from '@/lib/os/modules/registry';
+import type { OSModuleKey } from '@/lib/os/modules/types';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 
 interface FlagsTabProps {
   featureFlags: any;
@@ -12,6 +15,47 @@ interface FlagsTabProps {
 }
 
 export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, addToast }: FlagsTabProps) {
+  const [moduleIcons, setModuleIcons] = React.useState<Partial<Record<OSModuleKey, string>>>({});
+  const [isLoadingIcons, setIsLoadingIcons] = React.useState(false);
+  const [isSavingIcons, setIsSavingIcons] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoadingIcons(true);
+      try {
+        const res = await getModuleIcons();
+        if (cancelled) return;
+        if (res.success && res.data && typeof res.data === 'object') {
+          setModuleIcons(res.data as any);
+        }
+      } finally {
+        if (!cancelled) setIsLoadingIcons(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const moduleRows = React.useMemo(() => {
+    const keys = Object.keys(modulesRegistry) as OSModuleKey[];
+    return keys.map((key) => {
+      const def = modulesRegistry[key];
+      const value = String(moduleIcons?.[key] || '');
+      const effective = value || def.iconName;
+      return {
+        key,
+        label: def.label,
+        labelHe: def.labelHe,
+        defaultIconName: def.iconName,
+        iconName: value,
+        effectiveIconName: effective,
+      };
+    });
+  }, [moduleIcons]);
+
   return (
     <motion.div key="flags" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-8 w-full">
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 rounded-3xl overflow-hidden w-full shadow-md">
@@ -162,6 +206,70 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
             >
               מחק הודעה
             </button>
+          </div>
+
+          <div className="p-6 bg-white rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h4 className="font-black text-slate-900 mb-1">אייקונים של מודולים</h4>
+                <p className="text-sm text-slate-600">שם אייקון מ-lucide-react (לדוגמה: Target, BrainCircuit). ריק = ברירת מחדל מה-Registry.</p>
+              </div>
+              <button
+                disabled={isSavingIcons || isLoadingIcons}
+                onClick={async () => {
+                  setIsSavingIcons(true);
+                  try {
+                    const result = await updateModuleIcons({ moduleIcons });
+                    if (result.success) {
+                      addToast('אייקונים עודכנו', 'success');
+                      try {
+                        window.dispatchEvent(new CustomEvent('os:module-icons-updated'));
+                        const bc = 'BroadcastChannel' in window ? new BroadcastChannel('os-module-icons') : null;
+                        bc?.postMessage({ type: 'updated' });
+                        bc?.close();
+                      } catch {
+                        // ignore
+                      }
+                      onRefresh();
+                    } else {
+                      addToast('שגיאה בעדכון אייקונים', 'error');
+                    }
+                  } finally {
+                    setIsSavingIcons(false);
+                  }
+                }}
+                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-black text-sm hover:bg-slate-800 disabled:opacity-50"
+                type="button"
+              >
+                שמור אייקונים
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {moduleRows.map((row) => (
+                <div key={row.key} className="flex items-center justify-between gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                      <DynamicIcon name={row.effectiveIconName} size={20} className="text-slate-900" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-black text-slate-900 truncate">{row.labelHe}</div>
+                      <div className="text-[11px] text-slate-500 font-bold truncate">{row.key} · default: {row.defaultIconName}</div>
+                    </div>
+                  </div>
+
+                  <input
+                    value={row.iconName}
+                    onChange={(e) => {
+                      const v = String(e.target.value || '').trim();
+                      setModuleIcons((prev) => ({ ...prev, [row.key]: v }));
+                    }}
+                    placeholder={row.defaultIconName}
+                    className="w-44 max-w-[45%] px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-300"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

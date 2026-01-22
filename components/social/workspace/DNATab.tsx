@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BrainCircuit, Loader2, Save, Target, Lightbulb, TrendingUp, Info, Zap, Quote } from 'lucide-react';
+import { BrainCircuit, Save, Target, Lightbulb, TrendingUp, Info, Zap, Quote } from 'lucide-react';
 import { Client } from '@/types/social';
 import { motion } from 'framer-motion';
 
@@ -65,7 +65,7 @@ const DNATab: React.FC<DNATabProps> = ({ client, onUpdateDNA }) => {
             <h3 className="text-2xl font-black flex items-center gap-3"><BrainCircuit className="text-blue-600" size={28}/> טון הדיבור והסגנון</h3>
             {isDnaDirty && (
               <button onClick={handleSaveDna} disabled={isSavingDna} className="px-6 py-2 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg flex items-center gap-2">
-                {isSavingDna ? <Loader2 size={14} className="animate-spin"/> : <Save size={14}/>} שמור שינויים
+                <Save size={14} className={isSavingDna ? 'opacity-60' : undefined} /> {isSavingDna ? 'שומר...' : 'שמור שינויים'}
               </button>
             )}
           </div>

@@ -274,11 +274,6 @@ export const Layout = ({ children }: LayoutProps) => {
                   const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
                   if (orgSlug) {
                     const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-                    try {
-                      sessionStorage.setItem('saas_admin_return_to', returnTo);
-                    } catch {
-                      // ignore
-                    }
                     router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
                   }
               }

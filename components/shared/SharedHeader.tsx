@@ -27,6 +27,7 @@ export function SharedHeader({
     name: string;
     logoUrl?: string | null;
     fallbackIcon?: React.ReactNode;
+    badgeIcon?: React.ReactNode;
   };
   mobileLeadingSlot?: React.ReactNode;
   onOpenCommandPaletteAction?: () => void;
@@ -53,7 +54,7 @@ export function SharedHeader({
     <header className={`h-20 md:h-24 flex items-center justify-between px-4 md:px-8 z-40 sticky top-0 ${className || ''}`}>
       <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
         {mobileLeadingSlot ? mobileLeadingSlot : null}
-        <div className="w-8 h-8 rounded-xl shrink-0 flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">
+        <div className="relative w-8 h-8 rounded-xl shrink-0 flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">
           {mobileBrand.logoUrl && !mobileBrandLogoFailed ? (
             <img
               src={mobileBrand.logoUrl}
@@ -64,6 +65,11 @@ export function SharedHeader({
           ) : (
             mobileBrand.fallbackIcon || null
           )}
+          {mobileBrand.badgeIcon ? (
+            <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+              {mobileBrand.badgeIcon}
+            </div>
+          ) : null}
         </div>
         <span className="font-bold text-lg text-[color:var(--os-header-mobile-text,#111827)] truncate" suppressHydrationWarning>
           {mobileBrand.name}

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, Video, PenTool, Sparkles, Camera, Loader2, Check } from 'lucide-react';
+import { X, Video, PenTool, Sparkles, Camera, Check } from 'lucide-react';
 import { generateVideoScript } from '../services/geminiService';
 
 interface TestimonialPromptProps {
@@ -48,7 +48,7 @@ const TestimonialPrompt: React.FC<TestimonialPromptProps> = ({ clientName, onClo
              {/* Browser Buttons */}
              <div className="flex gap-1.5 mb-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[color:var(--os-accent)]/80"></div>
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
              </div>
              
@@ -97,7 +97,7 @@ const TestimonialPrompt: React.FC<TestimonialPromptProps> = ({ clientName, onClo
                 disabled={isGenerating}
                 className="flex-1 py-4 px-8 bg-white/5 border border-white/10 rounded-2xl font-bold text-lg text-white/80 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center gap-3"
              >
-                {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <><Sparkles size={18} className="text-[#C5A572]" /> תנסחו לי מה להגיד</>}
+                {isGenerating ? 'מנסח...' : <><Sparkles size={18} className="text-[#C5A572]" /> תנסחו לי מה להגיד</>}
              </button>
           </div>
 

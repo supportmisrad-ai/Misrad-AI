@@ -66,11 +66,12 @@ export const LeadsView: React.FC = () => {
                     <div className="flex items-center gap-2">
                          <button 
                             onClick={handleSync}
-                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                            disabled={isSyncing}
+                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             title="סנכרן נתונים ממערכת CRM חיצונית"
                         >
-                            <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} /> 
-                            <span className="hidden sm:inline">סנכרן CRM</span>
+                            <RefreshCw size={16} className={isSyncing ? 'opacity-70' : ''} /> 
+                            <span className="hidden sm:inline">{isSyncing ? 'מסנכרן...' : 'סנכרן CRM'}</span>
                         </button>
                         <button 
                             onClick={() => {

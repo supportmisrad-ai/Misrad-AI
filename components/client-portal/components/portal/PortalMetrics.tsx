@@ -1,6 +1,7 @@
 import React from 'react';
-import { TrendingUp, Download, Sparkles, Target, BarChart, Loader2, ChevronLeft } from 'lucide-react';
+import { TrendingUp, Download, Sparkles, Target, BarChart, ChevronLeft } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PortalMetricsProps {
   performanceHistory: any[];
@@ -177,7 +178,7 @@ export const PortalMetrics: React.FC<PortalMetricsProps> = ({
                     className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 font-bold text-sm hover:border-nexus-accent hover:text-nexus-accent transition-all flex items-center justify-center gap-2 mb-6"
                   >
                     {isAnalyzingMetrics ? (
-                      <Loader2 size={16} className="animate-spin" />
+                      <Skeleton className="w-4 h-4 rounded-full" />
                     ) : (
                       <>
                         <Sparkles size={16} /> נתח התקדמות עם AI

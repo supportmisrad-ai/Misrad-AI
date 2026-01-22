@@ -11,7 +11,7 @@ interface PortalFormFillerProps {
 export const PortalFormFiller: React.FC<PortalFormFillerProps> = ({ activeForm, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-[140] bg-white animate-fade-in flex flex-col font-sans">
-      <header className="p-6 border-b flex justify-between items-center bg-slate-50/50 backdrop-blur-md sticky top-0">
+      <header className="p-6 border-b border-slate-200/70 flex justify-between items-center bg-slate-50/50 backdrop-blur-md sticky top-0">
         <div className="flex items-center gap-4">
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-900">
             <X size={24} />

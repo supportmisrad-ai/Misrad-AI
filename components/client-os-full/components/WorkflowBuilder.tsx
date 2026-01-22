@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { WorkflowBlueprint, WorkflowStage, WorkflowItem, WorkflowItemType } from '../types';
 import { generateWorkflowBlueprint } from '../services/geminiService';
 import { GlowButton } from './ui/GlowButton';
-import { Sparkles, GitMerge, Plus, Calendar, Clock, Video, MapPin, CheckSquare, Briefcase, FileText, ArrowRight, Loader2, Play, Box, Edit2, Trash2, Save, X, Layers, LayoutList, Search, UserCheck, ArrowLeft } from 'lucide-react';
+import { Sparkles, GitMerge, Plus, Calendar, Clock, Video, MapPin, CheckSquare, Briefcase, FileText, ArrowRight, Play, Box, Edit2, Trash2, Save, X, Layers, LayoutList, Search, UserCheck, ArrowLeft } from 'lucide-react';
 import { useNexus } from '../context/ClientContext';
 
 const MOCK_BLUEPRINTS: WorkflowBlueprint[] = [];
@@ -162,7 +162,7 @@ const WorkflowBuilder: React.FC = () => {
         switch (type) {
             case 'MEETING_ZOOM': return <Video size={16} className="text-blue-500" />;
             case 'MEETING_FRONTAL': return <MapPin size={16} className="text-nexus-accent" />;
-            case 'TASK_CLIENT': return <CheckSquare size={16} className="text-orange-500" />;
+            case 'TASK_CLIENT': return <CheckSquare size={16} className="text-[color:var(--os-accent)]" />;
             case 'TASK_AGENCY': return <Briefcase size={16} className="text-gray-500" />;
             case 'FORM_SEND': return <FileText size={16} className="text-purple-500" />;
             case 'CONTENT_DELIVERY': return <Box size={16} className="text-green-500" />;
@@ -254,14 +254,11 @@ const WorkflowBuilder: React.FC = () => {
 
             {/* Mobile-Friendly Header */}
             {!selectedBlueprint && !isCreating && (
-                <header className="mb-4 flex justify-between items-end border-b border-nexus-border pb-4">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-gray-900 mb-2">השיטה שלנו</h1>
-                        <p className="text-gray-500 font-light text-sm">כדי לא להמציא את הגלגל כל פעם מחדש.</p>
-                    </div>
+                <header className="mb-4 flex justify-between items-end border-b border-slate-200/70 pb-4">
                     <button 
                         onClick={() => { setIsCreating(true); setSelectedBlueprint(null); setIsEditing(false); }}
                         className="flex items-center justify-center w-12 h-12 bg-nexus-primary text-white rounded-xl shadow-lg hover:bg-nexus-accent transition-all font-bold lg:w-auto lg:px-6 lg:h-auto lg:py-3 lg:gap-2"
+                        type="button"
                     >
                         <Plus size={18} /> <span className="hidden lg:inline">בנה חדש</span>
                     </button>

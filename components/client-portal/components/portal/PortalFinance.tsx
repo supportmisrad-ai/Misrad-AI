@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, CreditCard, Zap, Loader2, Receipt, Download, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
+import { Wallet, CreditCard, Zap, Receipt, Download, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 
 interface PortalFinanceProps {
   client: any;
@@ -65,7 +65,13 @@ export const PortalFinance: React.FC<PortalFinanceProps> = ({ client, isPaying, 
                 disabled={isPaying}
                 className="w-full py-4 bg-nexus-accent text-slate-900 rounded-2xl font-bold shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
               >
-                {isPaying ? <Loader2 className="animate-spin" /> : <><Zap size={18} fill="currentColor" /> שלם עכשיו (QuickPay)</>}
+                {isPaying ? (
+                  <>טוען...</>
+                ) : (
+                  <>
+                    <Zap size={18} fill="currentColor" /> שלם עכשיו (QuickPay)
+                  </>
+                )}
               </button>
             </div>
           </div>

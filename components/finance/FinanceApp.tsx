@@ -21,6 +21,8 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 // Import placeholder components
 import InvoicesView from './invoices/InvoicesView';
@@ -66,7 +68,7 @@ const FinanceOSApp: React.FC<{
 }> = ({ initialFinanceOverview, initialCurrentUser, initialOrganization }) => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
-  const { pathname, roomNameHebrew, roomName, RoomIcon } = useRoomBranding();
+  const { pathname, roomNameHebrew, roomName, roomIconName } = useRoomBranding();
   const nextPathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -290,8 +292,15 @@ const FinanceOSApp: React.FC<{
   const headerName = systemIdentity?.name || safeUserName;
   const headerRole = systemIdentity?.role || null;
 
+  const currentDate = React.useMemo(
+    () => new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }),
+    []
+  );
+
   const moduleTitle = roomNameHebrew || roomName || 'Finance';
   const screenTitle = activeNavItem?.label || null;
+
+  const fallbackIcon = roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-gray-900" /> : null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -399,15 +408,16 @@ const FinanceOSApp: React.FC<{
         isOpen={isSidebarOpen}
         onSetOpenAction={setIsSidebarOpen}
         brand={{
-          name: initialOrganization?.name || moduleTitle,
-          logoUrl: initialOrganization?.logo || null,
-          fallbackIcon: RoomIcon ? <RoomIcon size={20} className="text-gray-900" /> : <CreditCard size={20} className="text-gray-900" />,
+          name: String(initialOrganization?.name || moduleTitle),
+          logoUrl: (initialOrganization as any)?.logo || null,
+          fallbackIcon,
+          badgeIcon: <OSModuleIcon moduleKey="finance" size={12} className="text-slate-900" />,
         }}
         brandSubtitle={moduleTitle}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">
-            <BusinessSwitcher currentTenantName={initialOrganization?.name || moduleTitle} />
+            <BusinessSwitcher currentTenantName={String(initialOrganization?.name || moduleTitle)} />
             <WorkspaceSwitcher className="w-full" />
           </div>
         }
@@ -430,12 +440,13 @@ const FinanceOSApp: React.FC<{
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <SharedHeader
           title={moduleTitle}
-          subtitle={screenTitle}
-          currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
+          subtitle={screenTitle || currentDate}
+          currentDate={currentDate}
           mobileBrand={{
             name: moduleTitle,
-            logoUrl: initialOrganization?.logo || null,
-            fallbackIcon: RoomIcon ? <RoomIcon size={18} className="text-gray-900" /> : null,
+            logoUrl: (initialOrganization as any)?.logo || null,
+            fallbackIcon,
+            badgeIcon: <OSModuleIcon moduleKey="finance" size={10} className="text-slate-900" />,
           }}
           mobileLeadingSlot={
             <button

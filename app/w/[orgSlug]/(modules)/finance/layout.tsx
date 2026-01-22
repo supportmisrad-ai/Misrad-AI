@@ -1,9 +1,14 @@
 import React from 'react';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
-import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
+import {
+  enforceModuleAccessOrRedirect,
+  persistCurrentUserLastLocation,
+  requireWorkspaceAccessByOrgSlug,
+} from '@/lib/server/workspace';
+import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
+import FinanceModuleEntryClient from './FinanceModuleEntryClient';
 
 export const dynamic = 'force-dynamic';
-
 
 export default async function FinanceModuleLayout({
   children,
@@ -16,6 +21,14 @@ export default async function FinanceModuleLayout({
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
   const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
   await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
+
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  const initialOrganization = {
+    name: workspace.name,
+    logo: workspace.logo || '',
+    primaryColor: '#000000',
+  };
   const def = getModuleDefinition('finance');
 
   const style = {
@@ -30,7 +43,9 @@ export default async function FinanceModuleLayout({
       className="min-h-screen bg-[var(--os-bg)] text-slate-900"
       dir="rtl"
     >
-      {children}
+      <FinanceModuleEntryClient initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+        {children}
+      </FinanceModuleEntryClient>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 
 import React from 'react';
 import { Client } from '../../types';
-import { Dna, Microscope, Sparkles, Loader2, Zap, Activity } from 'lucide-react';
+import { Dna, Microscope, Sparkles, Zap, Activity } from 'lucide-react';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface ClientPulseTabProps {
   client: Client;
@@ -83,7 +84,7 @@ export const ClientPulseTab: React.FC<ClientPulseTabProps> = ({ client, aiInsigh
                         <h4 className="font-bold text-gray-900 flex items-center gap-2">
                             <Sparkles size={16} className="text-nexus-accent" /> מה ה-AI חושב?
                         </h4>
-                        {isInsightLoading && <Loader2 size={16} className="animate-spin text-gray-400" />}
+                        {isInsightLoading && <Skeleton className="w-4 h-4 rounded-full" />}
                     </div>
                     
                     <div className="space-y-4 relative z-10">

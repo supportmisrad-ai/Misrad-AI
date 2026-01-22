@@ -48,26 +48,6 @@ export default function Calendar() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [showHebrewCalendar, setShowHebrewCalendar] = useState(true);
 
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const stored = localStorage.getItem('social_calendar_show_hebrew');
-      if (stored === null) return;
-      setShowHebrewCalendar(stored === '1');
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem('social_calendar_show_hebrew', showHebrewCalendar ? '1' : '0');
-    } catch {
-      // ignore
-    }
-  }, [showHebrewCalendar]);
-
   const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
   
@@ -405,8 +385,8 @@ export default function Calendar() {
               disabled={isSyncing}
               className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-black text-xs rounded-xl shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all disabled:opacity-50"
             >
-              {isSyncing ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-              סנכרן
+              <RefreshCw size={14} className={isSyncing ? 'opacity-60' : undefined} />
+              {isSyncing ? 'מסנכרן...' : 'סנכרן'}
             </button>
           </div>
         </div>
@@ -463,9 +443,10 @@ export default function Calendar() {
           </button>
           <button 
             onClick={handleGoogleSync} 
+            disabled={isSyncing}
             className="flex-1 py-3 bg-blue-50 text-blue-600 font-black text-xs rounded-xl border border-blue-100 flex items-center justify-center gap-2"
           >
-            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} /> סנכרן אירועים
+            <RefreshCw size={14} className={isSyncing ? 'opacity-60' : undefined} /> {isSyncing ? 'מסנכרן...' : 'סנכרן אירועים'}
           </button>
         </div>
       </section>

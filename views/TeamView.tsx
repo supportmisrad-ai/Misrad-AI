@@ -17,6 +17,7 @@ import { UnassignedTasksSidebar } from '../components/nexus/team/UnassignedTasks
 import { EmployeeInvitationsPanel } from '../components/nexus/EmployeeInvitationsPanel';
 import { TeamEventsPanel } from '../components/nexus/team/TeamEventsPanel';
 import { LeaveRequestsPanel } from '../components/nexus/team/LeaveRequestsPanel';
+import { Skeleton } from '@/components/ui/skeletons';
 
 // Helper to check if a task is "active" (contributes to workload)
 const isActiveTask = (status: string) => 
@@ -633,7 +634,7 @@ export const TeamView: React.FC = () => {
                 </h1>
                 {isRefreshing && (
                   <div className="flex items-center gap-2 px-2 md:px-3 py-1 bg-blue-50 border border-blue-200 rounded-full">
-                    <RefreshCw size={12} className="md:w-3.5 md:h-3.5 text-blue-600 animate-spin" />
+                    <Skeleton className="w-3 h-3 md:w-3.5 md:h-3.5 rounded-full" />
                     <span className="text-[10px] md:text-xs font-bold text-blue-700">מתעדכן...</span>
                   </div>
                 )}

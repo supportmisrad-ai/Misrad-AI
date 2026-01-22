@@ -4,7 +4,7 @@ import React from 'react';
 import { OSModuleInfo, OS_MODULES } from '../../types/os-modules';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { OS_METADATA } from '@/lib/metadata';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface OSSelectionScreenProps {
   purchasedModules: OSModuleInfo[];
@@ -96,8 +96,6 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
           {/* OS Grid */}
           <div className={`grid grid-cols-2 md:grid-cols-3 ${lgColsClass} gap-3 md:gap-4`}>
             {purchasedModules.map((module, index) => {
-              const Icon = module.icon;
-              const logoSrc = (OS_METADATA as any)?.[module.id]?.icon ?? null;
               return (
                 <motion.button
                   key={module.id}
@@ -118,15 +116,11 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
                   <div
                     className={`
                       w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mx-auto mb-3
-                      ${logoSrc ? 'bg-white/70 border border-white/70' : `bg-gradient-to-br ${module.gradient}`}
+                      bg-gradient-to-br ${module.gradient}
                       shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)] group-hover:shadow-[0_18px_45px_-20px_rgba(0,0,0,0.75)] transition-shadow
                     `}
                   >
-                    {logoSrc ? (
-                      <img src={logoSrc} alt={module.name} className="w-9 h-9 md:w-10 md:h-10 object-contain" />
-                    ) : (
-                      <Icon size={32} className="text-white" />
-                    )}
+                    <OSModuleIcon moduleKey={module.id} size={32} className="text-white" />
                   </div>
 
                   {/* Name */}

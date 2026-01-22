@@ -14,13 +14,13 @@ import {
   FileText,
   Upload,
   Sparkles,
-  Loader2,
   Lightbulb,
   TrendingUp,
   Zap,
 } from 'lucide-react';
 import { GlowButton } from '../ui/GlowButton';
 import { generateSuccessRecommendation } from '@/components/client-portal/services/geminiService';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PortalManagementTabProps {
   client: Client;
@@ -97,7 +97,7 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
             <Eye size={18} /> תצוגת לקוח
           </button>
           <GlowButton onClick={handleSync} isLoading={isSyncing} className="flex-1 md:flex-none">
-            <RefreshCw size={18} className={isSyncing ? 'animate-spin' : ''} /> סנכרן פורטל
+            <RefreshCw size={18} className={isSyncing ? 'opacity-60' : ''} /> סנכרן פורטל
           </GlowButton>
         </div>
       </div>
@@ -111,8 +111,10 @@ export const PortalManagementTab: React.FC<PortalManagementTabProps> = ({ client
               <span className="text-[10px] font-black uppercase tracking-widest">Nexus Owner Insight</span>
             </div>
             {isLoadingRec ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-nexus-accent" />
+              <div className="flex-1 flex flex-col justify-center gap-3">
+                <Skeleton className="h-6 w-5/6 rounded-xl bg-white/10" />
+                <Skeleton className="h-6 w-4/6 rounded-xl bg-white/10" />
+                <Skeleton className="h-4 w-3/6 rounded-xl bg-white/10" />
               </div>
             ) : (
               <>

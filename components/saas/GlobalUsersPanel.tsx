@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, Loader2, CheckCircle2, XCircle, Shield } from 'lucide-react';
+import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CheckCircle2, XCircle, Shield } from 'lucide-react';
 import { User, Tenant } from '../../types';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 import Image from 'next/image';
 import { getAdminUsersPage } from '@/app/actions/admin-users';
+import { SkeletonTable } from '@/components/ui/skeletons';
 
 interface GlobalUsersPanelProps {
     tenants: Tenant[];
@@ -219,8 +220,9 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                 {/* Users Table */}
                 {isLoading ? (
                     <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-12 text-center">
-                        <Loader2 size={32} className="animate-spin text-emerald-400 mx-auto mb-4" />
-                        <p className="text-slate-600">טוען משתמשים...</p>
+                        <div className="text-right">
+                          <SkeletonTable rows={6} columns={6} />
+                        </div>
                     </div>
                 ) : filteredUsers.length === 0 ? (
                     <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-12 text-center">

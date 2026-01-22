@@ -8,6 +8,7 @@ import { joinPath } from '@/lib/os/social-routing';
 import type { SocialNavigationItem } from '@/lib/services/social-service';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
+import { useApp } from '@/contexts/AppContext';
 
 // Icon mapping with default colors
 const ICON_COLORS: Record<string, string> = {
@@ -59,42 +60,18 @@ function NavigationImpl({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [hasMounted, setHasMounted] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [selectedClientName, setSelectedClientName] = useState<string | null>(null);
+  const { activeClientId, activeClient } = useApp();
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!hasMounted) return;
-    const clientIdFromParams = searchParams.get('clientId');
-    const clientNameFromParams = searchParams.get('clientName');
-
-    if (clientIdFromParams) {
-      setSelectedClientId(clientIdFromParams);
-      setSelectedClientName(clientNameFromParams ? decodeURIComponent(clientNameFromParams) : null);
-      try {
-        localStorage.setItem('social_active_client_id', clientIdFromParams);
-        if (clientNameFromParams) {
-          localStorage.setItem('social_active_client_name', decodeURIComponent(clientNameFromParams));
-        }
-      } catch {
-        // ignore
-      }
-      return;
-    }
-
-    try {
-      const storedId = localStorage.getItem('social_active_client_id');
-      const storedName = localStorage.getItem('social_active_client_name');
-      setSelectedClientId(storedId || null);
-      setSelectedClientName(storedName || null);
-    } catch {
-      setSelectedClientId(null);
-      setSelectedClientName(null);
-    }
-  }, [hasMounted, searchParams]);
+  const clientIdFromParams = searchParams.get('clientId');
+  const clientNameFromParams = searchParams.get('clientName');
+  const selectedClientId = clientIdFromParams || activeClientId || null;
+  const selectedClientName = clientNameFromParams
+    ? decodeURIComponent(clientNameFromParams)
+    : (activeClient ? String((activeClient as any)?.companyName || (activeClient as any)?.name || '') : null);
 
   const menuItems = (Array.isArray(initialMenuItems) && initialMenuItems.length > 0
     ? initialMenuItems

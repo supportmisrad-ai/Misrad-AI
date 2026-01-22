@@ -20,6 +20,8 @@ import {
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import type { SocialInitialData } from '@/lib/services/social-service';
 
+const userRoleCache = new Map<string, { role: UserRole; timestamp: number }>();
+
 export type View = 'landing-page' | 'pricing' | 'auth' | 'legal' | 'dashboard' | 'machine' | 'calendar' | 'workspace' | 'campaigns' | 'analytics' | 'inbox' | 'settings' | 'all-clients' | 'profile' | 'client-portal' | 'onboarding-portal' | 'checkout' | 'agency-insights' | 'collection' | 'team' | 'admin-panel';
 export type SettingsSubView = 'main' | 'security' | 'social' | 'notifications' | 'automation' | 'pricing' | 'integrations' | 'infrastructure' | 'team_management' | 'updates';
 
@@ -174,23 +176,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     
     // CRITICAL: Check cache synchronously for instant UI
     // This must happen immediately, not async
-    if (typeof window !== 'undefined') {
-      try {
-        const cacheKey = `user_role_${user.id}`;
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-          const { role, timestamp } = JSON.parse(cachedData);
-          const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            // Set role immediately from cache - instant UI!
-            setUserRole(role as UserRole);
-            setIsCheckingRole(false); // Not checking - we have cache
-            // Continue to refresh in background (see checkRole below) but UI is already updated
-            return; // Exit early - we have cache, UI is updated
-          }
-        }
-      } catch (e) {
-        // Invalid cache, will fetch fresh
+    const cached = userRoleCache.get(String(user.id));
+    if (cached) {
+      const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+      if (Date.now() - cached.timestamp < CACHE_DURATION) {
+        // Set role immediately from cache - instant UI!
+        setUserRole(cached.role);
+        setIsCheckingRole(false); // Not checking - we have cache
+        // Continue to refresh in background (see checkRole below) but UI is already updated
+        return; // Exit early - we have cache, UI is updated
       }
     }
     
@@ -293,37 +287,6 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [editingTask, setEditingTask] = useState<SocialTask | null>(null);
   
   const activeClient = clients.find(c => c.id === activeClientId);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (activeClientId) return;
-    try {
-      const storedId = localStorage.getItem('social_active_client_id');
-      if (storedId) {
-        setActiveClientId(storedId);
-      }
-    } catch {
-      // ignore
-    }
-  }, [activeClientId]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      if (activeClientId) {
-        localStorage.setItem('social_active_client_id', activeClientId);
-        const name = String((activeClient as any)?.companyName || (activeClient as any)?.name || '').trim();
-        if (name) {
-          localStorage.setItem('social_active_client_name', name);
-        }
-        return;
-      }
-      localStorage.removeItem('social_active_client_id');
-      localStorage.removeItem('social_active_client_name');
-    } catch {
-      // ignore
-    }
-  }, [activeClientId, (activeClient as any)?.companyName, (activeClient as any)?.name]);
   
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -381,15 +344,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({
 
       try {
         // Only show loading if we don't have cache
-        const cacheKey = `user_role_${user.id}`;
-        const cachedData = localStorage.getItem(cacheKey);
-        const hasValidCache = cachedData && (() => {
-          try {
-            const { timestamp } = JSON.parse(cachedData);
-            const CACHE_DURATION = 5 * 60 * 1000;
-            return Date.now() - timestamp < CACHE_DURATION;
-          } catch { return false; }
-        })();
+        const cached = userRoleCache.get(String(user.id));
+        const hasValidCache = Boolean(cached && (() => {
+          const CACHE_DURATION = 5 * 60 * 1000;
+          return Date.now() - cached.timestamp < CACHE_DURATION;
+        })());
         
         if (hasValidCache) {
           // Cache is the source of truth for this session.
@@ -411,6 +370,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         if (isMountedRef.current) {
           setUserRole((prev) => (prev === role ? prev : role));
           setIsCheckingRole((prev) => (prev === false ? prev : false));
+          userRoleCache.set(String(user.id), { role, timestamp: Date.now() });
         }
       } catch (error) {
         console.error('[AppContext] Error checking user role:', error);

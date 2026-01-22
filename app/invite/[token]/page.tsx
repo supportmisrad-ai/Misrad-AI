@@ -13,7 +13,8 @@ import { useParams, useRouter } from 'next/navigation';
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic';
 import { motion } from 'framer-motion';
-import { Building2, User, Mail, Phone, Globe, MapPin, FileText, Upload, Check, X, Loader2 } from 'lucide-react';
+import { Building2, User, Mail, Phone, Globe, MapPin, FileText, Upload, Check, X } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface InvitationData {
     token: string;
@@ -288,7 +289,7 @@ export default function InvitePage() {
                 </div>
                 <div className="text-center relative z-10">
                     <div className="bg-black/20 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-                        <Loader2 size={48} className="animate-spin text-indigo-400 mx-auto mb-4" />
+                        <Skeleton className="w-12 h-12 rounded-full bg-indigo-400/20 mx-auto mb-4" />
                         <p className="text-white font-bold text-lg">טוען...</p>
                     </div>
                 </div>
@@ -639,7 +640,7 @@ export default function InvitePage() {
                         >
                             {isSubmitting ? (
                                 <>
-                                    <Loader2 size={20} className="animate-spin" />
+                                    <Skeleton className="w-5 h-5 rounded-full bg-white/30" />
                                     שולח...
                                 </>
                             ) : (

@@ -70,7 +70,7 @@ export const HeroVisual = () => {
                     <div className="h-10 border-b border-slate-200 flex items-center px-4 gap-2 bg-white">
                         <div className="flex gap-1.5">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#C5A572]/50"></div>
                             <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
                         </div>
                         <div className="h-6 w-32 bg-slate-100 rounded-md ml-4"></div>

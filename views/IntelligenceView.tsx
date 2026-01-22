@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AnalysisReport, Priority } from '../types';
 import { useSearchParams } from 'next/navigation';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export const IntelligenceView: React.FC = () => {
     const { tasks, leads, clients, assets, monthlyGoals, timeEntries, analysisHistory, saveAnalysis, deleteAnalysis, addToast, currentUser, updateMonthlyGoals, updateUser, hasPermission, addFeedback } = useData();
@@ -316,7 +317,7 @@ export const IntelligenceView: React.FC = () => {
                             disabled={isAnalyzing}
                             className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 md:p-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                         >
-                            {isAnalyzing ? <Sparkles className="animate-spin" size={18} /> : <Send size={18} className="rotate-180" />}
+                            {isAnalyzing ? <Skeleton className="w-4 h-4 rounded-full" /> : <Send size={18} className="rotate-180" />}
                         </button>
                     </div>
                     {/* Quick Prompts */}
@@ -338,8 +339,7 @@ export const IntelligenceView: React.FC = () => {
                     {isAnalyzing ? (
                         <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
                             <div className="w-24 h-24 relative mb-8">
-                                <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full animate-ping"></div>
-                                <div className="absolute inset-2 border-4 border-purple-500/50 rounded-full animate-spin"></div>
+                                <Skeleton className="absolute inset-0 rounded-full" />
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <BrainCircuit size={32} className="text-indigo-400" />
                                 </div>

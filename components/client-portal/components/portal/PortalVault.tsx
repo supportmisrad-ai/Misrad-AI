@@ -4,13 +4,13 @@ import {
   ClipboardList,
   Upload,
   FileSignature,
-  RefreshCw,
   Check,
   CheckCircle2,
   ImageIcon,
   FileText,
   Download,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PortalVaultProps {
   pendingTasks: any[];
@@ -68,7 +68,7 @@ export const PortalVault: React.FC<PortalVaultProps> = ({
                   <label className="relative flex items-center justify-center w-full h-32 border-2 border-dashed border-slate-100 rounded-2xl hover:bg-slate-50 hover:border-nexus-accent transition-all cursor-pointer overflow-hidden group/upload">
                     {isUploading === action.id ? (
                       <div className="flex flex-col items-center gap-2">
-                        <RefreshCw size={24} className="animate-spin text-nexus-accent" />
+                        <Skeleton className="w-6 h-6 rounded-full bg-nexus-accent/20" />
                         <span className="text-xs font-bold text-slate-400">מעלה ומאבטח...</span>
                       </div>
                     ) : (

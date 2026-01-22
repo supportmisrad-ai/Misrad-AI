@@ -3,12 +3,13 @@
 import React, { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Monitor } from 'lucide-react';
+import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Monitor, Server, SlidersHorizontal, Globe, LifeBuoy } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { Avatar } from '@/components/Avatar';
 import CommandPalette from '@/components/CommandPalette';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 function isActivePath(pathname: string, href: string) {
   if (href === '/app/admin') return pathname === href;
@@ -42,6 +43,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin', label: 'דשבורד', icon: LayoutGrid },
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Building2 },
       { href: '/app/admin/users', label: 'משתמשים', icon: Users },
+      { href: '/app/admin/tenants', label: 'Tenants', icon: Server },
+      { href: '/app/admin/system-flags', label: 'System Flags', icon: SlidersHorizontal },
+      { href: '/app/admin/support', label: 'תמיכה', icon: LifeBuoy },
+      { href: '/app/admin/landing/logo', label: 'Landing', icon: Globe },
       { href: '/app/admin/ai', label: 'AI', icon: Sparkles },
       { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
       { href: '/app/admin/legacy', label: 'מסוף ניהול מלא (Legacy)', icon: Monitor },
@@ -102,7 +107,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             title="ענן משרד"
             subtitle="Super Admin"
             currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
-            mobileBrand={{ name: 'ענן משרד' }}
+            mobileBrand={{ name: 'ענן משרד', badgeIcon: <OSModuleIcon moduleKey="system" size={10} className="text-slate-900" /> }}
             onOpenCommandPaletteAction={() => setCommandPaletteOpen(true)}
             onOpenSupportAction={() => openSupport?.()}
             user={{ name: userName, role: userRole }}

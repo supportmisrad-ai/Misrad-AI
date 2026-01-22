@@ -52,11 +52,6 @@ export default function WorkspaceCanonicalRedirect({
         if (!orgSlug) return;
 
         const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-        try {
-          sessionStorage.setItem('saas_admin_return_to', returnTo);
-        } catch {
-          void 0;
-        }
 
         router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
       }

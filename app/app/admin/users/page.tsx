@@ -5,6 +5,7 @@ import { Eye, RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getAdminClients, impersonateUser } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
+import { SkeletonTable } from '@/components/ui/skeletons';
 
 type AdminClientRow = {
   id: string;
@@ -103,54 +104,52 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-right">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">חברה</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">איש קשר</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
+      {isLoading ? (
+        <SkeletonTable rows={10} columns={4} />
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-right">
+              <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
-                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={4}>
-                    טוען...
-                  </td>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">חברה</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">איש קשר</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
+                  <th className="px-4 py-3 text-xs font-black text-slate-600">פעולות</th>
                 </tr>
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={4}>
-                    לא נמצאו לקוחות
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{u.companyName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{u.fullName}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{u.email || '-'}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <button
-                        type="button"
-                        onClick={() => handleImpersonate(u.id)}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100"
-                        title="Impersonate"
-                      >
-                        <Eye size={16} />
-                        התחזות
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={4}>
+                      לא נמצאו לקוחות
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filtered.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 text-sm font-bold text-slate-900">{u.companyName}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{u.fullName}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{u.email || '-'}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => handleImpersonate(u.id)}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100"
+                          title="Impersonate"
+                        >
+                          <Eye size={16} />
+                          התחזות
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

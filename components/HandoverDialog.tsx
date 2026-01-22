@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead, HandoverData } from '../types';
-import { X, Server, CheckCircle, ArrowRight, Database, Loader2, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, Activity, Send, AlertOctagon, Lock } from 'lucide-react';
+import { X, Server, CheckCircle, ArrowRight, Database, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, Activity, Send, AlertOctagon, Lock } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface HandoverDialogProps {
   payload: any;
@@ -227,7 +228,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                   <div className="absolute inset-4 bg-white rounded-full shadow-lg border-4 border-indigo-50 flex items-center justify-center z-10">
                       <Database size={40} className="text-indigo-600 animate-pulse" />
                   </div>
-                  <svg className="absolute inset-0 w-full h-full animate-spin-slow" viewBox="0 0 100 100">
+                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="48" fill="none" stroke="#e0e7ff" strokeWidth="2" strokeDasharray="20 10" />
                   </svg>
                   <svg className="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -328,7 +329,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
 
           {step === 'sending' && (
              <button disabled className="w-full px-6 py-3 bg-slate-100 text-slate-400 text-sm font-bold rounded-xl flex items-center justify-center gap-2 cursor-not-allowed">
-                <Loader2 size={18} className="animate-spin" /> מעבד נתונים...
+                <Skeleton className="w-[18px] h-[18px] rounded-full" /> מעבד נתונים...
              </button>
           )}
 

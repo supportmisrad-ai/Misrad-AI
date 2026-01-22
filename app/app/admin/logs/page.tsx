@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getSecurityAuditLog } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
+import { SkeletonTable } from '@/components/ui/skeletons';
 
 type AuditItem = {
   action: string;
@@ -68,8 +69,8 @@ export default function AdminLogsPage() {
             <tbody className="divide-y divide-slate-100">
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={3}>
-                    טוען...
+                  <td className="px-4 py-4" colSpan={3}>
+                    <SkeletonTable rows={8} columns={3} />
                   </td>
                 </tr>
               ) : items.length === 0 ? (

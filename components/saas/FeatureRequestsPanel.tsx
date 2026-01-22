@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Bug, Wrench, Zap, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Calendar, ThumbsUp, RefreshCw, Eye, Edit2, Tag } from 'lucide-react';
 import { FeatureRequest } from '../../types';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { SkeletonTable } from '@/components/ui/skeletons';
 
 interface FeatureRequestsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -259,16 +260,14 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                         className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50"
                         title="רענן"
                     >
-                        <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                        <RefreshCw size={18} className={isLoading ? 'opacity-50' : ''} />
                     </button>
                 </div>
             </div>
 
             {/* Requests List */}
             {isLoading ? (
-                <div className="flex items-center justify-center py-12">
-                    <RefreshCw size={24} className="animate-spin text-slate-400" />
-                </div>
+                <SkeletonTable rows={8} columns={5} />
             ) : filteredRequests.length === 0 ? (
                 <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-12 text-center shadow-xl">
                     <Sparkles size={48} className="mx-auto text-slate-400 mb-4" />

@@ -52,7 +52,7 @@ export const ClientWorkTab: React.FC<ClientWorkTabProps> = ({ client }) => {
                         ? 'text-green-600'
                         : del.status === 'APPROVED'
                           ? 'text-blue-600'
-                          : 'text-yellow-600'
+                          : 'text-[color:var(--os-accent)]'
                     }`}
                   >
                     {del.status}

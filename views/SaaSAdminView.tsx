@@ -121,12 +121,6 @@ export const SaaSAdminView: React.FC = () => {
         } catch {
             // ignore
         }
-        try {
-            const stored = sessionStorage.getItem('saas_admin_return_to');
-            if (stored && stored.startsWith('/')) return stored;
-        } catch {
-            // ignore
-        }
         return '/';
     };
 

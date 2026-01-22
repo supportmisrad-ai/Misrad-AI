@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, Loader2, CheckCircle, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, PinIcon, MessageSquare, Briefcase, DollarSign, Clock, AlertTriangle, Sparkles, Zap } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Share2, MousePointer2, Calendar as CalendarIcon, Download, CheckCircle, ChevronDown, X, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, PinIcon, MessageSquare, Briefcase, DollarSign, Clock, AlertTriangle, Sparkles, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform, Client } from '@/types/social';
@@ -304,7 +304,7 @@ export default function Analytics() {
             disabled={isExporting}
             className="flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-2xl font-extrabold text-sm hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
           >
-            {isExporting ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+            <Download size={18} className={isExporting ? 'opacity-60' : undefined} />
             <span>{isExporting ? 'מייצא דוח...' : 'הורד דוח מלא'}</span>
           </button>
         </div>

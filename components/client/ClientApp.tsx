@@ -36,15 +36,15 @@ const ClientBootScreen = ({ onComplete }: { onComplete: () => void }) => {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-amber-900 via-amber-800 to-orange-900 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gradient-to-b from-[#070A13] via-[#0F172A] to-[#070A13] flex items-center justify-center z-50">
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
-        <div className="w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-600 rounded-[40px] flex items-center justify-center text-white mb-8 shadow-2xl shadow-amber-500/30 animate-bounce">
+        <div className="w-24 h-24 bg-[#0F172A] rounded-[40px] flex items-center justify-center text-[#C5A572] mb-8 shadow-2xl shadow-black/40 border border-white/10">
           <GraduationCap size={48} strokeWidth={1.5} />
         </div>
-        <div className="w-64 h-1.5 bg-amber-200 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-amber-500 to-orange-600 transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
+        <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-[#EAD7A1] via-[#C5A572] to-[#B45309] transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
         </div>
-        <p className="mt-6 text-[10px] font-bold text-amber-300 uppercase tracking-[0.3em] animate-pulse">מתניע קליניקה דיגיטלית...</p>
+        <p className="mt-6 text-[10px] font-bold text-[#C5A572] uppercase tracking-[0.3em]">מתניע קליניקה דיגיטלית...</p>
       </div>
     </div>
   );
@@ -110,7 +110,7 @@ const ClientOSApp = () => {
   const activeNavItem = navItems.find(item => item.id === activeTab);
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className="flex h-screen bg-[#F5F5F7] overflow-hidden">
       {/* Sidebar */}
       <div className="hidden md:flex">
         <Sidebar 
@@ -160,7 +160,7 @@ const ClientOSApp = () => {
               className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-100"
               aria-label="פרופיל"
             >
-              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">
+              <div className="w-8 h-8 rounded-full bg-[#0F172A] text-[#C5A572] flex items-center justify-center text-sm font-bold border border-white/10 shadow-sm">
                 {user.avatar || user.name.charAt(0)}
               </div>
               <span className="hidden md:block font-medium text-sm">{user.name}</span>

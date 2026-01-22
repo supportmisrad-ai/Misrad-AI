@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
 import { useToast } from '../contexts/ToastContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 type LeadLite = {
     id: string;
@@ -188,8 +189,8 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
 
                     <div className="w-20 h-20 mx-auto mb-6 relative">
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
-                        <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
-                        <BrainCircuit className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
+                        <Skeleton className="absolute inset-0 rounded-full bg-indigo-100" />
+                        <BrainCircuit className="absolute inset-0 m-auto text-indigo-600" size={32} />
                     </div>
 
                     <h3 className="text-xl font-bold text-slate-800 mb-2">מנתח שיחה...</h3>

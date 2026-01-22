@@ -26,6 +26,7 @@ export function SystemHeader({
     name: string;
     logoUrl?: string | null;
     fallbackIcon?: React.ReactNode;
+    badgeIcon?: React.ReactNode;
   };
   isWorkspaceRoute: boolean;
   onOpenCommandPaletteAction: () => void;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Sparkles, Image as ImageIcon, Loader2, 
+  X, Sparkles, Image as ImageIcon, 
   Search, ArrowRight, Zap, Facebook, Instagram, Linkedin, 
   MessageCircle, Globe, Video, Twitter, Share2, PinIcon, 
   MessageSquare, Wand
@@ -15,6 +15,7 @@ import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { Client, PostVariation, SocialPost, SocialPlatform } from '@/types/social';
 import { createPost, publishPost } from '@/app/actions/posts';
 import { Avatar } from '@/components/Avatar';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface VariationWithImage extends PostVariation {
   generatedImage?: string | null;
@@ -340,8 +341,8 @@ export default function TheMachine() {
               <h3 className="text-xl md:text-2xl font-black mb-6 md:mb-10 text-center">בחר את הגרסה המנצחת</h3>
               {isLoading ? (
                 <div className="flex flex-col items-center py-24 gap-6">
-                  <Loader2 className="animate-spin text-blue-600" size={48} />
-                  <p className="font-black text-lg animate-pulse">ה-AI בונה וריאציות...</p>
+                  <Skeleton className="w-12 h-12 rounded-full bg-blue-100" />
+                  <p className="font-black text-lg">ה-AI בונה וריאציות...</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
@@ -407,8 +408,8 @@ export default function TheMachine() {
                   <div className="aspect-square bg-slate-100 flex items-center justify-center text-slate-200 relative overflow-hidden">
                     {isGeneratingImage ? (
                       <div className="absolute inset-0 bg-slate-900/10 flex flex-col items-center justify-center gap-4 z-10 backdrop-blur-sm">
-                        <Loader2 className="animate-spin text-blue-600" size={32}/>
-                        <span className="text-[10px] font-black uppercase text-blue-600 animate-pulse">מייצר תמונה...</span>
+                        <Skeleton className="w-8 h-8 rounded-full bg-blue-100" />
+                        <span className="text-[10px] font-black uppercase text-blue-600">מייצר תמונה...</span>
                       </div>
                     ) : null}
                     {selectedVariation.generatedImage ? (
@@ -458,7 +459,7 @@ export default function TheMachine() {
                         disabled={isGeneratingImage}
                         className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-black shadow-lg hover:bg-blue-700 transition-all flex items-center gap-2 disabled:opacity-50"
                       >
-                        {isGeneratingImage ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14}/>}
+                        {isGeneratingImage ? <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> : <Sparkles size={14}/>}
                         {selectedVariation.generatedImage ? 'ייצר שוב' : 'ייצר תמונה'}
                       </button>
                     </div>

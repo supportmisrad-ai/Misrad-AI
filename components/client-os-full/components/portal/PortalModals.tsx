@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageSquareWarning, X, Send, Loader2, Star, Quote, Copy, Sparkles } from 'lucide-react';
+import { MessageSquareWarning, X, Send, Star, Quote, Copy, Sparkles } from 'lucide-react';
 
 interface PortalModalsProps {
   showFrictionModal: boolean;
@@ -51,7 +51,7 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
                 disabled={!frictionText.trim() || isSubmittingFeedback}
                 className="w-full py-5 bg-slate-900 text-white rounded-3xl font-bold text-lg hover:bg-nexus-accent transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-3"
               >
-                {isSubmittingFeedback ? <Loader2 className="animate-spin" /> : <><Send size={20}/> שלח למנהל הפרויקט</>}
+                {isSubmittingFeedback ? <>שולח...</> : <><Send size={20}/> שלח למנהל הפרויקט</>}
               </button>
             </div>
           </div>
@@ -61,9 +61,9 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
       {celebratingStage && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-nexus-primary/80 backdrop-blur-xl animate-fade-in">
           <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-2xl relative overflow-hidden flex flex-col p-10 lg:p-16 text-center animate-slide-up">
-            <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-nexus-accent via-yellow-400 to-nexus-accent"></div>
+            <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-nexus-accent via-[color:var(--os-accent)] to-nexus-accent"></div>
             
-            <div className="w-24 h-24 bg-nexus-accent/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
+            <div className="w-24 h-24 bg-nexus-accent/10 rounded-full flex items-center justify-center mx-auto mb-8">
               <Star size={48} className="text-nexus-accent" fill="currentColor" />
             </div>
 
@@ -86,7 +86,7 @@ export const PortalModals: React.FC<PortalModalsProps> = ({
                     disabled={!testimonialInput.trim() || isGeneratingTestimonial}
                     className="flex-1 py-4 bg-slate-900 text-white rounded-3xl font-bold hover:bg-nexus-accent transition-all flex items-center justify-center gap-2"
                   >
-                    {isGeneratingTestimonial ? <Loader2 size={18} className="animate-spin" /> : <><Sparkles size={18} /> הפוך את זה להמלצה יפה</>}
+                    {isGeneratingTestimonial ? <>מייצר...</> : <><Sparkles size={18} /> הפוך את זה להמלצה יפה</>}
                   </button>
                 </div>
               </div>

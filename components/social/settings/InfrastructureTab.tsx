@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Key, ShieldCheck, RefreshCw, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Key, ShieldCheck, RefreshCw, Info, CheckCircle2 } from 'lucide-react';
 
 interface InfrastructureTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -50,7 +50,7 @@ export default function InfrastructureTab({ onNotify }: InfrastructureTabProps) 
                   </div>
                 </div>
                 <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 font-black text-[10px] uppercase ${status === 'connected' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                   {status === 'connected' ? 'מחובר לתשתית' : 'שגיאת חיבור'}
                 </div>
               </div>
@@ -76,14 +76,15 @@ export default function InfrastructureTab({ onNotify }: InfrastructureTabProps) 
                   disabled={isSaving}
                   className="flex-1 bg-slate-900 text-white py-5 rounded-[24px] font-black text-lg shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
-                  {isSaving ? <Loader2 className="animate-spin" size={20}/> : 'שמור הגדרות'}
+                  {isSaving ? 'שומר...' : 'שמור הגדרות'}
                 </button>
                 <button
                   onClick={handleTest}
                   disabled={isTesting}
                   className="px-10 py-5 bg-slate-100 text-slate-600 rounded-[24px] font-black text-lg hover:bg-slate-200 transition-all flex items-center justify-center gap-3 active:scale-95"
                 >
-                  {isTesting ? <RefreshCw className="animate-spin" size={20}/> : 'בדיקת חיבור'}
+                  <RefreshCw size={20} className={isTesting ? 'opacity-60' : undefined} />
+                  {isTesting ? 'בודק...' : 'בדיקת חיבור'}
                 </button>
               </div>
             </div>

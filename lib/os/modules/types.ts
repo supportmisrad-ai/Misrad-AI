@@ -10,4 +10,5 @@ export type OSModuleDefinition = {
   label: string;
   labelHe: string;
   theme: OSThemeTokens;
+  iconName: string;
 };

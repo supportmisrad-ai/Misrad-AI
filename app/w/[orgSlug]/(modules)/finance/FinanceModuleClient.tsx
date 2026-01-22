@@ -5,18 +5,19 @@ import { OSModuleProvider } from '@/contexts/OSModuleContext';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
-import FinanceApp from '@/components/finance/FinanceApp';
+import { DataProvider } from '@/context/DataContext';
+import FinanceShell from './FinanceShell';
 import { useShabbat } from '@/hooks/useShabbat';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 
 export default function FinanceModuleClient({
+  children,
   initialCurrentUser,
   initialOrganization,
-  initialFinanceOverview,
 }: {
+  children: React.ReactNode;
   initialCurrentUser?: any;
   initialOrganization?: any;
-  initialFinanceOverview?: any;
 }) {
   const { isShabbat, isLoading } = useShabbat();
 
@@ -29,11 +30,11 @@ export default function FinanceModuleClient({
       <ToastProvider>
         <AuthProvider initialCurrentUser={initialCurrentUser}>
           <BrandProvider initialBrandName={initialOrganization?.name}>
-            <FinanceApp
-              initialFinanceOverview={initialFinanceOverview}
-              initialCurrentUser={initialCurrentUser}
-              initialOrganization={initialOrganization}
-            />
+            <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+              <FinanceShell initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+                {children}
+              </FinanceShell>
+            </DataProvider>
           </BrandProvider>
         </AuthProvider>
       </ToastProvider>

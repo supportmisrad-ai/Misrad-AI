@@ -784,6 +784,96 @@ export async function updateFeatureFlags(
   }
 }
 
+export async function getModuleIcons(): Promise<{
+  success: boolean;
+  data?: Partial<Record<OSModuleKey, string>>;
+  error?: string;
+}> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const supabase = createClient();
+    const { data: row } = await supabase
+      .from('social_system_settings')
+      .select('*')
+      .eq('key', 'module_icons')
+      .maybeSingle();
+
+    const rawValue = (row as any)?.value;
+    let parsedValue: any = null;
+    if (rawValue && typeof rawValue === 'string') {
+      parsedValue = JSON.parse(rawValue);
+    } else if (rawValue && typeof rawValue === 'object') {
+      parsedValue = rawValue;
+    }
+
+    const moduleIcons = parsedValue && typeof parsedValue === 'object' ? (parsedValue as any) : {};
+    return createSuccessResponse(moduleIcons);
+  } catch (error) {
+    return createSuccessResponse({});
+  }
+}
+
+export async function updateModuleIcons(params: {
+  moduleIcons: Partial<Record<OSModuleKey, string>>;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const supabase = createClient();
+
+    const { data: existing } = await supabase
+      .from('social_system_settings')
+      .select('*')
+      .eq('key', 'module_icons')
+      .maybeSingle();
+
+    const existingRaw = (existing as any)?.value;
+    let existingValue: any = null;
+    if (existingRaw && typeof existingRaw === 'string') {
+      existingValue = JSON.parse(existingRaw);
+    } else if (existingRaw && typeof existingRaw === 'object') {
+      existingValue = existingRaw;
+    }
+
+    const nextValue: Record<string, string> = {
+      ...(existingValue && typeof existingValue === 'object' ? (existingValue as any) : {}),
+      ...(params.moduleIcons as any),
+    };
+
+    await supabase
+      .from('social_system_settings')
+      .upsert(
+        {
+          key: 'module_icons',
+          value: nextValue as any,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    await supabase.from('activity_logs').insert({
+      user_id: authCheck.userId,
+      action: `עדכון אייקוני מודולים: ${JSON.stringify(nextValue)}`,
+      created_at: new Date().toISOString(),
+    });
+
+    return createSuccessResponse(true);
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה בעדכון אייקוני מודולים');
+  }
+}
+
 /**
  * Send "we miss you" email to churned users
  */

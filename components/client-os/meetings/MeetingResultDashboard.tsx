@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MeetingAnalysisResult } from '../../types';
+import type { AILiabilityRisk, AITask, MeetingAnalysisResult } from '../../client-os-full/types';
 import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, BrainCircuit, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare, FileText, Share2 } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 import { motion } from 'framer-motion';
@@ -74,7 +74,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                                   <span className="text-primary">Processed by Nexus AI</span>
                               </div>
                           </div>
-                          <div className={`text-2xl font-black px-6 py-3 rounded-2xl border-2 shadow-inner ${analysisResult?.sentimentScore && analysisResult.sentimentScore > 70 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                          <div className={`text-2xl font-black px-6 py-3 rounded-2xl border-2 shadow-inner ${analysisResult?.sentimentScore && analysisResult.sentimentScore > 70 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] border-[color:var(--os-accent)]/30'}`}>
                               {analysisResult?.sentimentScore ?? 85}
                               <span className="text-xs opacity-50 ml-1">/100</span>
                           </div>
@@ -115,11 +115,11 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   </div>
                   <div className="ui-card p-6 bg-white flex items-center justify-between group hover:border-primary/20 transition-all">
                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Lightbulb size={22}/></div>
+                          <div className="w-12 h-12 bg-[color:var(--os-accent)]/10 text-[color:var(--os-accent)] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Lightbulb size={22}/></div>
                           <span className="font-black text-slate-900 uppercase text-xs tracking-widest">בהירות</span>
                       </div>
                       <div className="flex items-center gap-3">
-                          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><motion.div initial={{width:0}} animate={{width: `${analysisResult?.rating?.clarity ?? 95}%`}} className="bg-amber-600 h-full" /></div>
+                          <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden"><motion.div initial={{width:0}} animate={{width: `${analysisResult?.rating?.clarity ?? 95}%`}} className="bg-[color:var(--os-accent)] h-full" /></div>
                           <span className="font-mono font-black text-slate-900">{analysisResult?.rating?.clarity ?? 95}</span>
                       </div>
                   </div>
@@ -182,7 +182,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                       </div>
                   </div>
                   <div className="space-y-4">
-                      {analysisResult?.intents?.length ? analysisResult.intents.map((intent, i) => (
+                      {analysisResult?.intents?.length ? analysisResult.intents.map((intent: string, i: number) => (
                           <div key={i} className="flex gap-4 items-start p-4 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-indigo-200 transition-colors">
                               <div className="mt-1 text-indigo-400"><Zap size={16} fill="currentColor" /></div>
                               <p className="text-slate-700 text-lg font-medium italic leading-relaxed">"{intent}"</p>
@@ -201,7 +201,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                       </div>
                   </div>
                   <div className="space-y-4">
-                      {analysisResult?.liabilityRisks.length ? analysisResult.liabilityRisks.map((risk, i) => (
+                      {analysisResult?.liabilityRisks.length ? analysisResult.liabilityRisks.map((risk: AILiabilityRisk, i: number) => (
                           <div key={i} className={`p-6 rounded-2xl border-2 ${getRiskColor(risk.riskLevel)}`}>
                              <div className="flex justify-between items-center mb-3">
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Critical Quote</span>
@@ -228,7 +228,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                     <span className="text-xs bg-slate-50 text-slate-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">Internal</span>
                   </div>
                   <div className="space-y-4">
-                      {analysisResult?.agencyTasks.length ? analysisResult.agencyTasks.map((t, i) => (
+                      {analysisResult?.agencyTasks.length ? analysisResult.agencyTasks.map((t: AITask, i: number) => (
                           <div key={i} className="flex items-center gap-4 p-5 bg-slate-50/50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-lg transition-all duration-300">
                               <div className={`w-3 h-3 rounded-full ${t.priority === 'HIGH' ? 'bg-primary shadow-[0_0_12px_rgba(162,29,60,0.5)]' : 'bg-slate-300'}`}></div>
                               <div className="flex-1">
@@ -251,7 +251,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                     <span className="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full font-bold uppercase tracking-widest">Waiting for</span>
                   </div>
                   <div className="space-y-4">
-                      {analysisResult?.clientTasks.length ? analysisResult.clientTasks.map((t, i) => (
+                      {analysisResult?.clientTasks.length ? analysisResult.clientTasks.map((t: AITask, i: number) => (
                           <div key={i} className="flex items-center gap-4 p-5 bg-emerald-50/30 rounded-2xl border border-emerald-100/50 group hover:bg-white hover:shadow-lg transition-all duration-300 shadow-inner">
                               <div className="p-2 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-500/20"><CheckSquare size={16} strokeWidth={3}/></div>
                               <div className="flex-1">
@@ -274,7 +274,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   <div className="space-y-4">
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Keywords Cloud</h4>
                       <div className="flex flex-wrap gap-3">
-                          {analysisResult?.slang?.map((word, i) => (
+                          {analysisResult?.slang?.map((word: string, i: number) => (
                               <span key={i} className="px-5 py-2 bg-white text-slate-700 rounded-2xl text-sm font-bold border border-slate-200 shadow-sm hover:border-primary/20 transition-colors">
                                   #{word}
                               </span>
@@ -284,7 +284,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
                   <div className="space-y-4">
                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Meeting Anecdotes</h4>
                       <div className="space-y-3">
-                          {analysisResult?.stories?.map((story, i) => (
+                          {analysisResult?.stories?.map((story: string, i: number) => (
                               <div key={i} className="flex gap-4 items-start text-lg font-medium text-slate-600 bg-white/60 p-5 rounded-3xl border border-white/40 shadow-sm italic leading-relaxed">
                                   <Quote size={20} className="text-primary mt-1 flex-shrink-0 opacity-20" />
                                   "{story}"

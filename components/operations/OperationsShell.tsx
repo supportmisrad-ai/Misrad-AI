@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Briefcase, ClipboardList, LayoutDashboard, Package, Settings, User, Users } from 'lucide-react';
+import { AppWindow, Briefcase, ClipboardList, LayoutDashboard, Package, Settings, User, Users } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
 
@@ -15,6 +16,7 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -65,6 +67,7 @@ export default function OperationsShell({
 
   const basePath = `/w/${encodeURIComponent(orgSlug)}/operations`;
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const screenTitle = React.useMemo(() => buildTitle(pathname, basePath), [basePath, pathname]);
   const moduleTitle = React.useMemo(() => roomNameHebrew || roomName || 'Operations', [roomName, roomNameHebrew]);
@@ -95,9 +98,34 @@ export default function OperationsShell({
     (path: string) => {
       const target = `${basePath}${path === '/' ? '' : path}`;
       router.push(target);
+      setIsMobileMenuOpen(false);
     },
     [basePath, router]
   );
+
+  const plusConfig = React.useMemo(() => {
+    if (isActiveAction('/work-orders') || isActiveAction('/work-orders/new')) {
+      return {
+        targetPath: '/work-orders/new',
+        ariaLabel: 'קריאה חדשה',
+        active: isActiveAction('/work-orders/new'),
+      };
+    }
+
+    if (isActiveAction('/projects') || isActiveAction('/projects/new')) {
+      return {
+        targetPath: '/projects/new',
+        ariaLabel: 'פרויקט חדש',
+        active: isActiveAction('/projects/new'),
+      };
+    }
+
+    return {
+      targetPath: '/projects/new',
+      ariaLabel: 'פרויקט חדש',
+      active: isActiveAction('/projects/new'),
+    };
+  }, [isActiveAction]);
 
   const resolvedUser = React.useMemo(
     () => ({
@@ -124,7 +152,17 @@ export default function OperationsShell({
   );
 
   return (
-    <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
+    <div
+      className="flex h-screen w-full text-gray-900 overflow-hidden"
+      dir="rtl"
+      style={{
+        backgroundColor: '#f1f5f9',
+        backgroundImage:
+          'radial-gradient(at 0% 0%, rgba(14,165,233,0.10) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(2,132,199,0.08) 0px, transparent 55%), radial-gradient(at 100% 100%, rgba(14,165,233,0.06) 0px, transparent 50%), radial-gradient(at 0% 60%, rgba(2,132,199,0.05) 0px, transparent 55%)',
+        backgroundAttachment: 'fixed',
+        backgroundSize: 'cover',
+      }}
+    >
       <SharedSidebar
         isOpen={isSidebarOpen}
         onSetOpenAction={setIsSidebarOpen}
@@ -133,11 +171,12 @@ export default function OperationsShell({
           logoUrl: workspace.logoUrl || null,
           fallbackIcon: (
             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-200">
-              <Briefcase size={18} className="text-slate-900" />
+              <OSModuleIcon moduleKey="operations" size={18} className="text-slate-900" />
             </div>
           ),
+          badgeIcon: <OSModuleIcon moduleKey="operations" size={12} className="text-slate-900" />,
         }}
-        brandSubtitle={'תפעול ושטח'}
+        brandSubtitle={'תפעול, מלאי ושטח'}
         onBrandClickAction={() => router.push(basePath)}
         topSlot={
           <div className="flex flex-col gap-2">
@@ -167,7 +206,11 @@ export default function OperationsShell({
           title={moduleTitle}
           subtitle={screenTitle}
           currentDate={currentDate || ' '}
-          mobileBrand={{ name: moduleTitle, logoUrl: workspace.logoUrl || null }}
+          mobileBrand={{
+            name: moduleTitle,
+            logoUrl: workspace.logoUrl || null,
+            badgeIcon: <OSModuleIcon moduleKey="operations" size={10} className="text-slate-900" />,
+          }}
           onOpenCommandPaletteAction={undefined}
           onOpenSupportAction={undefined}
           switcherSlot={null}
@@ -211,17 +254,90 @@ export default function OperationsShell({
             onClick: () => onNavigateAction('/work-orders'),
           },
           {
-            id: 'me',
-            label: 'אזור אישי',
-            icon: User,
-            active: isActiveAction('/me'),
-            onClick: () => onNavigateAction('/me'),
+            id: 'menu',
+            label: 'תפריט',
+            icon: AppWindow,
+            active: isMobileMenuOpen,
+            onClick: () => setIsMobileMenuOpen(true),
           },
         ]}
-        onPlusClickAction={() => onNavigateAction('/projects/new')}
-        plusAriaLabel="פרויקט חדש"
-        plusActive={isActiveAction('/projects/new')}
+        onPlusClickAction={() => onNavigateAction(plusConfig.targetPath)}
+        plusAriaLabel={plusConfig.ariaLabel}
+        plusActive={plusConfig.active}
       />
+
+      <AnimatePresence>
+        {isMobileMenuOpen ? (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="md:hidden fixed inset-0 bg-black/60 z-[100] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 0.35 }}
+              onDragEnd={(_, info) => {
+                const shouldClose = info.offset.y > 110 || info.velocity.y > 900;
+                if (shouldClose) setIsMobileMenuOpen(false);
+              }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[101] bg-white/95 backdrop-blur-2xl rounded-t-[2.5rem] p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.10)] border-t border-white/50"
+              style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="תפריט"
+            >
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6 opacity-50"></div>
+
+              <div className="grid grid-cols-4 gap-4">
+                {navItems.map((item) => {
+                  const isActiveItem = isActiveAction(item.path);
+                  const IconComponent = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      type="button"
+                      onClick={() => {
+                        onNavigateAction(item.path);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 group"
+                      aria-label={item.label}
+                    >
+                      <div
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-200 shadow-md border ${
+                          isActiveItem
+                            ? 'bg-slate-900 text-white shadow-slate-900/20 border-slate-900'
+                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <IconComponent size={22} strokeWidth={isActiveItem ? 2.5 : 2} />
+                      </div>
+                      <span className={`text-[10px] font-bold text-center leading-tight ${isActiveItem ? 'text-slate-900' : 'text-slate-500'}`}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="h-px bg-gradient-to-r from-transparent via-gray-300/40 to-transparent my-5"></div>
+
+              <div className="space-y-3">
+                <div className="text-[11px] font-black text-slate-500 uppercase tracking-wider text-right">מודולים</div>
+                <OSAppSwitcher compact={true} orgSlug={orgSlug} currentModule="operations" entitlements={entitlements} />
+              </div>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

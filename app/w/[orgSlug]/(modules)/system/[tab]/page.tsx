@@ -39,6 +39,30 @@ export default async function SystemTabPage({
 }) {
   const { orgSlug, tab } = await params;
 
+  if (tab === 'workspace') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/system`);
+  }
+
+  if (tab === 'mkt_campaigns') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/social/campaigns`);
+  }
+  if (tab === 'mkt_content') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/social/machine`);
+  }
+  if (tab === 'mkt_forms') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/social/collection`);
+  }
+  if (tab === 'mkt_partners') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/social/team`);
+  }
+
+  if (tab === 'finance') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/finance`);
+  }
+  if (tab === 'operations') {
+    return redirect(`/w/${encodeURIComponent(orgSlug)}/operations`);
+  }
+
   if (tab === 'system' || tab === 'settings') {
     const from = `/w/${encodeURIComponent(orgSlug)}/system/${encodeURIComponent(tab)}`;
     return redirect(

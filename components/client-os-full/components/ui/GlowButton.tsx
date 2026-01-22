@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Sparkles } from 'lucide-react';
 
 interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -37,7 +37,7 @@ export const GlowButton: React.FC<GlowButtonProps> = ({
       <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
       
       {isLoading ? (
-        <Sparkles className="animate-spin" size={18} />
+        <Sparkles size={18} className="opacity-60" />
       ) : Icon ? (
         <Icon size={18} className="relative z-10" />
       ) : null}

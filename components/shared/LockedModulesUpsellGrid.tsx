@@ -23,7 +23,7 @@ function getUpsellCopy(module: OSModuleKey): { title: string; message: string } 
   if (module === 'system') {
     return {
       title: def.label,
-      message: 'אל תיתן לאף ליד ליפול בין הכיסאות. שדרג ל"מכונת המכירות" והפוך את תהליך הסגירה שלך למדויק, מהיר ועקבי.',
+      message: 'אל תיתן לאף ליד ליפול בין הכיסאות. שדרג ל"מרכז המכירות והלידים" והפוך את תהליך הסגירה שלך למדויק, מהיר ועקבי.',
     };
   }
 
@@ -37,14 +37,14 @@ function getUpsellCopy(module: OSModuleKey): { title: string; message: string } 
   if (module === 'client') {
     return {
       title: def.label,
-      message: 'רוצה לתת ללקוחות שלך חוויית VIP? שדרג לפורטל הצלחת לקוח והפוך כל שירות למוצר פרימיום שאי אפשר לעזוב.',
+      message: 'רוצה לתת ללקוחות שלך חוויית VIP? שדרג ל"מעקב לקוחות ומתאמנים" והפוך כל שירות למוצר פרימיום שאי אפשר לעזוב.',
     };
   }
 
   if (module === 'finance') {
     return {
       title: def.label,
-      message: 'רוצה לוודא שהכסף לא בורח מהצדדים? שדרג עכשיו לשומר הרווחים',
+      message: 'רוצה לוודא שהכסף לא בורח מהצדדים? שדרג עכשיו ל"שליטה פיננסית מלאה"',
     };
   }
 

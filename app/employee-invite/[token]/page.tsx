@@ -13,7 +13,8 @@ import { useParams, useRouter } from 'next/navigation';
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, Briefcase, Building2, Calendar, DollarSign, Check, X, Loader2, ArrowRight } from 'lucide-react';
+import { User, Mail, Phone, Briefcase, Building2, Calendar, DollarSign, Check, X, ArrowRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface InvitationData {
     token: string;
@@ -178,7 +179,7 @@ export default function EmployeeInvitePage() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
                 <div className="text-center">
-                    <Loader2 className="w-12 h-12 animate-spin text-indigo-400 mx-auto mb-4" />
+                    <Skeleton className="w-12 h-12 rounded-full bg-indigo-400/20 mx-auto mb-4" />
                     <p className="text-white text-lg">טוען...</p>
                 </div>
             </div>
@@ -212,7 +213,7 @@ export default function EmployeeInvitePage() {
                     <Check className="w-16 h-16 text-green-400 mx-auto mb-4" />
                     <h1 className="text-2xl font-black text-white mb-2">הרשמה הושלמה בהצלחה!</h1>
                     <p className="text-slate-300 mb-4">מעבירים אותך לעמוד ההרשמה...</p>
-                    <Loader2 className="w-8 h-8 animate-spin text-indigo-400 mx-auto" />
+                    <Skeleton className="w-8 h-8 rounded-full bg-indigo-400/20 mx-auto" />
                 </motion.div>
             </div>
         );
@@ -386,7 +387,7 @@ export default function EmployeeInvitePage() {
                     >
                         {isSubmitting ? (
                             <>
-                                <Loader2 size={18} className="animate-spin" />
+                                <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" />
                                 שולח...
                             </>
                         ) : (

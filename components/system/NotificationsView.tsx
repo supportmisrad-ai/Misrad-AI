@@ -1,11 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
     Bell, CheckCircle, AlertTriangle, Info, Clock, Filter, 
     Trash2, Check, User, DollarSign, FileText, Zap, Shield
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
+import {
+    deleteSystemNotification,
+    getSystemNotifications,
+    markAllSystemNotificationsRead,
+    markSystemNotificationRead,
+} from '@/app/actions/system-notifications';
 
 type NotificationType = 'success' | 'warning' | 'error' | 'info' | 'financial';
 type Category = 'all' | 'leads' | 'finance' | 'system' | 'tasks';
@@ -19,41 +25,100 @@ interface NotificationItem {
     category: Category;
     isRead: boolean;
     actionLabel?: string;
+    link?: string | null;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-    { id: '1', title: 'עסקה נסגרה!', description: 'יואב כהן חתם על הצטרפות למאסטרמיינד (₪15,000).', time: 'לפני 10 דק\'', type: 'success', category: 'leads', isRead: false, actionLabel: 'צפה בתיק' },
-    { id: '2', title: 'תשלום נכשל', description: 'חיוב חודשי עבור "רון שוורץ" נדחה ע"י חברת האשראי.', time: 'לפני 45 דק\'', type: 'error', category: 'finance', isRead: false, actionLabel: 'נסה שנית' },
-    { id: '3', title: 'משימה באיחור', description: 'הכנת מצגת למשקיעים (דדליין: אתמול).', time: 'לפני שעתיים', type: 'warning', category: 'tasks', isRead: false, actionLabel: 'סמן כבוצע' },
-    { id: '4', title: 'ליד נפתח ("חם")', description: 'שרה נתניהו השאירה פרטים בקמפיין פייסבוק.', time: 'לפני 3 שעות', type: 'info', category: 'leads', isRead: true },
-    { id: '5', title: 'גיבוי מערכת', description: 'גיבוי לילי של בסיס הנתונים בוצע בהצלחה.', time: 'אתמול, 23:00', type: 'info', category: 'system', isRead: true },
-    { id: '6', title: 'חשבונית הופקה', description: 'חשבונית מס #1023 נשלחה ללקוח "הייטק סולושנס".', time: 'אתמול, 14:30', type: 'financial', category: 'finance', isRead: true, actionLabel: 'הורד PDF' },
-];
+function orgSlugFromPathname(pathname: string | null | undefined): string | null {
+    if (!pathname) return null;
+    const parts = pathname.split('/').filter(Boolean);
+    const wIndex = parts.indexOf('w');
+    if (wIndex === -1) return null;
+    const slug = parts[wIndex + 1];
+    return slug ? decodeURIComponent(slug) : null;
+}
 
-const NotificationsView: React.FC = () => {
+const NotificationsView: React.FC<{ orgSlug?: string; initialNotifications?: NotificationItem[] }> = ({
+    orgSlug,
+    initialNotifications,
+}) => {
     const { addToast } = useToast();
-    const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+    const [resolvedOrgSlug, setResolvedOrgSlug] = useState<string | null>(orgSlug ?? null);
+    const [notifications, setNotifications] = useState<NotificationItem[]>(() => initialNotifications || []);
     const [filter, setFilter] = useState<Category>('all');
 
-    const filteredNotifications = notifications.filter(n => filter === 'all' || n.category === filter);
-    const unreadCount = notifications.filter(n => !n.isRead).length;
+    useEffect(() => {
+        if (orgSlug) {
+            setResolvedOrgSlug(orgSlug);
+            return;
+        }
+        if (typeof window === 'undefined') return;
+        const found = orgSlugFromPathname(window.location.pathname);
+        if (found) setResolvedOrgSlug(found);
+    }, [orgSlug]);
 
-    const markAsRead = (id: string) => {
+    useEffect(() => {
+        if (!resolvedOrgSlug) return;
+        if (initialNotifications && initialNotifications.length) return;
+        void (async () => {
+            try {
+                const rows = await getSystemNotifications({ orgSlug: resolvedOrgSlug, limit: 200 });
+                setNotifications(rows as any);
+            } catch {
+                // ignore
+            }
+        })();
+    }, [resolvedOrgSlug, initialNotifications]);
+
+    const filteredNotifications = useMemo(
+        () => notifications.filter(n => filter === 'all' || n.category === filter),
+        [notifications, filter]
+    );
+    const unreadCount = useMemo(() => notifications.filter(n => !n.isRead).length, [notifications]);
+
+    const markAsRead = async (id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        if (!resolvedOrgSlug) return;
+        const res = await markSystemNotificationRead({ orgSlug: resolvedOrgSlug, id });
+        if (!res.ok) {
+            addToast(res.message || 'שגיאה בסימון התראה כנקראה', 'error');
+        }
     };
 
-    const markAllRead = () => {
+    const markAllRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        if (!resolvedOrgSlug) {
+            addToast('כל ההתראות סומנו כנקראו', 'success');
+            return;
+        }
+        const res = await markAllSystemNotificationsRead({ orgSlug: resolvedOrgSlug });
+        if (!res.ok) {
+            addToast(res.message || 'שגיאה בסימון כל ההתראות כנקראו', 'error');
+            return;
+        }
         addToast('כל ההתראות סומנו כנקראו', 'success');
     };
 
-    const deleteNotification = (id: string) => {
+    const deleteNotification = async (id: string) => {
         setNotifications(prev => prev.filter(n => n.id !== id));
+        if (!resolvedOrgSlug) return;
+        const res = await deleteSystemNotification({ orgSlug: resolvedOrgSlug, id });
+        if (!res.ok) {
+            addToast(res.message || 'שגיאה במחיקת התראה', 'error');
+        }
     };
 
-    const handleAction = (id: string, action: string) => {
-        addToast(`פעולה בוצעה: ${action}`, 'success');
-        markAsRead(id);
+    const handleAction = async (id: string, action: string) => {
+        const n = notifications.find(x => x.id === id);
+        if (n?.link) {
+            try {
+                window.open(n.link, '_blank', 'noopener,noreferrer');
+            } catch {
+                // ignore
+            }
+        } else {
+            addToast(`פעולה בוצעה: ${action}`, 'success');
+        }
+        await markAsRead(id);
     };
 
     const getIcon = (type: NotificationType) => {

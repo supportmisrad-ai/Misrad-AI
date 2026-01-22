@@ -20,6 +20,100 @@ interface TimeSlot {
     reasoning?: string; 
 }
 
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'בוקר טוב';
+    if (hour < 17) return 'צהריים טובים';
+    return 'ערב טוב';
+}
+
+function minutesToTime(mins: number) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+function calculateSchedule(tasksToSchedule: {id: string, title: string, duration: number, isFixed: boolean}[]) {
+    const dayStartMinutes = 9 * 60; // 09:00
+    const dayEndMinutes = 18 * 60; // 18:00
+    
+    const fixedEvents = [
+        { start: 10 * 60, end: 11 * 60, title: 'פגישת צוות שבועית', type: 'event' },
+        { start: 13 * 60, end: 13 * 60 + 30, title: 'הפסקת צהריים', type: 'break' }
+    ];
+
+    let currentCursor = dayStartMinutes;
+    const newSchedule: TimeSlot[] = [];
+
+    const flowTasks = tasksToSchedule.filter(t => !t.isFixed);
+    let flowIndex = 0;
+
+    while (currentCursor < dayEndMinutes) {
+        const collision = fixedEvents.find(ev => 
+            (currentCursor >= ev.start && currentCursor < ev.end) || 
+            (currentCursor < ev.start && currentCursor + 15 > ev.start)
+        );
+
+        if (collision) {
+            newSchedule.push({
+                id: `evt-${collision.start}`,
+                startTime: minutesToTime(collision.start),
+                endTime: minutesToTime(collision.end),
+                type: collision.type as any,
+                title: collision.title,
+                duration: collision.end - collision.start,
+                isFixed: true
+            });
+            currentCursor = collision.end;
+            continue;
+        }
+
+        const nextEvent = fixedEvents
+            .filter(ev => ev.start > currentCursor)
+            .sort((a, b) => a.start - b.start)[0];
+        
+        const timeUntilNextEvent = nextEvent ? nextEvent.start - currentCursor : dayEndMinutes - currentCursor;
+
+        if (flowIndex < flowTasks.length) {
+            const task = flowTasks[flowIndex];
+            const taskDuration = task.duration || 60;
+
+            if (taskDuration <= timeUntilNextEvent) {
+                newSchedule.push({
+                    id: task.id,
+                    startTime: minutesToTime(currentCursor),
+                    endTime: minutesToTime(currentCursor + taskDuration),
+                    type: 'task',
+                    title: task.title,
+                    taskOriginalId: task.id.startsWith('custom') ? undefined : task.id,
+                    duration: taskDuration,
+                    isFixed: false,
+                    reasoning: 'שובץ אוטומטית'
+                });
+                currentCursor += taskDuration;
+                flowIndex++;
+            } else {
+                if (timeUntilNextEvent >= 15) {
+                     newSchedule.push({
+                        id: `gap-${currentCursor}`,
+                        startTime: minutesToTime(currentCursor),
+                        endTime: minutesToTime(currentCursor + timeUntilNextEvent),
+                        type: 'gap',
+                        title: 'זמן פנוי / מעבר',
+                        duration: timeUntilNextEvent,
+                        isFixed: true
+                    });
+                }
+                currentCursor = nextEvent ? nextEvent.start : dayEndMinutes;
+            }
+        } else {
+            break;
+        }
+    }
+
+    return newSchedule;
+}
+
 export const MorningBriefing: React.FC = () => {
   const { tasks, setShowMorningBrief, currentUser, updateTask, calendarEvents: contextCalendarEvents } = useData();
   const [step, setStep] = useState<'greeting' | 'overview' | 'schedule'>('greeting');
@@ -35,14 +129,6 @@ export const MorningBriefing: React.FC = () => {
   // --- Schedule State ---
   const [schedule, setSchedule] = useState<TimeSlot[]>([]);
   const [draggedSlotIndex, setDraggedSlotIndex] = useState<number | null>(null);
-
-  // --- Logic Helpers ---
-  const getGreeting = () => {
-      const hour = new Date().getHours();
-      if (hour < 12) return 'בוקר טוב';
-      if (hour < 17) return 'צהריים טובים';
-      return 'ערב טוב';
-  };
 
   // 1. Identify Candidate Tasks
   // Red Flags: High priority not done
@@ -103,94 +189,6 @@ export const MorningBriefing: React.FC = () => {
 
   const removeCustomTask = (id: string) => {
       setCustomTasks(prev => prev.filter(t => t.id !== id));
-  };
-
-  // --- The "Pouring Sand" Algorithm ---
-  const calculateSchedule = (tasksToSchedule: {id: string, title: string, duration: number, isFixed: boolean}[]) => {
-      const dayStartMinutes = 9 * 60; // 09:00
-      const dayEndMinutes = 18 * 60; // 18:00
-      
-      const fixedEvents = [
-          { start: 10 * 60, end: 11 * 60, title: 'פגישת צוות שבועית', type: 'event' },
-          { start: 13 * 60, end: 13 * 60 + 30, title: 'הפסקת צהריים', type: 'break' }
-      ];
-
-      let currentCursor = dayStartMinutes;
-      const newSchedule: TimeSlot[] = [];
-
-      const flowTasks = tasksToSchedule.filter(t => !t.isFixed);
-      let flowIndex = 0;
-
-      while (currentCursor < dayEndMinutes) {
-          const collision = fixedEvents.find(ev => 
-              (currentCursor >= ev.start && currentCursor < ev.end) || 
-              (currentCursor < ev.start && currentCursor + 15 > ev.start)
-          );
-
-          if (collision) {
-              newSchedule.push({
-                  id: `evt-${collision.start}`,
-                  startTime: minutesToTime(collision.start),
-                  endTime: minutesToTime(collision.end),
-                  type: collision.type as any,
-                  title: collision.title,
-                  duration: collision.end - collision.start,
-                  isFixed: true
-              });
-              currentCursor = collision.end;
-              continue;
-          }
-
-          const nextEvent = fixedEvents
-              .filter(ev => ev.start > currentCursor)
-              .sort((a, b) => a.start - b.start)[0];
-          
-          const timeUntilNextEvent = nextEvent ? nextEvent.start - currentCursor : dayEndMinutes - currentCursor;
-
-          if (flowIndex < flowTasks.length) {
-              const task = flowTasks[flowIndex];
-              const taskDuration = task.duration || 60;
-
-              if (taskDuration <= timeUntilNextEvent) {
-                  newSchedule.push({
-                      id: task.id,
-                      startTime: minutesToTime(currentCursor),
-                      endTime: minutesToTime(currentCursor + taskDuration),
-                      type: 'task',
-                      title: task.title,
-                      taskOriginalId: task.id.startsWith('custom') ? undefined : task.id,
-                      duration: taskDuration,
-                      isFixed: false,
-                      reasoning: 'שובץ אוטומטית'
-                  });
-                  currentCursor += taskDuration;
-                  flowIndex++;
-              } else {
-                  if (timeUntilNextEvent >= 15) {
-                       newSchedule.push({
-                          id: `gap-${currentCursor}`,
-                          startTime: minutesToTime(currentCursor),
-                          endTime: minutesToTime(currentCursor + timeUntilNextEvent),
-                          type: 'gap',
-                          title: 'זמן פנוי / מעבר',
-                          duration: timeUntilNextEvent,
-                          isFixed: true
-                      });
-                  }
-                  currentCursor = nextEvent ? nextEvent.start : dayEndMinutes;
-              }
-          } else {
-              break;
-          }
-      }
-
-      return newSchedule;
-  };
-
-  const minutesToTime = (mins: number) => {
-      const h = Math.floor(mins / 60);
-      const m = mins % 60;
-      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   };
 
   const handleOptimize = async () => {

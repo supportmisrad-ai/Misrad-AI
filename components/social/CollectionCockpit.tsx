@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Loader2, Lock, ArrowUpRight, Phone } from 'lucide-react';
+import { ShieldAlert, DollarSign, MessageCircle, Mail, Zap, Lock, ArrowUpRight, Phone } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
 
@@ -53,8 +53,8 @@ export default function CollectionCockpit() {
                 disabled={isSyncing}
                 className="bg-white text-rose-600 px-6 py-3 rounded-xl font-black text-sm hover:bg-rose-50 transition-all flex items-center justify-center gap-2 shadow-md"
               >
-                {isSyncing ? <Loader2 className="animate-spin" size={18}/> : <Zap size={18}/>}
-                סנכרן חשבוניות מורנינג
+                <Zap size={18} className={isSyncing ? 'opacity-60' : undefined} />
+                {isSyncing ? 'מסנכרן...' : 'סנכרן חשבוניות מורנינג'}
               </button>
             </div>
           </div>

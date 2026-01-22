@@ -1849,6 +1849,26 @@ model SystemLeadHandover {
   @@map("system_lead_handovers")
 }
 
+model SystemPipelineStage {
+  id             String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String               @map("organization_id") @db.Uuid
+  key            String               @map("key")
+  label          String
+  color          String?
+  accent         String?
+  order          Int                  @default(0) @map("sort_order")
+  isActive       Boolean?             @default(true) @map("is_active")
+  createdAt      DateTime?            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization   social_organizations @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key], map: "system_pipeline_stages_org_key")
+  @@index([organizationId], map: "idx_system_pipeline_stages_organization_id")
+  @@index([order], map: "idx_system_pipeline_stages_sort_order")
+  @@map("system_pipeline_stages")
+}
+
 model SystemTask {
   id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   title       String
@@ -2841,6 +2861,7 @@ model social_organizations {
   profiles                Profile[]
   customerAccounts        CustomerAccount[]
   systemLeads             SystemLead[]
+  systemPipelineStages    SystemPipelineStage[]
   nexusClients            NexusClient[]
   nexusTasks              NexusTask[]
   nexusTimeEntries        NexusTimeEntry[]

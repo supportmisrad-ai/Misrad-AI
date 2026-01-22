@@ -19,7 +19,7 @@ import WorkspaceHub from './WorkspaceHub';
 import OperationsHub from './OperationsHub';
 import SystemHub from './SystemHub';
 import ReportsView from './ReportsView';
-import ErrorBoundary from './ErrorBoundary';
+import { ErrorBoundary } from './ErrorBoundary';
 import LoginView from './LoginView';
 import ClientPortalView from './ClientPortalView';
 import PersonalAreaView from './PersonalAreaView';
@@ -273,7 +273,7 @@ const SystemOSApp = () => {
   return (
     <div className="app-layout font-sans text-onyx-900 bg-transparent">
       <div className="hidden md:block h-full shrink-0 z-50">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} logout={logout} />
+          <Sidebar activeTab={activeTab} user={user} logout={logout} />
       </div>
 
       <main className="main-content">
@@ -352,7 +352,7 @@ const SystemOSApp = () => {
         aria-label="פתח עוזר חכם"
       >
           <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping group-hover:hidden"></div>
-          <Sparkles size={24} className="group-hover:animate-spin-slow" />
+          <Sparkles size={24} className="group-hover:opacity-80" />
       </motion.button>
 
       {/* Mobile Bottom Navigation - Rounded Icons */}

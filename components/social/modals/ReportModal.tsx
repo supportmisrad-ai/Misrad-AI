@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Download, FileText, TrendingUp, Users, Target, Loader2 } from 'lucide-react';
+import { X, Download, FileText, TrendingUp, Users, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 
@@ -61,7 +61,7 @@ export default function ReportModal() {
               disabled={isDownloading}
               className="flex items-center gap-2 bg-slate-100 px-6 py-3 rounded-xl font-bold text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
             >
-              {isDownloading ? <><Loader2 className="animate-spin" size={18}/> מכין קובץ...</> : <>הורד PDF <Download size={18}/></>}
+              {isDownloading ? <>מכין קובץ...</> : <>הורד PDF <Download size={18}/></>}
             </button>
             <button onClick={() => setIsReportModalOpen(false)} className="p-3 hover:bg-slate-100 rounded-xl"><X size={24}/></button>
           </div>

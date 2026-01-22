@@ -13,6 +13,7 @@ import { useCallAnalysis } from './contexts/CallAnalysisContext';
 import { useToast } from './contexts/ToastContext';
 import AiOutOfCreditsModal from './AiOutOfCreditsModal';
 import { Lead } from './types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CallAnalyzerViewProps {
     leads?: Lead[];
@@ -212,7 +213,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
 
                     <div className="w-20 h-20 mx-auto mb-6 relative">
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
-                        <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+                        <Skeleton className="absolute inset-0 rounded-full bg-indigo-100" />
                         <BrainCircuit className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
                     </div>
 

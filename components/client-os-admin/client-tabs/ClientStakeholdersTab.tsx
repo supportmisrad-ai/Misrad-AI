@@ -10,7 +10,7 @@ export const ClientStakeholdersTab: React.FC<ClientStakeholdersTabProps> = ({ cl
   const getStakeholderIcon = (role: StakeholderRole) => {
     switch (role) {
       case 'CHAMPION':
-        return <Crown size={16} className="text-yellow-500" />;
+        return <Crown size={16} className="text-[color:var(--os-accent)]" />;
       case 'DECISION_MAKER':
         return <UserCheck size={16} className="text-blue-500" />;
       case 'BLOCKER':
@@ -82,7 +82,7 @@ export const ClientStakeholdersTab: React.FC<ClientStakeholdersTabProps> = ({ cl
                   <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        sh.sentiment > 70 ? 'bg-green-500' : sh.sentiment < 40 ? 'bg-red-500' : 'bg-yellow-500'
+                        sh.sentiment > 70 ? 'bg-green-500' : sh.sentiment < 40 ? 'bg-red-500' : 'bg-[color:var(--os-accent)]'
                       }`}
                       style={{ width: `${sh.sentiment}%` }}
                     ></div>

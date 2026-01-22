@@ -16,15 +16,14 @@ import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useBrand } from './contexts/BrandContext';
+import { SkeletonGrid, SkeletonHeader } from '@/components/ui/skeletons';
 import { SystemHeader } from './SystemHeader';
 import Sidebar from './Sidebar';
 import LeadsHub from './LeadsHub';
 import LoginView from './LoginView';
 import { ErrorBoundary } from './ErrorBoundary';
-import WorkspaceHub from './WorkspaceHub';
 import LeadModal from './LeadModal';
 import NewLeadModal from './NewLeadModal';
-import CalendarView from './system.os/components/CalendarView';
 import NewMeetingModal from './NewMeetingModal';
 import HandoverDialog from './HandoverDialog';
 import MarketingView from './MarketingView';
@@ -35,19 +34,15 @@ import NotificationsView from './NotificationsView';
 import HeadquartersView from '../nexus/HeadquartersView';
 import OperationsHub from './OperationsHub';
 import SystemHub from './SystemHub';
-import ReportsView from './ReportsView';
 import CatalogView from './CatalogView';
 import ClientPortalView from './ClientPortalView';
 import PersonalAreaView from './PersonalAreaView';
 import CommunicationView from './CommunicationView';
-import TasksView from '../nexus/TasksView';
 import AIAnalyticsView from './AIAnalyticsView';
 import DataConnectivityView from './DataConnectivityView';
 import GlobalProfileHub from '@/components/profile/GlobalProfileHub';
 import { getMyProfile } from '@/app/actions/profiles';
 import { getSystemLeads, type SystemLeadDTO } from '@/app/actions/system-leads';
-import { DataProvider } from '@/context/DataContext';
-import { MeView } from '@/views/MeView';
 import { mapDtoToLead } from './utils/mapDtoToLead';
 
 declare const confetti: any;
@@ -136,6 +131,17 @@ const tabFromPathname = (pathname: string | null | undefined) => {
   const candidate = parts[systemIndex + 1] || null;
   if (!candidate) return null;
   return TAB_IDS.has(candidate) ? candidate : null;
+};
+
+const SystemAppSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      <div className="max-w-[1920px] mx-auto p-4 md:p-8 space-y-6">
+        <SkeletonHeader actions={2} />
+        <SkeletonGrid cards={8} columns={4} />
+      </div>
+    </div>
+  );
 };
 
 const SystemOSApp = ({
@@ -446,28 +452,14 @@ const SystemOSApp = ({
 
   // Early returns after all hooks
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">טוען System...</p>
-        </div>
-      </div>
-    );
+    return <SystemAppSkeleton />;
   }
 
   if (!user) return <LoginView />;
 
   // Prevent hydration mismatch by keeping SSR + first client render identical.
   if (!isMounted) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">טוען System...</p>
-        </div>
-      </div>
-    );
+    return <SystemAppSkeleton />;
   }
 
   if (!booted) {
@@ -754,51 +746,22 @@ case 'dialer':
                   className="flex flex-col min-h-0 pb-16 md:pb-0"
                 >
                               {activeTab === 'workspace' && (
-                                  <WorkspaceHub leads={leads} content={storedContent} students={storedStudents} campaigns={storedCampaigns} tasks={tasks} events={calendarEvents} onLeadClick={setSelectedLead} onNavigate={setActiveTab} onQuickAction={setActiveTab} onAddEvent={handleSaveMeeting} onNewMeetingClick={() => setShowNewMeetingModal(true)} onAddActivity={handleAddActivity} onUpdateTask={handleUpdateTask} onAddTask={(t) => setStoredTasks(p => [t, ...p])} />
+                                <div className="p-6 text-sm font-bold text-slate-600">המסך עבר לנתיב החדש.</div>
                               )}
                               {activeTab === 'me' && (
-                                <div className="w-full">
-                                  <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-                                    <MeView
-                                      basePathOverride={basePath ? String(basePath) : undefined}
-                                      moduleCards={
-                                        basePath
-                                          ? [
-                                              {
-                                                title: 'לידים',
-                                                subtitle: 'צינור מכירות וניהול פניות',
-                                                href: `${basePath}/sales_leads`,
-                                                iconId: 'target',
-                                              },
-                                              {
-                                                title: 'הגדרות מערכת',
-                                                subtitle: 'תצורה, שדות ואוטומציות',
-                                                href: `${basePath}/hub?origin=system&drawer=system&from=${encodeURIComponent(
-                                                  `${basePath}/me`
-                                                )}`,
-                                                iconId: 'settings',
-                                              },
-                                            ]
-                                          : undefined
-                                      }
-                                    />
-                                  </DataProvider>
-                                </div>
+                                <div className="p-6 text-sm font-bold text-slate-600">המסך עבר לנתיב החדש.</div>
                               )}
-                              {(activeTab === 'sales_pipeline' || activeTab === 'sales_leads') && (
-                                  <LeadsHub leads={leads} onLeadClick={setSelectedLead} onStatusChange={handleStatusChange} initialTab={activeTab === 'sales_pipeline' ? 'pipeline' : 'list'} />
-                              )}
-                              {activeTab === 'calendar' && (
-                                <CalendarView leads={leads} events={calendarEvents} onAddEvent={handleSaveMeeting} onNewMeetingClick={() => setShowNewMeetingModal(true)} />
+                              {activeTab === 'sales_pipeline' && (
+                                  <LeadsHub leads={leads} onLeadClick={setSelectedLead} onStatusChange={handleStatusChange} initialTab="pipeline" />
                               )}
                               {activeTab === 'comms' && (
                                 <CommunicationView leads={leads} onAddActivity={handleAddActivity} onAddTask={(t) => setStoredTasks(p => [t, ...p])} user={user} />
                               )}
                               {activeTab === 'dialer' && (
-                                <CommunicationView leads={leads} onAddActivity={handleAddActivity} onAddTask={(t) => setStoredTasks(p => [t, ...p])} user={user} />
+                                <div className="p-6 text-sm font-bold text-slate-600">המסך עבר לנתיב החדש.</div>
                               )}
 {activeTab === 'tasks' && (
-  <TasksView tasks={tasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => setStoredTasks(p => [t, ...p])} />
+  <div className="p-6 text-sm font-bold text-slate-600">המסך עבר לנתיב החדש.</div>
 )}
 {activeTab === 'mkt_campaigns' && <MarketingView campaigns={storedCampaigns} content={storedContent} onUpdateContent={(c) => setStoredContent(p => p.map(i => i.id === c.id ? c : i))} onAddContent={(c) => setStoredContent(p => [c, ...p])} onAddCampaign={(c) => setStoredCampaigns(p => [c, ...p])} onUpdateCampaign={(c) => setStoredCampaigns(p => p.map(i => i.id === c.id ? c : i))} onDeleteCampaign={(id) => setStoredCampaigns(p => p.filter(i => i.id !== id))} initialTab="campaigns" />}
 {activeTab === 'mkt_content' && <MarketingView campaigns={storedCampaigns} content={storedContent} onUpdateContent={(c) => setStoredContent(p => p.map(i => i.id === c.id ? c : i))} onAddContent={(c) => setStoredContent(p => [c, ...p])} onAddCampaign={(c) => setStoredCampaigns(p => [c, ...p])} onUpdateCampaign={(c) => setStoredCampaigns(p => p.map(i => i.id === c.id ? c : i))} onDeleteCampaign={(id) => setStoredCampaigns(p => p.filter(i => i.id !== id))} initialTab="content" />}
@@ -808,7 +771,7 @@ case 'dialer':
 {activeTab === 'quotes' && <FinanceView invoices={storedInvoices} onAddInvoice={(i) => setStoredInvoices(p => [i, ...p])} onUpdateInvoice={(i) => setStoredInvoices(p => p.map(inv => inv.id === i.id ? i : inv))} leads={leads} initialTab="invoices" />}
 {activeTab === 'products' && <CatalogView />}
                               {activeTab === 'operations' && <OperationsHub students={storedStudents} leads={leads} onUpdateStudent={(s) => setStoredStudents(p => p.map(i => i.id === s.id ? s : i))} />}
-                              {activeTab === 'reports' && <ReportsView leads={leads} campaigns={storedCampaigns} tasks={tasks} />}
+                              {activeTab === 'reports' && <div className="p-6 text-sm font-bold text-slate-600">המסך עבר לנתיב החדש.</div>}
                               {activeTab === 'headquarters' && <HeadquartersView onAddTask={(t) => setStoredTasks(p => [t, ...p])} leads={leads} />}
                               {activeTab === 'system' && (
                                 <SystemHub 

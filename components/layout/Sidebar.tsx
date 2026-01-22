@@ -8,6 +8,8 @@ import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { useRouter } from 'next/navigation';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -38,13 +40,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   renderCountRef.current += 1;
   console.log(`[Nexus][Sidebar] render #${renderCountRef.current}`);
 
-  const { RoomIcon, roomName, roomNameHebrew, room } = useRoomBranding();
+  const { roomIconName, roomName, roomNameHebrew, room } = useRoomBranding();
 
   const fallbackIcon =
     room === 'nexus' ? (
       <img src="/icons/nexus-icon.svg" alt="Nexus" className="w-full h-full object-cover" />
-    ) : RoomIcon ? (
-      <RoomIcon size={20} className="text-gray-900" />
+    ) : roomIconName ? (
+      <DynamicIcon name={roomIconName} size={20} className="text-gray-900" />
     ) : null;
 
   return (
@@ -55,6 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         name: organization.name,
         logoUrl: organization.logo || null,
         fallbackIcon,
+        badgeIcon: <OSModuleIcon moduleKey={room} size={12} className="text-slate-900" />,
       }}
       brandSubtitle={roomName || roomNameHebrew || null}
       onBrandClickAction={() => router.push('/workspaces')}

@@ -23,6 +23,7 @@ import { MOCK_NOTIFICATIONS } from '@/components/client-portal/constants';
 import { useNexus } from '@/components/client-portal/context/ClientContext';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -35,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const { modules } = useNexus();
-  const { title, roomName, roomNameHebrew, RoomIcon, gradient } = useRoomBranding();
+  const { title, roomName, roomNameHebrew, roomIconName, gradient } = useRoomBranding();
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -127,10 +128,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         <div className="relative z-10 flex flex-col h-full">
           <div className="px-8 mb-10 flex items-center gap-4 flex-shrink-0">
             <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient || 'from-nexus-accent to-[#A38650]'} flex items-center justify-center text-white font-display font-bold text-xl shadow-glow-gold border border-white/10`}>
-              {RoomIcon ? <RoomIcon size={20} /> : 'C'}
+              {roomIconName ? <DynamicIcon name={roomIconName} size={20} className="text-white" /> : 'C'}
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-semibold text-2xl tracking-tight text-white leading-none">{roomNameHebrew || roomName || 'פורטל הצלחת לקוח'}</span>
+              <span className="font-display font-semibold text-2xl tracking-tight text-white leading-none">{roomNameHebrew || roomName || 'מעקב לקוחות ומתאמנים'}</span>
               <span className="text-[10px] text-gray-400 font-medium tracking-widest uppercase mt-1">{roomName || 'Misrad OS - מערכת צמיחה'}</span>
             </div>
           </div>
@@ -178,7 +179,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative bg-nexus-bg">
         <header className="flex-shrink-0 h-16 lg:h-20 flex items-center justify-between px-6 lg:px-10 relative z-20 bg-nexus-bg/50 backdrop-blur-sm lg:bg-transparent pt-safe">
           <div className="lg:hidden flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient || 'from-nexus-primary to-nexus-primary'} flex items-center justify-center text-white font-display font-bold shadow-md`}>{RoomIcon ? <RoomIcon size={18} /> : 'C'}</div>
+            <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient || 'from-nexus-primary to-nexus-primary'} flex items-center justify-center text-white font-display font-bold shadow-md`}>
+              {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-white" /> : 'C'}
+            </div>
             <span className="font-bold text-nexus-primary">{roomName || 'Client'}</span>
           </div>
           <div className="hidden lg:block"></div>

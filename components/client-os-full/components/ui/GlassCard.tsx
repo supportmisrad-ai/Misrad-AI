@@ -25,7 +25,7 @@ export const GlassCard: React.FC<GlassCardProps> = ({
       `}
     >
       {/* Subtle shine effect on top border */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-black/5 to-transparent opacity-50 pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-300/40 to-transparent opacity-50 pointer-events-none" />
       
       {children}
     </div>

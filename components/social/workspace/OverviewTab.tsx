@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutGrid, Clock, ImageIcon, Eye, Link as LinkIcon, Unlink, RefreshCw, Activity, ShieldCheck, StickyNote, Save, Loader2 } from 'lucide-react';
+import { LayoutGrid, Clock, ImageIcon, Eye, Link as LinkIcon, Unlink, RefreshCw, Activity, ShieldCheck, StickyNote, Save } from 'lucide-react';
 import { Client, SocialPost, ClientRequest, SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS, PLATFORM_COLORS } from '../SocialIcons';
 import { syncGoogleCalendar } from '@/app/actions/integrations';
@@ -59,9 +59,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
               </div>
               <button 
                 onClick={handleGlobalSync}
-                className={`flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black hover:bg-blue-100 transition-all ${isSyncing ? 'animate-pulse' : ''}`}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-[10px] font-black hover:bg-blue-100 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''}/> 
+                <RefreshCw size={14} className={isSyncing ? 'opacity-60' : undefined}/> 
                 {isSyncing ? 'מסנכרן...' : 'סנכרן טוקנים'}
               </button>
            </div>
@@ -76,7 +77,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
                      <div className="flex flex-col items-center gap-1">
                         <span className="text-xs font-black capitalize">{p}</span>
                         <div className="flex items-center gap-1.5">
-                           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                            <span className="text-[9px] font-black text-green-600 uppercase tracking-tighter">Live Connection</span>
                         </div>
                      </div>
@@ -124,7 +125,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ client, posts, requests, onEd
                 disabled={isSavingNote || internalNote === client.internalNotes}
                 className="absolute bottom-4 left-4 bg-slate-900 text-white px-6 py-2 rounded-xl font-black text-xs shadow-xl flex items-center gap-2 hover:bg-black transition-all disabled:opacity-0 disabled:pointer-events-none"
               >
-                {isSavingNote ? <Loader2 size={14} className="animate-spin" /> : <Save size={14}/>} שמור פתק
+                <Save size={14} className={isSavingNote ? 'opacity-60' : undefined} /> {isSavingNote ? 'שומר...' : 'שמור פתק'}
               </button>
            </div>
 

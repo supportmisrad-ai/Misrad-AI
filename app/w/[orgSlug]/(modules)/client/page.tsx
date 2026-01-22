@@ -2,6 +2,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getCurrentUserInfo } from '@/app/actions/users';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { redirect } from 'next/navigation';
 import ClientModuleEntryClient from './ClientModuleEntryClient';
 
@@ -13,6 +14,8 @@ export default async function ClientModuleHome({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
+
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
@@ -48,7 +51,7 @@ export default async function ClientModuleHome({
   const role = ((fallbackUser as any)?.role ?? safeRoleFromClerk ?? (user as any)?.role ?? null) as string | null;
   const isAdmin = role === 'admin' || role === 'super_admin' || role === 'owner';
 
-  const organizationId = orgSlug;
+  const organizationId = String(workspace?.id || '');
   let organization:
     | {
         id: string;
@@ -73,7 +76,7 @@ export default async function ClientModuleHome({
 
   const identity = {
     id: clerkUserId,
-    name: clerkUser?.fullName ?? clerkUser?.username ?? 'User',
+    name: clerkUser?.fullName ?? clerkUser?.username ?? '—',
     email: clerkUser?.primaryEmailAddress?.emailAddress ?? null,
     avatar: clerkUser?.imageUrl ?? null,
     role,

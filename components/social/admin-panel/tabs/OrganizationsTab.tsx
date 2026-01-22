@@ -318,7 +318,7 @@ export default function OrganizationsTab() {
               title="רענון"
               disabled={isLoading}
             >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+              <RefreshCw size={16} className={isLoading ? 'opacity-60' : undefined} />
             </button>
 
             <button
@@ -533,7 +533,7 @@ export default function OrganizationsTab() {
                               title="העלה/החלף לוגו"
                               disabled={isUploadingLogo}
                             >
-                              <Upload size={16} className={isUploadingLogo && logoOrgId === org.id ? 'animate-pulse' : ''} />
+                              <Upload size={16} className={isUploadingLogo && logoOrgId === org.id ? 'opacity-60' : ''} />
                             </button>
                             {(editForm as any)?.has_finance && (
                               <button

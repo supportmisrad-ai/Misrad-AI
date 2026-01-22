@@ -27,15 +27,15 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     themeColor: '#0F172A',
   },
   client: {
-    title: 'פורטל הצלחת לקוח',
-    description: 'מערכת לניהול הצלחת לקוח',
-    icon: '/icons/misrad-icon.svg',
-    appleIcon: '/icons/misrad-icon.svg',
+    title: 'מעקב לקוחות ומתאמנים',
+    description: 'מערכת למעקב לקוחות ומתאמנים',
+    icon: '/icons/client-icon.svg',
+    appleIcon: '/icons/client-icon.svg',
     manifest: '/manifest.json',
-    themeColor: '#D97706',
+    themeColor: '#0F172A',
   },
   finance: {
-    title: 'שומר הרווחים',
+    title: 'שליטה פיננסית מלאה',
     description: 'חשבוניות תשלומים דוחות',
     icon: '/icons/finance-icon.svg',
     appleIcon: '/icons/finance-icon.svg',
@@ -43,15 +43,15 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     themeColor: '#059669',
   },
   social: {
-    title: 'שיווק שמייצר סמכות',
+    title: 'שיווק, תוכן וקמפיינים',
     description: 'מערכת שיווק וקמפיינים',
     icon: '/icons/social-icon.svg',
     appleIcon: '/icons/social-icon.svg',
     manifest: '/manifest.json',
-    themeColor: '#3B82F6',
+    themeColor: '#7C3AED',
   },
   nexus: {
-    title: 'מרכז הבקרה',
+    title: 'ניהול, משימות וצוות',
     description: 'מערכת ניהול צוותים ומשימות מתקדמת',
     icon: '/icons/nexus-icon.svg',
     appleIcon: '/icons/nexus-icon.svg',
@@ -59,7 +59,7 @@ const systemConfigs: Record<SystemType, SystemMetadata> = {
     themeColor: '#3730A3',
   },
   system: {
-    title: 'מכונת המכירות',
+    title: 'מרכז המכירות והלידים',
     description: 'מערכת ניהול לידים ומכירות',
     icon: '/icons/system-icon.svg',
     appleIcon: '/icons/system-icon.svg',
@@ -98,12 +98,12 @@ export const OS_METADATA = {
     icon: systemConfigs.social.icon,
   },
   finance: {
-    title: 'שומר הרווחים',
+    title: 'שליטה פיננסית מלאה',
     icon: '/icons/finance-icon.svg',
   },
   client: {
-    title: 'פורטל הצלחת לקוח',
-    icon: systemConfigs.misrad.icon,
+    title: 'מעקב לקוחות ומתאמנים',
+    icon: systemConfigs.client.icon,
   },
 } as const;
 

@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Key, AlertCircle, Check } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface GreenInvoiceConnectModalProps {
     isOpen: boolean;
@@ -155,7 +156,7 @@ export const GreenInvoiceConnectModal: React.FC<GreenInvoiceConnectModalProps> =
                         >
                             {isConnecting ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                     מתחבר...
                                 </>
                             ) : (

@@ -28,7 +28,7 @@ export const TestimonialCardNew = ({ name, role, company, text, image, color = "
         <div className="min-w-[350px] md:min-w-[400px] bg-white p-6 rounded-2xl border border-slate-200 hover:border-slate-300 transition-colors mx-4 relative overflow-hidden group">
             <div className={`absolute top-0 right-0 w-20 h-20 rounded-full blur-2xl transition-colors ${bgClass}`}></div>
             <div className="flex gap-1 mb-4">
-                {[1,2,3,4,5].map(i => <Star key={i} size={14} className="text-yellow-500 fill-yellow-500" />)}
+                {[1,2,3,4,5].map(i => <Star key={i} size={14} className="text-[#C5A572] fill-[#C5A572]" />)}
             </div>
             <p className="text-slate-700 text-base leading-relaxed mb-6 font-medium">"{text}"</p>
             <div className="flex items-center gap-3">

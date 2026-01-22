@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
-import { OS_METADATA } from '@/lib/metadata';
 import type { OSModule } from '@/types/os-modules';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 export const LoginView: React.FC = () => {
   const { organization } = useData();
@@ -57,12 +57,12 @@ export const LoginView: React.FC = () => {
   const theme = (() => {
     if (targetModule === 'social') {
       return {
-        topBar: 'from-blue-500 to-cyan-600',
-        blobA: 'bg-blue-600',
-        blobB: 'bg-cyan-600',
-        accentTextGradient: 'from-blue-400 to-cyan-300',
-        focusRing: 'focus:border-blue-500 focus:ring-blue-500/10',
-        logoSrc: OS_METADATA.social.icon,
+        topBar: 'from-indigo-600 via-purple-600 to-pink-600',
+        blobA: 'bg-[#7C3AED]',
+        blobB: 'bg-[#DB2777]',
+        accentTextGradient: 'from-indigo-300 via-purple-300 to-pink-300',
+        focusRing: 'focus:border-purple-500 focus:ring-purple-500/10',
+        moduleKey: 'social' as const,
       };
     }
     if (targetModule === 'system') {
@@ -72,7 +72,7 @@ export const LoginView: React.FC = () => {
         blobB: 'bg-indigo-600',
         accentTextGradient: 'from-rose-300 to-indigo-300',
         focusRing: 'focus:border-rose-500 focus:ring-rose-500/10',
-        logoSrc: OS_METADATA.system.icon,
+        moduleKey: 'system' as const,
       };
     }
     if (targetModule === 'nexus') {
@@ -82,7 +82,7 @@ export const LoginView: React.FC = () => {
         blobB: 'bg-purple-600',
         accentTextGradient: 'from-indigo-300 to-purple-300',
         focusRing: 'focus:border-indigo-500 focus:ring-indigo-500/10',
-        logoSrc: OS_METADATA.nexus.icon,
+        moduleKey: 'nexus' as const,
       };
     }
     return {
@@ -91,7 +91,7 @@ export const LoginView: React.FC = () => {
       blobB: 'bg-purple-600',
       accentTextGradient: 'from-blue-400 to-purple-400',
       focusRing: 'focus:border-blue-500 focus:ring-blue-500/10',
-      logoSrc: '/icons/misrad-icon.svg',
+      moduleKey: null,
     };
   })();
 
@@ -210,7 +210,11 @@ export const LoginView: React.FC = () => {
           <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-                      <img src={theme.logoSrc} alt="Logo" className="w-full h-full object-contain p-1.5" />
+                      {theme.moduleKey ? (
+                        <OSModuleIcon moduleKey={theme.moduleKey} size={26} className="text-slate-900" />
+                      ) : (
+                        <img src="/icons/misrad-icon.svg" alt="Logo" className="w-full h-full object-contain p-1.5" />
+                      )}
                   </div>
                   <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>{organization.name}</span>
               </div>
@@ -250,7 +254,11 @@ export const LoginView: React.FC = () => {
             <div className="mb-10 text-center lg:text-right">
                 <div className="lg:hidden flex justify-center mb-4">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
-                        <img src={theme.logoSrc} alt="Logo" className="w-full h-full object-contain p-2" />
+                        {theme.moduleKey ? (
+                          <OSModuleIcon moduleKey={theme.moduleKey} size={30} className="text-slate-900" />
+                        ) : (
+                          <img src="/icons/misrad-icon.svg" alt="Logo" className="w-full h-full object-contain p-2" />
+                        )}
                     </div>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">ברוכים השבים</h3>
@@ -392,7 +400,7 @@ export const LoginView: React.FC = () => {
                                         className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {isLoading ? (
-                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <>טוען...</>
                                         ) : (
                                             <>
                                                 כניסה למערכת <ArrowLeft size={18} />
@@ -411,6 +419,22 @@ export const LoginView: React.FC = () => {
                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> מערכות תקינות</span>
                 <span className="flex items-center gap-1.5"><Globe size={12} /> אזור IL-TLV</span>
                 <span className="flex items-center gap-1.5"><Cpu size={12} /> Misrad v2.5.0</span>
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-gray-500">
+                <span className="font-semibold text-gray-500">הורדת אפליקציה:</span>
+                <a
+                    href="#"
+                    className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                    הורד ל-Windows
+                </a>
+                <a
+                    href="#"
+                    className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                    הורד ל-Android
+                </a>
             </div>
 
         </motion.div>

@@ -1,8 +1,5 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
-import { hasPermission } from '@/lib/auth';
-import { getFinanceOverviewData } from '@/lib/services/finance-service';
-import FinanceModuleEntryClient from '../FinanceModuleEntryClient';
+import { MeView } from '@/views/MeView';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,34 +9,25 @@ export default async function FinanceMePage({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
-  const initialOrganization = {
-    name: workspace.name,
-    logo: workspace.logo || '',
-    primaryColor: '#000000',
-  };
-
-  let initialFinanceOverview: any = null;
-  const canViewFinancials = await hasPermission('view_financials');
-  if (canViewFinancials) {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    initialFinanceOverview = await getFinanceOverviewData({
-      organizationId: workspace.id,
-      dateRange: {
-        from: start.toISOString().split('T')[0],
-        to: now.toISOString().split('T')[0],
-      },
-    });
-  }
+  await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   return (
-    <FinanceModuleEntryClient
-      initialCurrentUser={initialCurrentUser}
-      initialOrganization={initialOrganization}
-      initialFinanceOverview={initialFinanceOverview}
+    <MeView
+      basePathOverride={`/w/${encodeURIComponent(orgSlug)}/finance`}
+      moduleCards={[
+        {
+          title: 'חשבוניות',
+          subtitle: 'רשימת חשבוניות מהירה',
+          href: `/w/${encodeURIComponent(orgSlug)}/finance/invoices`,
+          iconId: 'trending_up',
+        },
+        {
+          title: 'הוצאות',
+          subtitle: 'סיכום הוצאות ותמחור',
+          href: `/w/${encodeURIComponent(orgSlug)}/finance/expenses`,
+          iconId: 'target',
+        },
+      ]}
     />
   );
 }

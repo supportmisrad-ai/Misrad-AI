@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link2, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, Rocket, CheckCircle2, Phone } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface InvitationLink {
     id: string;
@@ -269,7 +270,7 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                     >
                         {isCreating ? (
                             <>
-                                <RefreshCw size={16} className="animate-spin" />
+                                <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                 יוצר...
                             </>
                         ) : (
@@ -285,7 +286,7 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
             {/* Invitations List */}
             {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                    <RefreshCw size={24} className="animate-spin text-gray-400" />
+                    <Skeleton className="w-6 h-6 rounded-full" />
                 </div>
             ) : invitations.length === 0 ? (
                 <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-2xl p-12 text-center shadow-xl">
@@ -438,7 +439,7 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                         >
                                             {creatingTenantFor === invitation.id ? (
                                                 <>
-                                                    <RefreshCw size={16} className="animate-spin" />
+                                                    <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
                                                     יוצר...
                                                 </>
                                             ) : (

@@ -1,7 +1,9 @@
+'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, Download, Loader2, Play, RefreshCw, Save } from 'lucide-react';
+import { BrainCircuit, Download, Play, RefreshCw, Save } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 type OrganizationLite = {
   id: string;
@@ -222,7 +224,7 @@ export const AiBrainPanel: React.FC = () => {
             className="bg-emerald-600/70 hover:bg-emerald-600 text-white rounded-xl px-4 py-2 text-sm font-bold transition"
             disabled={loadingOrgs}
           >
-            {loadingOrgs ? <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> טוען...</span> : 'טען ארגונים'}
+            {loadingOrgs ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> טוען...</span> : 'טען ארגונים'}
           </button>
           <select
             value={selectedOrgId}
@@ -244,7 +246,7 @@ export const AiBrainPanel: React.FC = () => {
             disabled={!selectedOrgId || runningIngest}
             className="bg-indigo-600/70 hover:bg-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-50"
           >
-            {runningIngest ? <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> מריץ...</span> : <span className="inline-flex items-center gap-2"><Play size={14} /> הרץ אינדוקס היסטוריה</span>}
+            {runningIngest ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> מריץ...</span> : <span className="inline-flex items-center gap-2"><Play size={14} /> הרץ אינדוקס היסטוריה</span>}
           </button>
 
           <button
@@ -320,7 +322,7 @@ export const AiBrainPanel: React.FC = () => {
           </div>
 
           {loadingRows ? (
-            <div className="text-slate-600 text-sm inline-flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> טוען...</div>
+            <div className="text-slate-600 text-sm inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full" /> טוען...</div>
           ) : rows.length === 0 ? (
             <div className="text-slate-600 text-sm">אין רשומות.</div>
           ) : (
@@ -338,7 +340,7 @@ export const AiBrainPanel: React.FC = () => {
                       disabled={savingKey === r.feature_key}
                       className="bg-emerald-600/70 hover:bg-emerald-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition disabled:opacity-50"
                     >
-                      {savingKey === r.feature_key ? <span className="inline-flex items-center gap-2"><Loader2 className="animate-spin" size={14} /> שומר...</span> : <span className="inline-flex items-center gap-2"><Save size={14} /> שמור</span>}
+                      {savingKey === r.feature_key ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> שומר...</span> : <span className="inline-flex items-center gap-2"><Save size={14} /> שמור</span>}
                     </button>
                   </div>
 

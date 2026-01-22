@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, Users, Share2, MousePointer2, 
-  Download, Loader2, BarChart3, Globe, 
+  Download, BarChart3, Globe, 
   CheckCircle2, Sparkles, Zap, Calendar, ArrowUpLeft, 
   History, Target, Award
 } from 'lucide-react';
@@ -90,7 +90,7 @@ const AnalyticsTab: React.FC<AnalyticsTabProps> = ({ client, posts }) => {
           disabled={isExporting}
           className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl hover:bg-black transition-all flex items-center gap-3"
         >
-          {isExporting ? <Loader2 size={20} className="animate-spin" /> : <Download size={20} />}
+          <Download size={20} className={isExporting ? 'opacity-60' : undefined} />
           הורד דוח ביצועים (PDF)
         </button>
       </div>

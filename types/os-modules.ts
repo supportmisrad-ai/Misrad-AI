@@ -1,13 +1,3 @@
-import { 
-  Megaphone, 
-  Target, 
-  CreditCard, 
-  BrainCircuit, 
-  GraduationCap,
-  Wrench
-} from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
-
 import type { OSModuleKey } from '../lib/os/modules/types';
 
 export type OSModule = OSModuleKey;
@@ -16,7 +6,7 @@ export interface OSModuleInfo {
   id: OSModule;
   name: string;
   nameHebrew: string;
-  icon: LucideIcon;
+  iconName: string;
   color: string;
   gradient: string;
   description: string;
@@ -28,10 +18,10 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   social: {
     id: 'social',
     name: 'Social',
-    nameHebrew: 'שיווק שמייצר סמכות',
-    icon: Megaphone,
-    color: 'text-blue-600',
-    gradient: 'from-blue-500 to-cyan-600',
+    nameHebrew: 'שיווק, תוכן וקמפיינים',
+    iconName: 'Megaphone',
+    color: 'text-purple-600',
+    gradient: 'from-indigo-600 via-purple-600 to-pink-600',
     description: 'שיווק קמפיינים תוכן',
     purchased: true, // Ready for integration
     route: '/w/[orgSlug]/social'
@@ -39,8 +29,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   system: {
     id: 'system',
     name: 'System',
-    nameHebrew: 'מכונת המכירות',
-    icon: Target,
+    nameHebrew: 'מרכז המכירות והלידים',
+    iconName: 'Target',
     color: 'text-rose-600',
     gradient: 'from-rose-500 to-pink-600',
     description: 'לידים מכירות טלפוניה',
@@ -50,8 +40,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   finance: {
     id: 'finance',
     name: 'Finance',
-    nameHebrew: 'שומר הרווחים',
-    icon: CreditCard,
+    nameHebrew: 'שליטה פיננסית מלאה',
+    iconName: 'Banknote',
     color: 'text-emerald-600',
     gradient: 'from-emerald-500 to-teal-600',
     description: 'חשבוניות תשלומים דוחות',
@@ -61,8 +51,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   nexus: {
     id: 'nexus',
     name: 'Nexus',
-    nameHebrew: 'מרכז הבקרה',
-    icon: BrainCircuit,
+    nameHebrew: 'ניהול, משימות וצוות',
+    iconName: 'BrainCircuit',
     color: 'text-indigo-600',
     gradient: 'from-indigo-500 to-purple-600',
     description: 'משימות ואירועים צוות',
@@ -72,10 +62,10 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   client: {
     id: 'client',
     name: 'Client',
-    nameHebrew: 'פורטל הצלחת לקוח',
-    icon: GraduationCap,
-    color: 'text-amber-600',
-    gradient: 'from-amber-500 to-orange-600',
+    nameHebrew: 'מעקב לקוחות ומתאמנים',
+    iconName: 'GraduationCap',
+    color: 'text-[#C5A572]',
+    gradient: 'from-[#0F172A] to-[#334155]',
     description: 'לקוחות תמלול תובנות',
     purchased: true, // Ready for use
     route: '/w/[orgSlug]/client'
@@ -83,8 +73,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   operations: {
     id: 'operations',
     name: 'Operations',
-    nameHebrew: 'תפעול ושטח',
-    icon: Wrench,
+    nameHebrew: 'תפעול, מלאי ושטח',
+    iconName: 'Wrench',
     color: 'text-sky-600',
     gradient: 'from-sky-500 to-cyan-600',
     description: 'פרויקטים פקודות עבודה מלאי',

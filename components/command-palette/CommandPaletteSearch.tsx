@@ -4,6 +4,7 @@ import React from 'react';
 import { Search, Sparkles, Link, Copy, Send, LayoutGrid, ArrowRight, User } from 'lucide-react';
 import { Lead } from '@/types';
 import { useData } from '@/context/DataContext';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CommandPaletteSearchProps {
   query: string;
@@ -67,7 +68,7 @@ export function CommandPaletteSearch({
     <>
       <div className="flex items-center gap-3 p-5 border-b border-slate-200/60 bg-gradient-to-r from-white via-slate-50/50 to-white backdrop-blur-xl shrink-0">
         <div className="relative flex-1 flex items-center gap-3">
-          <Search className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isThinking ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}`} size={20} />
+          <Search className={`absolute right-4 top-1/2 -translate-y-1/2 transition-colors ${isThinking ? 'text-indigo-500' : 'text-slate-400'}`} size={20} />
           <input 
             ref={inputRef as React.RefObject<HTMLInputElement>}
             type="text" 
@@ -79,9 +80,9 @@ export function CommandPaletteSearch({
           />
           {isThinking && (
             <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"></span>
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+              <Skeleton className="w-2 h-2 rounded-full" />
+              <Skeleton className="w-2 h-2 rounded-full" />
+              <Skeleton className="w-2 h-2 rounded-full" />
             </div>
           )}
           {query.trim().length >= 2 && !isThinking && (
@@ -121,15 +122,15 @@ export function CommandPaletteSearch({
         )}
 
         {isThinking && messages.length === 0 && (
-          <div className="mb-6 animate-pulse">
+          <div className="mb-6">
             <div className="bg-white/80 backdrop-blur-md rounded-3xl p-6 shadow-lg border border-slate-200/60">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl border border-white/50">
-                  <Sparkles size={20} className="text-indigo-600 animate-pulse" />
+                  <Sparkles size={20} className="text-indigo-600" />
                 </div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gradient-to-r from-slate-200 to-slate-100 rounded-lg w-3/4 animate-pulse"></div>
-                  <div className="h-4 bg-gradient-to-r from-slate-200 to-slate-100 rounded-lg w-1/2 animate-pulse"></div>
+                  <Skeleton className="h-4 w-3/4 rounded-lg" />
+                  <Skeleton className="h-4 w-1/2 rounded-lg" />
                 </div>
               </div>
             </div>

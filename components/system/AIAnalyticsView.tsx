@@ -277,7 +277,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
         });
       }
 
-      if (worstSource && worstSource.לידים > 0 && parseFloat(worstSource.המרה) < 10) {
+      if (worstSource && worstSource.לידים > 0 && worstSource.המרה < 10) {
         insights.push({
           type: 'warning',
           icon: AlertTriangle,
@@ -371,7 +371,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
           >
             {isAnalyzing ? (
               <>
-                <RefreshCw size={18} className="animate-spin" />
+                <RefreshCw size={18} className="opacity-60" />
                 מנתח...
               </>
             ) : (
@@ -475,15 +475,14 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                    activeIndex={activeIndex}
-                    activeShape={renderActiveShape}
+                  {...({ activeIndex, activeShape: renderActiveShape } as any)}
                   data={stageData}
-                    cx="50%"
-                    cy="50%"
+                  cx="50%"
+                  cy="50%"
                   innerRadius={60}
                   outerRadius={100}
-                    dataKey="value"
-                    onMouseEnter={onPieEnter}
+                  dataKey="value"
+                  onMouseEnter={onPieEnter}
                 >
                   {stageData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

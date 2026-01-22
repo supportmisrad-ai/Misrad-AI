@@ -33,6 +33,33 @@ export type FinanceOverviewData = {
   chart: FinanceChartPoint[];
 };
 
+export type FinanceInvoice = {
+  id: string;
+  number: string;
+  amount: number;
+  date: string;
+  dueDate: string;
+  status: string;
+  downloadUrl: string;
+  clientName: string | null;
+};
+
+export type FinanceExpensesUserRow = {
+  user: any;
+  totalMinutes: number;
+  totalHours: number;
+  estimatedCost: number;
+  entriesCount: number;
+};
+
+export type FinanceExpensesData = {
+  organizationId: string;
+  totalLaborCost: number;
+  totalDirectExpenses: number;
+  totalExpenses: number;
+  users: FinanceExpensesUserRow[];
+};
+
 export async function getFinanceOverviewData(params: {
   organizationId: string;
   userId?: string | null;
@@ -164,5 +191,133 @@ export async function getFinanceOverviewData(params: {
     pendingReceivables,
     organizationId: params.organizationId,
     chart,
+  };
+}
+
+export async function getFinanceInvoices(params: {
+  organizationId: string;
+  limit?: number;
+}): Promise<FinanceInvoice[]> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('misrad_invoices')
+    .select('id,number,amount,date,due_date,status,download_url,misrad_clients(name)')
+    .eq('organization_id', params.organizationId)
+    .order('date', { ascending: false })
+    .limit(params.limit ?? 250);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map((row: any) => {
+    const clientRow = Array.isArray(row?.misrad_clients)
+      ? row.misrad_clients[0]
+      : row?.misrad_clients ?? null;
+
+    return {
+      id: String(row?.id),
+      number: String(row?.number ?? ''),
+      amount: Number(row?.amount ?? 0),
+      date: String(row?.date ?? ''),
+      dueDate: String(row?.due_date ?? ''),
+      status: String(row?.status ?? ''),
+      downloadUrl: String(row?.download_url ?? ''),
+      clientName: clientRow?.name ? String(clientRow.name) : null,
+    };
+  });
+}
+
+export async function getFinanceExpensesData(params: {
+  organizationId: string;
+  dateRange?: FinanceDateRange;
+  department?: string | null;
+}): Promise<FinanceExpensesData> {
+  const supabase = createClient();
+
+  let timeEntriesQuery = supabase
+    .from('nexus_time_entries')
+    .select('id,organization_id,user_id,duration_minutes,date')
+    .eq('organization_id', params.organizationId)
+    .order('date', { ascending: false })
+    .limit(5000);
+
+  const dateFrom = params.dateRange?.from;
+  const dateTo = params.dateRange?.to;
+  if (dateFrom) timeEntriesQuery = timeEntriesQuery.gte('date', dateFrom);
+  if (dateTo) timeEntriesQuery = timeEntriesQuery.lte('date', dateTo);
+
+  const { data: timeEntries, error: timeEntriesError } = await timeEntriesQuery;
+  if (timeEntriesError) {
+    throw new Error(timeEntriesError.message);
+  }
+
+  const entries = Array.isArray(timeEntries) ? timeEntries : [];
+
+  const userIds = Array.from(new Set(entries.map((e: any) => String(e.user_id)).filter(Boolean)));
+  const dbUsers = userIds.length > 0 ? await getUsers({ tenantId: params.organizationId }) : [];
+  const usersById = new Map<string, any>(dbUsers.map((u: any) => [String(u.id), u]));
+
+  const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();
+  for (const entry of entries) {
+    const uid = String((entry as any).user_id || '');
+    if (!uid) continue;
+
+    const minutes = Number((entry as any).duration_minutes || 0);
+    const current = totalsByUser.get(uid) ?? { totalMinutes: 0, entriesCount: 0 };
+    current.totalMinutes += minutes;
+    current.entriesCount += 1;
+    totalsByUser.set(uid, current);
+  }
+
+  const usersAggregates: FinanceExpensesUserRow[] = Array.from(totalsByUser.entries()).map(([uid, totals]) => {
+    const u = usersById.get(uid);
+    const totalHours = totals.totalMinutes / 60;
+    let estimatedCost = 0;
+
+    if (u?.paymentType === 'hourly') {
+      estimatedCost = totalHours * Number(u?.hourlyRate || 0);
+    } else if (u?.paymentType === 'monthly') {
+      estimatedCost = Number(u?.monthlySalary || 0);
+    }
+
+    return {
+      user: u ?? { id: uid, name: 'Unknown', role: 'עובד', department: null },
+      totalHours,
+      totalMinutes: totals.totalMinutes,
+      estimatedCost,
+      entriesCount: totals.entriesCount,
+    };
+  });
+
+  const scopedUsers = params.department
+    ? usersAggregates.filter((u: any) => String(u.user?.department || '') === String(params.department))
+    : usersAggregates;
+
+  const totalLaborCost = scopedUsers.reduce((sum: number, u: any) => sum + Number(u.estimatedCost || 0), 0);
+
+  const { data: clientsRows, error: clientsError } = await supabase
+    .from('misrad_clients')
+    .select('direct_expenses')
+    .eq('organization_id', params.organizationId)
+    .limit(5000);
+
+  if (clientsError) {
+    throw new Error(clientsError.message);
+  }
+
+  const totalDirectExpenses = (Array.isArray(clientsRows) ? clientsRows : []).reduce(
+    (sum: number, row: any) => sum + Number(row?.direct_expenses || 0),
+    0
+  );
+
+  return {
+    organizationId: params.organizationId,
+    totalLaborCost,
+    totalDirectExpenses,
+    totalExpenses: totalLaborCost + totalDirectExpenses,
+    users: scopedUsers,
   };
 }

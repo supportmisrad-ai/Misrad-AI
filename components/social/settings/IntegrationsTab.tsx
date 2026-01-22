@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, Calendar, Workflow, RefreshCw, X, Loader2 } from 'lucide-react';
+import { Zap, MessageSquare, FileSpreadsheet, ExternalLink, Link2, CheckCircle2, Calendar, Workflow, RefreshCw, X } from 'lucide-react';
 import {
   getAllIntegrationsStatusForWorkspace,
   getGoogleCalendarAuthUrl,
@@ -16,6 +16,7 @@ import {
 import { useApp } from '@/contexts/AppContext';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface IntegrationsTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -244,7 +245,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-blue-600" size={32} />
+        <Skeleton className="w-8 h-8 rounded-full bg-blue-100" />
       </div>
     );
   }
@@ -298,7 +299,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                         >
                           {testing === integration.id ? (
                             <>
-                              <Loader2 size={12} className="animate-spin" />
+                              <Skeleton className="w-3 h-3 rounded-full" />
                               בודק...
                             </>
                           ) : (
@@ -317,7 +318,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                         >
                           {syncing === integration.id ? (
                             <>
-                              <Loader2 size={12} className="animate-spin" />
+                              <Skeleton className="w-3 h-3 rounded-full" />
                               מסנכרן...
                             </>
                           ) : (

@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Search, Send, Bot, User, Loader2, X, Sparkles } from 'lucide-react';
+import { Search, Send, Bot, User, X, Sparkles } from 'lucide-react';
 import { ChatSources } from './ChatSources';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface CommandPaletteChatProps {
   query: string;
@@ -47,7 +48,7 @@ export function CommandPaletteChat({
               <div className="w-24 h-24 bg-nexus-gradient rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 border-2 border-white/50">
                 <Sparkles size={40} className="text-white" />
               </div>
-              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-lg animate-pulse"></div>
+              <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-white shadow-lg"></div>
             </div>
             <p className="text-xl font-bold text-slate-800 mb-2">שלום! איך אני יכול לעזור?</p>
             <p className="text-sm text-slate-500 max-w-md">שאל אותי על לידים, משימות, סטטיסטיקות או כל דבר אחר במערכת</p>
@@ -101,7 +102,7 @@ export function CommandPaletteChat({
             </div>
             <div className="bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-slate-200/60 shadow-md">
               <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+                <Skeleton className="w-5 h-5 rounded-full" />
                 <span className="text-sm text-slate-600 font-medium">חושב...</span>
               </div>
             </div>
@@ -178,12 +179,8 @@ export function CommandPaletteChat({
             disabled={!query.trim() || isThinking}
             className="px-6 py-4 bg-nexus-gradient text-white rounded-2xl hover:shadow-xl hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-200 shadow-lg min-h-[56px] hover:scale-105 active:scale-95 disabled:hover:scale-100"
           >
-            {isThinking ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-            <span className="font-bold hidden sm:inline">שלח</span>
+            <Send className="w-5 h-5" />
+            <span className="font-bold hidden sm:inline">{isThinking ? 'טוען...' : 'שלח'}</span>
           </button>
         </div>
         <div className="mt-3 text-xs text-slate-400 text-center flex items-center justify-center gap-2">

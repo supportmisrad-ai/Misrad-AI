@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckCircle2, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle2, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice } from '@/types/social';
@@ -17,6 +17,7 @@ import BillingTab from './portal/BillingTab';
 import AnalyticsTab from './portal/AnalyticsTab';
 import { useChat } from '@ai-sdk/react';
 import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { Skeleton } from '@/components/ui/skeletons';
 
 export default function ClientPortal() {
   const { 
@@ -301,7 +302,7 @@ export default function ClientPortal() {
                         return null;
                       })}
                       {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
-                        <span className="inline-block w-2 h-2 bg-slate-400 rounded-full animate-pulse mr-1" />
+                        <span className="inline-block mr-1 text-slate-400 font-bold">...</span>
                       )}
                     </div>
                   </div>
@@ -309,7 +310,10 @@ export default function ClientPortal() {
                 {isLoading && messages[messages.length - 1]?.role === 'user' && (
                   <div className="flex items-start gap-2">
                     <div className="bg-white p-4 rounded-2xl shadow-sm font-bold text-sm border border-slate-200">
-                      <Loader2 size={16} className="animate-spin text-blue-600" />
+                      <div className="space-y-2 w-40">
+                        <Skeleton className="h-3 w-32 rounded-xl" />
+                        <Skeleton className="h-3 w-28 rounded-xl" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -329,7 +333,7 @@ export default function ClientPortal() {
                   className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
                 >
                   {isLoading ? (
-                    <Loader2 size={20} className="animate-spin rotate-180" />
+                    <span className="text-xs font-black">...</span>
                   ) : (
                     <Send size={20} className="rotate-180" />
                   )}

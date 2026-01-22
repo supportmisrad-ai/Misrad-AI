@@ -31,6 +31,16 @@ export default async function OperationsModuleLayout({
   const style = {
     '--os-accent': def.theme.accent,
     '--os-bg': def.theme.background,
+    '--os-sidebar-text': '#0F172A',
+    '--os-sidebar-text-muted': '#475569',
+    '--os-sidebar-item-hover': 'rgba(14,165,233,0.10)',
+    '--os-sidebar-brand-hover': 'rgba(14,165,233,0.10)',
+    '--os-sidebar-control-hover': 'rgba(14,165,233,0.08)',
+    '--os-sidebar-focus': 'rgba(14,165,233,0.25)',
+    '--os-sidebar-active-bg': 'transparent',
+    '--os-sidebar-active-bg-image': 'linear-gradient(135deg, rgba(14,165,233,0.95), rgba(2,132,199,0.95))',
+    '--os-sidebar-active-text': '#FFFFFF',
+    '--os-sidebar-active-ring': 'rgba(14,165,233,0.18)',
   } as React.CSSProperties;
 
   return (

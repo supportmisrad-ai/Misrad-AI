@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, CheckCircle2, Download, Copy, X } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 
-const STORAGE_KEY = 'seen_security_update_v2';
+let hasSeenSecurityUpdateModal = false;
 
 interface SecurityUpdateModalProps {
   onClose: () => void;
@@ -17,14 +17,13 @@ export default function SecurityUpdateModal({ onClose }: SecurityUpdateModalProp
 
   useEffect(() => {
     // Check if user has seen this modal
-    const hasSeen = localStorage.getItem(STORAGE_KEY);
-    if (!hasSeen) {
+    if (!hasSeenSecurityUpdateModal) {
       setIsVisible(true);
     }
   }, []);
 
   const handleClose = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    hasSeenSecurityUpdateModal = true;
     setIsVisible(false);
     setTimeout(onClose, 300); // Wait for animation
   };

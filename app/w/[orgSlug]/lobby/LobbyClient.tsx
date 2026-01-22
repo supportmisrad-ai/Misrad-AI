@@ -96,7 +96,7 @@ export default function LobbyClient({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <NexusCard
             title="System"
-            subtitle="מכונת המכירות"
+            subtitle="מרכז המכירות והלידים"
             icon={Target}
             metric={systemMetric}
             metricLabel="לידים"
@@ -106,7 +106,7 @@ export default function LobbyClient({
 
           <NexusCard
             title="Operations"
-            subtitle="תפעול ושטח"
+            subtitle="תפעול, מלאי ושטח"
             icon={Wrench}
             metric={operationsMetric}
             metricLabel={kpis?.operations?.locked ? 'אין הרשאה' : 'פרויקטים'}
@@ -116,7 +116,7 @@ export default function LobbyClient({
 
           <NexusCard
             title="Finance"
-            subtitle="שומר הרווחים"
+            subtitle="שליטה פיננסית מלאה"
             icon={CreditCard}
             metric={financeMetric}
             metricLabel={kpis?.finance?.locked ? 'אין הרשאה' : 'שעות'}
@@ -126,7 +126,7 @@ export default function LobbyClient({
 
           <NexusCard
             title="Client"
-            subtitle="פורטל הצלחת לקוח"
+            subtitle="מעקב לקוחות ומתאמנים"
             icon={GraduationCap}
             metric={clientMetric}
             metricLabel="לקוחות"
@@ -136,7 +136,7 @@ export default function LobbyClient({
 
           <NexusCard
             title="Social"
-            subtitle="שיווק שמייצר סמכות"
+            subtitle="שיווק, תוכן וקמפיינים"
             icon={Megaphone}
             metric={socialMetric}
             metricLabel="מתוזמנים"

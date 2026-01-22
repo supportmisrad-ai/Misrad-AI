@@ -2,8 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { Task, User } from '../../types';
-import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Loader2, Copy } from 'lucide-react';
+import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface TaskDetailChatProps {
     task: Task;
@@ -373,7 +374,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             <div className="bg-[#f0f2f5] px-4 py-3 border-t border-gray-200 z-20 shrink-0">
                 {isTranscribing ? (
                     <div className="flex items-center justify-center gap-3 p-3 text-gray-500 bg-white rounded-xl animate-pulse shadow-sm">
-                        <Loader2 className="animate-spin text-blue-500" size={16} />
+                        <Skeleton className="w-4 h-4 rounded-full" />
                         <span className="text-xs font-bold">מעבד הקלטה...</span>
                     </div>
                 ) : isRecordingComment ? (

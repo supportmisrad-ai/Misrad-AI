@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Loader2, ArrowLeft, Lock, ChevronLeft, Star, Shield, Zap, CheckCircle2, Menu } from 'lucide-react';
+import { ArrowLeft, Lock, ChevronLeft, Star, Shield, Zap, CheckCircle2, Menu } from 'lucide-react';
 
 interface LoginScreenProps {
   onLogin: () => void;
@@ -48,7 +48,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
              
              {/* Small Tag */}
              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 shadow-sm mb-6 animate-fade-in">
-                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                 <span className="w-2 h-2 rounded-full bg-green-500"></span>
                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Misrad v5.0 Live</span>
              </div>
 
@@ -92,7 +92,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                      <Shield size={14} className="text-nexus-primary" /> Enterprise Security
                  </div>
                  <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
-                     <Star size={14} className="text-yellow-500" fill="currentColor" /> Top Rated
+                     <Star size={14} className="text-[color:var(--os-accent)]" fill="currentColor" /> Top Rated
                  </div>
              </div>
 
@@ -105,9 +105,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                          <div className="col-span-3 bg-white rounded-lg shadow-sm"></div>
                          <div className="col-span-9 grid grid-rows-3 gap-4">
                              <div className="bg-white rounded-lg shadow-sm row-span-1 flex items-center gap-4 px-4">
-                                 <div className="w-10 h-10 rounded-full bg-gray-100"></div>
-                                 <div className="h-4 w-32 bg-gray-100 rounded"></div>
-                             </div>
+              <div className="flex gap-1.5 mb-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-[color:var(--os-accent)]/80"></div>
+                <div className="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
+             </div>
+                </div>
                              <div className="bg-white rounded-lg shadow-sm row-span-2 grid grid-cols-2 gap-4 p-4">
                                  <div className="bg-nexus-primary/5 rounded border border-nexus-primary/10"></div>
                                  <div className="bg-gray-100 rounded"></div>
@@ -176,7 +179,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                       disabled={isLoading}
                       className="w-full py-3.5 rounded-xl bg-nexus-primary hover:bg-gray-800 text-white text-sm font-bold tracking-wide transition-all disabled:opacity-70 flex items-center justify-center gap-2 mt-4 shadow-lg shadow-nexus-primary/20"
                     >
-                      {isLoading ? <Loader2 size={18} className="animate-spin" /> : 'התחבר למערכת'}
+                      {isLoading ? 'מתחבר...' : 'התחבר למערכת'}
                     </button>
                   </form>
                   

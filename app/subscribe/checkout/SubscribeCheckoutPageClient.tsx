@@ -4,9 +4,12 @@ import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+import Link from 'next/link';
 import { createSubscriptionOrder, getSubscriptionPaymentConfig, submitSubscriptionPaymentProof } from '@/app/actions/subscription-orders';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
 import type { SystemFeatureFlags } from '@/lib/server/featureFlags';
+import type { OSModuleKey } from '@/lib/os/modules/types';
+import { BILLING_PACKAGES, calculateOrderAmount, PackageType } from '@/lib/billing/pricing';
 
 type BillingCycle = 'monthly' | 'yearly';
 
@@ -20,10 +23,10 @@ function applyYearlyDiscount(amount: number, billing: BillingCycle): number {
   return Math.round(amount * 0.8);
 }
 
-function inferPackageType(system: string | null): 'the_closer' | 'the_authority' | 'the_mentor' {
-  if (system === 'client') return 'the_mentor';
-  if (system === 'system') return 'the_closer';
-  return 'the_authority';
+function safePackageType(value: string | null): PackageType {
+  const v = String(value || '').trim();
+  if (v && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, v)) return v as PackageType;
+  return 'solo';
 }
 
 function isValidEmail(email: string): boolean {
@@ -53,26 +56,21 @@ function SubscribeCheckoutContent({
 
   const plan = (searchParams.get('plan') || 'starter').toLowerCase();
   const billingCycle = safeBillingCycle(searchParams.get('billing'));
-  const system = searchParams.get('system');
-  const productParam = searchParams.get('product');
-  const packageType = useMemo(() => inferPackageType(system), [system]);
+  const packageParam = searchParams.get('package');
+  const moduleParam = searchParams.get('module');
+  const packageType = useMemo(() => safePackageType(packageParam), [packageParam]);
+  const soloModuleKey = useMemo(() => {
+    if (packageType !== 'solo') return null;
+    const mk = String(moduleParam || '').trim();
+    return mk ? (mk as OSModuleKey) : null;
+  }, [moduleParam, packageType]);
 
   const productLabel = useMemo(() => {
-    const raw = (productParam || '').trim();
-    if (raw) return raw;
-    if (!system) return null;
-
-    if (system === 'full_stack') return 'משרד מלא (4 מודולים)';
-    if (system === 'bundle_combo') return 'חבילת Combo (2 מודולים)';
-
-    if (system === 'system') return getModuleLabelHe('system');
-    if (system === 'client') return getModuleLabelHe('client');
-    if (system === 'social') return getModuleLabelHe('social');
-    if (system === 'nexus') return getModuleLabelHe('nexus');
-    if (system === 'finance') return getModuleLabelHe('finance');
-
-    return null;
-  }, [productParam, system]);
+    if (packageType === 'solo') {
+      return soloModuleKey ? getModuleLabelHe(soloModuleKey) : 'Solo';
+    }
+    return BILLING_PACKAGES[packageType]?.labelHe || packageType;
+  }, [packageType, soloModuleKey]);
 
   const seats = useMemo(() => {
     const seatsParam = searchParams.get('seats');
@@ -84,32 +82,19 @@ function SubscribeCheckoutContent({
   }, [searchParams]);
 
   const amount = useMemo(() => {
-    const amountParam = searchParams.get('amount');
-    const parsed = amountParam ? Number(amountParam) : NaN;
-    if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
-
-    // Fallback pricing (new model)
-    if (system === 'full_stack') {
-      const baseSeats = seats ?? 5;
-      const seatSurcharge = Math.max(0, baseSeats - 5) * 39;
-      return applyYearlyDiscount(349 + seatSurcharge, billingCycle);
-    }
-
-    if (system === 'bundle_combo') {
-      return applyYearlyDiscount(249, billingCycle);
-    }
-
-    if (system === 'system' || system === 'client' || system === 'social' || system === 'nexus') {
+    try {
+      const calc = calculateOrderAmount({
+        packageType,
+        soloModuleKey,
+        billingCycle,
+        seats: seats ?? null,
+      });
+      return calc.amount;
+    } catch {
+      // Failsafe
       return applyYearlyDiscount(149, billingCycle);
     }
-
-    // If someone hits checkout with legacy plan keys, fail-safe to the lowest tier.
-    if (plan === 'solo') {
-      return applyYearlyDiscount(149, billingCycle);
-    }
-
-    return applyYearlyDiscount(149, billingCycle);
-  }, [billingCycle, plan, searchParams, seats, system]);
+  }, [billingCycle, packageType, seats, soloModuleKey]);
 
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -123,6 +108,8 @@ function SubscribeCheckoutContent({
 
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderOrgKey, setOrderOrgKey] = useState<string | null>(null);
@@ -142,11 +129,12 @@ function SubscribeCheckoutContent({
     setIsPendingVerification(false);
     setPaymentMethod('manual');
     setExternalPaymentUrl(null);
+    setAcceptedLegal(false);
     setSelectedPaymentOption(() => {
       if (!enablePaymentManual && enablePaymentCreditCard) return 'credit_card';
       return 'manual';
     });
-  }, [plan, billingCycle, system]);
+  }, [plan, billingCycle, packageType, soloModuleKey]);
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -172,8 +160,14 @@ function SubscribeCheckoutContent({
         plan,
         billing: billingCycle,
       });
-      if (system) qs.set('system', system);
+      if (packageType) qs.set('package', packageType);
+      if (packageType === 'solo' && soloModuleKey) qs.set('module', String(soloModuleKey));
       router.push(`/sign-up?${qs.toString()}`);
+      return;
+    }
+
+    if (!acceptedLegal) {
+      setError('יש לאשר את תנאי השימוש ומדיניות הפרטיות לפני המשך.');
       return;
     }
 
@@ -204,9 +198,8 @@ function SubscribeCheckoutContent({
     try {
       const result = await createSubscriptionOrder({
         billingCycle,
-        amount,
         packageType,
-        planKey: plan,
+        soloModuleKey: soloModuleKey ?? undefined,
         customerName: name,
         customerEmail: email,
         customerPhone: phone,
@@ -327,6 +320,31 @@ function SubscribeCheckoutContent({
               <div className="mt-2 text-slate-900 font-bold">
                 ₪{amount} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {productLabel || plan}{seats ? ` • ${seats} משתמשים` : ''}
               </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptedLegal}
+                  onChange={(e) => setAcceptedLegal(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded border-slate-300"
+                />
+                <div className="text-sm text-slate-700 leading-relaxed">
+                  אני מאשר/ת את
+                  {' '}
+                  <Link href="/terms" className="text-indigo-700 hover:text-indigo-900 underline">תנאי השימוש</Link>
+                  {' '}
+                  ואת
+                  {' '}
+                  <Link href="/privacy" className="text-indigo-700 hover:text-indigo-900 underline">מדיניות הפרטיות</Link>
+                  {' '}
+                  וכן קראתי את
+                  {' '}
+                  <Link href="/refund-policy" className="text-indigo-700 hover:text-indigo-900 underline">מדיניות ההחזרים</Link>
+                  .
+                </div>
+              </label>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">

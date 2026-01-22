@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, AlertCircle, Loader2, Globe, Layout, Smartphone, Video } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, Globe, Layout, Smartphone, Video } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface PlatformConnectModalProps {
   onClose: () => void;
@@ -108,7 +109,7 @@ const PlatformConnectModal: React.FC<PlatformConnectModalProps> = ({ onClose, co
                             }`}
                         >
                             {isConnecting ? (
-                                <Loader2 size={16} className="animate-spin" />
+                                <Skeleton className="w-4 h-4 rounded-full bg-slate-200" />
                             ) : isConnected ? (
                                 'התנתק'
                             ) : (

@@ -36,7 +36,7 @@ const variantStyles: Record<
   },
   client: {
     badgeBg: 'bg-white',
-    badgeBorder: 'border-amber-200',
+    badgeBorder: 'border-[#C5A572]/30',
     badgeText: 'text-[#C5A572]',
     titleGradient: 'from-[#C5A572] via-[#D4AF6E] to-[#E5C17A]',
     cardBorder: 'border-slate-200',

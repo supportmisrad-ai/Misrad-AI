@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader2, ChevronDown } from 'lucide-react';
+import { X, Save, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { SocialTask } from '@/types/social';
@@ -407,10 +407,7 @@ export default function TaskModal() {
             className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center justify-center gap-3 disabled:opacity-50"
           >
             {isSaving ? (
-              <>
-                <Loader2 size={20} className="animate-spin" />
-                שומר...
-              </>
+              <>שומר...</>
             ) : (
               <>
                 <Save size={20} />

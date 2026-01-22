@@ -1,11 +1,13 @@
+'use client';
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Settings, Loader2, Globe, Database, Mail, Send, UserPlus } from 'lucide-react';
+import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Settings, Globe, Database, Mail, Send, UserPlus } from 'lucide-react';
 import { Tenant } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface TenantsPanelProps {
     tenants: Tenant[];
@@ -236,7 +238,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                         {tenant.status === 'Active' && <CheckCircle2 size={12} />}
                                         {tenant.status === 'Trial' && <AlertTriangle size={12} />}
                                         {tenant.status === 'Churned' && <XCircle size={12} />}
-                                        {tenant.status === 'Provisioning' && <Loader2 size={12} className="animate-spin" />}
+                                        {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
                                         {tenant.status === 'Provisioning' ? 'מקים שרת...' : tenant.status}
                                     </span>
                                 </td>
@@ -276,7 +278,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                                 title="שלח קישור הרשמה לבעל העסק"
                                             >
                                                 {sendingInvitation === tenant.id ? (
-                                                    <Loader2 size={14} className="animate-spin" />
+                                                    <Skeleton className="w-3.5 h-3.5 rounded-full" />
                                                 ) : (
                                                     <Mail size={14} />
                                                 )}

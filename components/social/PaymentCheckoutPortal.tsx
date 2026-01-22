@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldCheck, CreditCard, ChevronLeft, CheckCircle2, Lock, Loader2, X } from 'lucide-react';
+import { ShieldCheck, CreditCard, ChevronLeft, CheckCircle2, Lock, X } from 'lucide-react';
 import { PaymentOrder, Client } from '@/types/social';
 import { Avatar } from '@/components/Avatar';
 import { processPayment } from '@/app/actions/payments';
@@ -228,7 +228,7 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
                     disabled={isProcessing}
                     className="w-full bg-slate-900 text-white py-6 rounded-[32px] font-black text-2xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all"
                   >
-                    {isProcessing ? <Loader2 className="animate-spin" /> : <>בצע תשלום מאובטח <ChevronLeft/></>}
+                    {isProcessing ? <>מעבד תשלום...</> : <>בצע תשלום מאובטח <ChevronLeft/></>}
                   </button>
                 </form>
               </motion.div>
@@ -251,7 +251,7 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
                     <span className="font-black">₪{order.amount.toLocaleString()}</span>
                   </div>
                 </div>
-                <p className="text-[10px] font-black text-slate-300 uppercase animate-pulse">מיד תחזרו לעמוד המקור...</p>
+                <p className="text-[10px] font-black text-slate-300 uppercase">מיד תחזרו לעמוד המקור...</p>
               </motion.div>
             )}
           </AnimatePresence>

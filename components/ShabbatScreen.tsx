@@ -10,6 +10,7 @@ import React, { useMemo } from 'react';
 import { useShabbat } from '../hooks/useShabbat';
 import { Crown, Sparkles } from 'lucide-react';
 import { formatShabbatTime, formatCountdown } from '@/lib/shabbat';
+import { Skeleton } from '@/components/ui/skeletons';
 
 function ShabbatTableIllustration() {
   return (
@@ -145,7 +146,9 @@ export function ShabbatScreen() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#070A13] via-[#0B1022] to-[#070A13] text-[#F8F1D6]" dir="rtl">
         <div className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-full border-2 border-[#D4AF37]/50 border-t-[#F8F1D6] animate-spin" />
+          <div className="mx-auto w-12 h-12">
+            <Skeleton className="w-12 h-12 rounded-full bg-[#D4AF37]/20" />
+          </div>
           <p className="mt-4 text-lg font-bold text-[#F8F1D6]/80">טוען…</p>
         </div>
       </div>

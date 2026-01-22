@@ -10,6 +10,8 @@ import { NAV_ITEMS } from './layout.types';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
+import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface HeaderProps {
   location: { pathname: string };
@@ -48,7 +50,7 @@ export const Header: React.FC<HeaderProps> = ({
     setIsHydrated(true);
   }, []);
 
-  const { RoomIcon, room } = useRoomBranding();
+  const { roomIconName, room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(location?.pathname?.startsWith('/w/'));
 
   const title =
@@ -58,8 +60,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const mobileFallbackIcon = organization.logo ? null : room === 'nexus' ? (
     <img src="/icons/nexus-icon.svg" alt="Nexus" className="w-full h-full object-cover" />
-  ) : RoomIcon ? (
-    <RoomIcon size={18} className="text-gray-900" />
+  ) : roomIconName ? (
+    <DynamicIcon name={roomIconName} size={18} className="text-gray-900" />
   ) : null;
 
   const notificationsSlot = (
@@ -98,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
         name: organization.name,
         logoUrl: organization.logo || null,
         fallbackIcon: mobileFallbackIcon,
+        badgeIcon: <OSModuleIcon moduleKey={room} size={10} className="text-slate-900" />,
       }}
       onOpenCommandPaletteAction={() => setCommandPaletteOpen(true)}
       onOpenSupportAction={openSupport}

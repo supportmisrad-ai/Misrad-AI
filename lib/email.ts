@@ -161,6 +161,22 @@ function generateOrganizationWelcomeEmailHTML(params: {
                                 </tr>
                             </table>
 
+                            <table role="presentation" style="width: 100%; margin: 0 0 10px 0;">
+                                <tr>
+                                    <td align="center" style="padding: 0;">
+                                        <div style="color: #718096; font-size: 12px; font-weight: 600; margin: 0 0 10px 0;">
+                                            להורדת האפליקציה:
+                                        </div>
+                                        <a href="#" style="display: inline-block; margin: 0 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #ffffff; color: #2d3748; text-decoration: none; font-size: 12px; font-weight: 700;">
+                                            הורד ל-Windows
+                                        </a>
+                                        <a href="#" style="display: inline-block; margin: 0 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #ffffff; color: #2d3748; text-decoration: none; font-size: 12px; font-weight: 700;">
+                                            הורד ל-Android
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
                             <div style="margin: 40px 0 0 0; padding: 20px 0; border-top: 1px solid #e2e8f0;">
                                 <p style="margin: 0; color: #a0aec0; font-size: 12px; line-height: 1.5;">
                                     אם הכפתור לא עובד, העתק והדבק את הקישור הבא לדפדפן שלך:<br>

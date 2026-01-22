@@ -34,9 +34,14 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
   const nexusAuth = useNexusAuth(addToast as any, initialCurrentUser);
   const { isLoaded: isClerkLoaded } = useUser();
 
+  const systemUserId =
+    (nexusAuth?.currentUser as any)?.profileId && String((nexusAuth?.currentUser as any)?.profileId).trim()
+      ? String((nexusAuth?.currentUser as any)?.profileId)
+      : nexusAuth?.currentUser?.id;
+
   const user: UserProfile | null = nexusAuth?.currentUser?.id
     ? {
-        id: nexusAuth.currentUser.id,
+        id: String(systemUserId || nexusAuth.currentUser.id),
         name: nexusAuth.currentUser.name,
         role: (nexusAuth.currentUser.role as unknown as UserRole) || ('עובד' as UserRole),
         avatar: nexusAuth.currentUser.avatar || '',

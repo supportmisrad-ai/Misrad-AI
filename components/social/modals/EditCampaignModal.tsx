@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Target, Users, DollarSign, Loader2, Save, Rocket, Tag } from 'lucide-react';
+import { X, Target, Users, DollarSign, Save, Rocket, Tag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Client } from '@/types/social';
 
@@ -134,7 +134,7 @@ const EditCampaignModal: React.FC<EditCampaignModalProps> = ({ isOpen, onClose, 
                 disabled={isSaving || !name} 
                 className="flex-1 py-5 bg-slate-900 text-white rounded-2xl font-black shadow-xl shadow-slate-200 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
                >
-                  {isSaving ? <Loader2 size={24} className="animate-spin" /> : <><Save size={20}/> שמור שינויים</>}
+                  <Save size={20} className={isSaving ? 'opacity-60' : undefined} /> {isSaving ? 'שומר...' : 'שמור שינויים'}
                </button>
             </div>
           </motion.div>
