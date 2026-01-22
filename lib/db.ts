@@ -115,20 +115,20 @@ export async function getUsers(filters?: {
 
         const tryTenantScopedQuery = async () => {
             if (!filters?.tenantId) {
-                return buildBaseQuery();
+                throw new Error('[DB] getUsers: Missing tenantId (Tenant Isolation lockdown)');
             }
 
-            // Backward compatibility: some installations have tenant scoping columns, some don't.
-            // Try tenant_id first, then organization_id, then fall back to unscoped.
-            const baseQuery = buildBaseQuery();
-            let result = await baseQuery.eq('tenant_id', filters.tenantId);
-            if (result?.error?.code === '42703') {
-                result = await buildBaseQuery().eq('organization_id', filters.tenantId);
+            // Emergency isolation: do NOT fall back to unscoped queries.
+            // Prefer tenant_id, otherwise organization_id. If neither exists -> fail closed.
+            const byTenant = await buildBaseQuery().eq('tenant_id', filters.tenantId);
+            if ((byTenant as any)?.error?.code === '42703') {
+                const byOrg = await buildBaseQuery().eq('organization_id', filters.tenantId);
+                if ((byOrg as any)?.error?.code === '42703') {
+                    throw new Error('[DB] getUsers: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                }
+                return byOrg;
             }
-            if (result?.error?.code === '42703') {
-                return buildBaseQuery();
-            }
-            return result;
+            return byTenant;
         };
     
         const { data, error } = await tryTenantScopedQuery();
@@ -356,14 +356,14 @@ export async function getTimeEntries(filters?: {
 
         const tryTenantScopedQuery = async () => {
             if (!filters?.tenantId) {
-                return buildBaseQuery();
+                throw new Error('[DB] getTimeEntries: Missing tenantId (Tenant Isolation lockdown)');
             }
 
-            // Backward compatibility: organization scoping may not exist in older schemas.
+            // Emergency isolation: do NOT fall back to unscoped queries.
             const baseQuery = buildBaseQuery();
-            let result = await baseQuery.eq('organization_id', filters.tenantId);
-            if (result?.error?.code === '42703') {
-                return buildBaseQuery();
+            const result = await baseQuery.eq('organization_id', filters.tenantId);
+            if ((result as any)?.error?.code === '42703') {
+                throw new Error('[DB] getTimeEntries: No organization_id column (Tenant Isolation lockdown)');
             }
             return result;
         };
@@ -1251,44 +1251,7 @@ export async function getUsersByManager(managerId: string): Promise<User[]> {
     assertDbAvailable('getUsersByManager');
     
     try {
-        const { data, error } = await supabase
-            .from('nexus_users')
-            .select('*')
-            .eq('manager_id', managerId);
-        
-        if (error) {
-            console.error('[DB] Error getting users by manager:', error);
-            throw new Error(error.message || 'Failed to get users by manager');
-        }
-        
-        // Transform to User interface
-        return (data || []).map((u: any) => ({
-            id: u.id,
-            name: u.name,
-            role: u.role,
-            department: u.department,
-            avatar: u.avatar || '',
-            online: u.online || false,
-            capacity: u.capacity || 0,
-            email: u.email,
-            phone: u.phone,
-            location: u.location,
-            bio: u.bio,
-            paymentType: u.payment_type,
-            hourlyRate: u.hourly_rate ? parseFloat(u.hourly_rate) : undefined,
-            monthlySalary: u.monthly_salary ? parseFloat(u.monthly_salary) : undefined,
-            commissionPct: u.commission_pct,
-            bonusPerTask: u.bonus_per_task ? parseFloat(u.bonus_per_task) : undefined,
-            accumulatedBonus: u.accumulated_bonus ? parseFloat(u.accumulated_bonus) : 0,
-            streakDays: u.streak_days || 0,
-            weeklyScore: u.weekly_score ? parseFloat(u.weekly_score) : undefined,
-            pendingReward: u.pending_reward,
-            targets: u.targets,
-            notificationPreferences: u.notification_preferences,
-            twoFactorEnabled: u.two_factor_enabled || false,
-            isSuperAdmin: u.is_super_admin || false,
-            billingInfo: u.billing_info
-        }));
+        throw new Error('[DB] getUsersByManager is disabled (Tenant Isolation lockdown)');
     } catch (error) {
         console.error('[DB] Error in getUsersByManager:', error);
         throw error;

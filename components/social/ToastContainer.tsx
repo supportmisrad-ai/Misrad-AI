@@ -3,10 +3,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialUI } from '@/contexts/SocialUIContext';
 
 export default function ToastContainer() {
-  const { toasts, setToasts } = useApp();
+  const { toasts, setToasts } = useSocialUI();
 
   const removeToast = (id: string) => {
     setToasts(prev => prev.filter(t => t.id !== id));

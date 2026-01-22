@@ -8,7 +8,7 @@ import { joinPath } from '@/lib/os/social-routing';
 import type { SocialNavigationItem } from '@/lib/services/social-service';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialData } from '@/contexts/SocialDataContext';
 
 // Icon mapping with default colors
 const ICON_COLORS: Record<string, string> = {
@@ -60,7 +60,7 @@ function NavigationImpl({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [hasMounted, setHasMounted] = useState(false);
-  const { activeClientId, activeClient } = useApp();
+  const { activeClientId, activeClient } = useSocialData();
 
   useEffect(() => {
     setHasMounted(true);

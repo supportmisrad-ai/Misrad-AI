@@ -67,13 +67,7 @@ export async function getSystemCampaigns(params: {
   take?: number;
 }): Promise<SystemCampaignDTO[]> {
   await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-
-  const rows = await prisma.systemCampaign.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: Math.max(1, Math.min(500, Math.floor(params.take ?? 200))),
-  });
-
-  return rows.map(toSystemCampaignDto);
+  throw new Error('דוח קמפיינים אינו זמין כרגע (SystemCampaign לא מופרד לפי ארגון).');
 }
 
 export async function getSystemTasks(params: {

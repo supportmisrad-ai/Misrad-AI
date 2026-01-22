@@ -3,7 +3,8 @@
 import React, { useState, useRef } from 'react';
 import { X, Building, CheckCircle2, ArrowRight, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialData } from '@/contexts/SocialDataContext';
+import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useUser } from '@clerk/nextjs';
 import { PricingPlan, SocialPlatform } from '@/types/social';
 import { createClientForWorkspace } from '@/app/actions/clients';
@@ -21,13 +22,8 @@ export default function AddClientModal() {
   const { user } = useUser();
   const pathname = usePathname();
   const routeInfo = parseWorkspaceRoute(pathname);
-  const { 
-    isAddClientModalOpen, 
-    setIsAddClientModalOpen, 
-    clients, 
-    setClients,
-    addToast 
-  } = useApp();
+  const { clients, setClients } = useSocialData();
+  const { isAddClientModalOpen, setIsAddClientModalOpen, addToast } = useSocialUI();
 
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');

@@ -8,7 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialData } from '@/contexts/SocialDataContext';
+import { useSocialUI } from '@/contexts/SocialUIContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { SocialPost, SocialPlatform } from '@/types/social';
 import { gregorianToHebrew, getHebrewDateString, isShabbat, getHoliday, isHoliday, isFastDay, getFastDay } from '@/lib/hebrewCalendar';
@@ -32,14 +33,8 @@ export default function Calendar() {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = getSocialBasePath(pathname);
-  const { 
-    clients, 
-    posts, 
-    setActiveDraft, 
-    setActiveClientId,
-    setPosts,
-    addToast
-  } = useApp();
+  const { clients, posts, setActiveDraft, setActiveClientId, setPosts } = useSocialData();
+  const { addToast } = useSocialUI();
 
   const [viewDate, setViewDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');

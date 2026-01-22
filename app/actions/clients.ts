@@ -146,157 +146,12 @@ export async function getClients(
 
     if (error) {
       if (isMissingTableError(error)) {
-        // Fallback for legacy Social schema where clients are stored in social_clients
-        let socialQuery = supabase
-          .from('social_clients')
-          .select(`
-            *,
-            social_client_dna (*),
-            social_platform_credentials (*),
-            social_platform_quotas (*),
-            social_business_metrics (*)
-          `)
-          .order('created_at', { ascending: false });
-        if (userOrganizationId) {
-          socialQuery = socialQuery.eq('organization_id', userOrganizationId);
-        }
-
-        const { data: socialRows, error: socialError } = await socialQuery;
-        if (!socialError && socialRows) {
-          const clients: Client[] = (socialRows || []).map((client: any) => ({
-            id: client.id,
-            name: client.name,
-            companyName: client.company_name,
-            businessId: client.business_id,
-            phone: client.phone,
-            email: client.email,
-            avatar: client.avatar || '',
-            brandVoice: client.brand_voice || '',
-            dna: client.social_client_dna?.[0]
-              ? {
-                  brandSummary: client.social_client_dna[0].brand_summary || '',
-                  voice: {
-                    formal: client.social_client_dna[0].voice_formal || 50,
-                    funny: client.social_client_dna[0].voice_funny || 50,
-                    length: client.social_client_dna[0].voice_length || 50,
-                  },
-                  vocabulary: {
-                    loved: client.social_client_dna[0].vocabulary_loved || [],
-                    forbidden: client.social_client_dna[0].vocabulary_forbidden || [],
-                  },
-                  colors: {
-                    primary: client.social_client_dna[0].color_primary || '#1e293b',
-                    secondary: client.social_client_dna[0].color_secondary || '#334155',
-                  },
-                  strategy: client.social_client_dna[0].strategy
-                    ? JSON.parse(client.social_client_dna[0].strategy)
-                    : undefined,
-                }
-              : {
-                  brandSummary: '',
-                  voice: { formal: 50, funny: 50, length: 50 },
-                  vocabulary: { loved: [], forbidden: [] },
-                  colors: { primary: '#1e293b', secondary: '#334155' },
-                },
-            credentials: (client.social_platform_credentials || []).map((cred: any) => ({
-              platform: cred.platform,
-              username: cred.username,
-              notes: cred.notes,
-            })),
-            postingRhythm: client.posting_rhythm || '3 פעמים בשבוע',
-            status: (client.status as ClientStatus) || 'Active',
-            activePlatforms: (client.active_platforms || []) as any[],
-            quotas: (client.social_platform_quotas || []).map((q: any) => ({
-              platform: q.platform,
-              monthlyLimit: q.monthly_limit,
-              currentUsage: q.current_usage,
-            })),
-            onboardingStatus: client.onboarding_status as any,
-            invitationToken: client.invitation_token,
-            portalToken: client.portal_token,
-            color: client.color || '#1e293b',
-            plan: client.plan as PricingPlan,
-            monthlyFee: client.monthly_fee,
-            nextPaymentDate: client.next_payment_date,
-            nextPaymentAmount: client.next_payment_amount,
-            paymentStatus: client.payment_status as any,
-            autoRemindersEnabled: client.auto_reminders_enabled ?? true,
-            savedCardThumbnail: client.saved_card_thumbnail,
-            businessMetrics: client.social_business_metrics?.[0]
-              ? {
-                  timeSpentMinutes: client.social_business_metrics[0].time_spent_minutes || 0,
-                  expectedHours: client.social_business_metrics[0].expected_hours || 0,
-                  punctualityScore: client.social_business_metrics[0].punctuality_score || 100,
-                  responsivenessScore: client.social_business_metrics[0].responsiveness_score || 100,
-                  revisionCount: client.social_business_metrics[0].revision_count || 0,
-                }
-              : {
-                  timeSpentMinutes: 0,
-                  expectedHours: 0,
-                  punctualityScore: 100,
-                  responsivenessScore: 100,
-                  revisionCount: 0,
-                },
-            internalNotes: client.internal_notes,
-            organizationId: String(client.organization_id || userOrganizationId || ''),
-          }));
-
-          return { success: true, data: clients };
-        }
-
-        // If social fallback isn't available, keep the existing misrad_clients fallback as last resort
-        let misradQuery = supabase.from('misrad_clients').select('*').order('created_at', { ascending: false });
-        if (userOrganizationId) {
-          misradQuery = misradQuery.eq('organization_id', userOrganizationId);
-        }
-        const { data: misradRows, error: misradError } = await misradQuery;
-        if (misradError) {
-          console.error('Error fetching misrad_clients:', misradError);
-          return { success: false, error: misradError.message };
-        }
-
-        const clients: Client[] = (misradRows || []).map((row: any) => ({
-          id: row.id,
-          name: row.name ?? '',
-          companyName: row.name ?? '',
-          businessId: row.business_id ?? row.businessId ?? undefined,
-          phone: row.phone ?? undefined,
-          email: row.email ?? undefined,
-          avatar: row.avatar || '',
-          brandVoice: row.brand_voice ?? row.brandVoice ?? '',
-          dna: {
-            brandSummary: row.brand_summary ?? row.brandSummary ?? '',
-            voice: { formal: 50, funny: 50, length: 50 },
-            vocabulary: { loved: [], forbidden: [] },
-            colors: { primary: '#1e293b', secondary: '#334155' },
-          },
-          credentials: [],
-          postingRhythm: '3 פעמים בשבוע',
-          status: ((row.status as ClientStatus) || 'Active') as ClientStatus,
-          activePlatforms: [],
-          quotas: [],
-          onboardingStatus: row.onboarding_status ?? row.onboardingStatus ?? null,
-          invitationToken: row.invitation_token ?? row.invitationToken ?? null,
-          portalToken: String(row.portal_token ?? row.portalToken ?? ''),
-          color: row.color || '#1e293b',
-          plan: (row.plan as PricingPlan) || 'free',
-          monthlyFee: row.monthly_fee ?? row.monthlyFee ?? null,
-          nextPaymentDate: row.next_payment_date ?? row.nextPaymentDate ?? null,
-          nextPaymentAmount: row.next_payment_amount ?? row.nextPaymentAmount ?? null,
-          paymentStatus: row.payment_status ?? row.paymentStatus ?? null,
-          autoRemindersEnabled: row.auto_reminders_enabled ?? row.autoRemindersEnabled ?? true,
-          savedCardThumbnail: row.saved_card_thumbnail ?? row.savedCardThumbnail ?? null,
-          businessMetrics: {
-            timeSpentMinutes: 0,
-            expectedHours: 0,
-            punctualityScore: 100,
-            responsivenessScore: 100,
-            revisionCount: 0,
-          },
-          organizationId: String(row.organization_id ?? row.organizationId ?? userOrganizationId ?? ''),
-        }));
-
-        return { success: true, data: clients };
+        // Emergency isolation: do NOT fallback to legacy tables (social_clients / misrad_clients).
+        // Fail closed to prevent cross-tenant leakage.
+        return {
+          success: false,
+          error: 'טבלת clients לא קיימת במסד הנתונים. (מצב חירום: אין Fallback לטבלאות legacy)'
+        };
       }
 
       console.error('Error fetching clients:', error);
@@ -505,16 +360,9 @@ export async function createClientForWorkspace(
     const invitationToken = clientData.invitationToken || Math.random().toString(36).substring(2, 15);
     const portalToken = clientData.portalToken || Math.random().toString(36).substring(7);
 
-    let clientsTable = 'clients';
-    let dnaTable = 'client_dna';
-    let metricsTable = 'business_metrics';
-
-    const { error: probeError } = await supabase.from('clients').select('id').limit(1);
-    if (probeError && isMissingTableError(probeError)) {
-      clientsTable = 'social_clients';
-      dnaTable = 'social_client_dna';
-      metricsTable = 'social_business_metrics';
-    }
+    const clientsTable = 'clients';
+    const dnaTable = 'client_dna';
+    const metricsTable = 'business_metrics';
 
     const normalizedEmail = (clientData.email || '').trim().toLowerCase();
     let existingClientId: string | null = null;
@@ -564,17 +412,12 @@ export async function createClientForWorkspace(
       color: clientData.color || '#1e293b',
     };
 
-    if (clientsTable === 'social_clients') {
+    if (!existingClientId) {
       patch.name = requiredName;
       patch.company_name = requiredCompanyName;
     } else {
-      if (!existingClientId) {
-        patch.name = requiredName;
-        patch.company_name = requiredCompanyName;
-      } else {
-        if (cleanName) patch.name = cleanName;
-        if (shouldUpdateCompanyName) patch.company_name = cleanCompanyName;
-      }
+      if (cleanName) patch.name = cleanName;
+      if (shouldUpdateCompanyName) patch.company_name = cleanCompanyName;
     }
     if (shouldUpdateAvatar) patch.avatar = clientData.avatar;
     if (shouldUpdateBrandVoice) patch.brand_voice = clientData.brandVoice;
@@ -583,8 +426,6 @@ export async function createClientForWorkspace(
     // Tokens should exist; don't rotate them on dedupe
     if (!existingClientId) {
       patch.invitation_token = invitationToken;
-      patch.portal_token = portalToken;
-    } else if (clientsTable === 'social_clients' && (!existingPortalToken || existingPortalToken.trim().length === 0)) {
       patch.portal_token = portalToken;
     }
 
@@ -606,7 +447,7 @@ export async function createClientForWorkspace(
       if (isMissingTableError(clientError)) {
         return createErrorResponse(
           new Error('Canonical clients table is missing'),
-          'שגיאה: טבלת clients לא קיימת במסד הנתונים. נא לוודא שמוגדרות טבלאות Social/Clients במסד הנתונים.'
+          'שגיאה: טבלת clients לא קיימת במסד הנתונים. (מצב חירום: אין Fallback לטבלאות legacy)'
         );
       }
 

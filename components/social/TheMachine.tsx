@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { generatePostVariationsAction, generateAIImageAction } from '@/app/actions/ai-actions';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialData } from '@/contexts/SocialDataContext';
+import { useSocialUI } from '@/contexts/SocialUIContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { Client, PostVariation, SocialPost, SocialPlatform } from '@/types/social';
 import { createPost, publishPost } from '@/app/actions/posts';
@@ -40,15 +41,8 @@ export default function TheMachine() {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = getSocialBasePath(pathname);
-  const { 
-    clients, 
-    activeDraft, 
-    activeClientId, 
-    activeClient,
-    setActiveDraft,
-    setPosts,
-    addToast
-  } = useApp();
+  const { clients, activeDraft, activeClientId, activeClient, setActiveDraft, setPosts } = useSocialData();
+  const { addToast } = useSocialUI();
 
   const [step, setStep] = useState(1);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);

@@ -3,7 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, MessageSquare, ShieldAlert, Clock, Trash2, Plus, DollarSign, Zap } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
+import { useSocialData } from '@/contexts/SocialDataContext';
 import { Avatar } from '@/components/Avatar';
 import { SocialTask } from '@/types/social';
 
@@ -13,7 +13,7 @@ interface TasksPanelProps {
 }
 
 export default function TasksPanel({ onAddTask, onEditTask }: TasksPanelProps) {
-  const { tasks, clients, team, handleToggleTask, handleDeleteTask } = useApp();
+  const { tasks, clients, team, handleToggleTask, handleDeleteTask } = useSocialData();
 
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.status === 'completed' && b.status === 'todo') return 1;

@@ -53,7 +53,7 @@ export default function NexusMarketingPage() {
                 התחל חינם
               </Link>
               <Link
-                href="/subscribe/checkout?system=nexus&plan=solo&billing=monthly&amount=149&product=Nexus"
+                href="/subscribe/checkout?package=solo&module=nexus&billing=monthly"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50"
               >
                 מעבר לתשלום

@@ -29,9 +29,11 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
       }
     >
   >({
+    solo: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_closer: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_authority: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
-    the_mentor: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
+    the_operator: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
+    the_empire: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
   });
 
   const pendingVerificationCount = useMemo(() => {

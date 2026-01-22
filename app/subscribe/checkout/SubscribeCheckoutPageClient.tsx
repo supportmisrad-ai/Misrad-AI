@@ -54,11 +54,11 @@ function SubscribeCheckoutContent({
     return 'manual';
   });
 
-  const plan = (searchParams.get('plan') || 'starter').toLowerCase();
   const billingCycle = safeBillingCycle(searchParams.get('billing'));
   const packageParam = searchParams.get('package');
   const moduleParam = searchParams.get('module');
   const packageType = useMemo(() => safePackageType(packageParam), [packageParam]);
+  const plan = (searchParams.get('plan') || String(packageType)).toLowerCase();
   const soloModuleKey = useMemo(() => {
     if (packageType !== 'solo') return null;
     const mk = String(moduleParam || '').trim();

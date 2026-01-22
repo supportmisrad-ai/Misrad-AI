@@ -465,7 +465,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       // This allows the UI to be responsive faster
       Promise.all([
         workspaceOrgId ? getPosts(undefined, workspaceOrgId) : getPosts(),
-        getTasks(),
+        getTasks(effectiveOrgSlug || undefined),
         getConversations(),
         getClientRequests(),
         getManagerRequests(),
@@ -521,6 +521,19 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   // Load data from Supabase when authenticated (only once, not on every navigation)
   useEffect(() => {
     isMountedRef.current = true;
+    // If server already provided initial data for this org, avoid client refetch.
+    if (initialSocialData && hasInitialDataForOrg(initialSocialData)) {
+      if (isMountedRef.current) {
+        setIsLoadingData(false);
+      }
+      if (isAuthenticated && user) {
+        const key = `${user.id}:${workspaceOrgId || 'global'}`;
+        loadOnceKeyRef.current = key;
+      }
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
     
     // Only load once per (userId, workspaceOrgId) key to avoid render loops
     if (isAuthenticated && user) {

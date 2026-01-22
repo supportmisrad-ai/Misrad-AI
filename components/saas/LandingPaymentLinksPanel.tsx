@@ -6,7 +6,7 @@ import { CreditCard, Save } from 'lucide-react';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { useData } from '@/context/DataContext';
 
-type PackageKey = 'the_closer' | 'the_authority' | 'the_mentor';
+type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire';
 
 type ConfigState = {
   title: string;
@@ -17,9 +17,11 @@ type ConfigState = {
 };
 
 const PACKAGE_LABELS: Record<PackageKey, { title: string; subtitle: string }> = {
-  the_closer: { title: 'System', subtitle: 'System OS (לידים ומכירות)' },
-  the_authority: { title: 'Nexus', subtitle: 'Nexus (ניהול עסק)' },
-  the_mentor: { title: 'Client', subtitle: 'Client OS (ניהול לקוחות)' },
+  solo: { title: 'מודול בודד', subtitle: 'תשלום עבור מודול בודד (149 ₪)' },
+  the_closer: { title: 'חבילת מכירות', subtitle: 'System + Nexus (249 ₪)' },
+  the_authority: { title: 'חבילת שיווק ומיתוג', subtitle: 'Social + Client + Nexus (349 ₪)' },
+  the_operator: { title: 'חבילת תפעול ושטח', subtitle: 'Operations + Finance + Nexus (349 ₪)' },
+  the_empire: { title: 'הכל כלול', subtitle: 'כל המודולים (499 ₪)' },
 };
 
 export function LandingPaymentLinksPanel({
@@ -28,9 +30,11 @@ export function LandingPaymentLinksPanel({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [configs, setConfigs] = useState<Record<PackageKey, ConfigState>>({
+    solo: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_closer: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
     the_authority: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
-    the_mentor: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
+    the_operator: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
+    the_empire: { title: '', qrImageUrl: '', instructionsText: '', paymentMethod: 'manual', externalPaymentUrl: '' },
   });
 
   useEffect(() => {
@@ -79,7 +83,7 @@ export function LandingPaymentLinksPanel({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const packages: PackageKey[] = ['the_closer', 'the_authority', 'the_mentor'];
+      const packages: PackageKey[] = ['solo', 'the_closer', 'the_authority', 'the_operator', 'the_empire'];
       for (const pkg of packages) {
         const cfg = configs[pkg];
         const result = await upsertSubscriptionPaymentConfig({
@@ -137,7 +141,7 @@ export function LandingPaymentLinksPanel({
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {(['the_closer', 'the_authority', 'the_mentor'] as const).map((pkg) => {
+          {(['solo', 'the_closer', 'the_authority', 'the_operator', 'the_empire'] as const).map((pkg) => {
             const meta = PACKAGE_LABELS[pkg];
             const cfg = configs[pkg];
 

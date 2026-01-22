@@ -16,6 +16,12 @@ export default async function FinanceMePage({
       basePathOverride={`/w/${encodeURIComponent(orgSlug)}/finance`}
       moduleCards={[
         {
+          title: 'סקירה',
+          subtitle: 'מבט כללי על המצב הכספי',
+          href: `/w/${encodeURIComponent(orgSlug)}/finance/overview`,
+          iconId: 'trending_up',
+        },
+        {
           title: 'חשבוניות',
           subtitle: 'רשימת חשבוניות מהירה',
           href: `/w/${encodeURIComponent(orgSlug)}/finance/invoices`,

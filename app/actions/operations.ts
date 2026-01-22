@@ -718,38 +718,21 @@ export async function getOperationsTechnicianOptions(params: {
 
     const profiles = await prisma.profile.findMany({
       where: { organizationId: workspace.id },
-      select: { email: true, fullName: true },
-      orderBy: { fullName: 'asc' },
+      select: { id: true, email: true, fullName: true },
+      orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }],
+      take: 2000,
     });
 
-    const emails = Array.from(
-      new Set(
-        profiles
-          .map((p) => (p.email ? String(p.email).trim().toLowerCase() : null))
-          .filter(Boolean)
-      )
-    ) as string[];
-
-    const users = emails.length
-      ? await prisma.nexusUser.findMany({
-          where: { email: { in: emails } },
-          select: { id: true, name: true, email: true },
-          orderBy: { name: 'asc' },
-        })
-      : [];
-
-    const profileNameByEmail = new Map<string, string>();
-    for (const p of profiles) {
-      const email = p.email ? String(p.email).trim().toLowerCase() : '';
-      const name = p.fullName ? String(p.fullName).trim() : '';
-      if (email && name && !profileNameByEmail.has(email)) profileNameByEmail.set(email, name);
-    }
-
-    const options: OperationsTechnicianOption[] = (users || []).map((u) => {
-      const email = u.email ? String(u.email).trim().toLowerCase() : '';
-      const label = String(u.name || profileNameByEmail.get(email) || email || u.id);
-      return { id: String(u.id), label };
-    });
+    const options: OperationsTechnicianOption[] = (profiles || [])
+      .map((p) => {
+        const id = String(p.id || '').trim();
+        const name = p.fullName ? String(p.fullName).trim() : '';
+        const email = p.email ? String(p.email).trim().toLowerCase() : '';
+        const label = name || email || id;
+        if (!id || !label) return null;
+        return { id, label };
+      })
+      .filter(Boolean) as OperationsTechnicianOption[];
 
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
     return { success: true, data: options };
@@ -777,6 +760,14 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
     await ensureOperationsWorkOrdersSignatureColumns(prisma);
 
     if (technicianId) {
+      const tech = await prisma.profile.findFirst({
+        where: { id: technicianId, organizationId: workspace.id },
+        select: { id: true },
+      });
+      if (!tech?.id) {
+        return { success: false, error: 'טכנאי לא תקין או שאין הרשאה' };
+      }
+
       await prisma.$executeRawUnsafe(
         `UPDATE operations_work_orders SET assigned_technician_id = $1::uuid WHERE id = $2::uuid AND organization_id = $3::uuid`,
         technicianId,
@@ -1838,15 +1829,15 @@ export async function getOperationsWorkOrdersData(params: {
     ) as string[];
 
     const technicians = technicianIds.length
-      ? await prisma.nexusUser.findMany({
-          where: { id: { in: technicianIds } },
-          select: { id: true, name: true, email: true },
+      ? await prisma.profile.findMany({
+          where: { organizationId: workspace.id, id: { in: technicianIds } },
+          select: { id: true, fullName: true, email: true },
         })
       : [];
 
     const techById = new Map<string, string>();
     for (const t of technicians) {
-      techById.set(String(t.id), String(t.name || t.email || t.id));
+      techById.set(String(t.id), String(t.fullName || t.email || t.id));
     }
 
     const data: OperationsWorkOrdersData = {
@@ -2031,11 +2022,11 @@ export async function getOperationsWorkOrderById(params: {
     const assignedTechnicianId = row.assigned_technician_id ? String(row.assigned_technician_id) : null;
     let technicianLabel: string | null = null;
     if (assignedTechnicianId) {
-      const tech = await prisma.nexusUser.findFirst({
-        where: { id: assignedTechnicianId },
-        select: { id: true, name: true, email: true },
+      const tech = await prisma.profile.findFirst({
+        where: { id: assignedTechnicianId, organizationId: workspace.id },
+        select: { id: true, fullName: true, email: true },
       });
-      technicianLabel = tech?.id ? String(tech.name || tech.email || tech.id) : null;
+      technicianLabel = tech?.id ? String(tech.fullName || tech.email || tech.id) : null;
     }
 
     return {

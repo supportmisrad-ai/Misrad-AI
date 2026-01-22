@@ -133,9 +133,16 @@ export const SaaSAdminView: React.FC = () => {
         return [
             { label: 'Social · דף נחיתה', path: '/social' },
             { label: 'Pricing · מחירון', path: '/pricing' },
-            { label: 'Subscribe · Checkout', path: '/subscribe/checkout' },
             { label: 'System · דף שיווק', path: '/system' },
             { label: 'Client · דף שיווק', path: '/client' },
+            { label: 'Nexus · דף שיווק', path: '/nexus' },
+            { label: 'Finance · דף שיווק', path: '/finance-landing' },
+            { label: 'Operations · דף שיווק', path: '/operations' },
+            { label: 'Checkout · מודול בודד (System)', path: '/subscribe/checkout?package=solo&module=system&billing=monthly' },
+            { label: 'Checkout · חבילת מכירות', path: '/subscribe/checkout?package=the_closer&billing=monthly' },
+            { label: 'Checkout · חבילת שיווק ומיתוג', path: '/subscribe/checkout?package=the_authority&billing=monthly' },
+            { label: 'Checkout · חבילת תפעול ושטח', path: '/subscribe/checkout?package=the_operator&billing=monthly' },
+            { label: 'Checkout · הכל כלול', path: '/subscribe/checkout?package=the_empire&billing=monthly' },
         ];
     };
 

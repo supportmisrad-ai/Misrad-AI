@@ -1,17 +1,15 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart, Compass, CreditCard, FileText, Menu, TrendingUp, User } from 'lucide-react';
+import { BarChart, FileText, Menu, TrendingUp, User } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/components/system/contexts/AuthContext';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { buildDocumentTitle } from '@/lib/room-branding';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
-import { DataProvider } from '@/context/DataContext';
-import { MeView } from '@/views/MeView';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
@@ -31,7 +29,6 @@ export default function FinanceShell(props: {
   const { pathname, roomNameHebrew, roomName, roomIconName } = useRoomBranding();
   const nextPathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const orgSlug = React.useMemo(() => parseWorkspaceRoute(nextPathname).orgSlug, [nextPathname]);
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
@@ -59,7 +56,7 @@ export default function FinanceShell(props: {
 
   const navItems = useMemo(
     () => [
-      { id: 'overview', label: 'סקירה', href: basePath, icon: TrendingUp },
+      { id: 'overview', label: 'סקירה', href: `${basePath}/overview`, icon: TrendingUp },
       { id: 'invoices', label: 'חשבוניות', href: `${basePath}/invoices`, icon: FileText },
       { id: 'expenses', label: 'הוצאות', href: `${basePath}/expenses`, icon: BarChart },
       { id: 'me', label: 'פרופיל', href: `${basePath}/me`, icon: User },
@@ -69,6 +66,7 @@ export default function FinanceShell(props: {
 
   const activeNavItem = useMemo(() => {
     const p = nextPathname || '';
+    if (p.startsWith(`${basePath}/overview`)) return navItems.find((n) => n.id === 'overview') || null;
     if (p.startsWith(`${basePath}/invoices`)) return navItems.find((n) => n.id === 'invoices') || null;
     if (p.startsWith(`${basePath}/expenses`)) return navItems.find((n) => n.id === 'expenses') || null;
     if (p.startsWith(`${basePath}/me`)) return navItems.find((n) => n.id === 'me') || null;
@@ -201,7 +199,7 @@ export default function FinanceShell(props: {
             label: 'סקירה',
             icon: TrendingUp,
             active: activeNavItem?.id === 'overview',
-            onClick: () => router.push(basePath),
+            onClick: () => router.push(`${basePath}/overview`),
           },
           {
             id: 'invoices',

@@ -8,11 +8,6 @@ export type PackageType =
   | 'the_authority'
   | 'the_operator'
   | 'the_empire'
-  | 'freelancer'
-  | 'contractor'
-  | 'agency'
-  | 'startup'
-  | 'enterprise'
   | 'the_mentor';
 
 type PackageDefinition = {
@@ -23,57 +18,32 @@ type PackageDefinition = {
 
 export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
   solo: {
-    labelHe: 'Solo (מודול בודד)',
+    labelHe: 'מודול בודד',
     modules: [],
     monthlyPrice: 149,
   },
   the_closer: {
-    labelHe: 'The Closer (מכירות)',
+    labelHe: 'חבילת מכירות',
     modules: ['system', 'nexus'],
     monthlyPrice: 249,
   },
   the_authority: {
-    labelHe: 'The Authority (שיווק)',
+    labelHe: 'חבילת שיווק ומיתוג',
     modules: ['social', 'client', 'nexus'],
     monthlyPrice: 349,
   },
   the_operator: {
-    labelHe: 'The Operator (תפעול)',
+    labelHe: 'חבילת תפעול ושטח',
     modules: ['operations', 'finance', 'nexus'],
     monthlyPrice: 349,
   },
   the_empire: {
-    labelHe: 'The Empire (הכל)',
+    labelHe: 'הכל כלול',
     modules: ['nexus', 'system', 'social', 'client', 'finance', 'operations'],
     monthlyPrice: 499,
-  },
-  enterprise: {
-    labelHe: 'Enterprise (הכל)',
-    modules: ['nexus', 'system', 'social', 'client', 'finance', 'operations'],
-    monthlyPrice: 499,
-  },
-  freelancer: {
-    labelHe: 'הפרילאנסר (Freelancer)',
-    modules: ['client', 'finance', 'social'],
-    monthlyPrice: 349,
-  },
-  contractor: {
-    labelHe: 'הקבלן (Contractor)',
-    modules: ['operations', 'system', 'finance'],
-    monthlyPrice: 349,
-  },
-  agency: {
-    labelHe: 'הסוכנות (Agency)',
-    modules: ['system', 'social', 'nexus', 'client'],
-    monthlyPrice: 399,
-  },
-  startup: {
-    labelHe: 'הסטארטאפ / SMB (Startup)',
-    modules: ['nexus', 'system', 'finance', 'operations'],
-    monthlyPrice: 399,
   },
   the_mentor: {
-    labelHe: 'The Mentor (Legacy)',
+    labelHe: 'Legacy',
     modules: ['client', 'finance', 'nexus'],
     monthlyPrice: 349,
   },
