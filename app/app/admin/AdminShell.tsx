@@ -49,7 +49,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/landing/logo', label: 'Landing', icon: Globe },
       { href: '/app/admin/ai', label: 'AI', icon: Sparkles },
       { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
-      { href: '/app/admin/legacy', label: 'מסוף ניהול מלא (Legacy)', icon: Monitor },
     ],
     []
   );

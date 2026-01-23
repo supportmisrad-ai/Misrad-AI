@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DataProvider } from '@/context/DataContext';
 import { Layout } from '@/components/Layout';
@@ -19,7 +20,6 @@ import { MeView } from '@/views/MeView';
 import { RecycleBinView } from '@/views/RecycleBinView';
 import { IntelligenceView } from '@/views/IntelligenceView';
 import { ModuleGuard } from '@/components/ModuleGuard';
-import { SaaSAdminView } from '@/views/SaaSAdminView';
 import { SalesDashboard } from '@/views/SalesDashboard';
 import { SalesPipeline } from '@/views/SalesPipeline';
 import { SalesTargets } from '@/views/SalesTargets';
@@ -137,7 +137,22 @@ export function NexusWorkspaceApp({
       case '/admin':
         return (
           <AdminGuard>
-            <SaaSAdminView />
+            <div className="p-6" dir="rtl">
+              <div className="max-w-xl rounded-3xl bg-white border border-slate-200 shadow-sm p-6">
+                <div className="text-lg font-black text-slate-900">מסוף ניהול</div>
+                <div className="text-sm text-slate-600 mt-2">
+                  מסוף הניהול המלא עבר לנתיב החדש.
+                </div>
+                <div className="mt-4">
+                  <Link
+                    href="/app/admin"
+                    className="inline-flex items-center justify-center px-5 py-3 rounded-xl bg-indigo-600 text-white font-black hover:bg-indigo-700"
+                  >
+                    מעבר למסוף החדש
+                  </Link>
+                </div>
+              </div>
+            </div>
           </AdminGuard>
         );
       case '/sales':

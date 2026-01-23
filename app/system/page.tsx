@@ -1,4 +1,4 @@
-import SystemOSLandingPage from '@/app/system-os-landing/SystemOSPageClient';
+import SystemOSLandingPage from './SystemOSPageClient';
 
 export const dynamic = 'force-dynamic';
 

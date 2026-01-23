@@ -1,4 +1,4 @@
-import ClientOSPage from '@/app/client-os-landing/ClientOSPageClient';
+import ClientOSPage from './ClientOSPageClient';
 
 export const dynamic = 'force-dynamic';
 
