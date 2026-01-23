@@ -41,6 +41,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const navItems = useMemo(
     () => [
       { href: '/app/admin', label: 'דשבורד', icon: LayoutGrid },
+      { href: '/app/admin/global', label: 'גלובלי', icon: Globe },
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Building2 },
       { href: '/app/admin/users', label: 'משתמשים', icon: Users },
       { href: '/app/admin/tenants', label: 'Tenants', icon: Server },
@@ -48,6 +49,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/support', label: 'תמיכה', icon: LifeBuoy },
       { href: '/app/admin/landing/logo', label: 'Landing', icon: Globe },
       { href: '/app/admin/ai', label: 'AI', icon: Sparkles },
+      { href: '/app/admin/legacy', label: 'ניהול מתקדם (Legacy)', icon: Monitor },
       { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
     ],
     []
