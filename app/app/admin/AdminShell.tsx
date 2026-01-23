@@ -43,6 +43,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin', label: 'דשבורד', icon: LayoutGrid },
       { href: '/app/admin/global', label: 'גלובלי', icon: Globe },
       { href: '/app/admin/modules', label: 'מודולים', icon: SlidersHorizontal },
+      { href: '/app/admin/social', label: 'Social Admin', icon: Users },
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Building2 },
       { href: '/app/admin/users', label: 'משתמשים', icon: Users },
       { href: '/app/admin/tenants', label: 'Tenants', icon: Server },
