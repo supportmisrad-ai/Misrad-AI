@@ -33,7 +33,7 @@ async function GETHandler(request: NextRequest) {
 
         // Get authenticated user
         const user = await getAuthenticatedUser();
-        console.log('[Google OAuth] Authenticated user:', { id: user.id, email: user.email });
+        console.log('[Google OAuth] Authenticated user:', { id: user.id });
         
         // Get query parameters
         const searchParams = request.nextUrl.searchParams;
@@ -60,12 +60,10 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.redirect(authUrl);
 
     } catch (error: any) {
-        console.error('[API] Error in Google OAuth authorize:', error);
-        console.error('[API] Error stack:', error.stack);
-        console.error('[API] Error details:', {
-            message: error.message,
-            name: error.name,
-            code: error.code
+        console.error('[API] Error in Google OAuth authorize:', {
+            message: error?.message,
+            name: error?.name,
+            code: error?.code
         });
         
         // Check for specific OAuth configuration errors

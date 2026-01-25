@@ -99,6 +99,27 @@ async function ensureProfileRow(params: {
     }
   }
 
+  // Concurrency-safe: if another request created the profile row first, re-fetch and return it.
+  if (createError) {
+    const msg = String((createError as any)?.message || '').toLowerCase();
+    const code = String((createError as any)?.code || '');
+    if (code === '23505' || msg.includes('duplicate key')) {
+      const { data: existingAfter, error: existingAfterError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('organization_id', params.organizationId)
+        .eq('clerk_user_id', params.clerkUserId)
+        .maybeSingle();
+
+      if (existingAfterError) {
+        throw new Error(existingAfterError.message);
+      }
+      if (existingAfter?.id) {
+        return existingAfter;
+      }
+    }
+  }
+
   if (createError) {
     throw new Error(createError.message);
   }
@@ -109,20 +130,61 @@ async function ensureProfileRow(params: {
 async function findNexusUserByEmail(params: { email: string; organizationId?: string | null }) {
   const supabase = createClient();
 
+  const queryFirst = async (queryFactory: (opts: { withOrder: boolean }) => any) => {
+    const attempt = async (withOrder: boolean) => {
+      const res = await queryFactory({ withOrder });
+      const error = (res as any)?.error;
+      const data = (res as any)?.data as any[] | null;
+
+      if ((error as any)?.code === '42703') {
+        return { data: null as any, error: null as any, missingColumn: true };
+      }
+
+      if (error) {
+        return { data: null as any, error, missingColumn: false };
+      }
+
+      const rows = Array.isArray(data) ? data : [];
+      if (rows.length > 1) {
+        console.warn('[nexus_users] duplicate rows for email', {
+          organizationId: params.organizationId ?? null,
+          ids: rows.map((r) => r?.id).filter(Boolean),
+        });
+      }
+
+      return { data: rows[0] ?? null, error: null as any, missingColumn: false };
+    };
+
+    const withOrder = await attempt(true);
+    if (withOrder.missingColumn) {
+      return attempt(false);
+    }
+    return withOrder;
+  };
+
   const tryScoped = async (columnName: 'tenant_id' | 'organization_id') => {
-    const res = await supabase
-      .from('nexus_users')
-      .select('*')
-      .eq('email', params.email)
-      .eq(columnName, params.organizationId)
-      .maybeSingle();
-    if ((res as any)?.error?.code === '42703') {
+    const { data, error, missingColumn } = await queryFirst(({ withOrder }) => {
+      let q = supabase
+        .from('nexus_users')
+        .select('*')
+        .eq('email', params.email)
+        .eq(columnName, params.organizationId)
+        .limit(2);
+
+      if (withOrder) {
+        q = q.order('updated_at', { ascending: false }).order('created_at', { ascending: false });
+      }
+
+      return q;
+    });
+
+    if (missingColumn) {
       return null;
     }
-    if (res.error) {
-      throw new Error(res.error.message);
+    if (error) {
+      throw new Error(error.message);
     }
-    return res.data;
+    return data;
   };
 
   if (params.organizationId) {
@@ -133,11 +195,13 @@ async function findNexusUserByEmail(params: { email: string; organizationId?: st
     if (byOrg?.id) return byOrg;
   }
 
-  const { data, error } = await supabase
-    .from('nexus_users')
-    .select('*')
-    .eq('email', params.email)
-    .maybeSingle();
+  const { data, error } = await queryFirst(({ withOrder }) => {
+    let q = supabase.from('nexus_users').select('*').eq('email', params.email).limit(2);
+    if (withOrder) {
+      q = q.order('updated_at', { ascending: false }).order('created_at', { ascending: false });
+    }
+    return q;
+  });
 
   if (error) {
     throw new Error(error.message);

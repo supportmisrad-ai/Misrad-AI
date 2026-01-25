@@ -22,7 +22,16 @@ language sql
 stable
 set search_path = public
 as $$
-  select nullif((auth.jwt() -> 'app_metadata' ->> 'organization_id'), '')::uuid;
+  select
+    coalesce(
+      nullif(auth.jwt() ->> 'organization_id', ''),
+      nullif(auth.jwt() ->> 'org_id', ''),
+      nullif(auth.jwt() ->> 'orgId', ''),
+      nullif((auth.jwt() -> 'org' ->> 'id'), ''),
+      nullif((auth.jwt() -> 'metadata' ->> 'organization_id'), ''),
+      nullif((auth.jwt() -> 'public_metadata' ->> 'organization_id'), ''),
+      nullif((auth.jwt() -> 'app_metadata' ->> 'organization_id'), '')
+    )::uuid;
 $$;
 
 -- Helper: apply org-scoped RLS to a given table.
@@ -117,8 +126,55 @@ select public.apply_org_rls('public.roles');
 select public.apply_org_rls('public.permissions');
 select public.apply_org_rls('public.integrations');
 
--- Social tables
-select public.apply_org_rls('public.social_posts');
+-- Subscription / Billing (public)
+select public.apply_org_rls('public.subscription_orders');
+select public.apply_org_rls('public.subscription_payment_configs');
+
+-- Content injection (public)
+select public.apply_org_rls('public.strategic_content');
+
+-- Nexus (prefixed tables)
+select public.apply_org_rls('public.nexus_clients');
+select public.apply_org_rls('public.nexus_tasks');
+select public.apply_org_rls('public.nexus_time_entries');
+select public.apply_org_rls('public.nexus_users');
+select public.apply_org_rls('public.nexus_tenants');
+
+-- Nexus (additional)
+select public.apply_org_rls('public.nexus_team_events');
+select public.apply_org_rls('public.nexus_leave_requests');
+select public.apply_org_rls('public.nexus_event_attendance');
+select public.apply_org_rls('public.nexus_employee_invitation_links');
+
+-- System (prefixed tables)
+select public.apply_org_rls('public.system_leads');
+select public.apply_org_rls('public.system_lead_activities');
+select public.apply_org_rls('public.system_lead_handovers');
+select public.apply_org_rls('public.system_invoices');
+select public.apply_org_rls('public.system_calendar_events');
+select public.apply_org_rls('public.system_webhook_logs');
+select public.apply_org_rls('public.system_call_analyses');
+select public.apply_org_rls('public.system_portal_approvals');
+select public.apply_org_rls('public.system_portal_tasks');
+select public.apply_org_rls('public.system_support_tickets');
+select public.apply_org_rls('public.system_tasks');
+select public.apply_org_rls('public.system_campaigns');
+select public.apply_org_rls('public.system_students');
+select public.apply_org_rls('public.system_content_items');
+select public.apply_org_rls('public.system_field_agents');
+select public.apply_org_rls('public.system_automations');
+select public.apply_org_rls('public.system_forms');
+select public.apply_org_rls('public.system_partners');
+select public.apply_org_rls('public.system_assets');
+select public.apply_org_rls('public.system_invitation_links');
+
+-- Misrad / Client OS (prefixed tables)
+select public.apply_org_rls('public.misrad_roles');
+select public.apply_org_rls('public.misrad_permissions');
+select public.apply_org_rls('public.misrad_integrations');
+select public.apply_org_rls('public.misrad_support_tickets');
+select public.apply_org_rls('public.misrad_calendar_sync_log');
+select public.apply_org_rls('public.misrad_feature_requests');
 select public.apply_org_rls('public.client_requests');
 select public.apply_org_rls('public.manager_requests');
 select public.apply_org_rls('public.ideas');

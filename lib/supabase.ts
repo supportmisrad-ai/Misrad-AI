@@ -30,6 +30,38 @@ export const supabase = supabaseUrl && supabaseAnonKey
   ? createSupabaseClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+type ClerkTokenProvider = () => Promise<string | null | undefined>;
+
+export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url) {
+    throw new Error('Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  if (!anonKey) {
+    throw new Error('Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  return createSupabaseClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        const token = await tokenProvider();
+        const headers = new Headers(init?.headers);
+        if (token && String(token).length > 0) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+        return fetch(input, { ...init, headers });
+      },
+    },
+  });
+}
+
 export function createServiceRoleClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -195,12 +227,12 @@ export function createClient(): SupabaseClient {
     
     return client as SupabaseClient;
   } catch (error: any) {
-    console.error('[Supabase] Error creating client:', error.message);
+    console.error('[Supabase] Error creating client:', {
+      message: error?.message,
+      name: error?.name,
+    });
     console.error('[Supabase] URL:', url ? `${url.substring(0, 30)}...` : 'MISSING');
     console.error('[Supabase] Key type:', serviceKey ? 'Service Role' : (anonKey ? 'Anon' : 'NONE'));
-    console.error('[Supabase] Key length:', key?.length || 0);
-    console.error('[Supabase] Key preview:', key ? `${key.substring(0, 20)}...` : 'MISSING');
-    console.error('[Supabase] Full error:', error);
     throw new Error(`Failed to create Supabase client: ${error.message}`);
   }
 }
@@ -218,7 +250,10 @@ export async function testConnection(): Promise<boolean> {
     const { error } = await client.from('_prisma_migrations').select('id').limit(1);
     return !error;
   } catch (error) {
-    console.error('[Supabase] Connection test failed:', error);
+    console.error('[Supabase] Connection test failed:', {
+      message: (error as any)?.message,
+      name: (error as any)?.name,
+    });
     return false;
   }
 }

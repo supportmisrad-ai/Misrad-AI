@@ -1,7 +1,7 @@
 
 'use client';
 
-import { SocialPost } from "@/types";
+import { SocialPost } from "@/types/social";
 
 /**
  * Social Media Infrastructure API Service (Advanced Simulation)
@@ -9,17 +9,6 @@ import { SocialPost } from "@/types";
  */
 
 export const publishToSocialMedia = async (post: SocialPost): Promise<{ success: boolean; url?: string; error?: string; statusId?: string }> => {
-  // Simulating retrieval of the global Infrastructure Key from system settings
-  const infraKey = "sk_live_social_os_main_gateway"; 
-  
-  console.log(`[INFRA] Initiating broadcast using Key: ${infraKey.substring(0, 10)}...`);
-  console.log(`[CLIENT] Validating Client Access Tokens for ID: ${post.clientId}`);
-
-  // Simulating per-platform token validation
-  post.platforms.forEach(platform => {
-    console.log(`[AUTH] Platform ${platform}: Token active. Scope: publish_actions, analytics_read`);
-  });
-
   // Simulating the delay of a high-performance external API call (Ayrshare/Buffer style)
   await new Promise(resolve => setTimeout(resolve, 2000));
 

@@ -59,7 +59,7 @@ export function hasPermission(userRole: UserRole, resource: string, action: Perm
  * Tenant admin shell: owner (organization-level admin)
  */
 export function canAccessAdminPanel(userRole: UserRole): boolean {
-  return userRole === 'super_admin' || userRole === 'owner';
+  return userRole === 'super_admin';
 }
 
 /**

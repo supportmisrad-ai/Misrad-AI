@@ -47,12 +47,21 @@ async function GETHandler(request: NextRequest) {
             filters.status = status;
         }
         
-        // If ownerEmail is provided, filter by it
-        // Otherwise, if user is not super admin, only show their tenant
+        // If ownerEmail is provided, allow it ONLY for super admins.
+        // Otherwise, if user is not super admin, only show their own tenant.
         if (ownerEmail) {
+            if (!user.isSuperAdmin) {
+                const normalizedRequested = String(ownerEmail || '').trim().toLowerCase();
+                const normalizedActual = String(user.email || '').trim().toLowerCase();
+                if (!normalizedActual || normalizedRequested !== normalizedActual) {
+                    return NextResponse.json(
+                        { error: 'Forbidden - ownerEmail filter is not allowed for non-super-admin' },
+                        { status: 403 }
+                    );
+                }
+            }
             filters.ownerEmail = ownerEmail;
         } else if (!user.isSuperAdmin) {
-            // Regular users can only see their own tenant
             filters.ownerEmail = user.email || undefined;
         }
         

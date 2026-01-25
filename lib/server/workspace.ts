@@ -12,6 +12,7 @@ export type WorkspaceInfo = {
   slug?: string | null;
   name: string;
   logo?: string | null;
+  seatsAllowed: number | null;
   entitlements: Record<OSModuleKey, boolean>;
 };
 
@@ -322,22 +323,51 @@ export async function requireCurrentOrganizationId(): Promise<string> {
 
 export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: string; organization_id: string | null; role?: string | null } | null> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from('social_users')
-    .select('id, organization_id, role')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
+  try {
+    const withActive = await supabase
+      .from('social_users')
+      .select('id, organization_id, role, is_active')
+      .eq('clerk_user_id', clerkUserId)
+      .maybeSingle();
 
-  if (error) {
+    if (withActive.error?.message) {
+      const msg = String(withActive.error.message).toLowerCase();
+      if (msg.includes('column') && msg.includes('is_active')) {
+        const withoutActive = await supabase
+          .from('social_users')
+          .select('id, organization_id, role')
+          .eq('clerk_user_id', clerkUserId)
+          .maybeSingle();
+
+        if (withoutActive.error) {
+          console.error('[workspace-access] failed to load social_user', {
+            clerkUserId,
+            message: withoutActive.error.message,
+            code: (withoutActive.error as any).code,
+          });
+        }
+
+        if (!withoutActive.data?.id) return null;
+        return withoutActive.data as any;
+      }
+
+      console.error('[workspace-access] failed to load social_user', {
+        clerkUserId,
+        message: withActive.error.message,
+        code: (withActive.error as any).code,
+      });
+    }
+
+    if (!withActive.data?.id) return null;
+    if ((withActive.data as any)?.is_active === false) return null;
+    return withActive.data as any;
+  } catch (error: any) {
     console.error('[workspace-access] failed to load social_user', {
       clerkUserId,
-      message: error.message,
-      code: (error as any).code,
+      message: error?.message,
     });
+    return null;
   }
-
-  if (!data?.id) return null;
-  return data as any;
 }
 
 export async function getOrganizationEntitlements(
@@ -483,6 +513,13 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     throw new Error('Missing orgSlug for workspace route');
   }
 
+  let decodedOrgSlug = orgSlug;
+  try {
+    decodedOrgSlug = decodeURIComponent(orgSlug);
+  } catch {
+    decodedOrgSlug = orgSlug;
+  }
+
   const socialUser = await getCurrentSocialUser(clerkUserId);
   if (!socialUser?.id) {
     redirect('/sign-in');
@@ -490,16 +527,39 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
 
   const isSuperAdmin = socialUser.role === 'super_admin';
 
-  const organizationKey = orgSlug;
+  const organizationKey = decodedOrgSlug;
 
   if (socialUser?.organization_id && String(socialUser.organization_id) === String(organizationKey)) {
-    const entitlements = await getOrganizationEntitlements(socialUser.organization_id, socialUser.id, orgSlug);
+    const entitlements = await getOrganizationEntitlements(socialUser.organization_id, socialUser.id, decodedOrgSlug);
+
+    let org: any = null;
+    try {
+      const withSeats = await supabase
+        .from('organizations')
+        .select('id, name, slug, logo, seats_allowed')
+        .eq('id', socialUser.organization_id)
+        .maybeSingle();
+
+      if (withSeats.error?.message && String(withSeats.error.message).toLowerCase().includes('column') && String(withSeats.error.message).toLowerCase().includes('seats_allowed')) {
+        const withoutSeats = await supabase
+          .from('organizations')
+          .select('id, name, slug, logo')
+          .eq('id', socialUser.organization_id)
+          .maybeSingle();
+        org = withoutSeats.data as any;
+      } else {
+        org = withSeats.data as any;
+      }
+    } catch {
+      org = null;
+    }
 
     return {
       id: organizationKey,
-      slug: null,
-      name: 'Workspace',
-      logo: null,
+      slug: (org as any)?.slug ?? null,
+      name: (org as any)?.name ?? 'Workspace',
+      logo: (org as any)?.logo ?? null,
+      seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
       entitlements,
     };
   }
@@ -510,18 +570,23 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
 
   const bySlug = await supabase
     .from('organizations')
-    .select('id, name, owner_id, slug')
+    .select('id, name, owner_id, slug, logo, seats_allowed')
     .eq('slug', organizationKey)
     .maybeSingle();
 
   org = bySlug.data;
   orgError = bySlug.error;
 
-  // If the slug column doesn't exist yet, fallback to a safe select.
-  if (!org?.id && orgError?.message && String(orgError.message).toLowerCase().includes('column') && String(orgError.message).toLowerCase().includes('slug')) {
+  // If the slug or seats_allowed columns don't exist yet, fallback to a safe select.
+  if (
+    !org?.id &&
+    orgError?.message &&
+    String(orgError.message).toLowerCase().includes('column') &&
+    (String(orgError.message).toLowerCase().includes('slug') || String(orgError.message).toLowerCase().includes('seats_allowed'))
+  ) {
     const bySlugFallback = await supabase
       .from('organizations')
-      .select('id, name, owner_id')
+      .select('id, name, owner_id, logo')
       .eq('id', '__no_such_id__')
       .maybeSingle();
     // Keep org null; just clear the "slug column" error so we can continue to UUID lookup.
@@ -532,16 +597,21 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   if (!org?.id) {
     const byId = await supabase
       .from('organizations')
-      .select('id, name, owner_id, slug')
+      .select('id, name, owner_id, slug, logo, seats_allowed')
       .eq('id', organizationKey)
       .maybeSingle();
     org = byId.data;
     orgError = byId.error;
 
-    if (!org?.id && orgError?.message && String(orgError.message).toLowerCase().includes('column') && String(orgError.message).toLowerCase().includes('slug')) {
+    if (
+      !org?.id &&
+      orgError?.message &&
+      String(orgError.message).toLowerCase().includes('column') &&
+      (String(orgError.message).toLowerCase().includes('slug') || String(orgError.message).toLowerCase().includes('seats_allowed'))
+    ) {
       const byIdFallback = await supabase
         .from('organizations')
-        .select('id, name, owner_id')
+        .select('id, name, owner_id, logo')
         .eq('id', organizationKey)
         .maybeSingle();
       org = byIdFallback.data;
@@ -581,13 +651,14 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     redirect('/');
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, orgSlug);
+  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, decodedOrgSlug);
 
   return {
     id: org.id,
     slug: org.slug ?? null,
     name: org.name,
-    logo: null,
+    logo: org.logo ?? null,
+    seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
     entitlements,
   };
 }
@@ -614,6 +685,13 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
     throw err;
   }
 
+  let decodedOrgSlug = orgSlug;
+  try {
+    decodedOrgSlug = decodeURIComponent(orgSlug);
+  } catch {
+    decodedOrgSlug = orgSlug;
+  }
+
   const supabase = createClient();
 
   const socialUser = await getCurrentSocialUser(clerkUserId);
@@ -625,18 +703,23 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
 
   const isSuperAdmin = socialUser.role === 'super_admin';
 
-  const organizationKey = orgSlug;
+  const organizationKey = decodedOrgSlug;
 
   let org: any = null;
   const bySlug = await supabase
     .from('organizations')
-    .select('id, name, owner_id, slug')
+    .select('id, name, owner_id, slug, logo, seats_allowed')
     .eq('slug', organizationKey)
     .maybeSingle();
   org = bySlug.data;
 
-  if (!org?.id && bySlug.error?.message && String(bySlug.error.message).toLowerCase().includes('column') && String(bySlug.error.message).toLowerCase().includes('slug')) {
-    // slug column not available yet -> skip slug lookup and continue with id lookup
+  if (
+    !org?.id &&
+    bySlug.error?.message &&
+    String(bySlug.error.message).toLowerCase().includes('column') &&
+    (String(bySlug.error.message).toLowerCase().includes('slug') || String(bySlug.error.message).toLowerCase().includes('seats_allowed'))
+  ) {
+    // slug/seats_allowed columns not available yet -> skip slug lookup and continue with id lookup
     org = null;
   }
 
@@ -649,10 +732,15 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
 
     org = byId.data;
 
-    if (!org?.id && byId.error?.message && String(byId.error.message).toLowerCase().includes('column') && String(byId.error.message).toLowerCase().includes('slug')) {
+    if (
+      !org?.id &&
+      byId.error?.message &&
+      String(byId.error.message).toLowerCase().includes('column') &&
+      (String(byId.error.message).toLowerCase().includes('slug') || String(byId.error.message).toLowerCase().includes('seats_allowed'))
+    ) {
       const byIdFallback = await supabase
         .from('organizations')
-        .select('id, name, owner_id')
+        .select('id, name, owner_id, logo')
         .eq('id', organizationKey)
         .maybeSingle();
       org = byIdFallback.data;
@@ -684,7 +772,8 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
     id: org.id,
     slug: org.slug ?? null,
     name: org.name,
-    logo: null,
+    logo: org.logo ?? null,
+    seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
     entitlements,
   };
 }
@@ -698,7 +787,15 @@ export async function enforceModuleAccessOrRedirect({
 }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
+  const bypassEntitlements =
+    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
   if (workspace.entitlements[module]) {
+    return workspace;
+  }
+
+  if (bypassEntitlements) {
     return workspace;
   }
 

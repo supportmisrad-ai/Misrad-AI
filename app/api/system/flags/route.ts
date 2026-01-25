@@ -242,7 +242,7 @@ async function PATCHHandler(request: NextRequest) {
         }
 
         // Log the change
-        console.log(`[System Flag] ${screenId} → ${status} by ${user.email} for tenant ${tenantId}`);
+        console.log(`[System Flag] ${screenId} → ${status} by userId=${user.id} for tenant ${tenantId}`);
 
         return NextResponse.json({
             success: true,

@@ -37,6 +37,7 @@ export async function inviteTeamMember(
     const caps = computeWorkspaceCapabilities({
       entitlements: ws?.entitlements,
       fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
+      seatsAllowedOverride: ws.seatsAllowed,
     });
 
     if (!caps.isTeamManagementEnabled) {
@@ -102,6 +103,12 @@ async function sendTeamInvitationEmail(params: {
     const { sendInvitationEmail } = await import('./email');
     const { resend, isResendConfigured } = await import('@/lib/resend');
 
+    const resolveRecipientEmail = (originalTo: string): string => {
+      const override = process.env.RESEND_TEST_TO;
+      if (!override) return originalTo;
+      return String(override).trim() || originalTo;
+    };
+
     if (!isResendConfigured() || !resend) {
       // If Resend is not configured, Clerk will send the default invitation email
       return { success: true };
@@ -117,10 +124,11 @@ async function sendTeamInvitationEmail(params: {
     const roleName = roleNames[params.role] || params.role;
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const toEmail = resolveRecipientEmail(params.email);
 
     const { error } = await resend.emails.send({
       from: fromEmail,
-      to: params.email,
+      to: toEmail,
       subject: `הזמנה להצטרף ל-Social OS - ${roleName}`,
       html: `
         <!DOCTYPE html>

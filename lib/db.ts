@@ -85,20 +85,84 @@ export async function initDatabase(): Promise<void> {
  */
 export async function getUsers(filters?: {
     userId?: string;
+    userIds?: string[];
     department?: string;
     role?: string;
     email?: string;
     tenantId?: string;
+    allowUnscoped?: boolean;
+    page?: number;
+    pageSize?: number;
 }): Promise<User[]> {
     await initDatabase();
     assertDbAvailable('getUsers');
     
     try {
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        if (filters?.allowUnscoped && !filters?.tenantId && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            throw new Error('Unscoped access forbidden in production');
+        }
+
+        const mapUserRow = (row: any): User => {
+            const parseJson = (jsonStr: string | null | undefined) => {
+                if (!jsonStr) return undefined;
+                try {
+                    return typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+                } catch (e) {
+                    console.warn('[DB] Failed to parse JSON:', e);
+                    return undefined;
+                }
+            };
+
+            // Support both legacy nexus_users and tenant-scoped social_users rows.
+            const id = String(row?.id ?? '');
+            const name = String(row?.name ?? row?.full_name ?? row?.fullName ?? row?.email ?? '');
+            const avatar = String(row?.avatar ?? row?.avatar_url ?? row?.avatarUrl ?? '');
+            const tenantId = row?.tenant_id ?? row?.organization_id ?? row?.tenantId ?? null;
+
+            return {
+                id,
+                name,
+                role: String(row?.role ?? 'עובד'),
+                department: row?.department ?? undefined,
+                avatar,
+                online: Boolean(row?.online ?? true),
+                capacity: Number(row?.capacity ?? 0),
+                email: row?.email ?? undefined,
+                phone: row?.phone ?? undefined,
+                location: row?.location ?? undefined,
+                bio: row?.bio ?? undefined,
+                paymentType: row?.payment_type,
+                hourlyRate: row?.hourly_rate ? parseFloat(row.hourly_rate) : undefined,
+                monthlySalary: row?.monthly_salary ? parseFloat(row.monthly_salary) : undefined,
+                commissionPct: row?.commission_pct,
+                bonusPerTask: row?.bonus_per_task ? parseFloat(row.bonus_per_task) : undefined,
+                accumulatedBonus: row?.accumulated_bonus ? parseFloat(row.accumulated_bonus) : 0,
+                streakDays: row?.streak_days || 0,
+                weeklyScore: row?.weekly_score ? parseFloat(row.weekly_score) : undefined,
+                notificationPreferences: parseJson(row?.notification_preferences),
+                uiPreferences: parseJson(row?.ui_preferences),
+                targets: parseJson(row?.targets),
+                pendingReward: parseJson(row?.pending_reward),
+                billingInfo: parseJson(row?.billing_info),
+                twoFactorEnabled: row?.two_factor_enabled || false,
+                isSuperAdmin: row?.is_super_admin || false,
+                managerId: row?.manager_id || undefined,
+                managedDepartment: row?.managed_department || undefined,
+                tenantId: tenantId ? String(tenantId) : undefined,
+            } as User;
+        };
+
         const buildBaseQuery = () => {
             let query = supabase.from('nexus_users').select('*');
 
             if (filters?.userId) {
                 query = query.eq('id', filters.userId);
+            }
+            if (filters?.userIds?.length) {
+                query = query.in('id', filters.userIds);
             }
             if (filters?.email) {
                 query = query.eq('email', filters.email).limit(1); // Exact match, limit to 1 for performance
@@ -110,11 +174,46 @@ export async function getUsers(filters?: {
                 query = query.eq('role', filters.role);
             }
 
+            if (typeof filters?.pageSize === 'number' && Number.isFinite(filters.pageSize)) {
+                const pageSize = Math.min(200, Math.max(1, Math.floor(filters.pageSize)));
+                const page = Math.max(1, Math.floor(typeof filters?.page === 'number' && Number.isFinite(filters.page) ? filters.page : 1));
+                const offset = (page - 1) * pageSize;
+                const endInclusive = offset + pageSize;
+                query = query.range(offset, endInclusive);
+            }
+
+            return query;
+        };
+
+        const buildSocialUsersFallbackQuery = () => {
+            if (!filters?.tenantId) {
+                throw new Error('[DB] getUsers: Missing tenantId (Tenant Isolation lockdown)');
+            }
+
+            let query = supabase.from('social_users').select('*').eq('organization_id', filters.tenantId);
+
+            if (filters?.userId) {
+                query = query.eq('id', filters.userId);
+            }
+            if (filters?.userIds?.length) {
+                query = query.in('id', filters.userIds);
+            }
+            if (filters?.email) {
+                query = query.eq('email', filters.email).limit(1);
+            }
+            if (filters?.role) {
+                // social_users.role exists in most deployments; best-effort.
+                query = query.eq('role', filters.role);
+            }
+
             return query;
         };
 
         const tryTenantScopedQuery = async () => {
             if (!filters?.tenantId) {
+                if (filters?.allowUnscoped) {
+                    return await buildBaseQuery();
+                }
                 throw new Error('[DB] getUsers: Missing tenantId (Tenant Isolation lockdown)');
             }
 
@@ -124,7 +223,20 @@ export async function getUsers(filters?: {
             if ((byTenant as any)?.error?.code === '42703') {
                 const byOrg = await buildBaseQuery().eq('organization_id', filters.tenantId);
                 if ((byOrg as any)?.error?.code === '42703') {
-                    throw new Error('[DB] getUsers: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                    const hasStrongFilter = Boolean(filters?.userId || filters?.email || (filters?.userIds && filters.userIds.length > 0));
+                    if (hasStrongFilter) {
+                        // Safe fallback: still filtered to specific users.
+                        // This prevents Finance/other pages from crashing when no scoping columns exist.
+                        return await buildBaseQuery();
+                    }
+
+                    // Fail closed: do NOT run unscoped on nexus_users.
+                    // Try a tenant-scoped source that we know *usually* has organization_id.
+                    const socialFallback = await buildSocialUsersFallbackQuery();
+                    if ((socialFallback as any)?.error?.code === '42703') {
+                        throw new Error('[DB] getUsers: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                    }
+                    return socialFallback;
                 }
                 return byOrg;
             }
@@ -139,39 +251,7 @@ export async function getUsers(filters?: {
         }
         
         // Transform database records to User interface
-        return (data || []).map((row: any) => {
-            const parseJson = (jsonStr: string | null | undefined) => {
-                if (!jsonStr) return undefined;
-                try {
-                    return typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
-                } catch (e) {
-                    console.warn('[DB] Failed to parse JSON:', e);
-                    return undefined;
-                }
-            };
-            
-            return {
-                ...row,
-                paymentType: row.payment_type,
-                hourlyRate: row.hourly_rate ? parseFloat(row.hourly_rate) : undefined,
-                monthlySalary: row.monthly_salary ? parseFloat(row.monthly_salary) : undefined,
-                commissionPct: row.commission_pct,
-                bonusPerTask: row.bonus_per_task ? parseFloat(row.bonus_per_task) : undefined,
-                accumulatedBonus: row.accumulated_bonus ? parseFloat(row.accumulated_bonus) : 0,
-                streakDays: row.streak_days || 0,
-                weeklyScore: row.weekly_score ? parseFloat(row.weekly_score) : undefined,
-                notificationPreferences: parseJson(row.notification_preferences),
-                uiPreferences: parseJson(row.ui_preferences),
-                targets: parseJson(row.targets),
-                pendingReward: parseJson(row.pending_reward),
-                billingInfo: parseJson(row.billing_info),
-                twoFactorEnabled: row.two_factor_enabled || false,
-                isSuperAdmin: row.is_super_admin || false,
-                managerId: row.manager_id || undefined, // NEW: Hierarchy support
-                managedDepartment: row.managed_department || undefined, // NEW: Department manager support
-                tenantId: row.tenant_id || row.organization_id || undefined, // NEW: Tenant/Organization ID support
-            };
-        }) as User[];
+        return (data || []).map((row: any) => mapUserRow(row)) as User[];
     } catch (error) {
         console.error('[DB] Error in getUsers:', error);
         throw error;
@@ -187,32 +267,53 @@ export async function getTasks(filters?: {
     status?: string;
     priority?: string;
     clientId?: string;
+    organizationId?: string;
+    tenantId?: string;
 }): Promise<Task[]> {
     await initDatabase();
     assertDbAvailable('getTasks');
     
     try {
-        let query = supabase.from('nexus_tasks').select('*');
+        const scopeId = filters?.organizationId || filters?.tenantId;
+        if (!scopeId) {
+            throw new Error('[DB] getTasks: Missing organizationId/tenantId (Tenant Isolation lockdown)');
+        }
+
+        const buildBaseQuery = () => {
+            let query = supabase.from('nexus_tasks').select('*');
+
+            if (filters?.taskId) {
+                query = query.eq('id', filters.taskId);
+            }
+            if (filters?.status) {
+                query = query.eq('status', filters.status);
+            }
+            if (filters?.priority) {
+                query = query.eq('priority', filters.priority);
+            }
+            if (filters?.clientId) {
+                query = query.eq('client_id', filters.clientId);
+            }
+            if (filters?.assigneeId) {
+                query = query.or(`assignee_ids.cs.{${filters.assigneeId}},assignee_id.eq.${filters.assigneeId}`);
+            }
+
+            return query;
+        };
+
+        const tryScopedQuery = async () => {
+            const byOrg = await buildBaseQuery().eq('organization_id', scopeId);
+            if ((byOrg as any)?.error?.code === '42703') {
+                const byTenant = await buildBaseQuery().eq('tenant_id', scopeId);
+                if ((byTenant as any)?.error?.code === '42703') {
+                    throw new Error('[DB] getTasks: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                }
+                return byTenant;
+            }
+            return byOrg;
+        };
     
-    if (filters?.taskId) {
-            query = query.eq('id', filters.taskId);
-    }
-    if (filters?.status) {
-            query = query.eq('status', filters.status);
-    }
-    if (filters?.priority) {
-            query = query.eq('priority', filters.priority);
-    }
-    if (filters?.clientId) {
-            query = query.eq('client_id', filters.clientId);
-        }
-        if (filters?.assigneeId) {
-            // Check if assigneeId is in assignee_ids array OR matches assignee_id
-            // Using contains operator for array check
-            query = query.or(`assignee_ids.cs.{${filters.assigneeId}},assignee_id.eq.${filters.assigneeId}`);
-        }
-        
-        const { data, error } = await query;
+        const { data, error } = await tryScopedQuery();
         
         if (error) {
             console.error('[DB] Error fetching tasks:', error);
@@ -267,6 +368,88 @@ export async function getTasks(filters?: {
     }
 }
 
+export async function getTimeEntries(filters?: {
+    entryId?: string;
+    userId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    organizationId?: string;
+    tenantId?: string;
+    page?: number;
+    pageSize?: number;
+}): Promise<TimeEntry[]> {
+    await initDatabase();
+    assertDbAvailable('getTimeEntries');
+    
+    try {
+        const scopeId = filters?.organizationId || filters?.tenantId;
+        if (!scopeId) {
+            throw new Error('[DB] getTimeEntries: Missing organizationId/tenantId (Tenant Isolation lockdown)');
+        }
+
+        const buildBaseQuery = () => {
+            let query = supabase.from('nexus_time_entries').select('*');
+
+            if (filters?.entryId) {
+                query = query.eq('id', filters.entryId);
+            }
+            if (filters?.userId) {
+                query = query.eq('user_id', filters.userId);
+            }
+            if (filters?.dateFrom) {
+                query = query.gte('date', filters.dateFrom);
+            }
+            if (filters?.dateTo) {
+                query = query.lte('date', filters.dateTo);
+            }
+
+            if (typeof filters?.pageSize === 'number' && Number.isFinite(filters.pageSize)) {
+                const pageSize = Math.min(200, Math.max(1, Math.floor(filters.pageSize)));
+                const page = Math.max(1, Math.floor(typeof filters?.page === 'number' && Number.isFinite(filters.page) ? filters.page : 1));
+                const offset = (page - 1) * pageSize;
+                const endInclusive = offset + pageSize;
+                query = query.range(offset, endInclusive);
+            }
+
+            return query;
+        };
+
+        const tryScopedQuery = async () => {
+            const byOrg = await buildBaseQuery().eq('organization_id', scopeId);
+            if ((byOrg as any)?.error?.code === '42703') {
+                const byTenant = await buildBaseQuery().eq('tenant_id', scopeId);
+                if ((byTenant as any)?.error?.code === '42703') {
+                    throw new Error('[DB] getTimeEntries: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                }
+                return byTenant;
+            }
+            return byOrg;
+        };
+
+        const { data, error } = await tryScopedQuery();
+        
+        if (error) {
+            console.error('[DB] Error fetching time entries:', error);
+            throw new Error(error.message || 'Failed to fetch time entries');
+        }
+        
+        return (data || []).map((row: any) => ({
+            id: row.id,
+            userId: row.user_id,
+            startTime: row.start_time,
+            endTime: row.end_time,
+            date: row.date,
+            durationMinutes: row.duration_minutes,
+            voidReason: row.void_reason,
+            voidedBy: row.voided_by,
+            voidedAt: row.voided_at,
+        })) as TimeEntry[];
+    } catch (error) {
+        console.error('[DB] Error in getTimeEntries:', error);
+        throw error;
+    }
+}
+
 /**
  * Get clients from database
  */
@@ -274,26 +457,44 @@ export async function getClients(filters?: {
     clientId?: string;
     searchTerm?: string;
     organizationId?: string;
+    tenantId?: string;
 }): Promise<Client[]> {
     await initDatabase();
     assertDbAvailable('getClients');
     
     try {
-        let query = supabase.from('nexus_clients').select('*');
+        const scopeId = filters?.organizationId || filters?.tenantId;
+        if (!scopeId) {
+            throw new Error('[DB] getClients: Missing organizationId/tenantId (Tenant Isolation lockdown)');
+        }
 
-        if (filters?.organizationId) {
-            query = query.eq('organization_id', filters.organizationId);
-        }
+        const buildBaseQuery = () => {
+            let query = supabase.from('nexus_clients').select('*');
+
+            if (filters?.clientId) {
+                query = query.eq('id', filters.clientId);
+            }
+            if (filters?.searchTerm) {
+                const term = filters.searchTerm.toLowerCase();
+                query = query.or(`name.ilike.%${term}%,company_name.ilike.%${term}%,email.ilike.%${term}%`);
+            }
+
+            return query;
+        };
+
+        const tryScopedQuery = async () => {
+            const byOrg = await buildBaseQuery().eq('organization_id', scopeId);
+            if ((byOrg as any)?.error?.code === '42703') {
+                const byTenant = await buildBaseQuery().eq('tenant_id', scopeId);
+                if ((byTenant as any)?.error?.code === '42703') {
+                    throw new Error('[DB] getClients: No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)');
+                }
+                return byTenant;
+            }
+            return byOrg;
+        };
     
-    if (filters?.clientId) {
-            query = query.eq('id', filters.clientId);
-    }
-    if (filters?.searchTerm) {
-        const term = filters.searchTerm.toLowerCase();
-            query = query.or(`name.ilike.%${term}%,company_name.ilike.%${term}%,email.ilike.%${term}%`);
-        }
-        
-        const { data, error } = await query;
+        const { data, error } = await tryScopedQuery();
         
         if (error) {
             console.error('[DB] Error fetching clients:', error);
@@ -322,78 +523,6 @@ export async function getClients(filters?: {
 }
 
 /**
- * Get time entries from database
- */
-export async function getTimeEntries(filters?: {
-    entryId?: string;
-    userId?: string;
-    dateFrom?: string;
-    dateTo?: string;
-    tenantId?: string;
-}): Promise<TimeEntry[]> {
-    await initDatabase();
-    assertDbAvailable('getTimeEntries');
-    
-    try {
-        const buildBaseQuery = () => {
-            let query = supabase.from('nexus_time_entries').select('*');
-
-            if (filters?.entryId) {
-                query = query.eq('id', filters.entryId);
-            }
-            if (filters?.userId) {
-                query = query.eq('user_id', filters.userId);
-            }
-            if (filters?.dateFrom) {
-                query = query.gte('date', filters.dateFrom);
-            }
-            if (filters?.dateTo) {
-                query = query.lte('date', filters.dateTo);
-            }
-
-            return query;
-        };
-
-        const tryTenantScopedQuery = async () => {
-            if (!filters?.tenantId) {
-                throw new Error('[DB] getTimeEntries: Missing tenantId (Tenant Isolation lockdown)');
-            }
-
-            // Emergency isolation: do NOT fall back to unscoped queries.
-            const baseQuery = buildBaseQuery();
-            const result = await baseQuery.eq('organization_id', filters.tenantId);
-            if ((result as any)?.error?.code === '42703') {
-                throw new Error('[DB] getTimeEntries: No organization_id column (Tenant Isolation lockdown)');
-            }
-            return result;
-        };
-        
-        const { data, error } = await tryTenantScopedQuery();
-        
-        if (error) {
-            console.error('[DB] Error fetching time entries:', error);
-            throw new Error(error.message || 'Failed to fetch time entries');
-        }
-        
-        // Transform database records to TimeEntry interface
-        return (data || []).map((row: any) => ({
-            id: row.id,
-            userId: row.user_id,
-            startTime: row.start_time,
-            endTime: row.end_time,
-            date: row.date,
-            durationMinutes: row.duration_minutes,
-            voidReason: row.void_reason,
-            voidedBy: row.voided_by,
-            voidedAt: row.voided_at,
-        })) as TimeEntry[];
-    } catch (error) {
-        console.error('[DB] Error in getTimeEntries:', error);
-        throw error;
-    }
-}
-
-/**
  * Get tenants from database
  */
 export async function getTenants(filters?: {
@@ -404,10 +533,10 @@ export async function getTenants(filters?: {
 }): Promise<Tenant[]> {
     await initDatabase();
     assertDbAvailable('getTenants');
-    
+
     try {
         let query = supabase.from('nexus_tenants').select('*');
-        
+
         if (filters?.tenantId) {
             query = query.eq('id', filters.tenantId);
         }
@@ -420,15 +549,14 @@ export async function getTenants(filters?: {
         if (filters?.subdomain) {
             query = query.eq('subdomain', filters.subdomain);
         }
-        
+
         const { data, error } = await query;
-        
+
         if (error) {
             console.error('[DB] Error fetching tenants:', error);
             throw new Error(error.message || 'Failed to fetch tenants');
         }
-        
-        // Transform database records to Tenant interface
+
         return (data || []).map((row: any) => ({
             id: row.id,
             name: row.name,
@@ -453,67 +581,6 @@ export async function getTenants(filters?: {
 }
 
 /**
- * Get financial data (aggregated)
- */
-export async function getFinancialData(filters?: {
-    userId?: string;
-    department?: string;
-    dateFrom?: string;
-    dateTo?: string;
-}): Promise<{
-    users: Array<{
-        user: User;
-        totalHours: number;
-        totalMinutes: number;
-        estimatedCost: number;
-        entriesCount: number;
-    }>;
-    totalRevenue: number;
-    totalCost: number;
-    netProfit: number;
-}> {
-    await initDatabase();
-    assertDbAvailable('getFinancialData');
-    
-    const users = await getUsers({ department: filters?.department });
-    const timeEntries = await getTimeEntries({
-        userId: filters?.userId,
-        dateFrom: filters?.dateFrom,
-        dateTo: filters?.dateTo
-    });
-    
-    const financialUsers = users.map(user => {
-        const userEntries = timeEntries.filter(e => e.userId === user.id && e.endTime);
-        const totalMinutes = userEntries.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
-        const totalHours = totalMinutes / 60;
-        
-        let estimatedCost = 0;
-        if (user.paymentType === 'hourly') {
-            estimatedCost = totalHours * (user.hourlyRate || 0);
-        } else if (user.paymentType === 'monthly') {
-            estimatedCost = user.monthlySalary || 0;
-        }
-        
-        return {
-            user,
-            totalHours,
-            totalMinutes,
-            estimatedCost,
-            entriesCount: userEntries.length
-        };
-    });
-    
-    const totalCost = financialUsers.reduce((sum, f) => sum + f.estimatedCost, 0);
-    
-    return {
-        users: financialUsers,
-        totalRevenue: 0, // TODO: Calculate from leads/sales
-        totalCost,
-        netProfit: 0 - totalCost // TODO: Calculate properly
-    };
-}
-
-/**
  * Create a new record
  */
 export async function createRecord<T extends { id: string }>(
@@ -521,6 +588,7 @@ export async function createRecord<T extends { id: string }>(
     data: Omit<T, 'id'>,
     options?: {
         organizationId?: string;
+        tenantId?: string;
     }
 ): Promise<T> {
     await initDatabase();
@@ -608,10 +676,6 @@ export async function createRecord<T extends { id: string }>(
                 assets_folder_url: clientData.assetsFolderUrl,
                 source: clientData.source,
             };
-
-            if (options?.organizationId) {
-                dbData.organization_id = options.organizationId;
-            }
         } else if (table === 'time_entries') {
             const entryData = data as unknown as Omit<TimeEntry, 'id'>;
             dbData = {
@@ -624,10 +688,6 @@ export async function createRecord<T extends { id: string }>(
                 voided_by: entryData.voidedBy,
                 voided_at: entryData.voidedAt,
             };
-
-            if (options?.organizationId) {
-                dbData.organization_id = options.organizationId;
-            }
         } else if (table === 'tenants') {
             const tenantData = data as unknown as Omit<Tenant, 'id'>;
             dbData = {
@@ -648,25 +708,51 @@ export async function createRecord<T extends { id: string }>(
             };
         }
         
-        const { data: insertedData, error } = await supabase
-            .from(dbTableName)
-            .insert(dbData)
-            .select()
-            .single();
+        const requiresOrg = table === 'users' || table === 'tasks' || table === 'clients' || table === 'time_entries';
+        if (requiresOrg && !options?.organizationId) {
+            throw new Error(`[DB] createRecord(${table}): Missing organizationId (Tenant Isolation lockdown)`);
+        }
+
+        const organizationId = options?.organizationId;
+
+        let insertedData: any;
+        let error: any;
+
+        if (requiresOrg && organizationId) {
+            const byOrg = await supabase
+                .from(dbTableName)
+                .insert({ ...dbData, organization_id: organizationId })
+                .select()
+                .single();
+            insertedData = byOrg.data;
+            error = byOrg.error;
+
+            if (error?.code === '42703') {
+                const byTenant = await supabase
+                    .from(dbTableName)
+                    .insert({ ...dbData, tenant_id: organizationId })
+                    .select()
+                    .single();
+                insertedData = byTenant.data;
+                error = byTenant.error;
+
+                if (error?.code === '42703') {
+                    throw new Error(`[DB] createRecord(${table}): No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)`);
+                }
+            }
+        } else {
+            const res = await supabase
+                .from(dbTableName)
+                .insert(dbData)
+                .select()
+                .single();
+            insertedData = res.data;
+            error = res.error;
+        }
         
         if (error) {
             console.error(`[DB] Error creating ${table}:`, error);
             throw error;
-        }
-        
-        if (!insertedData) {
-            console.error(`[DB] No data returned for ${table}`);
-            throw new Error(`Failed to create ${table}: No data returned`);
-        }
-        
-        if (!insertedData.id) {
-            console.error(`[DB] Missing ID in returned data for ${table}:`, insertedData);
-            throw new Error(`Failed to create ${table}: No ID returned from database`);
         }
         
         // Transform back to interface format
@@ -727,7 +813,7 @@ export async function createRecord<T extends { id: string }>(
                 ...insertedData,
                 ownerEmail: insertedData.owner_email,
                 joinedAt: insertedData.joined_at,
-                usersCount: insertedData.users_count,
+                usersCount: insertedData.users_count || 0,
                 allowedEmails: insertedData.allowed_emails || [],
                 requireApproval: insertedData.require_approval || false,
             } as T;
@@ -837,21 +923,40 @@ export async function updateRecord<T extends { id: string }>(
         
         // Map table names to actual database table names
         const dbTableName = TABLE_NAME_MAP[table] || table;
-        
-        let updateQuery = supabase
+
+        const baseQuery = supabase
             .from(dbTableName)
             .update(dbUpdates)
             .eq('id', id);
 
-        if (table === 'clients' && options?.organizationId) {
-            updateQuery = updateQuery.eq('organization_id', options.organizationId);
-        }
+        let updatedData: any;
+        let error: any;
 
-        if (table === 'time_entries' && options?.organizationId) {
-            updateQuery = updateQuery.eq('organization_id', options.organizationId);
-        }
+        const requiresOrg = table === 'users' || table === 'tasks' || table === 'clients' || table === 'time_entries';
 
-        const { data: updatedData, error } = await updateQuery.select().single();
+        if (requiresOrg) {
+            if (!options?.organizationId) {
+                throw new Error(`[DB] updateRecord(${table}): Missing organizationId (Tenant Isolation lockdown)`);
+            }
+
+            const byOrg = await baseQuery.eq('organization_id', options.organizationId).select().single();
+            updatedData = byOrg.data;
+            error = byOrg.error;
+
+            if (error?.code === '42703') {
+                const byTenant = await baseQuery.eq('tenant_id', options.organizationId).select().single();
+                updatedData = byTenant.data;
+                error = byTenant.error;
+
+                if (error?.code === '42703') {
+                    throw new Error(`[DB] updateRecord(${table}): No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)`);
+                }
+            }
+        } else {
+            const res = await baseQuery.select().single();
+            updatedData = res.data;
+            error = res.error;
+        }
         
         if (error) {
             console.error(`[DB] Error updating ${table}:`, error);
@@ -883,7 +988,10 @@ export async function updateRecord<T extends { id: string }>(
  */
 export async function deleteRecord(
     table: 'users' | 'tasks' | 'clients' | 'time_entries' | 'tenants',
-    id: string
+    id: string,
+    options?: {
+        organizationId?: string;
+    }
 ): Promise<void> {
     await initDatabase();
     assertDbAvailable('deleteRecord');
@@ -892,10 +1000,34 @@ export async function deleteRecord(
         // Map table names to actual database table names
         const dbTableName = TABLE_NAME_MAP[table] || table;
         
-        const { error } = await supabase
+        const baseQuery = supabase
             .from(dbTableName)
             .delete()
             .eq('id', id);
+
+        let error: any;
+
+        const requiresOrg = table === 'users' || table === 'tasks' || table === 'clients' || table === 'time_entries';
+        if (requiresOrg) {
+            if (!options?.organizationId) {
+                throw new Error(`[DB] deleteRecord(${table}): Missing organizationId (Tenant Isolation lockdown)`);
+            }
+
+            const byOrg = await baseQuery.eq('organization_id', options.organizationId);
+            error = (byOrg as any)?.error;
+
+            if (error?.code === '42703') {
+                const byTenant = await baseQuery.eq('tenant_id', options.organizationId);
+                error = (byTenant as any)?.error;
+
+                if (error?.code === '42703') {
+                    throw new Error(`[DB] deleteRecord(${table}): No tenant scoping column (tenant_id/organization_id) (Tenant Isolation lockdown)`);
+                }
+            }
+        } else {
+            const res = await baseQuery;
+            error = (res as any)?.error;
+        }
         
         if (error) {
             console.error(`[DB] Error deleting ${table}:`, error);
@@ -915,6 +1047,7 @@ export async function deleteRecord(
 
 /**
  * Get all permissions from database
+ * @deprecated Legacy RBAC tables (misrad_permissions). Do not use in new code.
  */
 export async function getPermissions(): Promise<Array<{ id: PermissionId; label: string; description: string; category: string }>> {
     await initDatabase();
@@ -945,6 +1078,7 @@ export async function getPermissions(): Promise<Array<{ id: PermissionId; label:
 
 /**
  * Get all roles from database
+ * @deprecated Legacy RBAC tables (misrad_roles). Do not use in new code.
  */
 export async function getRoles(): Promise<RoleDefinition[]> {
     await initDatabase();
@@ -976,6 +1110,7 @@ export async function getRoles(): Promise<RoleDefinition[]> {
 
 /**
  * Get role by name
+ * @deprecated Legacy RBAC tables (misrad_roles). Do not use in new code.
  */
 export async function getRoleByName(name: string): Promise<RoleDefinition | null> {
     await initDatabase();
@@ -1007,6 +1142,7 @@ export async function getRoleByName(name: string): Promise<RoleDefinition | null
 
 /**
  * Create a new role
+ * @deprecated Legacy RBAC tables (misrad_roles). Do not use in new code.
  */
 export async function createRole(role: Omit<RoleDefinition, 'id'>): Promise<RoleDefinition> {
     await initDatabase();
@@ -1044,6 +1180,7 @@ export async function createRole(role: Omit<RoleDefinition, 'id'>): Promise<Role
 
 /**
  * Update a role
+ * @deprecated Legacy RBAC tables (misrad_roles). Do not use in new code.
  */
 export async function updateRole(roleId: string, updates: Partial<RoleDefinition>): Promise<RoleDefinition> {
     await initDatabase();
@@ -1083,6 +1220,7 @@ export async function updateRole(roleId: string, updates: Partial<RoleDefinition
 
 /**
  * Delete a role (only if not system role)
+ * @deprecated Legacy RBAC tables (misrad_roles). Do not use in new code.
  */
 export async function deleteRole(roleId: string): Promise<void> {
     await initDatabase();
@@ -1239,6 +1377,124 @@ export async function setUserManager(userId: string, managerId: string | null | 
         console.log('[DB] Set manager:', managerId, 'for user:', userId);
     } catch (error) {
         console.error('[DB] Error in setUserManager:', error);
+        throw error;
+    }
+}
+
+export async function setUserManagerForTenant(
+    userId: string,
+    managerId: string | null | undefined,
+    tenantId: string
+): Promise<void> {
+    await initDatabase();
+    assertDbAvailable('setUserManagerForTenant');
+
+    if (!tenantId) {
+        throw new Error('Missing tenantId');
+    }
+
+    try {
+        if (managerId === userId) {
+            throw new Error('User cannot be their own manager');
+        }
+
+        const fetchManager = async (id: string) => {
+            const byTenant = await supabase
+                .from('nexus_users')
+                .select('manager_id')
+                .eq('id', id)
+                .eq('tenant_id', tenantId)
+                .single();
+
+            if (byTenant?.error?.code === '42703') {
+                return await supabase
+                    .from('nexus_users')
+                    .select('manager_id')
+                    .eq('id', id)
+                    .eq('organization_id', tenantId)
+                    .single();
+            }
+
+            return byTenant;
+        };
+
+        const fetchUserExists = async (id: string) => {
+            const byTenant = await supabase
+                .from('nexus_users')
+                .select('id')
+                .eq('id', id)
+                .eq('tenant_id', tenantId)
+                .single();
+
+            if (byTenant?.error?.code === '42703') {
+                return await supabase
+                    .from('nexus_users')
+                    .select('id')
+                    .eq('id', id)
+                    .eq('organization_id', tenantId)
+                    .single();
+            }
+
+            return byTenant;
+        };
+
+        const userRow = await fetchUserExists(userId);
+        if (userRow?.error || !userRow?.data) {
+            throw new Error('User not found');
+        }
+
+        if (managerId) {
+            const managerRow = await fetchUserExists(managerId);
+            if (managerRow?.error || !managerRow?.data) {
+                throw new Error('Manager not found');
+            }
+
+            const managerData = await fetchManager(managerId);
+            if (managerData?.error && managerData.error.code !== 'PGRST116') {
+                throw managerData.error;
+            }
+
+            if ((managerData as any)?.data?.manager_id === userId) {
+                throw new Error('Circular hierarchy detected: Cannot set manager - this would create a loop');
+            }
+
+            let currentManagerId = (managerData as any)?.data?.manager_id;
+            const visited = new Set<string>([userId, managerId]);
+
+            while (currentManagerId) {
+                if (visited.has(String(currentManagerId))) {
+                    throw new Error('Circular hierarchy detected: This manager chain would create a loop');
+                }
+                visited.add(String(currentManagerId));
+
+                const nextManager = await fetchManager(String(currentManagerId));
+                if (nextManager?.error && nextManager.error.code !== 'PGRST116') {
+                    break;
+                }
+
+                currentManagerId = (nextManager as any)?.data?.manager_id || null;
+            }
+        }
+
+        const tryUpdate = async (column: 'tenant_id' | 'organization_id') => {
+            return await supabase
+                .from('nexus_users')
+                .update({ manager_id: managerId ?? null })
+                .eq('id', userId)
+                .eq(column, tenantId);
+        };
+
+        const byTenantUpdate = await tryUpdate('tenant_id');
+        if (byTenantUpdate?.error?.code === '42703') {
+            const byOrgUpdate = await tryUpdate('organization_id');
+            if (byOrgUpdate?.error) {
+                throw byOrgUpdate.error;
+            }
+        } else if (byTenantUpdate?.error) {
+            throw byTenantUpdate.error;
+        }
+    } catch (error) {
+        console.error('[DB] Error in setUserManagerForTenant:', error);
         throw error;
     }
 }

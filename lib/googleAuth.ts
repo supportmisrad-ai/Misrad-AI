@@ -36,7 +36,10 @@ export async function getAuthenticatedGoogleClient(
       oauth2Client.setCredentials(credentials);
       return { client: oauth2Client, newAccessToken: credentials.access_token };
     } catch (error) {
-      console.error('Error refreshing Google token:', error);
+      console.error('Error refreshing Google token:', {
+        message: (error as any)?.message,
+        name: (error as any)?.name,
+      });
     }
   }
 

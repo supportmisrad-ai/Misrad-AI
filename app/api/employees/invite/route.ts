@@ -280,11 +280,11 @@ async function POSTHandler(request: NextRequest) {
 
             if (emailResult.success) {
                 console.log('[Employee Invitation] Email sent successfully:', {
-                    employeeEmail,
                     department,
                     role,
-                    invitationUrl,
-                    sentBy: user.email
+                    invitationId: invitation.id,
+                    organizationId,
+                    sentByUserId: user.id
                 });
             } else {
                 console.warn('[Employee Invitation] Failed to send email:', emailResult.error);

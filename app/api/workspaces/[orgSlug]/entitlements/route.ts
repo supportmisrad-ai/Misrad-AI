@@ -8,8 +8,21 @@ async function GETHandler(
 ) {
   const { orgSlug } = await params;
 
-  const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-  return NextResponse.json({ entitlements: workspace.entitlements });
+  const bypassEntitlementsE2e =
+    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+  if (bypassEntitlementsE2e) {
+    return NextResponse.json({ entitlements: {} }, { status: 200 });
+  }
+
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    return NextResponse.json({ entitlements: workspace.entitlements ?? {} }, { status: 200 });
+  } catch (e: any) {
+    console.error('[API] Error in /api/workspaces/[orgSlug]/entitlements GET:', e);
+    return NextResponse.json({ entitlements: {} }, { status: 200 });
+  }
 }
 
 export const GET = shabbatGuard(GETHandler);

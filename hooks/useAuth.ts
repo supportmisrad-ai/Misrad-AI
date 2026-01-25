@@ -20,7 +20,16 @@ export const useAuth = (
     initialCurrentUser?: User
 ) => {
 
-    const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
+    let clerkUser: any = null;
+    let isClerkLoaded = false;
+    try {
+        const clerk = useUser();
+        clerkUser = clerk.user;
+        isClerkLoaded = clerk.isLoaded;
+    } catch {
+        clerkUser = null;
+        isClerkLoaded = true;
+    }
     const [users, setUsers] = useState<User[]>([]);
     const [roleDefinitions, setRoleDefinitions] = useState<RoleDefinition[]>(DEFAULT_ROLE_DEFINITIONS);
     // Initialize with Clerk user data if available (to avoid showing "עובד" initially)

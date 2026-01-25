@@ -130,24 +130,8 @@ export async function hasPermission(permission: PermissionId): Promise<boolean> 
             return true;
         }
         
-        // Regular team members: check permissions based on their role
-        // Try to get permissions from database (via user's role_id)
-        try {
-            const { getUsers, getUserPermissions } = await import('./db');
-            const dbUsers = await getUsers({ email: user.email });
-            
-            if (dbUsers.length > 0) {
-                const dbUser = dbUsers[0];
-                const userPermissions = await getUserPermissions(dbUser.id);
-                if (userPermissions.length > 0) {
-                    return userPermissions.includes(permission);
-                }
-            }
-        } catch (dbError) {
-            console.warn('[Auth] Could not fetch permissions from DB, using fallback:', dbError);
-        }
-        
-        // Fallback: Check role permissions from hardcoded map
+        // Regular team members: permissions based on their role.
+        // Tenant isolation: we do not perform cross-tenant DB lookups here.
         const rolePermissions = await getRolePermissions(user.role);
         return rolePermissions.includes(permission);
     } catch (error) {

@@ -26,6 +26,6 @@ export function computeWorkspaceCapabilities(params: {
   return {
     isFullOffice,
     isTeamManagementEnabled,
-    seatsAllowed: isTeamManagementEnabled ? (override ?? 5) : 1,
+    seatsAllowed: isTeamManagementEnabled ? (override ?? 1) : 1,
   };
 }

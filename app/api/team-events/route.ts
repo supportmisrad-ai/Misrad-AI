@@ -152,7 +152,10 @@ async function POSTHandler(request: NextRequest) {
 
                 const newUser = await createRecord('users', newUserData) as any;
                 dbUser = newUser;
-                console.log(`[API] Auto-synced user ${user.email} to database`);
+                console.log('[API] Auto-synced user to database', {
+                    userId: user.id,
+                    tenantId: workspace.id,
+                });
                 
                 // Re-fetch to ensure we have the latest user data (including tenantId if set)
                 dbUsers = await getUsers({ email: user.email });
