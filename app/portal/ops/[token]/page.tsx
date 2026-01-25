@@ -128,7 +128,8 @@ export default async function OpsContractorPortalPage({
     const bucket = 'operations-files';
     const timestamp = Date.now();
     const safeToken = String(token || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = `ops/contractor/${safeToken}/work-orders/${workOrderId}/signature-${timestamp}.png`;
+    const organizationId = String((access as any).organizationId || '').trim();
+    const filePath = `${organizationId}/ops/contractor/${safeToken}/work-orders/${workOrderId}/signature-${timestamp}.png`;
 
     const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
     if (!base64) {
@@ -144,7 +145,7 @@ export default async function OpsContractorPortalPage({
         const exists = (buckets || []).some((b) => b.name === bucket);
         if (!exists) {
           await supabase.storage.createBucket(bucket, {
-            public: true,
+            public: false,
             fileSizeLimit: 50 * 1024 * 1024,
           });
         }
@@ -163,13 +164,9 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl ? String(urlData.publicUrl) : '';
-    if (!publicUrl) {
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent('לא הצלחנו ליצור URL לחתימה')}`);
-    }
+    const ref = `sb://${bucket}/${filePath}`;
 
-    const sig = await contractorSetWorkOrderCompletionSignature({ token, workOrderId, signatureUrl: publicUrl });
+    const sig = await contractorSetWorkOrderCompletionSignature({ token, workOrderId, signatureUrl: ref });
     if (!sig.success) {
       const msg = sig.error ? String(sig.error) : 'שגיאה בשמירת חתימה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
@@ -206,7 +203,8 @@ export default async function OpsContractorPortalPage({
     const timestamp = Date.now();
     const safeToken = String(token || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `ops/contractor/${safeToken}/work-orders/${workOrderId}/${timestamp}-${safeName}`;
+    const organizationId = String((access as any).organizationId || '').trim();
+    const filePath = `${organizationId}/ops/contractor/${safeToken}/work-orders/${workOrderId}/${timestamp}-${safeName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -218,7 +216,7 @@ export default async function OpsContractorPortalPage({
         const exists = (buckets || []).some((b) => b.name === bucket);
         if (!exists) {
           await supabase.storage.createBucket(bucket, {
-            public: true,
+            public: false,
             fileSizeLimit: 50 * 1024 * 1024,
           });
         }
@@ -237,18 +235,14 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl ? String(urlData.publicUrl) : '';
-    if (!publicUrl) {
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent('לא הצלחנו ליצור URL לקובץ')}`);
-    }
+    const ref = `sb://${bucket}/${filePath}`;
 
     const save = await contractorAddWorkOrderAttachment({
       token,
       workOrderId,
       storageBucket: bucket,
       storagePath: filePath,
-      url: publicUrl,
+      url: ref,
       mimeType: file.type || null,
     });
 

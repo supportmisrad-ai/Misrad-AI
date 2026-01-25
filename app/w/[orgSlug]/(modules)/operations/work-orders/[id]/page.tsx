@@ -20,6 +20,7 @@ import {
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
 import { createServiceRoleClient } from '@/lib/supabase';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
 function formatStatus(status: string): { label: string; className: string } {
   switch (status) {
@@ -166,7 +167,7 @@ export default async function OperationsWorkOrderDetailsPage({
         const exists = (buckets || []).some((b) => b.name === bucket);
         if (!exists) {
           await supabase.storage.createBucket(bucket, {
-            public: true,
+            public: false,
             fileSizeLimit: 50 * 1024 * 1024,
           });
         }
@@ -185,13 +186,9 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent(msg)}`);
     }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl ? String(urlData.publicUrl) : '';
-    if (!publicUrl) {
-      redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('לא הצלחנו ליצור URL לחתימה')}`);
-    }
+    const ref = `sb://${bucket}/${filePath}`;
 
-    const saveSig = await setOperationsWorkOrderCompletionSignature({ orgSlug, id: w.id, signatureUrl: publicUrl });
+    const saveSig = await setOperationsWorkOrderCompletionSignature({ orgSlug, id: w.id, signatureUrl: ref });
     if (!saveSig.success) {
       const msg = saveSig.error ? String(saveSig.error) : 'שגיאה בשמירת חתימה';
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent(msg)}`);
@@ -226,12 +223,15 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('חסר קובץ')}`);
     }
 
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = String(workspace.id);
+
     const supabase = createServiceRoleClient();
     const bucket = 'operations-files';
     const timestamp = Date.now();
     const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `ops/internal/${safeOrg}/work-orders/${w.id}/${timestamp}-${safeName}`;
+    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/${timestamp}-${safeName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -243,7 +243,7 @@ export default async function OperationsWorkOrderDetailsPage({
         const exists = (buckets || []).some((b) => b.name === bucket);
         if (!exists) {
           await supabase.storage.createBucket(bucket, {
-            public: true,
+            public: false,
             fileSizeLimit: 50 * 1024 * 1024,
           });
         }
@@ -262,18 +262,14 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent(msg)}`);
     }
 
-    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl ? String(urlData.publicUrl) : '';
-    if (!publicUrl) {
-      redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('לא הצלחנו ליצור URL לקובץ')}`);
-    }
+    const ref = `sb://${bucket}/${filePath}`;
 
     const save = await addOperationsWorkOrderAttachment({
       orgSlug,
       workOrderId: w.id,
       storageBucket: bucket,
       storagePath: filePath,
-      url: publicUrl,
+      url: ref,
       mimeType: file.type || null,
     });
 

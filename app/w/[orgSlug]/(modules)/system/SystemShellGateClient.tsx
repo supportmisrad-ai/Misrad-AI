@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, CalendarDays, CheckSquare, LayoutDashboard, Menu, Users } from 'lucide-react';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { CallAnalysisProvider } from '@/components/system/contexts/CallAnalysisContext';
@@ -10,6 +10,7 @@ import { BrandProvider } from '@/components/system/contexts/BrandContext';
 import { NAV_ITEMS } from '@/components/system/constants';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
+import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
@@ -17,6 +18,7 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -34,6 +36,22 @@ const SHELL_TABS = new Set([
 
 const SystemShellContext = createContext<{ orgSlug: string; currentUser: any } | null>(null);
 
+class ClerkProviderErrorBoundary extends React.Component<
+  { fallback: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) return this.props.fallback;
+    return this.props.children;
+  }
+}
+
 export function useSystemShell() {
   const ctx = useContext(SystemShellContext);
   if (!ctx) {
@@ -50,30 +68,29 @@ function tabFromPathname(pathname: string | null | undefined) {
   return parts[systemIndex + 1] || 'workspace';
 }
 
-export default function SystemShellGateClient({
+function SystemShellGateClientCore({
   children,
   orgSlug,
   initialCurrentUser,
   initialOrganization,
+  systemIdentity,
 }: {
   children: React.ReactNode;
   orgSlug: string;
   initialCurrentUser?: any;
   initialOrganization?: any;
+  systemIdentity: any;
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const basePath = `/w/${encodeURIComponent(orgSlug)}/system`;
 
   const activeTab = useMemo(() => tabFromPathname(pathname), [pathname]);
-  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
-    name: initialCurrentUser?.name ?? null,
-    role: initialCurrentUser?.role ?? null,
-    avatarUrl: (initialCurrentUser as any)?.avatar ?? null,
-  });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isPlusFanOpen, setIsPlusFanOpen] = useState(false);
+  const [isCalendarPlusOpen, setIsCalendarPlusOpen] = useState(false);
 
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
   if (!shouldWrapWithShell) {
@@ -132,6 +149,54 @@ export default function SystemShellGateClient({
     const href = `${basePath}${path === '/' ? '' : path}`;
     router.push(href);
     setIsMobileMenuOpen(false);
+    setIsPlusFanOpen(false);
+    setIsCalendarPlusOpen(false);
+  };
+
+  const dispatchSystemEvent = (type: string) => {
+    if (typeof window === 'undefined') return;
+    window.dispatchEvent(new CustomEvent(type));
+  };
+
+  const handlePlusClick = () => {
+    const tab = String(activeTab || '');
+
+    if (tab === 'workspace') {
+      setIsPlusFanOpen((v) => !v);
+      setIsCalendarPlusOpen(false);
+      return;
+    }
+
+    if (tab === 'sales_pipeline' || tab === 'sales_leads') {
+      setIsPlusFanOpen(false);
+      setIsCalendarPlusOpen(false);
+      dispatchSystemEvent('system:new-lead');
+      return;
+    }
+
+    if (tab === 'tasks') {
+      setIsPlusFanOpen(false);
+      setIsCalendarPlusOpen(false);
+      dispatchSystemEvent('system:new-task');
+      return;
+    }
+
+    if (tab === 'calendar') {
+      setIsPlusFanOpen(false);
+      setIsCalendarPlusOpen((v) => !v);
+      return;
+    }
+
+    setIsPlusFanOpen(false);
+    setIsCalendarPlusOpen(false);
+    setIsMobileMenuOpen(true);
+  };
+
+  const goToTasksAndCreate = () => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage?.setItem('system:pending-action', 'new-task');
+    }
+    onNavigateAction('/tasks');
   };
 
   const notificationsSlot = (
@@ -151,9 +216,9 @@ export default function SystemShellGateClient({
   return (
     <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser }}>
       <ToastProvider>
-        <AuthProvider initialCurrentUser={initialCurrentUser}>
+        <AuthProvider>
           <CallAnalysisProvider>
-            <BrandProvider initialBrandName={String(initialOrganization?.name || 'system.OS')} initialBrandLogo={initialOrganization?.logo || null}>
+            <BrandProvider>
               <div className="flex h-screen w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
                 <SharedSidebar
                   isOpen={isSidebarOpen}
@@ -210,6 +275,7 @@ export default function SystemShellGateClient({
                     }
                     onOpenCommandPaletteAction={undefined}
                     onOpenSupportAction={undefined}
+                    actionsSlot={<ModuleHelpVideos moduleKey="system" />}
                     switcherSlot={null}
                     notificationsSlot={notificationsSlot}
                     user={{ name: resolvedUser.name, role: resolvedUser.role }}
@@ -221,7 +287,7 @@ export default function SystemShellGateClient({
                   />
 
                   <div
-                    className={`flex-1 ${contentOverflowClass} no-scrollbar p-4 md:p-8 min-h-0 touch-pan-y touch-pan-x`}
+                    className={`flex-1 ${contentOverflowClass} overflow-x-hidden no-scrollbar p-4 md:p-8 pb-24 md:pb-8 min-h-0 touch-pan-y`}
                     id="main-scroll-container"
                     style={{ WebkitOverflowScrolling: 'touch' }}
                   >
@@ -265,11 +331,233 @@ export default function SystemShellGateClient({
                     />
                   </>
                 ) : null}
+
+                {isPlusFanOpen ? (
+                  <>
+                    <div
+                      className="md:hidden fixed inset-0 z-[90] bg-black/30"
+                      onClick={() => setIsPlusFanOpen(false)}
+                    />
+                    <div className="md:hidden fixed left-4 right-4 bottom-[92px] z-[95]">
+                      <div className="bg-white/95 backdrop-blur-2xl rounded-[2.25rem] border border-white/60 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-4">
+                        <div className="grid grid-cols-3 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusFanOpen(false);
+                              dispatchSystemEvent('system:new-lead');
+                            }}
+                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
+                          >
+                            ליד חדש
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusFanOpen(false);
+                              goToTasksAndCreate();
+                            }}
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
+                          >
+                            משימה חדשה
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusFanOpen(false);
+                              dispatchSystemEvent('system:calendar:new-meeting');
+                            }}
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
+                          >
+                            פגישה חדשה
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+
+                {isCalendarPlusOpen ? (
+                  <>
+                    <div
+                      className="md:hidden fixed inset-0 z-[90] bg-black/30"
+                      onClick={() => setIsCalendarPlusOpen(false)}
+                    />
+                    <div className="md:hidden fixed left-4 right-4 bottom-[92px] z-[95]">
+                      <div className="bg-white/95 backdrop-blur-2xl rounded-[2.25rem] border border-white/60 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCalendarPlusOpen(false);
+                              dispatchSystemEvent('system:calendar:new-meeting');
+                            }}
+                            className="bg-slate-900 text-white rounded-2xl py-4 text-sm font-black"
+                          >
+                            פגישה חדשה
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsCalendarPlusOpen(false);
+                              dispatchSystemEvent('system:calendar:new-event');
+                            }}
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
+                          >
+                            אירוע חדש
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+
+                <MobileBottomNav
+                  rightItems={[
+                    {
+                      id: 'workspace',
+                      label: 'לוח בקרה',
+                      icon: LayoutDashboard,
+                      active: isActiveAction('/'),
+                      onClick: () => onNavigateAction('/'),
+                    },
+                    {
+                      id: 'sales_pipeline',
+                      label: 'לידים',
+                      icon: Users,
+                      active: isActiveAction('/sales_pipeline'),
+                      onClick: () => onNavigateAction('/sales_pipeline'),
+                    },
+                  ]}
+                  leftItems={[
+                    {
+                      id: 'tasks',
+                      label: 'משימות',
+                      icon: CheckSquare,
+                      active: isActiveAction('/tasks'),
+                      onClick: () => onNavigateAction('/tasks'),
+                    },
+                    {
+                      id: 'calendar',
+                      label: 'אירועים',
+                      icon: CalendarDays,
+                      active: isActiveAction('/calendar'),
+                      onClick: () => onNavigateAction('/calendar'),
+                    },
+                  ]}
+                  onPlusClickAction={handlePlusClick}
+                  plusAriaLabel={
+                    activeTab === 'workspace'
+                      ? 'פעולות מהירות'
+                      : activeTab === 'sales_pipeline' || activeTab === 'sales_leads'
+                        ? 'ליד חדש'
+                        : activeTab === 'tasks'
+                          ? 'משימה חדשה'
+                          : activeTab === 'calendar'
+                            ? 'הוסף ליומן'
+                            : 'תפריט'
+                  }
+                  plusActive={isPlusFanOpen || isCalendarPlusOpen}
+                />
               </div>
             </BrandProvider>
           </CallAnalysisProvider>
         </AuthProvider>
       </ToastProvider>
     </SystemShellContext.Provider>
+  );
+}
+
+function SystemShellGateClientWithClerk({
+  children,
+  orgSlug,
+  initialCurrentUser,
+  initialOrganization,
+}: {
+  children: React.ReactNode;
+  orgSlug: string;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}) {
+  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+    name: initialCurrentUser?.name ?? null,
+    role: initialCurrentUser?.role ?? null,
+    avatarUrl: (initialCurrentUser as any)?.avatar ?? null,
+  });
+
+  return (
+    <SystemShellGateClientCore
+      orgSlug={orgSlug}
+      initialCurrentUser={initialCurrentUser}
+      initialOrganization={initialOrganization}
+      systemIdentity={systemIdentity}
+    >
+      {children}
+    </SystemShellGateClientCore>
+  );
+}
+
+function SystemShellGateClientWithoutClerk({
+  children,
+  orgSlug,
+  initialCurrentUser,
+  initialOrganization,
+}: {
+  children: React.ReactNode;
+  orgSlug: string;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}) {
+  const fallbackIdentity = {
+    name: String(initialCurrentUser?.name || initialCurrentUser?.email || 'משתמש'),
+    role: (initialCurrentUser?.role ?? null) as string | null,
+    avatarUrl: String((initialCurrentUser as any)?.avatar || ''),
+    needsProfileCompletion: false,
+    profileCompleted: true,
+  };
+
+  return (
+    <SystemShellGateClientCore
+      orgSlug={orgSlug}
+      initialCurrentUser={initialCurrentUser}
+      initialOrganization={initialOrganization}
+      systemIdentity={fallbackIdentity}
+    >
+      {children}
+    </SystemShellGateClientCore>
+  );
+}
+
+export default function SystemShellGateClient({
+  children,
+  orgSlug,
+  initialCurrentUser,
+  initialOrganization,
+}: {
+  children: React.ReactNode;
+  orgSlug: string;
+  initialCurrentUser?: any;
+  initialOrganization?: any;
+}) {
+  return (
+    <ClerkProviderErrorBoundary
+      fallback={
+        <SystemShellGateClientWithoutClerk
+          orgSlug={orgSlug}
+          initialCurrentUser={initialCurrentUser}
+          initialOrganization={initialOrganization}
+        >
+          {children}
+        </SystemShellGateClientWithoutClerk>
+      }
+    >
+      <SystemShellGateClientWithClerk
+        orgSlug={orgSlug}
+        initialCurrentUser={initialCurrentUser}
+        initialOrganization={initialOrganization}
+      >
+        {children}
+      </SystemShellGateClientWithClerk>
+    </ClerkProviderErrorBoundary>
   );
 }

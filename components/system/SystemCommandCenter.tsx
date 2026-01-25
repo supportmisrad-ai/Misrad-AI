@@ -162,7 +162,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
     <>
       <div className="block md:hidden pb-20">
           <MobileFrontWing 
-            user={user!} 
+            user={user || null} 
             leads={leads}
             onQuickAction={onQuickAction} 
             onNavigate={onNavigate} 

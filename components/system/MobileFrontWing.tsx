@@ -10,7 +10,7 @@ import {
 import { UserProfile, CalendarEvent, Lead } from './types';
 
 interface MobileFrontWingProps {
-    user: UserProfile;
+    user?: UserProfile | null;
     leads: Lead[];
     onQuickAction: (action: 'lead' | 'meeting' | 'task') => void;
     onNavigate: (tab: string) => void;
@@ -46,6 +46,8 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
         return 'ערב טוב';
     };
 
+    const firstName = (user?.name || 'משתמש').split(' ')[0] || 'משתמש';
+
     return (
         <div className="flex flex-col space-y-6 animate-fade-in">
             
@@ -69,7 +71,7 @@ const MobileFrontWing: React.FC<MobileFrontWingProps> = ({ user, leads, onQuickA
                 <h1 className="text-3xl font-black mb-3 leading-tight">
                     {getGreeting()}, <br/>
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-indigo-400">
-                        {user.name.split(' ')[0]}.
+                        {firstName}.
                     </span>
                 </h1>
 

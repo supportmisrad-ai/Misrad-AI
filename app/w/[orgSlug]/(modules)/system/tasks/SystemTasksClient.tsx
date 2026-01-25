@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import TasksView from '@/components/nexus/TasksView';
 import type { Task, TaskPriority, TaskStatus } from '@/components/system/types';
 import type { SystemTaskDTO } from '@/app/actions/system-tasks';
 import { createSystemTask, updateSystemTask } from '@/app/actions/system-tasks';
 import { useToast } from '@/components/system/contexts/ToastContext';
+import { useAuth } from '@/components/system/contexts/AuthContext';
 
 function normalizeTaskPriority(value: string): TaskPriority {
   const v = String(value || '').toLowerCase();
@@ -43,6 +44,7 @@ export default function SystemTasksClient({
   initialTasks: SystemTaskDTO[];
 }) {
   const { addToast } = useToast();
+  const { user } = useAuth();
 
   const [tasks, setTasks] = useState<Task[]>(() => (initialTasks || []).map(mapTaskDto));
 
@@ -73,6 +75,45 @@ export default function SystemTasksClient({
     setTasks((prev) => [created, ...prev]);
     addToast('המשימה נוצרה', 'success');
   };
+
+  const createNewTaskFromShell = () => {
+    const assigneeId = user?.id ? String(user.id) : '';
+    if (!assigneeId) {
+      addToast('לא ניתן ליצור משימה ללא משתמש מחובר', 'error');
+      return;
+    }
+
+    void handleAddTask({
+      id: `new_task_${Date.now()}`,
+      title: 'משימה חדשה',
+      description: '',
+      assigneeId,
+      dueDate: new Date(),
+      priority: 'medium',
+      status: 'todo',
+      tags: ['כללי'],
+    });
+  };
+
+  useEffect(() => {
+    const onNewTask = () => createNewTaskFromShell();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('system:new-task', onNewTask as any);
+
+      const pending = window.sessionStorage?.getItem('system:pending-action');
+      if (pending === 'new-task') {
+        window.sessionStorage?.removeItem('system:pending-action');
+        setTimeout(() => createNewTaskFromShell(), 50);
+      }
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('system:new-task', onNewTask as any);
+      }
+    };
+  }, [user?.id]);
 
   const handleUpdateTask = async (task: Task) => {
     const res = await updateSystemTask({

@@ -17,6 +17,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -213,6 +214,7 @@ export default function OperationsShell({
           }}
           onOpenCommandPaletteAction={undefined}
           onOpenSupportAction={undefined}
+          actionsSlot={<ModuleHelpVideos moduleKey="operations" />}
           switcherSlot={null}
           notificationsSlot={null}
           user={{ name: resolvedUser.name, role: resolvedUser.role }}
@@ -223,7 +225,7 @@ export default function OperationsShell({
           className="bg-transparent"
         />
 
-        <main className="flex-1 overflow-y-auto no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar p-4 md:p-8 min-h-0" id="main-scroll-container">
           <div className="flex flex-col min-h-0 pb-24 md:pb-0">{children}</div>
         </main>
       </main>

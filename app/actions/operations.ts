@@ -3,6 +3,7 @@
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { createServiceRoleClient } from '@/lib/supabase';
 
 export type OperationsClientOption = {
   id: string;
@@ -76,6 +77,35 @@ export type OperationsTechnicianOption = {
   id: string;
   label: string;
 };
+
+function parseSbRef(ref: string): { bucket: string; path: string } | null {
+  const s = String(ref || '').trim();
+  if (!s.startsWith('sb://')) return null;
+  const rest = s.slice('sb://'.length);
+  const slash = rest.indexOf('/');
+  if (slash <= 0) return null;
+  const bucket = rest.slice(0, slash).trim();
+  const path = rest.slice(slash + 1);
+  if (!bucket || !path) return null;
+  return { bucket, path };
+}
+
+async function resolveStorageUrlMaybe(refOrUrl: string | null | undefined, ttlSeconds: number): Promise<string | null> {
+  const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
+  if (!raw) return null;
+
+  const parsed = parseSbRef(raw);
+  if (!parsed) return raw;
+
+  try {
+    const supabase = createServiceRoleClient();
+    const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
+    if (error || !data?.signedUrl) return null;
+    return String(data.signedUrl);
+  } catch {
+    return null;
+  }
+}
 
 export type OperationsWorkOrdersData = {
   workOrders: OperationsWorkOrderRow[];
@@ -199,7 +229,6 @@ async function setOperationsWorkOrderCompletionSignatureUnsafe(params: {
   workOrderId: string;
   signatureUrl: string;
 }) {
-  await ensureOperationsWorkOrdersSignatureColumns(prisma);
   await prisma.$executeRawUnsafe(
     `
       UPDATE operations_work_orders
@@ -298,8 +327,6 @@ export async function addOperationsWorkOrderAttachment(params: {
     if (!storagePath) return { success: false, error: 'חסר נתיב קובץ' };
     if (!url) return { success: false, error: 'חסר URL' };
 
-    await ensureOperationsWorkOrderAttachmentsTable(prisma);
-
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: workspace.id },
       select: { id: true },
@@ -336,75 +363,11 @@ export async function addOperationsWorkOrderAttachment(params: {
   }
 }
 
-async function ensureOperationsStockMovementsTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_stock_movements (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      item_id uuid NOT NULL,
-      work_order_id uuid NULL,
-      qty numeric(12,3) NOT NULL,
-      direction text NOT NULL,
-      created_by_type text NOT NULL DEFAULT 'INTERNAL',
-      created_by_ref text NULL,
-      note text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_stock_movements_org_id ON operations_stock_movements (organization_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_stock_movements_work_order_id ON operations_stock_movements (work_order_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_stock_movements_item_id ON operations_stock_movements (item_id)`
-  );
-}
-
-async function ensureOperationsLocationsTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_locations (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      name text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_locations_org_id ON operations_locations (organization_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_operations_locations_org_name ON operations_locations (organization_id, lower(name))`
-  );
-}
-
-async function ensureOperationsWorkOrderTypesTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_work_order_types (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      name text NOT NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_work_order_types_org_id ON operations_work_order_types (organization_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_operations_work_order_types_org_name ON operations_work_order_types (organization_id, lower(name))`
-  );
-}
-
 export async function getOperationsLocations(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsLocationRow[]; error?: string }> {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    await ensureOperationsLocationsTable(prisma);
 
     const rows = (await prisma.$queryRawUnsafe(
       `
@@ -439,8 +402,6 @@ export async function createOperationsLocation(params: {
     const name = String(params.name || '').trim();
     if (!name) return { success: false, error: 'חובה להזין שם מחסן' };
 
-    await ensureOperationsLocationsTable(prisma);
-
     await prisma.$executeRawUnsafe(
       `INSERT INTO operations_locations (organization_id, name) VALUES ($1::uuid, $2::text)`
       ,
@@ -468,8 +429,6 @@ export async function deleteOperationsLocation(params: {
     const id = String(params.id || '').trim();
     if (!id) return { success: false, error: 'חסר מזהה מחסן' };
 
-    await ensureOperationsLocationsTable(prisma);
-
     await prisma.$executeRawUnsafe(
       `DELETE FROM operations_locations WHERE organization_id = $1::uuid AND id = $2::uuid`,
       workspace.id,
@@ -488,7 +447,6 @@ export async function getOperationsWorkOrderTypes(params: {
 }): Promise<{ success: boolean; data?: OperationsWorkOrderTypeRow[]; error?: string }> {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    await ensureOperationsWorkOrderTypesTable(prisma);
 
     const rows = (await prisma.$queryRawUnsafe(
       `
@@ -523,8 +481,6 @@ export async function createOperationsWorkOrderType(params: {
     const name = String(params.name || '').trim();
     if (!name) return { success: false, error: 'חובה להזין שם סוג קריאה' };
 
-    await ensureOperationsWorkOrderTypesTable(prisma);
-
     await prisma.$executeRawUnsafe(
       `INSERT INTO operations_work_order_types (organization_id, name) VALUES ($1::uuid, $2::text)`,
       workspace.id,
@@ -551,8 +507,6 @@ export async function deleteOperationsWorkOrderType(params: {
     const id = String(params.id || '').trim();
     if (!id) return { success: false, error: 'חסר מזהה סוג קריאה' };
 
-    await ensureOperationsWorkOrderTypesTable(prisma);
-
     await prisma.$executeRawUnsafe(
       `DELETE FROM operations_work_order_types WHERE organization_id = $1::uuid AND id = $2::uuid`,
       workspace.id,
@@ -564,114 +518,6 @@ export async function deleteOperationsWorkOrderType(params: {
     console.error('[operations] deleteOperationsWorkOrderType failed', e);
     return { success: false, error: e?.message || 'שגיאה במחיקת סוג קריאה' };
   }
-}
-
-async function ensureOperationsContractorTokensTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_contractor_tokens (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      token_hash text NOT NULL,
-      contractor_label text NULL,
-      expires_at timestamptz NOT NULL,
-      revoked_at timestamptz NULL,
-      created_by_ref text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE UNIQUE INDEX IF NOT EXISTS uq_operations_contractor_tokens_token_hash ON operations_contractor_tokens (token_hash)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_contractor_tokens_org_id ON operations_contractor_tokens (organization_id)`
-  );
-}
-
-async function ensureOperationsWorkOrderAttachmentsTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_work_order_attachments (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      work_order_id uuid NOT NULL,
-      storage_bucket text NOT NULL DEFAULT 'operations-files',
-      storage_path text NOT NULL,
-      url text NOT NULL,
-      mime_type text NULL,
-      created_by_type text NOT NULL DEFAULT 'INTERNAL',
-      created_by_ref text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_ops_wo_attachments_org_id ON operations_work_order_attachments (organization_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_ops_wo_attachments_work_order_id ON operations_work_order_attachments (work_order_id)`
-  );
-}
-
-async function ensureOperationsWorkOrderCheckinsTable(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS operations_work_order_checkins (
-      id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-      organization_id uuid NOT NULL,
-      work_order_id uuid NOT NULL,
-      lat double precision NOT NULL,
-      lng double precision NOT NULL,
-      accuracy double precision NULL,
-      created_by_type text NOT NULL DEFAULT 'INTERNAL',
-      created_by_ref text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_ops_wo_checkins_org_id ON operations_work_order_checkins (organization_id)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_ops_wo_checkins_work_order_id ON operations_work_order_checkins (work_order_id)`
-  );
-}
-
-async function ensureOperationsWorkOrdersDispatchColumns(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    ALTER TABLE operations_work_orders
-    ADD COLUMN IF NOT EXISTS assigned_technician_id uuid NULL;
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_work_orders_assigned_technician_id ON operations_work_orders (assigned_technician_id)`
-  );
-}
-
-async function ensureOperationsWorkOrdersSignatureColumns(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    ALTER TABLE operations_work_orders
-    ADD COLUMN IF NOT EXISTS completion_signature_url text NULL;
-  `);
-
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_work_orders_completion_signature_url ON operations_work_orders (completion_signature_url)`
-  );
-}
-
-async function ensureOperationsWorkOrdersLocationColumns(client: typeof prisma) {
-  await client.$executeRawUnsafe(`
-    ALTER TABLE operations_work_orders
-    ADD COLUMN IF NOT EXISTS installation_lat double precision NULL;
-  `);
-  await client.$executeRawUnsafe(`
-    ALTER TABLE operations_work_orders
-    ADD COLUMN IF NOT EXISTS installation_lng double precision NULL;
-  `);
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_work_orders_installation_lat ON operations_work_orders (installation_lat)`
-  );
-  await client.$executeRawUnsafe(
-    `CREATE INDEX IF NOT EXISTS idx_operations_work_orders_installation_lng ON operations_work_orders (installation_lng)`
-  );
 }
 
 async function geocodeAddressNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
@@ -755,10 +601,6 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
 
     if (!id) return { success: false, error: 'חסר מזהה קריאה' };
 
-    await ensureOperationsWorkOrdersDispatchColumns(prisma);
-    await ensureOperationsWorkOrdersLocationColumns(prisma);
-    await ensureOperationsWorkOrdersSignatureColumns(prisma);
-
     if (technicianId) {
       const tech = await prisma.profile.findFirst({
         where: { id: technicianId, organizationId: workspace.id },
@@ -798,8 +640,6 @@ export async function getOperationsWorkOrderAttachments(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    await ensureOperationsWorkOrderAttachmentsTable(prisma);
-
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT id::text as id, url, mime_type, created_at
@@ -812,15 +652,21 @@ export async function getOperationsWorkOrderAttachments(params: {
       workOrderId
     )) as any[];
 
-    return {
-      success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        url: String(r.url),
-        mimeType: r.mime_type ? String(r.mime_type) : null,
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
-    };
+    const ttlSeconds = 60 * 60;
+    const data = await Promise.all(
+      (rows || []).map(async (r) => {
+        const rawUrl = String(r.url || '');
+        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds);
+        return {
+          id: String(r.id),
+          url: resolved || rawUrl,
+          mimeType: r.mime_type ? String(r.mime_type) : null,
+          createdAt: new Date(r.created_at).toISOString(),
+        };
+      })
+    );
+
+    return { success: true, data };
   } catch (e: any) {
     console.error('[operations] getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: e?.message || 'שגיאה בטעינת קבצים לקריאה' };
@@ -835,8 +681,6 @@ export async function getOperationsWorkOrderCheckins(params: {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
-
-    await ensureOperationsWorkOrderCheckinsTable(prisma);
 
     const rows = (await prisma.$queryRawUnsafe(
       `
@@ -888,8 +732,6 @@ export async function addOperationsWorkOrderCheckin(params: {
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { success: false, error: 'מיקום לא תקין' };
 
-    await ensureOperationsWorkOrderCheckinsTable(prisma);
-
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: workspace.id },
       select: { id: true },
@@ -926,8 +768,6 @@ async function resolveOperationsContractorToken(token: string): Promise<{
 }> {
   const t = String(token || '').trim();
   if (!t) return { ok: false, error: 'טוקן חסר' };
-
-  await ensureOperationsContractorTokensTable(prisma);
   const tokenHash = hashPortalToken(t);
 
   const rows = (await prisma.$queryRawUnsafe(
@@ -1007,8 +847,6 @@ export async function contractorGetWorkOrderAttachments(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    await ensureOperationsWorkOrderAttachmentsTable(prisma);
-
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: tokenOut.organizationId },
       select: { id: true },
@@ -1027,15 +865,21 @@ export async function contractorGetWorkOrderAttachments(params: {
       workOrderId
     )) as any[];
 
-    return {
-      success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        url: String(r.url),
-        mimeType: r.mime_type ? String(r.mime_type) : null,
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
-    };
+    const ttlSeconds = 60 * 60;
+    const data = await Promise.all(
+      (rows || []).map(async (r) => {
+        const rawUrl = String(r.url || '');
+        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds);
+        return {
+          id: String(r.id),
+          url: resolved || rawUrl,
+          mimeType: r.mime_type ? String(r.mime_type) : null,
+          createdAt: new Date(r.created_at).toISOString(),
+        };
+      })
+    );
+
+    return { success: true, data };
   } catch (e: any) {
     console.error('[operations] contractorGetWorkOrderAttachments failed', e);
     return { success: false, error: e?.message || 'שגיאה בטעינת קבצים' };
@@ -1063,8 +907,6 @@ export async function contractorAddWorkOrderAttachment(params: {
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
     if (!storagePath) return { success: false, error: 'חסר נתיב קובץ' };
     if (!url) return { success: false, error: 'חסר URL' };
-
-    await ensureOperationsWorkOrderAttachmentsTable(prisma);
 
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: tokenOut.organizationId },
@@ -1111,8 +953,6 @@ export async function contractorGetWorkOrderCheckins(params: {
 
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
-
-    await ensureOperationsWorkOrderCheckinsTable(prisma);
 
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: tokenOut.organizationId },
@@ -1167,8 +1007,6 @@ export async function contractorAddWorkOrderCheckin(params: {
 
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return { success: false, error: 'מיקום לא תקין' };
-
-    await ensureOperationsWorkOrderCheckinsTable(prisma);
 
     const wo = await prisma.operationsWorkOrder.findFirst({
       where: { id: workOrderId, organizationId: tokenOut.organizationId },
@@ -1250,8 +1088,6 @@ export async function consumeOperationsInventoryForWorkOrder(params: {
     if (!inventoryId) return { success: false, error: 'חובה לבחור פריט' };
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
 
-    await ensureOperationsStockMovementsTable(prisma);
-
     await prisma.$transaction(async (tx) => {
       const wo = await tx.operationsWorkOrder.findFirst({
         where: { id: workOrderId, organizationId: workspace.id },
@@ -1309,8 +1145,6 @@ export async function getOperationsMaterialsForWorkOrder(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    await ensureOperationsStockMovementsTable(prisma);
-
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
@@ -1367,8 +1201,6 @@ export async function createOperationsContractorToken(params: {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
 
-    await ensureOperationsContractorTokensTable(prisma);
-
     const token = generatePortalToken();
     const tokenHash = hashPortalToken(token);
     const ttlHours = Number.isFinite(Number(params.ttlHours)) ? Math.max(1, Number(params.ttlHours)) : 72;
@@ -1415,8 +1247,6 @@ export async function getOperationsContractorPortalData(params: {
   try {
     const token = String(params.token || '').trim();
     if (!token) return { success: false, error: 'טוקן חסר' };
-
-    await ensureOperationsContractorTokensTable(prisma);
 
     const tokenHash = hashPortalToken(token);
     const tokenRow = (await prisma.$queryRawUnsafe(
@@ -1493,8 +1323,6 @@ export async function contractorMarkWorkOrderDone(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!token) return { success: false, error: 'טוקן חסר' };
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
-
-    await ensureOperationsContractorTokensTable(prisma);
 
     const tokenHash = hashPortalToken(token);
     const tokenRow = (await prisma.$queryRawUnsafe(
@@ -1776,8 +1604,6 @@ export async function getOperationsWorkOrdersData(params: {
     const projectId = params.projectId ? String(params.projectId).trim() : '';
     const assignedTechnicianId = params.assignedTechnicianId ? String(params.assignedTechnicianId).trim() : '';
 
-    await ensureOperationsWorkOrdersDispatchColumns(prisma);
-
     const values: any[] = [workspace.id];
     let idx = values.length;
 
@@ -1912,8 +1738,6 @@ export async function createOperationsWorkOrder(params: {
       }
     }
 
-    await ensureOperationsWorkOrdersLocationColumns(prisma);
-
     const created = await prisma.operationsWorkOrder.create({
       data: {
         organizationId: workspace.id,
@@ -1986,8 +1810,6 @@ export async function getOperationsWorkOrderById(params: {
       return { success: false, error: 'חסר מזהה קריאה' };
     }
 
-    await ensureOperationsWorkOrdersDispatchColumns(prisma);
-
     const rows = (await prisma.$queryRawUnsafe(
       `
         SELECT
@@ -2029,6 +1851,9 @@ export async function getOperationsWorkOrderById(params: {
       technicianLabel = tech?.id ? String(tech.fullName || tech.email || tech.id) : null;
     }
 
+    const ttlSeconds = 60 * 60;
+    const completionSignatureUrl = await resolveStorageUrlMaybe(row.completion_signature_url ? String(row.completion_signature_url) : null, ttlSeconds);
+
     return {
       success: true,
       data: {
@@ -2041,7 +1866,7 @@ export async function getOperationsWorkOrderById(params: {
         project: { id: String(row.project_id), title: String(row.project_title) },
         assignedTechnicianId,
         technicianLabel,
-        completionSignatureUrl: row.completion_signature_url ? String(row.completion_signature_url) : null,
+        completionSignatureUrl: completionSignatureUrl || (row.completion_signature_url ? String(row.completion_signature_url) : null),
         createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
         updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
       },

@@ -31,6 +31,7 @@ import { BrandProvider } from '../contexts/BrandContext';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
+import MobileBottomNav from '../../../shared/MobileBottomNav';
 
 declare const confetti: any;
 
@@ -51,7 +52,7 @@ const SystemBootScreen = ({ onComplete }: { onComplete: () => void }) => {
     }, [onComplete]);
 
     return (
-        <div className="fixed inset-0 h-[100dvh] w-screen bg-[#F8FAFC] flex flex-col items-center justify-center z-[100] overflow-hidden overscroll-none touch-none">
+        <div className="fixed inset-0 h-[100dvh] w-full bg-[#F8FAFC] flex flex-col items-center justify-center z-[100] overflow-hidden overscroll-none touch-none">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-[100px] animate-blob pointer-events-none"></div>
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none"></div>
 
@@ -348,7 +349,7 @@ const SystemOSApp = () => {
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsCommandPaletteOpen(true)}
-        className="fixed bottom-32 right-6 z-[60] w-14 h-14 bg-white text-indigo-600 rounded-full shadow-2xl flex items-center justify-center border-2 border-indigo-100 hover:border-indigo-400 transition-all group"
+        className="fixed bottom-32 right-6 z-[60] w-14 h-14 bg-white text-indigo-600 rounded-full shadow-2xl flex items-center justify-center border-2 border-[var(--bg-app)] transition-all group"
         aria-label="פתח עוזר חכם"
       >
           <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping group-hover:hidden"></div>
@@ -356,19 +357,44 @@ const SystemOSApp = () => {
       </motion.button>
 
       {/* Mobile Bottom Navigation - Rounded Icons */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200/60 z-50 pb-6 pt-2 px-2 transition-all duration-300 rounded-t-[40px] shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-around items-center h-[60px] relative">
-              <button onClick={() => setActiveTab('workspace')} className={`p-3 rounded-full transition-colors ${activeTab === 'workspace' ? 'text-primary bg-rose-50' : 'text-slate-400'}`} aria-label="דף הבית"><Home size={24} /></button>
-              <button onClick={() => setActiveTab('sales_hub')} className={`p-3 rounded-full transition-colors ${activeTab === 'sales_hub' ? 'text-primary bg-rose-50' : 'text-slate-400'}`} aria-label="מכירות"><Kanban size={24} /></button>
-
-              <div className="relative -top-8">
-                  <button onClick={() => setIsFabOpen(!isFabOpen)} className={`w-16 h-16 bg-nexus-gradient rounded-full flex items-center justify-center text-white shadow-xl shadow-rose-500/30 border-[6px] border-slate-50 transition-all duration-300 ${isFabOpen ? 'rotate-[135deg]' : ''}`} aria-label="פעולות מהירות"><Plus size={32} /></button>
-              </div>
-
-              <button onClick={() => setActiveTab('marketing')} className={`p-3 rounded-full transition-colors ${activeTab === 'marketing' ? 'text-primary bg-rose-50' : 'text-slate-400'}`} aria-label="שיווק"><Megaphone size={24} /></button>
-              <button onClick={() => setIsMobileMenuOpen(true)} className="p-3 rounded-full text-slate-400 hover:text-slate-600 transition-colors" aria-label="תפריט"><Menu size={24} /></button>
-          </div>
-      </div>
+      <MobileBottomNav
+        className="z-50"
+        rightItems={[
+          {
+            id: 'workspace',
+            label: 'דף הבית',
+            icon: Home,
+            active: activeTab === 'workspace',
+            onClick: () => setActiveTab('workspace'),
+          },
+          {
+            id: 'sales_hub',
+            label: 'מכירות',
+            icon: Kanban,
+            active: activeTab === 'sales_hub',
+            onClick: () => setActiveTab('sales_hub'),
+          },
+        ]}
+        leftItems={[
+          {
+            id: 'marketing',
+            label: 'שיווק',
+            icon: Megaphone,
+            active: activeTab === 'marketing',
+            onClick: () => setActiveTab('marketing'),
+          },
+          {
+            id: 'menu',
+            label: 'תפריט',
+            icon: Menu,
+            active: Boolean(isMobileMenuOpen),
+            onClick: () => setIsMobileMenuOpen(true),
+          },
+        ]}
+        onPlusClickAction={() => setIsFabOpen(!isFabOpen)}
+        plusAriaLabel={isFabOpen ? 'סגור פעולות מהירות' : 'פתח פעולות מהירות'}
+        plusActive={isFabOpen}
+      />
 
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onNavigate={setActiveTab} onSelectLead={setSelectedLead} leads={leads} />
       {selectedLead && <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} onAddActivity={handleAddActivity} onScheduleMeeting={handleScheduleMeeting} onOpenClientPortal={() => handleOpenClientPortal(selectedLead)} onAddTask={(t) => setStoredTasks(p => [t, ...p])} />}

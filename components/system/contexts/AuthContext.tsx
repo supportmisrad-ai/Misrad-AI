@@ -32,7 +32,14 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
 }) => {
   const addToast = () => {};
   const nexusAuth = useNexusAuth(addToast as any, initialCurrentUser);
-  const { isLoaded: isClerkLoaded } = useUser();
+
+  let isClerkLoaded = false;
+  try {
+    const clerk = useUser();
+    isClerkLoaded = clerk.isLoaded;
+  } catch {
+    isClerkLoaded = true;
+  }
 
   const systemUserId =
     (nexusAuth?.currentUser as any)?.profileId && String((nexusAuth?.currentUser as any)?.profileId).trim()

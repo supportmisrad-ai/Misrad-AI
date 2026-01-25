@@ -3,6 +3,7 @@ import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemBootstrap } from '@/lib/services/system-service';
 import SystemShellGateClient from './SystemShellGateClient';
+import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,7 @@ export default async function SystemModuleLayout({
       >
         {children}
       </SystemShellGateClient>
+      <RouteVideoHelp />
     </div>
   );
 }

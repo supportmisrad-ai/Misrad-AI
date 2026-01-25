@@ -281,7 +281,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
             return;
           }
 
-          const uploadRes = await uploadCallRecordingFile(file, file.name, String(lead.id));
+          const uploadRes = await uploadCallRecordingFile(file, file.name, String(lead.id), orgSlug);
           if (!uploadRes.success) {
             addToast(uploadRes.error || 'שגיאה בהעלאת הקלטה', 'error');
             return;

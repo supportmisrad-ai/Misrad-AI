@@ -45,6 +45,31 @@ function toSystemCampaignDto(row: any): SystemCampaignDTO {
   };
 }
 
+async function listSystemTasksInOrganization(params: { organizationId: string; take: number }): Promise<any[]> {
+  const safeTake = Math.max(1, Math.min(500, Math.floor(params.take)));
+
+  const rows = await prisma.$queryRaw<any[]>`
+    SELECT
+      t.id,
+      t.title,
+      t.description,
+      t.assignee_id,
+      t.due_date,
+      t.priority,
+      t.status,
+      t.tags,
+      t.created_at,
+      t.updated_at
+    FROM system_tasks t
+    JOIN profiles p ON p.id = t.assignee_id
+    WHERE p.organization_id = ${params.organizationId}::uuid
+    ORDER BY t.due_date ASC, t.created_at DESC
+    LIMIT ${safeTake}
+  `;
+
+  return Array.isArray(rows) ? rows : [];
+}
+
 function toSystemTaskDto(row: any): SystemTaskDTO {
   const tags = Array.isArray(row.tags) ? row.tags : Array.isArray(row.tags?.value) ? row.tags.value : row.tags;
   const normalizedTags = Array.isArray(tags) ? tags.map((t: any) => String(t)).filter(Boolean) : [];
@@ -53,12 +78,12 @@ function toSystemTaskDto(row: any): SystemTaskDTO {
     id: String(row.id),
     title: String(row.title || ''),
     description: row.description == null ? null : String(row.description),
-    assignee_id: String(row.assigneeId || row.assignee_id || ''),
-    due_date: new Date(row.dueDate || row.due_date || new Date()).toISOString(),
+    assignee_id: String(row.assignee_id || ''),
+    due_date: new Date(row.due_date || new Date()).toISOString(),
     priority: String(row.priority || ''),
     status: String(row.status || ''),
     tags: normalizedTags,
-    created_at: new Date(row.createdAt || row.created_at || new Date()).toISOString(),
+    created_at: new Date(row.created_at || new Date()).toISOString(),
   };
 }
 
@@ -76,18 +101,8 @@ export async function getSystemTasks(params: {
 }): Promise<SystemTaskDTO[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
 
-  const assignees = await prisma.profile.findMany({
-    where: { organizationId: workspace.id },
-    select: { id: true },
-    take: 500,
-  });
-
-  const assigneeIds = assignees.map((a) => String(a.id)).filter(Boolean);
-  if (!assigneeIds.length) return [];
-
-  const rows = await prisma.systemTask.findMany({
-    where: { assigneeId: { in: assigneeIds } },
-    orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+  const rows = await listSystemTasksInOrganization({
+    organizationId: workspace.id,
     take: Math.max(1, Math.min(500, Math.floor(params.take ?? 200))),
   });
   return rows.map(toSystemTaskDto);

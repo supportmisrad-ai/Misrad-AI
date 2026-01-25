@@ -7,6 +7,7 @@ import {
 } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import OperationsShell from '@/components/operations/OperationsShell';
+import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +54,7 @@ export default async function OperationsModuleLayout({
       >
         {children}
       </OperationsShell>
+      <RouteVideoHelp />
     </div>
   );
 }

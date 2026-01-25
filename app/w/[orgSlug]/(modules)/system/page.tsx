@@ -13,15 +13,13 @@ export default async function SystemModuleHome({
 }) {
   const { orgSlug } = await params;
 
-  const [initialLeads, initialEvents, initialTasks, campaignsRes, initialNotifications] = await Promise.all([
-    getSystemLeads(orgSlug),
-    getSystemCalendarEvents({ orgSlug, take: 200 }),
-    getSystemTasks({ orgSlug, take: 200 }),
-    getCampaigns(undefined, orgSlug),
-    getSystemNotifications({ orgSlug, limit: 20 }),
-  ]);
+  const initialLeads = await getSystemLeads(orgSlug).catch(() => []);
+  const initialEvents = await getSystemCalendarEvents({ orgSlug, take: 200 }).catch(() => []);
+  const initialTasks = await getSystemTasks({ orgSlug, take: 200 }).catch(() => []);
+  const campaignsRes = await getCampaigns(undefined, orgSlug).catch(() => ({ success: false, data: [] } as any));
+  const initialNotifications = await getSystemNotifications({ orgSlug, limit: 20 }).catch(() => []);
 
-  const initialCampaigns = campaignsRes.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
+  const initialCampaigns = campaignsRes?.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
 
   return (
     <SystemWorkspaceClient

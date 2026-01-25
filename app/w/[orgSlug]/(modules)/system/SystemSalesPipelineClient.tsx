@@ -51,6 +51,22 @@ export default function SystemSalesPipelineClient({
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
 
+  useEffect(() => {
+    const onOpenNewLead = () => {
+      setShowNewLeadModal(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('system:new-lead', onOpenNewLead as any);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('system:new-lead', onOpenNewLead as any);
+      }
+    };
+  }, []);
+
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | PipelineStage>('all');
@@ -585,7 +601,6 @@ export default function SystemSalesPipelineClient({
           onStatusChange={(id, status) => void handleStatusChange(String(id), status)}
           onOpenClientPortal={() => handleOpenClientPortal(selectedLead)}
           assignees={assignees}
-          stages={stagesForUi.map((s: any) => ({ id: String(s.key), label: String(s.label), accent: String(s.accent || '') }))}
           onUpdateLead={(p) => void handleUpdateLead(p)}
           onAddTask={() => addToast('משימות יתווספו בהמשך', 'info')}
         />

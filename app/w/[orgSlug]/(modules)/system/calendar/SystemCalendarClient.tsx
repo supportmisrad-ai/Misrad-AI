@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CalendarView from '@/components/system/system.os/components/CalendarView';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
 import type { Lead, CalendarEvent } from '@/components/system/types';
@@ -40,6 +40,11 @@ export default function SystemCalendarClient({
   const [events, setEvents] = useState<CalendarEvent[]>(() => initialEvents.map(mapDtoToCalendarEvent));
   const [showNewMeetingModal, setShowNewMeetingModal] = useState(false);
   const [meetingPreselectLeadId, setMeetingPreselectLeadId] = useState<string>('');
+  const [showNewEventModal, setShowNewEventModal] = useState(false);
+  const [newEventLeadId, setNewEventLeadId] = useState<string>('');
+  const [newEventTitle, setNewEventTitle] = useState<string>('');
+  const [newEventDate, setNewEventDate] = useState<string>('');
+  const [newEventTime, setNewEventTime] = useState<string>('');
 
   const leads = useMemo(() => initialLeads.map(mapDtoToLead), [initialLeads]);
 
@@ -83,6 +88,64 @@ export default function SystemCalendarClient({
     addToast('האירוע נשמר', 'success');
   };
 
+  useEffect(() => {
+    const onNewMeeting = () => {
+      setMeetingPreselectLeadId('');
+      setShowNewMeetingModal(true);
+    };
+
+    const onNewEvent = () => {
+      setNewEventLeadId('');
+      setNewEventTitle('');
+      setNewEventDate('');
+      setNewEventTime('');
+      setShowNewEventModal(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('system:calendar:new-meeting', onNewMeeting as any);
+      window.addEventListener('system:calendar:new-event', onNewEvent as any);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('system:calendar:new-meeting', onNewMeeting as any);
+        window.removeEventListener('system:calendar:new-event', onNewEvent as any);
+      }
+    };
+  }, []);
+
+  const submitNewEvent = async () => {
+    const leadId = String(newEventLeadId || '').trim();
+    if (!leadId) {
+      addToast('חובה לבחור ליד', 'warning');
+      return;
+    }
+    if (!newEventDate.trim() || !newEventTime.trim()) {
+      addToast('חובה להזין תאריך ושעה', 'warning');
+      return;
+    }
+
+    const d = new Date(newEventDate);
+    const dayName = d.toLocaleDateString('he-IL', { weekday: 'long' });
+    const lead = leadsById.get(leadId);
+
+    await handleAddEvent({
+      id: `new_${Date.now()}`,
+      leadId,
+      title: newEventTitle.trim() || String(lead?.name || ''),
+      leadName: String(lead?.name || ''),
+      leadCompany: String((lead as any)?.company || 'לקוח פרטי'),
+      dayName,
+      date: newEventDate.trim(),
+      time: newEventTime.trim(),
+      type: 'zoom',
+      location: '',
+    } as any);
+
+    setShowNewEventModal(false);
+  };
+
   return (
     <>
       <CalendarView
@@ -102,6 +165,89 @@ export default function SystemCalendarClient({
           onClose={() => setShowNewMeetingModal(false)}
           onSave={(meeting) => void handleAddEvent(meeting)}
         />
+      ) : null}
+
+      {showNewEventModal ? (
+        <div
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex justify-center items-end md:items-center p-4"
+          onClick={() => setShowNewEventModal(false)}
+        >
+          <div
+            className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5 border-b border-slate-100 bg-slate-50">
+              <div className="text-lg font-black text-slate-900">אירוע חדש</div>
+              <div className="text-xs font-bold text-slate-500">בחר ליד, תאריך ושעה</div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="space-y-1">
+                <div className="text-[11px] font-black text-slate-500">ליד</div>
+                <select
+                  value={newEventLeadId}
+                  onChange={(e) => setNewEventLeadId(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                >
+                  <option value="">בחר ליד</option>
+                  {leads.map((l) => (
+                    <option key={String(l.id)} value={String(l.id)}>
+                      {String(l.name || '')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">תאריך</div>
+                  <input
+                    type="date"
+                    value={newEventDate}
+                    onChange={(e) => setNewEventDate(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">שעה</div>
+                  <input
+                    type="time"
+                    value={newEventTime}
+                    onChange={(e) => setNewEventTime(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <div className="text-[11px] font-black text-slate-500">כותרת (אופציונלי)</div>
+                <input
+                  value={newEventTitle}
+                  onChange={(e) => setNewEventTitle(e.target.value)}
+                  placeholder="למשל: פולואפ"
+                  className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNewEventModal(false)}
+                className="flex-1 bg-white border border-slate-200 text-slate-700 font-black py-3 rounded-2xl"
+              >
+                ביטול
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitNewEvent()}
+                className="flex-1 bg-slate-900 text-white font-black py-3 rounded-2xl"
+              >
+                שמור
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </>
   );

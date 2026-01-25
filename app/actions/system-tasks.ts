@@ -32,6 +32,50 @@ function toSystemTaskDto(row: any): SystemTaskDTO {
   };
 }
 
+async function requireSystemTaskInOrganization(params: {
+  taskId: string;
+  organizationId: string;
+}): Promise<boolean> {
+  const rows = await prisma.$queryRaw<any[]>`
+    SELECT t.id
+    FROM system_tasks t
+    JOIN profiles p ON p.id = t.assignee_id
+    WHERE t.id = ${params.taskId}::uuid
+      AND p.organization_id = ${params.organizationId}::uuid
+    LIMIT 1
+  `;
+
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+async function listSystemTasksInOrganization(params: {
+  organizationId: string;
+  take: number;
+}): Promise<any[]> {
+  const safeTake = Math.max(1, Math.min(500, Math.floor(params.take)));
+
+  const rows = await prisma.$queryRaw<any[]>`
+    SELECT
+      t.id,
+      t.title,
+      t.description,
+      t.assignee_id,
+      t.due_date,
+      t.priority,
+      t.status,
+      t.tags,
+      t.created_at,
+      t.updated_at
+    FROM system_tasks t
+    JOIN profiles p ON p.id = t.assignee_id
+    WHERE p.organization_id = ${params.organizationId}::uuid
+    ORDER BY t.due_date ASC, t.created_at DESC
+    LIMIT ${safeTake}
+  `;
+
+  return Array.isArray(rows) ? rows : [];
+}
+
 async function listOrgProfileIds(orgSlug: string): Promise<string[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
   const assignees = await prisma.profile.findMany({
@@ -43,15 +87,11 @@ async function listOrgProfileIds(orgSlug: string): Promise<string[]> {
 }
 
 export async function getSystemTasks(params: { orgSlug: string; take?: number }): Promise<SystemTaskDTO[]> {
-  const assigneeIds = await listOrgProfileIds(params.orgSlug);
-  if (!assigneeIds.length) return [];
-
-  const rows = await prisma.systemTask.findMany({
-    where: { assigneeId: { in: assigneeIds } },
-    orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  const rows = await listSystemTasksInOrganization({
+    organizationId: workspace.id,
     take: Math.max(1, Math.min(500, Math.floor(params.take ?? 200))),
   });
-
   return rows.map(toSystemTaskDto);
 }
 
@@ -129,13 +169,8 @@ export async function updateSystemTask(params: {
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-    const orgAssigneeIds = await listOrgProfileIds(orgSlug);
-    if (!orgAssigneeIds.length) return { ok: false, message: 'לא נמצאו משתמשים בארגון' };
-
-    const existing = await prisma.systemTask.findFirst({
-      where: { id: taskId, assigneeId: { in: orgAssigneeIds } },
-    });
-    if (!existing?.id) return { ok: false, message: 'משימה לא נמצאה' };
+    const existsInOrg = await requireSystemTaskInOrganization({ taskId, organizationId: workspace.id });
+    if (!existsInOrg) return { ok: false, message: 'משימה לא נמצאה' };
 
     const data: any = {};
 
@@ -180,7 +215,7 @@ export async function updateSystemTask(params: {
     }
 
     const updated = await prisma.systemTask.update({
-      where: { id: existing.id },
+      where: { id: taskId },
       data: { ...data } as any,
     });
 
@@ -200,17 +235,12 @@ export async function deleteSystemTask(params: {
     if (!orgSlug) throw new Error('orgSlug is required');
     if (!taskId) throw new Error('taskId is required');
 
-    const orgAssigneeIds = await listOrgProfileIds(orgSlug);
-    if (!orgAssigneeIds.length) return { ok: false, message: 'לא נמצאו משתמשים בארגון' };
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-    const existing = await prisma.systemTask.findFirst({
-      where: { id: taskId, assigneeId: { in: orgAssigneeIds } },
-      select: { id: true },
-    });
+    const existsInOrg = await requireSystemTaskInOrganization({ taskId, organizationId: workspace.id });
+    if (!existsInOrg) return { ok: false, message: 'משימה לא נמצאה' };
 
-    if (!existing?.id) return { ok: false, message: 'משימה לא נמצאה' };
-
-    await prisma.systemTask.delete({ where: { id: existing.id } });
+    await prisma.systemTask.delete({ where: { id: taskId } });
     return { ok: true };
   } catch (e: any) {
     return { ok: false, message: e?.message || 'שגיאה במחיקת משימה' };

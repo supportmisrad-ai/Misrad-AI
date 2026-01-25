@@ -280,7 +280,7 @@ const PipelineBoard: React.FC<PipelineBoardProps> = ({ leads, stages, onLeadClic
     };
 
     return (
-        <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth custom-scrollbar touch-pan-x" dir="rtl">
+        <div className="h-full min-h-0 overflow-x-auto overflow-y-hidden pb-4 scroll-smooth custom-scrollbar" dir="rtl">
             <div className="flex gap-4 md:gap-6 h-full min-h-0 min-w-[300px] w-max px-2 md:px-0">
                 {stages.map(stage => {
                     const stageLeads = leads.filter(l => l.status === stage.id);
