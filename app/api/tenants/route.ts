@@ -409,10 +409,7 @@ async function POSTHandler(request: NextRequest) {
                     if (emailResult.success) {
                         console.log('[Tenant Creation] Invitation email sent successfully:', {
                             tenantId: newTenant.id,
-                            tenantName: newTenant.name,
-                            ownerEmail: newTenant.ownerEmail,
-                            signupUrl,
-                            sentBy: user.email
+                            sentByUserId: user.id
                         });
                         invitationSent = true;
                     } else {

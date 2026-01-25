@@ -56,7 +56,7 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 }
 
                 const data = await response.json().catch(() => null);
-                const avatarUrl = String(data?.url || '').trim();
+                const avatarUrl = String(data?.ref || data?.url || '').trim();
                 if (!avatarUrl) {
                     throw new Error('שגיאה בהעלאת תמונה (חסר URL).');
                 }

@@ -167,22 +167,6 @@ function generateOrganizationWelcomeEmailHTML(params: {
                                 </tr>
                             </table>
 
-                            <table role="presentation" style="width: 100%; margin: 0 0 10px 0;">
-                                <tr>
-                                    <td align="center" style="padding: 0;">
-                                        <div style="color: #718096; font-size: 12px; font-weight: 600; margin: 0 0 10px 0;">
-                                            להורדת האפליקציה:
-                                        </div>
-                                        <a href="#" style="display: inline-block; margin: 0 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #ffffff; color: #2d3748; text-decoration: none; font-size: 12px; font-weight: 700;">
-                                            הורד ל-Windows
-                                        </a>
-                                        <a href="#" style="display: inline-block; margin: 0 6px; padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #ffffff; color: #2d3748; text-decoration: none; font-size: 12px; font-weight: 700;">
-                                            הורד ל-Android
-                                        </a>
-                                    </td>
-                                </tr>
-                            </table>
-
                             <div style="margin: 40px 0 0 0; padding: 20px 0; border-top: 1px solid #e2e8f0;">
                                 <p style="margin: 0; color: #a0aec0; font-size: 12px; line-height: 1.5;">
                                     אם הכפתור לא עובד, העתק והדבק את הקישור הבא לדפדפן שלך:<br>
@@ -347,10 +331,13 @@ export async function sendEmployeeInvitationEmail(
             return { success: false, error: 'Email service not configured' };
         }
 
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(employeeEmail);
+
         // Send email via Resend
         const { data, error } = await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: employeeEmail,
+            from: fromEmail,
+            to: toEmail,
             subject: `הזמנה להצטרף לצוות - ${department} - ${role}`,
             html: html,
         });
@@ -485,7 +472,6 @@ export async function sendFirstCustomerEmail(params: {
         return { success: false, error: error.message || 'Unknown error' };
     }
 }
-
 export async function sendOrganizationWelcomeEmail(params: {
     ownerEmail: string;
     organizationName: string;
@@ -500,6 +486,7 @@ export async function sendOrganizationWelcomeEmail(params: {
         }
 
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(params.ownerEmail);
 
         const html = generateOrganizationWelcomeEmailHTML({
             organizationName: params.organizationName,
@@ -509,7 +496,7 @@ export async function sendOrganizationWelcomeEmail(params: {
 
         const { data, error } = await resend.emails.send({
             from: fromEmail,
-            to: params.ownerEmail,
+            to: toEmail,
             subject: `ברוכים הבאים! הפורטל של ${params.organizationName} מוכן`,
             html,
         });
@@ -766,10 +753,13 @@ export async function sendTenantInvitationEmail(
             return { success: false, error: 'Email service not configured' };
         }
 
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(ownerEmail);
+
         // Send email via Resend
         const { data, error } = await resend.emails.send({
-            from: 'onboarding@resend.dev',
-            to: ownerEmail,
+            from: fromEmail,
+            to: toEmail,
             subject: `הזמנה להצטרף ל-Misrad - ${tenantName}`,
             html: html,
         });

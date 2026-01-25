@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Tenant, ModuleId } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
+import { Button } from '@/components/ui/button';
 
 interface ModuleManagementModalProps {
     tenant: Tenant;
@@ -27,7 +28,9 @@ export const ModuleManagementModal: React.FC<ModuleManagementModalProps> = ({ te
                         <h3 className="text-xl font-bold text-slate-900">ניהול מודולים</h3>
                         <p className="text-slate-600 text-sm">עבור: {tenant.name}</p>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-slate-900"><X size={20} /></button>
+                    <Button onClick={onClose} type="button" variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-slate-900">
+                        <X size={20} />
+                    </Button>
                 </div>
                 
                 <div className="space-y-3">

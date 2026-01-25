@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Save, SlidersHorizontal } from 'lucide-react';
 import { getSocialQuotas, updateSocialQuotas } from '@/app/actions/admin-social';
+import { Button } from '@/components/ui/button';
 
 type SocialQuotas = {
   maxPostsPerMonth: number;
@@ -131,14 +132,14 @@ export function QuotasTab({
             <span>נשמר תחת system_settings.system_flags.socialQuotas</span>
           </div>
 
-          <button
+          <Button
             onClick={save}
             disabled={isLoading || isSaving}
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-black text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
             type="button"
           >
             <Save size={16} /> {isSaving ? 'שומר...' : 'שמור מכסות'}
-          </button>
+          </Button>
         </div>
       </div>
     </motion.div>

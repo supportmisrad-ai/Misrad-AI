@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Link2, Power, ShieldCheck } from 'lucide-react';
 import { disconnectSocialIntegration, getSocialIntegrations } from '@/app/actions/admin-social';
+import { Button } from '@/components/ui/button';
 
 type ProviderKey = 'facebook' | 'instagram' | 'whatsapp';
 
@@ -127,18 +128,19 @@ export function IntegrationsTab({
                   </div>
                 </div>
 
-                <button
+                <Button
                   onClick={() => disconnect(r.provider)}
                   disabled={!isConnected || isLoading || isDisconnecting !== null}
+                  type="button"
+                  variant="outline"
                   className={`inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl font-black text-xs border transition-colors ${
                     isConnected
                       ? 'bg-white text-red-600 border-red-200 hover:bg-red-50'
                       : 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
                   }`}
-                  type="button"
                 >
                   <Power size={14} /> {isDisconnecting === r.provider ? 'מנתק...' : 'נתק'}
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-2 text-xs">

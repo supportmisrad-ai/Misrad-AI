@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Save, Sparkles } from 'lucide-react';
 import { getSocialAutomation, updateSocialAutomation } from '@/app/actions/admin-social';
+import { Button } from '@/components/ui/button';
 
 type AutomationState = {
   enableAutoReplySystem: boolean;
@@ -95,11 +96,12 @@ export function AutomationTab({
               <div className="text-sm font-black text-slate-900">Enable Auto-Reply System</div>
               <div className="text-xs font-bold text-slate-500">האם מותר להשתמש במנגנון אוטומציות/Auto Reply</div>
             </div>
-            <button
+            <Button
               type="button"
               onClick={() => toggle('enableAutoReplySystem')}
               disabled={isLoading || isSaving}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors border ${
+              variant="ghost"
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors border p-0 ${
                 form.enableAutoReplySystem ? 'bg-emerald-500 border-emerald-500' : 'bg-slate-200 border-slate-300'
               } disabled:opacity-50`}
               aria-pressed={form.enableAutoReplySystem}
@@ -109,7 +111,7 @@ export function AutomationTab({
                   form.enableAutoReplySystem ? 'translate-x-5' : 'translate-x-1'
                 }`}
               />
-            </button>
+            </Button>
           </div>
 
           <div className="flex items-center justify-between gap-4 border border-slate-200 rounded-2xl p-4 bg-white">
@@ -117,11 +119,12 @@ export function AutomationTab({
               <div className="text-sm font-black text-slate-900">Allow External Webhooks</div>
               <div className="text-xs font-bold text-slate-500">האם מותר להגדיר Webhooks חיצוניים</div>
             </div>
-            <button
+            <Button
               type="button"
               onClick={() => toggle('allowExternalWebhooks')}
               disabled={isLoading || isSaving}
-              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors border ${
+              variant="ghost"
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors border p-0 ${
                 form.allowExternalWebhooks ? 'bg-emerald-500 border-emerald-500' : 'bg-slate-200 border-slate-300'
               } disabled:opacity-50`}
               aria-pressed={form.allowExternalWebhooks}
@@ -131,7 +134,7 @@ export function AutomationTab({
                   form.allowExternalWebhooks ? 'translate-x-5' : 'translate-x-1'
                 }`}
               />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -141,14 +144,14 @@ export function AutomationTab({
             <span>נשמר תחת system_settings.system_flags.socialAutomation</span>
           </div>
 
-          <button
+          <Button
             onClick={save}
             disabled={isLoading || isSaving}
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-black text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
             type="button"
           >
             <Save size={16} /> {isSaving ? 'שומר...' : 'שמור'}
-          </button>
+          </Button>
         </div>
       </div>
     </motion.div>

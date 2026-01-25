@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { updateNavigationMenu } from '@/app/actions/admin-navigation';
+import { Button } from '@/components/ui/button';
 
 interface NavigationTabProps {
   navigationItems: any[];
@@ -21,7 +22,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
             <h3 className="text-2xl font-black text-slate-900 mb-2">תפריט ניווט</h3>
             <p className="text-sm text-slate-600">ערוך את פריטי התפריט, סדר, נראות והרשאות</p>
           </div>
-          <button
+          <Button
             onClick={async () => {
               const result = await updateNavigationMenu(navigationItems);
               if (result.success) {
@@ -34,7 +35,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
             className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-xl font-black text-sm hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md"
           >
             שמור שינויים
-          </button>
+          </Button>
         </div>
         <div className="p-10">
           <div className="flex flex-col gap-6">
@@ -137,16 +138,19 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                               )}
                             </div>
                             <div className="col-span-2">
-                              <button
+                              <Button
                                 onClick={() => {
                                   if (confirm('האם אתה בטוח שברצונך למחוק פריט זה?')) {
                                     setNavigationItems(navigationItems.filter((i: any) => i.id !== item.id));
                                   }
                                 }}
-                                className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-500 hover:text-white transition-all"
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 bg-rose-100 text-rose-700 border-rose-100 hover:bg-rose-500 hover:text-white"
+                                aria-label="מחק פריט"
                               >
                                 <Trash2 size={16} />
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -154,7 +158,7 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                     ) : (
                       <p className="text-slate-400 font-bold text-center py-4">אין פריטים בקטגוריה זו</p>
                     )}
-                    <button
+                    <Button
                       onClick={() => {
                         const newId = `nav-${Date.now()}`;
                         setNavigationItems([
@@ -171,10 +175,11 @@ export default function NavigationTab({ navigationItems, setNavigationItems, onR
                           },
                         ]);
                       }}
-                      className="mt-2 p-4 bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-xl text-indigo-600 font-black hover:bg-indigo-100 transition-all"
+                      variant="outline"
+                      className="mt-2 h-auto p-4 bg-indigo-50 border-2 border-dashed border-indigo-200 text-indigo-700 font-black hover:bg-indigo-100"
                     >
                       + הוסף פריט חדש
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );

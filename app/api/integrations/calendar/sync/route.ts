@@ -21,12 +21,15 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        const workspace = orgIdFromHeader ? await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader) : null;
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
 
         const clerkUser = await getAuthenticatedUser();
         
         // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
         
         if (!dbUser) {

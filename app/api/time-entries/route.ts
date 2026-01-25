@@ -45,45 +45,48 @@ async function GETHandler(request: NextRequest) {
         const dateFrom = searchParams.get('dateFrom');
         const dateTo = searchParams.get('dateTo');
 
+        // Pagination (fail-safe defaults)
+        const pageRaw = searchParams.get('page');
+        const pageSizeRaw = searchParams.get('pageSize');
+        const page = Math.max(1, Number.parseInt(String(pageRaw ?? '1'), 10) || 1);
+        const requestedPageSize = Number.parseInt(String(pageSizeRaw ?? '50'), 10) || 50;
+        const pageSize = Math.min(200, Math.max(1, requestedPageSize));
+
         // Normalize to DB UUIDs
-        const requestedUserId = userId && isUUID(userId) ? userId : null;
+        const requestedUserId = userId ? (isUUID(userId) ? userId : null) : null;
+        if (userId && !requestedUserId) {
+            return NextResponse.json({ error: 'Invalid userId' }, { status: 400 });
+        }
+
+        // Enforce access BEFORE hitting DB
+        if (requestedUserId && requestedUserId !== dbUser.id && !canManageTeam) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Decide DB-level scoping
+        const queryUserId = requestedUserId ? requestedUserId : (canManageTeam ? undefined : dbUser.id);
         
         // 5. Fetch time entries from database
         // NOTE: getTimeEntries isn't org-scoped; we scope here by querying and filtering.
         // Prefer fetching by userId when possible.
-        let timeEntries = await getTimeEntries({
-            userId: requestedUserId || undefined,
+        const timeEntries = await getTimeEntries({
+            userId: queryUserId,
             dateFrom: dateFrom || undefined,
             dateTo: dateTo || undefined,
             tenantId: workspace.id,
+            page,
+            pageSize,
         });
-        
-        // 6. Filter based on permissions
-        // Filter based on permissions + enforce org scoping by filtering out mismatched org rows.
-        // The DB layer doesn't expose organization_id in the DTO, so we validate access by user scope.
-        if (requestedUserId) {
-            // Check if user can view this user's time entries
-            if (requestedUserId !== dbUser.id && !canManageTeam) {
-                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-            }
 
-            timeEntries = timeEntries.filter(e => e.userId === requestedUserId);
-        } else {
-            // If no userId specified, return only current user's entries (unless manager)
-            if (!canManageTeam) {
-                timeEntries = timeEntries.filter(e => e.userId === dbUser.id);
-            }
-        }
-        
-        // 7. Filter by date range if requested
-        if (dateFrom && dateTo) {
-            timeEntries = timeEntries.filter(e => {
-                const entryDate = new Date(e.startTime).toISOString().split('T')[0];
-                return entryDate >= dateFrom && entryDate <= dateTo;
-            });
-        }
-        
-        return NextResponse.json({ timeEntries });
+        const hasMore = Array.isArray(timeEntries) && timeEntries.length > pageSize;
+        const trimmed = hasMore ? timeEntries.slice(0, pageSize) : timeEntries;
+
+        return NextResponse.json({
+            timeEntries: trimmed,
+            page,
+            pageSize,
+            hasMore,
+        });
         
     } catch (error: any) {
         await logAuditEvent('data.read', 'time_entry', {
@@ -245,7 +248,7 @@ async function DELETEHandler(request: NextRequest) {
         }
         
         // Delete from database
-        await deleteRecord('time_entries', entryId);
+        await deleteRecord('time_entries', entryId, { organizationId: workspace.id });
         
         await logAuditEvent('data.delete', 'time_entry', {
             resourceId: entryId,

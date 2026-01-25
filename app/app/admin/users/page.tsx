@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getAdminClients, impersonateUser } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
 import { SkeletonTable } from '@/components/ui/skeletons';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminToolbar from '@/components/admin/AdminToolbar';
+import { Button } from '@/components/ui/button';
 
 type AdminClientRow = {
   id: string;
@@ -79,74 +82,83 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-          <div className="text-2xl font-black text-slate-900">משתמשים</div>
-          <div className="text-sm font-bold text-slate-500 mt-1">לקוחות (client_clients) + התחזות</div>
-        </div>
+    <div className="space-y-6 pb-24">
+      <AdminPageHeader title="משתמשים" subtitle="לקוחות (client_clients) + התחזות" icon={Users} />
 
-        <div className="flex items-center gap-2">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="חפש לפי חברה/שם/מייל..."
-            className="w-full md:w-72 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-800 placeholder:text-slate-400"
-          />
-          <button
-            type="button"
-            onClick={load}
-            className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
-            title="רענון"
-          >
+      <AdminToolbar
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="חפש לפי חברה/שם/מייל..."
+        actions={
+          <Button variant="outline" onClick={load} title="רענון">
             <RefreshCw size={16} />
-          </button>
-        </div>
-      </div>
+            רענון
+          </Button>
+        }
+      />
 
       {isLoading ? (
         <SkeletonTable rows={10} columns={4} />
       ) : (
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-right">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 text-xs font-black text-slate-600">חברה</th>
-                  <th className="px-4 py-3 text-xs font-black text-slate-600">איש קשר</th>
-                  <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
-                  <th className="px-4 py-3 text-xs font-black text-slate-600">פעולות</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filtered.length === 0 ? (
+        <div className="space-y-3">
+          <div className="md:hidden">
+            {filtered.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600">לא נמצאו לקוחות</div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((u) => (
+                  <div key={u.id} className="bg-white border border-slate-200 rounded-2xl p-4">
+                    <div className="text-sm font-black text-slate-900 truncate">{u.companyName}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-600 truncate">איש קשר: {u.fullName}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-600 truncate">אימייל: {u.email || '-'}</div>
+                    <div className="mt-3">
+                      <Button className="w-full" onClick={() => handleImpersonate(u.id)} title="Impersonate">
+                        <Eye size={16} />
+                        התחזות
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-right">
+                <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={4}>
-                      לא נמצאו לקוחות
-                    </td>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">חברה</th>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">איש קשר</th>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">אימייל</th>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">פעולות</th>
                   </tr>
-                ) : (
-                  filtered.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 text-sm font-bold text-slate-900">{u.companyName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{u.fullName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{u.email || '-'}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <button
-                          type="button"
-                          onClick={() => handleImpersonate(u.id)}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 font-black hover:bg-indigo-100"
-                          title="Impersonate"
-                        >
-                          <Eye size={16} />
-                          התחזות
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={4}>
+                        לא נמצאו לקוחות
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filtered.map((u) => (
+                      <tr key={u.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-sm font-bold text-slate-900">{u.companyName}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{u.fullName}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{u.email || '-'}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <Button variant="outline" size="sm" onClick={() => handleImpersonate(u.id)} title="Impersonate">
+                            <Eye size={16} />
+                            התחזות
+                          </Button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

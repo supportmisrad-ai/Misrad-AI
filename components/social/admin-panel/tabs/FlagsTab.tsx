@@ -2,10 +2,17 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { getModuleIcons, updateFeatureFlags, updateModuleIcons } from '@/app/actions/admin-cockpit';
+import {
+  getModuleIcons,
+  getSystemEmailSettings,
+  updateFeatureFlags,
+  updateModuleIcons,
+  updateSystemEmailSettings,
+} from '@/app/actions/admin-cockpit';
 import { modulesRegistry } from '@/lib/os/modules/registry';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { Button } from '@/components/ui/button';
 
 interface FlagsTabProps {
   featureFlags: any;
@@ -19,6 +26,11 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
   const [isLoadingIcons, setIsLoadingIcons] = React.useState(false);
   const [isSavingIcons, setIsSavingIcons] = React.useState(false);
 
+  const [systemSupportEmail, setSystemSupportEmail] = React.useState('');
+  const [systemMigrationEmail, setSystemMigrationEmail] = React.useState('');
+  const [isLoadingSystemEmails, setIsLoadingSystemEmails] = React.useState(false);
+  const [isSavingSystemEmails, setIsSavingSystemEmails] = React.useState(false);
+
   React.useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -31,6 +43,27 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
         }
       } finally {
         if (!cancelled) setIsLoadingIcons(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setIsLoadingSystemEmails(true);
+      try {
+        const res = await getSystemEmailSettings();
+        if (cancelled) return;
+        if (res.success && res.data) {
+          setSystemSupportEmail(String(res.data.supportEmail || ''));
+          setSystemMigrationEmail(String(res.data.migrationEmail || ''));
+        }
+      } finally {
+        if (!cancelled) setIsLoadingSystemEmails(false);
       }
     };
     load();
@@ -128,7 +161,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                 }}
                 className="sr-only peer"
               />
-              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-slate-900"></div>
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
           </div>
 
@@ -194,7 +227,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
               className="w-full p-4 bg-white border border-blue-200 rounded-xl text-slate-900 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200 resize-none"
               rows={3}
             />
-            <button
+            <Button
               onClick={async () => {
                 const result = await updateFeatureFlags({ bannerMessage: null });
                 if (result.success) {
@@ -202,10 +235,12 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                   onRefresh();
                 }
               }}
-              className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg font-black text-sm hover:bg-rose-600 transition-all"
+              variant="destructive"
+              size="sm"
+              className="mt-4"
             >
               מחק הודעה
-            </button>
+            </Button>
           </div>
 
           <div className="p-6 bg-white rounded-xl border border-slate-200">
@@ -214,7 +249,7 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                 <h4 className="font-black text-slate-900 mb-1">אייקונים של מודולים</h4>
                 <p className="text-sm text-slate-600">שם אייקון מ-lucide-react (לדוגמה: Target, BrainCircuit). ריק = ברירת מחדל מה-Registry.</p>
               </div>
-              <button
+              <Button
                 disabled={isSavingIcons || isLoadingIcons}
                 onClick={async () => {
                   setIsSavingIcons(true);
@@ -238,11 +273,11 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                     setIsSavingIcons(false);
                   }
                 }}
-                className="px-4 py-2 bg-slate-900 text-white rounded-lg font-black text-sm hover:bg-slate-800 disabled:opacity-50"
                 type="button"
+                size="sm"
               >
                 שמור אייקונים
-              </button>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,6 +304,67 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="p-6 bg-white rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <div>
+                <h4 className="font-black text-slate-900 mb-1">אימיילים מערכתיים</h4>
+                <p className="text-sm text-slate-600">ניהול כתובות מייל לשימושים מערכתיים (Support / Migration)</p>
+              </div>
+              <Button
+                disabled={isSavingSystemEmails || isLoadingSystemEmails}
+                onClick={async () => {
+                  setIsSavingSystemEmails(true);
+                  try {
+                    const result = await updateSystemEmailSettings({
+                      supportEmail: systemSupportEmail.trim() || null,
+                      migrationEmail: systemMigrationEmail.trim() || null,
+                    });
+                    if (result.success) {
+                      addToast('אימיילים מערכתיים עודכנו', 'success');
+                      onRefresh();
+                    } else {
+                      addToast(result.error || 'שגיאה בעדכון אימיילים', 'error');
+                    }
+                  } finally {
+                    setIsSavingSystemEmails(false);
+                  }
+                }}
+                type="button"
+                size="sm"
+              >
+                שמור אימיילים
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-xs text-slate-500 font-black mb-2">Support Email</div>
+                <input
+                  value={systemSupportEmail}
+                  onChange={(e) => setSystemSupportEmail(e.target.value)}
+                  placeholder="support@yourdomain.com"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-300"
+                />
+                <div className="mt-2 text-[11px] text-slate-500 font-bold">
+                  משמש ללינקי mailto במיילים ובהודעות.
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                <div className="text-xs text-slate-500 font-black mb-2">Migration Email</div>
+                <input
+                  value={systemMigrationEmail}
+                  onChange={(e) => setSystemMigrationEmail(e.target.value)}
+                  placeholder="migration@yourdomain.com"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-300"
+                />
+                <div className="mt-2 text-[11px] text-slate-500 font-bold">
+                  מוצג במייל הברוכים הבאים (MISRAD) להזמנת מיגרציה.
+                </div>
+              </div>
             </div>
           </div>
         </div>

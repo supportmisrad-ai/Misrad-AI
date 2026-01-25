@@ -8,8 +8,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { supabase } from '../../../../../lib/supabase';
 import { getUsers } from '../../../../../lib/db';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
+    const byTenant = await params.supabaseClient
+        .from('nexus_team_events')
+        .select('*')
+        .eq('id', params.eventId)
+        .eq('tenant_id', params.workspaceId)
+        .single();
+
+    if ((byTenant as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_team_events')
+            .select('*')
+            .eq('id', params.eventId)
+            .eq('organization_id', params.workspaceId)
+            .single();
+    }
+
+    return byTenant;
+}
+
 async function GETHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -23,6 +45,15 @@ async function GETHandler(
                 { status: 500 }
             );
         }
+
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
 
         const { id: eventId } = await params;
 
@@ -41,7 +72,7 @@ async function GETHandler(
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -52,11 +83,9 @@ async function GETHandler(
         }
 
         // Get event to check permissions
-        const { data: event, error: eventError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
+        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
+        const event = (eventRes as any).data;
+        const eventError = (eventRes as any).error;
 
         if (eventError || !event) {
             return NextResponse.json(
@@ -67,7 +96,7 @@ async function GETHandler(
 
         // Check if user can view attendance (organizer, admin, or invited user)
         const isOrganizer = event.organizer_id === dbUser.id;
-        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ״ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
+        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
         const isInvited = 
             (event.required_attendees && event.required_attendees.includes(dbUser.id)) ||
             (event.optional_attendees && event.optional_attendees.includes(dbUser.id));
@@ -80,7 +109,7 @@ async function GETHandler(
         }
 
         // Get all attendance records for this event
-        const { data: attendance, error } = await supabase
+        const { data: attendance, error } = await supabaseClient
             .from('nexus_event_attendance')
             .select('*')
             .eq('event_id', eventId)
@@ -119,6 +148,15 @@ async function POSTHandler(
             );
         }
 
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         const { id: eventId } = await params;
 
         if (!eventId) {
@@ -136,7 +174,7 @@ async function POSTHandler(
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -147,11 +185,9 @@ async function POSTHandler(
         }
 
         // Get event
-        const { data: event, error: eventError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
+        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
+        const event = (eventRes as any).data;
+        const eventError = (eventRes as any).error;
 
         if (eventError || !event) {
             return NextResponse.json(
@@ -183,7 +219,7 @@ async function POSTHandler(
         }
 
         // Upsert attendance record
-        const { data: attendance, error } = await supabase
+        const { data: attendance, error } = await supabaseClient
             .from('nexus_event_attendance')
             .upsert({
                 event_id: eventId,

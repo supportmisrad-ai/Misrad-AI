@@ -130,6 +130,7 @@ export interface Attachment {
     name: string;
     type: 'image' | 'video' | 'file';
     url: string;
+    ref?: string;
 }
 
 export interface Message {

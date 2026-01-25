@@ -90,7 +90,7 @@ async function safeReadOrganizationEntitlements(params: {
       has_operations: Boolean(row.has_operations),
     };
     const seatsFromOrg = normalizeQuantity((row as any).seats_allowed);
-    const seatsAllowed = seatsFromOrg ?? (entitlements.has_nexus ? 5 : 1);
+    const seatsAllowed = seatsFromOrg ?? 1;
     return { seatsAllowed, entitlements };
   }
 
@@ -125,7 +125,7 @@ async function safeReadOrganizationEntitlements(params: {
     has_operations: Boolean((row as any).has_operations),
   };
   const seatsFromOrg = normalizeQuantity((row as any).seats_allowed);
-  const seatsAllowed = seatsFromOrg ?? (entitlements.has_nexus ? 5 : 1);
+  const seatsAllowed = seatsFromOrg ?? 1;
   return { seatsAllowed, entitlements };
 }
 
@@ -192,7 +192,7 @@ export async function syncOrganizationAccessFromBilling(params: {
 
   const flags = computeOrgFlagsFromModules(activeModules);
 
-  const seatsAllowed = flags.has_nexus ? (seatsQty ?? 5) : 1;
+  const seatsAllowed = flags.has_nexus ? (seatsQty ?? 1) : 1;
 
   await safeUpdateOrganization({
     organizationId,

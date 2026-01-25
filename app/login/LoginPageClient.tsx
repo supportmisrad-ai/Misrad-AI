@@ -45,7 +45,10 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
     if (isSignedIn && userId) {
       // Check if there's a redirect parameter in the URL (for direct OS access)
       const searchParams = new URLSearchParams(window.location.search);
-      const redirectPath = searchParams.get('redirect');
+      const redirectPath =
+        searchParams.get('redirect') ||
+        searchParams.get('redirect_url') ||
+        searchParams.get('redirectUrl');
       
       // If redirect parameter exists and is valid, go there
       if (redirectPath && redirectPath.startsWith('/') && !redirectPath.startsWith('//')) {

@@ -6,6 +6,8 @@ export function translateClerkError(errorMessage: string): string {
     // Authentication errors
     'Invalid email or password': 'אימייל או סיסמה שגויים',
     'Invalid password': 'סיסמה שגויה',
+    'Password is incorrect': 'סיסמה שגויה',
+    'Password is incorrect. Try again, or use another method.': 'סיסמה שגויה. נסה שוב, או השתמש בשיטה אחרת.',
     'Password is too short': 'הסיסמה קצרה מדי',
     'Password must contain': 'הסיסמה חייבת להכיל',
     'Email already exists': 'האימייל כבר קיים במערכת',

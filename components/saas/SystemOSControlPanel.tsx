@@ -3,10 +3,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { OrganizationProfile, SystemScreenStatus } from '../../types';
+import { Button } from '@/components/ui/button';
 
 interface SystemOSControlPanelProps {
     organization: OrganizationProfile;
     updateSystemFlag: (screenId: string, status: SystemScreenStatus) => void;
+    hideHeader?: boolean;
 }
 
 // מסכי System OS בלבד (לפי NAV_ITEMS מ-components/system/constants.ts)
@@ -28,15 +30,17 @@ const SYSTEM_OS_SCREENS = [
     { id: 'system', label: 'הגדרות', category: 'headquarters' },
 ];
 
-export const SystemOSControlPanel: React.FC<SystemOSControlPanelProps> = ({ organization, updateSystemFlag }) => {
+export const SystemOSControlPanel: React.FC<SystemOSControlPanelProps> = ({ organization, updateSystemFlag, hideHeader }) => {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="mb-8">
-                <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-red-700 to-rose-700 bg-clip-text text-transparent">
-                    בקרת מערכת System
-                </h1>
-                <p className="text-slate-600 text-lg">שליטה על סטטוס מסכי System (פעיל / תחזוקה / מוסתר) עבור כל המשתמשים.</p>
-            </div>
+            {!hideHeader ? (
+                <div className="mb-8">
+                    <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-red-700 to-rose-700 bg-clip-text text-transparent">
+                        בקרת מערכת System
+                    </h1>
+                    <p className="text-slate-600 text-lg">שליטה על סטטוס מסכי System (פעיל / תחזוקה / מוסתר) עבור כל המשתמשים.</p>
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {SYSTEM_OS_SCREENS.map(screen => {
@@ -55,24 +59,30 @@ export const SystemOSControlPanel: React.FC<SystemOSControlPanelProps> = ({ orga
                             </div>
 
                             <div className="grid grid-cols-3 gap-2 bg-slate-50/80 backdrop-blur-sm p-1 rounded-xl border border-slate-200">
-                                <button
+                                <Button
+                                    size="sm"
+                                    variant={currentFlag === 'active' ? 'default' : 'ghost'}
                                     onClick={() => updateSystemFlag(screen.id, 'active')}
-                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${currentFlag === 'active' ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-900/50' : 'text-slate-700 hover:text-slate-900 hover:bg-white'}`}
+                                    className={`${currentFlag === 'active' ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-900/50 hover:from-green-600 hover:to-emerald-600' : 'text-slate-700 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs`}
                                 >
                                     פעיל
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={currentFlag === 'maintenance' ? 'default' : 'ghost'}
                                     onClick={() => updateSystemFlag(screen.id, 'maintenance')}
-                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${currentFlag === 'maintenance' ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-900/50' : 'text-slate-700 hover:text-slate-900 hover:bg-white'}`}
+                                    className={`${currentFlag === 'maintenance' ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-900/50 hover:from-yellow-600 hover:to-orange-600' : 'text-slate-700 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs`}
                                 >
                                     תחזוקה
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={currentFlag === 'hidden' ? 'default' : 'ghost'}
                                     onClick={() => updateSystemFlag(screen.id, 'hidden')}
-                                    className={`py-2 rounded-lg text-xs font-bold transition-all ${currentFlag === 'hidden' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-900/50' : 'text-slate-700 hover:text-slate-900 hover:bg-white'}`}
+                                    className={`${currentFlag === 'hidden' ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-900/50 hover:from-red-600 hover:to-rose-600' : 'text-slate-700 hover:text-slate-900 hover:bg-white'} rounded-lg text-xs`}
                                 >
                                     מוסתר
-                                </button>
+                                </Button>
                             </div>
                             
                             <div className="mt-3 text-center">

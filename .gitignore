@@ -8,6 +8,14 @@
 # testing
 /coverage
 
+# playwright auth state
+storageState.json
+/test-results/storageState.json
+
+# playwright reports / test artifacts
+/playwright-report/
+/test-results/
+
 # next.js
 /.next/
 /out/
@@ -18,6 +26,7 @@
 
 # misc
 .DS_Store
+local.properties
 *.pem
 
 # debug

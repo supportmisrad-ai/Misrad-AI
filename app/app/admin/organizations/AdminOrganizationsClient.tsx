@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Building2, Copy, Plus, X } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminToolbar from '@/components/admin/AdminToolbar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function AdminOrganizationsClient(props: {
   orgs: any[];
@@ -82,22 +86,17 @@ export default function AdminOrganizationsClient(props: {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <div className="text-2xl font-black text-slate-900">ארגונים</div>
-          <div className="text-sm font-bold text-slate-500 mt-1">ניהול ארגונים גלובלי</div>
-        </div>
+    <div className="space-y-6 pb-24">
+      <AdminPageHeader title="ארגונים" subtitle="ניהול ארגונים גלובלי" icon={Building2} />
 
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-2.5 text-white font-black shadow-sm hover:bg-indigo-500 transition"
-        >
-          <Plus size={18} />
-          הוסף ארגון
-        </button>
-      </div>
+      <AdminToolbar
+        actions={
+          <Button onClick={() => setIsOpen(true)}>
+            <Plus size={18} />
+            הוסף ארגון
+          </Button>
+        }
+      />
 
       {lastInviteUrl ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3">
@@ -107,18 +106,43 @@ export default function AdminOrganizationsClient(props: {
               {lastInviteUrl}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={copyInvite}
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-white font-black hover:bg-slate-800 transition"
-          >
+          <Button variant="secondary" size="sm" onClick={copyInvite} className="shrink-0">
             <Copy size={16} />
             העתק
-          </button>
+          </Button>
         </div>
       ) : null}
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+      <div className="md:hidden">
+        {orgs.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600">אין ארגונים להצגה</div>
+        ) : (
+          <div className="space-y-3">
+            {orgs.map((o: any) => {
+              const mods = [
+                o?.has_nexus ? 'nexus' : null,
+                o?.has_system ? 'system' : null,
+                o?.has_social ? 'social' : null,
+                o?.has_finance ? 'finance' : null,
+                o?.has_client ? 'client' : null,
+                o?.has_operations ? 'operations' : null,
+              ].filter(Boolean);
+              const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
+              return (
+                <div key={String(o.id)} className="bg-white border border-slate-200 rounded-2xl p-4">
+                  <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">slug: {o.slug || '-'}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">מודולים: {mods.length ? mods.join(', ') : '-'}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-right">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -160,11 +184,12 @@ export default function AdminOrganizationsClient(props: {
 
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            className="absolute inset-0 w-full h-full p-0 bg-black/40 rounded-none"
             aria-label="close"
             onClick={() => (!isPending ? setIsOpen(false) : null)}
-            className="absolute inset-0 bg-black/40"
           />
 
           <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-xl">
@@ -176,66 +201,60 @@ export default function AdminOrganizationsClient(props: {
                 <div className="text-lg font-black text-slate-900">הוספת ארגון</div>
               </div>
 
-              <button
+              <Button
                 type="button"
                 onClick={() => (!isPending ? setIsOpen(false) : null)}
-                className="p-2 rounded-xl hover:bg-slate-100 transition"
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
               >
                 <X size={18} className="text-slate-700" />
-              </button>
+              </Button>
             </div>
 
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-600 mb-2">שם הארגון</label>
-                <input
+                <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 font-bold outline-none focus:ring-4 focus:ring-indigo-100"
-                  placeholder={'לדוגמה: Acme בע"מ'}
+                  placeholder="שם הארגון"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">Slug רצוי</label>
-                <input
+                <label className="block text-xs font-black text-slate-600 mb-2">Slug</label>
+                <Input
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 font-bold outline-none focus:ring-4 focus:ring-indigo-100"
-                  placeholder="לדוגמה: acme"
+                  placeholder="slug"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">אימייל הבעלים</label>
-                <input
+                <label className="block text-xs font-black text-slate-600 mb-2">אימייל בעלים</label>
+                <Input
                   value={ownerEmail}
                   onChange={(e) => setOwnerEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 font-bold outline-none focus:ring-4 focus:ring-indigo-100"
-                  placeholder="owner@acme.com"
+                  placeholder="owner@email.com"
                 />
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-200 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (isPending) return;
-                  setIsOpen(false);
-                }}
-                className="rounded-2xl bg-slate-100 px-5 py-2.5 text-slate-800 font-black hover:bg-slate-200 transition"
-              >
-                ביטול
-              </button>
-              <button
-                type="button"
-                disabled={!canSubmit || isPending}
-                onClick={onSubmit}
-                className="rounded-2xl bg-slate-900 px-5 py-2.5 text-white font-black hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {isPending ? 'שומר…' : 'צור ארגון / שלח הזמנה'}
-              </button>
+            <div className="p-5 border-t border-slate-200">
+              <div className="pt-2 flex gap-2">
+                <Button disabled={!canSubmit || isPending} onClick={onSubmit} className="flex-1">
+                  <Plus size={18} />
+                  צור
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => (!isPending ? setIsOpen(false) : null)}
+                  className="px-4"
+                >
+                  ביטול
+                </Button>
+              </div>
             </div>
           </div>
         </div>

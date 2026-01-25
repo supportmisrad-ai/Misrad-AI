@@ -15,6 +15,7 @@ import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/socia
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { Skeleton } from '@/components/ui/skeletons';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 const titles: Record<string, string> = {
   dashboard: 'מרכז שליטה',
@@ -274,6 +275,7 @@ export default function Header() {
       mobileBrand={mobileBrand}
       onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
       onOpenSupportAction={() => setIsHelpModalOpen(true)}
+      actionsSlot={<ModuleHelpVideos moduleKey="social" />}
       switcherSlot={switcherSlot}
       notificationsSlot={notificationsSlot}
       user={{ name: systemIdentity?.name || roomNameHebrew || 'סושיאל', role: systemIdentity?.role || null }}

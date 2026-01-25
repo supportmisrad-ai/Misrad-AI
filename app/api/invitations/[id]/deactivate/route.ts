@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../../lib/auth';
 import { getUsers } from '../../../../../lib/db';
 import { supabase } from '../../../../../lib/supabase';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(
@@ -43,8 +44,15 @@ async function POSTHandler(
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -65,14 +73,33 @@ async function POSTHandler(
                 { status: 500 }
             );
         }
-        
-        const { error: updateError } = await supabase
+
+        const supabaseClient = supabase;
+
+        const patch = {
+            is_active: false,
+            updated_at: new Date().toISOString()
+        };
+
+        const byOrg = await supabaseClient
             .from('system_invitation_links')
-            .update({
-                is_active: false,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', id);
+            .update(patch)
+            .eq('id', id)
+            .eq('organization_id', workspace.id);
+
+        let updateError = (byOrg as any)?.error;
+        if (updateError?.code === '42703') {
+            const byTenant = await supabaseClient
+                .from('system_invitation_links')
+                .update(patch)
+                .eq('id', id)
+                .eq('tenant_id', workspace.id);
+            updateError = (byTenant as any)?.error;
+            if (updateError?.code === '42703') {
+                return NextResponse.json({ success: true, message: 'Invitation link deactivated' });
+            }
+            updateError = (byTenant as any).error;
+        }
         
         if (updateError) {
             console.error('[API] Error deactivating invitation:', updateError);

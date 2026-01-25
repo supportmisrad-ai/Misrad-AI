@@ -18,25 +18,46 @@ import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
     try {
-        const clerkUser = await getAuthenticatedUser();
-
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else {
-            // Strict mode: no unscoped integration status
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+
+        const clerkUser = await getAuthenticatedUser();
+        if (!clerkUser.email) {
             return NextResponse.json({
                 status: {
                     calendar: { connected: false },
-                    drive: { connected: false }
-                }
+                    drive: { connected: false },
+                },
             });
+        }
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
         }
         
         // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspaceId ?? undefined });
+        let dbUsers: any[] = [];
+        try {
+            dbUsers = await getUsers({
+                email: clerkUser.email,
+                tenantId: workspace.id,
+                allowUnscoped: Boolean((clerkUser as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+            });
+        } catch {
+            dbUsers = [];
+        }
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
         
         if (!dbUser) {
@@ -61,33 +82,41 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
-        let query = supabase
-            .from('misrad_integrations')
-            .select('*')
-            .eq('user_id', dbUser.id) // Use Supabase UUID, not Clerk ID
-            .eq('is_active', true);
+        const sb = supabase;
 
-        query = query.eq('tenant_id', workspaceId);
+        const buildBaseQuery = () => {
+            let q = sb
+                .from('misrad_integrations')
+                .select('*')
+                .eq('user_id', dbUser.id)
+                .eq('is_active', true);
 
-        if (service === 'calendar') {
-            query = query.eq('service_type', 'google_calendar');
-        } else if (service === 'drive') {
-            query = query.eq('service_type', 'google_drive');
-        } else {
-            query = query.in('service_type', ['google_calendar', 'google_drive']);
-        }
+            if (service === 'calendar') {
+                q = q.eq('service_type', 'google_calendar');
+            } else if (service === 'drive') {
+                q = q.eq('service_type', 'google_drive');
+            } else {
+                q = q.in('service_type', ['google_calendar', 'google_drive']);
+            }
+
+            return q;
+        };
 
         let integrations: any[] | null = null;
         let error: any = null;
-        ({ data: integrations, error } = await query);
+
+        ({ data: integrations, error } = await buildBaseQuery().eq('tenant_id', workspace.id));
+
         if (error?.code === '42703') {
-            // Strict mode: schema mismatch (e.g. tenant_id missing) => treat as disconnected
-            return NextResponse.json({
-                status: {
-                    calendar: { connected: false },
-                    drive: { connected: false }
-                }
-            });
+            ({ data: integrations, error } = await buildBaseQuery().eq('organization_id', workspace.id));
+            if (error?.code === '42703') {
+                return NextResponse.json({
+                    status: {
+                        calendar: { connected: false },
+                        drive: { connected: false },
+                    },
+                });
+            }
         }
 
         // If table doesn't exist or error, return empty status (not an error - just not configured yet)

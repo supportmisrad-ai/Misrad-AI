@@ -9,6 +9,7 @@ import { getAuthenticatedUser } from '../../../lib/auth';
 import { supabase } from '../../../lib/supabase';
 import { getUsers, createRecord } from '../../../lib/db';
 import { TeamEvent } from '../../../types';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -22,6 +23,25 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         // Get user from database by email
         if (!user.email) {
             return NextResponse.json(
@@ -30,7 +50,16 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        let dbUsers: any[] = [];
+        try {
+            dbUsers = await getUsers({
+                email: user.email,
+                tenantId: workspace.id,
+                allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+            });
+        } catch (e: any) {
+            return NextResponse.json({ events: [] }, { status: 200 });
+        }
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser || !dbUser.tenantId) {
@@ -48,7 +77,7 @@ async function GETHandler(request: NextRequest) {
         let query = supabase
             .from('nexus_team_events')
             .select('*')
-            .eq('tenant_id', dbUser.tenantId)
+            .eq('tenant_id', workspace.id)
             .order('start_date', { ascending: true });
 
         if (startDate) {
@@ -77,10 +106,14 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.json({ events: events || [] }, { status: 200 });
 
     } catch (error: any) {
+        const msg = String(error?.message || '');
         console.error('[API] Error in /api/team-events GET:', error);
+        if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
+            return NextResponse.json({ events: [] }, { status: 200 });
+        }
         return NextResponse.json(
-            { error: error.message || 'שגיאה בטעינת אירועים' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: msg || 'שגיאה בטעינת אירועים' },
+            { status: msg.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }
@@ -96,6 +129,25 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         // Get user from database by email
         if (!user.email) {
             return NextResponse.json(
@@ -104,7 +156,11 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        let dbUsers = await getUsers({ email: user.email });
+        let dbUsers = await getUsers({
+            email: user.email,
+            tenantId: workspace.id,
+            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+        });
         let dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         // Auto-sync: If user not found, try to create them automatically
@@ -150,7 +206,7 @@ async function POSTHandler(request: NextRequest) {
                     billingInfo: undefined
                 };
 
-                const newUser = await createRecord('users', newUserData) as any;
+                const newUser = await createRecord('users', newUserData, { organizationId: workspace.id }) as any;
                 dbUser = newUser;
                 console.log('[API] Auto-synced user to database', {
                     userId: user.id,
@@ -158,7 +214,11 @@ async function POSTHandler(request: NextRequest) {
                 });
                 
                 // Re-fetch to ensure we have the latest user data (including tenantId if set)
-                dbUsers = await getUsers({ email: user.email });
+                dbUsers = await getUsers({
+                    email: user.email,
+                    tenantId: workspace.id,
+                    allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+                });
                 dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
                 
                 if (!dbUser) {
@@ -202,7 +262,7 @@ async function POSTHandler(request: NextRequest) {
         const { data: event, error } = await supabase
             .from('nexus_team_events')
             .insert({
-                tenant_id: dbUser.tenantId,
+                tenant_id: workspace.id,
                 title,
                 description,
                 event_type: eventType,
@@ -252,11 +312,12 @@ async function POSTHandler(request: NextRequest) {
         // Send notifications to required attendees
         if (event && requiredAttendees.length > 0 && supabase) {
             try {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const organizer = allUsers.find(u => u.id === dbUser.id);
                 const organizerName = organizer?.name || 'מערכת';
                 
                 const notifications = requiredAttendees.filter((attendeeId: string) => attendeeId !== user.id).map((attendeeId: string) => ({
+                    organization_id: workspace.id,
                     recipient_id: attendeeId,
                     type: 'team_event',
                     text: `הוזמנת לאירוע: ${title}`,

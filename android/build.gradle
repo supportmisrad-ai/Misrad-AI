@@ -24,6 +24,19 @@ allprojects {
     }
 }
 
+subprojects { proj ->
+    afterEvaluate {
+        if (proj.plugins.hasPlugin('com.android.application') || proj.plugins.hasPlugin('com.android.library')) {
+            proj.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }

@@ -7,8 +7,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createClient } from '../../../../lib/supabase';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function updateAnnouncementInWorkspace(params: { supabaseClient: any; announcementId: string; workspaceId: string; patch: any }) {
+    const byOrg = await params.supabaseClient
+        .from('announcements')
+        .update(params.patch)
+        .eq('id', params.announcementId)
+        .eq('organization_id', params.workspaceId)
+        .select()
+        .single();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('announcements')
+            .update(params.patch)
+            .eq('id', params.announcementId)
+            .eq('tenant_id', params.workspaceId)
+            .select()
+            .single();
+    }
+
+    return byOrg;
+}
+
 async function DELETEHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -34,13 +58,23 @@ async function DELETEHandler(
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         const { id } = await params;
 
         // Soft delete - set is_active to false
-        const { error } = await supabase
-            .from('announcements')
-            .update({ is_active: false })
-            .eq('id', id);
+        const res = await updateAnnouncementInWorkspace({
+            supabaseClient: supabase,
+            announcementId: id,
+            workspaceId: workspace.id,
+            patch: { is_active: false },
+        });
+        const error = (res as any)?.error;
 
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
@@ -93,6 +127,13 @@ async function PATCHHandler(
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         const { id } = await params;
         const body = await request.json();
 
@@ -101,12 +142,15 @@ async function PATCHHandler(
         if (body.message !== undefined) allowedUpdates.message = body.message;
         if (body.is_active !== undefined) allowedUpdates.is_active = body.is_active;
 
-        const { data: announcement, error } = await supabase
-            .from('announcements')
-            .update(allowedUpdates)
-            .eq('id', id)
-            .select()
-            .single();
+        const res = await updateAnnouncementInWorkspace({
+            supabaseClient: supabase,
+            announcementId: id,
+            workspaceId: workspace.id,
+            patch: allowedUpdates,
+        });
+
+        const announcement = (res as any)?.data;
+        const error = (res as any)?.error;
 
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();

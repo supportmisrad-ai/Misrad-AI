@@ -39,7 +39,7 @@ import {
   type ClinicFeedback,
 } from '@/app/actions/client-clinic';
 
-import { createClient } from '@/lib/supabase';
+import { createClient, createServiceRoleClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
@@ -48,6 +48,35 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import * as legacy from '@/app/actions/client-portal';
 
 const toHeDate = (d: Date) => d.toLocaleDateString('he-IL');
+
+function parseSbRef(ref: string): { bucket: string; path: string } | null {
+  const s = String(ref || '').trim();
+  if (!s.startsWith('sb://')) return null;
+  const rest = s.slice('sb://'.length);
+  const slash = rest.indexOf('/');
+  if (slash <= 0) return null;
+  const bucket = rest.slice(0, slash).trim();
+  const path = rest.slice(slash + 1);
+  if (!bucket || !path) return null;
+  return { bucket, path };
+}
+
+async function resolveStorageUrlMaybe(refOrUrl: string | null | undefined, ttlSeconds: number): Promise<string | null> {
+  const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
+  if (!raw) return null;
+
+  const parsed = parseSbRef(raw);
+  if (!parsed) return raw;
+
+  try {
+    const supabase = createServiceRoleClient();
+    const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
+    if (error || !data?.signedUrl) return null;
+    return String(data.signedUrl);
+  } catch {
+    return null;
+  }
+}
 
 function mapClinicTaskToClientAction(task: ClinicTask): ClientAction {
   // Map clinic task status to ClientAction status
@@ -106,6 +135,10 @@ function mapClinicSessionToMeeting(session: ClinicSession): Meeting {
   // Extract attendees from metadata or use default
   const attendees: string[] = session.metadata?.attendees || [];
 
+  const transcript = typeof session.metadata?.transcript === 'string' ? String(session.metadata.transcript) : '';
+  const aiAnalysis = session.metadata?.aiAnalysis ?? undefined;
+  const recordingUrl = typeof session.metadata?.recordingUrl === 'string' ? String(session.metadata.recordingUrl) : undefined;
+
   return {
     id: session.id,
     clientId: session.clientId,
@@ -113,11 +146,11 @@ function mapClinicSessionToMeeting(session: ClinicSession): Meeting {
     title: session.sessionType || 'פגישה',
     location,
     attendees,
-    transcript: '',
+    transcript,
     summary: session.summary || undefined,
-    aiAnalysis: undefined,
+    aiAnalysis,
     files: undefined,
-    recordingUrl: undefined,
+    recordingUrl,
     manualNotes: undefined,
   };
 }
@@ -308,7 +341,17 @@ export async function getClientOSSessions(orgId: string, clientId: string): Prom
       count: sessions.length,
       sessionIds: sessions.slice(0, 5).map((s) => s.id),
     });
-    return sessions.map(mapClinicSessionToMeeting);
+    const ttlSeconds = 60 * 60;
+    const meetings = sessions.map(mapClinicSessionToMeeting);
+    return await Promise.all(
+      meetings.map(async (m) => {
+        const resolved = await resolveStorageUrlMaybe(m.recordingUrl, ttlSeconds);
+        return {
+          ...m,
+          recordingUrl: resolved || m.recordingUrl,
+        };
+      })
+    );
   } catch (error: any) {
     console.error('[getClientOSSessions] error', {
       message: error?.message || String(error),
@@ -325,7 +368,17 @@ export async function getOrganizationSessions(orgId: string): Promise<Meeting[]>
       count: sessions.length,
       sessionIds: sessions.slice(0, 5).map((s) => s.id),
     });
-    return sessions.map(mapClinicSessionToMeeting);
+    const ttlSeconds = 60 * 60;
+    const meetings = sessions.map(mapClinicSessionToMeeting);
+    return await Promise.all(
+      meetings.map(async (m) => {
+        const resolved = await resolveStorageUrlMaybe(m.recordingUrl, ttlSeconds);
+        return {
+          ...m,
+          recordingUrl: resolved || m.recordingUrl,
+        };
+      })
+    );
   } catch (error: any) {
     console.error('[getOrganizationSessions] error', {
       message: error?.message || String(error),

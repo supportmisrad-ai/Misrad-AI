@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { translateClerkError } from '@/lib/errorTranslations';
 
 export const LoginView: React.FC = () => {
   const { organization } = useData();
@@ -131,11 +132,23 @@ export const LoginView: React.FC = () => {
         router.push('/');
         router.refresh();
       } else {
-        setError('ההתחברות נכשלה, אנא נסה שוב');
+        const status = (result as any)?.status;
+        const msg =
+          status === 'needs_second_factor'
+            ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+            : status === 'needs_first_factor'
+              ? 'נדרש שלב אימות נוסף כדי להשלים התחברות. נסה שוב או השתמש בשיטה אחרת.'
+              : status === 'needs_identifier'
+                ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
+                : status === 'needs_new_password'
+                  ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+                  : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+        setError(msg);
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.errors?.[0]?.message || 'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.');
+      const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.';
+      setError(translateClerkError(errorMsg));
       passwordInputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -424,13 +437,13 @@ export const LoginView: React.FC = () => {
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-gray-500">
                 <span className="font-semibold text-gray-500">הורדת אפליקציה:</span>
                 <a
-                    href="#"
+                    href="/api/download/windows"
                     className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
                 >
                     הורד ל-Windows
                 </a>
                 <a
-                    href="#"
+                    href="/api/download/android"
                     className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
                 >
                     הורד ל-Android

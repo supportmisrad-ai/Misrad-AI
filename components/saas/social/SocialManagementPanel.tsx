@@ -6,6 +6,7 @@ import { IntegrationsTab } from './tabs/IntegrationsTab';
 import { AutomationTab } from './tabs/AutomationTab';
 import { QuotasTab } from './tabs/QuotasTab';
 import { TeamTab } from './tabs/TeamTab';
+import { Button } from '@/components/ui/button';
 
 type SocialTabKey = 'integrations' | 'automation' | 'quotas' | 'team';
 
@@ -58,13 +59,13 @@ export function SocialManagementPanel() {
       <div className="mb-8">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-blue-700 to-indigo-700 bg-clip-text text-transparent">
               ניהול Social
             </h1>
-            <p className="text-slate-600 text-lg">שליטה מרכזית על קונפיגורציית Social לכל טננט.</p>
+            <p className="text-slate-600 text-base md:text-lg">שליטה מרכזית על קונפיגורציית Social לכל טננט.</p>
           </div>
 
-          <div className="min-w-[260px]">
+          <div className="w-full md:w-auto md:min-w-[260px]">
             <label className="block text-xs font-bold text-slate-600 mb-2">בחר טננט</label>
             <select
               value={selectedTenantId}
@@ -87,51 +88,55 @@ export function SocialManagementPanel() {
 
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl shadow-2xl overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 border-b border-slate-200/70">
-          <div className="flex items-center gap-2">
-            <button
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            <Button
               onClick={() => setActiveTab('integrations')}
+              variant="outline"
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-colors border ${
                 activeTab === 'integrations'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white/70 text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
+              } whitespace-nowrap`}
               type="button"
             >
               <Plug size={16} /> אינטגרציות
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setActiveTab('automation')}
+              variant="outline"
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-colors border ${
                 activeTab === 'automation'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white/70 text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
+              } whitespace-nowrap`}
               type="button"
             >
               <Sparkles size={16} /> אוטומציות
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setActiveTab('quotas')}
+              variant="outline"
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-colors border ${
                 activeTab === 'quotas'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white/70 text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
+              } whitespace-nowrap`}
               type="button"
             >
               <SlidersHorizontal size={16} /> מכסות
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setActiveTab('team')}
+              variant="outline"
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-colors border ${
                 activeTab === 'team'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white/70 text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
+              } whitespace-nowrap`}
               type="button"
             >
               <Users size={16} /> צוות
-            </button>
+            </Button>
           </div>
 
           <div className="text-xs font-bold text-slate-500">

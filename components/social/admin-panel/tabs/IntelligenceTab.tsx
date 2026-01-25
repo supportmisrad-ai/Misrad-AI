@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, Brain, MessageSquare, Users, Mail } from 'lucide-react';
 import { sendChurnEmail } from '@/app/actions/admin-cockpit';
+import { Button } from '@/components/ui/button';
 
 interface IntelligenceTabProps {
   analytics: any;
@@ -80,7 +81,8 @@ export default function IntelligenceTab({ analytics, onRefresh, addToast }: Inte
               <p className="text-2xl font-black text-rose-600 mt-2">
                 {analytics?.churnedUsers?.length || 0}
               </p>
-              <button
+              <Button
+                type="button"
                 onClick={async () => {
                   const userIds = analytics?.churnedUsers?.map((u: any) => u.id) || [];
                   if (userIds.length > 0) {
@@ -93,7 +95,7 @@ export default function IntelligenceTab({ analytics, onRefresh, addToast }: Inte
                 className="mt-4 px-4 py-2 bg-rose-500 text-white rounded-lg font-black text-sm hover:bg-rose-600 transition-all"
               >
                 <Mail size={16} className="inline mr-2"/> שלח מייל "מתגעגעים"
-              </button>
+              </Button>
             </div>
             <div className="max-h-64 overflow-y-auto">
               {(analytics?.churnedUsers || []).slice(0, 5).map((user: any, i: number) => (

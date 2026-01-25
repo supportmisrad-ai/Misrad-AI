@@ -2,6 +2,13 @@
 
 import { resend, isResendConfigured } from '@/lib/resend';
 import { Client } from '@/types';
+import { sendMisradWelcomeEmail } from '@/lib/email';
+
+function resolveRecipientEmail(originalTo: string): string {
+  const override = process.env.RESEND_TEST_TO;
+  if (!override) return originalTo;
+  return String(override).trim() || originalTo;
+}
 
 interface SendInvitationEmailParams {
   clientName: string;
@@ -32,12 +39,24 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
 
     const { clientName, clientEmail, invitationLink, planName, planPrice } = params;
 
+    let systemSupportEmail = 'support@social-os.com';
+    try {
+      const { getSystemEmailSettingsUnsafe } = await import('@/lib/server/systemEmailSettings');
+      const settings = await getSystemEmailSettingsUnsafe();
+      if (settings.supportEmail) {
+        systemSupportEmail = String(settings.supportEmail).trim() || systemSupportEmail;
+      }
+    } catch {
+      systemSupportEmail = (process.env.MISRAD_SUPPORT_EMAIL || systemSupportEmail).trim() || systemSupportEmail;
+    }
+
     // Get the "from" email from environment or use default
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const toEmail = resolveRecipientEmail(clientEmail);
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
-      to: clientEmail,
+      to: toEmail,
       subject: `הזמנה להצטרף ל-Social OS - ${clientName}`,
       html: `
         <!DOCTYPE html>
@@ -101,7 +120,7 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center;">
               <p style="color: #94a3b8; font-size: 12px; margin: 0;">
                 שאלות? אנחנו כאן לעזור<br>
-                <a href="mailto:support@social-os.com" style="color: #3b82f6;">support@social-os.com</a>
+                <a href="mailto:${systemSupportEmail}" style="color: #3b82f6;">${systemSupportEmail}</a>
               </p>
             </div>
           </div>
@@ -132,6 +151,51 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
   }
 }
 
+export async function sendMisradWelcomeEmailAction(params: {
+  toEmail: string;
+  ownerName?: string | null;
+  signInUrl: string;
+}) {
+  try {
+    if (!isResendConfigured()) {
+      return {
+        success: false,
+        error: 'Resend לא מוגדר. נא להגדיר RESEND_API_KEY במשתני הסביבה.',
+      };
+    }
+
+    const toEmail = String(params.toEmail || '').trim();
+    const signInUrl = String(params.signInUrl || '').trim();
+    const ownerName = params.ownerName ? String(params.ownerName) : null;
+
+    if (!toEmail) {
+      return { success: false, error: 'toEmail חסר' };
+    }
+
+    if (!signInUrl) {
+      return { success: false, error: 'signInUrl חסר' };
+    }
+
+    const res = await sendMisradWelcomeEmail({
+      toEmail,
+      ownerName,
+      signInUrl,
+    });
+
+    if (!res.success) {
+      return { success: false, error: res.error || 'שגיאה בשליחת מייל' };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error sending MISRAD welcome email (action):', error);
+    return {
+      success: false,
+      error: error.message || 'אירעה שגיאה בלתי צפויה',
+    };
+  }
+}
+
 /**
  * Server Action: Send test email
  */
@@ -152,10 +216,11 @@ export async function sendTestEmail(to: string) {
     }
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+    const toEmail = resolveRecipientEmail(to);
 
     const { data, error } = await resend.emails.send({
       from: fromEmail,
-      to: to,
+      to: toEmail,
       subject: 'Test Email from Social OS',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; direction: rtl; text-align: right;">

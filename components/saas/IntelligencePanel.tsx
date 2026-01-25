@@ -3,31 +3,39 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, BrainCircuit, ArrowUpRight } from 'lucide-react';
 import { GeneratedReport, Feedback } from '../../types';
+import { Button } from '@/components/ui/button';
 
 interface IntelligencePanelProps {
     systemReports: GeneratedReport[];
     feedbacks: Feedback[];
     onViewReport: (report: GeneratedReport) => void;
     onGenerateReport: (period: 'Quarterly' | 'Annual') => void;
+    hideHeader?: boolean;
 }
 
 export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({ 
-    systemReports, feedbacks, onViewReport, onGenerateReport 
+    systemReports, feedbacks, onViewReport, onGenerateReport, hideHeader
 }) => {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="mb-10 flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                        בינה עסקית ודוחות
-                    </h1>
-                    <p className="text-slate-600 text-lg">דוחות רווחיות (P&L) ומשובי AI.</p>
+            {!hideHeader ? (
+                <div className="mb-10 flex justify-between items-end">
+                    <div>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                            בינה עסקית ודוחות
+                        </h1>
+                        <p className="text-slate-600 text-lg">דוחות רווחיות (P&L) ומשובי AI.</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => onGenerateReport('Quarterly')}>
+                            דוח רבעוני
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => onGenerateReport('Annual')}>
+                            דוח שנתי
+                        </Button>
+                    </div>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={() => onGenerateReport('Quarterly')} className="bg-white/80 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-50 hover:border-slate-300/80 transition-all">דוח רבעוני</button>
-                    <button onClick={() => onGenerateReport('Annual')} className="bg-white/80 backdrop-blur-sm text-slate-700 px-4 py-2 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-50 hover:border-slate-300/80 transition-all">דוח שנתי</button>
-                </div>
-            </div>
+            ) : null}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 

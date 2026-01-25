@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getCurrentUserInfo } from '@/app/actions/users';
 import { redirect } from 'next/navigation';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import ClientModuleEntryClient from '../ClientModuleEntryClient';
 
@@ -14,6 +15,8 @@ export default async function ClientMePage({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
+
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
@@ -49,7 +52,7 @@ export default async function ClientMePage({
   const role = ((fallbackUser as any)?.role ?? safeRoleFromClerk ?? (user as any)?.role ?? null) as string | null;
   const isAdmin = role === 'admin' || role === 'super_admin' || role === 'owner';
 
-  const organizationId = orgSlug;
+  const organizationId = String(workspace?.id || '');
   let organization:
     | {
         id: string;

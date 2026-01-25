@@ -19,6 +19,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -177,6 +178,7 @@ export default function FinanceShell(props: {
           }
           onOpenCommandPaletteAction={undefined}
           onOpenSupportAction={undefined}
+          actionsSlot={<ModuleHelpVideos moduleKey="finance" />}
           switcherSlot={null}
           notificationsSlot={notificationsSlot}
           user={{ name: headerName, role: headerRole }}

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Trash2, User } from 'lucide-react';
 import { getSocialTeam, removeSocialUser, updateSocialUserRole } from '@/app/actions/admin-social';
+import { Button } from '@/components/ui/button';
 
 type SocialRole = 'super_admin' | 'owner' | 'team_member';
 
@@ -171,14 +172,15 @@ export function TeamTab({
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <button
+                    <Button
                       onClick={() => onRemove(u.id, u.name)}
                       disabled={isLoading || isUpdatingRole !== null || isRemoving === u.id}
-                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl font-black text-xs border bg-white text-red-600 border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
                       type="button"
+                      variant="outline"
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl font-black text-xs border bg-white text-red-600 border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={14} /> {isRemoving === u.id ? 'מסיר...' : 'הסר'}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

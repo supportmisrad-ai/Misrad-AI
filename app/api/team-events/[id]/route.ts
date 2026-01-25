@@ -8,8 +8,30 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { supabase } from '../../../../lib/supabase';
 import { getUsers } from '../../../../lib/db';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
+    const byTenant = await params.supabaseClient
+        .from('nexus_team_events')
+        .select('*')
+        .eq('id', params.eventId)
+        .eq('tenant_id', params.workspaceId)
+        .single();
+
+    if ((byTenant as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_team_events')
+            .select('*')
+            .eq('id', params.eventId)
+            .eq('organization_id', params.workspaceId)
+            .single();
+    }
+
+    return byTenant;
+}
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -24,6 +46,27 @@ async function PATCHHandler(
             );
         }
 
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         const { id } = await params;
 
         if (!id) {
@@ -33,12 +76,10 @@ async function PATCHHandler(
             );
         }
 
-        // Get existing event
-        const { data: existingEvent, error: getError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', id)
-            .single();
+        // Get existing event (must belong to workspace)
+        const existingRes = await loadTeamEventInWorkspace({ supabaseClient, eventId: id, workspaceId: workspace.id });
+        const existingEvent = (existingRes as any).data;
+        const getError = (existingRes as any).error;
 
         if (getError || !existingEvent) {
             return NextResponse.json(
@@ -54,7 +95,11 @@ async function PATCHHandler(
                 { status: 400 }
             );
         }
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({
+            email: user.email,
+            tenantId: workspace.id,
+            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+        });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -107,15 +152,31 @@ async function PATCHHandler(
             }
         }
 
-        const { data: updatedEvent, error } = await supabase
+        const { data: updatedEvent, error } = await supabaseClient
             .from('nexus_team_events')
             .update(updateData)
             .eq('id', id)
+            .eq('tenant_id', workspace.id)
             .select()
             .single();
 
-        if (error) {
-            console.error('[API] Error updating team event:', error);
+        // Backwards compatible: if tenant_id doesn't exist, retry with organization_id
+        let finalUpdatedEvent = updatedEvent;
+        let finalUpdateError = error as any;
+        if (finalUpdateError?.code === '42703') {
+            const retry = await supabaseClient
+                .from('nexus_team_events')
+                .update(updateData)
+                .eq('id', id)
+                .eq('organization_id', workspace.id)
+                .select()
+                .single();
+            finalUpdatedEvent = retry.data as any;
+            finalUpdateError = retry.error as any;
+        }
+
+        if (finalUpdateError) {
+            console.error('[API] Error updating team event:', finalUpdateError);
             return NextResponse.json(
                 { error: 'שגיאה בעדכון אירוע' },
                 { status: 500 }
@@ -123,7 +184,7 @@ async function PATCHHandler(
         }
 
         return NextResponse.json(
-            { event: updatedEvent, message: 'אירוע עודכן בהצלחה' },
+            { event: finalUpdatedEvent, message: 'אירוע עודכן בהצלחה' },
             { status: 200 }
         );
 
@@ -150,6 +211,27 @@ async function DELETEHandler(
             );
         }
 
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         const { id } = await params;
 
         if (!id) {
@@ -159,12 +241,10 @@ async function DELETEHandler(
             );
         }
 
-        // Get existing event
-        const { data: existingEvent, error: getError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', id)
-            .single();
+        // Get existing event (must belong to workspace)
+        const existingRes = await loadTeamEventInWorkspace({ supabaseClient, eventId: id, workspaceId: workspace.id });
+        const existingEvent = (existingRes as any).data;
+        const getError = (existingRes as any).error;
 
         if (getError || !existingEvent) {
             return NextResponse.json(
@@ -180,7 +260,11 @@ async function DELETEHandler(
                 { status: 400 }
             );
         }
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({
+            email: user.email,
+            tenantId: workspace.id,
+            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+        });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -202,13 +286,24 @@ async function DELETEHandler(
         }
 
         // Delete event (cascade will delete attendance records)
-        const { error } = await supabase
+        const byTenantDelete = await supabaseClient
             .from('nexus_team_events')
             .delete()
-            .eq('id', id);
+            .eq('id', id)
+            .eq('tenant_id', workspace.id);
 
-        if (error) {
-            console.error('[API] Error deleting team event:', error);
+        let deleteError = (byTenantDelete as any)?.error;
+        if (deleteError?.code === '42703') {
+            const byOrgDelete = await supabaseClient
+                .from('nexus_team_events')
+                .delete()
+                .eq('id', id)
+                .eq('organization_id', workspace.id);
+            deleteError = (byOrgDelete as any)?.error;
+        }
+
+        if (deleteError) {
+            console.error('[API] Error deleting team event:', deleteError);
             return NextResponse.json(
                 { error: 'שגיאה במחיקת אירוע' },
                 { status: 500 }

@@ -6,14 +6,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import { getAuthenticatedUser, hasPermission, canAccessResource } from '../../../lib/auth';
+import { getAuthenticatedUser, hasPermission, canAccessResource, requirePermission as requirePermissionFromAuth } from '../../../lib/auth';
 import { logAuditEvent } from '../../../lib/audit';
 import { getUsers } from '../../../lib/db';
-import { createClient } from '@/lib/supabase';
+import { createClient, createServiceRoleClient } from '@/lib/supabase';
 import { Task } from '../../../types';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 function toTaskDto(row: any): Task {
     return {
         id: row.id,
@@ -57,6 +58,97 @@ function toTaskDto(row: any): Task {
     } as Task;
 }
 
+function parseSbRef(ref: string): { bucket: string; path: string } | null {
+    const s = String(ref || '').trim();
+    if (!s.startsWith('sb://')) return null;
+    const rest = s.slice('sb://'.length);
+    const slash = rest.indexOf('/');
+    if (slash <= 0) return null;
+    const bucket = rest.slice(0, slash).trim();
+    const path = rest.slice(slash + 1);
+    if (!bucket || !path) return null;
+    return { bucket, path };
+}
+
+async function resolveStorageUrlMaybe(refOrUrl: string | null | undefined, ttlSeconds: number): Promise<string | null> {
+    const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
+    if (!raw) return null;
+    const parsed = parseSbRef(raw);
+    if (!parsed) return raw;
+
+    try {
+        const supabase = createServiceRoleClient();
+        const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
+        if (error || !data?.signedUrl) return null;
+        return String(data.signedUrl);
+    } catch {
+        return null;
+    }
+}
+
+function normalizeMessagesForStorage(messages: any): any {
+    if (!Array.isArray(messages)) return messages;
+    return messages.map((m) => {
+        const attachment = (m as any)?.attachment;
+        if (!attachment || typeof attachment !== 'object') return m;
+
+        const stable =
+            typeof (attachment as any).ref === 'string' && String((attachment as any).ref).trim()
+                ? String((attachment as any).ref).trim()
+                : typeof (attachment as any).url === 'string'
+                  ? String((attachment as any).url).trim()
+                  : '';
+
+        if (!stable) return m;
+
+        // Store only stable reference/url in DB (prefer sb://)
+        return {
+            ...(m as any),
+            attachment: {
+                name: (attachment as any).name,
+                type: (attachment as any).type,
+                url: stable,
+            },
+        };
+    });
+}
+
+async function resolveTaskAttachmentsForResponse(task: Task): Promise<Task> {
+    const ttlSeconds = 60 * 60;
+    const messages = Array.isArray((task as any).messages) ? ((task as any).messages as any[]) : [];
+
+    const resolvedMessages = await Promise.all(
+        messages.map(async (m) => {
+            const attachment = (m as any)?.attachment;
+            if (!attachment || typeof attachment !== 'object') return m;
+
+            const ref =
+                typeof (attachment as any).url === 'string' && String((attachment as any).url).trim().startsWith('sb://')
+                    ? String((attachment as any).url).trim()
+                    : typeof (attachment as any).ref === 'string'
+                      ? String((attachment as any).ref).trim()
+                      : null;
+
+            if (!ref || !ref.startsWith('sb://')) return m;
+
+            const signed = await resolveStorageUrlMaybe(ref, ttlSeconds);
+            return {
+                ...(m as any),
+                attachment: {
+                    ...(attachment as any),
+                    ref,
+                    url: signed || ref,
+                },
+            };
+        })
+    );
+
+    return {
+        ...(task as any),
+        messages: resolvedMessages,
+    } as Task;
+}
+
 async function GETHandler(request: NextRequest) {
     try {
         const headerOrgId = request.headers.get('x-org-id');
@@ -70,12 +162,28 @@ async function GETHandler(request: NextRequest) {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
 
+        // 2. Check permissions BEFORE hitting the database
+        const canViewCrm = await hasPermission('view_crm');
+        if (!canViewCrm) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        // Pagination (fail-safe defaults)
+        const searchParams = request.nextUrl.searchParams;
+        const pageRaw = searchParams.get('page');
+        const pageSizeRaw = searchParams.get('pageSize');
+        const page = Math.max(1, Number.parseInt(String(pageRaw ?? '1'), 10) || 1);
+        const requestedPageSize = Number.parseInt(String(pageSizeRaw ?? '50'), 10) || 50;
+        const pageSize = Math.min(200, Math.max(1, requestedPageSize));
+        const offset = (page - 1) * pageSize;
+        const endInclusive = offset + pageSize; // fetch pageSize + 1 items for hasMore
+
         // Resolve database user UUID (tasks are stored using DB UUIDs, not Clerk IDs)
         const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
         let dbUserId: string | null = null;
         if (typeof user?.email === 'string' && user.email.length > 0) {
             try {
-                const dbUsers = await getUsers({ email: user.email });
+                const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
                 if (dbUsers.length > 0 && typeof dbUsers[0]?.id === 'string') {
                     dbUserId = dbUsers[0].id;
                 }
@@ -86,10 +194,20 @@ async function GETHandler(request: NextRequest) {
         const effectiveUserId = dbUserId || (isUUID(user.id) ? user.id : null);
 
         // Get query parameters
-        const searchParams = request.nextUrl.searchParams;
         const taskId = searchParams.get('id');
         const assigneeId = searchParams.get('assigneeId');
         const status = searchParams.get('status');
+
+        // For list endpoint, filter at DB level when possible to keep pagination accurate
+        const isManager = await hasPermission('manage_team');
+        if (!taskId && !isManager && !effectiveUserId) {
+            return NextResponse.json({
+                tasks: [],
+                page,
+                pageSize,
+                hasMore: false,
+            });
+        }
 
         // Fetch tasks from database FIRST (most important - don't wait for auth/permissions)
         let tasks: Task[] = [];
@@ -102,7 +220,7 @@ async function GETHandler(request: NextRequest) {
                 .eq('organization_id', workspace.id)
                 .order('due_date', { ascending: true })
                 .order('created_at', { ascending: false })
-                .limit(500);
+                .range(offset, endInclusive);
 
             if (taskId) {
                 query = query.eq('id', taskId);
@@ -115,6 +233,10 @@ async function GETHandler(request: NextRequest) {
             }
             if (assigneeId) {
                 query = query.or(`assignee_id.eq.${assigneeId},assignee_ids.cs.{${assigneeId}}`);
+            } else if (!taskId && !isManager && effectiveUserId) {
+                query = query.or(
+                    `assignee_id.eq.${effectiveUserId},assignee_ids.cs.{${effectiveUserId}},creator_id.eq.${effectiveUserId}`
+                );
             }
 
             const { data, error } = await query;
@@ -125,12 +247,6 @@ async function GETHandler(request: NextRequest) {
         } catch (dbError: any) {
             console.error('[API] Error fetching tasks from database:', dbError);
             tasks = [];
-        }
-
-        // Check permissions
-        const canViewCrm = await hasPermission('view_crm');
-        if (!canViewCrm) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         // Log access ASYNC (don't block response)
@@ -165,27 +281,22 @@ async function GETHandler(request: NextRequest) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
 
-            return NextResponse.json(task);
+            const resolved = await resolveTaskAttachmentsForResponse(task);
+            return NextResponse.json(resolved);
         }
 
         // 7. List tasks - filter by permissions
-        const isManager = await hasPermission('manage_team');
+        // Note: for list endpoint we already DB-filtered by user scope for non-managers.
 
-        if (!isManager) {
-            // Non-managers only see their own tasks
-            if (effectiveUserId) {
-                tasks = tasks.filter(t =>
-                    t.assigneeIds?.includes(effectiveUserId) ||
-                    t.creatorId === effectiveUserId
-                );
-            } else {
-                tasks = [];
-            }
-        }
-
-        // Note: assignee/status filtering already applied at DB level above.
-
-        return NextResponse.json({ tasks });
+        const hasMore = tasks.length > pageSize;
+        const trimmed = hasMore ? tasks.slice(0, pageSize) : tasks;
+        const resolvedTasks = await Promise.all(trimmed.map(resolveTaskAttachmentsForResponse));
+        return NextResponse.json({
+            tasks: resolvedTasks,
+            page,
+            pageSize,
+            hasMore,
+        });
 
     } catch (error: any) {
         console.error('[API] Error in GET /api/tasks:', error);
@@ -233,7 +344,7 @@ async function POSTHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
 
         // 2. Check permissions
-        await requirePermission('view_crm');
+        await requirePermissionFromAuth('view_crm');
 
         const body = await request.json();
 
@@ -250,7 +361,7 @@ async function POSTHandler(request: NextRequest) {
         let dbUserId: string | undefined = undefined;
         if (user.email) {
             try {
-                const dbUsers = await getUsers({ email: user.email });
+                const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
                 if (dbUsers.length > 0) {
                     dbUserId = dbUsers[0].id; // This is the UUID from Supabase
                 } else {
@@ -335,7 +446,7 @@ async function POSTHandler(request: NextRequest) {
             estimatedTime: body.estimatedTime || null,
             approvalStatus: body.approvalStatus || null,
             isTimerRunning: body.isTimerRunning || false,
-            messages: body.messages || [],
+            messages: normalizeMessagesForStorage(body.messages || []),
             clientId: body.clientId || null,
             isPrivate: body.isPrivate || false,
             audioUrl: body.audioUrl || null,
@@ -389,7 +500,7 @@ async function POSTHandler(request: NextRequest) {
             throw new Error(createError?.message || 'Failed to create task');
         }
 
-        const newTask = toTaskDto(created);
+        const newTask = await resolveTaskAttachmentsForResponse(toTaskDto(created));
 
         // Log audit event asynchronously (don't wait for it)
         logAuditEvent('data.write', 'task', {
@@ -403,13 +514,14 @@ async function POSTHandler(request: NextRequest) {
         // Send notifications to assignees (if task is assigned to someone other than creator)
         if (assigneeIds.length > 0) {
             try {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const creator = allUsers.find(u => u.id === finalCreatorId);
                 const creatorName = creator?.name || 'מערכת';
 
                 const notifications = assigneeIds
                     .filter(assigneeId => assigneeId !== finalCreatorId) // Don't notify creator if they assigned to themselves
                     .map(assigneeId => ({
+                        organization_id: workspace.id,
                         recipient_id: assigneeId,
                         type: 'task_assigned',
                         text: `שויכת למשימה: ${newTask.title}`,
@@ -473,7 +585,7 @@ async function DELETEHandler(request: NextRequest) {
         const workspace = await requireWorkspaceAccessByOrgSlugApi(effectiveOrgId);
 
         const user = await getAuthenticatedUser();
-        await requirePermission('view_crm');
+        await requirePermissionFromAuth('view_crm');
 
         const searchParams = request.nextUrl.searchParams;
         const taskId = searchParams.get('id');
@@ -582,7 +694,7 @@ async function PATCHHandler(request: NextRequest) {
         if (updates.estimatedTime !== undefined) patch.estimated_time = updates.estimatedTime;
         if (updates.approvalStatus !== undefined) patch.approval_status = updates.approvalStatus;
         if (updates.isTimerRunning !== undefined) patch.is_timer_running = updates.isTimerRunning;
-        if (updates.messages !== undefined) patch.messages = updates.messages;
+        if (updates.messages !== undefined) patch.messages = normalizeMessagesForStorage(updates.messages);
         if (updates.clientId !== undefined) patch.client_id = updates.clientId;
         if (updates.isPrivate !== undefined) patch.is_private = updates.isPrivate;
         if (updates.audioUrl !== undefined) patch.audio_url = updates.audioUrl;
@@ -603,7 +715,7 @@ async function PATCHHandler(request: NextRequest) {
             throw new Error(updateError?.message || 'Failed to update task');
         }
 
-        const updatedTask = toTaskDto(updated);
+        const updatedTask = await resolveTaskAttachmentsForResponse(toTaskDto(updated));
 
         await logAuditEvent('data.write', 'task', {
             resourceId: taskId,
@@ -613,7 +725,7 @@ async function PATCHHandler(request: NextRequest) {
         // Send notifications for important changes
         if (existingTask) {
             try {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const updater = allUsers.find(u => u.id === user.id);
                 const updaterName = updater?.name || 'מערכת';
 
@@ -624,6 +736,7 @@ async function PATCHHandler(request: NextRequest) {
 
                     if (newAssignees.length > 0) {
                         const notifications = newAssignees.map((assigneeId: string) => ({
+                            organization_id: workspace.id,
                             recipient_id: assigneeId,
                             type: 'task_assigned',
                             text: `שויכת למשימה: ${updatedTask.title}`,
@@ -654,6 +767,7 @@ async function PATCHHandler(request: NextRequest) {
                     const importantStatuses = ['Done', 'Waiting for Review'];
                     if (importantStatuses.includes(updates.status) && existingTask.creatorId && existingTask.creatorId !== user.id) {
                         const notification = {
+                            organization_id: workspace.id,
                             recipient_id: existingTask.creatorId,
                             type: 'task_status',
                             text: `סטטוס משימה השתנה ל-${updates.status}: ${updatedTask.title}`,

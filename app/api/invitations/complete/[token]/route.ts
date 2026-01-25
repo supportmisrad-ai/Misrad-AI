@@ -241,7 +241,29 @@ async function POSTHandler(
         // Send notification to all super admins
         // Try to create a system task or notification for admins
         try {
-            const superAdmins = await getUsers();
+            const organizationIdFromMetadata =
+                invitation?.metadata && typeof invitation.metadata === 'object'
+                    ? (invitation.metadata as any).organizationId
+                    : null;
+
+            const organizationId =
+                typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0
+                    ? organizationIdFromMetadata
+                    : (invitation as any).organization_id || (invitation as any).tenant_id || null;
+
+            if (!organizationId) {
+                return NextResponse.json({
+                    success: true,
+                    message: 'הטופס נשלח בהצלחה',
+                    invitation: {
+                        id: updatedInvitation.id,
+                        token: updatedInvitation.token,
+                        usedAt: updatedInvitation.used_at
+                    }
+                }, { status: 200 });
+            }
+
+            const superAdmins = await getUsers({ tenantId: String(organizationId) });
             const admins = superAdmins.filter(u => u.isSuperAdmin || u.role === 'מנכ״ל' || u.role === 'מנכ"ל' || u.role === 'אדמין');
             
             if (admins.length > 0) {
@@ -253,10 +275,11 @@ async function POSTHandler(
                 try {
                     const { error: notifError } = await supabase.from('misrad_notifications').insert(
                         admins.map(admin => ({
+                            organization_id: String(organizationId),
                             recipient_id: admin.id,
                             type: 'system',
                             text: notificationText,
-                            read: false,
+                            is_read: false,
                             created_at: new Date().toISOString(),
                             metadata: {
                                 invitationId: invitation.id,

@@ -615,7 +615,7 @@ export const MeView: React.FC<{
                                         const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
                                         if (orgSlug) {
                                           const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-                                          router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
+                                          router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
                                         }
                                       }}
                                       className="absolute bottom-2 left-2 w-8 h-8 bg-indigo-600/90 hover:bg-indigo-700 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg border border-indigo-500/50 z-20"
@@ -1063,7 +1063,7 @@ export const MeView: React.FC<{
                       const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
                       if (orgSlug) {
                         const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-                        router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
+                        router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
                       }
                     }}
                     className="bg-gradient-to-br from-indigo-50 to-purple-50 p-3 md:p-6 rounded-xl md:rounded-2xl border-2 border-indigo-200/50 shadow-sm hover:shadow-xl hover:border-indigo-300 transition-all text-center md:text-right group relative overflow-hidden flex flex-col items-center md:items-start"

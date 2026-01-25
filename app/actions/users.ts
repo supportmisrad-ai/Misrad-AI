@@ -5,7 +5,7 @@ import { createClient, createServiceRoleClient } from '@/lib/supabase';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getBaseUrl } from '@/lib/utils';
-import { sendOrganizationWelcomeEmail } from '@/lib/email';
+import { sendMisradWelcomeEmail } from '@/lib/email';
 
 /**
  * Get or create user in Supabase users table from Clerk user ID
@@ -16,7 +16,8 @@ export async function getOrCreateSupabaseUserAction(
   email?: string,
   fullName?: string,
   imageUrl?: string,
-  preferredOrganizationKey?: string
+  preferredOrganizationKey?: string,
+  sendWelcomeEmail?: boolean
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
     const preferredKeyRaw = preferredOrganizationKey ? String(preferredOrganizationKey).trim() : '';
@@ -180,15 +181,15 @@ export async function getOrCreateSupabaseUserAction(
           // Best-effort: send welcome email with portal link
           try {
             const ownerEmail = email ? String(email) : null;
-            if (ownerEmail) {
+            if (sendWelcomeEmail && ownerEmail) {
               const baseUrl = getBaseUrl();
               const portalKey = organizationSlug || organizationId;
               const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}`;
-              await sendOrganizationWelcomeEmail({
-                ownerEmail,
-                organizationName: orgName,
+              const signInUrl = `${baseUrl}/sign-in?redirect_url=${encodeURIComponent(portalUrl)}`;
+              await sendMisradWelcomeEmail({
+                toEmail: ownerEmail,
                 ownerName: fullName ? String(fullName) : null,
-                portalUrl,
+                signInUrl,
               });
             }
           } catch (e) {
@@ -305,16 +306,15 @@ export async function getOrCreateSupabaseUserAction(
         // Best-effort: send welcome email with portal link
         try {
           const ownerEmail = email ? String(email) : null;
-          if (ownerEmail) {
+          if (sendWelcomeEmail && ownerEmail) {
             const baseUrl = getBaseUrl();
             const portalKey = organizationSlug || organizationId;
             const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}`;
             const signInUrl = `${baseUrl}/sign-in?redirect_url=${encodeURIComponent(portalUrl)}`;
-            await sendOrganizationWelcomeEmail({
-              ownerEmail,
-              organizationName: orgName,
+            await sendMisradWelcomeEmail({
+              toEmail: ownerEmail,
               ownerName: fullName ? String(fullName) : null,
-              portalUrl: signInUrl,
+              signInUrl,
             });
           }
         } catch (e) {
@@ -347,16 +347,15 @@ export async function getOrCreateSupabaseUserAction(
           // Best-effort: send welcome email with portal link
           try {
             const ownerEmail = email ? String(email) : null;
-            if (ownerEmail) {
+            if (sendWelcomeEmail && ownerEmail) {
               const baseUrl = getBaseUrl();
               const portalKey = existingOrg.slug || existingOrg.id;
               const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}`;
               const signInUrl = `${baseUrl}/sign-in?redirect_url=${encodeURIComponent(portalUrl)}`;
-              await sendOrganizationWelcomeEmail({
-                ownerEmail,
-                organizationName: orgName,
+              await sendMisradWelcomeEmail({
+                toEmail: ownerEmail,
                 ownerName: fullName ? String(fullName) : null,
-                portalUrl: signInUrl,
+                signInUrl,
               });
             }
           } catch (e) {
@@ -474,7 +473,7 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
       .maybeSingle();
 
     const organizationKey = String((org as any)?.slug || (org as any)?.id || organizationId);
-    return createSuccessResponse({ organizationKey });
+    return { success: true, organizationKey };
   } catch (error: any) {
     return createErrorResponse(error, error?.message || 'Failed to provision workspace');
   }

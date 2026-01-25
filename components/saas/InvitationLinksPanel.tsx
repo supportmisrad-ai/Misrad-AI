@@ -10,6 +10,7 @@ import { Link2, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalL
 import { useData } from '../../context/DataContext';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
+import { Button } from '@/components/ui/button';
 
 interface InvitationLink {
     id: string;
@@ -34,9 +35,10 @@ interface InvitationLink {
 
 interface InvitationLinksPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
+    hideHeader?: boolean;
 }
 
-export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addToast }) => {
+export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addToast, hideHeader }) => {
     const { currentUser } = useData();
     const [invitations, setInvitations] = useState<InvitationLink[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -244,12 +246,16 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
         <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-black text-slate-900 mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                        קישורים חד פעמיים
-                    </h2>
-                    <p className="text-sm text-slate-600">ניהול קישורים להשלמת פרטי לקוחות</p>
-                </div>
+                {!hideHeader ? (
+                    <div>
+                        <h2 className="text-3xl font-black text-slate-900 mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                            קישורים חד פעמיים
+                        </h2>
+                        <p className="text-sm text-slate-600">ניהול קישורים להשלמת פרטי לקוחות</p>
+                    </div>
+                ) : (
+                    <div />
+                )}
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-slate-200/70 px-3 py-2 rounded-xl">
                         <label className="text-xs font-bold text-slate-600">תוקף (ימים):</label>
@@ -263,10 +269,10 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                         />
                         <span className="text-xs text-slate-500">(קישור זמני)</span>
                     </div>
-                    <button
+                    <Button
                         onClick={handleCreateInvitation}
                         disabled={isCreating}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200/60"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60"
                     >
                         {isCreating ? (
                             <>
@@ -279,7 +285,7 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                 צור קישור חדש
                             </>
                         )}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -293,12 +299,12 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                     <Link2 size={48} className="mx-auto text-slate-500 mb-4" />
                     <h3 className="text-lg font-bold text-slate-900 mb-2">אין קישורים עדיין</h3>
                     <p className="text-sm text-slate-600 mb-6">צור קישור חד פעמי ראשון כדי להתחיל</p>
-                    <button
+                    <Button
                         onClick={handleCreateInvitation}
-                        className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-200/60"
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60"
                     >
                         צור קישור חדש
-                    </button>
+                    </Button>
                 </div>
             ) : (
                 <div className="grid gap-4">
@@ -341,17 +347,20 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                                 <code className="text-sm font-mono text-gray-700 bg-gray-50 px-2 py-1 rounded">
                                                     {invitation.url}
                                                 </code>
-                                                <button
+                                                <Button
                                                     onClick={() => handleCopyLink(invitation.url, invitation.token)}
-                                                    className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all backdrop-blur-sm border border-transparent hover:border-slate-200"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-slate-600 hover:text-slate-900"
                                                     title="העתק קישור"
+                                                    aria-label="העתק קישור"
                                                 >
                                                     {copiedToken === invitation.token ? (
                                                         <Check size={16} className="text-emerald-600" />
                                                     ) : (
                                                         <Copy size={16} />
                                                     )}
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -431,10 +440,10 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                 {/* Right: Actions */}
                                 <div className="flex items-center gap-2 flex-col">
                                     {invitation.is_used && invitation.company_name && invitation.ceo_email && (
-                                        <button
+                                        <Button
                                             onClick={() => handleCreateTenant(invitation)}
                                             disabled={creatingTenantFor === invitation.id}
-                                            className="w-full px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-200/60"
+                                            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60"
                                             title="צור Tenant מהנתונים"
                                         >
                                             {creatingTenantFor === invitation.id ? (
@@ -448,27 +457,30 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                                                     צור Tenant
                                                 </>
                                             )}
-                                        </button>
+                                        </Button>
                                     )}
                                     <div className="flex gap-2">
-                                    {!invitation.is_used && invitation.is_active && (
-                                        <button
-                                            onClick={() => handleDeactivate(invitation.id)}
-                                                className="p-2 text-slate-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all backdrop-blur-sm border border-transparent hover:border-red-200"
-                                            title="בטל קישור"
-                                        >
-                                            <X size={18} />
-                                        </button>
-                                    )}
-                                    <a
-                                        href={invitation.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                        {!invitation.is_used && invitation.is_active && (
+                                            <Button
+                                                onClick={() => handleDeactivate(invitation.id)}
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 text-slate-600 hover:text-red-700"
+                                                title="בטל קישור"
+                                                aria-label="בטל קישור"
+                                            >
+                                                <X size={18} />
+                                            </Button>
+                                        )}
+                                        <a
+                                            href={invitation.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
                                             className="p-2 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all backdrop-blur-sm border border-transparent hover:border-blue-200"
-                                        title="פתח קישור"
-                                    >
-                                        <ExternalLink size={18} />
-                                    </a>
+                                            title="פתח קישור"
+                                        >
+                                            <ExternalLink size={18} />
+                                        </a>
                                     </div>
                                 </div>
                             </div>

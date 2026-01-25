@@ -171,6 +171,7 @@ async function POSTHandler(request: NextRequest) {
                     const creatorName = creator?.name || 'מערכת';
                     
                     const notifications = crmManagers.map(manager => ({
+                        organization_id: workspace.id,
                         recipient_id: manager.id,
                         type: 'client_created',
                         text: `לקוח חדש נוסף: ${newClient.companyName}`,

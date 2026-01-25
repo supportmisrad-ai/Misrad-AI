@@ -57,6 +57,18 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         // Get user from database by email
         if (!user.email) {
             return NextResponse.json(
@@ -65,7 +77,18 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        let dbUsers: User[] = [];
+        try {
+            dbUsers = await getUsers({
+                email: user.email,
+                tenantId: organizationId,
+                allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+            });
+        } catch (dbError: any) {
+            console.error('[API] Error fetching users from database:', dbError);
+            dbUsers = [];
+        }
+
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -149,10 +172,14 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.json({ requests: transformedRequests }, { status: 200 });
 
     } catch (error: any) {
+        const msg = String(error?.message || '');
         console.error('[API] Error in /api/leave-requests GET:', error);
+        if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
+            return NextResponse.json({ requests: [] }, { status: 200 });
+        }
         return NextResponse.json(
-            { error: error.message || 'שגיאה בטעינת בקשות חופש' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: msg || 'שגיאה בטעינת בקשות חופש' },
+            { status: msg.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }
@@ -199,7 +226,12 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        let dbUsers = await getUsers({ email: user.email });
+        let dbUsers: User[] = [];
+        try {
+            dbUsers = await getUsers({ email: user.email, tenantId: organizationId });
+        } catch {
+            dbUsers = [];
+        }
         let dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         // Auto-sync: If user not found, try to create them automatically
@@ -244,7 +276,7 @@ async function POSTHandler(request: NextRequest) {
                     billingInfo: undefined
                 };
 
-                const newUser = await createRecord('users', newUserData) as User;
+                const newUser = await createRecord('users', newUserData, { organizationId }) as User;
                 dbUser = newUser;
                 console.log('[API] Auto-synced user to database', {
                     userId: user.id,
@@ -252,7 +284,7 @@ async function POSTHandler(request: NextRequest) {
                 });
                 
                 // Re-fetch to ensure we have the latest user data (including tenantId if set)
-                dbUsers = await getUsers({ email: user.email });
+                dbUsers = await getUsers({ email: user.email, tenantId: organizationId });
                 dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
                 
                 if (!dbUser) {
@@ -383,7 +415,7 @@ async function POSTHandler(request: NextRequest) {
         // Send notification to manager/department head
         try {
             // Get the employee who requested leave
-            const allUsers = await getUsers();
+            const allUsers = await getUsers({ tenantId: organizationId });
             const employee = allUsers.find(u => u.id === employeeId);
             
             if (employee) {
@@ -397,7 +429,7 @@ async function POSTHandler(request: NextRequest) {
                 
                 // 2. Department manager (if employee has a department)
                 if (employee.department) {
-                    const allUsers = await getUsers();
+                    const allUsers = await getUsers({ tenantId: organizationId });
                     const deptManager = allUsers.find(u => 
                         u.managedDepartment === employee.department
                     );
@@ -409,7 +441,7 @@ async function POSTHandler(request: NextRequest) {
                 // 3. Super admins (if no specific manager found)
                 // But exclude the employee themselves if they are a super admin/CEO
                 if (managersToNotify.length === 0) {
-                    const allUsers = await getUsers();
+                    const allUsers = await getUsers({ tenantId: organizationId });
                     const superAdmins = allUsers.filter(u => 
                         (u.isSuperAdmin || u.role === 'מנכ״ל' || u.role === 'מנכ"ל' || u.role === 'אדמין') &&
                         u.id !== employeeId // Don't notify the employee themselves
@@ -436,6 +468,7 @@ async function POSTHandler(request: NextRequest) {
                     const urgentLabel = isUrgent ? ' [דחוף!]' : '';
                     
                     const notifications = managersToNotify.map(managerId => ({
+                        organization_id: organizationId,
                         recipient_id: managerId,
                         type: 'leave_request',
                         text: `בקשת חופש חדשה${urgentLabel}: ${employee.name} - ${leaveTypeLabel} (${startDate} עד ${endDate})`,

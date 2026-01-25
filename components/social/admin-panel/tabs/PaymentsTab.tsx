@@ -6,6 +6,7 @@ import { CreditCard, FileText } from 'lucide-react';
 import { updatePaymentOrderStatus, updateInvoiceStatus } from '@/app/actions/admin-payments';
 import { adminMarkSubscriptionOrderPaid } from '@/app/actions/subscription-orders-admin';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
+import { Button } from '@/components/ui/button';
 
 interface PaymentsTabProps {
   payments: any;
@@ -160,7 +161,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                             <p className="text-sm text-slate-600">{new Date(order.created_at).toLocaleDateString('he-IL')}</p>
                           </td>
                           <td className="p-4">
-                            <button
+                            <Button
                               disabled={order.status === 'paid'}
                               onClick={async () => {
                                 const result = await adminMarkSubscriptionOrderPaid({ orderId: order.id });
@@ -174,7 +175,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm"
                             >
                               סמן כשולם
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                       );
@@ -255,7 +256,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                 ))}
 
                 <div className="flex justify-end">
-                  <button
+                  <Button
                     disabled={isSavingConfig}
                     onClick={async () => {
                       setIsSavingConfig(true);
@@ -284,7 +285,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm"
                   >
                     {isSavingConfig ? 'שומר...' : 'שמור הגדרות'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

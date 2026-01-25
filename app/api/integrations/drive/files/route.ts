@@ -21,14 +21,16 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (orgIdFromHeader) {
-            await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ files: [], nextPageToken: undefined });
         }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
 
         const clerkUser = await getAuthenticatedUser();
         
         // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
         
         if (!dbUser) {

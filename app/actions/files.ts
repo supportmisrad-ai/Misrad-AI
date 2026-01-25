@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
+import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -115,15 +116,21 @@ export async function uploadFile(
       };
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
+    // Return a stable reference + short-lived signed URL (bucket is private)
+    const ref = `sb://media/${filePath}`;
+    const { data: signedData } = await supabase.storage
       .from('media')
-      .getPublicUrl(filePath);
+      .createSignedUrl(filePath, 60 * 60)
+      .catch(() => ({ data: null as any }));
+
+    const signedUrl = signedData?.signedUrl ? String(signedData.signedUrl) : undefined;
 
     return {
       success: true,
-      url: urlData.publicUrl,
+      url: ref,
+      signedUrl,
       path: filePath,
+      bucket: 'media',
     };
   } catch (error: any) {
     console.error('Error uploading file:', error);
@@ -137,13 +144,17 @@ export async function uploadFile(
 export async function uploadCallRecordingFile(
   file: File | Blob,
   fileName: string,
-  leadId: string
+  leadId: string,
+  orgSlug: string
 ): Promise<UploadResult> {
   try {
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: 'לא מחובר' };
     }
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = String(workspace.id);
 
     const userResult = await getOrCreateSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
@@ -167,7 +178,7 @@ export async function uploadCallRecordingFile(
     const timestamp = Date.now();
     const sanitizedFileName = String(fileName ?? '').replace(/[^a-zA-Z0-9.-]/g, '_');
     const safeLeadId = String(leadId ?? '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = `${supabaseUserId}/system-leads/${safeLeadId}/${timestamp}-${sanitizedFileName}`;
+    const filePath = `${organizationId}/users/${supabaseUserId}/system-leads/${safeLeadId}/${timestamp}-${sanitizedFileName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -189,19 +200,17 @@ export async function uploadCallRecordingFile(
       return { success: false, error: translateError(error.message || 'שגיאה בהעלאת הקובץ') };
     }
 
-    const { data: urlData } = supabase.storage.from(CALL_RECORDINGS_BUCKET).getPublicUrl(filePath);
-    const publicUrl = urlData?.publicUrl;
-
+    const ref = `sb://${CALL_RECORDINGS_BUCKET}/${filePath}`;
     const { data: signedData } = await supabase.storage
       .from(CALL_RECORDINGS_BUCKET)
-      .createSignedUrl(filePath, 60 * 60 * 24 * 365)
+      .createSignedUrl(filePath, 60 * 60)
       .catch(() => ({ data: null as any }));
 
-    const signedUrl = signedData?.signedUrl;
+    const signedUrl = signedData?.signedUrl ? String(signedData.signedUrl) : undefined;
 
     return {
       success: true,
-      url: signedUrl || publicUrl,
+      url: ref,
       signedUrl,
       path: filePath,
       bucket: CALL_RECORDINGS_BUCKET,

@@ -191,7 +191,7 @@ async function POSTHandler(
         }
 
         // 7. Check if email already exists
-        const existingUsers = await getUsers({ email: normalizedEmail });
+        const existingUsers = await getUsers({ email: normalizedEmail, tenantId: organizationId });
         if (existingUsers.length > 0) {
             return NextResponse.json(
                 { error: 'משתמש עם אימייל זה כבר קיים במערכת' },
@@ -200,7 +200,7 @@ async function POSTHandler(
         }
 
         // 8. Get manager info (created_by)
-        const managerUsers = await getUsers({ userId: invitation.created_by });
+        const managerUsers = await getUsers({ userId: invitation.created_by, tenantId: organizationId });
         const manager = managerUsers.length > 0 ? managerUsers[0] : null;
 
         // 9. Create user in database
@@ -210,6 +210,7 @@ async function POSTHandler(
             phone: phone || invitation.employee_phone || null,
             role: invitation.role || 'עובד',
             department: invitation.department || null,
+            organization_id: organizationId,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
             online: false,
             capacity: 0,
@@ -249,7 +250,8 @@ async function POSTHandler(
                 employee_name: name, // Update with actual name
                 employee_phone: phone || invitation.employee_phone
             })
-            .eq('id', invitation.id);
+            .eq('id', invitation.id)
+            .eq('organization_id', organizationId);
 
         if (updateError) {
             console.error('[API] Error updating invitation:', updateError);
@@ -262,6 +264,7 @@ async function POSTHandler(
                 await supabase
                     .from('misrad_notifications')
                     .insert({
+                        organization_id: organizationId,
                         recipient_id: manager.id,
                         type: 'employee_invitation',
                         text: `עובד חדש נרשם: ${name} (${email})`,

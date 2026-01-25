@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import { Button } from '@/components/ui/button';
 
 export type SystemType = 'nexus' | 'system' | 'client' | 'social' | 'bundle';
 
@@ -26,7 +27,7 @@ export interface LandingPagePlan {
     isActive: boolean;
 }
 
-export const ComprehensivePricingPanel: React.FC = () => {
+export const ComprehensivePricingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
 
     const isNewPricingPlanSet = (candidate: any): candidate is LandingPagePlan[] => {
@@ -230,21 +231,22 @@ export const ComprehensivePricingPanel: React.FC = () => {
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="flex justify-between items-end mb-10">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">ניהול חבילות דפי הנחיתה</h1>
-                    <p className="text-slate-600">נהל את כל החבילות מכל המערכות - {getModuleLabelHe('nexus')}, {getModuleLabelHe('system')}, {getModuleLabelHe('client')} וחבילה.</p>
+            {!hideHeader ? (
+                <div className="flex justify-between items-end mb-10">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">ניהול חבילות דפי הנחיתה</h1>
+                        <p className="text-slate-600">נהל את כל החבילות מכל המערכות - {getModuleLabelHe('nexus')}, {getModuleLabelHe('system')}, {getModuleLabelHe('client')} וחבילה.</p>
+                    </div>
+                    <Button
+                        onClick={() => {
+                            setIsAddingPlan(true);
+                            setNewPlan({ ...newPlan, system: selectedSystem });
+                        }}
+                    >
+                        <Plus size={18} /> חבילה חדשה
+                    </Button>
                 </div>
-                <button
-                    onClick={() => {
-                        setIsAddingPlan(true);
-                        setNewPlan({ ...newPlan, system: selectedSystem });
-                    }}
-                    className="bg-indigo-600 text-white hover:bg-indigo-500 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105"
-                >
-                    <Plus size={18} /> חבילה חדשה
-                </button>
-            </div>
+            ) : null}
 
             {/* System Tabs */}
             <div className="flex flex-wrap gap-3 mb-8">
@@ -258,13 +260,12 @@ export const ComprehensivePricingPanel: React.FC = () => {
                     const systemSubtitle = firstPlan?.systemSubtitle || '';
                     
                     return (
-                        <button
+                        <Button
                             key={system}
                             onClick={() => setSelectedSystem(system)}
-                            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all flex flex-col items-start gap-1.5 min-w-[140px] ${
-                                isActive 
-                                    ? `bg-${config.color}-600 text-white shadow-lg shadow-${config.color}-900/20` 
-                                    : 'bg-white/70 text-slate-700 border border-slate-200 hover:bg-slate-50'
+                            variant={isActive ? 'default' : 'outline'}
+                            className={`h-auto px-6 py-3 rounded-xl font-bold text-sm transition-all flex flex-col items-start gap-1.5 min-w-[140px] ${
+                                isActive ? 'shadow-lg shadow-indigo-900/10' : 'bg-white/70 hover:bg-slate-50'
                             }`}
                         >
                             <div className="flex items-center gap-2 w-full">
@@ -285,7 +286,7 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                     {systemSubtitle}
                                 </span>
                             )}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
@@ -378,25 +379,31 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                                         }}
                                                         className="flex-1 bg-white/80 border border-slate-200 rounded-lg p-2 text-slate-900 text-sm placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                                     />
-                                                    <button
+                                                    <Button
                                                         onClick={() => {
                                                             const updated = displayPlan.features.filter((_, idx) => idx !== i);
                                                             setEditedPlan({ ...displayPlan, features: updated });
                                                         }}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 text-red-600 hover:bg-red-50"
+                                                        aria-label="מחק תכונה"
+                                                        title="מחק תכונה"
                                                     >
                                                         <X size={14} />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
-                                        <button
+                                        <Button
                                             onClick={() => setEditedPlan({ ...displayPlan, features: [...displayPlan.features, ''] })}
-                                            className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-bold border border-indigo-200"
+                                            variant="outline"
+                                            size="sm"
+                                            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border-indigo-200 text-xs font-bold"
                                         >
                                             <Plus size={14} className="inline mr-1" />
                                             הוסף תכונה
-                                        </button>
+                                        </Button>
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <label className="flex items-center gap-2 cursor-pointer">
@@ -419,23 +426,24 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                         </label>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button
+                                        <Button
                                             onClick={handleSavePlan}
-                                            className="flex-1 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-xl font-bold transition-all"
+                                            className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold transition-all"
                                         >
                                             <Save size={16} className="inline mr-2" />
                                             שמור
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => {
                                                 setEditingPlan(null);
                                                 setEditedPlan(null);
                                             }}
-                                            className="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-xl font-bold transition-all"
+                                            variant="outline"
+                                            className="flex-1 font-bold transition-all"
                                         >
                                             <X size={16} className="inline mr-2" />
                                             בטל
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (
@@ -468,50 +476,63 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                         <div className="text-xs text-slate-600 mb-2">{displayPlan.features.length} תכונות</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button
+                                        <Button
                                             onClick={() => {
                                                 setEditingPlan(plan.id);
                                                 setEditedPlan({ ...plan });
                                             }}
-                                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-200"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-11 w-11"
                                             title="ערוך"
+                                            aria-label="ערוך"
                                         >
                                             <Edit2 size={16} />
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => toggleActive(plan.id)}
-                                            className={`p-2 rounded-lg transition-all ${
-                                                plan.isActive 
-                                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white' 
-                                                    : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                                            variant="outline"
+                                            size="icon"
+                                            className={`h-11 w-11 ${
+                                                plan.isActive ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600' : ''
                                             }`}
                                             title={plan.isActive ? 'הסתר' : 'הצג'}
+                                            aria-label={plan.isActive ? 'הסתר' : 'הצג'}
                                         >
                                             <CheckCircle2 size={16} />
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => movePlan(plan.id, 'up')}
                                             disabled={index === 0}
-                                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-200 disabled:opacity-50"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-11 w-11 disabled:opacity-50"
                                             title="הזז למעלה"
+                                            aria-label="הזז למעלה"
                                         >
                                             <ArrowUp size={16} />
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => movePlan(plan.id, 'down')}
                                             disabled={index === filteredPlans.length - 1}
-                                            className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-all border border-slate-200 disabled:opacity-50"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-11 w-11 disabled:opacity-50"
                                             title="הזז למטה"
+                                            aria-label="הזז למטה"
                                         >
                                             <ArrowDown size={16} />
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => setPlanToDelete(plan.id)}
-                                            className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all border border-red-500/30"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-11 w-11 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                             title="מחק"
+                                            aria-label="מחק"
                                         >
                                             <Trash2 size={16} />
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -524,15 +545,14 @@ export const ComprehensivePricingPanel: React.FC = () => {
                 <div className="text-center py-16 bg-white/70 rounded-2xl border border-slate-200/70">
                     <Package size={48} className="text-slate-400 mx-auto mb-4" />
                     <p className="text-slate-600 mb-4">אין חבילות עבור {systemConfig[selectedSystem].label}</p>
-                    <button
+                    <Button
                         onClick={() => {
                             setIsAddingPlan(true);
                             setNewPlan({ ...newPlan, system: selectedSystem });
                         }}
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500 transition-all"
                     >
                         הוסף חבילה ראשונה
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -547,9 +567,9 @@ export const ComprehensivePricingPanel: React.FC = () => {
                         >
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-2xl font-black text-slate-900">הוסף חבילה חדשה</h3>
-                                <button onClick={() => setIsAddingPlan(false)} className="text-slate-500 hover:text-slate-900">
+                                <Button onClick={() => setIsAddingPlan(false)} variant="ghost" size="icon" className="h-11 w-11" aria-label="סגור" title="סגור">
                                     <X size={24} />
-                                </button>
+                                </Button>
                             </div>
                             <div className="space-y-4">
                                 <div>
@@ -641,18 +661,8 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    onClick={() => setIsAddingPlan(false)}
-                                    className="px-4 py-2 bg-slate-200 text-slate-800 rounded-lg hover:bg-slate-300"
-                                >
-                                    ביטול
-                                </button>
-                                <button
-                                    onClick={handleAddPlan}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-bold"
-                                >
-                                    הוסף חבילה
-                                </button>
+                                <Button onClick={() => setIsAddingPlan(false)} variant="outline">ביטול</Button>
+                                <Button onClick={handleAddPlan} className="font-bold">הוסף חבילה</Button>
                             </div>
                         </motion.div>
                     </div>
@@ -676,18 +686,8 @@ export const ComprehensivePricingPanel: React.FC = () => {
                                 האם אתה בטוח שברצונך למחוק את החבילה "{plans.find(p => p.id === planToDelete)?.name}"?
                             </p>
                             <div className="flex justify-end gap-3">
-                                <button
-                                    onClick={() => setPlanToDelete(null)}
-                                    className="px-4 py-2 text-slate-600 hover:text-slate-900"
-                                >
-                                    ביטול
-                                </button>
-                                <button
-                                    onClick={handleDeletePlan}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
-                                >
-                                    מחק
-                                </button>
+                                <Button onClick={() => setPlanToDelete(null)} variant="outline">ביטול</Button>
+                                <Button onClick={handleDeletePlan} className="bg-red-600 hover:bg-red-500 text-white">מחק</Button>
                             </div>
                         </motion.div>
                     </div>

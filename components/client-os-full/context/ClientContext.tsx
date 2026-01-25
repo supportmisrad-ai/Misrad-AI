@@ -41,16 +41,32 @@ interface ClientContextType {
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined);
 
-export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [clients, setClients] = useState<Client[]>([]);
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
+type ClientProviderProps = {
+  children: ReactNode;
+  initialOrgId?: string | null;
+  initialClients?: Client[];
+  initialMeetings?: Meeting[];
+};
+
+export const ClientProvider: React.FC<ClientProviderProps> = ({
+  children,
+  initialOrgId,
+  initialClients,
+  initialMeetings,
+}) => {
+  const hasInitialData = Array.isArray(initialClients) || Array.isArray(initialMeetings);
+
+  const [clients, setClients] = useState<Client[]>(Array.isArray(initialClients) ? initialClients : []);
+  const [meetings, setMeetings] = useState<Meeting[]>(Array.isArray(initialMeetings) ? initialMeetings : []);
   const [emails, setEmails] = useState<Email[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!hasInitialData);
 
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgId, setOrgId] = useState<string | null>(initialOrgId ? String(initialOrgId) : null);
+  const [hasHydratedInitialData] = useState<boolean>(Boolean(initialOrgId));
 
   useEffect(() => {
+    if (hasHydratedInitialData) return;
     if (typeof window === 'undefined') return;
 
     const readOrgId = (payload?: any) => {
@@ -64,7 +80,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     readOrgId();
     window.addEventListener('client-os-user-updated', onUserUpdated);
     return () => window.removeEventListener('client-os-user-updated', onUserUpdated);
-  }, []);
+  }, [hasHydratedInitialData]);
 
   const refreshClients = async () => {
     if (!orgId) {
@@ -77,7 +93,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const realClients = await getClientOSClients(orgId);
       if (Array.isArray(realClients)) {
         console.debug('[ClientOS] clients refreshed', { count: realClients.length });
-        
+
         // Load tasks and sessions for all clients
         const clientsWithData = await Promise.all(
           realClients.map(async (client) => {
@@ -113,6 +129,11 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const loadRealData = async () => {
       try {
+        if (hasInitialData) {
+          if (isMounted) setIsLoading(false);
+          return;
+        }
+
         if (!orgId) {
           console.debug('[ClientOS] no orgId, skipping data load');
           if (isMounted) setIsLoading(false);
@@ -180,7 +201,7 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return () => {
       isMounted = false;
     };
-  }, [orgId]);
+  }, [hasInitialData, orgId]);
 
   const archiveClient = (id: string) => {
     setClients(prev => prev.map(c => c.id === id ? { ...c, status: ClientStatus.ARCHIVED } : c));

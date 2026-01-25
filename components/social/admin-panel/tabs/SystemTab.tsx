@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Activity, ShieldCheck, Lock, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface SystemTabProps {
   apiHealth: any[];
@@ -51,20 +52,24 @@ export default function SystemTab({
       <div className="bg-white/90 backdrop-blur-sm border border-indigo-100 p-10 rounded-3xl flex flex-col gap-8 shadow-md">
         <h3 className="text-xl font-black text-slate-900">אירועי מערכת</h3>
         <div className="flex gap-2 justify-end">
-          <button
+          <Button
             onClick={onPrevAuditPage}
             disabled={disablePrevAudit}
-            className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-white disabled:opacity-40"
+            variant="outline"
+            size="sm"
+            className="h-9"
           >
             הקודם
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onNextAuditPage}
             disabled={disableNextAudit}
-            className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-white disabled:opacity-40"
+            variant="outline"
+            size="sm"
+            className="h-9"
           >
             הבא
-          </button>
+          </Button>
         </div>
         <div className="flex flex-col gap-4">
           {(auditLog.length > 0 ? auditLog.map((log: any) => ({
@@ -85,7 +90,14 @@ export default function SystemTab({
                   <p className="text-sm font-black text-slate-900">{log.action}</p>
                   <p className="text-[10px] font-bold text-slate-500">{log.user} • {log.time}</p>
                 </div>
-                <button className="text-[10px] font-black text-slate-400 group-hover:text-indigo-600 transition-all uppercase">פרטים</button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-[10px] font-black text-slate-400 group-hover:text-indigo-600 uppercase"
+                >
+                  פרטים
+                </Button>
               </div>
             );
           })}

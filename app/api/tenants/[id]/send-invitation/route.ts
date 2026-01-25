@@ -101,10 +101,7 @@ async function POSTHandler(
         } else {
             console.log('[Tenant Invitation] Email sent successfully:', {
                 tenantId,
-                tenantName: tenant.name,
-                ownerEmail,
-                signupUrl,
-                sentBy: user.email
+                sentByUserId: user.id
             });
         }
 

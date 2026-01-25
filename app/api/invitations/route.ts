@@ -10,6 +10,7 @@ import { getAuthenticatedUser, requireSuperAdmin } from '../../../lib/auth';
 import { getUsers } from '../../../lib/db';
 import { supabase } from '../../../lib/supabase';
 import { getBaseUrl } from '../../../lib/utils';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -41,8 +42,15 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -61,8 +69,10 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
-        // 3. Get all invitation links
-        const { data: invitations, error } = await supabase
+        const supabaseClient = supabase;
+
+        // 3. Get all invitation links (scoped to workspace)
+        const baseQuery = () => supabaseClient
             .from('system_invitation_links')
             .select(`
                 id,
@@ -80,6 +90,20 @@ async function GETHandler(request: NextRequest) {
                 metadata
             `)
             .order('created_at', { ascending: false });
+
+        const byOrg = await baseQuery().eq('organization_id', workspace.id);
+        let invitations = (byOrg as any).data;
+        let error = (byOrg as any).error;
+
+        if (error?.code === '42703') {
+            const byTenant = await baseQuery().eq('tenant_id', workspace.id);
+            invitations = (byTenant as any).data;
+            error = (byTenant as any).error;
+            if (error?.code === '42703') {
+                // Fail closed: table exists but has no tenant scoping columns
+                return NextResponse.json({ success: true, invitations: [] });
+            }
+        }
 
         if (error) {
             console.error('[API] Supabase error getting invitations:', error);

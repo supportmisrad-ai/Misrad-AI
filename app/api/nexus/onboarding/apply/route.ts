@@ -60,7 +60,7 @@ async function POSTHandler(request: NextRequest) {
 
     let dbUserId: string | null = null;
     if (user?.email) {
-      const dbUsers = await getUsers({ email: user.email });
+      const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
       if (dbUsers.length > 0 && isUUID(String(dbUsers[0].id))) {
         dbUserId = String(dbUsers[0].id);
       }

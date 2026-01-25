@@ -73,7 +73,13 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Left Col: Player & Summary */}
                                 <div className="space-y-4">
-                                    <AudioPlayer src={meeting.recordingUrl} />
+                                    {meeting.recordingUrl && String(meeting.recordingUrl).startsWith('sb://') ? (
+                                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-xs text-amber-800 font-bold">
+                                            אין גישה לקובץ
+                                        </div>
+                                    ) : (
+                                        <AudioPlayer src={meeting.recordingUrl} />
+                                    )}
 
                                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                         <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1"><Brain size={12}/> תקציר מנהלים</h5>
@@ -117,7 +123,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                                     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                                         <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1"><FolderOpen size={12}/> חומרי פגישה וסיכומים</h5>
                                         <div className="space-y-2">
-                                            {meeting.recordingUrl && (
+                                            {meeting.recordingUrl && !String(meeting.recordingUrl).startsWith('sb://') && (
                                                 <a href={meeting.recordingUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-2 bg-nexus-primary/5 rounded-lg hover:bg-nexus-primary/10 transition-colors group">
                                                     <div className="p-1.5 bg-white rounded shadow-sm text-nexus-primary group-hover:text-nexus-accent"><PlayCircle size={16}/></div>
                                                     <div>

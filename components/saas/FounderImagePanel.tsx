@@ -7,8 +7,9 @@ import {
     AlertCircle, CheckCircle2, User, Heart
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { Button } from '@/components/ui/button';
 
-export const FounderImagePanel: React.FC = () => {
+export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
     const [founderImage, setFounderImage] = useState<string>('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -75,12 +76,14 @@ export const FounderImagePanel: React.FC = () => {
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="mb-10">
-                <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                    ניהול תמונת המייסד
-                </h1>
-                <p className="text-slate-600">נהל את התמונה שמוצגת בבלוק "למה יצרנו את Nexus" בדף הנחיתה.</p>
-            </div>
+            {!hideHeader ? (
+                <div className="mb-10">
+                    <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                        ניהול תמונת המייסד
+                    </h1>
+                    <p className="text-slate-600">נהל את התמונה שמוצגת בבלוק "למה יצרנו את Nexus" בדף הנחיתה.</p>
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Upload Section */}
@@ -107,13 +110,14 @@ export const FounderImagePanel: React.FC = () => {
                                             className="w-full h-full object-cover"
                                         />
                                         <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                                            <button
+                                            <Button
                                                 onClick={() => setPreviewImage(null)}
-                                                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-900 rounded-lg backdrop-blur-sm border border-slate-200 font-bold text-sm transition-all"
+                                                variant="outline"
+                                                className="bg-white hover:bg-slate-50 text-slate-900 border-slate-200 font-bold text-sm"
                                             >
                                                 <Eye size={16} className="inline mr-2" />
                                                 הסתר תצוגה מקדימה
-                                            </button>
+                                            </Button>
                                         </div>
                                     </>
                                 ) : (
@@ -137,22 +141,23 @@ export const FounderImagePanel: React.FC = () => {
                                 className="hidden"
                                 onChange={handleImageUpload}
                             />
-                            <button
+                            <Button
                                 onClick={() => fileInputRef.current?.click()}
-                                className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20"
+                                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/20"
                             >
                                 <Upload size={18} />
                                 {founderImage ? 'החלף תמונה' : 'העלה תמונה'}
-                            </button>
+                            </Button>
                             
                             {founderImage && (
-                                <button
+                                <Button
                                     onClick={() => setIsDeleting(true)}
-                                    className="px-6 py-3 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold transition-all border border-red-200 flex items-center justify-center gap-2"
+                                    variant="outline"
+                                    className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 font-bold flex items-center justify-center gap-2"
                                 >
                                     <Trash2 size={18} />
                                     מחק
-                                </button>
+                                </Button>
                             )}
                         </div>
 
@@ -257,18 +262,19 @@ export const FounderImagePanel: React.FC = () => {
                             האם אתה בטוח שברצונך למחוק את תמונת המייסד? התמונה תוסר מהבלוק בדף הנחיתה.
                         </p>
                         <div className="flex justify-end gap-3">
-                            <button
+                            <Button
                                 onClick={() => setIsDeleting(false)}
-                                className="px-4 py-2 text-slate-600 hover:text-slate-900"
+                                variant="ghost"
+                                className="text-slate-600 hover:text-slate-900"
                             >
                                 ביטול
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleDeleteImage}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 font-bold"
+                                className="bg-red-600 text-white hover:bg-red-500 font-bold"
                             >
                                 מחק
-                            </button>
+                            </Button>
                         </div>
                     </motion.div>
                 </div>

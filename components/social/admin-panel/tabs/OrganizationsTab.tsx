@@ -13,6 +13,7 @@ import {
   type OrganizationWithOwner,
   type SocialUserLite,
 } from '@/app/actions/admin-organizations';
+import { Button } from '@/components/ui/button';
 
 type CreateFormState = {
   name: string;
@@ -312,22 +313,25 @@ export default function OrganizationsTab() {
               className="bg-white border border-indigo-200 rounded-xl px-6 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400 text-right shadow-sm w-80"
             />
 
-            <button
+            <Button
               onClick={() => load()}
-              className="p-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-indigo-500 hover:text-white transition-all"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 bg-slate-100 text-slate-700 border-slate-100 hover:bg-indigo-500 hover:text-white"
               title="רענון"
               disabled={isLoading}
+              aria-label="רענון"
             >
               <RefreshCw size={16} className={isLoading ? 'opacity-60' : undefined} />
-            </button>
+            </Button>
 
-            <button
+            <Button
               onClick={() => setIsCreateOpen((v) => !v)}
               className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-xl font-black text-sm hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md flex items-center gap-2"
             >
               <Plus size={18} />
               ארגון חדש
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -381,19 +385,20 @@ export default function OrganizationsTab() {
             </div>
 
             <div className="mt-6 flex gap-3">
-              <button
+              <Button
                 onClick={createOrg}
                 className="bg-emerald-600 text-white px-6 py-2 rounded-xl font-black text-sm hover:bg-emerald-700 transition-all shadow-md flex items-center gap-2"
               >
                 <Save size={18} />
                 צור ארגון
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setIsCreateOpen(false)}
-                className="bg-slate-100 text-slate-700 px-6 py-2 rounded-xl font-black text-sm hover:bg-slate-200 transition-all"
+                variant="outline"
+                className="px-6 py-2 rounded-xl font-black text-sm"
               >
                 ביטול
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -518,46 +523,61 @@ export default function OrganizationsTab() {
                     <td className="p-6 align-top">
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         {!isEditing ? (
-                          <button
+                          <Button
                             onClick={() => startEdit(org)}
-                            className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-500 hover:text-white transition-all"
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 bg-slate-100 text-slate-700 border-slate-100 hover:bg-indigo-500 hover:text-white"
                             title="ערוך"
+                            aria-label="ערוך"
                           >
                             <Edit size={16} />
-                          </button>
+                          </Button>
                         ) : (
                           <>
-                            <button
+                            <Button
                               onClick={() => triggerLogoUpload(org.id)}
-                              className="p-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-600 hover:text-white transition-all"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 bg-indigo-100 text-indigo-700 border-indigo-100 hover:bg-indigo-600 hover:text-white"
                               title="העלה/החלף לוגו"
                               disabled={isUploadingLogo}
+                              aria-label="העלה/החלף לוגו"
                             >
                               <Upload size={16} className={isUploadingLogo && logoOrgId === org.id ? 'opacity-60' : ''} />
-                            </button>
+                            </Button>
                             {(editForm as any)?.has_finance && (
-                              <button
+                              <Button
                                 onClick={emergencyDisableFinance}
-                                className="p-2 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-600 hover:text-white transition-all"
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 bg-rose-100 text-rose-700 border-rose-100 hover:bg-rose-600 hover:text-white"
                                 title="כיבוי חירום Finance (מיידי)"
+                                aria-label="כיבוי חירום Finance"
                               >
                                 <X size={16} />
-                              </button>
+                              </Button>
                             )}
-                            <button
+                            <Button
                               onClick={saveEdit}
-                              className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 bg-emerald-100 text-emerald-700 border-emerald-100 hover:bg-emerald-600 hover:text-white"
                               title="שמור"
+                              aria-label="שמור"
                             >
                               <Save size={16} />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               onClick={cancelEdit}
-                              className="p-2 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-600 hover:text-white transition-all"
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 bg-rose-100 text-rose-700 border-rose-100 hover:bg-rose-600 hover:text-white"
                               title="בטל"
+                              aria-label="בטל"
                             >
                               <X size={16} />
-                            </button>
+                            </Button>
                           </>
                         )}
                       </div>

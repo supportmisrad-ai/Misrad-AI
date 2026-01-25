@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Tenant, Product, ModuleId } from '../../types';
 import { Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AddTenantModalProps {
     onClose: () => void;
@@ -94,10 +95,10 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6 border-t border-slate-200 pt-4">
-                            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl font-bold transition-all">ביטול</button>
-                            <button type="submit" className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-200/60">
+                            <Button type="button" onClick={onClose} variant="outline" className="px-4">ביטול</Button>
+                            <Button type="submit" className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-200/60">
                                 <Globe size={16} /> צור לקוח
-                            </button>
+                            </Button>
                         </div>
                     </form>
                 </div>

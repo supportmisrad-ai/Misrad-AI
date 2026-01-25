@@ -76,16 +76,24 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        const { data: urlData } = supabase.storage
-            .from(bucket)
-            .getPublicUrl(filePath);
+        const ref = `sb://${bucket}/${filePath}`;
 
-        const publicUrl = urlData?.publicUrl || '';
+        let signedUrl: string | null = null;
+        try {
+            const { data: signedData, error: signedErr } = await supabase.storage
+                .from(bucket)
+                .createSignedUrl(filePath, 60 * 60);
+            if (!signedErr && signedData?.signedUrl) signedUrl = String(signedData.signedUrl);
+        } catch {
+            // ignore
+        }
 
         // 5. Return success with file info
         return NextResponse.json({
             success: true,
-            url: publicUrl,
+            url: signedUrl || ref,
+            signedUrl: signedUrl || undefined,
+            ref,
             path: filePath,
             fileName: file.name,
             fileSize: file.size,

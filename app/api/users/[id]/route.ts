@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { updateRecord, deleteRecord, setUserManager } from '../../../../lib/db';
+import { updateRecord, deleteRecord, setUserManagerForTenant } from '../../../../lib/db';
 import { User } from '../../../../types';
 import { logAuditEvent } from '../../../../lib/audit';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
@@ -21,13 +21,12 @@ async function PATCHHandler(
         const user = await getAuthenticatedUser();
 
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else if (!user.isSuperAdmin) {
+        if (!orgIdFromHeader) {
             return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
         }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const workspaceId = workspace.id;
 
         const { id: userId } = await params;
         const body = await request.json();
@@ -51,11 +50,11 @@ async function PATCHHandler(
         // SECURITY: Only Admin can edit CEO (מנכ״ל)
         // Get the user being edited to check their role
         const { getUsers } = await import('../../../../lib/db');
-        const targetUsers = await getUsers({ userId, tenantId: workspaceId || undefined });
+        const targetUsers = await getUsers({ userId, tenantId: workspaceId });
         const targetUser = targetUsers[0];
 
         // Zero-trust: if user not found under this tenant, treat as not found.
-        if (!targetUser && workspaceId && !user.isSuperAdmin) {
+        if (!targetUser) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
         
@@ -93,7 +92,7 @@ async function PATCHHandler(
                 );
             }
             
-            await setUserManager(userId, body.managerId || null);
+            await setUserManagerForTenant(userId, body.managerId || null, workspaceId);
             
             await logAuditEvent('user.update', 'user', {
                 resourceId: userId,
@@ -106,7 +105,7 @@ async function PATCHHandler(
             
             // Return updated user
             const { getUsers } = await import('../../../../lib/db');
-            const updatedUsers = await getUsers({ userId });
+            const updatedUsers = await getUsers({ userId, tenantId: workspaceId });
             return NextResponse.json({ success: true, user: updatedUsers[0] || null });
         }
         
@@ -124,27 +123,40 @@ async function PATCHHandler(
                 const { supabase } = await import('../../../../lib/supabase');
                 if (supabase) {
                     // Remove any existing manager for this department
-                    let clearQuery = supabase
+                    const clearByTenant = await supabase
                         .from('nexus_users')
                         .update({ managed_department: null })
-                        .eq('managed_department', body.managedDepartment);
+                        .eq('managed_department', body.managedDepartment)
+                        .eq('tenant_id', workspaceId);
 
-                    // Zero-trust: don't affect other tenants.
-                    if (workspaceId) {
-                        clearQuery = clearQuery.eq('tenant_id', workspaceId);
+                    if ((clearByTenant as any)?.error?.code === '42703') {
+                        await supabase
+                            .from('nexus_users')
+                            .update({ managed_department: null })
+                            .eq('managed_department', body.managedDepartment)
+                            .eq('organization_id', workspaceId);
                     }
-
-                    await clearQuery;
                 }
             }
             
             // Update user's managed_department
             const { supabase } = await import('../../../../lib/supabase');
             if (supabase) {
-                const { error: updateError } = await supabase
+                const updateByTenant = await supabase
                     .from('nexus_users')
                     .update({ managed_department: body.managedDepartment || null })
-                    .eq('id', userId);
+                    .eq('id', userId)
+                    .eq('tenant_id', workspaceId);
+
+                let updateError = (updateByTenant as any)?.error;
+                if (updateError?.code === '42703') {
+                    const updateByOrg = await supabase
+                        .from('nexus_users')
+                        .update({ managed_department: body.managedDepartment || null })
+                        .eq('id', userId)
+                        .eq('organization_id', workspaceId);
+                    updateError = (updateByOrg as any)?.error;
+                }
                 
                 if (updateError) {
                     console.error('[API] Error updating managed_department:', updateError);
@@ -166,7 +178,7 @@ async function PATCHHandler(
             
             // Return updated user
             const { getUsers } = await import('../../../../lib/db');
-            const updatedUsers = await getUsers({ userId });
+            const updatedUsers = await getUsers({ userId, tenantId: workspaceId });
             return NextResponse.json({ success: true, user: updatedUsers[0] || null });
         }
         
@@ -218,7 +230,7 @@ async function PATCHHandler(
             );
         }
         
-        const updatedUser = await updateRecord<User>('users', userId, allowedUpdates);
+        const updatedUser = await updateRecord<User>('users', userId, allowedUpdates, { organizationId: workspaceId });
         
         await logAuditEvent('user.update', 'user', {
             resourceId: userId,
@@ -255,25 +267,22 @@ async function DELETEHandler(
         const user = await getAuthenticatedUser();
 
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else if (!user.isSuperAdmin) {
+        if (!orgIdFromHeader) {
             return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
         }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const workspaceId = workspace.id;
         
         // Only managers can delete users
         await requirePermission('manage_team');
         
         const { id: userId } = await params;
 
-        if (workspaceId && !user.isSuperAdmin) {
-            const { getUsers } = await import('../../../../lib/db');
-            const target = await getUsers({ userId, tenantId: workspaceId });
-            if (!target?.[0]) {
-                return NextResponse.json({ error: 'User not found' }, { status: 404 });
-            }
+        const { getUsers } = await import('../../../../lib/db');
+        const target = await getUsers({ userId, tenantId: workspaceId });
+        if (!target?.[0]) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
         
         // Prevent deleting yourself
@@ -284,7 +293,7 @@ async function DELETEHandler(
             );
         }
         
-        await deleteRecord('users', userId);
+        await deleteRecord('users', userId, { organizationId: workspaceId });
         
         await logAuditEvent('user.delete', 'user', {
             resourceId: userId,

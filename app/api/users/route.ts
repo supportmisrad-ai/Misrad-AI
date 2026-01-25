@@ -31,12 +31,12 @@ async function GETHandler(request: NextRequest) {
 
         const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
         let workspaceId: string | null = null;
-        if (headerOrgId) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(headerOrgId);
-            workspaceId = workspace.id;
-        } else if (!user.isSuperAdmin) {
+        if (!headerOrgId) {
             return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
         }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(headerOrgId);
+        workspaceId = workspace.id;
         
         // 3. Log access
         try {
@@ -52,6 +52,26 @@ async function GETHandler(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const userId = searchParams.get('id');
         const department = searchParams.get('department');
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+
+        const allowUnscoped =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        // Hard gate: never allow bypass/unscoped behavior in production
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
+        // Pagination (fail-safe defaults)
+        const pageRaw = searchParams.get('page');
+        const pageSizeRaw = searchParams.get('pageSize');
+        const page = Math.max(1, Number.parseInt(String(pageRaw ?? '1'), 10) || 1);
+        const requestedPageSize = Number.parseInt(String(pageSizeRaw ?? '50'), 10) || 50;
+        const pageSize = Math.min(200, Math.max(1, requestedPageSize));
         
         // 5. Fetch users from database
         let users: User[] = [];
@@ -59,6 +79,8 @@ async function GETHandler(request: NextRequest) {
             users = await getUsers({
                 department: department || undefined,
                 tenantId: workspaceId || undefined,
+                page,
+                pageSize,
             });
         } catch (dbError: any) {
             console.error('[API] Error fetching users from database:', dbError);
@@ -115,7 +137,14 @@ async function GETHandler(request: NextRequest) {
         
         // 8. Filter by department if requested (already done in getUsers)
         
-        return NextResponse.json({ users: filteredUsers });
+        const hasMore = Array.isArray(users) && users.length > pageSize;
+        const trimmed = hasMore ? filteredUsers.slice(0, pageSize) : filteredUsers;
+        return NextResponse.json({
+            users: trimmed,
+            page,
+            pageSize,
+            hasMore,
+        });
         
     } catch (error: any) {
         await logAuditEvent('data.read', 'user', {
@@ -141,6 +170,13 @@ async function GETHandler(request: NextRequest) {
 async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
+
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(headerOrgId);
         
         // Only managers can create users
         await requirePermission('manage_team');
@@ -198,11 +234,11 @@ async function POSTHandler(request: NextRequest) {
             twoFactorEnabled: false,
             // Only Super Admin can set isSuperAdmin = true
             isSuperAdmin: user.isSuperAdmin ? (body.isSuperAdmin || false) : false,
-            tenantId: body.tenantId || undefined, // Associate user with tenant if provided
+            tenantId: workspace.id, // Tenant Isolation lockdown: enforce current workspace
             billingInfo: undefined
         };
         
-        const newUser = await createRecord('users', newUserData) as User;
+        const newUser = await createRecord('users', newUserData, { organizationId: workspace.id }) as User;
         
         await logAuditEvent('user.create', 'user', {
             resourceId: newUser.id,

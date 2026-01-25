@@ -3,5 +3,5 @@ import { redirect } from 'next/navigation';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLandingIndexPage() {
-  redirect('/app/admin/landing/logo');
+  redirect('/app/admin/landing/pricing');
 }

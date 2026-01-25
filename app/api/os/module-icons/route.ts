@@ -20,16 +20,34 @@ async function GETHandler() {
     const rawValue = (data as any)?.value;
     let parsedValue: any = null;
     if (rawValue && typeof rawValue === 'string') {
-      parsedValue = JSON.parse(rawValue);
+      try {
+        parsedValue = JSON.parse(rawValue);
+      } catch {
+        parsedValue = null;
+      }
     } else if (rawValue && typeof rawValue === 'object') {
       parsedValue = rawValue;
     }
 
     const moduleIcons = parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
 
-    return NextResponse.json({ moduleIcons });
+    return NextResponse.json(
+      { moduleIcons },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        },
+      },
+    );
   } catch {
-    return NextResponse.json({ moduleIcons: {} });
+    return NextResponse.json(
+      { moduleIcons: {} },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
+        },
+      },
+    );
   }
 }
 

@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Download } from 'lucide-react';
 import { GeneratedReport } from '../../types';
+import { Button } from '@/components/ui/button';
 
 interface ReportDetailModalProps {
     report: GeneratedReport;
@@ -29,7 +30,9 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                         <h3 className="text-xl font-black text-slate-900">{report.title}</h3>
                         <p className="text-slate-500 text-sm">{new Date(report.dateGenerated).toLocaleDateString('he-IL')}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-200 transition-colors"><X size={20} /></button>
+                    <Button onClick={onClose} type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-full">
+                        <X size={20} />
+                    </Button>
                 </div>
                 
                 <div className="p-8 overflow-y-auto">
@@ -69,10 +72,12 @@ export const ReportDetailModal: React.FC<ReportDetailModalProps> = ({ report, on
                 </div>
 
                 <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                    <button onClick={onClose} className="px-6 py-2 text-slate-500 font-bold hover:text-slate-900 transition-colors">סגור</button>
-                    <button onClick={() => onDownload(report)} className="px-6 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center gap-2">
+                    <Button onClick={onClose} type="button" variant="ghost" className="px-6 py-2 text-slate-500 font-bold hover:text-slate-900">
+                        סגור
+                    </Button>
+                    <Button onClick={() => onDownload(report)} type="button" className="px-6 py-2 rounded-xl font-bold transition-colors flex items-center gap-2">
                         <Download size={16} /> הורד קובץ
-                    </button>
+                    </Button>
                 </div>
             </motion.div>
         </div>

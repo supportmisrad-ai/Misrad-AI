@@ -5,6 +5,7 @@ import os from 'os';
 import { spawn } from 'child_process';
 import { createClient } from '@/lib/supabase';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
+import { createClinicSession } from '@/app/actions/client-clinic';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { AIService } from '@/lib/services/ai/AIService';
@@ -157,16 +158,7 @@ async function POSTHandler(req: Request) {
     });
     const transcript = out.text;
 
-    // Signed URL for playback/download (bucket is private)
-    let recordingUrl: string | null = null;
-    try {
-      const { data: signed, error: signedErr } = await supabase.storage
-        .from(bucket)
-        .createSignedUrl(storagePath, 60 * 60 * 24 * 365);
-      if (!signedErr && signed?.signedUrl) recordingUrl = signed.signedUrl;
-    } catch {
-      // ignore
-    }
+    const recordingUrl = `sb://${bucket}/${storagePath}`;
 
     const saved = await analyzeAndStoreMeeting({
       orgId,
@@ -176,6 +168,27 @@ async function POSTHandler(req: Request) {
       transcript,
       recordingUrl,
     });
+
+    // Best-effort: also write to client_sessions so Client OS lists can show the recording and analysis.
+    try {
+      await createClinicSession({
+        orgId: orgIdInput,
+        clientId,
+        startAt: new Date().toISOString(),
+        status: 'completed',
+        sessionType: title,
+        location,
+        summary: (saved as any)?.analysis?.summary ?? null,
+        metadata: {
+          meetingId: saved.meetingId,
+          recordingUrl,
+          transcript,
+          aiAnalysis: (saved as any)?.analysis ?? null,
+        },
+      });
+    } catch {
+      // ignore
+    }
 
     return NextResponse.json({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
   } catch (e: any) {

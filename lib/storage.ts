@@ -8,6 +8,7 @@ import { supabase } from './supabase';
 
 export interface UploadResult {
     url: string;
+    signedUrl?: string;
     path: string;
     error?: string;
 }
@@ -75,13 +76,20 @@ export async function uploadFile(
             };
         }
 
-        // Get public URL
-        const { data: urlData } = supabase.storage
-            .from(bucket)
-            .getPublicUrl(filePath);
+        const ref = `sb://${bucket}/${filePath}`;
+        let signedUrl: string | undefined = undefined;
+        try {
+            const { data: signedData, error: signedErr } = await supabase.storage
+                .from(bucket)
+                .createSignedUrl(filePath, 60 * 60);
+            if (!signedErr && signedData?.signedUrl) signedUrl = String(signedData.signedUrl);
+        } catch {
+            // ignore
+        }
 
         return {
-            url: urlData.publicUrl,
+            url: ref,
+            signedUrl,
             path: filePath,
             error: undefined
         };
@@ -144,11 +152,7 @@ export function getFileUrl(
         return '';
     }
 
-    const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(path);
-
-    return data.publicUrl;
+    return `sb://${bucket}/${path}`;
 }
 
 /**

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { UserCheck, X, CheckCircle2, Clock, Mail, Search, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { UserApprovalRequest, Tenant } from '../../types';
+import { Button } from '@/components/ui/button';
 
 interface UserApprovalsPanelProps {
     approvalRequests: UserApprovalRequest[];
@@ -13,6 +14,7 @@ interface UserApprovalsPanelProps {
     onAddAllowedEmail: (tenantId: string, email: string) => void;
     onRemoveAllowedEmail: (tenantId: string, email: string) => void;
     currentUserId: string;
+    hideHeader?: boolean;
 }
 
 export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
@@ -22,7 +24,8 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
     onReject,
     onAddAllowedEmail,
     onRemoveAllowedEmail,
-    currentUserId
+    currentUserId,
+    hideHeader
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTenant, setSelectedTenant] = useState<string>('all');
@@ -73,12 +76,14 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="mb-8">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                    ניהול אישורי משתמשים
-                </h1>
-                <p className="text-slate-600 text-lg">אשר או דחה בקשות גישה, ונהל רשימת מיילים מאושרים לכל לקוח.</p>
-            </div>
+            {!hideHeader ? (
+                <div className="mb-8">
+                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                        ניהול אישורי משתמשים
+                    </h1>
+                    <p className="text-slate-600 text-lg">אשר או דחה בקשות גישה, ונהל רשימת מיילים מאושרים לכל לקוח.</p>
+                </div>
+            ) : null}
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -193,36 +198,41 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                                     className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 w-48 focus:outline-none focus:ring-2 focus:ring-red-200/70 focus:border-red-300 transition-all"
                                                     onKeyPress={(e) => e.key === 'Enter' && handleReject(request.id)}
                                                 />
-                                                <button
+                                                <Button
                                                     onClick={() => handleReject(request.id)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-200/60 transition-all"
+                                                    size="sm"
+                                                    className="bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-500 hover:to-rose-500 shadow-lg shadow-red-200/60 transition-all"
                                                 >
                                                     דחה
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
                                                     onClick={() => {
                                                         setRejectingId(null);
                                                         setRejectReason('');
                                                     }}
-                                                    className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="bg-slate-100 text-slate-700 hover:bg-slate-200"
                                                 >
                                                     ביטול
-                                                </button>
+                                                </Button>
                                             </div>
                                         ) : (
                                             <>
-                                                <button
+                                                <Button
                                                     onClick={() => onApprove(request.id, currentUserId)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-bold hover:from-green-500 hover:to-emerald-500 flex items-center gap-2 shadow-lg shadow-green-200/60 transition-all"
+                                                    size="sm"
+                                                    className="bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-500 hover:to-emerald-500 flex items-center gap-2 shadow-lg shadow-green-200/60 transition-all"
                                                 >
                                                     <CheckCircle2 size={16} /> אשר
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
                                                     onClick={() => setRejectingId(request.id)}
-                                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg text-sm font-bold hover:from-red-500 hover:to-rose-500 flex items-center gap-2 shadow-lg shadow-red-200/60 transition-all"
+                                                    size="sm"
+                                                    className="bg-gradient-to-r from-red-600 to-rose-600 text-white hover:from-red-500 hover:to-rose-500 flex items-center gap-2 shadow-lg shadow-red-200/60 transition-all"
                                                 >
                                                     <X size={16} /> דחה
-                                                </button>
+                                                </Button>
                                             </>
                                         )}
                                     </div>
@@ -260,29 +270,33 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                             className="bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 w-64 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60"
                                             onKeyPress={(e) => e.key === 'Enter' && handleAddEmail(tenant.id)}
                                         />
-                                        <button
+                                        <Button
                                             onClick={() => handleAddEmail(tenant.id)}
-                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60 transition-all"
+                                            size="sm"
+                                            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 shadow-lg shadow-indigo-200/60 transition-all"
                                         >
                                             הוסף
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => {
                                                 setAddingToTenant(null);
                                                 setNewEmail('');
                                             }}
-                                            className="px-4 py-2 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
+                                            size="sm"
+                                            variant="outline"
+                                            className="bg-slate-100 text-slate-700 hover:bg-slate-200"
                                         >
                                             ביטול
-                                        </button>
+                                        </Button>
                                     </div>
                                 ) : (
-                                    <button
+                                    <Button
                                         onClick={() => setAddingToTenant(tenant.id)}
-                                            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-sm font-bold hover:from-indigo-500 hover:to-purple-500 flex items-center gap-2 shadow-lg shadow-indigo-200/60 transition-all"
+                                        size="sm"
+                                        className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 flex items-center gap-2 shadow-lg shadow-indigo-200/60 transition-all"
                                     >
                                         <Plus size={16} /> הוסף מייל
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -292,12 +306,16 @@ export const UserApprovalsPanel: React.FC<UserApprovalsPanelProps> = ({
                                             <div className="flex items-center gap-2 text-sm text-slate-700">
                                                 <Mail size={14} /> {email}
                                             </div>
-                                            <button
+                                            <Button
                                                 onClick={() => onRemoveAllowedEmail(tenant.id, email)}
-                                                className="text-red-600 hover:text-red-700"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-red-600 hover:text-red-700"
+                                                aria-label="הסר מייל"
+                                                title="הסר מייל"
                                             >
                                                 <Trash2 size={16} />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))
                                 ) : (

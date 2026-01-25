@@ -7,6 +7,7 @@ import {
     AlertCircle, CheckCircle2, ArrowUp, ArrowDown, Image as ImageIcon
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { Button } from '@/components/ui/button';
 
 interface PartnerLogo {
     id: string;
@@ -17,7 +18,7 @@ interface PartnerLogo {
     isActive: boolean;
 }
 
-export const PartnersLogosPanel: React.FC = () => {
+export const PartnersLogosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
     
     // Load logos from localStorage
@@ -166,18 +167,17 @@ export const PartnersLogosPanel: React.FC = () => {
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="flex justify-between items-end mb-10">
-                <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight mb-2">ניהול לוגואים של חברות שותפות</h1>
-                    <p className="text-slate-400">נהל את הלוגואים של החברות שמוצגים בדף הנחיתה תחת "מי עובד איתנו".</p>
+            {!hideHeader ? (
+                <div className="flex justify-between items-end mb-10">
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">ניהול לוגואים של חברות שותפות</h1>
+                        <p className="text-slate-600">נהל את הלוגואים של החברות שמוצגים בדף הנחיתה תחת "מי עובד איתנו".</p>
+                    </div>
+                    <Button onClick={() => setIsAddingLogo(true)}>
+                        <Plus size={18} /> הוסף לוגו
+                    </Button>
                 </div>
-                <button
-                    onClick={() => setIsAddingLogo(true)}
-                    className="bg-indigo-600 text-white hover:bg-indigo-500 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105"
-                >
-                    <Plus size={18} /> הוסף לוגו
-                </button>
-            </div>
+            ) : null}
 
             {/* Logos Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -193,14 +193,14 @@ export const PartnersLogosPanel: React.FC = () => {
                             transition={{ delay: index * 0.1 }}
                             className={`relative rounded-2xl overflow-hidden border transition-all ${
                                 isEditing 
-                                    ? 'border-indigo-500 ring-2 ring-indigo-500/30 bg-gradient-to-br from-indigo-900/20 to-purple-900/20' 
+                                    ? 'border-indigo-400 ring-2 ring-indigo-500/20 bg-indigo-50/40' 
                                     : logo.isActive 
-                                        ? 'border-slate-700 hover:border-slate-600' 
-                                        : 'border-slate-800 opacity-50'
-                            } ${!logo.isActive ? 'bg-slate-900/50' : 'bg-slate-900/30'}`}
+                                        ? 'border-slate-200 hover:border-slate-300' 
+                                        : 'border-slate-200 opacity-60'
+                            } ${!logo.isActive ? 'bg-slate-50' : 'bg-white'}`}
                         >
                             {/* Logo Preview */}
-                            <div className="relative h-[200px] bg-gradient-to-br from-slate-800/50 to-slate-900/50 border-b border-slate-800 flex items-center justify-center p-6">
+                            <div className="relative h-[200px] bg-slate-50 border-b border-slate-200 flex items-center justify-center p-6">
                                 {displayLogo.logo ? (
                                     <img 
                                         src={displayLogo.logo} 
@@ -218,7 +218,7 @@ export const PartnersLogosPanel: React.FC = () => {
                                         מוסתר
                                     </div>
                                 )}
-                                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded">
+                                <div className="absolute bottom-2 left-2 bg-white/80 backdrop-blur-md text-slate-900 text-xs font-bold px-2 py-1 rounded border border-slate-200">
                                     #{index + 1}
                                 </div>
                             </div>
@@ -231,14 +231,14 @@ export const PartnersLogosPanel: React.FC = () => {
                                             type="text"
                                             value={displayLogo.name}
                                             onChange={(e) => setEditedLogo({ ...displayLogo, name: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="שם החברה"
                                         />
                                         <input
                                             type="text"
                                             value={displayLogo.website || ''}
                                             onChange={(e) => setEditedLogo({ ...displayLogo, website: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-xs focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="אתר אינטרנט (אופציונלי)"
                                         />
                                         <label className="cursor-pointer">
@@ -256,79 +256,97 @@ export const PartnersLogosPanel: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div>
-                                        <div className="text-white font-bold text-sm mb-1">{displayLogo.name}</div>
+                                        <div className="text-slate-900 font-bold text-sm mb-1">{displayLogo.name}</div>
                                         {displayLogo.website && (
-                                            <div className="text-slate-400 text-xs mb-2">{displayLogo.website}</div>
+                                            <div className="text-slate-600 text-xs mb-2">{displayLogo.website}</div>
                                         )}
                                     </div>
                                 )}
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-800">
+                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-200">
                                     {isEditing ? (
                                         <>
-                                            <button
+                                            <Button
                                                 onClick={handleSaveLogo}
-                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                                size="sm"
+                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-all"
                                             >
                                                 שמור
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => {
                                                     setEditingLogo(null);
                                                     setEditedLogo(null);
                                                 }}
-                                                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1 text-xs font-bold transition-all"
                                             >
                                                 בטל
-                                            </button>
+                                            </Button>
                                         </>
                                     ) : (
                                         <>
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     setEditingLogo(logo.id);
                                                     setEditedLogo({ ...logo });
                                                 }}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9"
                                                 title="ערוך"
+                                                aria-label="ערוך"
                                             >
                                                 <Eye size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => toggleActive(logo.id)}
-                                                className={`p-2 rounded-lg transition-all ${
-                                                    logo.isActive 
-                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white' 
-                                                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                                                variant="outline"
+                                                size="icon"
+                                                className={`h-9 w-9 ${
+                                                    logo.isActive
+                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                                                        : ''
                                                 }`}
                                                 title={logo.isActive ? 'הסתר' : 'הצג'}
+                                                aria-label={logo.isActive ? 'הסתר' : 'הצג'}
                                             >
                                                 <CheckCircle2 size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => moveLogo(logo.id, 'up')}
                                                 disabled={index === 0}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 disabled:opacity-50"
                                                 title="הזז למעלה"
+                                                aria-label="הזז למעלה"
                                             >
                                                 <ArrowUp size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => moveLogo(logo.id, 'down')}
                                                 disabled={index === logos.length - 1}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 disabled:opacity-50"
                                                 title="הזז למטה"
+                                                aria-label="הזז למטה"
                                             >
                                                 <ArrowDown size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => setLogoToDelete(logo.id)}
-                                                className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all border border-red-500/30"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                                 title="מחק"
+                                                aria-label="מחק"
                                             >
                                                 <Trash2 size={14} />
-                                            </button>
+                                            </Button>
                                         </>
                                     )}
                                 </div>
@@ -343,56 +361,63 @@ export const PartnersLogosPanel: React.FC = () => {
                     <Building2 size={48} className="text-slate-500 mx-auto mb-4" />
                     <p className="text-slate-700 font-bold mb-1">אין לוגואים עדיין</p>
                     <p className="text-sm text-slate-600 mb-4">הוסף לוגו ראשון כדי להתחיל</p>
-                    <button
+                    <Button
                         onClick={() => setIsAddingLogo(true)}
-                        className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-500 transition-all"
+                        className="bg-indigo-600 text-white hover:bg-indigo-500"
                     >
                         הוסף לוגו ראשון
-                    </button>
+                    </Button>
                 </div>
             )}
 
             {/* Add Logo Modal */}
             <AnimatePresence>
                 {isAddingLogo && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
+                            className="bg-white border border-slate-200 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-black text-white">הוסף לוגו חברה</h3>
-                                <button onClick={() => setIsAddingLogo(false)} className="text-slate-400 hover:text-white">
+                                <h3 className="text-2xl font-black text-slate-900">הוסף לוגו חברה</h3>
+                                <Button
+                                    onClick={() => setIsAddingLogo(false)}
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9"
+                                    aria-label="סגור"
+                                    title="סגור"
+                                >
                                     <X size={24} />
-                                </button>
+                                </Button>
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-white mb-2">שם החברה</label>
+                                    <label className="block text-sm font-bold text-slate-900 mb-2">שם החברה</label>
                                     <input
                                         type="text"
                                         value={newLogo.name}
                                         onChange={(e) => setNewLogo({ ...newLogo, name: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         placeholder="שם החברה"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-white mb-2">אתר אינטרנט (אופציונלי)</label>
+                                    <label className="block text-sm font-bold text-slate-900 mb-2">אתר אינטרנט (אופציונלי)</label>
                                     <input
                                         type="text"
                                         value={newLogo.website || ''}
                                         onChange={(e) => setNewLogo({ ...newLogo, website: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                        className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         placeholder="https://example.com"
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-white mb-2">לוגו</label>
+                                    <label className="block text-sm font-bold text-slate-900 mb-2">לוגו</label>
                                     {newLogo.logo ? (
                                         <div className="mb-3">
-                                            <img src={newLogo.logo} alt="Preview" className="max-w-full max-h-32 object-contain bg-slate-900/50 rounded-lg p-4" />
+                                            <img src={newLogo.logo} alt="Preview" className="max-w-full max-h-32 object-contain bg-slate-50 border border-slate-200 rounded-lg p-4" />
                                         </div>
                                     ) : null}
                                     <label className="cursor-pointer">
@@ -407,22 +432,22 @@ export const PartnersLogosPanel: React.FC = () => {
                                             {newLogo.logo ? 'החלף לוגו' : 'העלה לוגו'}
                                         </div>
                                     </label>
-                                    <p className="text-xs text-slate-400 mt-2">מומלץ: PNG או SVG עם רקע שקוף (מקסימום 2MB)</p>
+                                    <p className="text-xs text-slate-500 mt-2">מומלץ: PNG או SVG עם רקע שקוף (מקסימום 2MB)</p>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button
+                                <Button
                                     onClick={() => setIsAddingLogo(false)}
-                                    className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+                                    variant="outline"
                                 >
                                     ביטול
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleAddLogo}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-bold"
+                                    className="bg-indigo-600 text-white hover:bg-indigo-500 font-bold"
                                 >
                                     הוסף לוגו
-                                </button>
+                                </Button>
                             </div>
                         </motion.div>
                     </div>
@@ -432,32 +457,33 @@ export const PartnersLogosPanel: React.FC = () => {
             {/* Delete Confirmation */}
             <AnimatePresence>
                 {logoToDelete && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+                            className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                         >
                             <div className="flex items-center gap-3 mb-4">
-                                <AlertCircle className="text-red-400" size={24} />
-                                <h3 className="text-xl font-bold text-white">מחיקת לוגו</h3>
+                                <AlertCircle className="text-red-500" size={24} />
+                                <h3 className="text-xl font-bold text-slate-900">מחיקת לוגו</h3>
                             </div>
-                            <p className="text-slate-300 mb-6">
+                            <p className="text-slate-600 mb-6">
                                 האם אתה בטוח שברצונך למחוק את הלוגו "{logos.find(l => l.id === logoToDelete)?.name}"?
                             </p>
                             <div className="flex justify-end gap-3">
-                                <button
+                                <Button
                                     onClick={() => setLogoToDelete(null)}
-                                    className="px-4 py-2 text-slate-400 hover:text-white"
+                                    variant="ghost"
+                                    className="text-slate-700"
                                 >
                                     ביטול
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={handleDeleteLogo}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
+                                    className="bg-red-600 text-white hover:bg-red-500"
                                 >
                                     מחק
-                                </button>
+                                </Button>
                             </div>
                         </motion.div>
                     </div>

@@ -36,7 +36,9 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
             return role.permissions;
         }
     } catch (error) {
-        console.warn('[Auth] Could not fetch role from database, using fallback:', error);
+        console.warn('[Auth] Could not fetch role from database, using fallback:', {
+            message: (error as any)?.message
+        });
     }
     
     // Fallback to hardcoded permissions
@@ -51,19 +53,12 @@ export async function getAuthenticatedUser() {
         const authResult = await auth();
         const userId = authResult?.userId;
         
-        console.log('[Auth] Auth result:', { userId, hasAuth: !!authResult });
-        
         if (!userId) {
             console.warn('[Auth] No user ID found in auth result');
             throw new Error('Unauthorized - No user ID');
         }
         
         const user = await currentUser();
-        console.log('[Auth] Current user:', { 
-            hasUser: !!user, 
-            email: user?.emailAddresses?.[0]?.emailAddress,
-            role: user?.publicMetadata?.role 
-        });
         
         if (!user) {
             console.warn('[Auth] User not found after auth check');
@@ -81,11 +76,9 @@ export async function getAuthenticatedUser() {
             isSuperAdmin: user.publicMetadata?.isSuperAdmin === true
         };
     } catch (error: any) {
-        console.error('[Auth] Error in getAuthenticatedUser:', error);
-        console.error('[Auth] Error details:', {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
+        console.error('[Auth] Error in getAuthenticatedUser:', {
+            message: error?.message,
+            name: error?.name
         });
         // Re-throw with clearer message
         if (error.message?.includes('Unauthorized')) {
@@ -135,7 +128,10 @@ export async function hasPermission(permission: PermissionId): Promise<boolean> 
         const rolePermissions = await getRolePermissions(user.role);
         return rolePermissions.includes(permission);
     } catch (error) {
-        console.error('[Auth] Permission check failed:', error);
+        console.error('[Auth] Permission check failed:', {
+            message: (error as any)?.message,
+            name: (error as any)?.name
+        });
         return false;
     }
 }

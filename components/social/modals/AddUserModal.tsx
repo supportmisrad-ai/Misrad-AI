@@ -5,6 +5,7 @@ import { X, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createUser } from '@/app/actions/admin-users';
 import { UserRole } from '@/types/social';
+import { Button } from '@/components/ui/button';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -172,7 +173,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
   };
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" onClick={handleClose}>
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={handleClose}>
       <motion.div
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -190,9 +191,9 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
               <p className="text-sm text-slate-600">צור משתמש חדש במערכת</p>
             </div>
           </div>
-          <button onClick={handleClose} className="p-2 hover:bg-slate-100 rounded-xl transition-all">
+          <Button onClick={handleClose} variant="ghost" size="icon" className="h-11 w-11">
             <X size={24} />
-          </button>
+          </Button>
         </div>
 
         <form 
@@ -297,14 +298,15 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
           </div>
 
           <div className="p-8 border-t border-slate-200 flex gap-4 mt-6">
-            <button
+            <Button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black hover:bg-slate-200 transition-all"
+              variant="outline"
+              className="flex-1 py-4 rounded-2xl font-black"
             >
               ביטול
-            </button>
-            <button
+            </Button>
+            <Button
               ref={submitButtonRef}
               type="submit"
               onClick={(e) => {
@@ -323,7 +325,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 צור משתמש
               </>
             )}
-          </button>
+          </Button>
           </div>
         </form>
       </motion.div>

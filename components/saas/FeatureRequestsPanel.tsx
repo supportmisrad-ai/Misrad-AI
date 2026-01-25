@@ -6,6 +6,7 @@ import { Sparkles, Bug, Wrench, Zap, Clock, CheckCircle2, XCircle, AlertCircle, 
 import { FeatureRequest } from '../../types';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
+import { Button } from '@/components/ui/button';
 
 interface FeatureRequestsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -161,10 +162,10 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <div className="mb-8">
-                <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
                     ניהול בקשות פיצ'רים
                 </h1>
-                <p className="text-slate-600 text-lg">נהל את כל בקשות הפיצ'רים מהמשתמשים, עדכן סטטוסים והוסף הערות.</p>
+                <p className="text-slate-600 text-base md:text-lg">נהל את כל בקשות הפיצ'רים מהמשתמשים, עדכן סטטוסים והוסף הערות.</p>
             </div>
 
             {/* Stats */}
@@ -228,11 +229,11 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                             className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 pr-10 py-3 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
-                            className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
+                            className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
                         >
                             <option value="all">כל הסטטוסים</option>
                             <option value="pending">ממתין</option>
@@ -245,7 +246,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
+                            className="w-full sm:w-auto bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-sm font-bold focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all"
                         >
                             <option value="all">כל הסוגים</option>
                             <option value="feature">פיצ׳ר חדש</option>
@@ -254,14 +255,16 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                             <option value="integration">אינטגרציה</option>
                         </select>
                     </div>
-                    <button
+                    <Button
                         onClick={loadRequests}
                         disabled={isLoading}
-                        className="px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50"
+                        type="button"
+                        variant="outline"
+                        className="w-full md:w-auto px-4 py-2 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all disabled:opacity-50"
                         title="רענן"
                     >
                         <RefreshCw size={18} className={isLoading ? 'opacity-50' : ''} />
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -318,17 +321,20 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
                                             {new Date(request.createdAt).toLocaleDateString('he-IL')}
                                         </div>
                                     </div>
-                                    <button
+                                    <Button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setSelectedRequest(request);
                                             setIsDetailModalOpen(true);
                                         }}
-                                        className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all backdrop-blur-sm border border-transparent hover:border-slate-200"
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all backdrop-blur-sm border border-transparent hover:border-slate-200"
                                         title="פרטים"
                                     >
                                         <Eye size={16} />
-                                    </button>
+                                    </Button>
                                 </div>
                             </motion.div>
                         );
@@ -434,12 +440,15 @@ const FeatureRequestDetailModal: React.FC<FeatureRequestDetailModalProps> = ({
                             <h2 className="text-2xl font-black text-slate-900">{request.title}</h2>
                         </div>
                     </div>
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all"
                     >
                         <XCircle size={20} />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
@@ -501,10 +510,12 @@ const FeatureRequestDetailModal: React.FC<FeatureRequestDetailModalProps> = ({
                         <p className="text-xs font-bold text-slate-600 uppercase mb-2">שינוי סטטוס</p>
                         <div className="flex gap-2 flex-wrap">
                             {['pending', 'under_review', 'planned', 'in_progress', 'completed', 'rejected'].map((status) => (
-                                <button
+                                <Button
                                     key={status}
                                     onClick={() => handleStatusUpdate(status)}
                                     disabled={updatingStatus === request.id || request.status === status}
+                                    type="button"
+                                    variant="outline"
                                     className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border disabled:opacity-50 disabled:cursor-not-allowed ${
                                         request.status === status
                                             ? 'bg-indigo-600 text-white border-indigo-500'
@@ -516,7 +527,7 @@ const FeatureRequestDetailModal: React.FC<FeatureRequestDetailModalProps> = ({
                                      status === 'planned' ? 'מתוכנן' :
                                      status === 'in_progress' ? 'בפיתוח' :
                                      status === 'completed' ? 'הושלם' : 'נדחה'}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -543,13 +554,14 @@ const FeatureRequestDetailModal: React.FC<FeatureRequestDetailModalProps> = ({
                             placeholder="הוסף הערות פנימיות..."
                             className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-4 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 focus:outline-none transition-all min-h-[120px] resize-none"
                         />
-                        <button
+                        <Button
                             onClick={handleSubmitNotes}
                             disabled={isSubmitting || !notesText.trim()}
+                            type="button"
                             className="mt-3 px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'שולח...' : 'שמור הערות'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </motion.div>

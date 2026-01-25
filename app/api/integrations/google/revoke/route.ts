@@ -21,13 +21,14 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (orgIdFromHeader) {
-            await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
         }
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
         const clerkUser = await getAuthenticatedUser();
         
         // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
         
         if (!dbUser) {
@@ -88,7 +89,10 @@ async function POSTHandler(request: NextRequest) {
                 }
             } catch (error) {
                 // Continue even if revocation fails (token might already be revoked)
-                console.warn('[API] Error revoking token:', error);
+                console.warn('[API] Error revoking token:', {
+                    message: (error as any)?.message,
+                    name: (error as any)?.name
+                });
             }
 
             // Delete from database
@@ -106,7 +110,10 @@ async function POSTHandler(request: NextRequest) {
         });
 
     } catch (error: any) {
-        console.error('[API] Error revoking Google integration:', error);
+        console.error('[API] Error revoking Google integration:', {
+            message: error?.message,
+            name: error?.name
+        });
         return NextResponse.json(
             { error: error.message || 'Failed to revoke integration' },
             { status: 500 }

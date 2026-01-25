@@ -5,12 +5,23 @@ import { NAV_ITEMS, QUICK_ASSETS } from '@/constants';
 import { CommandPaletteMode } from './command-palette.types';
 import { useAIModuleChat } from './useAIModuleChat';
 
-export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
+export function useCommandPalette(
+  isOpen: boolean,
+  mode: CommandPaletteMode,
+  options?: {
+    navItems?: any[];
+    hideLeads?: boolean;
+    hideAssets?: boolean;
+  }
+) {
   const { addToast } = useData();
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null!);
   const messagesEndRef = useRef<HTMLDivElement>(null!);
   const lastQueryRef = useRef<string>('');
+
+  const navSource = options?.navItems || NAV_ITEMS;
+  const assetsSource = options?.hideAssets ? [] : QUICK_ASSETS;
 
   const {
     messages,
@@ -91,17 +102,22 @@ export function useCommandPalette(isOpen: boolean, mode: CommandPaletteMode) {
 
   // Filter Logic
   const getFilteredResults = (leads: Lead[]) => {
-    const filteredNav = NAV_ITEMS.filter(item => 
+    const filteredNav = navSource.filter(item => 
       item.label.toLowerCase().includes(query.toLowerCase())
     ).slice(0, 3);
 
-    const filteredLeads = leads.filter(lead => 
-      lead.name.toLowerCase().includes(query.toLowerCase()) ||
-      lead.company?.toLowerCase().includes(query.toLowerCase()) ||
-      (lead.phone || '').includes(query)
-    ).slice(0, 5);
+    const filteredLeads = options?.hideLeads
+      ? ([] as Lead[])
+      : leads
+          .filter(
+            (lead) =>
+              lead.name.toLowerCase().includes(query.toLowerCase()) ||
+              lead.company?.toLowerCase().includes(query.toLowerCase()) ||
+              (lead.phone || '').includes(query)
+          )
+          .slice(0, 5);
 
-    const filteredAssets = QUICK_ASSETS.filter(asset => 
+    const filteredAssets = assetsSource.filter(asset => 
       asset.label.toLowerCase().includes(query.toLowerCase())
     );
 

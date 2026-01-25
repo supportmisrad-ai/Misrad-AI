@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface NotificationsTabProps {
   notificationHistory: any[];
@@ -29,31 +30,35 @@ export default function NotificationsTab({
             <h3 className="text-2xl font-black text-slate-900 mb-2">התראות</h3>
             <p className="text-sm text-slate-600">שליחת התראות למשתמשים ולקוחות</p>
           </div>
-          <button 
+          <Button
             onClick={onSendNotification}
             className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-xl font-black text-sm hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md"
           >
             שליחה חדשה
-          </button>
+          </Button>
         </div>
         <div className="p-10">
           <div className="flex flex-col gap-6">
             <h4 className="text-xl font-black text-slate-900">היסטוריית התראות</h4>
             <div className="flex gap-2 justify-end">
-              <button
+              <Button
                 onClick={onPrevPage}
                 disabled={disablePrev}
-                className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-white disabled:opacity-40"
+                variant="outline"
+                size="sm"
+                className="h-9"
               >
                 הקודם
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onNextPage}
                 disabled={disableNext}
-                className="px-3 py-1.5 rounded-lg border border-indigo-100 bg-white disabled:opacity-40"
+                variant="outline"
+                size="sm"
+                className="h-9"
               >
                 הבא
-              </button>
+              </Button>
             </div>
             <div className="flex flex-col gap-4 max-h-96 overflow-y-auto">
               {notificationHistory.length > 0 ? (

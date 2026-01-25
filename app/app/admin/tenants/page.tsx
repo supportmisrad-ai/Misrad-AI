@@ -3,11 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { RefreshCw, Server } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { TenantsPanel } from '@/components/saas/TenantsPanel';
 import { AddTenantModal } from '@/components/saas/AddTenantModal';
 import { ModuleManagementModal } from '@/components/saas/ModuleManagementModal';
 import type { ModuleId, Tenant } from '@/types';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminToolbar from '@/components/admin/AdminToolbar';
+import { Button } from '@/components/ui/button';
 
 export default function AdminTenantsPage() {
   const router = useRouter();
@@ -27,7 +31,7 @@ export default function AdminTenantsPage() {
       const res = await fetch('/api/tenants', { cache: 'no-store' });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || 'שגיאה בטעינת tenants');
+        throw new Error(data.error || 'שגיאה בטעינת טננטים');
       }
 
       const loaded = Array.isArray(data.tenants) ? (data.tenants as Tenant[]) : [];
@@ -36,7 +40,7 @@ export default function AdminTenantsPage() {
         if (!existingIds.has(t.id)) addTenant(t);
       }
     } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת tenants', 'error');
+      addToast(e?.message || 'שגיאה בטעינת טננטים', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -123,7 +127,7 @@ export default function AdminTenantsPage() {
       body: JSON.stringify(updates),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'שגיאה בעדכון tenant');
+    if (!res.ok) throw new Error(data.error || 'שגיאה בעדכון טננט');
     const updatedTenant = data.tenant as Tenant;
     updateTenant(id, updatedTenant);
     return updatedTenant;
@@ -133,9 +137,9 @@ export default function AdminTenantsPage() {
     const newStatus = currentStatus === 'Active' ? 'Churned' : 'Active';
     try {
       await handleUpdateTenant(id, { status: newStatus as any });
-      addToast('Tenant עודכן בהצלחה!', 'success');
+      addToast('טננט עודכן בהצלחה!', 'success');
     } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון tenant', 'error');
+      addToast(e?.message || 'שגיאה בעדכון טננט', 'error');
     }
   };
 
@@ -166,7 +170,24 @@ export default function AdminTenantsPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-6 pb-24" dir="rtl">
+      <AdminPageHeader title="טננטים" subtitle="לקוחות SaaS + ניהול מודולים" icon={Server} />
+
+      <AdminToolbar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="חפש לפי שם/אימייל בעלים..."
+        actions={
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={loadTenants} title="רענון">
+              <RefreshCw size={16} />
+              רענון
+            </Button>
+            <Button onClick={() => setIsAddTenantOpen(true)}>הוסף טננט</Button>
+          </div>
+        }
+      />
+
       {isLoading ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-5">
           <div className="text-slate-900 font-black">טוען...</div>
@@ -196,6 +217,8 @@ export default function AdminTenantsPage() {
         onSimulate={handleSimulateTenant}
         onEditModules={handleEditModules}
         onToggleStatus={toggleStatus}
+        hideHeader
+        hideSearch
       />
     </div>
   );

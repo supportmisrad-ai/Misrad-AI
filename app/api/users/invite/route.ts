@@ -10,12 +10,20 @@ import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { getUsers } from '../../../../lib/db';
 import { getBaseUrl } from '../../../../lib/utils';
 import { sendEmployeeInvitationEmail } from '../../../../lib/email';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
         
         // 2. Check permissions
         await requirePermission('manage_team');
@@ -32,7 +40,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 4. Get user info (invited user and current user)
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const currentUser = dbUsers[0];
         if (!currentUser) {
             return NextResponse.json(
@@ -44,7 +52,7 @@ async function POSTHandler(request: NextRequest) {
         // Get invited user info if userId provided
         let invitedUser = null;
         if (userId) {
-            const invitedUsers = await getUsers({ userId });
+            const invitedUsers = await getUsers({ userId, tenantId: workspace.id });
             invitedUser = invitedUsers[0];
         }
 
@@ -68,12 +76,9 @@ async function POSTHandler(request: NextRequest) {
             // Return the signup URL so admin can send manually if needed
         } else {
             console.log('[Invitation] Email sent successfully:', {
-                to: email,
-                userName,
-                department: department || invitedUser?.department,
-                role: role || invitedUser?.role,
-                signupUrl,
-                invitedBy: user.email
+                tenantId: workspace.id,
+                invitedUserId: userId || null,
+                sentByUserId: user.id
             });
         }
 

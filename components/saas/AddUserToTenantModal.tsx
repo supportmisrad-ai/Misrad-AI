@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus, Mail, User, Shield } from 'lucide-react';
 import { Tenant } from '../../types';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { Button } from '@/components/ui/button';
 
 interface AddUserToTenantModalProps {
     tenant: Tenant;
@@ -131,12 +132,9 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                     <p className="text-xs text-slate-600 mt-0.5">{tenant.name}</p>
                                 </div>
                             </div>
-                            <button
-                                onClick={onClose}
-                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-500 hover:text-slate-900"
-                            >
+                            <Button onClick={onClose} type="button" variant="ghost" size="icon" className="h-10 w-10 text-slate-500 hover:text-slate-900">
                                 <X size={18} />
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Form */}
@@ -212,14 +210,15 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
 
                             {/* Actions */}
                             <div className="flex gap-3 pt-4">
-                                <button
+                                <Button
                                     type="button"
                                     onClick={onClose}
-                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl font-bold text-slate-700 transition-all"
+                                    variant="outline"
+                                    className="flex-1 px-4 py-2.5 rounded-xl font-bold text-slate-700"
                                 >
                                     ביטול
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="submit"
                                     disabled={isSubmitting}
                                     className="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -232,7 +231,7 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                                             הוסף משתמש
                                         </>
                                     )}
-                                </button>
+                                </Button>
                             </div>
                         </form>
                     </div>

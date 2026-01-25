@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(__dirname),
@@ -21,16 +22,6 @@ const nextConfig: NextConfig = {
       {
         source: '/nexus/app/:path*',
         destination: '/app/:path*',
-        permanent: false,
-      },
-      {
-        source: '/sign-in',
-        destination: '/login',
-        permanent: false,
-      },
-      {
-        source: '/sign-in/:path*',
-        destination: '/login',
         permanent: false,
       },
       {
@@ -137,4 +128,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const sentryOptions = {
+  silent: true,
+  hideSourceMaps: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+} as unknown as Parameters<typeof withSentryConfig>[1];
+
+export default withSentryConfig(nextConfig, sentryOptions);
+

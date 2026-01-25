@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { CreditCard, Save } from 'lucide-react';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { useData } from '@/context/DataContext';
+import { Button } from '@/components/ui/button';
 
 type PackageKey = 'solo' | 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire';
 
@@ -24,8 +25,7 @@ const PACKAGE_LABELS: Record<PackageKey, { title: string; subtitle: string }> = 
   the_empire: { title: 'הכל כלול', subtitle: 'כל המודולים (499 ₪)' },
 };
 
-export function LandingPaymentLinksPanel({
-} : {}) {
+export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean }) {
   const { addToast } = useData();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -108,15 +108,17 @@ export function LandingPaymentLinksPanel({
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div className="mb-8">
-        <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-amber-700 to-indigo-700 bg-clip-text text-transparent">
-          תשלום / סליקה לדפי הנחיתה
-        </h1>
-        <p className="text-slate-600 text-lg">
-          כאן אתה שולט על מה שיופיע בעמוד התשלום (`/subscribe/checkout`) שמגיע מדפי הנחיתה: QR, הוראות, וקישור חיצוני לסליקה
-          (כולל אפשרות ל־iframe).
-        </p>
-      </div>
+      {!hideHeader ? (
+        <div className="mb-8">
+          <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-amber-700 to-indigo-700 bg-clip-text text-transparent">
+            תשלום / סליקה לדפי הנחיתה
+          </h1>
+          <p className="text-slate-600 text-lg">
+            כאן אתה שולט על מה שיופיע בעמוד התשלום (`/subscribe/checkout`) שמגיע מדפי הנחיתה: QR, הוראות, וקישור חיצוני לסליקה
+            (כולל אפשרות ל־iframe).
+          </p>
+        </div>
+      ) : null}
 
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-6 text-slate-900 shadow-2xl">
         <div className="flex items-center justify-between gap-4 mb-6">
@@ -130,14 +132,14 @@ export function LandingPaymentLinksPanel({
             </div>
           </div>
 
-          <button
+          <Button
             disabled={isSaving || isLoading}
             onClick={handleSave}
             className="px-5 py-3 rounded-2xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-black text-sm flex items-center gap-2"
             type="button"
           >
             <Save size={16} /> {isSaving ? 'שומר...' : 'שמור'}
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 gap-4">

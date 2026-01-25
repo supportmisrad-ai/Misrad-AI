@@ -15,9 +15,10 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (orgIdFromHeader) {
-            await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
         }
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
         // 1. Authenticate user
         let clerkUser;
         try {
@@ -37,7 +38,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 2. Find user in database
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {

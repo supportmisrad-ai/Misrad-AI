@@ -91,7 +91,7 @@ export default function ClientOnboardingPortal() {
       }
 
       const upload = await uploadRes.json().catch(() => null);
-      const url = String(upload?.url || '').trim();
+      const url = String(upload?.ref || upload?.url || '').trim();
       if (!url) throw new Error('לא התקבל URL מהעלאה');
 
       setLogo(url);

@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Trash2, RotateCcw } from 'lucide-react';
 import { restoreDeletedItem, hardDeleteItem } from '@/app/actions/admin-cockpit';
+import { Button } from '@/components/ui/button';
 
 interface RecycleTabProps {
   deletedItems: any[];
@@ -57,7 +58,7 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
                   </td>
                   <td className="p-8">
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
+                      <Button
                         onClick={async () => {
                           const result = await restoreDeletedItem(item.id, item.type);
                           if (result.success) {
@@ -65,12 +66,15 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
                             onRefresh();
                           }
                         }}
-                        className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-emerald-100 text-emerald-700 border-emerald-100 hover:bg-emerald-500 hover:text-white" 
                         title="החזר (Restore)"
+                        aria-label="החזר"
                       >
                         <RotateCcw size={16}/>
-                      </button>
-                      <button 
+                      </Button>
+                      <Button
                         onClick={async () => {
                           if (confirm(`האם אתה בטוח שברצונך למחוק את ${item.name} לנצח? פעולה זו בלתי הפיכה!`)) {
                             const result = await hardDeleteItem(item.id, item.type);
@@ -80,11 +84,14 @@ export default function RecycleTab({ deletedItems, onRefresh, addToast }: Recycl
                             }
                           }
                         }}
-                        className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-rose-100 text-rose-700 border-rose-100 hover:bg-rose-500 hover:text-white" 
                         title="מחק לנצח (Hard Delete)"
+                        aria-label="מחק לנצח"
                       >
                         <Trash2 size={16}/>
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

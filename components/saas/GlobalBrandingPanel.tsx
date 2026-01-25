@@ -4,8 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Image as ImageIcon, Upload, Trash2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { Button } from '@/components/ui/button';
 
-export const GlobalBrandingPanel: React.FC = () => {
+export const GlobalBrandingPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [defaultLogoUrl, setDefaultLogoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -96,7 +97,7 @@ export const GlobalBrandingPanel: React.FC = () => {
       }
 
       const upload = await uploadRes.json().catch(() => null);
-      const url = String(upload?.url || '');
+      const url = String(upload?.ref || upload?.url || '');
       if (!url) throw new Error('לא התקבל URL מהעלאה');
 
       await saveDefaultLogoUrl(url);
@@ -119,14 +120,16 @@ export const GlobalBrandingPanel: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div className="mb-10">
-        <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-          מיתוג גלובלי (White Label)
-        </h1>
-        <p className="text-slate-600 text-lg">
-          לוגו ברירת־מחדל לכל המערכת. מוצג לכל Tenant שלא העלה לוגו משלו.
-        </p>
-      </div>
+      {!hideHeader ? (
+        <div className="mb-10">
+          <h1 className="text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+            מיתוג גלובלי (White Label)
+          </h1>
+          <p className="text-slate-600 text-lg">
+            לוגו ברירת־מחדל לכל המערכת. מוצג לכל Tenant שלא העלה לוגו משלו.
+          </p>
+        </div>
+      ) : null}
 
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl p-8 text-slate-900 shadow-2xl">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -147,7 +150,7 @@ export const GlobalBrandingPanel: React.FC = () => {
 
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={triggerUpload}
                     disabled={isSaving || isLoading}
@@ -155,10 +158,10 @@ export const GlobalBrandingPanel: React.FC = () => {
                   >
                     {isSaving ? <Skeleton className="w-[18px] h-[18px] rounded-full bg-white/30" /> : <Upload size={18} />}
                     {defaultLogoUrl ? 'החלף לוגו' : 'העלה לוגו'}
-                  </button>
+                  </Button>
 
                   {defaultLogoUrl && (
-                    <button
+                    <Button
                       type="button"
                       onClick={handleDelete}
                       disabled={isSaving || isLoading}
@@ -166,7 +169,7 @@ export const GlobalBrandingPanel: React.FC = () => {
                     >
                       <Trash2 size={18} />
                       מחק
-                    </button>
+                    </Button>
                   )}
                 </div>
 

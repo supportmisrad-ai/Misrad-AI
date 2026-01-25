@@ -9,10 +9,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, isTenantAdmin, getOwnedTenant } from '../../../../lib/auth';
 import { getUsers, createRecord } from '../../../../lib/db';
 import { User } from '../../../../types';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(headerOrgId);
+
         // 1. Get authenticated Clerk user
         let clerkUser;
         try {
@@ -59,7 +67,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 2. Check if user already exists in database
-        const existingUsers = await getUsers({ email: normalizedEmail });
+        const existingUsers = await getUsers({ email: normalizedEmail, tenantId: workspace.id });
         const existingUser = existingUsers.length > 0 ? existingUsers[0] : null;
 
         if (existingUser) {
@@ -120,7 +128,7 @@ async function POSTHandler(request: NextRequest) {
             billingInfo: undefined
         };
 
-        const newUser = await createRecord('users', newUserData) as User;
+        const newUser = await createRecord('users', newUserData, { organizationId: workspace.id }) as User;
 
         // Get tenant info after creating user
         const tenant = await getOwnedTenant();
@@ -156,6 +164,13 @@ async function POSTHandler(request: NextRequest) {
  */
 async function GETHandler(request: NextRequest) {
     try {
+        const headerOrgId = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!headerOrgId) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(headerOrgId);
+
         // 1. Get authenticated Clerk user
         let clerkUser;
         try {
@@ -199,7 +214,7 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 2. Check if user exists in database
-        const existingUsers = await getUsers({ email: normalizedEmail });
+        const existingUsers = await getUsers({ email: normalizedEmail, tenantId: workspace.id });
         const existingUser = existingUsers.length > 0 ? existingUsers[0] : null;
 
         return NextResponse.json({

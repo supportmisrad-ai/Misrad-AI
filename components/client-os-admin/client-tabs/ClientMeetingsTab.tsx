@@ -99,7 +99,13 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                 <div className="border-t border-gray-100 bg-gray-50/30 animate-fade-in">
                   <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      <AudioPlayer src={meeting.recordingUrl} />
+                      {meeting.recordingUrl && String(meeting.recordingUrl).startsWith('sb://') ? (
+                        <div className="bg-amber-50 p-4 rounded-xl border border-amber-100 text-xs text-amber-800 font-bold">
+                          אין גישה לקובץ
+                        </div>
+                      ) : (
+                        <AudioPlayer src={meeting.recordingUrl} />
+                      )}
 
                       <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
                         <h5 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1">
@@ -145,7 +151,7 @@ export const ClientMeetingsTab: React.FC<ClientMeetingsTabProps> = ({
                           <FolderOpen size={12} /> חומרי פגישה וסיכומים
                         </h5>
                         <div className="space-y-2">
-                          {meeting.recordingUrl && (
+                          {meeting.recordingUrl && !String(meeting.recordingUrl).startsWith('sb://') && (
                             <a
                               href={meeting.recordingUrl}
                               target="_blank"

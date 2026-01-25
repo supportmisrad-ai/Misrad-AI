@@ -5,6 +5,7 @@ import { Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { impersonateUser } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
+import { Button } from '@/components/ui/button';
 
 export default function OrgImpersonateButton(props: {
   orgSlug: string | null;
@@ -42,10 +43,11 @@ export default function OrgImpersonateButton(props: {
   };
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handle}
       disabled={isLoading || !props.clientId}
+      variant="outline"
       className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl border font-black transition-colors ${
         isLoading || !props.clientId
           ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
@@ -55,6 +57,6 @@ export default function OrgImpersonateButton(props: {
     >
       <Eye size={16} />
       התחבר
-    </button>
+    </Button>
   );
 }

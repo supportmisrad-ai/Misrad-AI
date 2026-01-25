@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BrainCircuit, Download, Play, RefreshCw, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { Button } from '@/components/ui/button';
 
 type OrganizationLite = {
   id: string;
@@ -25,7 +26,7 @@ type FeatureRow = {
   timeout_ms: number;
 };
 
-export const AiBrainPanel: React.FC = () => {
+export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
   const [orgs, setOrgs] = useState<OrganizationLite[]>([]);
   const [orgQuery, setOrgQuery] = useState('');
   const [selectedOrgId, setSelectedOrgId] = useState<string>('');
@@ -199,12 +200,14 @@ export const AiBrainPanel: React.FC = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      <div className="mb-8">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-emerald-700 to-teal-700 bg-clip-text text-transparent">
-          מוח ה-AI
-        </h1>
-        <p className="text-slate-600 text-lg">שליטה על מודלים, פרומפטים, קרדיטים ואינדוקס היסטוריה.</p>
-      </div>
+      {!hideHeader ? (
+        <div className="mb-8">
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-emerald-700 to-teal-700 bg-clip-text text-transparent">
+            מוח ה-AI
+          </h1>
+          <p className="text-slate-600 text-lg">שליטה על מודלים, פרומפטים, קרדיטים ואינדוקס היסטוריה.</p>
+        </div>
+      ) : null}
 
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3 mb-4">
@@ -219,13 +222,19 @@ export const AiBrainPanel: React.FC = () => {
             placeholder="חיפוש ארגון..."
             className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-200/60"
           />
-          <button
+          <Button
             onClick={() => loadOrganizations()}
-            className="bg-emerald-600/70 hover:bg-emerald-600 text-white rounded-xl px-4 py-2 text-sm font-bold transition"
             disabled={loadingOrgs}
+            className="bg-emerald-600 hover:bg-emerald-700"
           >
-            {loadingOrgs ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> טוען...</span> : 'טען ארגונים'}
-          </button>
+            {loadingOrgs ? (
+              <span className="inline-flex items-center gap-2">
+                <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> טוען...
+              </span>
+            ) : (
+              'טען ארגונים'
+            )}
+          </Button>
           <select
             value={selectedOrgId}
             onChange={(e) => setSelectedOrgId(e.target.value)}
@@ -241,15 +250,22 @@ export const AiBrainPanel: React.FC = () => {
         </div>
 
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <button
+          <Button
             onClick={runIngest}
             disabled={!selectedOrgId || runningIngest}
-            className="bg-indigo-600/70 hover:bg-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-50"
           >
-            {runningIngest ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> מריץ...</span> : <span className="inline-flex items-center gap-2"><Play size={14} /> הרץ אינדוקס היסטוריה</span>}
-          </button>
+            {runningIngest ? (
+              <span className="inline-flex items-center gap-2">
+                <Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> מריץ...
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-2">
+                <Play size={14} /> הרץ אינדוקס היסטוריה
+              </span>
+            )}
+          </Button>
 
-          <button
+          <Button
             onClick={async () => {
               try {
                 await adjustCredits(1000);
@@ -259,12 +275,13 @@ export const AiBrainPanel: React.FC = () => {
               }
             }}
             disabled={!selectedOrgId}
-            className="bg-amber-600/70 hover:bg-amber-600 text-white rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-50"
+            className="bg-amber-600 hover:bg-amber-700"
           >
             הוסף 10₪ קרדיטים
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="secondary"
             onClick={async () => {
               try {
                 await downloadAiBackup();
@@ -273,10 +290,9 @@ export const AiBrainPanel: React.FC = () => {
               }
             }}
             disabled={!selectedOrgId}
-            className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2 text-sm font-bold transition disabled:opacity-50"
           >
             <span className="inline-flex items-center gap-2"><Download size={14} /> גיבוי הגדרות AI</span>
-          </button>
+          </Button>
 
           <div className="text-xs text-slate-600 bg-white/80 border border-slate-200 rounded-xl px-3 py-2 flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -287,15 +303,17 @@ export const AiBrainPanel: React.FC = () => {
                   : 'לא זמין'}
               </span>
             </div>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => (selectedOrgId ? loadCreditStatus(selectedOrgId) : null)}
               disabled={!selectedOrgId}
-              className="shrink-0 inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 disabled:opacity-50"
               aria-label="רענן יתרה"
+              className="h-9 w-9 p-0"
             >
               <RefreshCw size={14} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -311,13 +329,9 @@ export const AiBrainPanel: React.FC = () => {
                 placeholder="סינון לפי feature_key..."
                 className="bg-white/80 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200/60"
               />
-              <button
-                onClick={() => loadFeatureSettings(selectedOrgId)}
-                className="bg-slate-900 hover:bg-slate-800 text-white rounded-xl px-4 py-2 text-sm font-bold transition"
-                disabled={loadingRows}
-              >
+              <Button variant="secondary" size="sm" onClick={() => loadFeatureSettings(selectedOrgId)} disabled={loadingRows}>
                 רענן
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -335,13 +349,14 @@ export const AiBrainPanel: React.FC = () => {
                       <div className="text-[11px] text-slate-500">org: {selectedOrg?.name || selectedOrgId}</div>
                     </div>
 
-                    <button
+                    <Button
                       onClick={() => saveRow(r)}
                       disabled={savingKey === r.feature_key}
-                      className="bg-emerald-600/70 hover:bg-emerald-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition disabled:opacity-50"
+                      className="bg-emerald-600/70 hover:bg-emerald-600 text-white"
+                      size="sm"
                     >
                       {savingKey === r.feature_key ? <span className="inline-flex items-center gap-2"><Skeleton className="w-3.5 h-3.5 rounded-full bg-white/30" /> שומר...</span> : <span className="inline-flex items-center gap-2"><Save size={14} /> שמור</span>}
-                    </button>
+                    </Button>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">

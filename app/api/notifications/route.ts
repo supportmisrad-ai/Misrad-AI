@@ -29,12 +29,33 @@ async function GETHandler(request: NextRequest) {
             return NextResponse.json({ notifications: [] }, { status: 200 });
         }
 
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         // Get user from database by email
         if (!user.email) {
             return NextResponse.json({ notifications: [] }, { status: 200 });
         }
 
-        const dbUsers = await getUsers({ email: user.email, tenantId: workspaceId ?? undefined });
+        let dbUsers: any[] = [];
+        try {
+            dbUsers = await getUsers({
+                email: user.email,
+                tenantId: workspaceId ?? undefined,
+                allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+            });
+        } catch {
+            dbUsers = [];
+        }
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {

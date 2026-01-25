@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Eye, Lock, Unlock, Settings } from 'lucide-react';
 import { Avatar } from '@/components/Avatar';
+import { Button } from '@/components/ui/button';
 
 interface ClientsTabProps {
   filteredClients: any[];
@@ -105,27 +106,40 @@ export default function ClientsTab({
                   </td>
                   <td className="p-8">
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
+                      <Button
                         onClick={() => onImpersonate(client.id)} 
-                        className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-indigo-100 text-indigo-600 border-indigo-100 hover:bg-indigo-500 hover:text-white" 
                         title="התחזות למשתמש"
+                        aria-label="התחזות"
                       >
                         <Eye size={16}/>
-                      </button>
-                      <button 
+                      </Button>
+                      <Button
                         onClick={() => onToggleAccess(client.id, client.status === 'Overdue')} 
-                        className={`p-2 rounded-lg transition-all ${client.status === 'Overdue' ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-500 hover:text-white' : 'bg-rose-100 text-rose-600 hover:bg-rose-500 hover:text-white'}`} 
+                        variant="outline"
+                        size="icon"
+                        className={`h-9 w-9 border-transparent transition-all ${
+                          client.status === 'Overdue'
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-500 hover:text-white'
+                            : 'bg-rose-100 text-rose-700 hover:bg-rose-500 hover:text-white'
+                        }`} 
                         title={client.status === 'Overdue' ? 'שחרר חסימה' : 'חסום גישה'}
+                        aria-label={client.status === 'Overdue' ? 'שחרר חסימה' : 'חסום גישה'}
                       >
                         {client.status === 'Overdue' ? <Unlock size={16}/> : <Lock size={16}/>}
-                      </button>
-                      <button 
+                      </Button>
+                      <Button
                         onClick={() => onOpenWorkspace(client.id)}
-                        className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-slate-100 text-slate-700 border-slate-100 hover:bg-indigo-500 hover:text-white" 
                         title="פתח סביבת עבודה"
+                        aria-label="פתח סביבת עבודה"
                       >
                         <Settings size={16}/>
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

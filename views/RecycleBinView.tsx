@@ -161,7 +161,7 @@ export const RecycleBinView: React.FC = () => {
                 </div>
 
                 {/* Mobile Horizontal Tabs (Visible only on small screens) */}
-                <div className="lg:hidden w-full max-w-full overflow-x-auto no-scrollbar pb-2 shrink-0 mb-4 -mx-4 sm:mx-0 px-4 sm:px-0 touch-pan-x overscroll-x-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="lg:hidden w-full max-w-full overflow-x-auto no-scrollbar pb-2 shrink-0 mb-4 -mx-4 sm:mx-0 px-4 sm:px-0 overscroll-x-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="flex gap-1.5 sm:gap-2 min-w-max">
                         {tabs.map(tab => {
                             return (

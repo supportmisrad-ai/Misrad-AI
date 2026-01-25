@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { LifeBuoy, Save } from 'lucide-react';
 import { getContentByKey } from '@/app/actions/site-content';
 import { bulkUpdateSiteContent } from '@/app/actions/admin-site-content';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,28 +62,20 @@ export default function AdminSupportSettingsPage() {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center">
-          <LifeBuoy className="text-slate-700" size={22} />
-        </div>
-        <div>
-          <div className="text-2xl font-black text-slate-900">הגדרות תמיכה</div>
-          <div className="text-sm font-bold text-slate-500 mt-1">קישורים ותצוגה בחלון התמיכה</div>
-        </div>
-      </div>
+    <div className="space-y-6 pb-24" dir="rtl">
+      <AdminPageHeader title="הגדרות תמיכה" subtitle="קישורים ותצוגה בחלון התמיכה" icon={LifeBuoy} />
 
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 max-w-2xl">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 max-w-2xl">
         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">קישור להצטרפות לקבוצת הוואטסאפ</label>
         <div className="text-xs font-bold text-slate-400 mt-2">
           הקישור יוצג בחלון התמיכה למשתמשים (כפתור "הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ").
         </div>
 
-        <input
+        <Input
           value={whatsappGroupUrl}
           onChange={(e) => setWhatsappGroupUrl(e.target.value)}
           placeholder="הדבק כאן קישור (invite link)"
-          className="mt-3 w-full h-11 px-4 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold outline-none focus:border-indigo-300"
+          className="mt-3"
         />
 
         {status ? (
@@ -94,14 +89,10 @@ export default function AdminSupportSettingsPage() {
         ) : null}
 
         <div className="mt-4 flex justify-end">
-          <button
-            onClick={onSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white font-black disabled:opacity-60"
-          >
+          <Button onClick={onSave} disabled={isSaving} variant="secondary" className="w-full md:w-auto">
             <Save size={16} />
             {isSaving ? 'שומר…' : 'שמור'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

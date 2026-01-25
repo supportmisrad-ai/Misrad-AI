@@ -92,7 +92,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             const attachment = {
                 name: file.name,
                 type,
-                url: data.url // This is the public URL from Supabase
+                url: String(data?.ref || data?.url || '') // Prefer stable sb:// reference for DB
             };
 
             // Add message with attachment
@@ -287,7 +287,11 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                                         <div className="pr-6 relative">
                                             {msg.attachment && (
                                                 <div className="mb-2">
-                                                    {msg.attachment.type === 'image' ? (
+                                                    {String(msg.attachment.url || '').startsWith('sb://') ? (
+                                                        <div className="bg-amber-50 p-2 rounded-lg border border-amber-100 text-xs text-amber-800 font-bold">
+                                                            אין גישה לקובץ
+                                                        </div>
+                                                    ) : msg.attachment.type === 'image' ? (
                                                         <div className="relative group/image">
                                                             <img src={msg.attachment.url} alt={msg.attachment.name} className="rounded-lg max-h-48 object-cover border border-black/5" />
                                                             <a href={msg.attachment.url} download={msg.attachment.name} className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity rounded-lg text-white">

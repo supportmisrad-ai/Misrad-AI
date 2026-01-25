@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { UserPlus, Eye, Ban, Gift, Edit } from 'lucide-react';
 import { banUser, grantProAccess } from '@/app/actions/admin-cockpit';
 import { getUserDetails } from '@/app/actions/admin-users';
+import { Button } from '@/components/ui/button';
 
 interface UsersTabProps {
   allUsers: any[];
@@ -54,13 +55,13 @@ export default function UsersTab({
               onChange={(e) => setUserSearchQuery(e.target.value)}
               className="bg-white border border-indigo-200 rounded-xl px-6 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400 text-right shadow-sm w-64" 
             />
-            <button 
+            <Button
               onClick={onAddUser}
               className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-xl font-black text-sm hover:from-indigo-600 hover:to-purple-600 transition-all shadow-md flex items-center gap-2"
             >
               <UserPlus size={18} />
               הוסף משתמש
-            </button>
+            </Button>
           </div>
         </div>
         <div className="overflow-x-auto w-full">
@@ -112,16 +113,19 @@ export default function UsersTab({
                   </td>
                   <td className="p-8">
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
+                      <Button
                         onClick={async () => {
                           addToast('תכונת התחזות למשתמשים תושם בקרוב', 'info');
                         }}
-                        className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-indigo-100 text-indigo-600 border-indigo-100 hover:bg-indigo-500 hover:text-white" 
                         title="התחזות (Impersonate)"
+                        aria-label="התחזות"
                       >
                         <Eye size={16}/>
-                      </button>
-                      <button 
+                      </Button>
+                      <Button
                         onClick={async () => {
                           if (confirm(`האם אתה בטוח שברצונך לחסום את ${user.name}?`)) {
                             const result = await banUser(user.id, 'חסימה ידנית על ידי אדמין');
@@ -131,13 +135,16 @@ export default function UsersTab({
                             }
                           }
                         }}
-                        className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-rose-100 text-rose-600 border-rose-100 hover:bg-rose-500 hover:text-white" 
                         title="חסום (Ban)"
+                        aria-label="חסום"
                       >
                         <Ban size={16}/>
-                      </button>
+                      </Button>
                       {user.plan !== 'pro' && (
-                        <button 
+                        <Button
                           onClick={async () => {
                             const result = await grantProAccess(user.id);
                             if (result.success) {
@@ -145,19 +152,25 @@ export default function UsersTab({
                               onRefresh();
                             }
                           }}
-                          className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-500 hover:text-white transition-all" 
+                          variant="outline"
+                          size="icon"
+                          className="h-9 w-9 bg-purple-100 text-purple-600 border-purple-100 hover:bg-purple-500 hover:text-white" 
                           title="שדרג ל-PRO"
+                          aria-label="שדרג ל-PRO"
                         >
                           <Gift size={16}/>
-                        </button>
+                        </Button>
                       )}
-                      <button 
+                      <Button
                         onClick={() => onEditUser(user.id)}
-                        className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-indigo-500 hover:text-white transition-all" 
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9 bg-slate-100 text-slate-600 border-slate-100 hover:bg-indigo-500 hover:text-white" 
                         title="ערוך פרופיל"
+                        aria-label="ערוך פרופיל"
                       >
                         <Edit size={16}/>
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

@@ -784,6 +784,119 @@ export async function updateFeatureFlags(
   }
 }
 
+export async function getSystemEmailSettings(): Promise<{
+  success: boolean;
+  data?: {
+    supportEmail: string | null;
+    migrationEmail: string | null;
+  };
+  error?: string;
+}> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const supabase = createClient();
+    const { data: row } = await supabase
+      .from('social_system_settings')
+      .select('*')
+      .eq('key', 'system_email_settings')
+      .maybeSingle();
+
+    const rawValue = (row as any)?.value;
+    let parsedValue: any = null;
+    if (rawValue && typeof rawValue === 'string') {
+      parsedValue = JSON.parse(rawValue);
+    } else if (rawValue && typeof rawValue === 'object') {
+      parsedValue = rawValue;
+    }
+
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@social-os.com').trim();
+    const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
+
+    const supportEmailRaw = (parsedValue?.supportEmail ?? supportEmailFallback);
+    const migrationEmailRaw = (parsedValue?.migrationEmail ?? migrationEmailFallback);
+
+    const supportEmail = String(supportEmailRaw ?? '').trim() || null;
+    const migrationEmail = String(migrationEmailRaw ?? '').trim() || null;
+
+    return createSuccessResponse({
+      supportEmail,
+      migrationEmail,
+    });
+  } catch (error) {
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@social-os.com').trim();
+    const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
+    return createSuccessResponse({
+      supportEmail: supportEmailFallback || null,
+      migrationEmail: migrationEmailFallback || null,
+    });
+  }
+}
+
+export async function updateSystemEmailSettings(input: {
+  supportEmail?: string | null;
+  migrationEmail?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const supabase = createClient();
+
+    const { data: existing } = await supabase
+      .from('social_system_settings')
+      .select('*')
+      .eq('key', 'system_email_settings')
+      .maybeSingle();
+
+    const existingRaw = (existing as any)?.value;
+    let existingValue: any = null;
+    if (existingRaw && typeof existingRaw === 'string') {
+      existingValue = JSON.parse(existingRaw);
+    } else if (existingRaw && typeof existingRaw === 'object') {
+      existingValue = existingRaw;
+    }
+
+    const supportEmail = input.supportEmail === undefined ? existingValue?.supportEmail : input.supportEmail;
+    const migrationEmail = input.migrationEmail === undefined ? existingValue?.migrationEmail : input.migrationEmail;
+
+    const nextValue = {
+      supportEmail: supportEmail ? String(supportEmail).trim() : null,
+      migrationEmail: migrationEmail ? String(migrationEmail).trim() : null,
+    };
+
+    await supabase
+      .from('social_system_settings')
+      .upsert(
+        {
+          key: 'system_email_settings',
+          value: nextValue as any,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'key' }
+      );
+
+    await supabase.from('activity_logs').insert({
+      user_id: authCheck.userId,
+      action: `עדכון אימיילים מערכתיים: ${JSON.stringify(nextValue)}`,
+      created_at: new Date().toISOString(),
+    });
+
+    return createSuccessResponse(true);
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה בעדכון אימיילים מערכתיים');
+  }
+}
+
 export async function getModuleIcons(): Promise<{
   success: boolean;
   data?: Partial<Record<OSModuleKey, string>>;

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
-import { sendOrganizationWelcomeEmail } from '@/lib/email';
+import { sendFirstCustomerEmail, sendOrganizationWelcomeEmail } from '@/lib/email';
 import { getPackageModules } from '@/lib/server/workspace';
 import type { PackageType } from '@/lib/server/workspace';
 import { syncOrganizationAccessFromBilling } from '@/lib/billing/sync';
@@ -301,6 +301,15 @@ export async function adminMarkSubscriptionOrderPaid(input: {
 
       const ownerEmail = order?.customer_email ? String(order.customer_email) : null;
       if (ownerEmail) {
+        try {
+          await sendFirstCustomerEmail({
+            toEmail: ownerEmail,
+            ownerName: order?.customer_name ? String(order.customer_name) : null,
+          });
+        } catch (e) {
+          console.error('[adminMarkSubscriptionOrderPaid] first customer email failed (ignored)', e);
+        }
+
         const baseUrl = getBaseUrl();
         const portalKey = org?.slug || organizationId;
         const portalUrl = `${baseUrl}/w/${encodeURIComponent(String(portalKey))}/lobby`;

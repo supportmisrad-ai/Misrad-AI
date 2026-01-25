@@ -9,8 +9,74 @@ import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createClient } from '../../../../lib/supabase';
 import { getUsers } from '../../../../lib/db';
 import { LeaveRequest } from '../../../../types';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadLeaveRequestInWorkspace(params: { supabaseClient: any; requestId: string; workspaceId: string }) {
+    const byOrg = await params.supabaseClient
+        .from('nexus_leave_requests')
+        .select('*')
+        .eq('id', params.requestId)
+        .eq('organization_id', params.workspaceId)
+        .single();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_leave_requests')
+            .select('*')
+            .eq('id', params.requestId)
+            .eq('tenant_id', params.workspaceId)
+            .single();
+    }
+
+    return byOrg;
+}
+
+async function updateLeaveRequestInWorkspace(params: {
+    supabaseClient: any;
+    requestId: string;
+    workspaceId: string;
+    patch: any;
+}) {
+    const byOrg = await params.supabaseClient
+        .from('nexus_leave_requests')
+        .update(params.patch)
+        .eq('id', params.requestId)
+        .eq('organization_id', params.workspaceId)
+        .select()
+        .single();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_leave_requests')
+            .update(params.patch)
+            .eq('id', params.requestId)
+            .eq('tenant_id', params.workspaceId)
+            .select()
+            .single();
+    }
+
+    return byOrg;
+}
+
+async function deleteLeaveRequestInWorkspace(params: { supabaseClient: any; requestId: string; workspaceId: string }) {
+    const byOrg = await params.supabaseClient
+        .from('nexus_leave_requests')
+        .delete()
+        .eq('id', params.requestId)
+        .eq('organization_id', params.workspaceId);
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_leave_requests')
+            .delete()
+            .eq('id', params.requestId)
+            .eq('tenant_id', params.workspaceId);
+    }
+
+    return byOrg;
+}
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -28,6 +94,13 @@ async function PATCHHandler(
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         const { id } = await params;
 
         if (!id) {
@@ -37,12 +110,10 @@ async function PATCHHandler(
             );
         }
 
-        // Get existing request
-        const { data: existingRequest, error: getError } = await supabase
-            .from('nexus_leave_requests')
-            .select('*')
-            .eq('id', id)
-            .single();
+        // Get existing request (must belong to workspace)
+        const existingRes = await loadLeaveRequestInWorkspace({ supabaseClient: supabase, requestId: id, workspaceId: workspace.id });
+        const existingRequest = (existingRes as any).data;
+        const getError = (existingRes as any).error;
 
         if (getError || !existingRequest) {
             return NextResponse.json(
@@ -58,7 +129,7 @@ async function PATCHHandler(
                 { status: 400 }
             );
         }
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -129,12 +200,15 @@ async function PATCHHandler(
             );
         }
 
-        const { data: updatedRequest, error } = await supabase
-            .from('nexus_leave_requests')
-            .update(updateData)
-            .eq('id', id)
-            .select()
-            .single();
+        const updatedRes = await updateLeaveRequestInWorkspace({
+            supabaseClient: supabase,
+            requestId: id,
+            workspaceId: workspace.id,
+            patch: updateData,
+        });
+
+        const updatedRequest = (updatedRes as any).data;
+        const error = (updatedRes as any).error;
 
         if (error) {
             console.error('[API] Error updating leave request:', error);
@@ -147,7 +221,7 @@ async function PATCHHandler(
         // Transform to LeaveRequest interface format
         const transformedRequest: LeaveRequest = {
             id: updatedRequest.id,
-            tenantId: updatedRequest.tenant_id,
+            tenantId: updatedRequest.organization_id ?? updatedRequest.tenant_id,
             employeeId: updatedRequest.employee_id,
             leaveType: updatedRequest.leave_type,
             startDate: updatedRequest.start_date,
@@ -179,7 +253,7 @@ async function PATCHHandler(
         // Send notifications
         if (supabase) {
             try {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const employee = allUsers.find(u => u.id === existingRequest.employee_id);
                 
                 // 1. If employee cancelled or edited their own request, notify managers
@@ -211,6 +285,7 @@ async function PATCHHandler(
                         
                         if (managersToNotify.length > 0) {
                             const notifications = managersToNotify.map(managerId => ({
+                                organization_id: workspace.id,
                                 recipient_id: managerId,
                                 type: 'leave_request_cancelled',
                                 text: `${employee.name} ביטל את בקשת החופש שלו`,
@@ -263,6 +338,7 @@ async function PATCHHandler(
                         
                         if (managersToNotify.length > 0) {
                             const notifications = managersToNotify.map(managerId => ({
+                                organization_id: workspace.id,
                                 recipient_id: managerId,
                                 type: 'leave_request_updated',
                                 text: `${employee.name} עדכן את בקשת החופש שלו`,
@@ -296,6 +372,7 @@ async function PATCHHandler(
                         const moreInfoRequest = updateData.metadata.moreInfoRequest || 'נא לספק סיבה מפורטת יותר';
                         
                         const notification = {
+                            organization_id: workspace.id,
                             recipient_id: existingRequest.employee_id,
                             type: 'leave_request',
                             text: `המנהל מבקש מידע נוסף על בקשת החופש שלך: ${moreInfoRequest}`,
@@ -332,6 +409,7 @@ async function PATCHHandler(
                         const statusLabel = statusLabels[updateData.status] || updateData.status;
                         
                         const notification = {
+                            organization_id: workspace.id,
                             recipient_id: existingRequest.employee_id,
                             type: 'leave_request_status',
                             text: `בקשת החופש שלך ${statusLabel}`,
@@ -355,10 +433,12 @@ async function PATCHHandler(
                             console.warn('[API] Could not create notification for employee:', notifError);
                         } else {
                             // Mark as notified
-                            await supabase
-                                .from('nexus_leave_requests')
-                                .update({ employee_notified: true })
-                                .eq('id', id);
+                            await updateLeaveRequestInWorkspace({
+                                supabaseClient: supabase,
+                                requestId: id,
+                                workspaceId: workspace.id,
+                                patch: { employee_notified: true },
+                            });
                         }
                     }
                 }
@@ -399,6 +479,13 @@ async function DELETEHandler(
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         const { id } = await params;
 
         if (!id) {
@@ -408,12 +495,10 @@ async function DELETEHandler(
             );
         }
 
-        // Get existing request
-        const { data: existingRequest, error: getError } = await supabase
-            .from('nexus_leave_requests')
-            .select('*')
-            .eq('id', id)
-            .single();
+        // Get existing request (must belong to workspace)
+        const existingRes = await loadLeaveRequestInWorkspace({ supabaseClient: supabase, requestId: id, workspaceId: workspace.id });
+        const existingRequest = (existingRes as any).data;
+        const getError = (existingRes as any).error;
 
         if (getError || !existingRequest) {
             return NextResponse.json(
@@ -429,7 +514,7 @@ async function DELETEHandler(
                 { status: 400 }
             );
         }
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -458,10 +543,8 @@ async function DELETEHandler(
             );
         }
 
-        const { error } = await supabase
-            .from('nexus_leave_requests')
-            .delete()
-            .eq('id', id);
+        const deleteRes = await deleteLeaveRequestInWorkspace({ supabaseClient: supabase, requestId: id, workspaceId: workspace.id });
+        const error = (deleteRes as any)?.error;
 
         if (error) {
             console.error('[API] Error deleting leave request:', error);
@@ -474,7 +557,7 @@ async function DELETEHandler(
         // Send notification to managers if employee deleted their own request
         if (isEmployee && supabase) {
             try {
-                const allUsers = await getUsers();
+                const allUsers = await getUsers({ tenantId: workspace.id });
                 const employee = allUsers.find(u => u.id === existingRequest.employee_id);
                 
                 if (employee) {
@@ -503,6 +586,7 @@ async function DELETEHandler(
                     
                     if (managersToNotify.length > 0) {
                         const notifications = managersToNotify.map(managerId => ({
+                            organization_id: workspace.id,
                             recipient_id: managerId,
                             type: 'leave_request_deleted',
                             text: `${employee.name} מחק את בקשת החופש שלו`,

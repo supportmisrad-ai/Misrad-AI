@@ -10,6 +10,7 @@ import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
 import { getUsers } from '../../../../lib/db';
 import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
 import { supabase } from '../../../../lib/supabase';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
@@ -41,8 +42,15 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -81,7 +89,10 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const supabaseClient = supabase;
+
         const invitationData = {
+            organization_id: workspace.id,
             token,
             client_id: clientId || null,
             created_by: user.id,
@@ -92,11 +103,38 @@ async function POSTHandler(request: NextRequest) {
             metadata: {}
         };
 
-        const { data: invitation, error: createError } = await supabase
+        const byOrg = await supabaseClient
             .from('system_invitation_links')
             .insert(invitationData)
             .select()
             .single();
+
+        let invitation = (byOrg as any).data;
+        let createError = (byOrg as any).error;
+
+        if (createError?.code === '42703') {
+            const byTenant = await supabaseClient
+                .from('system_invitation_links')
+                .insert({
+                    tenant_id: workspace.id,
+                    token,
+                    client_id: clientId || null,
+                    created_by: user.id,
+                    expires_at: expiresAt.toISOString(),
+                    is_used: false,
+                    is_active: true,
+                    source,
+                    metadata: {}
+                })
+                .select()
+                .single();
+            invitation = (byTenant as any).data;
+            createError = (byTenant as any).error;
+            if (createError?.code === '42703') {
+                // Fail closed: table exists but has no scoping columns
+                return NextResponse.json({ error: 'Invitation links table is not tenant-scoped' }, { status: 501 });
+            }
+        }
 
         if (createError) {
             console.error('[API] Error creating invitation link:', createError);

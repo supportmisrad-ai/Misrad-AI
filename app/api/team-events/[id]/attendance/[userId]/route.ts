@@ -8,8 +8,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
 import { supabase } from '../../../../../../lib/supabase';
 import { getUsers } from '../../../../../../lib/db';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
+    const byTenant = await params.supabaseClient
+        .from('nexus_team_events')
+        .select('*')
+        .eq('id', params.eventId)
+        .eq('tenant_id', params.workspaceId)
+        .single();
+
+    if ((byTenant as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_team_events')
+            .select('*')
+            .eq('id', params.eventId)
+            .eq('organization_id', params.workspaceId)
+            .single();
+    }
+
+    return byTenant;
+}
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string; userId: string }> }
@@ -22,6 +43,27 @@ async function PATCHHandler(
                 { error: 'Database not configured' },
                 { status: 500 }
             );
+        }
+
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
         }
 
         const { id: eventId, userId } = await params;
@@ -41,7 +83,11 @@ async function PATCHHandler(
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({
+            email: user.email,
+            tenantId: workspace.id,
+            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+        });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -52,11 +98,9 @@ async function PATCHHandler(
         }
 
         // Get event to check if user is organizer
-        const { data: event, error: eventError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
+        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
+        const event = (eventRes as any).data;
+        const eventError = (eventRes as any).error;
 
         if (eventError || !event) {
             return NextResponse.json(
@@ -96,7 +140,7 @@ async function PATCHHandler(
             updateData.notes = notes;
         }
 
-        const { data: attendance, error } = await supabase
+        const { data: attendance, error } = await supabaseClient
             .from('nexus_event_attendance')
             .update(updateData)
             .eq('event_id', eventId)
@@ -107,7 +151,7 @@ async function PATCHHandler(
         if (error) {
             // If record doesn't exist, create it
             if (error.code === 'PGRST116') {
-                const { data: newAttendance, error: createError } = await supabase
+                const { data: newAttendance, error: createError } = await supabaseClient
                     .from('nexus_event_attendance')
                     .insert({
                         event_id: eventId,

@@ -14,7 +14,9 @@ export default function NotificationCenter() {
   const { 
     isNotificationCenterOpen, 
     setIsNotificationCenterOpen, 
+    setSettingsSubView,
     clients,
+    userRole,
   } = useApp();
 
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -73,7 +75,8 @@ export default function NotificationCenter() {
     const basePath = getSocialBasePath(pathname);
     const orgSlug = basePath.startsWith('/w/') ? basePath.split('/')[2] : null;
     if (orgSlug) {
-      router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=global`);
+      setSettingsSubView('updates');
+      router.push(`/w/${encodeURIComponent(orgSlug)}/social/settings`);
     } else {
       router.push('/');
     }

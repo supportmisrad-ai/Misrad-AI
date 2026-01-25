@@ -138,12 +138,14 @@ async function POSTHandler(req: Request) {
       }
 
       // Get or create user in Supabase and sync profile image
+      const shouldSendWelcomeEmail = eventType === 'user.created';
       const result = await getOrCreateSupabaseUserAction(
         id,
         primaryEmail,
         first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
         image_url || undefined,
-        preferredOrgKey
+        preferredOrgKey,
+        shouldSendWelcomeEmail
       );
 
       if (!result.success) {
@@ -249,6 +251,53 @@ async function POSTHandler(req: Request) {
       return NextResponse.json({ ok: true }, { status: 200 });
     } catch (error) {
       console.error('Error handling webhook:', error);
+      return NextResponse.json({ error: 'Error handling webhook' }, { status: 500 });
+    }
+  }
+
+  if (eventType === 'user.deleted') {
+    try {
+      if (!('id' in evt.data)) {
+        return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
+      }
+
+      const userData = evt.data as any;
+      const clerkUserId = userData.id;
+      const supabase = createClient();
+      const nowIso = new Date().toISOString();
+
+      // Preferred path: mark user inactive (soft delete)
+      const attempt = await supabase
+        .from('social_users')
+        .update({ is_active: false, updated_at: nowIso } as any)
+        .eq('clerk_user_id', clerkUserId);
+
+      // Backwards compatibility: if is_active column doesn't exist
+      if (attempt.error?.message) {
+        const msg = String(attempt.error.message).toLowerCase();
+        if (msg.includes('column') && msg.includes('is_active')) {
+          await supabase
+            .from('social_users')
+            .update({ role: 'deleted', allowed_modules: [], updated_at: nowIso } as any)
+            .eq('clerk_user_id', clerkUserId);
+        } else {
+          throw new Error(attempt.error.message);
+        }
+      }
+
+      // Best-effort: also deactivate any team membership rows if schema supports it
+      try {
+        await supabase
+          .from('social_team_members')
+          .update({ is_active: false, updated_at: nowIso } as any)
+          .eq('clerk_user_id', clerkUserId);
+      } catch {
+        // ignore
+      }
+
+      return NextResponse.json({ ok: true }, { status: 200 });
+    } catch (error) {
+      console.error('Error handling webhook (user.deleted):', error);
       return NextResponse.json({ error: 'Error handling webhook' }, { status: 500 });
     }
   }

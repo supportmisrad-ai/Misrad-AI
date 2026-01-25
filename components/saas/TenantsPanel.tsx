@@ -8,6 +8,7 @@ import { MODULES_CONFIG } from './SaasConstants';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
 import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
+import { Button } from '@/components/ui/button';
 
 interface TenantsPanelProps {
     tenants: Tenant[];
@@ -24,11 +25,15 @@ interface TenantsPanelProps {
     onSimulate: (tenant: Tenant) => void;
     onEditModules: (tenant: Tenant) => void;
     onToggleStatus: (id: string, status: string) => void;
+    hideHeader?: boolean;
+    hideSearch?: boolean;
 }
 
 export const TenantsPanel: React.FC<TenantsPanelProps> = ({ 
     tenants, totalMRR, activeTenants, trialTenants, totalUsers, mrrTrendPct, apiHealthScore, filteredTenants, 
-    searchTerm, setSearchTerm, onAddClick, onSimulate, onEditModules, onToggleStatus 
+    searchTerm, setSearchTerm, onAddClick, onSimulate, onEditModules, onToggleStatus,
+    hideHeader,
+    hideSearch,
 }) => {
     const [provisioningId, setProvisioningId] = useState<string | null>(null);
     const [sendingInvitation, setSendingInvitation] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
     const handleSendInvitation = async (tenant: Tenant) => {
         if (!tenant.ownerEmail) {
-            alert('אין אימייל בעלים ל-Tenant זה');
+            alert('אין אימייל בעלים לטננט הזה');
             return;
         }
 
@@ -93,20 +98,22 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="flex justify-between items-end mb-10">
-                <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                        ניהול לקוחות SaaS
-                    </h1>
-                    <p className="text-slate-600 text-lg">מבט על העסקים שמשתמשים בפלטפורמה שלך.</p>
+            {!hideHeader ? (
+                <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8 md:mb-10">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                            ניהול לקוחות SaaS
+                        </h1>
+                        <p className="text-slate-600 text-base md:text-lg">מבט על העסקים שמשתמשים בפלטפורמה שלך.</p>
+                    </div>
+                    <Button
+                        onClick={onAddClick}
+                        className="w-full md:w-auto bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-xl shadow-indigo-200/60 transition-all md:hover:scale-105 backdrop-blur-sm border border-slate-200/70"
+                    >
+                        <Plus size={18} /> הוסף לקוח חדש
+                    </Button>
                 </div>
-                <button 
-                    onClick={onAddClick}
-                    className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-500 hover:to-purple-500 px-6 py-3.5 rounded-xl font-bold flex items-center gap-2 shadow-xl shadow-indigo-200/60 transition-all hover:scale-105 backdrop-blur-sm border border-slate-200/70"
-                >
-                    <Plus size={18} /> הוסף לקוח חדש
-                </button>
-            </div>
+            ) : null}
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
@@ -175,143 +182,292 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
             {/* Tenants Table */}
             <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden shadow-2xl">
-                <div className="p-6 border-b border-slate-200/70 flex justify-between items-center bg-white/60 backdrop-blur-sm">
-                    <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+                <div className="p-5 md:p-6 border-b border-slate-200/70 flex flex-col md:flex-row md:justify-between md:items-center gap-3 bg-white/60 backdrop-blur-sm">
+                    <h3 className="font-bold text-slate-900 text-base md:text-lg flex items-center gap-2">
                         <BarChart size={20} /> רשימת לקוחות עסקיים
                     </h3>
-                    <div className="relative">
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                        <input 
-                            type="text" 
-                            placeholder="חפש עסק..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 w-64 transition-all"
-                        />
-                    </div>
+
+                    {!hideSearch ? (
+                        <div className="relative w-full md:w-auto">
+                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+                            <input 
+                                type="text" 
+                                placeholder="חפש עסק..." 
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full md:w-64 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl py-2 pr-10 pl-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 transition-all"
+                            />
+                        </div>
+                    ) : null}
                 </div>
-                
-                <table className="w-full text-right text-sm">
-                    <thead className="bg-slate-50/80 backdrop-blur-sm text-slate-600 font-bold border-b border-slate-200/70">
-                        <tr>
-                            <th className="px-6 py-4">שם העסק / דומיין</th>
-                            <th className="px-6 py-4">תוכנית (מוצר)</th>
-                            <th className="px-6 py-4">משתמשים</th>
-                            <th className="px-6 py-4">Region</th>
-                            <th className="px-6 py-4">סטטוס</th>
-                            <th className="px-6 py-4">מודולים פעילים</th>
-                            <th className="px-6 py-4">פעולות</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200/60 text-slate-700">
-                        {uniqueFilteredTenants.map((tenant, index) => (
-                            <tr key={`${tenant.id}-${index}`} className="hover:bg-slate-50/80 transition-colors group">
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-3">
-                                        <img src={tenant.logo} className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 object-cover" />
-                                        <div>
-                                            <div className="font-bold text-slate-900">{tenant.name}</div>
-                                            <div className="text-xs text-indigo-400 flex items-center gap-1 font-mono">
-                                                <Globe size={10} /> {tenant.subdomain}.nexus-os.co
+
+                <div className="md:hidden p-4 space-y-3">
+                    {uniqueFilteredTenants.length === 0 ? (
+                        <div className="bg-white/80 border border-slate-200 rounded-2xl p-5 text-slate-700 font-bold">לא נמצאו לקוחות.</div>
+                    ) : (
+                        uniqueFilteredTenants.map((tenant, index) => {
+                            const statusLabel =
+                                tenant.status === 'Provisioning'
+                                    ? 'מקים שרת...'
+                                    : tenant.status === 'Active'
+                                      ? 'פעיל'
+                                      : tenant.status === 'Trial'
+                                        ? 'ניסיון'
+                                        : tenant.status === 'Churned'
+                                          ? 'בוטל'
+                                          : 'לא ידוע';
+
+                            const statusClass =
+                                tenant.status === 'Active'
+                                    ? 'bg-green-500/10 text-green-700 border-green-500/20'
+                                    : tenant.status === 'Trial'
+                                      ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20'
+                                      : tenant.status === 'Provisioning'
+                                        ? 'bg-blue-500/10 text-blue-700 border-blue-500/20'
+                                        : 'bg-red-500/10 text-red-700 border-red-500/20';
+
+                            return (
+                                <div key={`${tenant.id}-${index}`} className="bg-white/80 border border-slate-200 rounded-2xl p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <img src={tenant.logo} className="w-11 h-11 rounded-xl bg-white border border-slate-200 object-cover" />
+                                            <div className="min-w-0">
+                                                <div className="font-black text-slate-900 truncate">{tenant.name}</div>
+                                                <div className="text-[11px] text-indigo-400 flex items-center gap-1 font-mono truncate">
+                                                    <Globe size={10} /> {tenant.subdomain}.nexus-os.co
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-black border ${statusClass}`}>
+                                            {tenant.status === 'Active' && <CheckCircle2 size={12} />}
+                                            {tenant.status === 'Trial' && <AlertTriangle size={12} />}
+                                            {tenant.status === 'Churned' && <XCircle size={12} />}
+                                            {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
+                                            {statusLabel}
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                            <div className="text-slate-500 font-black">תוכנית</div>
+                                            <div className="text-slate-900 font-bold mt-1 truncate">{tenant.plan}</div>
+                                        </div>
+                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                            <div className="text-slate-500 font-black">משתמשים</div>
+                                            <div className="text-slate-900 font-mono font-black mt-1">{tenant.usersCount}</div>
+                                        </div>
+                                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 col-span-2">
+                                            <div className="text-slate-500 font-black">אזור שרת</div>
+                                            <div className="mt-1 flex items-center gap-1 text-slate-700 font-bold">
+                                                <Database size={12} /> {tenant.region || 'il-central'}
                                             </div>
                                         </div>
                                     </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="bg-slate-100/80 backdrop-blur-sm text-slate-700 px-2 py-1 rounded text-xs font-bold border border-slate-200">
-                                        {tenant.plan}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 font-mono">{tenant.usersCount}</td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-1 text-xs text-slate-400">
-                                        <Database size={12} /> {tenant.region || 'il-central'}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
-                                        tenant.status === 'Active' ? 'bg-green-500/10 text-green-700 border-green-500/20' :
-                                        tenant.status === 'Trial' ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' :
-                                        tenant.status === 'Provisioning' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20' :
-                                        'bg-red-500/10 text-red-700 border-red-500/20'
-                                    }`}>
-                                        {tenant.status === 'Active' && <CheckCircle2 size={12} />}
-                                        {tenant.status === 'Trial' && <AlertTriangle size={12} />}
-                                        {tenant.status === 'Churned' && <XCircle size={12} />}
-                                        {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
-                                        {tenant.status === 'Provisioning' ? 'מקים שרת...' : tenant.status}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex -space-x-2 space-x-reverse cursor-pointer" onClick={() => onEditModules(tenant)} title="ערוך מודולים">
-                                        {tenant.modules.slice(0, 3).map(mod => {
-                                            const conf = MODULES_CONFIG.find(c => c.id === mod);
-                                            if (!conf) return null;
-                                            return (
-                                                <div key={mod} className={`w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-xs font-bold ${conf.color}`}>
-                                                    <conf.icon size={12} />
+
+                                    <Button
+                                        type="button"
+                                        onClick={() => onEditModules(tenant)}
+                                        className="mt-3 w-full flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2"
+                                    >
+                                        <div className="text-xs font-black text-slate-700">מודולים פעילים</div>
+                                        <div className="flex -space-x-2 space-x-reverse">
+                                            {tenant.modules.slice(0, 3).map(mod => {
+                                                const conf = MODULES_CONFIG.find(c => c.id === mod);
+                                                if (!conf) return null;
+                                                return (
+                                                    <div key={mod} className={`w-7 h-7 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs font-bold ${conf.color}`}>
+                                                        <conf.icon size={12} />
+                                                    </div>
+                                                );
+                                            })}
+                                            {tenant.modules.length > 3 && (
+                                                <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-[10px] text-slate-600">
+                                                    +{tenant.modules.length - 3}
                                                 </div>
-                                            );
-                                        })}
-                                        {tenant.modules.length > 3 && (
-                                            <div className="w-7 h-7 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-[10px] text-slate-600">
-                                                +{tenant.modules.length - 3}
-                                            </div>
-                                        )}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                        <button 
+                                            )}
+                                        </div>
+                                    </Button>
+
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                        <Button
                                             onClick={() => setSelectedTenantForUser(tenant)}
-                                            className="p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200 hover:bg-purple-50 hover:border-purple-200 text-slate-700 transition-all hover:scale-105" 
-                                            title="הוסף משתמש לטננט זה"
+                                            className="flex-1 min-w-[48%] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-black"
                                             disabled={tenant.status === 'Provisioning'}
                                         >
-                                            <UserPlus size={14} />
-                                        </button>
-                                        {tenant.ownerEmail && (
-                                            <button 
+                                            <UserPlus size={14} /> הוסף משתמש
+                                        </Button>
+                                        {tenant.ownerEmail ? (
+                                            <Button
                                                 onClick={() => handleSendInvitation(tenant)}
                                                 disabled={sendingInvitation === tenant.id}
-                                                className="p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" 
-                                                title="שלח קישור הרשמה לבעל העסק"
+                                                className="flex-1 min-w-[48%] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-black disabled:opacity-50"
                                             >
-                                                {sendingInvitation === tenant.id ? (
-                                                    <Skeleton className="w-3.5 h-3.5 rounded-full" />
-                                                ) : (
-                                                    <Mail size={14} />
-                                                )}
-                                            </button>
-                                        )}
-                                        <button 
+                                                {sendingInvitation === tenant.id ? <Skeleton className="w-3.5 h-3.5 rounded-full" /> : <Mail size={14} />}
+                                                הזמנה
+                                            </Button>
+                                        ) : null}
+                                        <Button
                                             onClick={() => onSimulate(tenant)}
-                                            className="p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-slate-700 transition-all hover:scale-105" 
-                                            title="התחזות (כניסה כלקוח)"
+                                            className="flex-1 min-w-[48%] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-black"
                                             disabled={tenant.status === 'Provisioning'}
                                         >
-                                            <Eye size={14} />
-                                        </button>
-                                        <button 
-                                            onClick={() => onEditModules(tenant)}
-                                            className="p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200 hover:bg-slate-50 text-slate-700 transition-all hover:scale-105" 
-                                            title="ערוך פיצ׳רים"
-                                        >
-                                            <Settings size={14} />
-                                        </button>
-                                        <button 
+                                            <Eye size={14} /> התחזות
+                                        </Button>
+                                        <Button
                                             onClick={() => onToggleStatus(tenant.id, tenant.status)}
-                                            className="p-1.5 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200 hover:bg-slate-50 text-slate-700 transition-all hover:scale-105" 
-                                            title={tenant.status === 'Active' ? 'השבת' : 'הפעל'}
+                                            className="flex-1 min-w-[48%] inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 font-black"
                                         >
                                             {tenant.status === 'Active' ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-                                        </button>
+                                            {tenant.status === 'Active' ? 'השבת' : 'הפעל'}
+                                        </Button>
                                     </div>
-                                </td>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+
+                <div className="hidden md:block">
+                    <table className="w-full text-right text-sm">
+                        <thead className="bg-slate-50/80 backdrop-blur-sm text-slate-600 font-bold border-b border-slate-200/70">
+                            <tr>
+                                <th className="px-6 py-4">שם העסק / דומיין</th>
+                                <th className="px-6 py-4">תוכנית (מוצר)</th>
+                                <th className="px-6 py-4">משתמשים</th>
+                                <th className="px-6 py-4">אזור שרת</th>
+                                <th className="px-6 py-4">סטטוס</th>
+                                <th className="px-6 py-4">מודולים פעילים</th>
+                                <th className="px-6 py-4">פעולות</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200/60 text-slate-700">
+                            {uniqueFilteredTenants.map((tenant, index) => (
+                                <tr key={`${tenant.id}-${index}`} className="hover:bg-slate-50/80 transition-colors group">
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <img src={tenant.logo} className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 object-cover" />
+                                            <div>
+                                                <div className="font-bold text-slate-900">{tenant.name}</div>
+                                                <div className="text-xs text-indigo-400 flex items-center gap-1 font-mono">
+                                                    <Globe size={10} /> {tenant.subdomain}.nexus-os.co
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="bg-slate-100/80 backdrop-blur-sm text-slate-700 px-2 py-1 rounded text-xs font-bold border border-slate-200">
+                                            {tenant.plan}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 font-mono">{tenant.usersCount}</td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-1 text-xs text-slate-400">
+                                            <Database size={12} /> {tenant.region || 'il-central'}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
+                                            tenant.status === 'Active' ? 'bg-green-500/10 text-green-700 border-green-500/20' :
+                                            tenant.status === 'Trial' ? 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20' :
+                                            tenant.status === 'Provisioning' ? 'bg-blue-500/10 text-blue-700 border-blue-500/20' :
+                                            'bg-red-500/10 text-red-700 border-red-500/20'
+                                        }`}>
+                                            {tenant.status === 'Active' && <CheckCircle2 size={12} />}
+                                            {tenant.status === 'Trial' && <AlertTriangle size={12} />}
+                                            {tenant.status === 'Churned' && <XCircle size={12} />}
+                                            {tenant.status === 'Provisioning' && <Skeleton className="w-3 h-3 rounded-full" />}
+                                            {tenant.status === 'Provisioning'
+                                              ? 'מקים שרת...'
+                                              : tenant.status === 'Active'
+                                                ? 'פעיל'
+                                                : tenant.status === 'Trial'
+                                                  ? 'ניסיון'
+                                                  : tenant.status === 'Churned'
+                                                    ? 'בוטל'
+                                                    : 'לא ידוע'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex -space-x-2 space-x-reverse cursor-pointer" onClick={() => onEditModules(tenant)} title="ערוך מודולים">
+                                            {tenant.modules.slice(0, 3).map(mod => {
+                                                const conf = MODULES_CONFIG.find(c => c.id === mod);
+                                                if (!conf) return null;
+                                                return (
+                                                    <div key={mod} className={`w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-xs font-bold ${conf.color}`}>
+                                                        <conf.icon size={12} />
+                                                    </div>
+                                                );
+                                            })}
+                                            {tenant.modules.length > 3 && (
+                                                <div className="w-7 h-7 rounded-full bg-slate-100/80 backdrop-blur-sm border border-slate-200 flex items-center justify-center text-[10px] text-slate-600">
+                                                    +{tenant.modules.length - 3}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                            <Button
+                                                onClick={() => setSelectedTenantForUser(tenant)}
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-purple-50 hover:border-purple-200 text-slate-700 transition-all hover:scale-105" 
+                                                title="הוסף משתמש לטננט זה"
+                                                disabled={tenant.status === 'Provisioning'}
+                                            >
+                                                <UserPlus size={14} />
+                                            </Button>
+                                            {tenant.ownerEmail && (
+                                                <Button
+                                                    onClick={() => handleSendInvitation(tenant)}
+                                                    disabled={sendingInvitation === tenant.id}
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-emerald-50 hover:border-emerald-200 text-slate-700 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" 
+                                                    title="שלח קישור הרשמה לבעל העסק"
+                                                >
+                                                    {sendingInvitation === tenant.id ? (
+                                                        <Skeleton className="w-3.5 h-3.5 rounded-full" />
+                                                    ) : (
+                                                        <Mail size={14} />
+                                                    )}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                onClick={() => onSimulate(tenant)}
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-indigo-50 hover:border-indigo-200 text-slate-700 transition-all hover:scale-105" 
+                                                title="התחזות (כניסה כלקוח)"
+                                                disabled={tenant.status === 'Provisioning'}
+                                            >
+                                                <Eye size={14} />
+                                            </Button>
+                                            <Button
+                                                onClick={() => onEditModules(tenant)}
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-slate-50 text-slate-700 transition-all hover:scale-105" 
+                                                title="ערוך פיצ׳רים"
+                                            >
+                                                <Settings size={14} />
+                                            </Button>
+                                            <Button
+                                                onClick={() => onToggleStatus(tenant.id, tenant.status)}
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-slate-50 text-slate-700 transition-all hover:scale-105" 
+                                                title={tenant.status === 'Active' ? 'השבת' : 'הפעל'}
+                                            >
+                                                {tenant.status === 'Active' ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Add User Modal */}

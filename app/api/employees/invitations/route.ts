@@ -19,6 +19,11 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
 
         // 1. Authenticate user
         const clerkUser = await getAuthenticatedUser();
@@ -31,14 +36,7 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 2. Find user in database
-        // Tenant-scope the nexus_users lookup when org context exists.
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        }
-
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspaceId || undefined });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -54,17 +52,6 @@ async function GETHandler(request: NextRequest) {
                        user.role === 'מנכ"ל' || 
                        user.role === 'אדמין';
 
-        // Tenant route: require explicit org context for non-super-admin to avoid cross-tenant leakage.
-        let workspace: { id: string } | null = null;
-        if (orgIdFromHeader) {
-            workspace = { id: String(workspaceId) };
-        } else if (!user.isSuperAdmin) {
-            return NextResponse.json(
-                { error: 'Missing x-org-id header' },
-                { status: 400 }
-            );
-        }
-
         if (!supabase) {
             return NextResponse.json(
                 { error: 'Database not configured' },
@@ -74,7 +61,7 @@ async function GETHandler(request: NextRequest) {
 
         let seatUsage: { activeUsers: number; seatsAllowed: number } | null = null;
         if (workspace?.id) {
-            const ws = await requireWorkspaceAccessByOrgSlugApi(workspace.id);
+            const ws = workspace;
             const flags = await getSystemFeatureFlags();
 
             let seatsAllowedOverride: number | null = null;
@@ -122,9 +109,7 @@ async function GETHandler(request: NextRequest) {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (workspace?.id) {
-            query = query.eq('organization_id', workspace.id);
-        }
+        query = query.eq('organization_id', workspace.id);
 
         // If not admin, only show own invitations
         if (!isAdmin) {

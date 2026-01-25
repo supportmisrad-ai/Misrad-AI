@@ -1,4 +1,3 @@
-export { default as AdminPanelLayout } from './AdminPanelLayout';
 export { default as PulseTab } from './tabs/PulseTab';
 export { default as OverviewTab } from './tabs/OverviewTab';
 export { default as UsersTab } from './tabs/UsersTab';

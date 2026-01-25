@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw, Trash2 } from 'lucide-react';
 import { createBackup, runSystemCleanup } from '@/app/actions/admin-maintenance';
+import { Button } from '@/components/ui/button';
 
 interface MaintenanceTabProps {
   maintenanceInfo: any;
@@ -55,7 +56,8 @@ export default function MaintenanceTab({ maintenanceInfo, onRefresh, addToast }:
             <div className="flex flex-col gap-4">
               <h4 className="text-xl font-black text-slate-900">פעולות תחזוקה</h4>
               
-              <button
+              <Button
+                type="button"
                 onClick={async () => {
                   if (confirm('האם אתה בטוח שברצונך ליצור גיבוי? זה עלול לקחת כמה דקות.')) {
                     const result = await createBackup();
@@ -67,7 +69,8 @@ export default function MaintenanceTab({ maintenanceInfo, onRefresh, addToast }:
                     }
                   }
                 }}
-                className="p-6 bg-indigo-50 hover:bg-indigo-100 rounded-xl border border-indigo-200 text-right transition-all"
+                variant="outline"
+                className="w-full h-auto p-6 bg-indigo-50 hover:bg-indigo-100 rounded-xl border-indigo-200 text-right transition-all justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -76,9 +79,10 @@ export default function MaintenanceTab({ maintenanceInfo, onRefresh, addToast }:
                   </div>
                   <RefreshCw size={24} className="text-indigo-600" />
                 </div>
-              </button>
+              </Button>
 
-              <button
+              <Button
+                type="button"
                 onClick={async () => {
                   if (confirm('האם אתה בטוח שברצונך להריץ ניקוי מערכת? זה ימחק רשומות ישנות (מעל 90 יום).')) {
                     const result = await runSystemCleanup();
@@ -89,7 +93,8 @@ export default function MaintenanceTab({ maintenanceInfo, onRefresh, addToast }:
                     }
                   }
                 }}
-                className="p-6 bg-purple-50 hover:bg-purple-100 rounded-xl border border-purple-200 text-right transition-all"
+                variant="outline"
+                className="w-full h-auto p-6 bg-purple-50 hover:bg-purple-100 rounded-xl border-purple-200 text-right transition-all justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -98,7 +103,7 @@ export default function MaintenanceTab({ maintenanceInfo, onRefresh, addToast }:
                   </div>
                   <Trash2 size={24} className="text-purple-600" />
                 </div>
-              </button>
+              </Button>
             </div>
           </div>
         </div>

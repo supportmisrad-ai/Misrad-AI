@@ -7,8 +7,9 @@ import {
     AlertCircle, CheckCircle2, Globe
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { Button } from '@/components/ui/button';
 
-export const LandingPageLogoPanel: React.FC = () => {
+export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
     const [logo, setLogo] = useState<string>('');
     const [logoText, setLogoText] = useState<string>('Misrad');
@@ -86,12 +87,14 @@ export const LandingPageLogoPanel: React.FC = () => {
 
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <div className="mb-10">
-                <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
-                    ניהול לוגו דף הנחיתה
-                </h1>
-                <p className="text-slate-600">נהל את הלוגו והטקסט שמוצגים ב-Navbar של דף הנחיתה.</p>
-            </div>
+            {!hideHeader ? (
+                <div className="mb-10">
+                    <h1 className="text-3xl font-black tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-700 to-purple-700 bg-clip-text text-transparent">
+                        ניהול לוגו דף הנחיתה
+                    </h1>
+                    <p className="text-slate-600">נהל את הלוגו והטקסט שמוצגים ב-Navbar של דף הנחיתה.</p>
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Upload Section */}
@@ -132,13 +135,14 @@ export const LandingPageLogoPanel: React.FC = () => {
                             </label>
 
                             {logo && (
-                                <button
+                                <Button
                                     onClick={() => setIsDeleting(true)}
-                                    className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-bold flex items-center gap-2 transition-all border border-red-200"
+                                    variant="outline"
+                                    className="bg-red-50 hover:bg-red-100 text-red-700 border-red-200 font-bold flex items-center gap-2"
                                 >
                                     <Trash2 size={16} />
                                     מחק לוגו
-                                </button>
+                                </Button>
                             )}
                         </div>
 
@@ -156,13 +160,13 @@ export const LandingPageLogoPanel: React.FC = () => {
                                     className="flex-1 bg-white border border-slate-200 rounded-xl p-3 text-slate-900 text-sm placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all"
                                     placeholder="Misrad"
                                 />
-                                <button
+                                <Button
                                     onClick={handleSaveText}
-                                    className="px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-green-900/50"
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold flex items-center gap-2 transition-all shadow-lg shadow-green-900/50"
                                 >
                                     <Save size={18} />
                                     שמור
-                                </button>
+                                </Button>
                             </div>
                             <p className="text-xs text-slate-600 mt-2">הטקסט שיוצג לצד הלוגו ב-Navbar</p>
                         </div>
@@ -242,18 +246,19 @@ export const LandingPageLogoPanel: React.FC = () => {
                             האם אתה בטוח שברצונך למחוק את הלוגו? הלוגו הדיפולטיבי יוצג במקום.
                         </p>
                         <div className="flex justify-end gap-3">
-                            <button
+                            <Button
                                 onClick={() => setIsDeleting(false)}
-                                className="px-4 py-2 text-slate-600 hover:text-slate-900 transition-colors"
+                                variant="ghost"
+                                className="text-slate-600 hover:text-slate-900"
                             >
                                 ביטול
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleDeleteLogo}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 transition-colors"
+                                className="bg-red-600 text-white hover:bg-red-500"
                             >
                                 מחק
-                            </button>
+                            </Button>
                         </div>
                     </motion.div>
                 </div>

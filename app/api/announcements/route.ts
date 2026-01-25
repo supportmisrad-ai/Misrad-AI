@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../lib/auth';
 import { createClient } from '../../../lib/supabase';
 import { getUsers } from '../../../lib/db';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -27,6 +28,13 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // Get user from database by email
         if (!user.email) {
             return NextResponse.json(
@@ -35,7 +43,7 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -45,14 +53,28 @@ async function GETHandler(request: NextRequest) {
         // Determine which announcements to show
         const isSuperAdmin = dbUser.isSuperAdmin === true;
         
-        // Fetch announcements for this user
-        const { data: announcements, error } = await supabase
+        // Fetch announcements for this user (scoped to workspace)
+        const baseQuery = () => supabase
             .from('announcements')
             .select('*')
             .or(`recipient_type.eq.all${isSuperAdmin ? ',recipient_type.eq.super_admins' : ''}`)
             .eq('is_active', true)
             .order('created_at', { ascending: false })
             .limit(50);
+
+        const byOrg = await baseQuery().eq('organization_id', workspace.id);
+        const announcements = (byOrg as any).data;
+        let error = (byOrg as any).error;
+
+        if (error?.code === '42703') {
+            const byTenant = await baseQuery().eq('tenant_id', workspace.id);
+            error = (byTenant as any).error;
+            if (error?.code === '42703') {
+                // Fail closed: announcements table exists but is not tenant-scoped.
+                return NextResponse.json({ announcements: [] }, { status: 200 });
+            }
+            return NextResponse.json({ announcements: (byTenant as any).data || [] }, { status: 200 });
+        }
 
         if (error) {
             // The project schema currently does not include an `announcements` table.
@@ -95,6 +117,13 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // Get user from database first to check permissions
         if (!user.email) {
             return NextResponse.json(
@@ -103,7 +132,7 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -138,10 +167,11 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        // Create announcement
-        const { data: announcement, error } = await supabase
+        // Create announcement (scoped to workspace)
+        const byOrg = await supabase
             .from('announcements')
             .insert({
+                organization_id: workspace.id,
                 title,
                 message,
                 recipient_type: recipientType,
@@ -150,6 +180,26 @@ async function POSTHandler(request: NextRequest) {
             })
             .select()
             .single();
+
+        let announcement = (byOrg as any).data;
+        let error = (byOrg as any).error;
+
+        if (error?.code === '42703') {
+            const byTenant = await supabase
+                .from('announcements')
+                .insert({
+                    tenant_id: workspace.id,
+                    title,
+                    message,
+                    recipient_type: recipientType,
+                    created_by: dbUser.id,
+                    is_active: true
+                })
+                .select()
+                .single();
+            announcement = (byTenant as any).data;
+            error = (byTenant as any).error;
+        }
 
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
@@ -171,18 +221,19 @@ async function POSTHandler(request: NextRequest) {
         let eligibleUsers: any[] = [];
         
         if (recipientType === 'all') {
-            // Get all users
-            const allUsers = await getUsers({});
+            // Get all users in this workspace
+            const allUsers = await getUsers({ tenantId: workspace.id });
             eligibleUsers = allUsers;
         } else if (recipientType === 'super_admins') {
-            // Get only Super Admins
-            const allUsers = await getUsers({});
+            // Get only Super Admins in this workspace
+            const allUsers = await getUsers({ tenantId: workspace.id });
             eligibleUsers = allUsers.filter((u: any) => u.isSuperAdmin === true);
         }
 
         // Create notifications for each eligible user
         if (eligibleUsers.length > 0) {
             const notifications = eligibleUsers.map((u: any) => ({
+                organization_id: workspace.id,
                 recipient_id: u.id,
                 type: 'system',
                 text: title,

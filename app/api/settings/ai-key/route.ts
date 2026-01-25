@@ -33,7 +33,10 @@ async function GETHandler(request: NextRequest) {
         });
         
     } catch (error: any) {
-        console.error('[API] Error checking AI key status:', error);
+        console.error('[API] Error checking AI key status:', {
+            message: error?.message,
+            name: error?.name
+        });
         return NextResponse.json(
             { error: error.message || 'Internal server error' },
             { status: error.message?.includes('Forbidden') ? 403 : 500 }

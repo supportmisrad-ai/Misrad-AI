@@ -1,10 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ScrollText } from 'lucide-react';
 import { getSecurityAuditLog } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
 import { SkeletonTable } from '@/components/ui/skeletons';
+import AdminPageHeader from '@/components/admin/AdminPageHeader';
+import AdminToolbar from '@/components/admin/AdminToolbar';
+import { Button } from '@/components/ui/button';
 
 type AuditItem = {
   action: string;
@@ -39,59 +42,70 @@ export default function AdminLogsPage() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <div className="text-2xl font-black text-slate-900">לוגים</div>
-          <div className="text-sm font-bold text-slate-500 mt-1">Audit Log</div>
-        </div>
+    <div className="space-y-6 pb-24">
+      <AdminPageHeader title="לוגים" subtitle="Audit Log" icon={ScrollText} />
 
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
-        >
-          <RefreshCw size={16} />
-          רענון
-        </button>
-      </div>
+      <AdminToolbar
+        actions={
+          <Button variant="outline" onClick={load}>
+            <RefreshCw size={16} />
+            רענון
+          </Button>
+        }
+      />
 
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-right">
-            <thead className="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">זמן</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">משתמש</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">פעולה</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {isLoading ? (
-                <tr>
-                  <td className="px-4 py-4" colSpan={3}>
-                    <SkeletonTable rows={8} columns={3} />
-                  </td>
-                </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={3}>
-                    אין נתונים
-                  </td>
-                </tr>
-              ) : (
-                items.map((it, idx) => (
-                  <tr key={`${it.timestamp}_${idx}`} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 text-sm text-slate-700">{it.time}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{it.user}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{it.action}</td>
+      {isLoading ? (
+        <SkeletonTable rows={8} columns={3} />
+      ) : (
+        <div className="space-y-3">
+          <div className="md:hidden">
+            {items.length === 0 ? (
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600">אין נתונים</div>
+            ) : (
+              <div className="space-y-3">
+                {items.map((it, idx) => (
+                  <div key={`${it.timestamp}_${idx}`} className="bg-white border border-slate-200 rounded-2xl p-4">
+                    <div className="text-xs font-black text-slate-500">{it.time}</div>
+                    <div className="mt-1 text-sm font-black text-slate-900 truncate">{it.user}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-600">{it.action}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden md:block bg-white border border-slate-200 rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-right">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">זמן</th>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">משתמש</th>
+                    <th className="px-4 py-3 text-xs font-black text-slate-600">פעולה</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {items.length === 0 ? (
+                    <tr>
+                      <td className="px-4 py-6 text-sm font-bold text-slate-600" colSpan={3}>
+                        אין נתונים
+                      </td>
+                    </tr>
+                  ) : (
+                    items.map((it, idx) => (
+                      <tr key={`${it.timestamp}_${idx}`} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 text-sm text-slate-700">{it.time}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-slate-900">{it.user}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{it.action}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

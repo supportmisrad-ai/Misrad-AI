@@ -7,26 +7,24 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { getUsers, getTenants } from '../../../../lib/db';
+import { getTenants } from '../../../../lib/db';
 import { OSModule } from '../../../../types/os-modules';
 import { createServiceRoleClient } from '../../../../lib/supabase';
-
-import { ALL_OS_MODULE_KEYS } from '@/lib/os/modules/registry';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
     try {
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+
         // 1. Get authenticated Clerk user
         const clerkUser = await getAuthenticatedUser();
 
-        // 2. Super admins get all modules
-        if (clerkUser.isSuperAdmin) {
-            return NextResponse.json({
-                modules: ALL_OS_MODULE_KEYS as OSModule[]
-            });
-        }
-
-        // 3. Find user in database to get tenantId
+        // 2. Find user in database to get tenantId
         if (!clerkUser.email) {
             // No email - return empty modules
             return NextResponse.json({
@@ -34,11 +32,8 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
-        const dbUsers = await getUsers({ email: clerkUser.email });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-
         const getOrgModulesFallback = async (): Promise<OSModule[] | null> => {
-            const orgId = dbUser?.tenantId ? String(dbUser.tenantId) : null;
+            const orgId = workspace?.id ? String(workspace.id) : null;
             if (!orgId) return null;
 
             let db = null as any;
@@ -92,15 +87,9 @@ async function GETHandler(request: NextRequest) {
         let tenant = null;
 
         // Try ownerEmail first
-        const ownedTenants = await getTenants({ ownerEmail: clerkUser.email });
-        if (ownedTenants.length > 0) {
-            tenant = ownedTenants[0];
-        } else if (dbUser?.tenantId) {
-            // Try tenantId from user record
-            const userTenants = await getTenants({ tenantId: dbUser.tenantId });
-            if (userTenants.length > 0) {
-                tenant = userTenants[0];
-            }
+        const userTenants = await getTenants({ tenantId: workspace.id });
+        if (userTenants.length > 0) {
+            tenant = userTenants[0];
         }
 
         // 5. Get modules from tenant

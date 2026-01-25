@@ -40,8 +40,29 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
+        const bypassTenantIsolationE2e =
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
+            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+
+        const isDev = process.env.NODE_ENV === 'development';
+        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+        const allowUnscoped = bypassTenantIsolationE2e;
+        if (allowUnscoped && !isDev && !isE2E) {
+            console.error('[Security Risk] allowUnscoped attempted in Production');
+            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+        }
+
         // 2. Find user in database
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspaceId ?? undefined });
+        let dbUsers: any[] = [];
+        try {
+            dbUsers = await getUsers({
+                email: clerkUser.email,
+                tenantId: workspaceId ?? undefined,
+                allowUnscoped: Boolean((clerkUser as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
+            });
+        } catch {
+            dbUsers = [];
+        }
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user || !supabase) {

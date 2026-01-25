@@ -21,6 +21,11 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
     try {
         const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
 
         // 1. Authenticate user
         const clerkUser = await getAuthenticatedUser();
@@ -33,7 +38,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 2. Find user in database
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -104,7 +109,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 6. Check if email already exists
-        const existingUsers = await getUsers({ email: normalizedEmployeeEmail });
+        const existingUsers = await getUsers({ email: normalizedEmployeeEmail, tenantId: workspace.id });
         if (existingUsers.length > 0) {
             return NextResponse.json(
                 { error: 'משתמש עם אימייל זה כבר קיים במערכת' },
@@ -131,36 +136,10 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        let organizationId: string | null = orgIdFromHeader ? String(orgIdFromHeader) : null;
-
-        // Resolve organization_id for tenant scoping (required for lobby redirect + RLS)
-        if (!organizationId) {
-            const { data: socialUserRow, error: socialUserError } = await supabase
-                .from('social_users')
-                .select('organization_id')
-                .eq('clerk_user_id', clerkUser.id)
-                .maybeSingle();
-
-            if (socialUserError) {
-                console.error('[API] Error resolving social user organization:', socialUserError);
-                return NextResponse.json(
-                    { error: 'שגיאה בזיהוי הארגון של המשתמש היוצר' },
-                    { status: 500 }
-                );
-            }
-
-            organizationId = (socialUserRow as any)?.organization_id as string | null;
-        }
-
-        if (!organizationId) {
-            return NextResponse.json(
-                { error: 'לא נמצא organization_id למשתמש היוצר. ודא שהמשתמש משויך ל-Workspace.' },
-                { status: 400 }
-            );
-        }
+        let organizationId: string | null = workspace?.id ? String(workspace.id) : null;
 
         // Enforce strict multi-tenant access (works with either org slug or UUID id)
-        const ws = await requireWorkspaceAccessByOrgSlugApi(String(organizationId));
+        const ws = workspace;
         const flags = await getSystemFeatureFlags();
 
         let seatsAllowedOverride: number | null = null;
@@ -300,6 +279,7 @@ async function POSTHandler(request: NextRequest) {
             await supabase
                 .from('misrad_notifications')
                 .insert({
+                    organization_id: workspace.id,
                     recipient_id: user.id,
                     type: 'employee_invitation',
                     text: `קישור הזמנה לעובד נוצר: ${employeeEmail}`,

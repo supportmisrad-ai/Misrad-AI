@@ -19,6 +19,13 @@ async function POSTHandler(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgIdFromHeader) {
+            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+
         // 1. Authenticate user
         let clerkUser;
         try {
@@ -38,7 +45,7 @@ async function POSTHandler(
         }
 
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email });
+        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
         const user = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!user) {
@@ -62,6 +69,7 @@ async function POSTHandler(
             .from('nexus_employee_invitation_links')
             .select('*')
             .eq('id', id)
+            .eq('organization_id', workspace.id)
             .single();
 
         if (getError || !invitation) {
@@ -77,12 +85,12 @@ async function POSTHandler(
                        user.role === 'מנכ"ל' || 
                        user.role === 'אדמין';
 
-        const ws = await requireWorkspaceAccessByOrgSlugApi(String((invitation as any)?.organization_id));
+        const ws = workspace;
         const flags = await getSystemFeatureFlags();
 
         let seatsAllowedOverride: number | null = null;
         try {
-            const orgId = String((invitation as any)?.organization_id || '');
+            const orgId = String(workspace.id || '');
             if (orgId) {
                 const { data: orgSeatsRow, error: orgSeatsError } = await supabase
                     .from('organizations')
@@ -134,7 +142,8 @@ async function POSTHandler(
                 is_active: false,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('organization_id', workspace.id);
         
         if (updateError) {
             console.error('[API] Error deactivating employee invitation:', updateError);

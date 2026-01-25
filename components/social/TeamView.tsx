@@ -49,7 +49,7 @@ export default function TeamView() {
               if (!canManageTeamMembers(userRole)) return;
               setSettingsSubView('team_management');
               if (orgSlug) {
-                router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
+                router.push(`/w/${encodeURIComponent(orgSlug)}/social/settings`);
                 return;
               }
               router.push('/');
@@ -276,7 +276,8 @@ export default function TeamView() {
                   onClick={() => {
                     if (!canManageTeamMembers(userRole)) return;
                     if (orgSlug) {
-                      router.push(`/w/${encodeURIComponent(orgSlug)}/admin?system=social`);
+                      setSettingsSubView('team_management');
+                      router.push(`/w/${encodeURIComponent(orgSlug)}/social/settings`);
                       return;
                     }
                     router.push('/');

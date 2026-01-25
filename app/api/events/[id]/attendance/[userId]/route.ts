@@ -8,21 +8,52 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
 import { supabase } from '../../../../../../lib/supabase';
 import { getUsers } from '../../../../../../lib/db';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
+    const byTenant = await params.supabaseClient
+        .from('nexus_team_events')
+        .select('*')
+        .eq('id', params.eventId)
+        .eq('tenant_id', params.workspaceId)
+        .single();
+
+    if ((byTenant as any)?.error?.code === '42703') {
+        return await params.supabaseClient
+            .from('nexus_team_events')
+            .select('*')
+            .eq('id', params.eventId)
+            .eq('organization_id', params.workspaceId)
+            .single();
+    }
+
+    return byTenant;
+}
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
     try {
         const user = await getAuthenticatedUser();
-        
+
         if (!supabase) {
             return NextResponse.json(
                 { error: 'Database not configured' },
                 { status: 500 }
             );
         }
+
+        const supabaseClient = supabase;
+
+        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+        if (!orgHeader) {
+            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
+        }
+
+        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
 
         const { id: eventId, userId } = await params;
 
@@ -41,7 +72,7 @@ async function PATCHHandler(
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email });
+        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
         const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
 
         if (!dbUser) {
@@ -52,11 +83,9 @@ async function PATCHHandler(
         }
 
         // Get event to check if user is organizer
-        const { data: event, error: eventError } = await supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', eventId)
-            .single();
+        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
+        const event = (eventRes as any).data;
+        const eventError = (eventRes as any).error;
 
         if (eventError || !event) {
             return NextResponse.json(
@@ -67,7 +96,7 @@ async function PATCHHandler(
 
         // Check permissions: only organizer or admin can update attendance
         const isOrganizer = event.organizer_id === dbUser.id;
-        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ״ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
+        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ"ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
 
         if (!isOrganizer && !isAdmin) {
             return NextResponse.json(
@@ -96,7 +125,7 @@ async function PATCHHandler(
             updateData.notes = notes;
         }
 
-        const { data: attendance, error } = await supabase
+        const { data: attendance, error } = await supabaseClient
             .from('nexus_event_attendance')
             .update(updateData)
             .eq('event_id', eventId)
@@ -107,7 +136,7 @@ async function PATCHHandler(
         if (error) {
             // If record doesn't exist, create it
             if (error.code === 'PGRST116') {
-                const { data: newAttendance, error: createError } = await supabase
+                const { data: newAttendance, error: createError } = await supabaseClient
                     .from('nexus_event_attendance')
                     .insert({
                         event_id: eventId,

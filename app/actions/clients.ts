@@ -124,12 +124,12 @@ export async function getClients(
     // Otherwise keep legacy behavior (super_admin sees all, others filtered by their organization)
     if (userOrganizationId) {
       query = query.eq('organization_id', userOrganizationId);
-    } else if (userRole === 'super_admin') {
-      // Super admin sees all clients - no filter
     } else {
+      // Emergency isolation: do NOT allow any unscoped read, even for super_admin.
+      // Fail closed to prevent cross-tenant leakage.
       return {
-        success: true,
-        data: [],
+        success: false,
+        error: 'חסר organization_id להקשר. (Tenant Isolation lockdown: קריאה ללא סינון חסומה)'
       };
     }
 

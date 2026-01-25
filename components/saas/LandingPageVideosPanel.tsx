@@ -8,6 +8,7 @@ import {
     ArrowUp, ArrowDown, ExternalLink
 } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { Button } from '@/components/ui/button';
 
 interface LandingPageVideo {
     id: string;
@@ -22,7 +23,7 @@ interface LandingPageVideo {
     isActive: boolean;
 }
 
-export const LandingPageVideosPanel: React.FC = () => {
+export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
     
     // Load videos from settings or use default
@@ -218,16 +219,17 @@ export const LandingPageVideosPanel: React.FC = () => {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <div className="flex justify-between items-end mb-10">
-                <div>
-                    <h1 className="text-3xl font-black text-white tracking-tight mb-2">ניהול סרטוני דף הנחיתה</h1>
-                    <p className="text-slate-400">נהל את סרטוני הלקוחות שמוצגים בדף הנחיתה. גרור לסידור מחדש, ערוך או הסתר.</p>
-                </div>
-                <button
-                    onClick={() => setIsAddingVideo(true)}
-                    className="bg-indigo-600 text-white hover:bg-indigo-500 px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all hover:scale-105"
-                >
+                {!hideHeader ? (
+                    <div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">ניהול סרטוני דף הנחיתה</h1>
+                        <p className="text-slate-600">נהל את סרטוני הלקוחות שמוצגים בדף הנחיתה. גרור לסידור מחדש, ערוך או הסתר.</p>
+                    </div>
+                ) : (
+                    <div />
+                )}
+                <Button onClick={() => setIsAddingVideo(true)} className="px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg">
                     <Plus size={18} /> סרטון חדש
-                </button>
+                </Button>
             </div>
 
             {/* Videos Grid */}
@@ -253,20 +255,20 @@ export const LandingPageVideosPanel: React.FC = () => {
                             transition={{ delay: index * 0.1 }}
                             className={`relative rounded-2xl overflow-hidden border transition-all ${
                                 isEditing 
-                                    ? 'border-indigo-500 ring-2 ring-indigo-500/30 bg-gradient-to-br from-indigo-900/20 to-purple-900/20' 
+                                    ? 'border-indigo-400 ring-2 ring-indigo-500/20 bg-indigo-50/40' 
                                     : video.isActive 
-                                        ? 'border-slate-700 hover:border-slate-600' 
-                                        : 'border-slate-800 opacity-50'
-                            } ${!video.isActive ? 'bg-slate-900/50' : 'bg-slate-900/30'}`}
+                                        ? 'border-slate-200 hover:border-slate-300' 
+                                        : 'border-slate-200 opacity-60'
+                            } ${!video.isActive ? 'bg-slate-50' : 'bg-white'}`}
                         >
                             {/* Video Preview */}
-                            <div className={`relative h-[300px] bg-gradient-to-br ${accentClass} border-b border-slate-800`}>
+                            <div className={`relative h-[300px] bg-gradient-to-br ${accentClass} border-b border-slate-200`}>
                                 <img 
                                     src={displayVideo.thumbnail} 
                                     alt={displayVideo.name}
-                                    className="w-full h-full object-cover opacity-40"
+                                    className="w-full h-full object-cover opacity-50"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                                     <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center shadow-xl">
                                         <Play size={20} className="text-slate-900 ml-1" fill="currentColor" />
                                     </div>
@@ -276,7 +278,7 @@ export const LandingPageVideosPanel: React.FC = () => {
                                         מוסתר
                                     </div>
                                 )}
-                                <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded">
+                                <div className="absolute bottom-2 left-2 bg-white/80 backdrop-blur-md text-slate-900 text-xs font-bold px-2 py-1 rounded border border-slate-200">
                                     #{index + 1}
                                 </div>
                             </div>
@@ -289,27 +291,27 @@ export const LandingPageVideosPanel: React.FC = () => {
                                             type="text"
                                             value={displayVideo.name}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, name: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="שם"
                                         />
                                         <input
                                             type="text"
                                             value={displayVideo.role}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, role: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="תפקיד"
                                         />
                                         <input
                                             type="text"
                                             value={displayVideo.company}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, company: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="חברה"
                                         />
                                         <textarea
                                             value={displayVideo.quote}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, quote: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none resize-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none resize-none"
                                             rows={3}
                                             placeholder="ציטוט"
                                         />
@@ -317,20 +319,20 @@ export const LandingPageVideosPanel: React.FC = () => {
                                             type="text"
                                             value={displayVideo.videoUrl}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, videoUrl: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-xs focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="קישור לסרטון"
                                         />
                                         <input
                                             type="text"
                                             value={displayVideo.thumbnail}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, thumbnail: e.target.value })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-xs focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                             placeholder="קישור לתמונת תצוגה"
                                         />
                                         <select
                                             value={displayVideo.accent}
                                             onChange={(e) => setEditedVideo({ ...displayVideo, accent: e.target.value as any })}
-                                            className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-indigo-500 outline-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg p-2 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         >
                                             <option value="indigo">אינדיגו</option>
                                             <option value="emerald">אזמרגד</option>
@@ -342,87 +344,108 @@ export const LandingPageVideosPanel: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div>
-                                        <div className="text-white font-bold text-sm mb-1">{displayVideo.name}</div>
-                                        <div className="text-slate-400 text-xs mb-2">{displayVideo.role}, {displayVideo.company}</div>
-                                        <p className="text-slate-300 text-xs leading-relaxed line-clamp-3">"{displayVideo.quote}"</p>
+                                        <div className="text-slate-900 font-bold text-sm mb-1">{displayVideo.name}</div>
+                                        <div className="text-slate-600 text-xs mb-2">{displayVideo.role}, {displayVideo.company}</div>
+                                        <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">"{displayVideo.quote}"</p>
                                     </div>
                                 )}
 
                                 {/* Actions */}
-                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-800">
+                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-200">
                                     {isEditing ? (
                                         <>
-                                            <button
+                                            <Button
                                                 onClick={handleSaveVideo}
-                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                                size="sm"
+                                                className="flex-1 bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition-all"
                                             >
                                                 <Save size={14} className="inline mr-1" />
                                                 שמור
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => {
                                                     setEditingVideo(null);
                                                     setEditedVideo(null);
                                                 }}
-                                                className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                                                size="sm"
+                                                variant="outline"
+                                                className="flex-1 text-xs font-bold"
                                             >
                                                 <X size={14} className="inline mr-1" />
                                                 בטל
-                                            </button>
+                                            </Button>
                                         </>
                                     ) : (
                                         <>
-                                            <button
+                                            <Button
                                                 onClick={() => {
                                                     setEditingVideo(video.id);
                                                     setEditedVideo({ ...video });
                                                 }}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9"
                                                 title="ערוך"
+                                                aria-label="ערוך"
                                             >
                                                 <Edit2 size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => setPreviewVideo(video)}
-                                                className="p-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-all"
+                                                variant="default"
+                                                size="icon"
+                                                className="h-9 w-9"
                                                 title="תצוגה מקדימה"
+                                                aria-label="תצוגה מקדימה"
                                             >
                                                 <Eye size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => toggleActive(video.id)}
-                                                className={`p-2 rounded-lg transition-all ${
-                                                    video.isActive 
-                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white' 
-                                                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                                                variant="outline"
+                                                size="icon"
+                                                className={`h-9 w-9 ${
+                                                    video.isActive
+                                                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                                                        : ''
                                                 }`}
                                                 title={video.isActive ? 'הסתר' : 'הצג'}
+                                                aria-label={video.isActive ? 'הסתר' : 'הצג'}
                                             >
                                                 <CheckCircle2 size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => moveVideo(video.id, 'up')}
                                                 disabled={index === 0}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 disabled:opacity-50"
                                                 title="הזז למעלה"
+                                                aria-label="הזז למעלה"
                                             >
                                                 <ArrowUp size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => moveVideo(video.id, 'down')}
                                                 disabled={index === videos.length - 1}
-                                                className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-all disabled:opacity-50"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 disabled:opacity-50"
                                                 title="הזז למטה"
+                                                aria-label="הזז למטה"
                                             >
                                                 <ArrowDown size={14} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => setVideoToDelete(video.id)}
-                                                className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-all border border-red-500/30"
+                                                variant="outline"
+                                                size="icon"
+                                                className="h-9 w-9 bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
                                                 title="מחק"
+                                                aria-label="מחק"
                                             >
                                                 <Trash2 size={14} />
-                                            </button>
+                                            </Button>
                                         </>
                                     )}
                                 </div>
@@ -435,17 +458,17 @@ export const LandingPageVideosPanel: React.FC = () => {
             {/* Add Video Modal */}
             <AnimatePresence>
                 {isAddingVideo && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
+                            className="bg-white border border-slate-200 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-black text-white">הוסף סרטון חדש</h3>
-                                <button onClick={() => setIsAddingVideo(false)} className="text-slate-400 hover:text-white">
+                                <h3 className="text-2xl font-black text-slate-900">הוסף סרטון חדש</h3>
+                                <Button onClick={() => setIsAddingVideo(false)} variant="ghost" size="icon" className="h-9 w-9" aria-label="סגור" title="סגור">
                                     <X size={24} />
-                                </button>
+                                </Button>
                             </div>
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
@@ -453,14 +476,14 @@ export const LandingPageVideosPanel: React.FC = () => {
                                         type="text"
                                         value={newVideo.name}
                                         onChange={(e) => setNewVideo({ ...newVideo, name: e.target.value })}
-                                        className="bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none"
+                                        className="bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         placeholder="שם"
                                     />
                                     <input
                                         type="text"
                                         value={newVideo.role}
                                         onChange={(e) => setNewVideo({ ...newVideo, role: e.target.value })}
-                                        className="bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none"
+                                        className="bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                         placeholder="תפקיד"
                                     />
                                 </div>
@@ -468,13 +491,13 @@ export const LandingPageVideosPanel: React.FC = () => {
                                     type="text"
                                     value={newVideo.company}
                                     onChange={(e) => setNewVideo({ ...newVideo, company: e.target.value })}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                     placeholder="חברה"
                                 />
                                 <textarea
                                     value={newVideo.quote}
                                     onChange={(e) => setNewVideo({ ...newVideo, quote: e.target.value })}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none resize-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none resize-none"
                                     rows={4}
                                     placeholder="ציטוט"
                                 />
@@ -482,20 +505,20 @@ export const LandingPageVideosPanel: React.FC = () => {
                                     type="text"
                                     value={newVideo.videoUrl}
                                     onChange={(e) => setNewVideo({ ...newVideo, videoUrl: e.target.value })}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                     placeholder="קישור לסרטון (URL)"
                                 />
                                 <input
                                     type="text"
                                     value={newVideo.thumbnail}
                                     onChange={(e) => setNewVideo({ ...newVideo, thumbnail: e.target.value })}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white text-sm focus:border-indigo-500 outline-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 text-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                     placeholder="קישור לתמונת תצוגה (URL)"
                                 />
                                 <select
                                     value={newVideo.accent}
                                     onChange={(e) => setNewVideo({ ...newVideo, accent: e.target.value as any })}
-                                    className="w-full bg-black/40 border border-white/10 rounded-lg p-3 text-white focus:border-indigo-500 outline-none"
+                                    className="w-full bg-white border border-slate-200 rounded-lg p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none"
                                 >
                                     <option value="indigo">Indigo</option>
                                     <option value="emerald">Emerald</option>
@@ -506,18 +529,8 @@ export const LandingPageVideosPanel: React.FC = () => {
                                 </select>
                             </div>
                             <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    onClick={() => setIsAddingVideo(false)}
-                                    className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
-                                >
-                                    ביטול
-                                </button>
-                                <button
-                                    onClick={handleAddVideo}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 font-bold"
-                                >
-                                    הוסף סרטון
-                                </button>
+                                <Button onClick={() => setIsAddingVideo(false)} variant="outline">ביטול</Button>
+                                <Button onClick={handleAddVideo} className="font-bold">הוסף סרטון</Button>
                             </div>
                         </motion.div>
                     </div>
@@ -527,32 +540,22 @@ export const LandingPageVideosPanel: React.FC = () => {
             {/* Delete Confirmation */}
             <AnimatePresence>
                 {videoToDelete && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            className="bg-black/40 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 max-w-md w-full shadow-2xl"
+                            className="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl"
                         >
                             <div className="flex items-center gap-3 mb-4">
-                                <AlertCircle className="text-red-400" size={24} />
-                                <h3 className="text-xl font-bold text-white">מחיקת סרטון</h3>
+                                <AlertCircle className="text-red-500" size={24} />
+                                <h3 className="text-xl font-bold text-slate-900">מחיקת סרטון</h3>
                             </div>
-                            <p className="text-slate-300 mb-6">
+                            <p className="text-slate-600 mb-6">
                                 האם אתה בטוח שברצונך למחוק את הסרטון "{videos.find(v => v.id === videoToDelete)?.name}"?
                             </p>
                             <div className="flex justify-end gap-3">
-                                <button
-                                    onClick={() => setVideoToDelete(null)}
-                                    className="px-4 py-2 text-slate-400 hover:text-white"
-                                >
-                                    ביטול
-                                </button>
-                                <button
-                                    onClick={handleDeleteVideo}
-                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500"
-                                >
-                                    מחק
-                                </button>
+                                <Button onClick={() => setVideoToDelete(null)} variant="outline">ביטול</Button>
+                                <Button onClick={handleDeleteVideo} className="bg-red-600 hover:bg-red-500 text-white">מחק</Button>
                             </div>
                         </motion.div>
                     </div>
@@ -562,19 +565,19 @@ export const LandingPageVideosPanel: React.FC = () => {
             {/* Preview Modal */}
             <AnimatePresence>
                 {previewVideo && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl" onClick={() => setPreviewVideo(null)}>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setPreviewVideo(null)}>
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             onClick={e => e.stopPropagation()}
-                            className="bg-[#020617] border border-slate-800 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
+                            className="bg-white border border-slate-200 rounded-3xl p-8 max-w-2xl w-full shadow-2xl"
                             dir="rtl"
                         >
                             <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-2xl font-black text-white">תצוגה מקדימה</h3>
-                                <button onClick={() => setPreviewVideo(null)} className="text-slate-400 hover:text-white">
+                                <h3 className="text-2xl font-black text-slate-900">תצוגה מקדימה</h3>
+                                <Button onClick={() => setPreviewVideo(null)} variant="ghost" size="icon" className="h-9 w-9" aria-label="סגור" title="סגור">
                                     <X size={24} />
-                                </button>
+                                </Button>
                             </div>
                             {(() => {
                                 const accentColors: Record<string, string> = {

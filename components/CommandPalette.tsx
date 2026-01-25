@@ -9,7 +9,16 @@ import { CommandPaletteChat } from './command-palette/CommandPaletteChat';
 import { CommandPaletteSearch } from './command-palette/CommandPaletteSearch';
 import { getSemanticStarters } from './command-palette/semanticStarters';
 
-const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavigate, onSelectLead, leads }) => {
+const CommandPalette: React.FC<CommandPaletteProps> = ({
+  isOpen,
+  onClose,
+  onNavigate,
+  onSelectLead,
+  leads,
+  navItems,
+  hideLeads,
+  hideAssets,
+}) => {
   const [mode, setMode] = useState<CommandPaletteMode>('search');
 
   const {
@@ -24,7 +33,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
     getFilteredResults,
     handleSendMessage,
     sendText
-  } = useCommandPalette(isOpen, mode);
+  } = useCommandPalette(isOpen, mode, { navItems, hideLeads, hideAssets });
 
   useEffect(() => {
     if (!isOpen) {
