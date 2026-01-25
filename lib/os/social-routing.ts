@@ -18,6 +18,9 @@ export function parseWorkspaceRoute(pathname: string | null | undefined): Worksp
 }
 
 export function getSocialBasePath(pathname: string | null | undefined): string {
+  if (pathname && pathname.startsWith('/app/admin/social')) {
+    return '/social';
+  }
   const info = parseWorkspaceRoute(pathname);
   if (info.orgSlug && info.module === 'social') {
     return `/w/${encodeURIComponent(info.orgSlug)}/social`;

@@ -6,6 +6,7 @@ import { AdminTab } from './types';
 import { useApp } from '@/contexts/AppContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
+import { Button } from '@/components/ui/button';
 
 interface AdminPanelLayoutProps {
   activeTab: AdminTab;
@@ -14,6 +15,7 @@ interface AdminPanelLayoutProps {
   onBackToDashboard: () => void;
   onRefresh: () => void;
   isRefreshing: boolean;
+  embedded?: boolean;
   children: React.ReactNode;
 }
 
@@ -24,6 +26,7 @@ export default function AdminPanelLayout({
   onBackToDashboard,
   onRefresh,
   isRefreshing,
+  embedded = false,
   children,
 }: AdminPanelLayoutProps) {
   const router = useRouter();
@@ -70,7 +73,14 @@ export default function AdminPanelLayout({
     setIsMarketingLinksOpen(true);
   };
   return (
-    <div className="fixed inset-0 w-full h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 text-slate-900 flex relative overflow-hidden" dir="rtl">
+    <div
+      className={`w-full ${
+        embedded
+          ? 'min-h-[70vh] bg-gradient-to-br from-indigo-50 via-white to-purple-50'
+          : 'fixed inset-0 h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50'
+      } text-slate-900 flex relative overflow-hidden`}
+      dir="rtl"
+    >
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-200/30 rounded-full blur-[150px]"></div>
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-200/30 rounded-full blur-[150px]"></div>
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-100/20 rounded-full blur-[200px]"></div>
@@ -90,9 +100,10 @@ export default function AdminPanelLayout({
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
-                <button
+                <Button
                   key={tab.id}
                   onClick={() => onTabChange(tab.id)}
+                  variant="ghost"
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all text-right ${
                     activeTab === tab.id 
                       ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200' 
@@ -110,21 +121,21 @@ export default function AdminPanelLayout({
                       {tab.badgeCount}
                     </span>
                   ) : null}
-                </button>
+                </Button>
               );
             })}
           </nav>
         </div>
 
         <div className="p-4 border-t border-indigo-100">
-          <button
+          <Button
             onClick={handleOpenLandingPage}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg shadow-blue-200/50 mb-2"
           >
             <ExternalLink size={18}/>
             <span>קישור לדף הנחיתה</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               const basePath = getSocialBasePath(pathname);
               router.push(joinPath(basePath, '/admin/shabbat-preview'));
@@ -133,9 +144,10 @@ export default function AdminPanelLayout({
           >
             <Moon size={18}/>
             <span>תצוגה מקדימה - מצב שבת</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCopyLink}
+            variant="ghost"
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all mb-2"
           >
             {copied ? (
@@ -149,22 +161,24 @@ export default function AdminPanelLayout({
                 <span>העתק קישור</span>
               </>
             )}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onBackToDashboard}
+            variant="ghost"
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all"
           >
             <ArrowRight size={18}/>
             <span>חזור לדף הבית</span>
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={onRefresh}
             disabled={isRefreshing}
+            variant="ghost"
             className="w-full mt-2 flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all"
           >
             <RefreshCw size={18} className={isRefreshing ? 'opacity-60' : undefined}/>
             <span>{isRefreshing ? 'מרענן...' : 'רענון'}</span>
-          </button>
+          </Button>
         </div>
       </aside>
 
@@ -192,8 +206,10 @@ export default function AdminPanelLayout({
 
       {isMarketingLinksOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
-          <button
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+          <Button
+            type="button"
+            variant="ghost"
+            className="absolute inset-0 w-full h-full p-0 bg-slate-900/40 backdrop-blur-sm rounded-none"
             onClick={() => setIsMarketingLinksOpen(false)}
             aria-label="Close"
           />
@@ -203,13 +219,15 @@ export default function AdminPanelLayout({
                 <h3 className="text-lg font-black text-slate-900">קישורים לדפי שיווק</h3>
                 <p className="text-xs font-bold text-slate-500">פתיחה בטאב חדש</p>
               </div>
-              <button
+              <Button
                 onClick={() => setIsMarketingLinksOpen(false)}
-                className="p-2 rounded-xl hover:bg-slate-50 text-slate-500 hover:text-slate-900 transition-colors"
+                variant="ghost"
+                size="icon"
+                className="h-11 w-11"
                 aria-label="Close"
               >
                 <X size={18} />
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -237,19 +255,21 @@ export default function AdminPanelLayout({
               </div>
 
               <div className="mt-5 flex items-center justify-between gap-3">
-                <button
+                <Button
                   onClick={handleCopyLink}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
                 >
                   <Copy size={16} />
                   <span>העתק הכל</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setIsMarketingLinksOpen(false)}
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl font-black text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+                  size="sm"
                 >
                   סגור
-                </button>
+                </Button>
               </div>
             </div>
           </div>

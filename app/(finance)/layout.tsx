@@ -52,6 +52,7 @@ export default async function FinanceLayout({
       }
     }
   } catch {
+    redirect('/sign-in');
   }
 
   return (

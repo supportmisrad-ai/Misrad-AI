@@ -11,6 +11,7 @@ export function SharedHeader({
   mobileLeadingSlot,
   onOpenCommandPaletteAction,
   onOpenSupportAction,
+  actionsSlot,
   switcherSlot,
   notificationsSlot,
   user,
@@ -32,6 +33,7 @@ export function SharedHeader({
   mobileLeadingSlot?: React.ReactNode;
   onOpenCommandPaletteAction?: () => void;
   onOpenSupportAction?: () => void;
+  actionsSlot?: React.ReactNode;
   switcherSlot?: React.ReactNode;
   notificationsSlot?: React.ReactNode;
   user: {
@@ -104,6 +106,8 @@ export function SharedHeader({
             <Headphones size={18} />
           </button>
         ) : null}
+
+        {actionsSlot}
 
         <div className="hidden md:flex items-center gap-2">{switcherSlot}</div>
 

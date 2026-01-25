@@ -53,7 +53,7 @@ export default function WorkspaceCanonicalRedirect({
 
         const returnTo = `${window.location.pathname}${window.location.search || ''}`;
 
-        router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
+        router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
       }
     };
 

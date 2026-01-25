@@ -6,6 +6,7 @@ import SocialShell from '@/components/social/SocialShell';
 import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/services/social-service';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,7 @@ export default async function SocialModuleLayout({
   const caps = computeWorkspaceCapabilities({
     entitlements: workspace?.entitlements,
     fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
+    seatsAllowedOverride: workspace?.seatsAllowed ?? null,
   });
 
   const style = {
@@ -59,6 +61,7 @@ export default async function SocialModuleLayout({
         >
           {children}
         </SocialShell>
+        <RouteVideoHelp />
       </div>
     </div>
   );

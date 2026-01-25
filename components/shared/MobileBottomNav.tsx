@@ -52,32 +52,15 @@ export default function MobileBottomNav({
 
   return (
     <div
-      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 ${className || ''}`}
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 relative overflow-visible ${className || ''}`}
       style={{ height: `calc(${baseHeight}px + env(safe-area-inset-bottom))` }}
       aria-label="ניווט תחתון"
     >
-      <div className="absolute inset-0 pointer-events-none">
-        <svg
-          viewBox={`0 0 100 ${baseHeight}`}
-          preserveAspectRatio="none"
-          className="w-full h-full"
-        >
-          <path
-            d={`M 0 0 L 36 0 C 41 0 43 20 50 22 C 57 20 59 0 64 0 L 100 0 L 100 ${baseHeight} L 0 ${baseHeight} Z`}
-            fill="rgba(255,255,255,0.92)"
-          />
-          <path
-            d={`M 0 0 L 36 0 C 41 0 43 20 50 22 C 57 20 59 0 64 0 L 100 0`}
-            fill="none"
-            stroke="rgba(148,163,184,0.35)"
-            strokeWidth="1"
-          />
-        </svg>
-        <div className="absolute inset-0 shadow-[0_-12px_30px_rgba(15,23,42,0.08)]" />
-      </div>
+      <div className="absolute inset-0 rounded-t-[40px] bg-[var(--bg-app)]"></div>
+      <div className="absolute inset-0 rounded-t-[40px] bg-white/90 backdrop-blur-xl border-t border-slate-200/60 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] pointer-events-none [-webkit-mask-image:radial-gradient(circle_48px_at_50%_-8px,transparent_47px,#000_48px)] [mask-image:radial-gradient(circle_48px_at_50%_-8px,transparent_47px,#000_48px)]"></div>
 
       <div
-        className="relative h-full grid grid-cols-5 items-center px-4"
+        className="relative z-10 h-full grid grid-cols-5 items-center px-4"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="col-span-2 grid grid-cols-2 gap-4 justify-items-center">
@@ -85,15 +68,15 @@ export default function MobileBottomNav({
         </div>
 
         <div className="col-span-1 flex items-center justify-center">
-          <div className="relative -top-4">
+          <div className="relative -top-8 z-20">
             <button
               onClick={onPlusClickAction}
               aria-label={plusAriaLabel || 'פעולה חדשה'}
               type="button"
-              className="w-14 h-14 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[5px] border-[#f1f5f9] bg-gradient-to-br from-slate-900 to-slate-700"
+              className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[6px] border-transparent bg-gradient-to-br from-slate-900 to-slate-700"
             >
               <Plus
-                size={26}
+                size={32}
                 strokeWidth={2.5}
                 className={`text-white transition-transform duration-200 ${plusActive ? 'rotate-45' : ''}`}
               />

@@ -63,7 +63,7 @@ export default async function SystemLayout({
       }
     }
   } catch {
-    // fail open
+    redirect('/sign-in');
   }
 
   return (

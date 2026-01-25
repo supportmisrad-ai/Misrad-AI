@@ -1,6 +1,7 @@
 import React from 'react';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
+import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,7 @@ export default async function ClientModuleLayout({
       dir="rtl"
     >
       <div className="w-full">{children}</div>
+      <RouteVideoHelp />
     </div>
   );
 }

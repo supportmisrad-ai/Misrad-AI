@@ -47,7 +47,7 @@ export default async function AdminLayout({
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
           <div className="max-w-lg w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <div className="text-xl font-black text-slate-900">גישה נדחתה</div>
-            <div className="mt-3 text-sm font-bold text-slate-600">רק Super Admin יכול לגשת לאזור הזה.</div>
+            <div className="mt-3 text-sm font-bold text-slate-600">רק סופר אדמין יכול לגשת לאזור הזה.</div>
           </div>
         </div>
       )}

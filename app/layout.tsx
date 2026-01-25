@@ -38,11 +38,23 @@ export default function RootLayout({
   // This prevents build-time errors and runtime crashes when env vars are not set
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+  const signInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/login';
+  const signInUrl = signInUrlRaw.startsWith('/sign-in') ? '/login' : signInUrlRaw;
+  const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up';
+  const afterSignInUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/';
+  const afterSignUpUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/';
+
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
       <body className={`${heebo.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
         {clerkPublishableKey ? (
-          <ClerkProvider publishableKey={clerkPublishableKey}>
+          <ClerkProvider
+            publishableKey={clerkPublishableKey}
+            signInUrl={signInUrl}
+            signUpUrl={signUpUrl}
+            afterSignInUrl={afterSignInUrl}
+            afterSignUpUrl={afterSignUpUrl}
+          >
             {children}
             <PasskeyOnboardingPrompt />
           </ClerkProvider>

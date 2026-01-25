@@ -20,6 +20,7 @@ export default async function SocialTeamLayout({
   const caps = computeWorkspaceCapabilities({
     entitlements: workspace?.entitlements,
     fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
+    seatsAllowedOverride: workspace?.seatsAllowed ?? null,
   });
 
   if (!caps.isTeamManagementEnabled) {

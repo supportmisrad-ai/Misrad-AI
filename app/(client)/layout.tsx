@@ -52,6 +52,7 @@ export default async function ClientLayout({
       }
     }
   } catch {
+    redirect('/sign-in');
   }
 
   return (

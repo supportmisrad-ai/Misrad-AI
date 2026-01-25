@@ -274,7 +274,7 @@ export const Layout = ({ children }: LayoutProps) => {
                   const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
                   if (orgSlug) {
                     const returnTo = `${window.location.pathname}${window.location.search || ''}`;
-                    router.push(`/w/${encodeURIComponent(orgSlug)}/admin?returnTo=${encodeURIComponent(returnTo)}`);
+                    router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
                   }
               }
           }
@@ -457,19 +457,18 @@ export const Layout = ({ children }: LayoutProps) => {
   }, [location.pathname]);
 
   // Command Palette handlers
-  const handleNavigate = (tabId: string) => {
-    const routeMap: Record<string, string> = {
-      'dashboard': '/',
-      'leads': '/leads',
-      'clients': '/clients',
-      'tasks': '/tasks',
-      'assets': '/assets',
-      'favorites': '/favorites',
-      'support': '/support',
-      'settings': '/settings',
-    };
-    const route = routeMap[tabId] || '/';
-    navigate(route);
+  const commandPaletteNavItems = useMemo(
+    () =>
+      NAV_ITEMS.map((item) => ({
+        id: item.path,
+        label: item.label,
+        icon: item.icon,
+      })),
+    []
+  );
+
+  const handleNavigate = (href: string) => {
+    navigate(href);
   };
 
   const handleSelectLead = (lead: any) => {
@@ -507,7 +506,10 @@ export const Layout = ({ children }: LayoutProps) => {
           onClose={() => setCommandPaletteOpen(false)}
           onNavigate={handleNavigate}
           onSelectLead={handleSelectLead}
-          leads={leads || []}
+          leads={[]}
+          navItems={commandPaletteNavItems}
+          hideLeads
+          hideAssets
         />
       )}
       {isMounted && <ToastContainer toasts={toasts} removeToast={removeToast} />}

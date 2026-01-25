@@ -20,6 +20,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -455,6 +456,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           }
           onOpenCommandPaletteAction={triggerCommand}
           onOpenSupportAction={openSupport}
+          actionsSlot={<ModuleHelpVideos moduleKey="client" />}
           switcherSlot={switcherSlot}
           notificationsSlot={notificationsSlot}
           user={{

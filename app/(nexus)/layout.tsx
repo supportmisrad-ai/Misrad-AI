@@ -36,7 +36,6 @@ export default async function NexusLayout({
   children: React.ReactNode;
 }) {
   // Server-side guard: require Nexus room access
-  // Note: if auth/env isn't available, we fail open (keep system usable in dev/build contexts).
   try {
     const clerkUserId = await getCurrentUserId();
     if (clerkUserId) {
@@ -63,7 +62,7 @@ export default async function NexusLayout({
       }
     }
   } catch {
-    // fail open
+    redirect('/sign-in');
   }
 
   return <>{children}</>;

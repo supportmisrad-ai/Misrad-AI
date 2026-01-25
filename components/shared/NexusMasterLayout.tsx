@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { Avatar } from '@/components/Avatar';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 export default function NexusMasterLayout({
   title,
@@ -57,6 +58,7 @@ export default function NexusMasterLayout({
         }}
         onOpenCommandPaletteAction={undefined}
         onOpenSupportAction={undefined}
+        actionsSlot={<ModuleHelpVideos moduleKey="nexus" />}
         switcherSlot={null}
         notificationsSlot={null}
         user={{ name: user.name, role: user.role || null }}
