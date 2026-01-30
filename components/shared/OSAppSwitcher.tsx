@@ -2,12 +2,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { LayoutGrid, Lock, Target, X } from 'lucide-react';
+import { LayoutGrid, Lock, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath, modulesRegistry } from '@/lib/os/modules/registry';
-import { OS_MODULES, type OSModuleInfo } from '@/types/os-modules';
+import { OS_MODULES } from '@/types/os-modules';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 function shouldOpenModuleInNewTab(): boolean {
   if (typeof window === 'undefined') return false;
@@ -72,6 +73,7 @@ interface OSAppSwitcherProps {
   buttonVariant?: 'icon' | 'wide';
   buttonLabel?: string;
   compact?: boolean;
+  hideLockedModules?: boolean;
 }
 
 function parseWorkspaceRoute(pathname: string | null): {
@@ -88,77 +90,9 @@ function parseWorkspaceRoute(pathname: string | null): {
   return { orgSlug, module };
 }
 
-function getOSModuleInfo(key: OSModuleKey): OSModuleInfo | null {
-  const found = OS_MODULES.find((m) => m.id === key);
-  return found || null;
-}
-
 function getOrderedModuleKeys(): OSModuleKey[] {
   const keys = OS_MODULES.map((m) => m.id as OSModuleKey);
   return ['nexus', ...keys.filter((k) => k !== 'nexus')];
-}
-
-function InlineModuleIcon({ module, accent }: { module: OSModuleKey; accent?: string }) {
-  if (module === 'client') {
-    return (
-      <div className="w-14 h-14 rounded-2xl bg-[#0F172A] flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
-        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M23.2 8.2l2.0 2.0 2.0-2.0 1.6 1.6-3.6 3.6-3.6-3.6 1.6-1.6Z" fill="#C5A572" opacity="0.9" />
-          <circle cx="25.2" cy="13.2" r="3.0" fill="#C5A572" opacity="0.92" />
-          <circle cx="25.2" cy="13.2" r="1.8" fill="#0F172A" opacity="0.35" />
-          <rect x="7" y="6" width="18" height="20" rx="4" stroke="#C5A572" strokeWidth="1.8" />
-          <path d="M11 8v16" stroke="#C5A572" strokeWidth="1.6" strokeLinecap="round" opacity="0.9" />
-          <circle cx="17.5" cy="15" r="3.2" stroke="#C5A572" strokeWidth="1.6" />
-          <path d="M15.6 18.0l-1.2 3.6 3.1-1.8 3.1 1.8-1.2-3.6" stroke="#C5A572" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M16.3 11.8h2.4" stroke="#C5A572" strokeWidth="1.4" strokeLinecap="round" opacity="0.9" />
-        </svg>
-      </div>
-    );
-  }
-
-  if (module === 'nexus') {
-    return (
-      <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
-        <div className="w-3.5 h-3.5 rounded-full bg-white" />
-      </div>
-    );
-  }
-
-  if (module === 'system') {
-    return (
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-700 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
-        <Target size={20} />
-      </div>
-    );
-  }
-
-  if (module === 'finance') {
-    return (
-      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
-        <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <ellipse cx="14" cy="14" rx="7" ry="5" stroke="rgba(255,255,255,0.95)" strokeWidth="2" />
-          <path d="M7 14v6c0 2.8 3.1 5 7 5s7-2.2 7-5v-6" stroke="rgba(255,255,255,0.95)" strokeWidth="2" strokeLinejoin="round" />
-          <ellipse cx="20.5" cy="10.5" rx="5.5" ry="4" stroke="rgba(255,255,255,0.75)" strokeWidth="2" opacity="0.9" />
-          <path d="M15 10.5v4.5" stroke="rgba(255,255,255,0.75)" strokeWidth="2" opacity="0.9" />
-        </svg>
-      </div>
-    );
-  }
-
-  if (module === 'operations') {
-    const hole = accent || '#0EA5E9';
-    return (
-      <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-[0_16px_36px_-20px_rgba(0,0,0,0.18)] border border-slate-200/70">
-        <div className="w-4 h-4 rounded-full" style={{ backgroundColor: hole }} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-fuchsia-500 flex items-center justify-center text-white shadow-[0_16px_36px_-20px_rgba(0,0,0,0.75)]">
-      <span className="text-lg font-black leading-none">S</span>
-    </div>
-  );
 }
 
 export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
@@ -171,6 +105,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   buttonVariant = 'icon',
   buttonLabel = 'מודולים',
   compact = true,
+  hideLockedModules = false,
 }) => {
   const router = useRouter();
   const [hasMounted, setHasMounted] = useState(false);
@@ -308,7 +243,6 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     router.push(href);
   };
 
-  const currentModuleInfo = currentModule ? modulesRegistry[currentModule] : null;
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -320,7 +254,11 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   if (mode === 'inlineGrid') {
     const effectiveEntitlements = hasMounted ? entitlements : null;
     const isReady = Boolean(effectiveEntitlements);
-    const modulesToRender = visibleModules;
+    const modulesToRender = hideLockedModules
+      ? isReady
+        ? visibleModules.filter((k) => k === 'nexus' ? true : Boolean(effectiveEntitlements?.[k]))
+        : []
+      : visibleModules;
     const gridColsClass = modulesToRender.length >= 5 ? 'grid-cols-3' : modulesToRender.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
     return (
@@ -329,7 +267,6 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
             const enabled = key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);
-            const accent = def?.theme?.accent || '#0F172A';
 
             return (
               <button
@@ -349,8 +286,8 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                   ${enabled ? 'bg-white/70' : 'bg-slate-50/80'}
                   ${compact ? 'h-28 p-3' : 'h-32 p-4'}
                 `}
-                aria-label={def?.labelHe || def?.label || key}
-                title={def?.labelHe || def?.label || key}
+                aria-label={def?.label || key}
+                title={def?.label || key}
               >
                 <div
                   className={`absolute inset-0 transition-opacity ${enabled ? 'opacity-60 group-hover:opacity-100' : 'opacity-100'}`}
@@ -363,15 +300,12 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
 
                 <div className="relative flex flex-col items-center justify-center h-full">
                   <div className="relative flex items-center justify-center mx-auto mb-3">
-                    <InlineModuleIcon module={key} accent={accent} />
+                    <OSModuleSquircleIcon moduleKey={key} boxSize={56} iconSize={20} disabled={!enabled} />
                   </div>
 
                   <div className={`text-sm font-black leading-none ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>
                     {def?.label || key}
                     {!enabled ? <Lock size={12} className="inline-block mr-2 align-[-2px] text-slate-400" /> : null}
-                  </div>
-                  <div className={`mt-1 text-[10px] font-bold leading-none ${enabled ? 'text-slate-600' : 'text-slate-500'}`}>
-                    {def?.labelHe || ''}
                   </div>
                 </div>
               </button>
@@ -472,11 +406,8 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
               <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {visibleModules.map((key) => {
                   const def = modulesRegistry[key];
-                  const ui = getOSModuleInfo(key);
                   const isKnownLocked = key !== 'nexus' && Boolean(entitlements) && !Boolean(entitlements?.[key]);
                   const enabled = key === 'nexus' ? true : !isKnownLocked;
-                  const Icon = ui?.icon;
-                  const SafeIcon = typeof Icon === 'function' ? Icon : null;
                   const accent = def?.theme?.accent || '#0F172A';
 
                   return (
@@ -509,36 +440,17 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
                       />
 
                       <div className="relative flex items-center justify-center mb-3">
-                        {enabled ? (
-                          <InlineModuleIcon module={key} accent={accent} />
-                        ) : SafeIcon ? (
-                          <div className="w-14 h-14 rounded-2xl bg-slate-200/70 flex items-center justify-center shadow-inner">
-                            <SafeIcon size={22} style={{ color: '#94A3B8' }} />
-                          </div>
-                        ) : (
-                          <div className="w-14 h-14 rounded-2xl bg-slate-200/70 flex items-center justify-center shadow-inner">
-                            <span className="w-4 h-4 rounded-full" style={{ background: 'rgba(148,163,184,0.7)' }} />
-                          </div>
-                        )}
+                        <OSModuleSquircleIcon moduleKey={key} boxSize={56} iconSize={20} disabled={!enabled} />
                       </div>
 
                       <div className="relative w-full min-w-0">
-                        <div className={`text-sm font-black leading-none truncate ${enabled ? 'text-slate-900' : 'text-slate-400'}`} title={def.label}>
+                        <div
+                          className={`text-sm font-black leading-none truncate ${enabled ? 'text-slate-900' : 'text-slate-400'}`}
+                          title={def.label}
+                        >
                           {def.label}
                         </div>
-                        <div
-                          className={`mt-1 text-xs font-bold leading-none truncate ${enabled ? 'text-slate-600' : 'text-slate-400'}`}
-                          title={def.labelHe}
-                        >
-                          {def.labelHe}
-                        </div>
                       </div>
-
-                      {isKnownLocked && (
-                        <span className="absolute top-2 right-2 w-6 h-6 bg-white/80 backdrop-blur border border-slate-200 rounded-full flex items-center justify-center">
-                          <Lock size={12} className="text-slate-500" />
-                        </span>
-                      )}
                     </button>
                   );
                 })}
@@ -547,7 +459,6 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
               <div className="p-4 border-t border-slate-100 bg-slate-50/50 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]">
                 <p className="text-xs text-slate-500 text-center">
                   {enabledCount} מערכות זמינות
-                  {currentModuleInfo && <span className="block mt-1 text-[10px]">נוכחי: {currentModuleInfo.labelHe}</span>}
                 </p>
               </div>
               </div>

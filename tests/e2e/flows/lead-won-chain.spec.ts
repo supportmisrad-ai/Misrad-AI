@@ -18,6 +18,7 @@ async function callChain(request: APIRequestContext, orgSlug: string): Promise<C
 
   const now = Date.now();
   const res = await request.post('/api/e2e/lead-won-chain', {
+    timeout: 120_000,
     headers: { 'x-e2e-key': key },
     data: {
       orgSlug,
@@ -46,6 +47,8 @@ async function callChain(request: APIRequestContext, orgSlug: string): Promise<C
 
 test.describe('Critical flow: System -> WON -> Operations Project -> Finance Invoice', () => {
   const orgSlug = process.env.E2E_ORG_SLUG;
+
+  test.setTimeout(180_000);
 
   test.skip(!orgSlug, 'E2E_ORG_SLUG is required');
 

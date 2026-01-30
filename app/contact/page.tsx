@@ -23,14 +23,14 @@ export default function ContactPage() {
               </span>
             </h1>
             <p className="mt-6 text-lg text-slate-600 max-w-2xl leading-relaxed">
-              דף זה הוא placeholder זמני. כאן תהיה טופס פנייה, פרטי חברה, ותהליך קצר לקביעת שיחת דמו.
+              לכל שאלה, בקשה או נושא טכני — אנחנו זמינים ונחזור אליך בהקדם.
             </p>
 
             <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
                 <div className="text-sm font-black text-slate-900 mb-4">פרטים</div>
                 <div className="space-y-2 text-sm text-slate-600">
-                  <div><span className="font-bold text-slate-900">אימייל:</span> support@misrad-crm.co</div>
+                  <div><span className="font-bold text-slate-900">אימייל:</span> support@misrad-ai.com</div>
                   <div><span className="font-bold text-slate-900">זמינות:</span> א׳-ה׳ 09:00-18:00</div>
                 </div>
                 <div className="mt-6 flex gap-3">

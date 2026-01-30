@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildAiBrainExport } from '@/app/actions/admin-ai-brain-export';
 import { requireSuperAdmin } from '@/lib/auth';
+import { apiError } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -12,7 +13,7 @@ async function GETHandler(req: Request) {
     const url = new URL(req.url);
     const organizationId = String(url.searchParams.get('organizationId') || '').trim();
     if (!organizationId) {
-      return NextResponse.json({ error: 'organizationId is required' }, { status: 400 });
+      return apiError('organizationId is required', { status: 400 });
     }
 
     const { snapshot, filename } = await buildAiBrainExport({ organizationId });
@@ -28,7 +29,7 @@ async function GETHandler(req: Request) {
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 

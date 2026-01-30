@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import {
   contractorAddWorkOrderAttachment,
   contractorAddWorkOrderCheckin,
+  contractorResolveTokenForApi,
   contractorSetWorkOrderCompletionSignature,
   contractorValidateWorkOrderAccess,
   contractorGetWorkOrderAttachments,
@@ -15,7 +16,7 @@ import {
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { createServiceRoleClientScoped } from '@/lib/supabase';
 
 function formatStatus(status: string): { label: string; className: string } {
   switch (status) {
@@ -95,6 +96,17 @@ export default async function OpsContractorPortalPage({
   async function markDoneAction(formData: FormData) {
     'use server';
     const workOrderId = String(formData.get('workOrderId') || '');
+
+    if (!workOrderId) {
+      redirect(`/portal/ops/${encodeURIComponent(token)}?error=${encodeURIComponent('חסר מזהה קריאה')}`);
+    }
+
+    const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
+    if (!access.success) {
+      const msg = access.error ? String(access.error) : 'גישה נדחתה';
+      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
+    }
+
     const result = await contractorMarkWorkOrderDone({ token, workOrderId });
 
     if (result.success) {
@@ -124,12 +136,20 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const supabase = createServiceRoleClient();
+    const tokenResolved = await contractorResolveTokenForApi({ token });
+    if (!tokenResolved.success || !tokenResolved.tokenHash) {
+      const msg = tokenResolved.error ? String(tokenResolved.error) : 'גישה נדחתה';
+      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
+    }
+
+    const supabase = createServiceRoleClientScoped({
+      reason: 'ops_portal_signature_upload',
+      scopeColumn: 'organization_id',
+      scopeId: String((access as any).organizationId || '').trim(),
+    });
     const bucket = 'operations-files';
     const timestamp = Date.now();
-    const safeToken = String(token || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const organizationId = String((access as any).organizationId || '').trim();
-    const filePath = `${organizationId}/ops/contractor/${safeToken}/work-orders/${workOrderId}/signature-${timestamp}.png`;
+    const filePath = `${String((access as any).organizationId || '').trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/signature-${timestamp}.png`;
 
     const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
     if (!base64) {
@@ -198,13 +218,21 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const supabase = createServiceRoleClient();
+    const tokenResolved = await contractorResolveTokenForApi({ token });
+    if (!tokenResolved.success || !tokenResolved.tokenHash) {
+      const msg = tokenResolved.error ? String(tokenResolved.error) : 'גישה נדחתה';
+      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
+    }
+
+    const supabase = createServiceRoleClientScoped({
+      reason: 'ops_portal_attachment_upload',
+      scopeColumn: 'organization_id',
+      scopeId: String((access as any).organizationId || '').trim(),
+    });
     const bucket = 'operations-files';
     const timestamp = Date.now();
-    const safeToken = String(token || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const organizationId = String((access as any).organizationId || '').trim();
-    const filePath = `${organizationId}/ops/contractor/${safeToken}/work-orders/${workOrderId}/${timestamp}-${safeName}`;
+    const filePath = `${String((access as any).organizationId || '').trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/${timestamp}-${safeName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -261,6 +289,16 @@ export default async function OpsContractorPortalPage({
     const lng = Number(formData.get('lng'));
     const accuracyRaw = formData.get('accuracy');
     const accuracy = accuracyRaw === null || accuracyRaw === undefined || accuracyRaw === '' ? null : Number(accuracyRaw);
+
+    if (!workOrderId) {
+      redirect(`/portal/ops/${encodeURIComponent(token)}?error=${encodeURIComponent('חסר מזהה קריאה')}`);
+    }
+
+    const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
+    if (!access.success) {
+      const msg = access.error ? String(access.error) : 'גישה נדחתה';
+      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
+    }
 
     const result = await contractorAddWorkOrderCheckin({ token, workOrderId, lat, lng, accuracy });
     if (!result.success) {

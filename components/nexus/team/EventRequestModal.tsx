@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { X, Calendar, MapPin, Users, Clock, FileText } from 'lucide-react';
 import { TeamEvent, TeamEventType } from '../../../types';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 let showHebrewDatesPreference = false;
 
@@ -49,6 +50,9 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const unwrap = (data: any) =>
+            (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
         
         if (!formData.title) {
             addToast('נא למלא כותרת האירוע', 'error');
@@ -75,9 +79,11 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
             const url = event ? `/api/team-events/${event.id}` : '/api/team-events';
             const method = event ? 'PATCH' : 'POST';
 
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({
                     ...formData,
                     startDate: new Date(formData.startDate).toISOString(),
@@ -86,8 +92,9 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בשמירת אירוע');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אירוע');
             }
 
             onSuccess();

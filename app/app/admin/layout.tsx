@@ -1,10 +1,15 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import { DataProvider } from '@/context/DataContext';
 import AdminShell from './AdminShell';
+import { getSystemMetadata } from '@/lib/metadata';
+import { hasAuditLogAccess } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('admin');
 
 export default async function AdminLayout({
   children,
@@ -18,6 +23,7 @@ export default async function AdminLayout({
   }
 
   const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;
+  const canAccessAdmin = isSuperAdmin ? true : await hasAuditLogAccess();
 
   const initialCurrentUser = {
     id: '',
@@ -41,7 +47,7 @@ export default async function AdminLayout({
 
   return (
     <DataProvider initialCurrentUser={initialCurrentUser}>
-      {isSuperAdmin ? (
+      {canAccessAdmin ? (
         <AdminShell>{children}</AdminShell>
       ) : (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">

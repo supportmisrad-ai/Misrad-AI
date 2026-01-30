@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import { setNexusBillingItems, buildNexusBillingItemsForTemplate } from '@/lib/services/nexus-billing-service';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-function getOrgSlugFromRequest(request: NextRequest): string | null {
-  const headerOrgId = request.headers.get('x-org-id');
-  const queryOrgId = request.nextUrl.searchParams.get('orgId');
-  return headerOrgId || queryOrgId;
-}
 
 function legacyKeyOnboarding(workspaceId: string) {
   return `nexus_onboarding_template:${workspaceId}`;
@@ -30,12 +25,7 @@ async function POSTHandler(request: NextRequest) {
 
     await requireSuperAdmin();
 
-    const orgSlug = getOrgSlugFromRequest(request);
-    if (!orgSlug) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
-
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceOrThrow(request);
 
     const supabase = createClient();
 
@@ -101,6 +91,9 @@ async function POSTHandler(request: NextRequest) {
   } catch (error: any) {
     const msg = error?.message || 'Internal server error';
     const status = msg.toLowerCase().includes('forbidden') ? 403 : 500;
+    if (error instanceof APIError) {
+      return NextResponse.json({ error: msg }, { status: error.status });
+    }
     return NextResponse.json({ error: msg }, { status });
   }
 }

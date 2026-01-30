@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, ArrowRight, BrainCircuit, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Building, Save, X, Camera, Facebook, Instagram, Linkedin, Video, Globe, MessageCircle, Twitter, Share2, PinIcon, MessageSquare } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { SocialPlatform } from '@/types/social';
 import { updateClientForWorkspace } from '@/app/actions/clients';
@@ -79,6 +79,9 @@ export default function ClientOnboardingPortal() {
       form.append('file', file);
       form.append('bucket', 'attachments');
       form.append('folder', `client-avatars/${activeClient.id}`);
+      if (routeInfo.orgSlug) {
+        form.append('orgSlug', String(routeInfo.orgSlug));
+      }
 
       const uploadRes = await fetch('/api/storage/upload', {
         method: 'POST',

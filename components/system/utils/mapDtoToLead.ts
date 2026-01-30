@@ -89,7 +89,9 @@ export const mapDtoToLead = (dto: SystemLeadDTO): Lead => {
     subscriptionEndDate: undefined,
     productInterest: productInterest as any,
     nextActionDate: toDateOrNull((dto as any).next_action_date),
+    nextActionDateSuggestion: toDateOrNull((dto as any).next_action_date_suggestion),
     nextActionNote: (dto as any).next_action_note != null ? String((dto as any).next_action_note) : null,
+    nextActionDateRationale: (dto as any).next_action_date_rationale != null ? String((dto as any).next_action_date_rationale) : null,
     score: Number(dto.score ?? 0),
     aiTags: Array.isArray(dto.ai_tags) ? dto.ai_tags.map((t) => String(t)).filter(Boolean) : [],
   };

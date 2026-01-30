@@ -3,6 +3,7 @@
   "short_name": "System",
   "description": "מערכת ניהול לידים ומכירות",
   "start_url": "/system-os",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#A21D3C",

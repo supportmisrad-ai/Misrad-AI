@@ -8,13 +8,15 @@ export function DynamicIcon({
   size,
   strokeWidth,
   className,
+  style,
 }: {
   name: string | null | undefined;
   size?: number;
   strokeWidth?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   const Icon = (name ? (Icons as any)[name] : null) as any;
   if (!Icon) return null;
-  return <Icon size={size} strokeWidth={strokeWidth} className={className} />;
+  return <Icon size={size} strokeWidth={strokeWidth} className={className} style={style} />;
 }

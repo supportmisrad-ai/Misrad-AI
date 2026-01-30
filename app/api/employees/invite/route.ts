@@ -5,65 +5,159 @@
  * Allows managers/CEOs to create invitation links for new employees
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { getUsers } from '../../../../lib/db';
-import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
-import { supabase } from '../../../../lib/supabase';
-import { sendEmployeeInvitationEmail } from '../../../../lib/email';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getBaseUrl, generateInvitationToken } from '../../../../lib/utils';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 import { logAuditEvent } from '@/lib/audit';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
+import { enqueueEmployeeInviteEmail } from '@/lib/server/employeeInviteEmailQueue';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
+import type { WorkspaceEntitlements } from '@/lib/server/workspace';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
+    const v = obj[key];
+    return typeof v === 'string' ? v : v == null ? fallback : String(v);
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj ? obj['message'] : undefined;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type WorkspaceUserRow = {
+    id: string;
+    name: string | null;
+    email: string;
+    department: string | null;
+    role: string;
+    isSuperAdmin: boolean;
+};
+
+async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }): Promise<WorkspaceUserRow | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.workspaceId,
+        reason: 'employee_invite_load_user_by_email',
+        query: `
+            select
+                id::text as id,
+                name,
+                email,
+                department,
+                role,
+                is_super_admin
+            from nexus_users
+            where organization_id = $1::uuid
+              and lower(email) = $2::text
+            order by updated_at desc nulls last, created_at desc nulls last
+            limit 1
+        `,
+        values: [params.workspaceId, email],
+    });
+
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const obj = asObject(row);
+    if (!obj) return null;
+    return {
+        id: getString(obj, 'id'),
+        name: (obj['name'] == null ? null : String(obj['name'])) as string | null,
+        email: getString(obj, 'email'),
+        department: (obj['department'] == null ? null : String(obj['department'])) as string | null,
+        role: getString(obj, 'role'),
+        isSuperAdmin: Boolean(obj['is_super_admin']),
+    };
+}
+
+async function insertNotification(params: {
+    workspaceId: string;
+    notification: {
+        organization_id: string;
+        recipient_id: string;
+        type: string;
+        text: string;
+        actor_id?: string | null;
+        actor_name?: string | null;
+        related_id?: string | null;
+        is_read: boolean;
+        metadata?: unknown;
+        created_at: string;
+    };
+}) {
+    await executeRawOrgScoped(prisma, {
+        organizationId: params.workspaceId,
+        reason: 'employee_invite_notification_insert',
+        query: `
+            insert into misrad_notifications
+                (organization_id, recipient_id, type, text, actor_id, actor_name, related_id, is_read, metadata, created_at, updated_at)
+            values
+                ($1::uuid, $2::uuid, $3::text, $4::text, $5::uuid, $6::text, $7::uuid, $8::boolean, $9::jsonb, $10::timestamptz, $10::timestamptz)
+        `,
+        values: [
+            params.notification.organization_id,
+            params.notification.recipient_id,
+            params.notification.type,
+            params.notification.text,
+            params.notification.actor_id ?? null,
+            params.notification.actor_name ?? null,
+            params.notification.related_id ?? null,
+            Boolean(params.notification.is_read),
+            params.notification.metadata ?? {},
+            params.notification.created_at,
+        ],
+    });
+}
+
 async function POSTHandler(request: NextRequest) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         // 1. Authenticate user
         const clerkUser = await getAuthenticatedUser();
         
         if (!clerkUser.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
         // 2. Find user in database
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const user = await loadUserInWorkspaceByEmail({
+            workspaceId: workspace.id,
+            email: clerkUser.email,
+        });
 
         if (!user) {
-            return NextResponse.json(
-                { error: 'User not found in database' },
-                { status: 404 }
-            );
+            return apiError('User not found in database', { status: 404 });
         }
 
         // 3. Check permissions - must have manage_team permission
         try {
             await requirePermission('manage_team');
-        } catch (permError: any) {
+        } catch (permError: unknown) {
             // Also check if user is CEO/Admin
             const isAuthorized = 
                 user.isSuperAdmin || 
-                user.role === 'מנכ״ל' || 
-                user.role === 'מנכ"ל' || 
-                user.role === 'אדמין';
+                isTenantAdminRole(user.role);
 
             if (!isAuthorized) {
-                return NextResponse.json(
-                    { error: 'אין הרשאה ליצור קישורי הזמנה לעובדים. נדרשת הרשאת manage_team' },
-                    { status: 403 }
-                );
+                return apiError('אין הרשאה ליצור קישורי הזמנה לעובדים. נדרשת הרשאת manage_team', { status: 403 });
             }
         }
 
@@ -86,35 +180,26 @@ async function POSTHandler(request: NextRequest) {
 
         // 5. Validate required fields
         if (!employeeEmail || !employeeEmail.includes('@')) {
-            return NextResponse.json(
-                { error: 'נא להזין אימייל תקין' },
-                { status: 400 }
-            );
+            return apiError('נא להזין אימייל תקין', { status: 400 });
         }
 
         const normalizedEmployeeEmail = String(employeeEmail).trim().toLowerCase();
 
         if (!department) {
-            return NextResponse.json(
-                { error: 'נא להזין מחלקה' },
-                { status: 400 }
-            );
+            return apiError('נא להזין מחלקה', { status: 400 });
         }
 
         if (!role) {
-            return NextResponse.json(
-                { error: 'נא להזין תפקיד' },
-                { status: 400 }
-            );
+            return apiError('נא להזין תפקיד', { status: 400 });
         }
 
         // 6. Check if email already exists
-        const existingUsers = await getUsers({ email: normalizedEmployeeEmail, tenantId: workspace.id });
-        if (existingUsers.length > 0) {
-            return NextResponse.json(
-                { error: 'משתמש עם אימייל זה כבר קיים במערכת' },
-                { status: 400 }
-            );
+        const existingUser = await loadUserInWorkspaceByEmail({
+            workspaceId: workspace.id,
+            email: normalizedEmployeeEmail,
+        });
+        if (existingUser) {
+            return apiError('משתמש עם אימייל זה כבר קיים במערכת', { status: 400 });
         }
 
         // 7. Generate unique token
@@ -128,15 +213,7 @@ async function POSTHandler(request: NextRequest) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-        // 9. Create invitation link
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        let organizationId: string | null = workspace?.id ? String(workspace.id) : null;
+        const organizationId = String(workspace.id);
 
         // Enforce strict multi-tenant access (works with either org slug or UUID id)
         const ws = workspace;
@@ -144,48 +221,49 @@ async function POSTHandler(request: NextRequest) {
 
         let seatsAllowedOverride: number | null = null;
         try {
-            const { data: orgSeatsRow, error: orgSeatsError } = await supabase
-                .from('organizations')
-                .select('seats_allowed')
-                .eq('id', organizationId)
-                .maybeSingle();
+            const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+                organizationId,
+                reason: 'employee_invite_seats_allowed',
+                query: `select seats_allowed from organizations where id = $1::uuid limit 1`,
+                values: [organizationId],
+            });
 
-            if (!orgSeatsError) {
-                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+            const first = Array.isArray(rows) ? rows[0] : null;
+            const firstObj = asObject(first);
+            const rawSeats = firstObj ? firstObj['seats_allowed'] : null;
+            seatsAllowedOverride = typeof rawSeats === 'number' ? rawSeats : rawSeats == null ? null : Number(rawSeats);
+            if (typeof seatsAllowedOverride === 'number' && Number.isNaN(seatsAllowedOverride)) {
+                seatsAllowedOverride = null;
             }
-
-            if (orgSeatsError?.message) {
-                const msg = String(orgSeatsError.message).toLowerCase();
-                if (msg.includes('column') && msg.includes('seats_allowed')) {
-                    seatsAllowedOverride = null;
-                }
+        } catch (e: unknown) {
+            if (getErrorMessage(e).includes('[SchemaMismatch]')) {
+                throw e;
             }
-        } catch {
             seatsAllowedOverride = null;
         }
 
+        const wsObj = asObject(ws as unknown);
+        const entitlementsRaw = wsObj ? wsObj['entitlements'] : undefined;
+        const entitlements: WorkspaceEntitlements | null | undefined =
+            entitlementsRaw && typeof entitlementsRaw === 'object'
+                ? (entitlementsRaw as WorkspaceEntitlements)
+                : entitlementsRaw == null
+                  ? undefined
+                  : undefined;
+
         const caps = computeWorkspaceCapabilities({
-            entitlements: (ws as any)?.entitlements,
+            entitlements,
             fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
             seatsAllowedOverride,
         });
 
         if (!caps.isTeamManagementEnabled) {
-            return NextResponse.json(
-                { error: 'ניהול צוות זמין רק עם מודול Nexus' },
-                { status: 403 }
-            );
+            return apiError('ניהול צוות זמין רק עם מודול Nexus', { status: 403 });
         }
 
-        const activeUsers = await countOrganizationActiveUsers(String(organizationId));
+        const activeUsers = await countOrganizationActiveUsers(organizationId);
         if (activeUsers >= caps.seatsAllowed) {
-            return NextResponse.json(
-                {
-                    error: `הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). כדי להוסיף משתמשים יש לשדרג חבילה`,
-                    seatUsage: { activeUsers, seatsAllowed: caps.seatsAllowed },
-                },
-                { status: 403 }
-            );
+            return apiError(`הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). כדי להוסיף משתמשים יש לשדרג חבילה`, { status: 403 });
         }
 
         const invitationData = {
@@ -209,13 +287,41 @@ async function POSTHandler(request: NextRequest) {
             metadata: {}
         };
 
-        const { data: invitation, error: createError } = await supabase
-            .from('nexus_employee_invitation_links')
-            .insert(invitationData)
-            .select()
-            .single();
-
-        if (createError) {
+        let invitation: Prisma.nexus_employee_invitation_linksGetPayload<{}>;
+        try {
+            invitation = await prisma.nexus_employee_invitation_links.create({
+                data: {
+                    organizationId: String(organizationId),
+                    token: String(token),
+                    created_by: invitationData.created_by ? String(invitationData.created_by) : null,
+                    employee_email: String(invitationData.employee_email),
+                    employee_name: invitationData.employee_name,
+                    employee_phone: invitationData.employee_phone,
+                    department: invitationData.department,
+                    role: invitationData.role,
+                    payment_type: invitationData.payment_type,
+                    hourly_rate:
+                        invitationData.hourly_rate !== null && invitationData.hourly_rate !== undefined
+                            ? new Prisma.Decimal(String(invitationData.hourly_rate))
+                            : null,
+                    monthly_salary:
+                        invitationData.monthly_salary !== null && invitationData.monthly_salary !== undefined
+                            ? new Prisma.Decimal(String(invitationData.monthly_salary))
+                            : null,
+                    commission_pct:
+                        invitationData.commission_pct !== null && invitationData.commission_pct !== undefined
+                            ? Number(invitationData.commission_pct)
+                            : null,
+                    start_date: invitationData.start_date ? new Date(String(invitationData.start_date)) : null,
+                    notes: invitationData.notes,
+                    expires_at: invitationData.expires_at ? new Date(String(invitationData.expires_at)) : null,
+                    is_used: Boolean(invitationData.is_used),
+                    is_active: Boolean(invitationData.is_active),
+                    metadata: invitationData.metadata,
+                    updated_at: new Date(),
+                },
+            });
+        } catch (createError: unknown) {
             console.error('[API] Error creating employee invitation link:', createError);
 
             await logAuditEvent('data.write', 'employees.invite', {
@@ -224,20 +330,10 @@ async function POSTHandler(request: NextRequest) {
                     organizationId,
                     employeeEmail: normalizedEmployeeEmail,
                 },
-                error: createError.message,
+                error: getErrorMessage(createError),
             });
 
-            return NextResponse.json(
-                { error: 'שגיאה ביצירת קישור הזמנה: ' + createError.message },
-                { status: 500 }
-            );
-        }
-
-        if (!invitation) {
-            return NextResponse.json(
-                { error: 'שגיאה ביצירת קישור הזמנה' },
-                { status: 500 }
-            );
+            return apiError('שגיאה ביצירת קישור הזמנה: ' + String(getErrorMessage(createError) || ''), { status: 500 });
         }
 
         // 10. Generate invitation URL
@@ -246,54 +342,48 @@ async function POSTHandler(request: NextRequest) {
         const finalizeUrl = `${baseUrl}${finalizePath}`;
         const invitationUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(normalizedEmployeeEmail)}&invited=true&employee=true&redirect_url=${encodeURIComponent(finalizeUrl)}`;
 
-        // 11. Send invitation email automatically
+        // 11. Enqueue invitation email (async)
         try {
-            const emailResult = await sendEmployeeInvitationEmail(
-                employeeEmail,
-                employeeName || null,
+            const enqueueRes = await enqueueEmployeeInviteEmail({
+                invitationId: String(invitation.id),
+                organizationId: String(workspace.id),
+                toEmail: normalizedEmployeeEmail,
+                employeeName: employeeName || null,
                 department,
                 role,
                 invitationUrl,
-                user.name || null
-            );
+                createdByName: user.name || null,
+            });
 
-            if (emailResult.success) {
-                console.log('[Employee Invitation] Email sent successfully:', {
-                    department,
-                    role,
-                    invitationId: invitation.id,
-                    organizationId,
-                    sentByUserId: user.id
-                });
-            } else {
-                console.warn('[Employee Invitation] Failed to send email:', emailResult.error);
-                // Don't fail the request, but log the error
+            if (!enqueueRes.queued) {
+                console.warn('[Employee Invitation] Failed to enqueue email:', enqueueRes.error);
             }
-        } catch (emailError: any) {
-            console.warn('[Employee Invitation] Error sending email:', emailError);
-            // Don't fail the request if email fails
+        } catch (emailError: unknown) {
+            console.warn('[Employee Invitation] Error enqueueing email:', emailError);
         }
 
         // 12. Create notification for manager (optional - to track)
         try {
-            await supabase
-                .from('misrad_notifications')
-                .insert({
-                    organization_id: workspace.id,
-                    recipient_id: user.id,
+            await insertNotification({
+                workspaceId: String(workspace.id),
+                notification: {
+                    organization_id: String(workspace.id),
+                    recipient_id: String(user.id),
                     type: 'employee_invitation',
                     text: `קישור הזמנה לעובד נוצר: ${employeeEmail}`,
-                    actor_id: user.id,
-                    actor_name: user.name,
-                    related_id: invitation.id,
+                    actor_id: String(user.id),
+                    actor_name: user.name || null,
+                    related_id: String(invitation.id),
                     is_read: false,
                     metadata: {
                         employee_email: employeeEmail,
                         department: department,
-                        role: role
-                    }
-                });
-        } catch (notifError) {
+                        role: role,
+                    },
+                    created_at: new Date().toISOString(),
+                },
+            });
+        } catch (notifError: unknown) {
             console.warn('[API] Could not create notification:', notifError);
             // Don't fail the request if notification fails
         }
@@ -309,8 +399,7 @@ async function POSTHandler(request: NextRequest) {
             },
         });
 
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             invitation: {
                 id: invitation.id,
                 token: invitation.token,
@@ -319,27 +408,17 @@ async function POSTHandler(request: NextRequest) {
                 department: invitation.department,
                 role: invitation.role,
                 expiresAt: invitation.expires_at,
-                createdAt: invitation.created_at
+                createdAt: invitation.created_at,
             },
-            message: 'קישור הזמנה נוצר בהצלחה'
+            message: 'קישור הזמנה נוצר בהצלחה',
         }, { status: 201 });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/employees/invite POST:', error);
-
-        try {
-            await logAuditEvent('data.write', 'employees.invite', {
-                success: false,
-                error: error?.message || 'Unknown error',
-            });
-        } catch {
-            // ignore
+    } catch (error: unknown) {
+        if (error instanceof APIError) {
+            return apiError(error.message || 'Forbidden', { status: error.status });
         }
-
-        return NextResponse.json(
-            { error: error.message || 'שגיאה ביצירת קישור הזמנה' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
-        );
+        const status = getErrorMessage(error).includes('Unauthorized') ? 401 : 500;
+        return apiError(error, { status, message: 'שגיאה ביצירת קישור הזמנה' });
     }
 }
 

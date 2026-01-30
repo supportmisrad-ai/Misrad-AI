@@ -46,14 +46,12 @@ function NavigationImpl({
   initialMenuItems,
   basePath,
   isSidebarOpen,
-  roomNameHebrew,
   gradient,
   isTeamEnabled,
 }: {
   initialMenuItems?: SocialNavigationItem[];
   basePath: string;
   isSidebarOpen: boolean;
-  roomNameHebrew?: string | null;
   gradient?: string | null;
   isTeamEnabled?: boolean;
 }) {

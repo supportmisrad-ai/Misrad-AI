@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, BrainCircuit, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Sparkles, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
+import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Sparkles, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from '../types';
 import { NAV_ITEMS, NAV_GROUPS, INITIAL_LEADS, INITIAL_CAMPAIGNS, INITIAL_AGENTS, INITIAL_TASKS, INITIAL_CONTENT, INITIAL_STUDENTS, INITIAL_INVOICES } from '../constants';
 import LeadModal from './system/LeadModal';

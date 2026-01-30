@@ -1,7 +1,7 @@
 'use client';
 
 import { Lead, PipelineStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
-import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, BrainCircuit, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
 type NavItem = { id: string; label: string; icon: any };
 type NavGroup = { title: string; items: NavItem[] };
@@ -45,7 +45,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: 'ניהול מערכת',
     items: [
       { id: 'reports', label: 'דוחות', icon: BarChart3 },
-      { id: 'analytics', label: 'אנליטיקס', icon: BrainCircuit },
+      { id: 'analytics', label: 'אנליטיקס', icon: Cpu },
       { id: 'notifications', label: 'התראות', icon: Bell },
       { id: 'settings', label: 'הגדרות', icon: Settings },
     ]

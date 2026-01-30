@@ -5,9 +5,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { supabase } from '../../../../lib/supabase';
+import { createClient } from '../../../../lib/supabase';
 import { FeatureRequest } from '../../../../types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function PATCHHandler(
@@ -17,19 +18,10 @@ async function PATCHHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
+        const { workspace } = await getWorkspaceOrThrow(request);
 
+        const supabase = createClient();
+        
         const { id: requestId } = await params;
 
         if (!requestId) {
@@ -55,7 +47,7 @@ async function PATCHHandler(
         }
 
         // Check permissions
-        const isAdmin = user.isSuperAdmin || user.role === 'מנכ״ל' || user.role === 'מנכ"ל' || user.role === 'אדמין';
+        const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
         const isOwner = existingRequest.user_id === user.id;
 
         const body = await request.json();
@@ -167,6 +159,9 @@ async function PATCHHandler(
 
     } catch (error: any) {
         console.error('[API] Error in /api/features/[id] PATCH:', error);
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'שגיאה בעדכון בקשת פיצ\'ר' },
             { status: error.message?.includes('Unauthorized') ? 401 : 500 }

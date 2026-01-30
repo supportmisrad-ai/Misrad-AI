@@ -8,6 +8,7 @@ export default function NexusCard({
   title,
   subtitle,
   icon: Icon,
+  iconSlot,
   metric,
   metricLabel,
   onClickAction,
@@ -16,6 +17,7 @@ export default function NexusCard({
   title: string;
   subtitle?: string | null;
   icon?: IconType;
+  iconSlot?: React.ReactNode;
   metric?: string | number | null;
   metricLabel?: string | null;
   onClickAction?: () => void;
@@ -40,7 +42,9 @@ export default function NexusCard({
       <div className="relative p-5 md:p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
-            {Icon ? (
+            {iconSlot ? (
+              <div className="shrink-0">{iconSlot}</div>
+            ) : Icon ? (
               <div className="shrink-0 w-11 h-11 rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white flex items-center justify-center shadow-sm">
                 <Icon size={18} className="text-gray-700" />
               </div>

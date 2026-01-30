@@ -16,8 +16,17 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);
 
+  const normalizedRole = String(currentUser?.role || '').trim().toLowerCase();
+  const isAuditServiceRole =
+    normalizedRole === 'audit_service' || normalizedRole === 'audit-service' || normalizedRole === 'audit service';
+  const isLogsPage = String(pathname || '').startsWith('/app/admin/logs');
+
   // Check if user is Super Admin
   if (!currentUser.isSuperAdmin) {
+    if (isAuditServiceRole && isLogsPage) {
+      return <>{children}</>;
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-6">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
@@ -27,12 +36,21 @@ export const AdminGuard: React.FC<AdminGuardProps> = ({ children }) => {
         <p className="text-gray-500 mb-6 max-w-md">
           רק מנהלי מערכת (Super Admin) יכולים לגשת לדף זה.
         </p>
-        <button 
-          onClick={() => router.push(toNexusPath(basePath, '/'))} 
-          className="text-sm font-bold text-blue-600 hover:underline"
-        >
-          חזרה ללוח הבקרה
-        </button>
+        {isAuditServiceRole ? (
+          <button
+            onClick={() => router.push('/app/admin/logs')}
+            className="text-sm font-bold text-blue-600 hover:underline"
+          >
+            חזרה ללוגים
+          </button>
+        ) : (
+          <button
+            onClick={() => router.push(toNexusPath(basePath, '/'))}
+            className="text-sm font-bold text-blue-600 hover:underline"
+          >
+            חזרה ללוח הבקרה
+          </button>
+        )}
       </div>
     );
   }

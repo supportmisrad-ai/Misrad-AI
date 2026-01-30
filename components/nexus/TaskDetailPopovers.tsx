@@ -6,6 +6,7 @@ import { Task, Priority } from '../../types';
 import { useData } from '../../context/DataContext';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
 import { Timer, Check, X, CheckCheck, Search } from 'lucide-react';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 interface TaskDetailPopoversProps {
     task: Task;
@@ -24,7 +25,7 @@ export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, ac
     // Super Admin: system admin, sees everyone across all tenants
     const isSuperAdmin = currentUser.isSuperAdmin === true;
     // Tenant Admin: CEO/Admin within their tenant, sees everyone within their tenant
-    const isTenantAdmin = !isSuperAdmin && (currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין');
+    const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
     const isManager = hasPermission('manage_team');
     
     const usersWithCurrent = (() => {

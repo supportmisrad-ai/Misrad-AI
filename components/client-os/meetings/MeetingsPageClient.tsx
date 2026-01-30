@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Meeting, Client, MeetingAnalysisResult } from '@/components/client-os-full/types';
 import { MeetingResultDashboard } from './MeetingResultDashboard';
 import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
 import { createClinicSession, createClinicClient } from '@/app/actions/client-clinic';
-import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@clerk/nextjs';
+import { createBrowserClientWithClerk } from '@/lib/supabase-client';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -25,6 +26,17 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
   orgId, 
   currentClientId 
 }) => {
+  const { getToken } = useAuth();
+  const supabase = useMemo(() => {
+    return createBrowserClientWithClerk(async () => {
+      try {
+        return await getToken({ template: 'supabase' });
+      } catch {
+        return await getToken();
+      }
+    });
+  }, [getToken]);
+
   const [mounted, setMounted] = useState(false);
   const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE' | 'ADD'>('LIST');
   const [meetings, setMeetings] = useState<Meeting[]>(initialMeetings);

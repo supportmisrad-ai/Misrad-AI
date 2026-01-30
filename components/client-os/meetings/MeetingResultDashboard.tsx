@@ -2,7 +2,7 @@
 
 import React from 'react';
 import type { AILiabilityRisk, AITask, MeetingAnalysisResult } from '../../client-os-full/types';
-import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, BrainCircuit, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare, FileText, Share2 } from 'lucide-react';
+import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare, FileText, Share2 } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 import { motion } from 'framer-motion';
 
@@ -175,7 +175,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
               {/* Intent Decoder */}
               <div className="ui-card p-8 bg-white border border-slate-100 bg-gradient-to-br from-white to-slate-50/50">
                   <div className="flex items-center gap-4 mb-8">
-                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center"><BrainCircuit size={24}/></div>
+                      <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center"><Zap size={24}/></div>
                       <div>
                           <h3 className="text-2xl font-black text-slate-900 leading-none">פענוח כוונות (Deep IQ)</h3>
                           <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">Hidden Intentions</p>

@@ -14,6 +14,19 @@ type PaymentConfig = {
   external_payment_url: string | null;
 };
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function normalizePaymentMethod(value: unknown): PaymentConfig['payment_method'] {
+  const v = String(value ?? '').toLowerCase();
+  if (v === 'manual' || v === 'automatic') return v;
+  return null;
+}
+
 async function requireSuperAdmin(): Promise<{ success: true } | { success: false; error: string }> {
   const authCheck = await requireAuth();
   if (!authCheck.success) {
@@ -45,7 +58,20 @@ export async function getSubscriptionPaymentConfigs(): Promise<{
 
     if (error) return createErrorResponse(error, 'שגיאה בטעינת הגדרות תשלום');
 
-    return createSuccessResponse((data || []) as any);
+    const rows = Array.isArray(data) ? data : [];
+    const mapped: PaymentConfig[] = rows.map((r) => {
+      const obj = asObject(r) ?? {};
+      return {
+        package_type: String(obj.package_type ?? '') as PackageType,
+        title: obj.title == null ? null : String(obj.title),
+        qr_image_url: obj.qr_image_url == null ? null : String(obj.qr_image_url),
+        instructions_text: obj.instructions_text == null ? null : String(obj.instructions_text),
+        payment_method: normalizePaymentMethod(obj.payment_method),
+        external_payment_url: obj.external_payment_url == null ? null : String(obj.external_payment_url),
+      };
+    });
+
+    return createSuccessResponse(mapped);
   } catch (e) {
     return createErrorResponse(e, 'שגיאה בטעינת הגדרות תשלום');
   }
@@ -66,7 +92,7 @@ export async function upsertSubscriptionPaymentConfig(input: {
     const supabase = createClient();
     const now = new Date().toISOString();
 
-    const payload: any = {
+    const payload: Record<string, unknown> = {
       package_type: input.packageType,
       title: input.title !== undefined ? String(input.title).trim() : null,
       qr_image_url: input.qrImageUrl !== undefined ? String(input.qrImageUrl).trim() : null,
@@ -93,7 +119,7 @@ export async function getSubscriptionPaymentConfigForCheckout(input: {
 }): Promise<{ success: boolean; data?: PaymentConfig | null; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
     const supabase = createClient();
     const { data, error } = await supabase
@@ -104,7 +130,16 @@ export async function getSubscriptionPaymentConfigForCheckout(input: {
 
     if (error) return createErrorResponse(error, 'שגיאה בטעינת פרטי תשלום');
 
-    return createSuccessResponse((data as any) || null);
+    if (!data) return createSuccessResponse(null);
+    const obj = asObject(data) ?? {};
+    return createSuccessResponse({
+      package_type: String(obj.package_type ?? input.packageType) as PackageType,
+      title: obj.title == null ? null : String(obj.title),
+      qr_image_url: obj.qr_image_url == null ? null : String(obj.qr_image_url),
+      instructions_text: obj.instructions_text == null ? null : String(obj.instructions_text),
+      payment_method: normalizePaymentMethod(obj.payment_method),
+      external_payment_url: obj.external_payment_url == null ? null : String(obj.external_payment_url),
+    });
   } catch (e) {
     return createErrorResponse(e, 'שגיאה בטעינת פרטי תשלום');
   }

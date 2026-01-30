@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Heebo, Inter } from "next/font/google";
 import "./globals.css";
-import { PWAInstaller } from "@/components/PWAInstaller";
-import { PasskeyOnboardingPrompt } from "@/components/PasskeyOnboardingPrompt";
 import { getSystemMetadata, getThemeColor } from '@/lib/metadata';
-import ComingSoonPortal from '@/components/shared/ComingSoonPortal';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
+import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets } from './ClientOnlyWidgets';
 
 // Heebo - Main text font (font-sans)
 // Geometric modern font with excellent Hebrew/English support, critical for RTL interface
@@ -47,34 +47,37 @@ export default function RootLayout({
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
       <body className={`${heebo.variable} ${inter.variable} antialiased`} suppressHydrationWarning>
-        {clerkPublishableKey ? (
-          <ClerkProvider
-            publishableKey={clerkPublishableKey}
-            signInUrl={signInUrl}
-            signUpUrl={signUpUrl}
-            afterSignInUrl={afterSignInUrl}
-            afterSignUpUrl={afterSignUpUrl}
-          >
-            {children}
-            <PasskeyOnboardingPrompt />
-          </ClerkProvider>
-        ) : (
-          <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-            <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-              <div className="text-xl font-black text-slate-900">חסר מפתח התחברות (Clerk)</div>
-              <div className="mt-3 text-sm font-bold text-slate-600">
-                כדי להפעיל את המערכת צריך להגדיר את המשתנה
-                <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</span>
-                בקובץ
-                <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">.env.local</span>
-                ואז להפעיל מחדש את השרת.
+        <ToastProvider>
+          <ReactQueryProvider>
+          {clerkPublishableKey ? (
+            <ClerkProvider
+              publishableKey={clerkPublishableKey}
+              signInUrl={signInUrl}
+              signUpUrl={signUpUrl}
+              afterSignInUrl={afterSignInUrl}
+              afterSignUpUrl={afterSignUpUrl}
+            >
+              {children}
+              <ClientOnlyClerkWidgets />
+            </ClerkProvider>
+          ) : (
+            <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+              <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                <div className="text-xl font-black text-slate-900">חסר מפתח התחברות (Clerk)</div>
+                <div className="mt-3 text-sm font-bold text-slate-600">
+                  כדי להפעיל את המערכת צריך להגדיר את המשתנה
+                  <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</span>
+                  בקובץ
+                  <span className="mx-1 font-mono bg-slate-100 px-2 py-1 rounded">.env.local</span>
+                  ואז להפעיל מחדש את השרת.
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <ComingSoonPortal />
-        <PWAInstaller />
+          <ClientOnlyGlobalWidgets />
+          </ReactQueryProvider>
+        </ToastProvider>
       </body>
     </html>
   );

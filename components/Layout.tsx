@@ -6,8 +6,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommandPalette from './CommandPalette';
 import { useData } from '../context/DataContext';
-import { getNexusBasePath, toNexusPath, getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getNexusBasePath, toNexusPath, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
+import { listNexusTasks } from '@/app/actions/nexus';
 import { ToastContainer } from './ToastContainer';
 import { TutorialOverlay } from './TutorialOverlay';
 import { ShabbatScreen } from './ShabbatScreen';
@@ -55,9 +56,9 @@ export const Layout = ({ children }: LayoutProps) => {
     const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
 
     if (finalPath === '/operations') {
-      const workspaceOrg = getWorkspaceOrgIdFromPathname(pathname);
-      if (workspaceOrg) {
-        router.push(`/w/${encodeURIComponent(workspaceOrg)}/operations`);
+      const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+      if (workspaceOrgSlug) {
+        router.push(`/w/${encodeURIComponent(workspaceOrgSlug)}/operations`);
         return;
       }
     }
@@ -77,7 +78,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('טוען...');
   const [isMounted, setIsMounted] = useState(false);
-  const orgSlug = useMemo(() => getWorkspaceOrgIdFromPathname(pathname || ''), [pathname]);
+  const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname || ''), [pathname]);
 
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
     name: (currentUser as any)?.name ?? null,
@@ -174,10 +175,10 @@ export const Layout = ({ children }: LayoutProps) => {
           if (notificationsInFlightRef.current) return;
           notificationsInFlightRef.current = true;
           try {
-              const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+              const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
               const response = await fetch('/api/notifications', {
                 signal: controller.signal,
-                headers: orgId ? { 'x-org-id': orgId } : undefined,
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
               });
               if (response.ok) {
                   const data = await response.json();
@@ -271,7 +272,7 @@ export const Layout = ({ children }: LayoutProps) => {
               // Only allow if user is super admin
               if (currentUser?.isSuperAdmin) {
                   e.preventDefault();
-                  const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+                  const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
                   if (orgSlug) {
                     const returnTo = `${window.location.pathname}${window.location.search || ''}`;
                     router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
@@ -316,7 +317,16 @@ export const Layout = ({ children }: LayoutProps) => {
 
   const togglePlusMenu = () => { setIsMobileMenuOpen(false); setIsPlusMenuOpen(!isPlusMenuOpen); };
   const toggleMobileMenu = () => { setIsPlusMenuOpen(false); setIsMobileMenuOpen(!isMobileMenuOpen); };
-  const handleVoiceClick = () => { setIsPlusMenuOpen(false); setIsVoiceRecorderOpen(true); };
+  const handleVoiceClick = () => {
+    setIsPlusMenuOpen(false);
+    try {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('nexus:open-voice-command'));
+      }
+    } catch {
+      // ignore
+    }
+  };
   const handleTaskClick = () => { setIsPlusMenuOpen(false); openCreateTask(); };
   const handleNavClick = (path: string) => { setIsMobileMenuOpen(false); navigate(path); };
 
@@ -360,32 +370,27 @@ export const Layout = ({ children }: LayoutProps) => {
     setIsFetchingTask(true);
     
     {
-      const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-      fetch(`/api/tasks?id=${openedTaskId}`, {
-        headers: orgId ? { 'x-org-id': orgId } : undefined,
-      })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-        return res.json();
-      })
-      .then(task => {
-        if (task && !task.error) {
-          setCurrentOpenedTask(task);
-          fetchedTaskIdRef.current = openedTaskId;
-        } else {
-          console.error('[Layout] Failed to fetch task:', task);
+      const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+      (async () => {
+        try {
+          if (!orgSlug) {
+            throw new Error('Missing orgSlug');
+          }
+          const res = await listNexusTasks({ orgId: orgSlug, taskId: openedTaskId });
+          const task = Array.isArray(res?.tasks) ? res.tasks[0] : null;
+          if (task) {
+            setCurrentOpenedTask(task);
+            fetchedTaskIdRef.current = openedTaskId;
+          } else {
+            setCurrentOpenedTask(null);
+          }
+        } catch (err) {
+          console.error('[Layout] Error fetching task:', err);
           setCurrentOpenedTask(null);
+        } finally {
+          setIsFetchingTask(false);
         }
-      })
-      .catch(err => {
-        console.error('[Layout] Error fetching task:', err);
-        setCurrentOpenedTask(null);
-      })
-      .finally(() => {
-        setIsFetchingTask(false);
-      });
+      })();
     }
   }, [openedTaskId]); // Only depend on openedTaskId to prevent loops
 

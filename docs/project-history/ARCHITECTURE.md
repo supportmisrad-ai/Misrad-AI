@@ -38,17 +38,17 @@ Session → Middleware → API Routes → Database
 
 ### 3. טעינת מידע משתמש (User Data Loading)
 ```
-App Loads → useAuth Hook → /api/users/me → Database Check
+App Loads → useAuth Hook → Server Action (resolve/sync user) → Database Check
 ```
 
 **מה קורה:**
 1. האפליקציה נטענת
-2. `useAuth` hook קורא ל-`/api/users/me`
-3. ה-API route:
-   - מקבל את ה-email מ-Clerk
+2. `useAuth` hook מפעיל Server Action שמזהה את המשתמש לפי ה-session של Clerk
+3. ה-Server Action:
+   - מקבל את ה-email/identity מ-Clerk
    - מחפש משתמש ב-Supabase לפי email
    - **אם נמצא** → מחזיר את המידע מ-Supabase
-   - **אם לא נמצא** → מנסה ליצור אוטומטית או משתמש ב-Clerk בלבד
+   - **אם לא נמצא** → יוצר/מסנכרן משתמש אוטומטית (או ממשיך עם Clerk בלבד לפי מצב המערכת)
 
 **איפה המשתמש נמצא:**
 - ✅ **Clerk** - יש Session
@@ -77,7 +77,7 @@ Clerk Session → useAuth → Clerk User Data → App Works
 
 ### אפשרות 2: משתמש ב-Clerk + Supabase (מומלץ)
 ```
-Clerk Session → useAuth → /api/users/me → Supabase User → Full Features
+Clerk Session → useAuth → Server Action → Supabase User → Full Features
 ```
 
 **יתרונות:**
@@ -189,7 +189,7 @@ Clerk Session → useAuth → /api/users/me → Supabase User → Full Features
 
 #### אופציה 3: ידני (לא מומלץ)
 - מנהל מערכת יוצר משתמשים ידנית ב-Supabase
-- או דרך API: `POST /api/users/sync`
+- או דרך תהליך אדמיניסטרטיבי פנימי (Server Actions) / כלי ניהול
 
 **חסרונות:**
 - צריך לעשות ידנית לכל משתמש

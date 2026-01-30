@@ -5,14 +5,33 @@
  * Creates a one-time invitation link for client onboarding
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
-import { getUsers } from '../../../../lib/db';
 import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
-import { supabase } from '../../../../lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -20,44 +39,28 @@ async function POSTHandler(request: NextRequest) {
         try {
             clerkUser = await getAuthenticatedUser();
         } catch (authError: any) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return apiError('Unauthorized', { status: 401 });
         }
 
         try {
             await requireSuperAdmin();
         } catch (e: any) {
-            return NextResponse.json(
-                { error: e?.message || 'Forbidden - Super Admin required' },
-                { status: 403 }
-            );
+            return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
         }
 
         if (!clerkUser.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const { workspace } = await getWorkspaceOrThrow(request);
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const supabaseClient = createClient();
 
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUserId = await selectDbUserId({ supabase: supabaseClient, workspaceId: workspace.id, email: clerkUser.email });
 
-        if (!user) {
-            return NextResponse.json(
-                { error: 'User not found in database. Please sync your account first.' },
-                { status: 404 }
-            );
+        if (!dbUserId) {
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
         // Super admin already validated above
@@ -81,21 +84,11 @@ async function POSTHandler(request: NextRequest) {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-        // 6. Create invitation link
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const supabaseClient = supabase;
-
         const invitationData = {
             organization_id: workspace.id,
             token,
             client_id: clientId || null,
-            created_by: user.id,
+            created_by: dbUserId,
             expires_at: expiresAt.toISOString(),
             is_used: false,
             is_active: true,
@@ -113,50 +106,23 @@ async function POSTHandler(request: NextRequest) {
         let createError = (byOrg as any).error;
 
         if (createError?.code === '42703') {
-            const byTenant = await supabaseClient
-                .from('system_invitation_links')
-                .insert({
-                    tenant_id: workspace.id,
-                    token,
-                    client_id: clientId || null,
-                    created_by: user.id,
-                    expires_at: expiresAt.toISOString(),
-                    is_used: false,
-                    is_active: true,
-                    source,
-                    metadata: {}
-                })
-                .select()
-                .single();
-            invitation = (byTenant as any).data;
-            createError = (byTenant as any).error;
-            if (createError?.code === '42703') {
-                // Fail closed: table exists but has no scoping columns
-                return NextResponse.json({ error: 'Invitation links table is not tenant-scoped' }, { status: 501 });
-            }
+            return apiError('[SchemaMismatch] system_invitation_links is missing organization_id', { status: 500 });
         }
 
         if (createError) {
             console.error('[API] Error creating invitation link:', createError);
-            return NextResponse.json(
-                { error: createError.message || 'Failed to create invitation link' },
-                { status: 500 }
-            );
+            return apiError(createError.message || 'Failed to create invitation link', { status: 500 });
         }
 
         if (!invitation) {
-            return NextResponse.json(
-                { error: 'Failed to create invitation link' },
-                { status: 500 }
-            );
+            return apiError('Failed to create invitation link', { status: 500 });
         }
 
         // 7. Generate invitation URL
         const baseUrl = getBaseUrl(request);
         const invitationUrl = `${baseUrl}/invite/${token}`;
 
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             invitation: {
                 id: invitation.id,
                 token: invitation.token,
@@ -168,10 +134,10 @@ async function POSTHandler(request: NextRequest) {
 
     } catch (error: any) {
         console.error('[API] Error creating invitation link:', error);
-        return NextResponse.json(
-            { error: error.message || 'Failed to create invitation link' },
-            { status: 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'Failed to create invitation link' });
     }
 }
 

@@ -1,5 +1,5 @@
 [build]
-  command = "NODE_OPTIONS='--max-old-space-size=6144' npm run build"
+  command = "npm run security:scan-api-guards && NODE_OPTIONS='--max-old-space-size=6144' npm run build"
   publish = ".next"
 
 [build.environment]

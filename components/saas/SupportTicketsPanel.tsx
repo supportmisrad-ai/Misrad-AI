@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LifeBuoy, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Mail, Calendar, MessageSquare, RefreshCw, Eye, Edit2 } from 'lucide-react';
 import { SupportTicket } from '../../types';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +22,9 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
     useEffect(() => {
         loadTickets();
     }, [statusFilter]);
@@ -33,15 +36,18 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                 ? `/api/support?status=${statusFilter}`
                 : '/api/support';
 
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(url, {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (!response.ok) {
-                throw new Error('שגיאה בטעינת קריאות תמיכה');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בטעינת קריאות תמיכה');
             }
-            const data = await response.json();
-            setTickets(data.tickets || []);
+            const data = await response.json().catch(() => ({}));
+            const payload = unwrap(data);
+            setTickets((payload as any).tickets || []);
         } catch (err: any) {
             console.error('[SupportTicketsPanel] Error loading tickets:', err);
             addToast(err.message || 'שגיאה בטעינת קריאות תמיכה', 'error');
@@ -53,19 +59,20 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
     const handleStatusChange = async (ticketId: string, newStatus: string) => {
         setUpdatingStatus(ticketId);
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/support/${ticketId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({ status: newStatus })
             });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בעדכון סטטוס');
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בעדכון סטטוס');
             }
 
             await loadTickets();
@@ -73,9 +80,10 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
             
             if (selectedTicket?.id === ticketId) {
                 const updated = await fetch(`/api/support?id=${ticketId}`, {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
-                }).then(r => r.json());
-                setSelectedTicket(updated);
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                }).then(r => r.json()).catch(() => ({}));
+                const updatedPayload = unwrap(updated);
+                setSelectedTicket(updatedPayload as any);
             }
         } catch (err: any) {
             console.error('[SupportTicketsPanel] Error updating status:', err);
@@ -87,18 +95,20 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
 
     const handleAddResponse = async (ticketId: string, response: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const res = await fetch(`/api/support/${ticketId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({ admin_response: response })
             });
 
             if (!res.ok) {
-                throw new Error('שגיאה בהוספת תגובה');
+                const errorData = await res.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בהוספת תגובה');
             }
 
             await loadTickets();
@@ -106,9 +116,10 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
             
             if (selectedTicket?.id === ticketId) {
                 const updated = await fetch(`/api/support?id=${ticketId}`, {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
-                }).then(r => r.json());
-                setSelectedTicket(updated);
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                }).then(r => r.json()).catch(() => ({}));
+                const updatedPayload = unwrap(updated);
+                setSelectedTicket(updatedPayload as any);
             }
         } catch (err: any) {
             console.error('[SupportTicketsPanel] Error adding response:', err);

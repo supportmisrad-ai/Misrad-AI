@@ -27,18 +27,20 @@ export async function getDriveClient(
         return null;
     }
 
+    if (!tenantId) {
+        console.error('[Drive] Missing tenantId/organizationId (Tenant Isolation lockdown)');
+        return null;
+    }
+
     // Find integration
     let query = (supabase as any)
         .from('misrad_integrations')
         .select('*')
         .eq('user_id', userId)
+        .eq('organization_id', tenantId)
         .eq('service_type', 'google_drive')
         .eq('is_active', true)
         .single();
-
-    if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-    }
 
     const { data: integration, error } = await query;
 
@@ -65,7 +67,8 @@ export async function getDriveClient(
                     refresh_token: refreshed.refreshToken || integration.refresh_token,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', integration.id);
+                .eq('id', integration.id)
+                .eq('organization_id', tenantId);
         } catch (error) {
             console.error('[Drive] Failed to refresh token:', error);
             return null;
@@ -139,6 +142,7 @@ export async function listDriveFiles(
                 .from('misrad_integrations')
                 .update({ last_synced_at: new Date().toISOString() })
                 .eq('user_id', userId)
+                .eq('organization_id', tenantId)
                 .eq('service_type', 'google_drive')
                 .eq('is_active', true);
         }

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search, Sparkles, Link, Copy, Send, LayoutGrid, ArrowRight, User } from 'lucide-react';
-import { Lead } from '@/types';
+import { Lead, LeadStatus } from '@/types';
 import { useData } from '@/context/DataContext';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -228,7 +228,9 @@ export function CommandPaletteSearch({
               <User size={12} /> לקוחות ולידים
             </div>
             <div className="space-y-2">
-              {filteredLeads.map(lead => (
+              {filteredLeads.map(lead => {
+                const isHot = Boolean((lead as any)?.isHot);
+                return (
                 <button 
                   key={lead.id}
                   onClick={() => handleSelectLead(lead)}
@@ -236,7 +238,7 @@ export function CommandPaletteSearch({
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm border-2 transition-all duration-200 shadow-sm ${
-                      lead.status === 'won' 
+                      lead.status === LeadStatus.WON 
                         ? 'bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-700 border-emerald-300/60' 
                         : 'bg-gradient-to-br from-slate-100 to-slate-50 text-slate-600 border-slate-200/60 group-hover:border-indigo-300/60 group-hover:text-indigo-600'
                     }`}>
@@ -246,7 +248,7 @@ export function CommandPaletteSearch({
                       <div className="font-bold text-slate-900 text-sm group-hover:text-indigo-700 mb-1">{lead.name}</div>
                       <div className="text-xs text-slate-500 flex items-center gap-2">
                         <span>{lead.company || 'לקוח פרטי'}</span>
-                        {lead.isHot && <span className="text-amber-500 text-base">🔥</span>}
+                        {isHot && <span className="text-amber-500 text-base">🔥</span>}
                       </div>
                     </div>
                   </div>
@@ -255,7 +257,7 @@ export function CommandPaletteSearch({
                       ₪{lead.value.toLocaleString()}
                     </div>
                     <div className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                      lead.status === 'won' 
+                      lead.status === LeadStatus.WON 
                         ? 'text-emerald-700 bg-emerald-50 border border-emerald-200/60' 
                         : 'text-slate-500 bg-slate-50 border border-slate-200/60'
                     }`}>
@@ -263,7 +265,8 @@ export function CommandPaletteSearch({
                     </div>
                   </div>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

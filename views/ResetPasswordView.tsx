@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Mail, ShieldCheck, Zap, Globe, Cpu, Lock, CheckCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 type Step = 'email' | 'code' | 'password';
 
@@ -277,7 +278,7 @@ export const ResetPasswordView: React.FC = () => {
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-                <img src="/icons/misrad-icon.svg" alt="Misrad" className="w-full h-full object-contain p-1.5" />
+                <img src={getSystemIconUrl('misrad')} alt="Misrad" className="w-full h-full object-contain p-1.5" />
               </div>
               <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>
                 {organization.name}
@@ -299,8 +300,8 @@ export const ResetPasswordView: React.FC = () => {
               </div>
             </div>
             <p className="text-gray-500 text-xs flex items-center gap-2">
-              <span>Powered by Misrad</span>
-              <span>&copy; 2026 Misrad.</span>
+              <span>Powered by MISRAD AI</span>
+              <span>&copy; 2026 MISRAD AI.</span>
             </p>
           </div>
         </div>
@@ -319,7 +320,7 @@ export const ResetPasswordView: React.FC = () => {
             <div className="mb-10 text-center lg:text-right">
                 <div className="lg:hidden flex justify-center mb-4">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
-                        <img src="/icons/misrad-icon.svg" alt="Misrad" className="w-full h-full object-contain p-2" />
+                        <img src={getSystemIconUrl('misrad')} alt="Misrad" className="w-full h-full object-contain p-2" />
                     </div>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">איפוס סיסמה</h3>
@@ -599,7 +600,7 @@ export const ResetPasswordView: React.FC = () => {
             <div className="mt-8 flex items-center justify-center gap-6 text-xs font-medium text-gray-400">
                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> מערכות תקינות</span>
                 <span className="flex items-center gap-1.5"><Globe size={12} /> אזור IL-TLV</span>
-                <span className="flex items-center gap-1.5"><Cpu size={12} /> Misrad v2.5.0</span>
+                <span className="flex items-center gap-1.5"><Cpu size={12} /> MISRAD AI v2.5.0</span>
             </div>
 
           </motion.div>

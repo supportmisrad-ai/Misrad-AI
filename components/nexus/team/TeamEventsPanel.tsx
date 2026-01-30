@@ -13,8 +13,9 @@ import { TeamEvent, TeamEventType, TeamEventStatus, EventAttendance, AttendanceS
 import { EventRequestModal } from './EventRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { CustomSelect } from '../../CustomSelect';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 let showHebrewDatesPreference = false;
 
@@ -39,6 +40,9 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
         showHebrewDatesPreference = showHebrewDates;
     }, [showHebrewDates]);
 
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
     const loadEvents = async () => {
         setIsLoading(true);
         try {
@@ -46,16 +50,18 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
             if (filterType !== 'all') params.append('event_type', String(filterType));
             if (filterStatus !== 'all') params.append('status', String(filterStatus));
             
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/team-events?${params.toString()}`, {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || `Failed to load events (${response.status})`);
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || `Failed to load events (${response.status})`);
             }
-            const data = await response.json();
-            setEvents(data.events || []);
+            const data = await response.json().catch(() => ({}));
+            const payload = unwrap(data);
+            setEvents((payload as any).events || []);
         } catch (error: any) {
             console.error('[TeamEvents] Error loading events:', error);
             addToast(error.message || 'שגיאה בטעינת אירועים', 'error');
@@ -85,13 +91,14 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
     // Load attendance for events
     const loadAttendance = async (eventId: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/team-events/${eventId}/attendance`, {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (response.ok) {
-                const data = await response.json();
-                setAttendanceMap(prev => ({ ...prev, [eventId]: data.attendance || [] }));
+                const data = await response.json().catch(() => ({}));
+                const payload = unwrap(data);
+                setAttendanceMap(prev => ({ ...prev, [eventId]: (payload as any).attendance || [] }));
             }
         } catch (error) {
             console.error('[TeamEvents] Error loading attendance:', error);
@@ -101,16 +108,17 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
     // Handle RSVP
     const handleRSVP = async (eventId: string, status: 'attending' | 'not_attending') => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/team-events/${eventId}/attendance`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ status })
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בשמירת אישור הגעה');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אישור הגעה');
             }
 
             addToast(status === 'attending' ? 'אישור הגעה נשמר' : 'אישור אי-הגעה נשמר', 'success');
@@ -127,15 +135,16 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
         if (!confirm('האם אתה בטוח שברצונך למחוק את האירוע?')) return;
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/team-events/${eventId}`, {
                 method: 'DELETE',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה במחיקת אירוע');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה במחיקת אירוע');
             }
 
             addToast('אירוע נמחק בהצלחה', 'success');
@@ -147,16 +156,17 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
 
     const handleApprove = async (eventId: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/team-events/${eventId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ requiresApproval: false, approvedBy: currentUser?.id }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה באישור אירוע');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה באישור אירוע');
             }
 
             addToast('אירוע אושר בהצלחה', 'success');
@@ -225,7 +235,7 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
         pending: events.filter(e => e.status === 'draft' || e.requiresApproval).length
     };
 
-    const isAdmin = currentUser?.isSuperAdmin || currentUser?.role === 'מנכ״ל' || currentUser?.role === 'מנכ"ל' || currentUser?.role === 'אדמין';
+    const isAdmin = currentUser?.isSuperAdmin || isTenantAdminRole(currentUser?.role);
 
     return (
         <div className="space-y-6" dir="rtl">

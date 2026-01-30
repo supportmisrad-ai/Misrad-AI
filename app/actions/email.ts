@@ -4,6 +4,21 @@ import { resend, isResendConfigured } from '@/lib/resend';
 import { Client } from '@/types';
 import { sendMisradWelcomeEmail } from '@/lib/email';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string {
+  if (!error) return '';
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
 function resolveRecipientEmail(originalTo: string): string {
   const override = process.env.RESEND_TEST_TO;
   if (!override) return originalTo;
@@ -39,7 +54,7 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
 
     const { clientName, clientEmail, invitationLink, planName, planPrice } = params;
 
-    let systemSupportEmail = 'support@social-os.com';
+    let systemSupportEmail = 'support@misrad-ai.com';
     try {
       const { getSystemEmailSettingsUnsafe } = await import('@/lib/server/systemEmailSettings');
       const settings = await getSystemEmailSettingsUnsafe();
@@ -142,11 +157,11 @@ export async function sendInvitationEmail(params: SendInvitationEmailParams) {
       messageId: data?.id,
       message: 'מייל הזמנה נשלח בהצלחה',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending invitation email:', error);
     return {
       success: false,
-      error: error.message || 'אירעה שגיאה בלתי צפויה',
+      error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',
     };
   }
 }
@@ -187,11 +202,11 @@ export async function sendMisradWelcomeEmailAction(params: {
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending MISRAD welcome email (action):', error);
     return {
       success: false,
-      error: error.message || 'אירעה שגיאה בלתי צפויה',
+      error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',
     };
   }
 }
@@ -243,11 +258,11 @@ export async function sendTestEmail(to: string) {
       messageId: data?.id,
       message: 'מייל בדיקה נשלח בהצלחה',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending test email:', error);
     return {
       success: false,
-      error: error.message || 'אירעה שגיאה בלתי צפויה',
+      error: getUnknownErrorMessage(error) || 'אירעה שגיאה בלתי צפויה',
     };
   }
 }

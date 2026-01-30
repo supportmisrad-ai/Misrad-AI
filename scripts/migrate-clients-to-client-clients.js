@@ -151,7 +151,7 @@ function mapLegacyToClientClientsRow(row, sourceTable, defaultOrgId) {
       companyName: row.name || companyName,
       status: row.status ?? null,
       internalNotes: row.internal_notes ?? row.internalNotes ?? null,
-      // Keep the full Misrad CRM row for traceability
+      // Keep the full Misrad AI row for traceability
       legacy: {
         source: sourceTable,
         raw: row,
@@ -185,11 +185,10 @@ async function main() {
   if (!url) {
     throw new Error('Missing env var NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL)');
   }
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceKey) {
-    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (recommended) or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
   }
 
   const supabase = createClient(url, serviceKey);

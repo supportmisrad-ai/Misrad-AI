@@ -4,6 +4,7 @@ import { getSystemMetadata } from '@/lib/metadata';
 import React from 'react';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
 
 // Force dynamic rendering as this layout depends on authentication
 export const dynamic = 'force-dynamic';
@@ -17,18 +18,6 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   ...getSystemMetadata('system'),
-  icons: {
-    icon: [
-      { url: '/icons/system-icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/icons/system-icon.svg',
-    shortcut: '/icons/system-icon.svg',
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'theme-color': '#A21D3C',
-  },
 };
 
 export default async function SystemLayout({
@@ -66,8 +55,14 @@ export default async function SystemLayout({
     redirect('/sign-in');
   }
 
+  const def = getModuleDefinition('system');
+  const style = {
+    '--os-accent': def.theme.accent,
+    '--os-bg': def.theme.background,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-transparent font-sans" dir="rtl">
+    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900 font-sans" dir="rtl">
       {children}
     </div>
   );

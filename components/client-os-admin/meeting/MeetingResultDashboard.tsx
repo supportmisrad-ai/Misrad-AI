@@ -11,7 +11,6 @@ import {
   Check,
   Clock,
   CalendarCheck,
-  BrainCircuit,
   ShieldAlert,
   AlertTriangle,
   MessageSquare,
@@ -209,7 +208,7 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
         <div className="glass-card p-6 rounded-2xl border border-purple-100 bg-gradient-to-br from-white to-purple-50/30">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
-              <BrainCircuit size={20} />
+              <Zap size={20} />
             </div>
             <div>
               <h3 className="font-bold text-gray-900">פענוח כוונות נסתרות</h3>

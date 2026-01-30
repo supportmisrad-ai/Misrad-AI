@@ -1,7 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import prisma from '@/lib/prisma';
 
 export type ClinicClient = {
   id: string;
@@ -83,40 +83,38 @@ export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
   if (!orgId) throw new Error('orgId is required');
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
     console.debug('[getClinicClients] fetching clients', {
       orgId,
       workspaceId: workspace.id,
     });
 
-    const { data, error } = await supabase
-      .from('client_clients')
-      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
-      .eq('organization_id', workspace.id)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[getClinicClients] supabase error', {
-        message: error.message,
-        code: (error as any).code,
-        details: (error as any).details,
-        hint: (error as any).hint,
-      });
-      return [];
-    }
+    const data = await prisma.clientClient.findMany({
+      where: { organizationId: workspace.id },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     const clients = (data || []).map((r: any) => ({
       id: r.id,
-      organizationId: r.organization_id,
-      fullName: r.full_name,
+      organizationId: r.organizationId,
+      fullName: r.fullName,
       phone: r.phone ?? null,
       email: r.email ?? null,
       notes: r.notes ?? null,
       metadata: r.metadata ?? undefined,
-      createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at),
+      createdAt: iso(r.createdAt),
+      updatedAt: iso(r.updatedAt),
     }));
 
     console.debug('[getClinicClients] clients fetched', {
@@ -140,28 +138,34 @@ export async function getClinicClient(orgId: string, clientId: string): Promise<
   if (!clientId) throw new Error('clientId is required');
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
-    const { data, error } = await supabase
-      .from('client_clients')
-      .select('id, organization_id, full_name, phone, email, notes, metadata, created_at, updated_at')
-      .eq('organization_id', workspace.id)
-      .eq('id', clientId)
-      .maybeSingle();
+    const data = await prisma.clientClient.findFirst({
+      where: { organizationId: workspace.id, id: clientId },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
 
-    if (error || !data?.id) return null;
+    if (!data?.id) return null;
 
     return {
       id: data.id,
-      organizationId: data.organization_id,
-      fullName: data.full_name,
-      phone: data.phone ?? null,
-      email: data.email ?? null,
-      notes: data.notes ?? null,
-      metadata: data.metadata ?? undefined,
-      createdAt: iso(data.created_at),
-      updatedAt: iso(data.updated_at),
+      organizationId: data.organizationId,
+      fullName: data.fullName,
+      phone: (data as any).phone ?? null,
+      email: (data as any).email ?? null,
+      notes: (data as any).notes ?? null,
+      metadata: (data as any).metadata ?? undefined,
+      createdAt: iso((data as any).createdAt),
+      updatedAt: iso((data as any).updatedAt),
     };
   } catch {
     return null;
@@ -182,22 +186,20 @@ export async function createClinicClient(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('client_clients')
-    .insert({
-      organization_id: workspace.id,
-      full_name: fullName,
+  const created = await prisma.clientClient.create({
+    data: {
+      organizationId: workspace.id,
+      fullName,
       phone: phone ?? null,
       email: email ?? null,
       notes: notes ?? null,
       metadata: metadata ?? {},
-    })
-    .select('id')
-    .single();
+    },
+    select: { id: true },
+  });
 
-  if (error || !data?.id) throw new Error(error?.message || 'Failed to create client');
-  return { id: data.id };
+  if (!created?.id) throw new Error('Failed to create client');
+  return { id: created.id };
 }
 
 export async function updateClinicClient(params: {
@@ -211,21 +213,18 @@ export async function updateClinicClient(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
   const patch: any = {};
-  if (updates.fullName !== undefined) patch.full_name = updates.fullName;
+  if (updates.fullName !== undefined) patch.fullName = updates.fullName;
   if (updates.phone !== undefined) patch.phone = updates.phone;
   if (updates.email !== undefined) patch.email = updates.email;
   if (updates.notes !== undefined) patch.notes = updates.notes;
   if (updates.metadata !== undefined) patch.metadata = updates.metadata;
 
-  const { error } = await supabase
-    .from('client_clients')
-    .update(patch)
-    .eq('organization_id', workspace.id)
-    .eq('id', clientId);
+  await prisma.clientClient.updateMany({
+    where: { organizationId: workspace.id, id: clientId },
+    data: patch,
+  });
 
-  if (error) throw new Error(error.message);
   return { ok: true };
 }
 
@@ -239,37 +238,30 @@ export async function listClinicTasks(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
-    let query = supabase
-      .from('client_tasks')
-      .select(
-        'id, organization_id, client_id, title, description, status, priority, due_at, assigned_to, created_by, metadata, created_at, updated_at'
-      )
-      .eq('organization_id', workspace.id);
-
-    if (clientId) query = query.eq('client_id', clientId);
-    if (status) query = query.eq('status', status);
-
-    const { data, error } = await query.order('due_at', { ascending: true, nullsFirst: false }).order('created_at', { ascending: false });
-
-    if (error) return [];
+    const data = await prisma.clientTask.findMany({
+      where: {
+        organizationId: workspace.id,
+        ...(clientId ? { clientId } : {}),
+        ...(status ? { status } : {}),
+      },
+      orderBy: [{ dueAt: 'asc' }, { createdAt: 'desc' }],
+    });
 
     return (data || []).map((r: any) => ({
       id: r.id,
-      organizationId: r.organization_id,
-      clientId: r.client_id,
+      organizationId: r.organizationId,
+      clientId: r.clientId,
       title: r.title,
       description: r.description ?? null,
       status: r.status,
       priority: r.priority ?? null,
-      dueAt: iso(r.due_at) ?? null,
-      assignedTo: r.assigned_to ?? null,
-      createdBy: r.created_by ?? null,
+      dueAt: iso(r.dueAt) ?? null,
+      assignedTo: r.assignedTo ?? null,
+      createdBy: r.createdBy ?? null,
       metadata: r.metadata ?? undefined,
-      createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at),
+      createdAt: iso(r.createdAt),
+      updatedAt: iso(r.updatedAt),
     }));
   } catch {
     return [];
@@ -295,26 +287,24 @@ export async function createClinicTask(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('client_tasks')
-    .insert({
-      organization_id: workspace.id,
-      client_id: clientId,
+  const created = await prisma.clientTask.create({
+    data: {
+      organizationId: workspace.id,
+      clientId,
       title,
       description: description ?? null,
       status: status ?? 'todo',
       priority: priority ?? 'medium',
-      due_at: dueAt ? new Date(dueAt).toISOString() : null,
-      assigned_to: assignedTo ?? null,
-      created_by: createdBy ?? null,
+      dueAt: dueAt ? new Date(dueAt) : null,
+      assignedTo: assignedTo ?? null,
+      createdBy: createdBy ?? null,
       metadata: metadata ?? {},
-    })
-    .select('id')
-    .single();
+    },
+    select: { id: true },
+  });
 
-  if (error || !data?.id) throw new Error(error?.message || 'Failed to create task');
-  return { id: data.id };
+  if (!created?.id) throw new Error('Failed to create task');
+  return { id: created.id };
 }
 
 export async function updateClinicTask(params: {
@@ -327,24 +317,20 @@ export async function updateClinicTask(params: {
   if (!taskId) throw new Error('taskId is required');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
-
-  const supabase = createClient();
   const patch: any = {};
   if (updates.title !== undefined) patch.title = updates.title;
   if (updates.description !== undefined) patch.description = updates.description;
   if (updates.status !== undefined) patch.status = updates.status;
   if (updates.priority !== undefined) patch.priority = updates.priority;
-  if (updates.dueAt !== undefined) patch.due_at = updates.dueAt ? new Date(updates.dueAt).toISOString() : null;
-  if (updates.assignedTo !== undefined) patch.assigned_to = updates.assignedTo;
+  if (updates.dueAt !== undefined) patch.dueAt = updates.dueAt ? new Date(updates.dueAt) : null;
+  if (updates.assignedTo !== undefined) patch.assignedTo = updates.assignedTo;
   if (updates.metadata !== undefined) patch.metadata = updates.metadata;
 
-  const { error } = await supabase
-    .from('client_tasks')
-    .update(patch)
-    .eq('organization_id', workspace.id)
-    .eq('id', taskId);
+  await prisma.clientTask.updateMany({
+    where: { organizationId: workspace.id, id: taskId },
+    data: patch,
+  });
 
-  if (error) throw new Error(error.message);
   return { ok: true };
 }
 
@@ -357,35 +343,29 @@ export async function listClinicSessions(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
-    let query = supabase
-      .from('client_sessions')
-      .select(
-        'id, organization_id, client_id, start_at, end_at, status, session_type, location, summary, created_by, metadata, created_at, updated_at'
-      )
-      .eq('organization_id', workspace.id);
-
-    if (clientId) query = query.eq('client_id', clientId);
-
-    const { data, error } = await query.order('start_at', { ascending: false });
-    if (error) return [];
+    const data = await prisma.clientSession.findMany({
+      where: {
+        organizationId: workspace.id,
+        ...(clientId ? { clientId } : {}),
+      },
+      orderBy: { startAt: 'desc' },
+    });
 
     return (data || []).map((r: any) => ({
       id: r.id,
-      organizationId: r.organization_id,
-      clientId: r.client_id,
-      startAt: iso(r.start_at) as string,
-      endAt: iso(r.end_at) ?? null,
+      organizationId: r.organizationId,
+      clientId: r.clientId,
+      startAt: iso(r.startAt) as string,
+      endAt: iso(r.endAt) ?? null,
       status: r.status,
-      sessionType: r.session_type ?? null,
+      sessionType: r.sessionType ?? null,
       location: r.location ?? null,
       summary: r.summary ?? null,
-      createdBy: r.created_by ?? null,
+      createdBy: r.createdBy ?? null,
       metadata: r.metadata ?? undefined,
-      createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at),
+      createdAt: iso(r.createdAt),
+      updatedAt: iso(r.updatedAt),
     }));
   } catch {
     return [];
@@ -411,26 +391,24 @@ export async function createClinicSession(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('client_sessions')
-    .insert({
-      organization_id: workspace.id,
-      client_id: clientId,
-      start_at: new Date(startAt).toISOString(),
-      end_at: endAt ? new Date(endAt).toISOString() : null,
+  const created = await prisma.clientSession.create({
+    data: {
+      organizationId: workspace.id,
+      clientId,
+      startAt: new Date(startAt),
+      endAt: endAt ? new Date(endAt) : null,
       status: status ?? 'scheduled',
-      session_type: sessionType ?? null,
+      sessionType: sessionType ?? null,
       location: location ?? null,
       summary: summary ?? null,
-      created_by: createdBy ?? null,
+      createdBy: createdBy ?? null,
       metadata: metadata ?? {},
-    })
-    .select('id')
-    .single();
+    },
+    select: { id: true },
+  });
 
-  if (error || !data?.id) throw new Error(error?.message || 'Failed to create session');
-  return { id: data.id };
+  if (!created?.id) throw new Error('Failed to create session');
+  return { id: created.id };
 }
 
 export async function listClinicPortalContent(params: {
@@ -444,36 +422,30 @@ export async function listClinicPortalContent(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
-    let query = supabase
-      .from('client_portal_content')
-      .select(
-        'id, organization_id, client_id, kind, title, body, data, is_published, published_at, created_by, created_at, updated_at'
-      )
-      .eq('organization_id', workspace.id);
-
-    if (clientId) query = query.eq('client_id', clientId);
-    if (kind) query = query.eq('kind', kind);
-    if (onlyPublished) query = query.eq('is_published', true);
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-    if (error) return [];
+    const data = await prisma.clientPortalContent.findMany({
+      where: {
+        organizationId: workspace.id,
+        ...(clientId ? { clientId } : {}),
+        ...(kind ? { kind } : {}),
+        ...(onlyPublished ? { isPublished: true } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return (data || []).map((r: any) => ({
       id: r.id,
-      organizationId: r.organization_id,
-      clientId: r.client_id,
+      organizationId: r.organizationId,
+      clientId: r.clientId,
       kind: r.kind,
       title: r.title,
       body: r.body ?? null,
       data: r.data ?? undefined,
-      isPublished: r.is_published ?? null,
-      publishedAt: iso(r.published_at) ?? null,
-      createdBy: r.created_by ?? null,
-      createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at),
+      isPublished: r.isPublished ?? null,
+      publishedAt: iso(r.publishedAt) ?? null,
+      createdBy: r.createdBy ?? null,
+      createdAt: iso(r.createdAt),
+      updatedAt: iso(r.updatedAt),
     }));
   } catch {
     return [];
@@ -499,25 +471,23 @@ export async function createClinicPortalContent(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-  const { data: row, error } = await supabase
-    .from('client_portal_content')
-    .insert({
-      organization_id: workspace.id,
-      client_id: clientId,
+  const created = await prisma.clientPortalContent.create({
+    data: {
+      organizationId: workspace.id,
+      clientId,
       kind,
       title,
       body: body ?? null,
       data: data ?? {},
-      is_published: isPublished ?? false,
-      published_at: publishedAt ? new Date(publishedAt).toISOString() : null,
-      created_by: createdBy ?? null,
-    })
-    .select('id')
-    .single();
+      isPublished: isPublished ?? false,
+      publishedAt: publishedAt ? new Date(publishedAt) : null,
+      createdBy: createdBy ?? null,
+    },
+    select: { id: true },
+  });
 
-  if (error || !row?.id) throw new Error(error?.message || 'Failed to create portal content');
-  return { id: row.id };
+  if (!created?.id) throw new Error('Failed to create portal content');
+  return { id: created.id };
 }
 
 export async function listClinicFeedbacks(params: {
@@ -529,35 +499,24 @@ export async function listClinicFeedbacks(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-
   try {
-    let query = supabase
-      .from('client_feedbacks')
-      .select('id, organization_id, client_id, rating, comment, metadata, created_at, updated_at')
-      .eq('organization_id', workspace.id);
-
-    if (clientId) query = query.eq('client_id', clientId);
-
-    const { data, error } = await query.order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[listClinicFeedbacks] supabase error', {
-        message: error.message,
-        code: (error as any).code,
-      });
-      return [];
-    }
+    const data = await prisma.clientFeedback.findMany({
+      where: {
+        organizationId: workspace.id,
+        ...(clientId ? { clientId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
 
     return (data || []).map((r: any) => ({
       id: r.id,
-      organizationId: r.organization_id,
-      clientId: r.client_id,
+      organizationId: r.organizationId,
+      clientId: r.clientId,
       rating: r.rating,
       comment: r.comment ?? null,
       metadata: r.metadata ?? undefined,
-      createdAt: iso(r.created_at),
-      updatedAt: iso(r.updated_at),
+      createdAt: iso(r.createdAt),
+      updatedAt: iso(r.updatedAt),
     }));
   } catch (e: any) {
     console.error('[listClinicFeedbacks] unexpected error', {
@@ -581,19 +540,17 @@ export async function createClinicFeedback(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('client_feedbacks')
-    .insert({
-      organization_id: workspace.id,
-      client_id: clientId,
+  const created = await prisma.clientFeedback.create({
+    data: {
+      organizationId: workspace.id,
+      clientId,
       rating,
       comment: comment ?? null,
       metadata: metadata ?? {},
-    })
-    .select('id')
-    .single();
+    },
+    select: { id: true },
+  });
 
-  if (error || !data?.id) throw new Error(error?.message || 'Failed to create feedback');
-  return { id: data.id };
+  if (!created?.id) throw new Error('Failed to create feedback');
+  return { id: created.id };
 }

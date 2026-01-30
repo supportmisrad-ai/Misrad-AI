@@ -2,22 +2,22 @@
 import React from 'react';
 import { useData } from '../context/DataContext';
 import { TrendingUp, Users, DollarSign, Target, ArrowUpRight, BarChart3, Clock, Trophy } from 'lucide-react';
-import { LeadStatus } from '../types';
+import { Lead, LeadStatus } from '../types';
 import { motion } from 'framer-motion';
 
 export const SalesDashboard: React.FC = () => {
     const { leads, monthlyGoals } = useData();
 
     // Sales Calculations
-    const wonLeads = leads.filter(l => l.status === LeadStatus.WON);
-    const activeLeads = leads.filter(l => l.status !== LeadStatus.WON && l.status !== LeadStatus.LOST);
+    const wonLeads = leads.filter((l: Lead) => l.status === LeadStatus.WON);
+    const activeLeads = leads.filter((l: Lead) => l.status !== LeadStatus.WON && l.status !== LeadStatus.LOST);
     
-    const currentRevenue = wonLeads.reduce((acc, l) => acc + l.value, 0);
-    const pipelineValue = activeLeads.reduce((acc, l) => acc + l.value, 0);
+    const currentRevenue = wonLeads.reduce((acc: number, l: Lead) => acc + l.value, 0);
+    const pipelineValue = activeLeads.reduce((acc: number, l: Lead) => acc + l.value, 0);
     const targetRevenue = monthlyGoals.revenue || 100000;
     const progress = Math.min((currentRevenue / targetRevenue) * 100, 100);
     
-    const winRate = (wonLeads.length / (leads.filter(l => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1)) * 100;
+    const winRate = (wonLeads.length / (leads.filter((l: Lead) => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1)) * 100;
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(val);
 
@@ -114,7 +114,7 @@ export const SalesDashboard: React.FC = () => {
                         <button className="text-xs text-emerald-400 hover:text-emerald-300 font-bold whitespace-nowrap">לכל העסקאות</button>
                     </div>
                     <div className="space-y-3">
-                        {activeLeads.slice(0, 5).map(lead => (
+                        {activeLeads.slice(0, 5).map((lead: Lead) => (
                             <div key={lead.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-emerald-500/50 transition-colors group cursor-pointer">
                                 <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-slate-300 text-sm">

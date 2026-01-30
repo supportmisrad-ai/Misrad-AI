@@ -6,6 +6,15 @@ import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function isUuidLike(value: string | null | undefined): boolean {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
+}
+
 /**
  * POST /api/webhooks/zapier
  * Receives webhook from Zapier
@@ -19,10 +28,10 @@ async function POSTHandler(request: NextRequest) {
 
     // Zero-trust: require valid signature in production
     const secret = process.env.ZAPIER_WEBHOOK_SECRET;
-    if (process.env.NODE_ENV === 'production') {
+    if (IS_PROD) {
       if (!secret) {
-        console.error('Missing ZAPIER_WEBHOOK_SECRET env var');
-        return NextResponse.json({ error: 'Server misconfigured (missing ZAPIER_WEBHOOK_SECRET)' }, { status: 500 });
+        console.error('Webhook secret is not configured');
+        return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
       }
       if (!signature) {
         return NextResponse.json({ error: 'Missing x-zapier-signature' }, { status: 401 });
@@ -102,9 +111,7 @@ async function POSTHandler(request: NextRequest) {
       const key = String(orgKey || '').trim();
       if (!key) return null;
       const row = await prisma.social_organizations.findFirst({
-        where: {
-          OR: [{ id: key }, { slug: key }],
-        },
+        where: isUuidLike(key) ? { OR: [{ id: key }, { slug: key }] } : { slug: key },
         select: { id: true },
       });
       return row?.id ? String(row.id) : null;
@@ -155,8 +162,8 @@ async function POSTHandler(request: NextRequest) {
       });
 
       if (existing?.id) {
-        const updated = await prisma.systemLead.update({
-          where: { id: existing.id },
+        const updated = await prisma.systemLead.updateMany({
+          where: { id: existing.id, organizationId },
           data: {
             name,
             phone,
@@ -164,9 +171,13 @@ async function POSTHandler(request: NextRequest) {
             source: source || undefined,
             lastContact: now,
           },
-          select: { id: true },
         });
-        return NextResponse.json({ success: true, leadId: updated.id, created: false }, { status: 200 });
+
+        if (!updated.count) {
+          return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+        }
+
+        return NextResponse.json({ success: true, leadId: existing.id, created: false }, { status: 200 });
       }
 
       const created = await prisma.systemLead.create({
@@ -186,11 +197,6 @@ async function POSTHandler(request: NextRequest) {
     }
 
     // Log the webhook
-    console.log('Zapier webhook received:', {
-      eventType,
-      body: JSON.stringify(body),
-    });
-
     // Return success
     return NextResponse.json({
       success: true,
@@ -198,9 +204,10 @@ async function POSTHandler(request: NextRequest) {
       event_type: eventType,
     });
   } catch (error: any) {
-    console.error('Zapier webhook error:', error);
+    if (!IS_PROD) console.error('Zapier webhook error:', error);
+    else console.error('Zapier webhook error');
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: IS_PROD ? 'Internal server error' : (error?.message || 'Internal server error') },
       { status: 500 }
     );
   }

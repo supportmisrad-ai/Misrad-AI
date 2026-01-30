@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Video, Plus, Edit2, Save, X, Trash2, Upload, Play, 
@@ -28,16 +28,6 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
     
     // Load videos from settings or use default
     const [videos, setVideos] = useState<LandingPageVideo[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('landing_page_videos');
-            if (saved) {
-                try {
-                    return JSON.parse(saved);
-                } catch (e) {
-                    console.error('Error loading videos:', e);
-                }
-            }
-        }
         // Default videos
         return [
             {
@@ -115,6 +105,28 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
         ];
     });
 
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const data = await res.json().catch(() => null);
+                if (cancelled) return;
+                const dbVideos = Array.isArray(data?.videos) ? data.videos : null;
+                if (dbVideos) {
+                    setVideos(dbVideos as any);
+                }
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const [editingVideo, setEditingVideo] = useState<string | null>(null);
     const [editedVideo, setEditedVideo] = useState<LandingPageVideo | null>(null);
     const [isAddingVideo, setIsAddingVideo] = useState(false);
@@ -134,11 +146,23 @@ export const LandingPageVideosPanel: React.FC<{ hideHeader?: boolean }> = ({ hid
 
     const saveVideos = (updatedVideos: LandingPageVideo[]) => {
         setVideos(updatedVideos);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('landing_page_videos', JSON.stringify(updatedVideos));
-        }
-        updateSettings('landingPageVideos', updatedVideos);
-        addToast('סרטונים עודכנו בהצלחה!', 'success');
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ videos: updatedVideos }),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.error || 'שגיאה בשמירה');
+                }
+                updateSettings('landingPageVideos', updatedVideos);
+                addToast('סרטונים עודכנו בהצלחה!', 'success');
+            } catch (e: any) {
+                addToast(e?.message || 'שגיאה בשמירה', 'error');
+            }
+        })();
     };
 
     const handleSaveVideo = () => {

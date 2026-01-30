@@ -40,7 +40,7 @@ export default function FinanceMarketingPage() {
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-emerald-600 text-white font-bold shadow-xl shadow-emerald-600/15 hover:bg-emerald-500"
               >
-                התחל ניסיון חינם
+                התחל ניסיון חינם (בלי כרטיס)
               </Link>
               <Link
                 href="/subscribe/checkout?package=solo&module=finance&billing=monthly"

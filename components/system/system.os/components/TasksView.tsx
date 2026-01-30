@@ -51,7 +51,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onStatusChange }) => {
     
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
-    useOnClickOutside(menuRef, () => setIsMenuOpen(false));
+    useOnClickOutside<HTMLDivElement>(menuRef, () => setIsMenuOpen(false));
 
     const handleDragStart = (e: React.DragEvent) => {
         e.dataTransfer.setData('taskId', task.id);

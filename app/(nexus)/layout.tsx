@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSystemMetadata } from '@/lib/metadata';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
 
 // Force dynamic rendering as this layout depends on authentication
 export const dynamic = 'force-dynamic';
@@ -16,18 +17,6 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   ...getSystemMetadata('nexus'),
-  icons: {
-    icon: [
-      { url: '/icons/nexus-icon.svg', type: 'image/svg+xml' },
-    ],
-    apple: '/icons/nexus-icon.svg',
-    shortcut: '/icons/nexus-icon.svg',
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'theme-color': '#3730A3',
-  },
 };
 
 export default async function NexusLayout({
@@ -65,6 +54,16 @@ export default async function NexusLayout({
     redirect('/sign-in');
   }
 
-  return <>{children}</>;
+  const def = getModuleDefinition('nexus');
+  const style = {
+    '--os-accent': def.theme.accent,
+    '--os-bg': def.theme.background,
+  } as React.CSSProperties;
+
+  return (
+    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
+      {children}
+    </div>
+  );
 }
 

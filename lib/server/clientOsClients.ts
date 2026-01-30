@@ -1,21 +1,22 @@
 'use server';
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient as createSupabaseClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 export async function getClientOsClients(request: NextRequest) {
   try {
     const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
     if (!orgIdFromHeader) {
-      return NextResponse.json({ clients: [] });
+      return apiSuccess({ clients: [] });
     }
 
     try {
       await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+      return apiError(e, { status, message: e?.message || 'Forbidden' });
     }
 
     const supabaseClient = createSupabaseClient();
@@ -27,7 +28,7 @@ export async function getClientOsClients(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ clients: [] });
+      return apiSuccess({ clients: [] });
     }
 
     const clients = (data || []).map((row: any) => {
@@ -84,8 +85,8 @@ export async function getClientOsClients(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ clients });
+    return apiSuccess({ clients });
   } catch {
-    return NextResponse.json({ clients: [] });
+    return apiSuccess({ clients: [] });
   }
 }

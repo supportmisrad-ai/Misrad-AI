@@ -62,7 +62,9 @@ export interface Lead {
   subscriptionEndDate?: Date;
   productInterest?: ProductType;
   nextActionDate?: Date | null;
+  nextActionDateSuggestion?: Date | null;
   nextActionNote?: string | null;
+  nextActionDateRationale?: string | null;
   
   score: number;
   playbookStep?: string;
@@ -284,6 +286,16 @@ export interface OnboardingTask {
   itemId?: string;
 }
 
+export interface CallAnalysisTask {
+  title: string;
+  dueAtSuggestion: string | null;
+  dueAtConfidence: number;
+  dueAtRationale: string;
+  confirmedDueAt?: string | null;
+  systemTaskId?: string | null;
+  dismissed?: boolean;
+}
+
 export interface CallAnalysisResult {
   id: string;
   fileName: string;
@@ -312,7 +324,7 @@ export interface CallAnalysisResult {
     slang: string[];
     stories: string[];
     decisions: string[];
-    tasks: string[];
+    tasks: Array<string | CallAnalysisTask>;
   };
   feedback: {
     positive: string[];

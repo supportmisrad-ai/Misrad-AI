@@ -1,4 +1,4 @@
-import { getSystemTasks } from '@/app/actions/system-tasks';
+import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import SystemTasksClient from './SystemTasksClient';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +10,7 @@ export default async function SystemTasksPage({
 }) {
   const { orgSlug } = await params;
 
-  const initialTasks = await getSystemTasks({ orgSlug, take: 500 });
+  const list = await listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 200 });
 
-  return <SystemTasksClient orgSlug={orgSlug} initialTasks={initialTasks} />;
+  return <SystemTasksClient orgSlug={orgSlug} initialTasks={list.tasks} />;
 }

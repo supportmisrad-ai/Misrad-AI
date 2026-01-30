@@ -2,6 +2,21 @@
 
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { queryRawOrgScoped } from '@/lib/prisma';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function normalizeTags(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((t) => String(t)).filter(Boolean);
+  const obj = asObject(value);
+  const v = obj?.value;
+  if (Array.isArray(v)) return v.map((t) => String(t)).filter(Boolean);
+  return [];
+}
 
 export type SystemCampaignDTO = {
   id: string;
@@ -29,61 +44,67 @@ export type SystemTaskDTO = {
   created_at: string;
 };
 
-function toSystemCampaignDto(row: any): SystemCampaignDTO {
+function toSystemCampaignDto(row: unknown): SystemCampaignDTO {
+  const obj = asObject(row) ?? {};
   return {
-    id: String(row.id),
-    name: String(row.name || ''),
-    platform: String(row.platform || ''),
-    status: String(row.status || ''),
-    budget: Number(row.budget ?? 0),
-    spent: Number(row.spent ?? 0),
-    leads: Number(row.leads ?? 0),
-    cpl: Number(row.cpl ?? 0),
-    roas: Number(row.roas ?? 0),
-    impressions: Number(row.impressions ?? 0),
-    created_at: new Date(row.createdAt || row.created_at || new Date()).toISOString(),
+    id: String(obj.id ?? ''),
+    name: String(obj.name ?? ''),
+    platform: String(obj.platform ?? ''),
+    status: String(obj.status ?? ''),
+    budget: Number(obj.budget ?? 0),
+    spent: Number(obj.spent ?? 0),
+    leads: Number(obj.leads ?? 0),
+    cpl: Number(obj.cpl ?? 0),
+    roas: Number(obj.roas ?? 0),
+    impressions: Number(obj.impressions ?? 0),
+    created_at: new Date(String(obj.createdAt ?? obj.created_at ?? new Date().toISOString())).toISOString(),
   };
 }
 
-async function listSystemTasksInOrganization(params: { organizationId: string; take: number }): Promise<any[]> {
+async function listSystemTasksInOrganization(params: { organizationId: string; take: number }): Promise<unknown[]> {
   const safeTake = Math.max(1, Math.min(500, Math.floor(params.take)));
 
-  const rows = await prisma.$queryRaw<any[]>`
-    SELECT
-      t.id,
-      t.title,
-      t.description,
-      t.assignee_id,
-      t.due_date,
-      t.priority,
-      t.status,
-      t.tags,
-      t.created_at,
-      t.updated_at
-    FROM system_tasks t
-    JOIN profiles p ON p.id = t.assignee_id
-    WHERE p.organization_id = ${params.organizationId}::uuid
-    ORDER BY t.due_date ASC, t.created_at DESC
-    LIMIT ${safeTake}
-  `;
+  const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+    organizationId: params.organizationId,
+    reason: 'system_reports_list_system_tasks',
+    query: `
+      SELECT
+        t.id,
+        t.title,
+        t.description,
+        t.assignee_id,
+        t.due_date,
+        t.priority,
+        t.status,
+        t.tags,
+        t.created_at,
+        t.updated_at
+      FROM system_tasks t
+      JOIN profiles p ON p.id = t.assignee_id
+      WHERE p.organization_id = $1::uuid
+      ORDER BY t.due_date ASC, t.created_at DESC
+      LIMIT $2::int
+    `,
+    values: [params.organizationId, safeTake],
+  });
 
   return Array.isArray(rows) ? rows : [];
 }
 
-function toSystemTaskDto(row: any): SystemTaskDTO {
-  const tags = Array.isArray(row.tags) ? row.tags : Array.isArray(row.tags?.value) ? row.tags.value : row.tags;
-  const normalizedTags = Array.isArray(tags) ? tags.map((t: any) => String(t)).filter(Boolean) : [];
+function toSystemTaskDto(row: unknown): SystemTaskDTO {
+  const obj = asObject(row) ?? {};
+  const normalizedTags = normalizeTags(obj.tags);
 
   return {
-    id: String(row.id),
-    title: String(row.title || ''),
-    description: row.description == null ? null : String(row.description),
-    assignee_id: String(row.assignee_id || ''),
-    due_date: new Date(row.due_date || new Date()).toISOString(),
-    priority: String(row.priority || ''),
-    status: String(row.status || ''),
+    id: String(obj.id ?? ''),
+    title: String(obj.title ?? ''),
+    description: obj.description == null ? null : String(obj.description),
+    assignee_id: String(obj.assignee_id ?? ''),
+    due_date: new Date(String(obj.due_date ?? new Date().toISOString())).toISOString(),
+    priority: String(obj.priority ?? ''),
+    status: String(obj.status ?? ''),
     tags: normalizedTags,
-    created_at: new Date(row.created_at || new Date()).toISOString(),
+    created_at: new Date(String(obj.created_at ?? new Date().toISOString())).toISOString(),
   };
 }
 

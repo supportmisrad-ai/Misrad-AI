@@ -5,13 +5,24 @@ import Link from 'next/link';
 import { Compass } from 'lucide-react';
 
 import type { OperationsDashboardData } from '@/app/actions/operations';
+import type { OperationsInventoryOption } from '@/app/actions/operations';
 
 export function OperationsDashboard({
   orgSlug,
   initialData,
+  initialInventoryOptions,
+  activeVehicleName,
+  onQuickAddStockAction,
+  onQuickCreateItemAction,
+  flash,
 }: {
   orgSlug: string;
   initialData?: OperationsDashboardData;
+  initialInventoryOptions: OperationsInventoryOption[];
+  activeVehicleName: string | null;
+  onQuickAddStockAction: (formData: FormData) => Promise<void>;
+  onQuickCreateItemAction: (formData: FormData) => Promise<void>;
+  flash: string | null;
 }) {
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
   const tourUrl = `/w/${encodeURIComponent(orgSlug)}/nexus?tour=1`;
@@ -30,6 +41,7 @@ export function OperationsDashboard({
 
   const recentProjects = initialData?.recentProjects || [];
   const inventory = initialData?.inventorySummary;
+  const inventoryOptions = initialInventoryOptions || [];
 
   const inventoryStatus = React.useMemo(() => {
     const total = inventory?.total ?? 0;
@@ -43,6 +55,157 @@ export function OperationsDashboard({
 
   return (
     <div className="mx-auto w-full max-w-6xl">
+      {flash ? (
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 text-sm font-black text-slate-900">
+          {flash}
+        </div>
+      ) : null}
+
+      <div className="mb-6 rounded-[1.5rem] bg-white/80 backdrop-blur border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-sm font-black text-slate-900">התחלה מהירה · שטח</div>
+              <div className="text-xs text-slate-500 mt-1">המטרה: להגיע מהר ל"יש לך את זה ברכב" ולהוריד מלאי מהקריאה.</div>
+            </div>
+            <Link
+              href={`${base}/settings`}
+              className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-xs font-bold bg-white/80 border border-slate-200 hover:bg-white transition-colors"
+            >
+              הגדרות תפעול
+            </Link>
+          </div>
+        </div>
+        <div className="p-5">
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="text-xs font-black text-slate-700">יצירת פריט חדש</div>
+            <div className="text-xs text-slate-500 mt-1">שם + מק"ט/יחידה (אופציונלי). לאחר מכן תוכל לקלוט לרכב.</div>
+
+            <form action={onQuickCreateItemAction} className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="md:col-span-2">
+                <input
+                  name="name"
+                  required
+                  placeholder={'שם פריט'}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                />
+              </div>
+              <div>
+                <input
+                  name="sku"
+                  placeholder={'מק"ט (אופציונלי)'}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                />
+              </div>
+              <div>
+                <input
+                  name="unit"
+                  placeholder={'יחידה (אופציונלי)'}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                />
+              </div>
+              <div className="md:col-span-4">
+                <button
+                  type="submit"
+                  className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors"
+                >
+                  צור פריט
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-xs font-black text-slate-700">קליטת מלאי לרכב הפעיל</div>
+                <div className="text-xs text-slate-500 mt-1">
+                  {activeVehicleName ? `רכב פעיל: ${activeVehicleName}` : 'אין רכב פעיל – הגדירו רכב פעיל ואז קליטת מלאי.'}
+                </div>
+              </div>
+              <Link
+                href={`${base}/me`}
+                className="inline-flex items-center justify-center rounded-2xl px-3 py-2 text-xs font-black bg-white/80 border border-slate-200 hover:bg-white transition-colors"
+              >
+                אזור אישי
+              </Link>
+            </div>
+
+            <form action={onQuickAddStockAction} className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="md:col-span-2">
+                <select
+                  name="itemId"
+                  required
+                  defaultValue={inventoryOptions.length ? String(inventoryOptions[0].itemId) : ''}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                >
+                  {inventoryOptions.length ? (
+                    inventoryOptions.map((o) => (
+                      <option key={o.itemId} value={o.itemId}>
+                        {o.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="">אין פריטים – הוסף פריט/מלאי קודם</option>
+                  )}
+                </select>
+              </div>
+              <div>
+                <input
+                  name="qty"
+                  type="number"
+                  step="0.001"
+                  min="0.001"
+                  placeholder={'כמות'}
+                  required
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                />
+              </div>
+              <div>
+                <button
+                  type="submit"
+                  disabled={!activeVehicleName || !inventoryOptions.length}
+                  className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  קלוט לרכב
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-black text-slate-700">1) רכב</div>
+              <div className="text-sm text-slate-600 mt-1">הוסף רכב וודא רכב פעיל.</div>
+              <Link href={`${base}/settings`} className="mt-3 inline-flex text-xs font-black text-slate-900 hover:underline">
+                פתח הגדרות
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-black text-slate-700">2) פריט + כמות</div>
+              <div className="text-sm text-slate-600 mt-1">הוסף פריט והכנס מלאי לרכב.</div>
+              <Link href={`${base}/inventory`} className="mt-3 inline-flex text-xs font-black text-slate-900 hover:underline">
+                למסך מלאי
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-black text-slate-700">3) קריאה ראשונה</div>
+              <div className="text-sm text-slate-600 mt-1">פתח קריאה לשטח.</div>
+              <Link href={`${base}/work-orders/new`} className="mt-3 inline-flex text-xs font-black text-slate-900 hover:underline">
+                צור קריאה
+              </Link>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-xs font-black text-slate-700">4) הורד מלאי</div>
+              <div className="text-sm text-slate-600 mt-1">בקריאה, בטאב "חומרים" הוסף חומר.</div>
+              <Link href={`${base}/work-orders`} className="mt-3 inline-flex text-xs font-black text-slate-900 hover:underline">
+                לקריאות
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {showTourPrompt && (
         <div className="mb-6 rounded-[1.5rem] bg-white/80 backdrop-blur border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

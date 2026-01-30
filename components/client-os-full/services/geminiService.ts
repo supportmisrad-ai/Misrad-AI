@@ -1,11 +1,11 @@
 
 import { MeetingAnalysisResult, WorkflowBlueprint, FormTemplate } from "../types";
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 const getOrgHeaders = () => {
-  const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+  const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
   const headers: Record<string, string> = {};
-  if (orgId) headers['x-org-id'] = orgId;
+  if (orgSlug) headers['x-org-id'] = orgSlug;
   return headers;
 };
 

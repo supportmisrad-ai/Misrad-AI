@@ -3,6 +3,7 @@ export type OSModuleKey = 'nexus' | 'system' | 'social' | 'finance' | 'client' |
 export type OSThemeTokens = {
   accent: string;
   background: string;
+  gradient?: string;
 };
 
 export type OSModuleDefinition = {

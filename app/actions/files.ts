@@ -5,6 +5,22 @@ import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import prisma from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string {
+  if (!error) return '';
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -29,7 +45,12 @@ async function ensureBucketExists(supabase: ReturnType<typeof createClient>, buc
     throw new Error(listError.message || 'Failed to list storage buckets');
   }
 
-  const exists = Array.isArray(buckets) && buckets.some((b: any) => String(b?.name || '') === bucketName);
+  const exists =
+    Array.isArray(buckets) &&
+    (buckets as unknown[]).some((b) => {
+      const obj = asObject(b);
+      return String(obj?.name || '') === bucketName;
+    });
   if (exists) return;
 
   const { error: createError } = await supabase.storage.createBucket(bucketName, { public: false });
@@ -78,10 +99,27 @@ export async function uploadFile(
 
     const supabase = createClient();
 
+    let organizationId: string | null = null;
+    try {
+      const where = {
+        OR: [{ id: String(supabaseUserId) }, { clerkUserId: String(userId) }],
+      } satisfies Prisma.ProfileWhereInput;
+
+      const profile = await prisma.profile.findFirst({
+        where,
+        select: { organizationId: true },
+      });
+      const rawOrgId = profile?.organizationId;
+      organizationId = rawOrgId ? String(rawOrgId) : null;
+    } catch {
+      organizationId = null;
+    }
+
     // Generate unique file name: {userId}/{folder}/{timestamp}-{originalName}
     const timestamp = Date.now();
     const sanitizedFileName = String(fileName ?? '').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${supabaseUserId}/${folder}/${timestamp}-${sanitizedFileName}`;
+    const basePrefix = organizationId ? `${organizationId}/users/${supabaseUserId}` : `${supabaseUserId}`;
+    const filePath = `${basePrefix}/${folder}/${timestamp}-${sanitizedFileName}`;
 
     // Convert File/Blob to ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
@@ -97,7 +135,7 @@ export async function uploadFile(
 
     if (error) {
       console.error('Storage upload error:', error);
-      const raw = String((error as any)?.message || '').toLowerCase();
+      const raw = String(error.message || '').toLowerCase();
       if (raw.includes('bucket') && raw.includes('not') && raw.includes('found')) {
         return {
           success: false,
@@ -121,7 +159,7 @@ export async function uploadFile(
     const { data: signedData } = await supabase.storage
       .from('media')
       .createSignedUrl(filePath, 60 * 60)
-      .catch(() => ({ data: null as any }));
+      .catch(() => ({ data: null }));
 
     const signedUrl = signedData?.signedUrl ? String(signedData.signedUrl) : undefined;
 
@@ -132,11 +170,11 @@ export async function uploadFile(
       path: filePath,
       bucket: 'media',
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error uploading file:', error);
     return { 
       success: false, 
-      error: translateError(error.message || 'שגיאה בהעלאת הקובץ') 
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה בהעלאת הקובץ') 
     };
   }
 }
@@ -167,7 +205,7 @@ export async function uploadCallRecordingFile(
       return { success: false, error: 'הקובץ גדול מדי (מקסימום 200MB)' };
     }
 
-    const fileType = String((file as any)?.type || '');
+    const fileType = String(file.type || '');
     if (!fileType.startsWith('audio/')) {
       return { success: false, error: 'סוג קובץ לא נתמך. מותר: קבצי אודיו בלבד (MP3/WAV/M4A וכו׳).' };
     }
@@ -190,7 +228,7 @@ export async function uploadCallRecordingFile(
 
     if (error) {
       console.error('Storage upload error:', error);
-      const raw = String((error as any)?.message || '').toLowerCase();
+      const raw = String(error.message || '').toLowerCase();
       if (raw.includes('permission') || raw.includes('not authorized') || raw.includes('rls') || raw.includes('row-level')) {
         return {
           success: false,
@@ -204,7 +242,7 @@ export async function uploadCallRecordingFile(
     const { data: signedData } = await supabase.storage
       .from(CALL_RECORDINGS_BUCKET)
       .createSignedUrl(filePath, 60 * 60)
-      .catch(() => ({ data: null as any }));
+      .catch(() => ({ data: null }));
 
     const signedUrl = signedData?.signedUrl ? String(signedData.signedUrl) : undefined;
 
@@ -215,9 +253,9 @@ export async function uploadCallRecordingFile(
       path: filePath,
       bucket: CALL_RECORDINGS_BUCKET,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error uploading call recording:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בהעלאת הקובץ') };
+    return { success: false, error: translateError(getUnknownErrorMessage(error) || 'שגיאה בהעלאת הקובץ') };
   }
 }
 
@@ -247,11 +285,11 @@ export async function deleteFile(filePath: string): Promise<{ success: boolean; 
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error deleting file:', error);
     return { 
       success: false, 
-      error: translateError(error.message || 'שגיאה במחיקת הקובץ') 
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת הקובץ') 
     };
   }
 }

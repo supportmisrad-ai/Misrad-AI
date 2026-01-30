@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState } from 'react';
 import { Cycle, CycleStatus, Client } from '../types';

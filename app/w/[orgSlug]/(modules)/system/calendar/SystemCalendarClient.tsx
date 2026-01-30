@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CalendarView from '@/components/system/system.os/components/CalendarView';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
 import type { Lead, CalendarEvent } from '@/components/system/types';
-import { createSystemCalendarEvent, type SystemCalendarEventDTO } from '@/app/actions/system-leads';
+import { createSystemCalendarEvent, getSystemCalendarEventsRange, type SystemCalendarEventDTO } from '@/app/actions/system-leads';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
@@ -38,6 +38,9 @@ export default function SystemCalendarClient({
 }) {
   const { addToast } = useToast();
   const [events, setEvents] = useState<CalendarEvent[]>(() => initialEvents.map(mapDtoToCalendarEvent));
+  const [focusDate, setFocusDate] = useState<Date>(() => new Date());
+  const [range, setRange] = useState<{ from: Date; to: Date } | null>(null);
+  const [isLoadingRange, setIsLoadingRange] = useState(false);
   const [showNewMeetingModal, setShowNewMeetingModal] = useState(false);
   const [meetingPreselectLeadId, setMeetingPreselectLeadId] = useState<string>('');
   const [showNewEventModal, setShowNewEventModal] = useState(false);
@@ -87,6 +90,34 @@ export default function SystemCalendarClient({
     setEvents((prev) => [mapDtoToCalendarEvent(res.event), ...prev]);
     addToast('האירוע נשמר', 'success');
   };
+
+  useEffect(() => {
+    if (!range) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setIsLoadingRange(true);
+        const rows = await getSystemCalendarEventsRange({
+          orgSlug,
+          from: range.from.toISOString(),
+          to: range.to.toISOString(),
+          take: 500,
+        });
+        if (cancelled) return;
+        setEvents((rows || []).map(mapDtoToCalendarEvent));
+      } catch (e: any) {
+        if (cancelled) return;
+        addToast(e?.message || 'שגיאה בטעינת אירועים', 'error');
+      } finally {
+        if (!cancelled) setIsLoadingRange(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addToast, orgSlug, range]);
 
   useEffect(() => {
     const onNewMeeting = () => {
@@ -152,11 +183,20 @@ export default function SystemCalendarClient({
         leads={leads as any}
         events={events as any}
         onAddEvent={(event) => void handleAddEvent(event as any)}
+        focusDate={focusDate}
+        onFocusDateChange={(d) => setFocusDate(d)}
+        onRangeChange={(r) => setRange(r)}
         onNewMeetingClick={() => {
           setMeetingPreselectLeadId('');
           setShowNewMeetingModal(true);
         }}
       />
+
+      {isLoadingRange ? (
+        <div className="fixed bottom-6 left-6 z-[120] bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-2xl text-xs font-black shadow-lg">
+          טוען אירועים...
+        </div>
+      ) : null}
 
       {showNewMeetingModal ? (
         <NewMeetingModal

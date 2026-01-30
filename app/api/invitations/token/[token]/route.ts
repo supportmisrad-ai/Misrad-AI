@@ -5,9 +5,10 @@
  * Gets invitation link details (for form page)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../../lib/supabase';
+import { NextRequest } from 'next/server';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
+import { createClient } from '@/lib/supabase';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(
@@ -15,20 +16,17 @@ async function GETHandler(
     { params }: { params: Promise<{ token: string }> }
 ) {
     try {
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
+        let supabase: any;
+        try {
+            supabase = createClient();
+        } catch {
+            return apiError('Database not configured', { status: 500 });
         }
 
         const { token } = await params;
 
         if (!token || token === 'undefined' || token === 'null') {
-            return NextResponse.json(
-                { error: 'קישור לא תקין' },
-                { status: 400 }
-            );
+            return apiError('קישור לא תקין', { status: 400 });
         }
 
         const ip = getClientIpFromRequest(request);
@@ -39,15 +37,12 @@ async function GETHandler(
             windowMs: 10 * 60 * 1000,
         });
         if (!rl.ok) {
-            return NextResponse.json(
-                { error: 'Too many requests' },
-                {
-                    status: 429,
-                    headers: {
-                        'Retry-After': String(rl.retryAfterSeconds),
-                    },
-                }
-            );
+            return apiError('Too many requests', {
+                status: 429,
+                headers: {
+                    'Retry-After': String(rl.retryAfterSeconds),
+                },
+            });
         }
 
         // Get invitation link - use limit(1) to avoid single() coercion error
@@ -80,37 +75,38 @@ async function GETHandler(
             console.error('[API] Error fetching invitation:', error);
             // Return more specific error message
             const errorMessage = error.message || 'שגיאה בטעינת הקישור';
-            return NextResponse.json(
-                { 
-                    error: errorMessage,
-                    details: error.code || 'UNKNOWN_ERROR'
-                },
-                { status: 500 }
-            );
+            return apiError(errorMessage, { status: 500 });
         }
 
         if (!invitations || invitations.length === 0) {
-                return NextResponse.json(
-                { error: 'קישור לא נמצא' },
-                    { status: 404 }
-                );
-            }
+            return apiError('קישור לא נמצא', { status: 404 });
+        }
 
         const invitation = invitations[0];
 
         // Check if link is used FIRST - show completion message
         if (invitation.is_used) {
-            return NextResponse.json(
-                { 
-                    error: 'הטופס כבר הושלם',
-                    used: true,
-                    usedAt: invitation.used_at,
+            return apiSuccess({
+                invitation: {
+                    token,
+                    isUsed: true,
                     completed: true,
+                    usedAt: invitation.used_at,
                     companyName: invitation.company_name,
-                    ceoName: invitation.ceo_name
+                    ceoName: invitation.ceo_name,
+                    prefill: {
+                        ceoName: '',
+                        ceoEmail: '',
+                        ceoPhone: '',
+                        companyName: '',
+                        companyId: '',
+                        companyLogo: '',
+                        companyAddress: '',
+                        companyWebsite: '',
+                        additionalNotes: '',
+                    },
                 },
-                { status: 410 } // 410 Gone
-            );
+            });
         }
 
         // Check if link is expired
@@ -118,31 +114,17 @@ async function GETHandler(
             const expiresAt = new Date(invitation.expires_at);
             const now = new Date();
             if (now > expiresAt) {
-                return NextResponse.json(
-                    { 
-                        error: 'קישור זה פג תוקף',
-                        expired: true,
-                        expiresAt: invitation.expires_at
-                    },
-                    { status: 410 } // 410 Gone
-                );
+                return apiError('קישור זה פג תוקף', { status: 410 });
             }
         }
 
         // Check if link is active
         if (!invitation.is_active) {
-            return NextResponse.json(
-                { 
-                    error: 'קישור זה אינו פעיל',
-                    active: false
-                },
-                { status: 403 }
-            );
+            return apiError('קישור זה אינו פעיל', { status: 403 });
         }
 
         // Return invitation details (without sensitive data)
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             invitation: {
                 token: invitation.token,
                 expiresAt: invitation.expires_at,
@@ -164,10 +146,7 @@ async function GETHandler(
 
     } catch (error: any) {
         console.error('[API] Error getting invitation link:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בטעינת הקישור' },
-            { status: 500 }
-        );
+        return apiError(error, { status: 500, message: error.message || 'שגיאה בטעינת הקישור' });
     }
 }
 

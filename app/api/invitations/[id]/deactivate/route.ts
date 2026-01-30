@@ -5,13 +5,32 @@
  * Deactivates an invitation link
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../../lib/auth';
-import { getUsers } from '../../../../../lib/db';
-import { supabase } from '../../../../../lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -22,59 +41,38 @@ async function POSTHandler(
         try {
             clerkUser = await getAuthenticatedUser();
         } catch (authError: any) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return apiError('Unauthorized', { status: 401 });
         }
 
         try {
             await requireSuperAdmin();
         } catch (e: any) {
-            return NextResponse.json(
-                { error: e?.message || 'Forbidden - Super Admin required' },
-                { status: 403 }
-            );
+            return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
         }
 
         if (!clerkUser.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const { workspace } = await getWorkspaceOrThrow(request);
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        let supabaseClient: any;
+        try {
+            supabaseClient = createClient();
+        } catch {
+            return apiError('Database not configured', { status: 500 });
+        }
 
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUserId = await selectDbUserId({ supabase: supabaseClient, workspaceId: workspace.id, email: clerkUser.email });
 
-        if (!user) {
-            return NextResponse.json(
-                { error: 'User not found in database. Please sync your account first.' },
-                { status: 404 }
-            );
+        if (!dbUserId) {
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
         // Super admin already validated above
 
         const { id } = await params;
-
-        // 3. Deactivate invitation (use Supabase directly since updateRecord doesn't support invitation_links)
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const supabaseClient = supabase;
 
         const patch = {
             is_active: false,
@@ -89,37 +87,22 @@ async function POSTHandler(
 
         let updateError = (byOrg as any)?.error;
         if (updateError?.code === '42703') {
-            const byTenant = await supabaseClient
-                .from('system_invitation_links')
-                .update(patch)
-                .eq('id', id)
-                .eq('tenant_id', workspace.id);
-            updateError = (byTenant as any)?.error;
-            if (updateError?.code === '42703') {
-                return NextResponse.json({ success: true, message: 'Invitation link deactivated' });
-            }
-            updateError = (byTenant as any).error;
+            return apiError('[SchemaMismatch] system_invitation_links is missing organization_id', { status: 500 });
         }
         
         if (updateError) {
             console.error('[API] Error deactivating invitation:', updateError);
-            return NextResponse.json(
-                { error: 'Failed to deactivate invitation' },
-                { status: 500 }
-            );
+            return apiError('Failed to deactivate invitation', { status: 500 });
         }
 
-        return NextResponse.json({
-            success: true,
-            message: 'Invitation link deactivated'
-        });
+        return apiSuccess({ message: 'Invitation link deactivated' });
 
     } catch (error: any) {
         console.error('[API] Error deactivating invitation:', error);
-        return NextResponse.json(
-            { error: error.message || 'Failed to deactivate invitation' },
-            { status: 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'Failed to deactivate invitation' });
     }
 }
 

@@ -4,31 +4,131 @@
  * Handles CRUD operations for team events (training, fun days, group meetings, etc.)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser } from '../../../lib/auth';
-import { supabase } from '../../../lib/supabase';
-import { getUsers, createRecord } from '../../../lib/db';
 import { TeamEvent } from '../../../types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
+    const v = obj[key];
+    return typeof v === 'string' ? v : String(v ?? fallback);
+}
+
+function getNullableString(obj: Record<string, unknown>, key: string): string | null {
+    const v = obj[key];
+    if (v == null) return null;
+    return typeof v === 'string' ? v : String(v);
+}
+
+type DbUser = {
+    id: string;
+    name: string;
+    role: string;
+    isSuperAdmin: boolean;
+    tenantId?: string | null;
+};
+
+function mapNexusUserRow(row: unknown): DbUser {
+    const obj = asObject(row) ?? {};
+    return {
+        id: getString(obj, 'id'),
+        name: getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))),
+        role: getString(obj, 'role', 'עובד'),
+        isSuperAdmin: Boolean(obj['is_super_admin'] ?? obj['isSuperAdmin'] ?? false),
+        tenantId: getNullableString(obj, 'organization_id'),
+    };
+}
+
+async function resolveOrCreateDbUser(params: {
+    supabase: SupabaseClient;
+    organizationId: string;
+    email: string;
+    authUser: unknown;
+}): Promise<DbUser | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const authObj = asObject(params.authUser) ?? {};
+
+    const existing = await params.supabase
+        .from('nexus_users')
+        .select('*')
+        .eq('organization_id', params.organizationId)
+        .eq('email', email)
+        .limit(1)
+        .maybeSingle();
+
+    if (existing.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    if (!existing.error && existing.data?.id) {
+        return mapNexusUserRow(existing.data);
+    }
+
+    const nowIso = new Date().toISOString();
+    const name =
+        getNullableString(authObj, 'firstName') && getNullableString(authObj, 'lastName')
+            ? `${String(getNullableString(authObj, 'firstName') || '')} ${String(getNullableString(authObj, 'lastName') || '')}`.trim()
+            : getNullableString(authObj, 'firstName') || getNullableString(authObj, 'lastName') || email;
+
+    const role = getNullableString(authObj, 'role') ?? 'עובד';
+    const avatarUrl = getNullableString(authObj, 'imageUrl');
+    const isSuperAdmin = Boolean(authObj['isSuperAdmin']);
+
+    const created = await params.supabase
+        .from('nexus_users')
+        .insert({
+            organization_id: params.organizationId,
+            name,
+            email,
+            role,
+            avatar: avatarUrl || null,
+            online: true,
+            capacity: 0,
+            is_super_admin: isSuperAdmin,
+            created_at: nowIso,
+            updated_at: nowIso,
+        })
+        .select('*')
+        .single();
+
+    if (created.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    if (created.error || !created.data?.id) {
+        return null;
+    }
+
+    return mapNexusUserRow(created.data);
+}
+
 async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const supabase = createClient();
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const bypassTenantIsolationE2e =
             String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
@@ -39,32 +139,19 @@ async function GETHandler(request: NextRequest) {
         const allowUnscoped = bypassTenantIsolationE2e;
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
-            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+            return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
         // Get user from database by email
         if (!user.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        let dbUsers: any[] = [];
-        try {
-            dbUsers = await getUsers({
-                email: user.email,
-                tenantId: workspace.id,
-                allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-            });
-        } catch (e: any) {
-            return NextResponse.json({ events: [] }, { status: 200 });
-        }
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUser = await resolveOrCreateDbUser({ supabase, organizationId: workspace.id, email: user.email, authUser: user });
 
         if (!dbUser || !dbUser.tenantId) {
             // Return empty array instead of error - user might not be synced yet
-            return NextResponse.json({ events: [] }, { status: 200 });
+            return apiSuccess({ events: [] }, { status: 200 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -74,11 +161,8 @@ async function GETHandler(request: NextRequest) {
         const status = searchParams.get('status');
 
         // Build query
-        let query = supabase
-            .from('nexus_team_events')
-            .select('*')
-            .eq('tenant_id', workspace.id)
-            .order('start_date', { ascending: true });
+        let query = supabase.from('nexus_team_events').select('*').order('start_date', { ascending: true });
+        query = query.eq('organization_id', workspace.id);
 
         if (startDate) {
             query = query.gte('start_date', startDate);
@@ -97,44 +181,34 @@ async function GETHandler(request: NextRequest) {
 
         if (error) {
             console.error('[API] Error fetching team events:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בטעינת אירועים' },
-                { status: 500 }
-            );
+            if (error.code === '42703') {
+                return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
+            }
+            return apiError('שגיאה בטעינת אירועים', { status: 500 });
         }
 
-        return NextResponse.json({ events: events || [] }, { status: 200 });
+        return apiSuccess({ events: events || [] }, { status: 200 });
 
-    } catch (error: any) {
-        const msg = String(error?.message || '');
-        console.error('[API] Error in /api/team-events GET:', error);
+    } catch (error: unknown) {
+        const msg = getErrorMessage(error);
+        console.error('[API] Error in /api/team-events GET:', { message: msg });
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
+        }
         if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
-            return NextResponse.json({ events: [] }, { status: 200 });
+            return apiSuccess({ events: [] }, { status: 200 });
         }
-        return NextResponse.json(
-            { error: msg || 'שגיאה בטעינת אירועים' },
-            { status: msg.includes('Unauthorized') ? 401 : 500 }
-        );
+        return apiError(msg || 'שגיאה בטעינת אירועים', { status: msg.includes('Unauthorized') ? 401 : 500 });
     }
 }
 
 async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const supabase = createClient();
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const bypassTenantIsolationE2e =
             String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
@@ -145,124 +219,54 @@ async function POSTHandler(request: NextRequest) {
         const allowUnscoped = bypassTenantIsolationE2e;
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
-            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+            return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
         // Get user from database by email
         if (!user.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        let dbUsers = await getUsers({
-            email: user.email,
-            tenantId: workspace.id,
-            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-        });
-        let dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-
-        // Auto-sync: If user not found, try to create them automatically
+        const dbUser = await resolveOrCreateDbUser({ supabase, organizationId: workspace.id, email: user.email, authUser: user });
         if (!dbUser) {
-            try {
-                // Try to auto-sync the user (same logic as /api/users/sync)
-                const { createRecord } = await import('../../../lib/db');
-                const role = user.role || 'עובד';
-                const isSuperAdmin = user.isSuperAdmin || false;
-                
-                const newUserData: any = {
-                    name: user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`.trim()
-                        : user.firstName || user.lastName || 'User',
-                    role: role,
-                    department: undefined,
-                    avatar: user.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=6366f1&color=fff`,
-                    online: true,
-                    capacity: 0,
-                    email: user.email,
-                    phone: undefined,
-                    location: undefined,
-                    bio: undefined,
-                    paymentType: undefined,
-                    hourlyRate: undefined,
-                    monthlySalary: undefined,
-                    commissionPct: undefined,
-                    bonusPerTask: undefined,
-                    accumulatedBonus: 0,
-                    streakDays: 0,
-                    weeklyScore: undefined,
-                    pendingReward: undefined,
-                    targets: undefined,
-                    notificationPreferences: {
-                        emailNewTask: true,
-                        browserPush: true,
-                        morningBrief: true,
-                        soundEffects: false,
-                        marketing: true
-                    },
-                    twoFactorEnabled: false,
-                    isSuperAdmin: isSuperAdmin,
-                    billingInfo: undefined
-                };
-
-                const newUser = await createRecord('users', newUserData, { organizationId: workspace.id }) as any;
-                dbUser = newUser;
-                console.log('[API] Auto-synced user to database', {
-                    userId: user.id,
-                    tenantId: workspace.id,
-                });
-                
-                // Re-fetch to ensure we have the latest user data (including tenantId if set)
-                dbUsers = await getUsers({
-                    email: user.email,
-                    tenantId: workspace.id,
-                    allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-                });
-                dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-                
-                if (!dbUser) {
-                    throw new Error('User created but not found after creation');
-                }
-            } catch (syncError: any) {
-                console.error('[API] Auto-sync failed:', syncError);
-            return NextResponse.json(
-                    { error: 'User not found in database. Please sync your account first by calling POST /api/users/sync' },
-                { status: 404 }
-            );
-            }
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
-        const body = await request.json();
-        const {
-            title,
-            description,
-            eventType,
-            startDate,
-            endDate,
-            allDay = false,
-            location,
-            requiredAttendees = [],
-            optionalAttendees = [],
-            status = 'scheduled',
-            requiresApproval = false,
-            reminderDaysBefore = 1,
-            metadata = {}
-        } = body;
+        const body: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(body) ?? {};
+
+        const title = getString(bodyObj, 'title');
+        const description = getNullableString(bodyObj, 'description') ?? null;
+        const eventType = getString(bodyObj, 'eventType');
+        const startDate = getString(bodyObj, 'startDate');
+        const endDate = getString(bodyObj, 'endDate');
+        const allDay = Boolean(bodyObj['allDay'] ?? false);
+        const location = getNullableString(bodyObj, 'location') ?? null;
+        const status = getString(bodyObj, 'status', 'scheduled');
+        const requiresApproval = Boolean(bodyObj['requiresApproval'] ?? false);
+        const reminderDaysBeforeRaw = bodyObj['reminderDaysBefore'];
+        const reminderDaysBefore = Number.isFinite(Number(reminderDaysBeforeRaw)) ? Number(reminderDaysBeforeRaw) : 1;
+
+        const requiredAttendees = Array.isArray(bodyObj['requiredAttendees'])
+            ? (bodyObj['requiredAttendees'] as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+        const optionalAttendees = Array.isArray(bodyObj['optionalAttendees'])
+            ? (bodyObj['optionalAttendees'] as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+
+        const metadataRaw = bodyObj['metadata'];
+        const metadata = asObject(metadataRaw) ?? {};
 
         // Validation
         if (!title || !eventType || !startDate || !endDate) {
-            return NextResponse.json(
-                { error: 'כותרת, סוג אירוע, תאריך התחלה ותאריך סיום נדרשים' },
-                { status: 400 }
-            );
+            return apiError('כותרת, סוג אירוע, תאריך התחלה ותאריך סיום נדרשים', { status: 400 });
         }
 
         // Create event
-        const { data: event, error } = await supabase
+        const insertRes = await supabase
             .from('nexus_team_events')
             .insert({
-                tenant_id: workspace.id,
+                organization_id: workspace.id,
                 title,
                 description,
                 event_type: eventType,
@@ -279,21 +283,29 @@ async function POSTHandler(request: NextRequest) {
                 metadata,
                 created_by: dbUser.id
             })
-            .select()
+            .select('*')
             .single();
 
-        if (error) {
-            console.error('[API] Error creating team event:', error);
-            return NextResponse.json(
-                { error: 'שגיאה ביצירת אירוע' },
-                { status: 500 }
-            );
+        if (insertRes.error) {
+            console.error('[API] Error creating team event:', insertRes.error);
+            if (insertRes.error.code === '42703') {
+                return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
+            }
+            return apiError('שגיאה ביצירת אירוע', { status: 500 });
+        }
+
+        const event = insertRes.data;
+
+        if (!event) {
+            console.error('[API] Error creating team event: empty response');
+            return apiError('שגיאה ביצירת אירוע', { status: 500 });
         }
 
         // Create attendance records for required and optional attendees
         if (event && (requiredAttendees.length > 0 || optionalAttendees.length > 0)) {
             const allAttendees = [...requiredAttendees, ...optionalAttendees];
             const attendanceRecords = allAttendees.map(attendeeId => ({
+                organization_id: workspace.id,
                 event_id: event.id,
                 user_id: attendeeId,
                 status: 'invited' as const
@@ -310,11 +322,9 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // Send notifications to required attendees
-        if (event && requiredAttendees.length > 0 && supabase) {
+        if (event && requiredAttendees.length > 0) {
             try {
-                const allUsers = await getUsers({ tenantId: workspace.id });
-                const organizer = allUsers.find(u => u.id === dbUser.id);
-                const organizerName = organizer?.name || 'מערכת';
+                const organizerName = dbUser?.name || 'מערכת';
                 
                 const notifications = requiredAttendees.filter((attendeeId: string) => attendeeId !== user.id).map((attendeeId: string) => ({
                     organization_id: workspace.id,
@@ -341,25 +351,33 @@ async function POSTHandler(request: NextRequest) {
                     .insert(notifications);
                 
                 if (notifError) {
+                    if (notifError.code !== '42P01' && !String(notifError.message || '').includes('does not exist')) {
+                        throw new Error(`[SchemaMismatch] misrad_notifications insert failed: ${notifError.message}`);
+                    }
                     console.warn('[API] Could not create event notifications:', notifError);
                 }
-            } catch (notifError) {
+            } catch (notifError: unknown) {
+                const msg = getErrorMessage(notifError);
+                if (String(msg || '').includes('[SchemaMismatch]')) {
+                    throw notifError instanceof Error ? notifError : new Error(msg);
+                }
                 console.warn('[API] Error sending event notifications:', notifError);
                 // Don't fail the request if notification fails
             }
         }
 
-        return NextResponse.json(
-            { event, message: 'אירוע נוצר בהצלחה' },
-            { status: 201 }
-        );
+        return apiSuccess({ event, message: 'אירוע נוצר בהצלחה' }, { status: 201 });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/team-events POST:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה ביצירת אירוע' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
-        );
+    } catch (error: unknown) {
+        const msg = getErrorMessage(error);
+        console.error('[API] Error in /api/team-events POST:', { message: msg });
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
+        }
+        return apiError(msg || 'שגיאה ביצירת אירוע', {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה ביצירת אירוע',
+        });
     }
 }
 

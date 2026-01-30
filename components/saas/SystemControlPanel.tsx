@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, XCircle, Download } from 'lucide-react';
 import { SYSTEM_SCREENS } from '../../constants';
 import { OrganizationProfile, SystemScreenStatus } from '../../types';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Button } from '@/components/ui/button';
 
 interface SystemControlPanelProps {
@@ -33,8 +33,8 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
     };
 
     const downloadAiBackup = async () => {
-        const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-        if (!orgId) {
+        const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+        if (!orgSlug) {
             alert('לא נמצא organizationId מתוך הכתובת');
             return;
         }
@@ -42,7 +42,7 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
         setIsExporting(true);
         try {
             const url = new URL('/api/admin/ai/brain-export', window.location.origin);
-            url.searchParams.set('organizationId', orgId);
+            url.searchParams.set('organizationId', orgSlug);
             const res = await fetch(url.toString());
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));

@@ -1,6 +1,100 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase';
-import { getUsers } from '@/lib/db';
+import prisma from '@/lib/prisma';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function isMissingColumnError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = typeof obj.code === 'string' ? obj.code : '';
+  const message = typeof obj.message === 'string' ? obj.message.toLowerCase() : '';
+  return code === '42703' || message.includes('column') && message.includes('does not exist');
+}
+
+type FinanceUserLite = {
+  id: string;
+  name: string;
+  role: string;
+  department: string | null;
+  paymentType?: string;
+  hourlyRate?: number;
+  monthlySalary?: number;
+};
+
+type FinanceTimeEntryLite = {
+  id: string;
+  organizationId: string;
+  userId: string;
+  durationMinutes: number | null;
+  date: Date;
+};
+
+type FinanceInvoiceLite = {
+  amount: unknown;
+  status: unknown;
+  date: unknown;
+  dateAt: unknown;
+};
+
+function parseDateOnlyToDate(value?: string): Date | undefined {
+  const s = String(value || '').trim();
+  if (!s) return undefined;
+  const d = new Date(`${s}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d;
+}
+
+function toDateOnlyString(value: Date | string | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return String(value);
+  return value.toISOString().slice(0, 10);
+}
+
+async function selectUsersInWorkspaceByIds(params: {
+  organizationId: string;
+  userIds: string[];
+}): Promise<FinanceUserLite[]> {
+  const ids = (params.userIds || []).map((x) => String(x)).filter(Boolean);
+  if (ids.length === 0) return [];
+
+  const out: FinanceUserLite[] = [];
+  const chunkSize = 500;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const rows = await prisma.nexusUser.findMany({
+      where: {
+        id: { in: chunk },
+        organizationId: params.organizationId,
+      },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        department: true,
+        paymentType: true,
+        hourlyRate: true,
+        monthlySalary: true,
+      },
+    });
+
+    out.push(
+      ...rows.map((row) => ({
+        id: String(row.id ?? ''),
+        name: String(row.name ?? 'Unknown'),
+        role: String(row.role ?? 'עובד'),
+        department: row.department ?? null,
+        paymentType: row.paymentType ?? undefined,
+        hourlyRate: row.hourlyRate !== undefined && row.hourlyRate !== null ? Number(row.hourlyRate) : undefined,
+        monthlySalary: row.monthlySalary !== undefined && row.monthlySalary !== null ? Number(row.monthlySalary) : undefined,
+      }))
+    );
+  }
+
+  return out;
+}
 
 export type FinanceDateRange = {
   from?: string;
@@ -8,7 +102,7 @@ export type FinanceDateRange = {
 };
 
 export type FinanceUserAggregate = {
-  user: any;
+  user: FinanceUserLite;
   totalHours: number;
   totalMinutes: number;
   estimatedCost: number;
@@ -45,7 +139,7 @@ export type FinanceInvoice = {
 };
 
 export type FinanceExpensesUserRow = {
-  user: any;
+  user: FinanceUserLite;
   totalMinutes: number;
   totalHours: number;
   estimatedCost: number;
@@ -66,67 +160,78 @@ export async function getFinanceOverviewData(params: {
   department?: string | null;
   dateRange?: FinanceDateRange;
 }): Promise<FinanceOverviewData> {
-  const supabase = createClient();
-
-  let invoicesQuery = supabase
-    .from('misrad_invoices')
-    .select('amount,status,date')
-    .eq('organization_id', params.organizationId)
-    .limit(5000);
-
   const dateFrom = params.dateRange?.from;
   const dateTo = params.dateRange?.to;
+  const dateFromDate = parseDateOnlyToDate(dateFrom);
+  const dateToDate = parseDateOnlyToDate(dateTo);
 
-  let timeEntriesQuery = supabase
-    .from('nexus_time_entries')
-    .select('id,organization_id,user_id,duration_minutes,date')
-    .eq('organization_id', params.organizationId)
-    .order('date', { ascending: false })
-    .limit(2000);
+  const timeEntries: FinanceTimeEntryLite[] = [];
+  const pageSize = 1000;
+  for (let page = 0; ; page += 1) {
+    const skip = page * pageSize;
+    const rows = await prisma.nexusTimeEntry.findMany({
+      where: {
+        organizationId: params.organizationId,
+        ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
+        ...(dateToDate ? { date: { lte: dateToDate } } : {}),
+        ...(params.userId ? { userId: String(params.userId) } : {}),
+      },
+      select: {
+        id: true,
+        organizationId: true,
+        userId: true,
+        durationMinutes: true,
+        date: true,
+      },
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
+      skip,
+      take: pageSize,
+    });
 
-  if (dateFrom) {
-    timeEntriesQuery = timeEntriesQuery.gte('date', dateFrom);
-    invoicesQuery = invoicesQuery.gte('date', dateFrom);
-  }
-  if (dateTo) {
-    timeEntriesQuery = timeEntriesQuery.lte('date', dateTo);
-    invoicesQuery = invoicesQuery.lte('date', dateTo);
-  }
-  if (params.userId) {
-    timeEntriesQuery = timeEntriesQuery.eq('user_id', params.userId);
+    if (rows.length === 0) break;
+    timeEntries.push(...rows);
+    if (rows.length < pageSize) break;
   }
 
-  const { data: timeEntries, error: timeEntriesError } = await timeEntriesQuery;
-  if (timeEntriesError) {
-    throw new Error(timeEntriesError.message);
-  }
-
-  const { data: invoicesRows, error: invoicesError } = await invoicesQuery;
-  if (invoicesError) {
-    throw new Error(invoicesError.message);
-  }
+  const invoicesRows: FinanceInvoiceLite[] = await prisma.misradInvoice.findMany({
+    where: {
+      organization_id: params.organizationId,
+      ...(dateFromDate ? { dateAt: { gte: dateFromDate } } : {}),
+      ...(dateToDate ? { dateAt: { lte: dateToDate } } : {}),
+    },
+    select: {
+      amount: true,
+      status: true,
+      date: true,
+      dateAt: true,
+    },
+    take: 5000,
+  });
 
   const entries = Array.isArray(timeEntries) ? timeEntries : [];
-  const invoices = Array.isArray(invoicesRows) ? invoicesRows : [];
+  const invoices = invoicesRows;
 
-  const userIds = Array.from(new Set(entries.map((e: any) => String(e.user_id)).filter(Boolean)));
-  const dbUsers = userIds.length > 0 ? await getUsers({ tenantId: params.organizationId, userIds }) : [];
-  const usersById = new Map<string, any>(dbUsers.map((u: any) => [String(u.id), u]));
+  const userIds = Array.from(new Set(entries.map((e) => String(e.userId)).filter(Boolean)));
+  const dbUsers = await selectUsersInWorkspaceByIds({
+    organizationId: params.organizationId,
+    userIds,
+  });
+  const usersById = new Map<string, FinanceUserLite>(dbUsers.map((u) => [String(u.id), u]));
 
   const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();
   const totalsByDate = new Map<string, { totalMinutes: number }>();
 
   for (const entry of entries) {
-    const uid = String((entry as any).user_id || '');
+    const uid = String(entry.userId || '');
     if (!uid) continue;
 
-    const minutes = Number((entry as any).duration_minutes || 0);
+    const minutes = Number(entry.durationMinutes || 0);
     const current = totalsByUser.get(uid) ?? { totalMinutes: 0, entriesCount: 0 };
     current.totalMinutes += minutes;
     current.entriesCount += 1;
     totalsByUser.set(uid, current);
 
-    const entryDate = String((entry as any).date || '');
+    const entryDate = toDateOnlyString(entry.date);
     if (entryDate) {
       const byDate = totalsByDate.get(entryDate) ?? { totalMinutes: 0 };
       byDate.totalMinutes += minutes;
@@ -155,25 +260,27 @@ export async function getFinanceOverviewData(params: {
   });
 
   const scopedUsers = params.department
-    ? usersAggregates.filter((u: any) => String(u.user?.department || '') === String(params.department))
+    ? usersAggregates.filter((u) => String(u.user?.department || '') === String(params.department))
     : usersAggregates;
 
-  const totalCost = scopedUsers.reduce((sum: number, u: any) => sum + Number(u.estimatedCost || 0), 0);
+  const totalCost = scopedUsers.reduce((sum, u) => sum + Number(u.estimatedCost || 0), 0);
 
-  const paidInvoices = invoices.filter((i: any) => String(i?.status || '').toUpperCase() === 'PAID');
-  const openInvoices = invoices.filter((i: any) => {
+  const paidInvoices = invoices.filter((i) => String(i?.status || '').toUpperCase() === 'PAID');
+  const openInvoices = invoices.filter((i) => {
     const s = String(i?.status || '').toUpperCase();
     return s === 'PENDING' || s === 'OVERDUE';
   });
-  const totalRevenue = paidInvoices.reduce((sum: number, i: any) => sum + Number(i?.amount || 0), 0);
-  const pendingReceivables = openInvoices.reduce((sum: number, i: any) => sum + Number(i?.amount || 0), 0);
+  const totalRevenue = paidInvoices.reduce((sum, i) => sum + Number(i?.amount || 0), 0);
+  const pendingReceivables = openInvoices.reduce((sum, i) => sum + Number(i?.amount || 0), 0);
   const openInvoicesCount = openInvoices.length;
 
   const chart: FinanceChartPoint[] = Array.from(totalsByDate.entries())
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([date, totals]) => {
       const totalHours = totals.totalMinutes / 60;
-      const estimatedCost = totalHours * (totalCost > 0 && entries.length > 0 ? totalCost / (entries.reduce((acc: number, e: any) => acc + Number(e.duration_minutes || 0), 0) / 60 || 1) : 0);
+      const totalHoursAll = entries.reduce((acc, e) => acc + Number(e.durationMinutes || 0), 0) / 60 || 1;
+      const avgHourlyCost = totalCost > 0 && entries.length > 0 ? totalCost / totalHoursAll : 0;
+      const estimatedCost = totalHours * avgHourlyCost;
       return {
         date,
         totalMinutes: totals.totalMinutes,
@@ -198,36 +305,25 @@ export async function getFinanceInvoices(params: {
   organizationId: string;
   limit?: number;
 }): Promise<FinanceInvoice[]> {
-  const supabase = createClient();
+  const limit = params.limit ?? 250;
 
-  const { data, error } = await supabase
-    .from('misrad_invoices')
-    .select('id,number,amount,date,due_date,status,download_url,misrad_clients(name)')
-    .eq('organization_id', params.organizationId)
-    .order('date', { ascending: false })
-    .limit(params.limit ?? 250);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const rows = Array.isArray(data) ? data : [];
-  return rows.map((row: any) => {
-    const clientRow = Array.isArray(row?.misrad_clients)
-      ? row.misrad_clients[0]
-      : row?.misrad_clients ?? null;
-
-    return {
-      id: String(row?.id),
-      number: String(row?.number ?? ''),
-      amount: Number(row?.amount ?? 0),
-      date: String(row?.date ?? ''),
-      dueDate: String(row?.due_date ?? ''),
-      status: String(row?.status ?? ''),
-      downloadUrl: String(row?.download_url ?? ''),
-      clientName: clientRow?.name ? String(clientRow.name) : null,
-    };
+  const rows = await prisma.misradInvoice.findMany({
+    where: { organization_id: params.organizationId },
+    include: { client: { select: { name: true } } },
+    orderBy: [{ dateAt: 'desc' }, { id: 'desc' }],
+    take: limit,
   });
+
+  return rows.map((row) => ({
+    id: String(row.id),
+    number: String(row.number ?? ''),
+    amount: Number(row.amount ?? 0),
+    date: String(row.date ?? ''),
+    dueDate: String(row.dueDate ?? ''),
+    status: String(row.status ?? ''),
+    downloadUrl: String(row.downloadUrl ?? ''),
+    clientName: row.client?.name ? String(row.client.name) : null,
+  }));
 }
 
 export async function getFinanceExpensesData(params: {
@@ -235,37 +331,43 @@ export async function getFinanceExpensesData(params: {
   dateRange?: FinanceDateRange;
   department?: string | null;
 }): Promise<FinanceExpensesData> {
-  const supabase = createClient();
-
-  let timeEntriesQuery = supabase
-    .from('nexus_time_entries')
-    .select('id,organization_id,user_id,duration_minutes,date')
-    .eq('organization_id', params.organizationId)
-    .order('date', { ascending: false })
-    .limit(5000);
-
   const dateFrom = params.dateRange?.from;
   const dateTo = params.dateRange?.to;
-  if (dateFrom) timeEntriesQuery = timeEntriesQuery.gte('date', dateFrom);
-  if (dateTo) timeEntriesQuery = timeEntriesQuery.lte('date', dateTo);
+  const dateFromDate = parseDateOnlyToDate(dateFrom);
+  const dateToDate = parseDateOnlyToDate(dateTo);
 
-  const { data: timeEntries, error: timeEntriesError } = await timeEntriesQuery;
-  if (timeEntriesError) {
-    throw new Error(timeEntriesError.message);
-  }
+  const timeEntries = await prisma.nexusTimeEntry.findMany({
+    where: {
+      organizationId: params.organizationId,
+      ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
+      ...(dateToDate ? { date: { lte: dateToDate } } : {}),
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      userId: true,
+      durationMinutes: true,
+      date: true,
+    },
+    orderBy: [{ date: 'desc' }, { id: 'desc' }],
+    take: 5000,
+  });
 
   const entries = Array.isArray(timeEntries) ? timeEntries : [];
 
-  const userIds = Array.from(new Set(entries.map((e: any) => String(e.user_id)).filter(Boolean)));
-  const dbUsers = userIds.length > 0 ? await getUsers({ tenantId: params.organizationId, userIds }) : [];
-  const usersById = new Map<string, any>(dbUsers.map((u: any) => [String(u.id), u]));
+  const userIds = Array.from(new Set(entries.map((e) => String(e.userId)).filter(Boolean)));
+  const dbUsers = await selectUsersInWorkspaceByIds({
+    organizationId: params.organizationId,
+    userIds,
+  });
+  const usersById = new Map<string, FinanceUserLite>(dbUsers.map((u) => [String(u.id), u]));
 
   const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();
   for (const entry of entries) {
-    const uid = String((entry as any).user_id || '');
+    const uid = String(entry.userId || '');
     if (!uid) continue;
 
-    const minutes = Number((entry as any).duration_minutes || 0);
+    const minutes = Number(entry.durationMinutes || 0);
     const current = totalsByUser.get(uid) ?? { totalMinutes: 0, entriesCount: 0 };
     current.totalMinutes += minutes;
     current.entriesCount += 1;
@@ -293,23 +395,19 @@ export async function getFinanceExpensesData(params: {
   });
 
   const scopedUsers = params.department
-    ? usersAggregates.filter((u: any) => String(u.user?.department || '') === String(params.department))
+    ? usersAggregates.filter((u) => String(u.user?.department || '') === String(params.department))
     : usersAggregates;
 
-  const totalLaborCost = scopedUsers.reduce((sum: number, u: any) => sum + Number(u.estimatedCost || 0), 0);
+  const totalLaborCost = scopedUsers.reduce((sum, u) => sum + Number(u.estimatedCost || 0), 0);
 
-  const { data: clientsRows, error: clientsError } = await supabase
-    .from('misrad_clients')
-    .select('direct_expenses')
-    .eq('organization_id', params.organizationId)
-    .limit(5000);
+  const clientsRows = await prisma.misradClient.findMany({
+    where: { organizationId: params.organizationId },
+    select: { directExpenses: true },
+    take: 5000,
+  });
 
-  if (clientsError) {
-    throw new Error(clientsError.message);
-  }
-
-  const totalDirectExpenses = (Array.isArray(clientsRows) ? clientsRows : []).reduce(
-    (sum: number, row: any) => sum + Number(row?.direct_expenses || 0),
+  const totalDirectExpenses = clientsRows.reduce(
+    (sum, row) => sum + Number(row.directExpenses ?? 0),
     0
   );
 

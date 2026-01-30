@@ -2,6 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { queryRawOrgScoped } from '@/lib/prisma';
+import { requireOrganizationId } from '@/lib/tenant-isolation';
+import type { Prisma } from '@prisma/client';
 
 export type SystemTaskDTO = {
   id: string;
@@ -15,20 +18,53 @@ export type SystemTaskDTO = {
   created_at: string;
 };
 
-function toSystemTaskDto(row: any): SystemTaskDTO {
-  const tags = Array.isArray(row.tags) ? row.tags : Array.isArray(row.tags?.value) ? row.tags.value : row.tags;
-  const normalizedTags = Array.isArray(tags) ? tags.map((t: any) => String(t)).filter(Boolean) : [];
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+function toIsoDate(value: unknown): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function normalizeTags(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((t) => String(t)).filter(Boolean);
+  }
+  const obj = asObject(value);
+  const v = obj?.value;
+  if (Array.isArray(v)) {
+    return v.map((t) => String(t)).filter(Boolean);
+  }
+  return [];
+}
+
+function toSystemTaskDto(row: unknown): SystemTaskDTO {
+  const obj = asObject(row) ?? {};
+  const tags = normalizeTags(obj.tags);
 
   return {
-    id: String(row.id),
-    title: String(row.title || ''),
-    description: row.description == null ? null : String(row.description),
-    assignee_id: String(row.assigneeId || row.assignee_id || ''),
-    due_date: new Date(row.dueDate || row.due_date || new Date()).toISOString(),
-    priority: String(row.priority || ''),
-    status: String(row.status || ''),
-    tags: normalizedTags,
-    created_at: new Date(row.createdAt || row.created_at || new Date()).toISOString(),
+    id: String(obj.id ?? ''),
+    title: String(obj.title ?? ''),
+    description: obj.description == null ? null : String(obj.description),
+    assignee_id: String(obj.assigneeId ?? obj.assignee_id ?? ''),
+    due_date: toIsoDate(obj.dueDate ?? obj.due_date) ?? new Date().toISOString(),
+    priority: String(obj.priority ?? ''),
+    status: String(obj.status ?? ''),
+    tags,
+    created_at: toIsoDate(obj.createdAt ?? obj.created_at) ?? new Date().toISOString(),
   };
 }
 
@@ -36,14 +72,19 @@ async function requireSystemTaskInOrganization(params: {
   taskId: string;
   organizationId: string;
 }): Promise<boolean> {
-  const rows = await prisma.$queryRaw<any[]>`
-    SELECT t.id
-    FROM system_tasks t
-    JOIN profiles p ON p.id = t.assignee_id
-    WHERE t.id = ${params.taskId}::uuid
-      AND p.organization_id = ${params.organizationId}::uuid
-    LIMIT 1
-  `;
+  const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+    organizationId: params.organizationId,
+    reason: 'system_tasks_require_in_org',
+    query: `
+      SELECT t.id
+      FROM system_tasks t
+      JOIN profiles p ON p.id = t.assignee_id
+      WHERE t.id = $1::uuid
+        AND p.organization_id = $2::uuid
+      LIMIT 1
+    `,
+    values: [params.taskId, params.organizationId],
+  });
 
   return Array.isArray(rows) && rows.length > 0;
 }
@@ -51,43 +92,39 @@ async function requireSystemTaskInOrganization(params: {
 async function listSystemTasksInOrganization(params: {
   organizationId: string;
   take: number;
-}): Promise<any[]> {
+}): Promise<unknown[]> {
   const safeTake = Math.max(1, Math.min(500, Math.floor(params.take)));
 
-  const rows = await prisma.$queryRaw<any[]>`
-    SELECT
-      t.id,
-      t.title,
-      t.description,
-      t.assignee_id,
-      t.due_date,
-      t.priority,
-      t.status,
-      t.tags,
-      t.created_at,
-      t.updated_at
-    FROM system_tasks t
-    JOIN profiles p ON p.id = t.assignee_id
-    WHERE p.organization_id = ${params.organizationId}::uuid
-    ORDER BY t.due_date ASC, t.created_at DESC
-    LIMIT ${safeTake}
-  `;
+  const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+    organizationId: params.organizationId,
+    reason: 'system_tasks_list_in_org',
+    query: `
+      SELECT
+        t.id,
+        t.title,
+        t.description,
+        t.assignee_id,
+        t.due_date,
+        t.priority,
+        t.status,
+        t.tags,
+        t.created_at,
+        t.updated_at
+      FROM system_tasks t
+      JOIN profiles p ON p.id = t.assignee_id
+      WHERE p.organization_id = $1::uuid
+      ORDER BY t.due_date ASC, t.created_at DESC
+      LIMIT $2::int
+    `,
+    values: [params.organizationId, safeTake],
+  });
 
   return Array.isArray(rows) ? rows : [];
 }
 
-async function listOrgProfileIds(orgSlug: string): Promise<string[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  const assignees = await prisma.profile.findMany({
-    where: { organizationId: workspace.id },
-    select: { id: true },
-    take: 500,
-  });
-  return assignees.map((a) => String(a.id)).filter(Boolean);
-}
-
 export async function getSystemTasks(params: { orgSlug: string; take?: number }): Promise<SystemTaskDTO[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  requireOrganizationId('getSystemTasks', workspace?.id);
   const rows = await listSystemTasksInOrganization({
     organizationId: workspace.id,
     take: Math.max(1, Math.min(500, Math.floor(params.take ?? 200))),
@@ -112,6 +149,7 @@ export async function createSystemTask(params: {
     if (!orgSlug) throw new Error('orgSlug is required');
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    requireOrganizationId('createSystemTask', workspace?.id);
 
     const title = String(params.input?.title || '').trim();
     if (!title) return { ok: false, message: 'חובה להזין כותרת' };
@@ -139,12 +177,12 @@ export async function createSystemTask(params: {
         priority: String(params.input?.priority || 'medium'),
         status: String(params.input?.status || 'todo'),
         tags,
-      } as any,
+      },
     });
 
     return { ok: true, task: toSystemTaskDto(created) };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה ביצירת משימה' };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת משימה' };
   }
 }
 
@@ -168,11 +206,12 @@ export async function updateSystemTask(params: {
     if (!taskId) throw new Error('taskId is required');
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    requireOrganizationId('updateSystemTask', workspace?.id);
 
     const existsInOrg = await requireSystemTaskInOrganization({ taskId, organizationId: workspace.id });
     if (!existsInOrg) return { ok: false, message: 'משימה לא נמצאה' };
 
-    const data: any = {};
+    const data: Prisma.SystemTaskUpdateManyMutationInput = {};
 
     if (params.patch.title !== undefined) {
       const t = String(params.patch.title || '').trim();
@@ -214,14 +253,25 @@ export async function updateSystemTask(params: {
       data.tags = Array.isArray(params.patch.tags) ? params.patch.tags.map((t) => String(t)).filter(Boolean) : [];
     }
 
-    const updated = await prisma.systemTask.update({
+    const updated = await prisma.systemTask.updateMany({
       where: { id: taskId },
-      data: { ...data } as any,
+      data,
     });
 
-    return { ok: true, task: toSystemTaskDto(updated) };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה בעדכון משימה' };
+    if (!updated.count) {
+      return { ok: false, message: 'משימה לא נמצאה' };
+    }
+
+    const row = await prisma.systemTask.findFirst({
+      where: { id: taskId },
+    });
+    if (!row) {
+      return { ok: false, message: 'משימה לא נמצאה' };
+    }
+
+    return { ok: true, task: toSystemTaskDto(row) };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון משימה' };
   }
 }
 
@@ -236,13 +286,17 @@ export async function deleteSystemTask(params: {
     if (!taskId) throw new Error('taskId is required');
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    requireOrganizationId('deleteSystemTask', workspace?.id);
 
     const existsInOrg = await requireSystemTaskInOrganization({ taskId, organizationId: workspace.id });
     if (!existsInOrg) return { ok: false, message: 'משימה לא נמצאה' };
 
-    await prisma.systemTask.delete({ where: { id: taskId } });
+    const deleted = await prisma.systemTask.deleteMany({
+      where: { id: taskId },
+    });
+    if (!deleted.count) return { ok: false, message: 'משימה לא נמצאה' };
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה במחיקת משימה' };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה במחיקת משימה' };
   }
 }

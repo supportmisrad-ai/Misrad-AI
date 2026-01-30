@@ -12,6 +12,7 @@ import { STAGES } from '@/components/system/constants';
 import {
   createSystemLead,
   createSystemLeadActivity,
+  getSystemLeadsPage,
   getSystemLeadAssignees,
   SystemLeadDTO,
   updateSystemLead,
@@ -30,17 +31,57 @@ function isSameLocalDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const msg = (error as Record<string, unknown>).message;
+    if (typeof msg === 'string') return msg;
+  }
+  return '';
+}
+
+function isPipelineStage(value: unknown): value is PipelineStage {
+  return (
+    value === 'incoming' ||
+    value === 'contacted' ||
+    value === 'meeting' ||
+    value === 'proposal' ||
+    value === 'negotiation' ||
+    value === 'won' ||
+    value === 'lost' ||
+    value === 'churned'
+  );
+}
+
+type StageUi = {
+  id: string;
+  key: string;
+  label: string;
+  color: string;
+  accent: string;
+  order: number;
+  isActive: boolean;
+};
+
 export default function SystemSalesPipelineClient({
   orgSlug,
   initialLeads,
+  initialNextCursor,
+  initialHasMore,
   initialStages,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
+  initialNextCursor: string | null;
+  initialHasMore: boolean;
   initialStages: SystemPipelineStageDTO[];
 }) {
   const { addToast } = useToast();
   const [leads, setLeads] = useState<SystemLeadDTO[]>(initialLeads);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [hasMore, setHasMore] = useState<boolean>(Boolean(initialHasMore));
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pipelineStages, setPipelineStages] = useState<SystemPipelineStageDTO[]>(initialStages || []);
   const [isStagesModalOpen, setIsStagesModalOpen] = useState(false);
   const [isStagesSaving, setIsStagesSaving] = useState(false);
@@ -51,18 +92,51 @@ export default function SystemSalesPipelineClient({
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
 
+  const handleLoadMore = async () => {
+    if (isLoadingMore) return;
+    if (!hasMore) return;
+    try {
+      setIsLoadingMore(true);
+      const res = await getSystemLeadsPage({ orgSlug, cursor: nextCursor, pageSize: 200 });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בטעינת לידים', 'error');
+        return;
+      }
+
+      setLeads((prev) => {
+        const base = Array.isArray(prev) ? prev : [];
+        const incoming = Array.isArray(res.data.leads) ? res.data.leads : [];
+        const byId = new Map<string, SystemLeadDTO>();
+        for (const l of base) byId.set(String(l.id), l);
+        for (const l of incoming) byId.set(String(l.id), l);
+        return Array.from(byId.values());
+      });
+
+      setNextCursor(res.data.nextCursor);
+      setHasMore(Boolean(res.data.hasMore));
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת לידים', 'error');
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     const onOpenNewLead = () => {
       setShowNewLeadModal(true);
     };
 
+    const onOpenNewLeadListener: EventListener = () => {
+      onOpenNewLead();
+    };
+
     if (typeof window !== 'undefined') {
-      window.addEventListener('system:new-lead', onOpenNewLead as any);
+      window.addEventListener('system:new-lead', onOpenNewLeadListener);
     }
 
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('system:new-lead', onOpenNewLead as any);
+        window.removeEventListener('system:new-lead', onOpenNewLeadListener);
       }
     };
   }, []);
@@ -76,9 +150,17 @@ export default function SystemSalesPipelineClient({
   );
 
   const stagesForUi = useMemo(() => {
-    const rows = Array.isArray(pipelineStages) && pipelineStages.length
-      ? pipelineStages
-      : (STAGES as any[]).map((s: any, idx: number) => ({
+    const rows: StageUi[] = Array.isArray(pipelineStages) && pipelineStages.length
+      ? pipelineStages.map((s) => ({
+          id: String(s.key || s.id),
+          key: String(s.key || s.id),
+          label: String(s.label || ''),
+          color: String(s.color || ''),
+          accent: String(s.accent || ''),
+          order: Number(s.order || 0),
+          isActive: s.isActive !== false,
+        }))
+      : STAGES.map((s, idx) => ({
           id: String(s.id),
           key: String(s.id),
           label: String(s.label),
@@ -87,22 +169,13 @@ export default function SystemSalesPipelineClient({
           order: idx * 10,
           isActive: true,
         }));
-    const normalized = rows
-      .filter((s: any) => (s as any).isActive !== false)
-      .map((s: any) => ({
-        id: String(s.key || s.id),
-        key: String(s.key || s.id),
-        label: String(s.label || ''),
-        color: String(s.color || ''),
-        accent: String(s.accent || ''),
-        order: Number(s.order || 0),
-        isActive: true,
-      }));
 
-    const stageKeys = new Set(normalized.map((s: any) => String(s.id)));
+    const normalized: StageUi[] = rows.filter((s) => s.isActive !== false);
+
+    const stageKeys = new Set(normalized.map((s) => String(s.id)));
     const missing = new Set<string>();
     leads.forEach((l) => {
-      const k = String((l as any).status || '').trim();
+      const k = String(l.status || '').trim();
       if (k && !stageKeys.has(k)) missing.add(k);
     });
 
@@ -117,7 +190,7 @@ export default function SystemSalesPipelineClient({
     }));
 
     const all = [...normalized, ...synthesized];
-    all.sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0));
+    all.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
     return all;
   }, [leads, pipelineStages]);
 
@@ -125,8 +198,8 @@ export default function SystemSalesPipelineClient({
     try {
       const rows = await getSystemPipelineStages({ orgSlug });
       setPipelineStages(Array.isArray(rows) ? rows : []);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת שלבים', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת שלבים', 'error');
     }
   };
 
@@ -140,7 +213,7 @@ export default function SystemSalesPipelineClient({
 
     setIsStagesSaving(true);
     try {
-      const maxOrder = stagesForUi.reduce((m: number, s: any) => Math.max(m, Number(s.order || 0)), 0);
+      const maxOrder = stagesForUi.reduce((m, s) => Math.max(m, Number(s.order || 0)), 0);
       const res = await createSystemPipelineStage({
         orgSlug,
         key,
@@ -155,8 +228,8 @@ export default function SystemSalesPipelineClient({
       setNewStageLabel('');
       await refreshStages();
       addToast('שלב נוסף', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת שלב', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת שלב', 'error');
     } finally {
       setIsStagesSaving(false);
     }
@@ -178,8 +251,8 @@ export default function SystemSalesPipelineClient({
         return;
       }
       await refreshStages();
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון שלב', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון שלב', 'error');
     } finally {
       setIsStagesSaving(false);
     }
@@ -195,8 +268,8 @@ export default function SystemSalesPipelineClient({
       }
       await refreshStages();
       addToast('שלב נמחק', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה במחיקת שלב', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה במחיקת שלב', 'error');
     } finally {
       setIsStagesSaving(false);
     }
@@ -214,8 +287,8 @@ export default function SystemSalesPipelineClient({
       items = items.filter((l) => {
         const name = String(l.name || '').toLowerCase();
         const company = String(l.company || '').toLowerCase();
-        const phone = String((l as any).phone || '').toLowerCase();
-        const email = String((l as any).email || '').toLowerCase();
+        const phone = String(l.phone || '').toLowerCase();
+        const email = String(l.email || '').toLowerCase();
         return name.includes(q) || company.includes(q) || phone.includes(q) || email.includes(q);
       });
     }
@@ -252,6 +325,8 @@ export default function SystemSalesPipelineClient({
               ...l,
               next_action_date: params.nextActionDate ? params.nextActionDate.toISOString() : null,
               next_action_note: params.nextActionNote ?? null,
+              next_action_date_suggestion: null,
+              next_action_date_rationale: null,
             }
           : l
       )
@@ -270,9 +345,9 @@ export default function SystemSalesPipelineClient({
         return;
       }
       setLeads((prev) => prev.map((l) => (String(l.id) === leadId ? res.lead : l)));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLeads(prevSnapshot);
-      addToast(e?.message || 'שגיאה בעדכון follow-up', 'error');
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון follow-up', 'error');
     }
   };
 
@@ -294,15 +369,19 @@ export default function SystemSalesPipelineClient({
         return {
           ...l,
           name: params.name !== undefined ? String(params.name) : l.name,
-          phone: params.phone !== undefined ? String(params.phone) : (l as any).phone,
-          email: params.email !== undefined ? (params.email == null ? '' : String(params.email)) : (l as any).email,
+          phone: params.phone !== undefined ? String(params.phone) : l.phone,
+          email: params.email !== undefined ? (params.email == null ? '' : String(params.email)) : l.email,
           assigned_agent_id:
-            params.assignedAgentId !== undefined ? (params.assignedAgentId == null ? null : String(params.assignedAgentId)) : (l as any).assigned_agent_id,
+            params.assignedAgentId !== undefined ? (params.assignedAgentId == null ? null : String(params.assignedAgentId)) : l.assigned_agent_id,
           next_action_date:
-            params.nextActionDate !== undefined ? (params.nextActionDate ? params.nextActionDate.toISOString() : null) : (l as any).next_action_date,
+            params.nextActionDate !== undefined ? (params.nextActionDate ? params.nextActionDate.toISOString() : null) : l.next_action_date,
+          next_action_date_suggestion:
+            params.nextActionDate !== undefined ? null : l.next_action_date_suggestion,
+          next_action_date_rationale:
+            params.nextActionDate !== undefined ? null : l.next_action_date_rationale,
           next_action_note:
-            params.nextActionNote !== undefined ? (params.nextActionNote ?? null) : (l as any).next_action_note,
-        } as any;
+            params.nextActionNote !== undefined ? (params.nextActionNote ?? null) : l.next_action_note,
+        };
       })
     );
 
@@ -325,9 +404,9 @@ export default function SystemSalesPipelineClient({
       }
 
       setLeads((prev) => prev.map((l) => (String(l.id) === leadId ? res.lead : l)));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLeads(prevSnapshot);
-      addToast(e?.message || 'שגיאה בעדכון ליד', 'error');
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון ליד', 'error');
     }
   };
 
@@ -353,9 +432,9 @@ export default function SystemSalesPipelineClient({
         return;
       }
       setLeads((prev) => prev.map((l) => (String(l.id) === leadId ? res.lead : l)));
-    } catch (e: any) {
+    } catch (e: unknown) {
       setLeads(prevSnapshot);
-      addToast(e?.message || 'שגיאה בעדכון סטטוס', 'error');
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון סטטוס', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -375,10 +454,11 @@ export default function SystemSalesPipelineClient({
         productInterest: lead.productInterest,
       });
       setLeads((prev) => [created, ...prev]);
+      setHasMore(true);
       addToast('ליד נוצר', 'success');
       setShowNewLeadModal(false);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת ליד', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת ליד', 'error');
       throw e;
     } finally {
       setIsSaving(false);
@@ -405,8 +485,8 @@ export default function SystemSalesPipelineClient({
       }
 
       addToast('נשמר', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בשמירת פעילות', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בשמירת פעילות', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -417,7 +497,7 @@ export default function SystemSalesPipelineClient({
   };
 
   const handleOpenClientPortal = (lead: Lead) => {
-    const email = String((lead as any)?.email || '').trim();
+    const email = String(lead.email || '').trim();
     if (!email) {
       addToast('לא ניתן לפתוח פורטל לקוח כי לליד אין אימייל.', 'warning');
       return;
@@ -432,6 +512,19 @@ export default function SystemSalesPipelineClient({
           <div className="text-xs font-black text-slate-400 uppercase tracking-widest">מכירות</div>
           <div className="text-2xl md:text-3xl font-black text-slate-900 truncate">לידים</div>
         </div>
+
+      {hasMore ? (
+        <div className="pt-3 flex justify-center">
+          <button
+            type="button"
+            onClick={() => void handleLoadMore()}
+            disabled={isLoadingMore}
+            className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:bg-slate-50 disabled:opacity-60"
+          >
+            {isLoadingMore ? 'טוען...' : 'טען עוד'}
+          </button>
+        </div>
+      ) : null}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -464,7 +557,14 @@ export default function SystemSalesPipelineClient({
 
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter((e.target.value as any) || 'all')}
+            onChange={(e) => {
+              const v = String(e.target.value || '');
+              if (v === 'all') {
+                setStatusFilter('all');
+                return;
+              }
+              setStatusFilter(isPipelineStage(v) ? v : 'all');
+            }}
             className="w-full md:w-[220px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
           >
             <option value="all">כל הסטטוסים</option>
@@ -477,7 +577,19 @@ export default function SystemSalesPipelineClient({
 
           <select
             value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as any)}
+            onChange={(e) => {
+              const v = String(e.target.value || '');
+              if (
+                v === 'created_desc' ||
+                v === 'created_asc' ||
+                v === 'value_desc' ||
+                v === 'value_asc' ||
+                v === 'name_asc' ||
+                v === 'name_desc'
+              ) {
+                setSortKey(v);
+              }
+            }}
             className="w-full md:w-[240px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
           >
             <option value="created_desc">חדש ביותר</option>
@@ -525,8 +637,8 @@ export default function SystemSalesPipelineClient({
         {viewMode === 'board' ? (
           <PipelineBoard
             leads={visibleLeads}
-            stages={stagesForUi.map((s: any) => ({
-              id: String(s.key) as any,
+            stages={stagesForUi.map((s) => ({
+              id: String(s.key) as unknown as PipelineStage,
               label: String(s.label),
               accent: String(s.accent || ''),
               color: String(s.color || ''),
@@ -564,13 +676,17 @@ export default function SystemSalesPipelineClient({
                     <div className="col-span-3 font-black text-sm text-slate-900 truncate">{lead.name}</div>
                     <div className="col-span-3 text-sm text-slate-600 truncate">{lead.company || 'לקוח פרטי'}</div>
                     <div className="col-span-2 text-sm text-slate-600" dir="ltr">
-                      {(lead as any).phone}
+                      {lead.phone}
                     </div>
                     <div className="col-span-2 text-sm font-mono font-black text-slate-800">₪{Number(lead.value || 0).toLocaleString()}</div>
                     <div className="col-span-2" onClick={(e) => e.stopPropagation()}>
                       <select
                         value={lead.status}
-                        onChange={(e) => void handleStatusChange(String(lead.id), e.target.value as any)}
+                        onChange={(e) => {
+                          const v = String(e.target.value || '');
+                          if (!isPipelineStage(v)) return;
+                          void handleStatusChange(String(lead.id), v);
+                        }}
                         className="w-full bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-black"
                       >
                         {stagesForUi.map((s) => (
@@ -657,8 +773,8 @@ export default function SystemSalesPipelineClient({
             <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {(pipelineStages || [])
                 .slice()
-                .sort((a: any, b: any) => Number(a.order || 0) - Number(b.order || 0))
-                .map((s: any) => (
+                .sort((a, b) => Number(a.order || 0) - Number(b.order || 0))
+                .map((s) => (
                 <div key={String(s.id)} className="border border-slate-200 rounded-2xl p-3 bg-white">
                   <div className="flex flex-col md:flex-row md:items-center gap-2">
                     <div className="text-[11px] font-black text-slate-500 md:w-40" dir="ltr">

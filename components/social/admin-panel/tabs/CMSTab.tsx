@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, CreditCard, MessageSquare } from 'lucide-react';
-import { bulkUpdateSiteContent } from '@/app/actions/admin-site-content';
+import { bulkUpdateSiteContent, seedDefaultLegalDocuments } from '@/app/actions/admin-site-content';
 
 interface CMSTabProps {
   siteContent: any;
@@ -306,7 +306,7 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
                 <textarea
                   defaultValue={JSON.stringify(siteContent?.pricing?.find((c: any) => c.key === 'faq')?.content || [
                     { q: 'האם יש התחייבות?', a: 'לא. תוכלו לבטל בכל עת ללא עמלות.' },
-                    { q: 'מה כולל הניסיון החינם?', a: 'גישה מלאה לכל התכונות למשך 14 ימים.' },
+                    { q: 'מה כולל הניסיון החינם?', a: 'גישה מלאה לכל התכונות למשך 7 ימים.' },
                     { q: 'איך מתבצע התשלום?', a: 'תשלום אוטומטי בכרטיס אשראי בתחילת כל חודש.' },
                   ], null, 2)}
                   onBlur={async (e) => {
@@ -365,10 +365,33 @@ export default function CMSTab({ siteContent, onRefresh, addToast }: CMSTabProps
             </div>
 
             <div className="bg-slate-50/50 p-8 rounded-3xl border border-slate-200">
-              <h4 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-3">
-                <FileText className="text-slate-700" size={24} />
-                מסמכי מדיניות (Legal) - Markdown
-              </h4>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <h4 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                  <FileText className="text-slate-700" size={24} />
+                  מסמכי מדיניות (Legal) - Markdown
+                </h4>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const result = await seedDefaultLegalDocuments();
+                    if (!result.success) {
+                      addToast('שגיאה בהזרעת מסמכים משפטיים', 'error');
+                      return;
+                    }
+
+                    const seededKeys = Array.isArray((result as any).data?.seededKeys) ? (result as any).data.seededKeys : [];
+                    if (seededKeys.length === 0) {
+                      addToast('המסמכים כבר קיימים', 'info');
+                    } else {
+                      addToast(`הוזרעו ${seededKeys.length} מסמכים`, 'success');
+                    }
+                    onRefresh();
+                  }}
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-900 text-white font-black shadow-lg shadow-slate-900/10"
+                >
+                  הזרעת מסמכים משפטיים
+                </button>
+              </div>
 
               <div className="grid grid-cols-1 gap-6">
                 <div>

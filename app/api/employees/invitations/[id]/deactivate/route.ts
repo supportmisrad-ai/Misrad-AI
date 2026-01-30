@@ -5,85 +5,117 @@
  * Deactivates an employee invitation link
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
-import { getUsers } from '../../../../../../lib/db';
-import { supabase } from '../../../../../../lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '../../../../../../lib/supabase';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function loadUserInWorkspaceByEmail(params: { supabase: any; workspaceId: string; email: string }) {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id, role, is_super_admin')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data
+        ? { id: String(byOrg.data.id), role: String(byOrg.data.role || 'עובד'), isSuperAdmin: Boolean((byOrg.data as any).is_super_admin) }
+        : null;
+}
+
+async function loadInvitationInWorkspace(params: { supabase: any; workspaceId: string; invitationId: string }) {
+    const byOrg = await params.supabase
+        .from('nexus_employee_invitation_links')
+        .select('*')
+        .eq('id', params.invitationId)
+        .eq('organization_id', params.workspaceId)
+        .single();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_employee_invitation_links is missing organization_id');
+    }
+
+    return byOrg;
+}
+
+async function deactivateInvitationInWorkspace(params: { supabase: any; workspaceId: string; invitationId: string }) {
+    const patch = {
+        is_active: false,
+        updated_at: new Date().toISOString(),
+    };
+
+    const byOrg = await params.supabase
+        .from('nexus_employee_invitation_links')
+        .update(patch)
+        .eq('id', params.invitationId)
+        .eq('organization_id', params.workspaceId);
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_employee_invitation_links is missing organization_id');
+    }
+
+    return byOrg;
+}
 async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
-        }
+        const { workspace } = await getWorkspaceOrThrow(request);
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        let supabase: any;
+        try {
+            supabase = createClient();
+        } catch {
+            return apiError('Database not configured', { status: 500 });
+        }
 
         // 1. Authenticate user
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
         } catch (authError: any) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return apiError('Unauthorized', { status: 401 });
         }
 
         if (!clerkUser.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const user = await loadUserInWorkspaceByEmail({ supabase, workspaceId: workspace.id, email: clerkUser.email });
 
         if (!user) {
-            return NextResponse.json(
-                { error: 'User not found in database. Please sync your account first.' },
-                { status: 404 }
-            );
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
         const { id } = await params;
 
         // 3. Check if invitation exists and get it
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const { data: invitation, error: getError } = await supabase
-            .from('nexus_employee_invitation_links')
-            .select('*')
-            .eq('id', id)
-            .eq('organization_id', workspace.id)
-            .single();
+        const invRes = await loadInvitationInWorkspace({ supabase, workspaceId: workspace.id, invitationId: id });
+        const invitation = (invRes as any)?.data;
+        const getError = (invRes as any)?.error;
 
         if (getError || !invitation) {
-            return NextResponse.json(
-                { error: 'קישור הזמנה לא נמצא' },
-                { status: 404 }
-            );
+            return apiError('קישור הזמנה לא נמצא', { status: 404 });
         }
 
         // 4. Check permissions: user can deactivate their own invitations, admins can deactivate any
-        const isAdmin = user.isSuperAdmin || 
-                       user.role === 'מנכ״ל' || 
-                       user.role === 'מנכ"ל' || 
-                       user.role === 'אדמין';
+        const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
         const ws = workspace;
         const flags = await getSystemFeatureFlags();
@@ -120,50 +152,34 @@ async function POSTHandler(
         });
 
         if (!caps.isTeamManagementEnabled) {
-            return NextResponse.json(
-                { error: 'ניהול צוות זמין רק עם מודול Nexus' },
-                { status: 403 }
-            );
+            return apiError('ניהול צוות זמין רק עם מודול Nexus', { status: 403 });
         }
 
         const isOwner = invitation.created_by === user.id;
 
         if (!isAdmin && !isOwner) {
-            return NextResponse.json(
-                { error: 'אין הרשאה לבטל קישור זה' },
-                { status: 403 }
-            );
+            return apiError('אין הרשאה לבטל קישור זה', { status: 403 });
         }
 
         // 5. Deactivate invitation
-        const { error: updateError } = await supabase
-            .from('nexus_employee_invitation_links')
-            .update({
-                is_active: false,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', id)
-            .eq('organization_id', workspace.id);
+        const updateRes = await deactivateInvitationInWorkspace({ supabase, workspaceId: workspace.id, invitationId: id });
+        const updateError = (updateRes as any)?.error;
         
         if (updateError) {
             console.error('[API] Error deactivating employee invitation:', updateError);
-            return NextResponse.json(
-                { error: 'שגיאה בביטול קישור הזמנה' },
-                { status: 500 }
-            );
+            return apiError('שגיאה בביטול קישור הזמנה', { status: 500 });
         }
 
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             message: 'קישור הזמנה בוטל בהצלחה'
         });
 
     } catch (error: any) {
-        console.error('[API] Error deactivating employee invitation:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בביטול קישור הזמנה' },
-            { status: 500 }
-        );
+        console.error('[API] Error deactivating invitation:', error);
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'Failed to deactivate invitation' });
     }
 }
 

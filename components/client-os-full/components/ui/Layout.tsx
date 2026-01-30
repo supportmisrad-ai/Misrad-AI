@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutDashboard, Users, BrainCircuit, Settings, Sparkles, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, Sparkles, Cpu, MessageSquareQuote, ChevronRight, ClipboardList, GitMerge, Bell, Plus, Menu, Mail, Layers, X, Send } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '../../types';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
@@ -10,7 +10,6 @@ import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { useNexus } from '../../context/ClientContext';
 import { usePathname, useRouter } from 'next/navigation';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
@@ -18,8 +17,7 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 interface LayoutProps {
@@ -40,20 +38,16 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const [supportTicketId, setSupportTicketId] = useState<string | null>(null);
   const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(contextNotifications);
-  const { title, roomName, roomNameHebrew, roomIconName } = useRoomBranding();
+  const { title, roomName } = useRoomBranding();
   const isWorkspaceRoute = Boolean(pathname?.startsWith('/w/'));
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [workspaceBrand, setWorkspaceBrand] = useState<{ name: string; logoUrl?: string | null }>({
-    name: roomNameHebrew || roomName || 'Client',
+    name: roomName || 'Client',
     logoUrl: null,
   });
 
-  const fallbackIcon = (
-    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-200">
-      {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-slate-900" /> : null}
-    </div>
-  );
+  const fallbackIcon = <OSModuleSquircleIcon moduleKey="client" boxSize={40} iconSize={18} className="shadow-none" />;
 
   const [clientUserData, setClientUserData] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState<string>('—');
@@ -159,7 +153,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     { id: 'workflows', icon: GitMerge, label: 'תהליכים' },
     { id: 'forms', icon: ClipboardList, label: 'טפסים' },
     { id: 'feedback', icon: MessageSquareQuote, label: 'משובים' },
-    { id: 'intelligence', icon: BrainCircuit, label: 'פענוח' },
+    { id: 'intelligence', icon: Cpu, label: 'פענוח' },
     { id: 'analyzer', icon: Sparkles, label: 'ניתוח' },
     { id: 'settings', icon: Settings, label: 'הגדרות' },
   ];
@@ -174,7 +168,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     return name.split(' ')[0] || '';
   }, [systemIdentity?.name, userLabel.name]);
 
-  const moduleTitle = useMemo(() => roomNameHebrew || roomName || 'Client', [roomName, roomNameHebrew]);
+  const moduleTitle = useMemo(() => roomName || 'Client', [roomName]);
 
   const headerTitle = useMemo(() => {
     if (activeView === 'dashboard') return 'לוח בקרה';
@@ -244,7 +238,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
       { id: 'dashboard', icon: LayoutDashboard, label: 'בית' },
       { id: 'clients', icon: Users, label: 'לקוחות' },
       { id: 'ADD_ACTION', icon: Plus, label: 'פעולה' },
-      { id: 'intelligence', icon: BrainCircuit, label: 'AI' },
+      { id: 'intelligence', icon: Cpu, label: 'AI' },
       { id: 'MENU', icon: Menu, label: 'תפריט' },
   ];
 
@@ -320,11 +314,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error || 'שגיאה ביצירת קריאת תמיכה');
+        const errPayload = (errorData as any)?.data && typeof (errorData as any).data === 'object' ? (errorData as any).data : errorData;
+        throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
       }
 
       const data = await response.json().catch(() => ({}));
-      const ticketNumber = String(data?.ticket?.ticket_number || '').trim();
+      const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+      const ticketNumber = String((payload as any)?.ticket?.ticket_number || '').trim();
       setSupportTicketId(ticketNumber || '');
       setSupportDraft({ category: 'Tech', subject: '', message: '' });
     } catch (err: any) {
@@ -350,21 +346,18 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   };
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
-      <button
-        onClick={() => setIsNotificationsOpen(true)}
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
-        aria-label={`${unreadCount} notifications`}
-        type="button"
-      >
-        <Bell size={18} />
-        {unreadCount > 0 ? <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /> : null}
-      </button>
-    </div>
+    <button
+      onClick={() => setIsNotificationsOpen(true)}
+      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      aria-label="התראות"
+      type="button"
+    >
+      <Bell size={18} />
+      {unreadCount > 0 ? <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" /> : null}
+    </button>
   );
 
-  const switcherSlot = isWorkspaceRoute ? <WorkspaceSwitcher /> : <RoomSwitcher />;
+  const switcherSlot = <WorkspaceSwitcher />;
 
   const userAvatarSlot = (
     <Avatar
@@ -386,9 +379,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           name: workspaceBrand.name,
           logoUrl: workspaceBrand.logoUrl || null,
           fallbackIcon,
-          badgeIcon: <OSModuleIcon moduleKey="client" size={12} className="text-slate-900" />,
+          badgeModuleKey: 'client',
         }}
-        brandSubtitle={roomNameHebrew || roomName || 'מעקב לקוחות ומתאמנים'}
+        brandSubtitle={roomName || 'Client'}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">
@@ -442,7 +435,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
             name: moduleTitle,
             logoUrl: workspaceBrand.logoUrl || null,
             fallbackIcon,
-            badgeIcon: <OSModuleIcon moduleKey="client" size={10} className="text-slate-900" />,
+            badgeModuleKey: 'client',
           }}
           mobileLeadingSlot={
             <button
@@ -495,7 +488,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
           {
             id: 'intelligence',
             label: 'AI',
-            icon: BrainCircuit,
+            icon: Cpu,
             active: activeView === 'intelligence',
             onClick: () => handleMobileNavClick('intelligence'),
           },

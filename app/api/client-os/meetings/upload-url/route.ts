@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -26,16 +26,16 @@ async function POSTHandler(req: Request) {
     const fileName = String(body.fileName || 'recording');
     const mimeType = String(body.mimeType || '');
 
-    if (!orgIdInput) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
-    if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
+    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!clientId) return apiError('clientId is required', { status: 400 });
 
     let orgId: string;
     try {
-      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+      return apiError(e, { status, message: e?.message || 'Forbidden' });
     }
 
     const bucket = 'meeting-recordings';
@@ -66,10 +66,10 @@ async function POSTHandler(req: Request) {
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data?.signedUrl || !data?.token) {
-      return NextResponse.json({ error: error?.message || 'Failed to create signed upload URL' }, { status: 500 });
+      return apiError(error?.message || 'Failed to create signed upload URL', { status: 500 });
     }
 
-    return NextResponse.json({
+    return apiSuccess({
       bucket,
       path,
       mimeType,
@@ -77,7 +77,7 @@ async function POSTHandler(req: Request) {
       token: data.token,
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Failed to prepare upload' }, { status: 500 });
+    return apiError(e, { status: 500, message: 'Failed to prepare upload' });
   }
 }
 

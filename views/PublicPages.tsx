@@ -16,7 +16,7 @@ const PublicLayout: React.FC<{ title: string; subtitle?: string; children: React
                         <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
                             <div className="w-4 h-4 bg-white rounded-full"></div>
                         </div>
-                        <span className="text-xl font-black text-white tracking-tight">Misrad OS</span>
+                        <span className="text-xl font-black text-white tracking-tight">MISRAD AI</span>
                     </div>
                     <button 
                         onClick={() => router.push('/login')}
@@ -43,7 +43,7 @@ const PublicLayout: React.FC<{ title: string; subtitle?: string; children: React
 
             {/* Footer */}
             <footer className="border-t border-slate-800 py-12 text-center text-slate-500 text-sm">
-                <p>&copy; {new Date().getFullYear()} MISRAD. All rights reserved.</p>
+                <p>&copy; {new Date().getFullYear()} MISRAD AI. All rights reserved.</p>
             </footer>
         </div>
     );
@@ -156,7 +156,7 @@ export const ContactView: React.FC = () => (
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-white">אימייל</h3>
-                        <p className="text-slate-400">support@nexus-os.co<br/>sales@nexus-os.co</p>
+                        <p className="text-slate-400">support@misrad-ai.com</p>
                     </div>
                 </div>
                 <div className="flex items-start gap-4">
@@ -211,7 +211,7 @@ export const CareersView: React.FC = () => (
         <div className="mt-12 text-center bg-indigo-900/20 border border-indigo-500/20 p-10 rounded-3xl">
             <h3 className="text-2xl font-bold text-white mb-2">לא מצאתם את המשרה המתאימה?</h3>
             <p className="text-slate-400 mb-6">אנחנו תמיד מחפשים טאלנטים. שלחו לנו קורות חיים ונסתכל.</p>
-            <button className="text-indigo-400 font-bold hover:text-indigo-300 underline">jobs@nexus-os.co</button>
+            <button className="text-indigo-400 font-bold hover:text-indigo-300 underline">support@misrad-ai.com</button>
         </div>
     </PublicLayout>
 );

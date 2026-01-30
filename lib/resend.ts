@@ -1,9 +1,10 @@
 import { Resend } from 'resend';
 
 const resendApiKey = process.env.RESEND_API_KEY;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 if (!resendApiKey) {
-  console.warn('RESEND_API_KEY is not set. Email functionality will be disabled.');
+  if (!IS_PROD) console.warn('Email service is not configured.');
 }
 
 // Initialize Resend client

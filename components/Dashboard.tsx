@@ -12,8 +12,8 @@ import {
   PieChart,
   Pie,
 } from 'recharts';
-import { Lead, DashboardStats, PipelineStage } from '../types';
-import { STAGES } from '../constants';
+import { Lead, DashboardStats, PipelineStage } from './system/types';
+import { STAGES } from './system/constants';
 import { CircleAlert, TrendingUp, DollarSign, Users, ArrowUpRight, Target, Activity, Zap, Layers, PieChart as PieChartIcon, Calendar, Megaphone, Wallet, Play, PhoneCall } from 'lucide-react';
 
 interface DashboardProps {
@@ -196,7 +196,7 @@ const Dashboard: React.FC<DashboardProps> = ({ leads, onNavigate, onQuickAction 
                           fontWeight: 'bold',
                           fontSize: '12px'
                       }}
-                      formatter={(value: number) => [value, 'כמות']}
+                      formatter={(value: number | undefined) => [value ?? 0, 'כמות']}
                     />
                     <Bar dataKey="count" radius={[8, 8, 8, 8]}>
                         {funnelData.map((entry, index) => (

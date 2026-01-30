@@ -8,7 +8,7 @@ export default async function NewWorkspacePage() {
   const res = await provisionCurrentUserWorkspaceAction();
 
   if (res.success && res.organizationKey) {
-    redirect(`/w/${encodeURIComponent(res.organizationKey)}`);
+    redirect('/workspaces/onboarding');
   }
 
   return (

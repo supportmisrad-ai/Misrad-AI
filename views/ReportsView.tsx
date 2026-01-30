@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import { CustomSelect } from '../components/CustomSelect';
 import { BarChart3, Clock, CheckCircle2, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, Activity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw } from 'lucide-react';
@@ -10,34 +11,37 @@ import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TimeEntryModal } from '../components/nexus/TimeEntryModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useSearchParams } from 'next/navigation';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { useNexusNavigation, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { createNexusTimeEntry, listNexusTimeEntries, listNexusUsers, updateNexusTimeEntry, voidNexusTimeEntry } from '@/app/actions/nexus';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
 
 export const ReportsView: React.FC = () => {
-    const { tasks, currentUser, hasPermission, addToast, departments, users: contextUsers, timeEntries: contextTimeEntries, deleteTimeEntry, updateTimeEntry, addManualTimeEntry } = useData();
-    const { fetchUsers, fetchFinancials, fetchTimeEntries, isLoading: isLoadingData } = useSecureAPI();
+    const { tasks, currentUser, hasPermission, addToast, departments, users: contextUsers, timeEntries: contextTimeEntries } = useData();
+    const { fetchFinancials, isLoading: isLoadingData } = useSecureAPI();
+    const queryClient = useQueryClient();
+    const { pathname } = useNexusNavigation();
+    const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname), [pathname]);
+    const orgId = orgSlug;
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState<User[]>(contextUsers || []);
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>(contextTimeEntries || []);
     const [financeData, setFinanceData] = useState<any[]>([]);
     
     // Cache state - remember last loaded data (with localStorage persistence)
     const [cachedUsers, setCachedUsers] = useState<User[]>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('reports_cached_users');
-            return stored ? JSON.parse(stored) : [];
-        }
         return [];
     });
     const [cachedTimeEntries, setCachedTimeEntries] = useState<TimeEntry[]>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('reports_cached_timeEntries');
-            return stored ? JSON.parse(stored) : [];
-        }
         return [];
     });
     const [cachedFinanceData, setCachedFinanceData] = useState<any[]>(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('reports_cached_financeData');
-            return stored ? JSON.parse(stored) : [];
-        }
         return [];
     });
     
@@ -51,6 +55,13 @@ export const ReportsView: React.FC = () => {
     
     // Tab State
     const [activeTab, setActiveTab] = useState<'overview' | 'attendance' | 'finance'>('overview');
+
+    useEffect(() => {
+        const tab = searchParams?.get('tab');
+        if (tab === 'overview' || tab === 'attendance' || tab === 'finance') {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
 
     // Default to current month start -> today
     const [dateRange, setDateRange] = useState({
@@ -66,15 +77,68 @@ export const ReportsView: React.FC = () => {
     const [entryToEdit, setEntryToEdit] = useState<TimeEntry | null>(null);
 
     // Permissions & Logic
-    const isSystemAdmin = currentUser.isSuperAdmin || currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין';
+    const isSystemAdmin = currentUser.isSuperAdmin || isTenantAdminRole(currentUser.role);
     const isTeamManager = hasPermission('manage_team'); 
     const myDepartment = currentUser.department;
     const canViewFinancials = hasPermission('view_financials');
 
     // Admin Filter
     const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
+
+    const usersQuery = useQuery({
+        queryKey: ['nexus', 'users', orgSlug, selectedDepartment],
+        queryFn: async () => {
+            return listNexusUsers({
+                orgId: orgSlug as string,
+                department: selectedDepartment !== 'All' ? selectedDepartment : undefined,
+                page: 1,
+                pageSize: 200,
+            });
+        },
+        enabled: Boolean(orgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    const timeEntriesQuery = useQuery({
+        queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end],
+        queryFn: async () => {
+            return listNexusTimeEntries({
+                orgId: orgSlug as string,
+                dateFrom: dateRange.start,
+                dateTo: dateRange.end,
+                page: 1,
+                pageSize: 200,
+            });
+        },
+        enabled: Boolean(orgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    const createEntryMutation = useMutation({
+        mutationFn: async (input: Partial<TimeEntry>) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return createNexusTimeEntry({ orgId: orgSlug, input: input as any });
+        },
+    });
+
+    const updateEntryMutation = useMutation({
+        mutationFn: async (params: { entryId: string; updates: Partial<TimeEntry> }) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return updateNexusTimeEntry({ orgId: orgSlug, entryId: params.entryId, updates: params.updates as any });
+        },
+    });
+
+    const voidEntryMutation = useMutation({
+        mutationFn: async (params: { entryId: string; reason: string }) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return voidNexusTimeEntry({ orgId: orgSlug, entryId: params.entryId, reason: params.reason });
+        },
+    });
     
-    // Load users from secure API with cache
     useEffect(() => {
         // Show context users immediately if available
         if (contextUsers && contextUsers.length > 0) {
@@ -83,41 +147,20 @@ export const ReportsView: React.FC = () => {
         } else if (cachedUsers.length > 0) {
             setUsers(cachedUsers);
         }
-        
-        const loadUsers = async () => {
-            setIsRefreshingUsers(true);
-            try {
-                const fetchedUsers = await fetchUsers({
-                    department: selectedDepartment !== 'All' ? selectedDepartment : undefined
-                });
-                const newUsers = fetchedUsers || [];
-                setUsers(newUsers);
-                setCachedUsers(newUsers);
-                // Persist to localStorage
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('reports_cached_users', JSON.stringify(newUsers));
-                }
-            } catch (error) {
-                console.error('Failed to load users:', error);
-                // Keep existing users on error
-                if (users.length === 0 && contextUsers && contextUsers.length > 0) {
-                    setUsers(contextUsers);
-                } else if (users.length === 0 && cachedUsers.length > 0) {
-                    setUsers(cachedUsers);
-                }
-            } finally {
-                setIsRefreshingUsers(false);
-            }
-        };
-        
-        loadUsers();
-    }, [fetchUsers, selectedDepartment]);
+    }, [contextUsers]);
 
-    // Load time entries from secure API with cache
+    useEffect(() => {
+        setIsRefreshingUsers(Boolean(usersQuery.isFetching));
+        const next = (usersQuery.data as any)?.users;
+        if (Array.isArray(next)) {
+            setUsers(next);
+            setCachedUsers(next);
+        }
+    }, [usersQuery.data, usersQuery.isFetching]);
+
     useEffect(() => {
         // Show context time entries immediately if available
         if (contextTimeEntries && contextTimeEntries.length > 0) {
-            // Filter by date range
             const filtered = contextTimeEntries.filter((entry: TimeEntry) => {
                 const entryDate = entry.date || entry.startTime?.split('T')[0];
                 return entryDate >= dateRange.start && entryDate <= dateRange.end;
@@ -128,46 +171,16 @@ export const ReportsView: React.FC = () => {
         } else if (cachedTimeEntries.length > 0) {
             setTimeEntries(cachedTimeEntries);
         }
-        
-        const loadTimeEntries = async () => {
-            setIsRefreshingTimeEntries(true);
-            try {
-                const fetchedEntries = await fetchTimeEntries({
-                    dateFrom: dateRange.start,
-                    dateTo: dateRange.end
-                });
-                const newEntries = fetchedEntries || [];
-                setTimeEntries(newEntries);
-                setCachedTimeEntries(newEntries);
-                // Persist to localStorage
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('reports_cached_timeEntries', JSON.stringify(newEntries));
-                }
-            } catch (error) {
-                console.error('Failed to load time entries:', error);
-                // Keep existing entries on error
-                if (timeEntries.length === 0 && contextTimeEntries && contextTimeEntries.length > 0) {
-                            const filtered = contextTimeEntries.filter((entry: TimeEntry) => {
-                        const entryDate = entry.date || entry.startTime?.split('T')[0];
-                        return entryDate >= dateRange.start && entryDate <= dateRange.end;
-                    });
-                    setTimeEntries(filtered);
-                } else if (timeEntries.length === 0 && cachedTimeEntries.length > 0) {
-                    setTimeEntries(cachedTimeEntries);
-                }
-            } finally {
-                setIsRefreshingTimeEntries(false);
-            }
-        };
-        
-        // Only fetch if we don't have context entries, or fetch in background to refresh
-        if (!contextTimeEntries || contextTimeEntries.length === 0) {
-            loadTimeEntries();
-        } else {
-            // Load in background to refresh data
-            loadTimeEntries();
+    }, [contextTimeEntries, dateRange]);
+
+    useEffect(() => {
+        setIsRefreshingTimeEntries(Boolean(timeEntriesQuery.isFetching));
+        const next = (timeEntriesQuery.data as any)?.timeEntries;
+        if (Array.isArray(next)) {
+            setTimeEntries(next);
+            setCachedTimeEntries(next);
         }
-    }, [fetchTimeEntries, dateRange]);
+    }, [timeEntriesQuery.data, timeEntriesQuery.isFetching]);
 
     // Load financial data from secure API with cache (only if has permission)
     useEffect(() => {
@@ -185,15 +198,18 @@ export const ReportsView: React.FC = () => {
             
             setIsRefreshingFinancials(true);
             try {
-                const fetchedFinancials = await fetchFinancials({
+                const fetchedFinancials: unknown = await fetchFinancials({
                     department: selectedDepartment !== 'All' ? selectedDepartment : undefined,
                     dateRange: `${dateRange.start},${dateRange.end}`
                 });
+
+                const fetchedObj = asObject(fetchedFinancials);
+                const users = fetchedObj?.users;
                 
                 // Transform API response to match expected format
                 let newFinanceData: any[] = [];
-                if (fetchedFinancials?.users) {
-                    newFinanceData = fetchedFinancials.users.map((item: any) => ({
+                if (Array.isArray(users)) {
+                    newFinanceData = users.map((item: any) => ({
                         user: item.user || item,
                         totalHours: item.totalHours || 0,
                         totalMinutes: item.totalMinutes || 0,
@@ -206,10 +222,6 @@ export const ReportsView: React.FC = () => {
                 
                 setFinanceData(newFinanceData);
                 setCachedFinanceData(newFinanceData);
-                // Persist to localStorage
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('reports_cached_financeData', JSON.stringify(newFinanceData));
-                }
             } catch (error) {
                 console.error('Failed to load financials:', error);
                 // Keep cached data on error
@@ -322,9 +334,17 @@ export const ReportsView: React.FC = () => {
         setEntryToDelete({ id, name: `דיווח שעות: ${date} (${timeStr})` });
     };
 
-    const confirmDeleteEntry = (reason?: string) => {
-        if (entryToDelete) {
-            deleteTimeEntry(entryToDelete.id, reason);
+    const confirmDeleteEntry = async (reason?: string) => {
+        if (!entryToDelete) return;
+        try {
+            const safeReason = String(reason || '').trim();
+            await voidEntryMutation.mutateAsync({ entryId: entryToDelete.id, reason: safeReason || 'No reason provided' });
+            if (orgSlug) {
+                queryClient.invalidateQueries({ queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end] });
+            }
+        } catch (error: any) {
+            addToast(error?.message || 'שגיאה בביטול דיווח שעות', 'error');
+        } finally {
             setEntryToDelete(null);
         }
     };
@@ -339,11 +359,33 @@ export const ReportsView: React.FC = () => {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveEntry = (entryData: Partial<TimeEntry>) => {
-        if (entryToEdit) {
-            updateTimeEntry(entryToEdit.id, entryData);
-        } else {
-            addManualTimeEntry(entryData as TimeEntry);
+    const handleSaveEntry = async (entryData: Partial<TimeEntry>) => {
+        try {
+            if (entryToEdit) {
+                await updateEntryMutation.mutateAsync({
+                    entryId: entryToEdit.id,
+                    updates: {
+                        userId: entryData.userId,
+                        date: entryData.date,
+                        startTime: entryData.startTime,
+                        endTime: entryData.endTime,
+                    },
+                });
+                addToast('דיווח השעות עודכן', 'success');
+            } else {
+                await createEntryMutation.mutateAsync({
+                    userId: entryData.userId,
+                    date: entryData.date,
+                    startTime: entryData.startTime,
+                    endTime: entryData.endTime,
+                });
+                addToast('דיווח שעות ידני נוסף בהצלחה', 'success');
+            }
+            if (orgSlug) {
+                queryClient.invalidateQueries({ queryKey: ['nexus', 'timeEntries', orgSlug, dateRange.start, dateRange.end] });
+            }
+        } catch (error: any) {
+            addToast(error?.message || 'שגיאה בשמירת הדיווח', 'error');
         }
     };
 
@@ -414,7 +456,7 @@ export const ReportsView: React.FC = () => {
                 title="ביטול דיווח שעות"
                 description="שים לב: מחיקת דיווח שעות דורשת תיעוד. הרשומה תסומן כמבוטלת ותועבר לארכיון המערכת."
                 itemName={entryToDelete?.name}
-                isHardDelete={true}
+                isHardDelete={false}
                 requireReason={true}
                 confirmText="בטל דיווח"
             />

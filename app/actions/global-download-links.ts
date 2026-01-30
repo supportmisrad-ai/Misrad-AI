@@ -5,17 +5,25 @@ import { z } from 'zod';
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 async function requireSuperAdminOrFail() {
   const authCheck = await requireAuth();
-  if (!authCheck.success) return authCheck as any;
+  if (!authCheck.success) return authCheck;
 
   const u = await currentUser();
-  const isSuperAdmin = Boolean((u as any)?.publicMetadata?.isSuperAdmin);
+  const meta = asObject(u?.publicMetadata);
+  const isSuperAdmin = Boolean(meta?.isSuperAdmin);
   if (!isSuperAdmin) {
     return createErrorResponse('Forbidden', 'אין הרשאה');
   }
 
-  return { success: true, userId: authCheck.userId } as const;
+  const userId = authCheck.userId ?? authCheck.data?.userId;
+  return { success: true, userId: String(userId || '') } as const;
 }
 
 export type GlobalDownloadLinksDTO = {
@@ -35,7 +43,7 @@ export async function adminGetGlobalDownloadLinks(): Promise<{
 }> {
   try {
     const guard = await requireSuperAdminOrFail();
-    if (!guard.success) return guard as any;
+    if (!guard.success) return guard;
 
     const { getGlobalDownloadLinksUnsafe } = await import('@/lib/server/globalDownloadLinks');
     const links = await getGlobalDownloadLinksUnsafe();
@@ -44,7 +52,7 @@ export async function adminGetGlobalDownloadLinks(): Promise<{
       windowsDownloadUrl: links.windowsDownloadUrl,
       androidDownloadUrl: links.androidDownloadUrl,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בטעינת לינקים להורדה');
   }
 }
@@ -55,7 +63,7 @@ export async function adminUpdateGlobalDownloadLinks(input: {
 }): Promise<{ success: boolean; data?: GlobalDownloadLinksDTO; error?: string }> {
   try {
     const guard = await requireSuperAdminOrFail();
-    if (!guard.success) return guard as any;
+    if (!guard.success) return guard;
 
     const parsed = updateSchema.safeParse(input);
     if (!parsed.success) {
@@ -72,7 +80,7 @@ export async function adminUpdateGlobalDownloadLinks(input: {
       windowsDownloadUrl: next.windowsDownloadUrl,
       androidDownloadUrl: next.androidDownloadUrl,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בשמירת לינקים להורדה');
   }
 }

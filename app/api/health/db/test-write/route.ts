@@ -1,19 +1,30 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '../../../../../lib/supabase';
+import { isSupabaseConfigured, createServiceRoleClient } from '../../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../../lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler() {
+
     try {
         await requireSuperAdmin();
     } catch (e: any) {
         return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required', success: false }, { status: 403 });
     }
 
-    if (!isSupabaseConfigured || !supabase) {
+    if (!isSupabaseConfigured()) {
         return NextResponse.json({
             error: 'Supabase not configured',
             success: false
+        }, { status: 500 });
+    }
+
+    let supabase: any;
+    try {
+        supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'health_check_test_write' });
+    } catch {
+        return NextResponse.json({
+            error: 'Supabase service role is not configured',
+            success: false,
         }, { status: 500 });
     }
 

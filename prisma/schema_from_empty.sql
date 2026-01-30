@@ -1656,7 +1656,7 @@ CREATE TABLE "misrad_integrations" (
 );
 
 -- CreateTable
-CREATE TABLE "scale_notifications" (
+CREATE TABLE "misrad_notifications" (
     "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
     "recipient_id" UUID,
     "type" TEXT NOT NULL,
@@ -3144,10 +3144,10 @@ CREATE INDEX "idx_integrations_user_id" ON "misrad_integrations"("user_id");
 CREATE UNIQUE INDEX "integrations_user_id_tenant_id_service_type_key" ON "misrad_integrations"("user_id", "tenant_id", "service_type");
 
 -- CreateIndex
-CREATE INDEX "idx_notifications_is_read" ON "scale_notifications"("is_read");
+CREATE INDEX "idx_notifications_is_read" ON "misrad_notifications"("is_read");
 
 -- CreateIndex
-CREATE INDEX "idx_notifications_recipient_id" ON "scale_notifications"("recipient_id");
+CREATE INDEX "idx_notifications_recipient_id" ON "misrad_notifications"("recipient_id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "roles_name_key" ON "misrad_roles"("name");

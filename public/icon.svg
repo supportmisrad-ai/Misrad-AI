@@ -1,17 +1,4 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background with gradient -->
-  <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" fill="url(#bgGradient)" rx="112"/>
-  
-  <!-- Letter S - Scale CRM -->
-  <text x="256" y="320" font-family="Arial, sans-serif" font-size="280" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle" letter-spacing="-10">S</text>
-  
-  <!-- Small accent dot -->
-  <circle cx="256" cy="140" r="12" fill="#4285F4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <path fill="#0F172A" d="M32 2l22 10v18c0 15.6-9.2 29.6-22 32C19.2 59.6 10 45.6 10 30V12L32 2z"/>
+  <path fill="#FFFFFF" d="M19 21.5h6.2l6.8 12.1 6.8-12.1H45v21h-5.8V32.2l-6.1 10.3h-2.2l-6.1-10.3v10.3H19v-21z"/>
 </svg>
-

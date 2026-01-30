@@ -1,18 +1,22 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowUpDown, Search, SlidersHorizontal } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import ClientsHeaderActions from '@/components/social/clients/ClientsHeaderActions';
 import { Avatar } from '@/components/Avatar';
 import { joinPath } from '@/lib/os/social-routing';
+import { getClientsPage } from '@/app/actions/clients';
 
 export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
   const basePath = `/w/${orgSlug}/social`;
-  const { clients } = useApp();
+  const { addToast, clients: contextClients } = useApp();
 
-  const [visibleCount, setVisibleCount] = useState(60);
+  const [clients, setClients] = useState<any[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [planFilter, setPlanFilter] = useState<'all' | 'starter' | 'pro' | 'agency' | 'custom'>('all');
   const [onboardingFilter, setOnboardingFilter] = useState<'all' | 'invited' | 'completed'>('all');
@@ -20,31 +24,59 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
 
   const list = useMemo(() => (Array.isArray(clients) ? clients : []), [clients]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  useEffect(() => {
+    const incoming = Array.isArray(contextClients) ? contextClients : [];
+    if (incoming.length === 0) return;
 
-    const base = list.filter((c: any) => {
-      const company = String(c.companyName || '').toLowerCase();
-      const email = String(c.email || '').toLowerCase();
-      const name = String(c.name || '').toLowerCase();
-
-      if (q) {
-        const match = company.includes(q) || email.includes(q) || name.includes(q);
-        if (!match) return false;
-      }
-
-      if (planFilter !== 'all') {
-        const plan = String(c.plan || '').toLowerCase();
-        if (plan !== planFilter) return false;
-      }
-
-      if (onboardingFilter !== 'all') {
-        const status = String(c.onboardingStatus || '').toLowerCase();
-        if (status !== onboardingFilter) return false;
-      }
-
-      return true;
+    setClients((prev) => {
+      const base = Array.isArray(prev) ? prev : [];
+      const byId = new Map<string, any>();
+      for (const c of base) byId.set(String(c?.id), c);
+      for (const c of incoming) byId.set(String(c?.id), c);
+      return Array.from(byId.values());
     });
+  }, [contextClients]);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setIsLoading(true);
+        setClients([]);
+        const res = await getClientsPage({
+          orgSlug,
+          cursor: null,
+          pageSize: 60,
+          query: query.trim() || undefined,
+          plan: planFilter === 'all' ? undefined : planFilter,
+          onboardingStatus: onboardingFilter === 'all' ? undefined : onboardingFilter,
+        } as any);
+
+        if (!res.success) {
+          setClients([]);
+          setNextCursor(null);
+          setHasMore(false);
+          addToast(res.error || 'שגיאה בטעינת לקוחות', 'error');
+          return;
+        }
+
+        setClients(res.data.clients as any);
+        setNextCursor(res.data.nextCursor);
+        setHasMore(Boolean(res.data.hasMore));
+      } catch (e: any) {
+        setClients([]);
+        setNextCursor(null);
+        setHasMore(false);
+        addToast(e?.message || 'שגיאה בטעינת לקוחות', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    run();
+  }, [addToast, onboardingFilter, orgSlug, planFilter, query]);
+
+  const filtered = useMemo(() => {
+    const base = list;
 
     return base.sort((a: any, b: any) => {
       const an = String(a.companyName || a.name || '').trim();
@@ -52,9 +84,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
       const cmp = an.localeCompare(bn, 'he', { sensitivity: 'base' });
       return sort === 'name_desc' ? -cmp : cmp;
     });
-  }, [list, onboardingFilter, planFilter, query, sort]);
-
-  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  }, [list, sort]);
 
   return (
     <div className="flex flex-col gap-10 p-4 w-full max-w-7xl mx-auto">
@@ -68,7 +98,6 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                setVisibleCount(60);
               }}
               placeholder="חיפוש לפי שם / אימייל..."
               className="w-full bg-white border border-slate-200 rounded-2xl pr-12 pl-4 py-3 font-bold text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
@@ -82,7 +111,6 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
                 value={planFilter}
                 onChange={(e) => {
                   setPlanFilter(e.target.value as any);
-                  setVisibleCount(60);
                 }}
                 className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               >
@@ -100,7 +128,6 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
                 value={onboardingFilter}
                 onChange={(e) => {
                   setOnboardingFilter(e.target.value as any);
-                  setVisibleCount(60);
                 }}
                 className="appearance-none bg-white border border-slate-200 rounded-2xl pr-10 pl-10 py-3 font-black text-slate-800 outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               >
@@ -125,7 +152,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
         </div>
 
         <div className="mt-4 flex items-center justify-between text-xs font-bold text-slate-500">
-          <div>נמצאו {filtered.length} לקוחות</div>
+          <div>{isLoading ? 'טוען...' : `נטענו ${filtered.length} לקוחות`}</div>
           {query || planFilter !== 'all' || onboardingFilter !== 'all' ? (
             <button
               type="button"
@@ -134,7 +161,6 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
                 setPlanFilter('all');
                 setOnboardingFilter('all');
                 setSort('name_asc');
-                setVisibleCount(60);
               }}
               className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
             >
@@ -147,7 +173,7 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
-        {visible.map((client: any) => {
+        {filtered.map((client: any) => {
           const href = joinPath(
             basePath,
             `/workspace?clientId=${encodeURIComponent(String(client.id))}&clientName=${encodeURIComponent(String(client.companyName || ''))}${client.onboardingStatus === 'invited' ? '&onboarding=1' : ''}`
@@ -180,16 +206,51 @@ export default function ClientsPageClient({ orgSlug }: { orgSlug: string }) {
         })}
       </div>
 
-      {visibleCount < list.length && (
+      {hasMore ? (
         <div className="flex justify-center pt-2">
           <button
-            onClick={() => setVisibleCount((v) => v + 60)}
-            className="bg-white px-8 py-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all font-black text-slate-700"
+            onClick={async () => {
+              try {
+                if (isLoading) return;
+                setIsLoading(true);
+                const res = await getClientsPage({
+                  orgSlug,
+                  cursor: nextCursor,
+                  pageSize: 60,
+                  query: query.trim() || undefined,
+                  plan: planFilter === 'all' ? undefined : planFilter,
+                  onboardingStatus: onboardingFilter === 'all' ? undefined : onboardingFilter,
+                } as any);
+
+                if (!res.success) {
+                  addToast(res.error || 'שגיאה בטעינת לקוחות', 'error');
+                  return;
+                }
+
+                setClients((prev) => {
+                  const base = Array.isArray(prev) ? prev : [];
+                  const incoming = Array.isArray(res.data.clients) ? (res.data.clients as any[]) : [];
+                  const byId = new Map<string, any>();
+                  for (const c of base) byId.set(String(c?.id), c);
+                  for (const c of incoming) byId.set(String(c?.id), c);
+                  return Array.from(byId.values());
+                });
+
+                setNextCursor(res.data.nextCursor);
+                setHasMore(Boolean(res.data.hasMore));
+              } catch (e: any) {
+                addToast(e?.message || 'שגיאה בטעינת לקוחות', 'error');
+              } finally {
+                setIsLoading(false);
+              }
+            }}
+            disabled={isLoading}
+            className="bg-white px-8 py-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all font-black text-slate-700 disabled:opacity-60"
           >
-            טען עוד
+            {isLoading ? 'טוען...' : 'טען עוד'}
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

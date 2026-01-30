@@ -1,4 +1,5 @@
 import { currentUser } from '@clerk/nextjs/server';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -7,8 +8,11 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { getClientOSClients, getOrganizationSessions } from '@/app/actions/client-portal-clinic';
 import ClientOsAppLayoutClient from '@/components/client-os-full/app-router/ClientOsAppLayoutClient';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('client');
 
 export default async function ClientAppLayout({
   children,
@@ -27,7 +31,10 @@ export default async function ClientAppLayout({
   }
 
   const clerkUser = await currentUser();
-  const supabase = createClient();
+  const clerkIsSuperAdmin =
+    Boolean((clerkUser as any)?.publicMetadata?.isSuperAdmin) ||
+    String((clerkUser as any)?.publicMetadata?.role || '').toLowerCase() === 'super_admin';
+  let supabase = createClient();
   const userInfo = await getCurrentUserInfo();
 
   const fallbackUser = userInfo.success
@@ -37,11 +44,17 @@ export default async function ClientAppLayout({
       }
     : null;
 
-  const { data: user } = await supabase
-    .from('social_users')
-    .select('organization_id, role')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
+  let user: any = null;
+  try {
+    const res = await supabase
+      .from('social_users')
+      .select('organization_id, role')
+      .eq('clerk_user_id', clerkUserId)
+      .maybeSingle();
+    user = res?.data ?? null;
+  } catch {
+    user = null;
+  }
 
   const roleFromClerk =
     (clerkUser as any)?.publicMetadata?.role ??
@@ -53,26 +66,20 @@ export default async function ClientAppLayout({
     typeof normalizedRoleFromClerk === 'string' && KNOWN_ROLES.has(normalizedRoleFromClerk) ? normalizedRoleFromClerk : null;
 
   const role = ((fallbackUser as any)?.role ?? safeRoleFromClerk ?? (user as any)?.role ?? null) as string | null;
-  const isAdmin = role === 'admin' || role === 'super_admin' || role === 'owner';
+  const isAdmin = clerkIsSuperAdmin || role === 'admin' || role === 'super_admin' || role === 'owner';
 
   const organizationId = String(workspace?.id || '');
-  let organization:
-    | {
-        id: string;
-        name: string;
-        logo?: string | null;
-        has_client?: boolean | null;
-      }
-    | null = null;
+  const organization: { id: string; name: string; logo?: string | null; has_client?: boolean | null } | null =
+    organizationId
+      ? {
+          id: organizationId,
+          name: String(workspace?.name || 'Workspace'),
+          logo: (workspace as any)?.logo ?? null,
+          has_client: Boolean(workspace?.entitlements?.client),
+        }
+      : null;
 
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, has_client')
-    .eq('id', organizationId)
-    .maybeSingle();
-  organization = org ? { ...org, logo: null } : null;
-
-  const hasClient = organization?.has_client === true;
+  const hasClient = Boolean(workspace?.entitlements?.client);
   const canAccess = hasClient || isAdmin;
   if (!canAccess) {
     redirect('/subscribe/checkout');

@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { getNexusOnboardingTemplate, setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-function getOrgSlugFromRequest(request: NextRequest): string | null {
-  const headerOrgId = request.headers.get('x-org-id');
-  const queryOrgId = request.nextUrl.searchParams.get('orgId');
-  return headerOrgId || queryOrgId;
-}
 
 async function GETHandler(request: NextRequest) {
   try {
@@ -17,15 +12,14 @@ async function GETHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orgSlug = getOrgSlugFromRequest(request);
-    if (!orgSlug) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
+    const { workspace } = await getWorkspaceOrThrow(request);
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     const template = await getNexusOnboardingTemplate(workspace.id);
     return NextResponse.json({ template });
   } catch (error: any) {
+    if (error instanceof APIError) {
+      return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+    }
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }
@@ -37,12 +31,7 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orgSlug = getOrgSlugFromRequest(request);
-    if (!orgSlug) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
-
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceOrThrow(request);
     const body = await request.json();
 
     const templateKey = String(body?.templateKey || '').trim();
@@ -61,6 +50,9 @@ async function POSTHandler(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
+    if (error instanceof APIError) {
+      return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+    }
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }

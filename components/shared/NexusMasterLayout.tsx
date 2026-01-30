@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SharedHeader } from '@/components/shared/SharedHeader';
 import { Avatar } from '@/components/Avatar';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 export default function NexusMasterLayout({
@@ -54,7 +53,7 @@ export default function NexusMasterLayout({
         mobileBrand={{
           name: workspace.name,
           logoUrl: workspace.logoUrl || null,
-          badgeIcon: <OSModuleIcon moduleKey="nexus" size={10} className="text-slate-900" />,
+          badgeModuleKey: 'nexus',
         }}
         onOpenCommandPaletteAction={undefined}
         onOpenSupportAction={undefined}

@@ -1,9 +1,8 @@
 ﻿'use client';
 
-import React, { useState } from 'react';
-import { ArrowRight, RefreshCw, Key, ExternalLink, Copy, Check, Moon, X } from 'lucide-react';
+import React from 'react';
+import { ArrowRight, RefreshCw, Key, ExternalLink, Moon } from 'lucide-react';
 import { AdminTab } from './types';
-import { useApp } from '@/contexts/AppContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { Button } from '@/components/ui/button';
@@ -31,46 +30,9 @@ export default function AdminPanelLayout({
 }: AdminPanelLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [copied, setCopied] = useState(false);
-  const [isMarketingLinksOpen, setIsMarketingLinksOpen] = useState(false);
 
-  const getBaseUrl = () => {
-    if (typeof window === 'undefined') return '';
-    return window.location.origin;
-  };
-
-  const getMarketingLinks = () => {
-    return [
-      { label: 'Social · דף נחיתה', path: '/social' },
-      { label: 'Pricing · מחירון', path: '/pricing' },
-      { label: 'Subscribe · Checkout', path: '/subscribe/checkout' },
-      { label: 'System · דף שיווק', path: '/system' },
-      { label: 'Client · דף שיווק', path: '/client' },
-    ];
-  };
-
-  const toAbsoluteUrl = (path: string) => {
-    const base = getBaseUrl();
-    if (!base) return path;
-    return `${base}${path}`;
-  };
-
-  const handleCopyLink = async () => {
-    const links = getMarketingLinks();
-    const text = links.map((l) => `${l.label}: ${toAbsoluteUrl(l.path)}`).join('\n');
-    if (text) {
-      try {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy:', err);
-      }
-    }
-  };
-
-  const handleOpenLandingPage = () => {
-    setIsMarketingLinksOpen(true);
+  const handleOpenLinksHub = () => {
+    router.push('/app/admin/global/links');
   };
   return (
     <div
@@ -129,11 +91,11 @@ export default function AdminPanelLayout({
 
         <div className="p-4 border-t border-indigo-100">
           <Button
-            onClick={handleOpenLandingPage}
+            onClick={handleOpenLinksHub}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all shadow-lg shadow-blue-200/50 mb-2"
           >
             <ExternalLink size={18}/>
-            <span>קישור לדף הנחיתה</span>
+            <span>מרכז קישורים ומשאבים</span>
           </Button>
           <Button
             onClick={() => {
@@ -144,23 +106,6 @@ export default function AdminPanelLayout({
           >
             <Moon size={18}/>
             <span>תצוגה מקדימה - מצב שבת</span>
-          </Button>
-          <Button
-            onClick={handleCopyLink}
-            variant="ghost"
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-600 hover:bg-slate-50 transition-all mb-2"
-          >
-            {copied ? (
-              <>
-                <Check size={18} className="text-emerald-500"/>
-                <span className="text-emerald-500">הועתק!</span>
-              </>
-            ) : (
-              <>
-                <Copy size={18}/>
-                <span>העתק קישור</span>
-              </>
-            )}
           </Button>
           <Button
             onClick={onBackToDashboard}
@@ -200,82 +145,9 @@ export default function AdminPanelLayout({
             <span className="flex items-center gap-2"><div className="w-2 h-2 bg-indigo-500 rounded-full"></div> גרסה: v2.4.12-admin</span>
             <span className="flex items-center gap-2 text-indigo-600"><Key size={12}/> חיבור מוצפן פעיל</span>
           </div>
-          <p className="text-[10px] font-bold text-slate-500">© 2025 Social | פאנל ניהול פנימי | גישה מוגבלת</p>
+          <p className="text-[10px] font-bold text-slate-500"> 2025 Social | פאנל ניהול פנימי | גישה מוגבלת</p>
         </footer>
       </main>
-
-      {isMarketingLinksOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
-          <Button
-            type="button"
-            variant="ghost"
-            className="absolute inset-0 w-full h-full p-0 bg-slate-900/40 backdrop-blur-sm rounded-none"
-            onClick={() => setIsMarketingLinksOpen(false)}
-            aria-label="Close"
-          />
-          <div className="relative w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <div className="flex flex-col">
-                <h3 className="text-lg font-black text-slate-900">קישורים לדפי שיווק</h3>
-                <p className="text-xs font-bold text-slate-500">פתיחה בטאב חדש</p>
-              </div>
-              <Button
-                onClick={() => setIsMarketingLinksOpen(false)}
-                variant="ghost"
-                size="icon"
-                className="h-11 w-11"
-                aria-label="Close"
-              >
-                <X size={18} />
-              </Button>
-            </div>
-
-            <div className="p-6">
-              <div className="space-y-2">
-                {getMarketingLinks().map((link) => (
-                  <a
-                    key={link.path}
-                    href={link.path}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      const url = toAbsoluteUrl(link.path);
-                      window.open(url, '_blank');
-                    }}
-                  >
-                    <ExternalLink size={16} className="text-indigo-600" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-black text-slate-900 truncate">{link.label}</div>
-                      <div className="text-xs font-bold text-slate-500 truncate">{toAbsoluteUrl(link.path)}</div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-
-              <div className="mt-5 flex items-center justify-between gap-3">
-                <Button
-                  onClick={handleCopyLink}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Copy size={16} />
-                  <span>העתק הכל</span>
-                </Button>
-                <Button
-                  onClick={() => setIsMarketingLinksOpen(false)}
-                  size="sm"
-                >
-                  סגור
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-

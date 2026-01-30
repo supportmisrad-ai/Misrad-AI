@@ -1,5 +1,4 @@
-
-import { Client, SocialPost, AIOpportunity, Idea, Conversation, Invoice, SocialTask, AgencyServiceConfig, TeamMember } from '@/types';
+import { Client, SocialPost, AIOpportunity, Idea, Conversation, Invoice, SocialTask, AgencyServiceConfig, TeamMember } from '@/types/social';
 
 export const DEFAULT_PLATFORM_CONFIGS: AgencyServiceConfig[] = [
   { id: 'facebook', label: 'Facebook', isEnabled: true, basePrice: 850, category: 'platform', isRecurring: true },

@@ -1,64 +1,86 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
-import { SocialTask } from '@/types';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { SocialTask } from '@/types/social';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return '';
+}
+
+type SocialTaskRow = Prisma.social_tasksGetPayload<{
+  select: {
+    id: true;
+    client_id: true;
+    assigned_to: true;
+    title: true;
+    description: true;
+    due_date: true;
+    priority: true;
+    status: true;
+    type: true;
+  };
+}>;
 
 /**
  * Server Action: Get all tasks
  */
 export async function getTasks(orgSlug?: string, clientId?: string): Promise<{ success: boolean; data?: SocialTask[]; error?: string }> {
   try {
-    const supabase = createClient();
-
     const resolvedOrgSlug = typeof orgSlug === 'string' ? orgSlug.trim() : '';
     if (!resolvedOrgSlug) {
       return { success: true, data: [] };
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-
-    let query = supabase
-      .from('social_tasks')
-      .select('*, clients!inner(organization_id)')
-      .eq('clients.organization_id', workspace.id)
-      .order('due_date', { ascending: true });
-
-    if (clientId) {
-      query = query.eq('client_id', clientId);
+    const organizationId = String(workspace.id || '').trim();
+    if (!organizationId) {
+      return { success: false, error: 'Missing organizationId' };
     }
 
-    const { data, error } = await query;
+    const rows: SocialTaskRow[] = await prisma.social_tasks.findMany({
+      where: {
+        organizationId,
+        ...(clientId ? { client_id: clientId } : {}),
+      },
+      select: {
+        id: true,
+        client_id: true,
+        assigned_to: true,
+        title: true,
+        description: true,
+        due_date: true,
+        priority: true,
+        status: true,
+        type: true,
+      },
+      orderBy: { due_date: 'asc' },
+    });
 
-    if (error) {
-      console.error('Error fetching tasks:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    const tasks: SocialTask[] = (data || []).map((task: any) => ({
-      id: task.id,
-      clientId: task.client_id,
-      assignedTo: task.assigned_to,
-      title: task.title,
-      description: task.description,
-      dueDate: task.due_date,
-      priority: task.priority,
-      status: task.status,
-      type: task.type,
+    const tasks: SocialTask[] = rows.map((task) => ({
+      id: String(task.id),
+      clientId: task.client_id ?? undefined,
+      assignedTo: task.assigned_to ?? undefined,
+      title: String(task.title ?? ''),
+      description: String(task.description ?? ''),
+      dueDate: task.due_date == null ? '' : String(task.due_date),
+      priority: (task.priority ?? 'medium') as SocialTask['priority'],
+      status: (task.status ?? 'todo') as SocialTask['status'],
+      type: (task.type ?? 'general') as SocialTask['type'],
     }));
 
     return {
       success: true,
       data: tasks,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in getTasks:', error);
     return {
       success: false,
-      error: error.message || 'שגיאה בטעינת משימות',
+      error: getErrorMessage(error) || 'שגיאה בטעינת משימות',
     };
   }
 }

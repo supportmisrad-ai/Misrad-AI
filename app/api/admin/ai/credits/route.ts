@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
 
@@ -16,7 +16,7 @@ async function GETHandler(req: Request) {
 
     const url = new URL(req.url);
     const organizationId = String(url.searchParams.get('organizationId') || '').trim();
-    if (!organizationId) return NextResponse.json({ error: 'organizationId is required' }, { status: 400 });
+    if (!organizationId) return apiError('organizationId is required', { status: 400 });
 
     const supabase = createClient();
 
@@ -25,8 +25,7 @@ async function GETHandler(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         organizationId,
         status: null,
         note: 'credit status RPC not available',
@@ -34,11 +33,11 @@ async function GETHandler(req: Request) {
     }
 
     const row = Array.isArray(data) ? data[0] : data;
-    return NextResponse.json({ success: true, organizationId, status: row || null });
+    return apiSuccess({ organizationId, status: row || null });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 
@@ -50,9 +49,9 @@ async function POSTHandler(req: Request) {
     const organizationId = String(body.organizationId || '').trim();
     const deltaCents = Math.floor(Number(body.deltaCents));
 
-    if (!organizationId) return NextResponse.json({ error: 'organizationId is required' }, { status: 400 });
+    if (!organizationId) return apiError('organizationId is required', { status: 400 });
     if (!Number.isFinite(deltaCents) || deltaCents === 0) {
-      return NextResponse.json({ error: 'deltaCents must be a non-zero number' }, { status: 400 });
+      return apiError('deltaCents must be a non-zero number', { status: 400 });
     }
 
     const supabase = createClient();
@@ -62,14 +61,14 @@ async function POSTHandler(req: Request) {
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, organizationId, deltaCents });
+    return apiSuccess({ organizationId, deltaCents });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 

@@ -1,17 +1,19 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Priority, Task, Status, TaskCreationDefaults, User, Template, Client, WorkflowStage } from '../types';
 import { useData } from '../context/DataContext';
-import { useSecureAPI } from '../hooks/useSecureAPI';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
 import { TaskItem } from '../components/nexus/TaskItem';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, CheckSquare, Star, Users, Flag, Briefcase, Server, Settings, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 // Map string names to components for templates
 const ICON_MAP: Record<string, any> = {
@@ -27,9 +29,33 @@ const ICON_MAP: Record<string, any> = {
 type GroupByOption = 'status' | 'assignee' | 'priority' | 'client';
 
 export const TasksView: React.FC = () => {
-  const { navigate } = useNexusNavigation();
+  const { navigate, pathname } = useNexusNavigation();
   const { users, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission, addToast, isCreateTaskOpen, tasks: contextTasks, toggleTimer: contextToggleTimer, replaceTasks: replaceContextTasks } = useData();
-  const { fetchTasks, updateTask: updateTaskAPI, isLoading: isLoadingTasks } = useSecureAPI();
+  const queryClient = useQueryClient();
+  const orgSlug = useMemo(() => {
+      return getWorkspaceOrgSlugFromPathname(pathname || '');
+  }, [pathname]);
+
+  const tasksQuery = useQuery({
+      queryKey: ['nexus', 'tasks', orgSlug],
+      queryFn: async () => {
+          return listNexusTasks({ orgId: orgSlug as string });
+      },
+      enabled: Boolean(orgSlug),
+      staleTime: 30_000,
+      refetchInterval: false,
+      retry: 1,
+  });
+
+  const refetchTasks = tasksQuery.refetch;
+
+  const updateTaskMutation = useMutation({
+      mutationFn: async (params: { taskId: string; updates: Partial<Task> }) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          const org = orgSlug;
+          return updateNexusTask({ orgId: org, taskId: params.taskId, updates: params.updates });
+      },
+  });
   const [tasks, setTasks] = useState<Task[]>(contextTasks || []);
   const [cachedTasks, setCachedTasks] = useState<Task[]>(contextTasks || []);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -105,6 +131,22 @@ export const TasksView: React.FC = () => {
   const prevModalOpenRef = useRef(isCreateTaskOpen);
   const hasReloadedRef = useRef(false);
 
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => {
+      tasksRef.current = tasks;
+  }, [tasks]);
+
+  useEffect(() => {
+      const next = tasksQuery.data?.tasks;
+      if (Array.isArray(next)) {
+          setTasks(next);
+          setCachedTasks(next);
+          if (typeof replaceContextTasks === 'function') {
+              replaceContextTasks(next);
+          }
+      }
+  }, [tasksQuery.data, replaceContextTasks]);
+
   // Sync with context tasks when they change (for immediate updates)
   useEffect(() => {
       if (contextTasks && contextTasks.length > 0) {
@@ -136,16 +178,6 @@ export const TasksView: React.FC = () => {
           if (!taskId) return;
           setTasks(prev => prev.filter(t => t.id !== taskId));
           setCachedTasks(prev => prev.filter(t => t.id !== taskId));
-          try {
-              const cached = localStorage.getItem('nexus_tasks_cache');
-              if (cached) {
-                  const parsed = JSON.parse(cached) as Task[];
-                  localStorage.setItem('nexus_tasks_cache', JSON.stringify(parsed.filter(t => t.id !== taskId)));
-                  localStorage.setItem('nexus_tasks_cache_time', Date.now().toString());
-              }
-          } catch {
-              // ignore
-          }
       };
 
       const onRestored = (e: Event) => {
@@ -176,77 +208,35 @@ export const TasksView: React.FC = () => {
       };
   }, []);
 
-  // Load tasks from secure API with cache (initial load only)
+  // Load tasks from server actions with cache (initial load only)
   useEffect(() => {
-      const resolveOrgId = () => {
-          return typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-      };
-
-      // STEP 1: Try to load from localStorage FIRST (instant display)
-      if (typeof window !== 'undefined') {
-          try {
-              const cached = localStorage.getItem('nexus_tasks_cache');
-              if (cached) {
-                  const parsedTasks = JSON.parse(cached);
-                  const cacheTime = localStorage.getItem('nexus_tasks_cache_time');
-                  const age = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
-                  
-                  // Use cache if less than 5 minutes old
-                  if (parsedTasks && parsedTasks.length >= 0 && age < 5 * 60 * 1000) {
-                      setTasks(parsedTasks);
-                      setCachedTasks(parsedTasks);
-                  }
-              }
-          } catch (e) {
-              console.warn('[TasksView] Failed to load from cache:', e);
-          }
-      }
-      
       // STEP 2: Show context tasks immediately (from DataContext) - CRITICAL for instant display
       if (contextTasks && contextTasks.length > 0) {
           setTasks(contextTasks);
           setCachedTasks(contextTasks);
-          // Also save to localStorage
-          if (typeof window !== 'undefined') {
-              try {
-                  localStorage.setItem('nexus_tasks_cache', JSON.stringify(contextTasks));
-                  localStorage.setItem('nexus_tasks_cache_time', Date.now().toString());
-              } catch (e) {
-                  // Ignore localStorage errors
-              }
-          }
       }
       
       const loadTasks = async () => {
-          const orgId = resolveOrgId();
+          if (!orgSlug) return;
           // Don't show loading spinner if we already have tasks
-          if (tasks.length === 0) {
+          if (tasksRef.current.length === 0) {
               setIsRefreshing(true);
           }
           try {
-              const fetchedTasks = await fetchTasks({ orgId: orgId || undefined });
-              const newTasks = fetchedTasks || [];
+              const res = await refetchTasks();
+              const newTasks = res.data?.tasks || [];
               // Only update if we got new tasks or if we had no tasks before
-              if (newTasks.length > 0 || tasks.length === 0) {
+              if (newTasks.length > 0 || tasksRef.current.length === 0) {
                   setTasks(newTasks);
                   setCachedTasks(newTasks);
                   if (typeof replaceContextTasks === 'function') {
                       replaceContextTasks(newTasks);
                   }
-                  // Save to localStorage
-                  if (typeof window !== 'undefined') {
-                      try {
-                          localStorage.setItem('nexus_tasks_cache', JSON.stringify(newTasks));
-                          localStorage.setItem('nexus_tasks_cache_time', Date.now().toString());
-                      } catch (e) {
-                          // Ignore localStorage errors
-                      }
-                  }
               }
           } catch (error) {
               console.error('Failed to load tasks:', error);
               // Keep existing tasks on error
-              if (tasks.length === 0 && contextTasks && contextTasks.length > 0) {
+              if (tasksRef.current.length === 0 && contextTasks && contextTasks.length > 0) {
                   setTasks(contextTasks);
               }
           } finally {
@@ -269,8 +259,7 @@ export const TasksView: React.FC = () => {
           clearTimeout(timeoutId);
           clearInterval(syncInterval);
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [orgSlug, contextTasks, refetchTasks, replaceContextTasks]);
 
   // Reload tasks when create task modal closes (task was created)
   useEffect(() => {
@@ -284,9 +273,9 @@ export const TasksView: React.FC = () => {
           
           const loadTasks = async () => {
               try {
-                  const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                  const fetchedTasks = await fetchTasks({ orgId: orgId || undefined });
-                  const newTasks = fetchedTasks || [];
+                  if (!orgSlug) return;
+                  const res = await refetchTasks();
+                  const newTasks = res.data?.tasks || [];
                   setTasks(newTasks);
                   setCachedTasks(newTasks);
                   if (typeof replaceContextTasks === 'function') {
@@ -309,7 +298,7 @@ export const TasksView: React.FC = () => {
       
       // Update ref for next render
       prevModalOpenRef.current = isCreateTaskOpen;
-  }, [isCreateTaskOpen, fetchTasks]);
+  }, [isCreateTaskOpen, orgSlug, refetchTasks, replaceContextTasks]);
 
   // Wrapper for updateTask that updates local state and calls API
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
@@ -317,7 +306,12 @@ export const TasksView: React.FC = () => {
       setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
       
       try {
-          await updateTaskAPI(taskId, updates);
+          const updated = await updateTaskMutation.mutateAsync({ taskId, updates });
+          if (updated) {
+              setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+              setCachedTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+          }
+          queryClient.invalidateQueries({ queryKey: ['nexus', 'tasks', orgSlug] });
       } catch (error) {
           // Revert on error
           setTasks(prev => prev.map(t => {
@@ -329,11 +323,12 @@ export const TasksView: React.FC = () => {
               return t;
           }));
           // Reload tasks on error to sync with server
-          const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-          const fetchedTasks = await fetchTasks({ orgId: orgId || undefined });
-          const newTasks = fetchedTasks || [];
-          setTasks(newTasks);
-          setCachedTasks(newTasks);
+          if (orgSlug) {
+              const res = await tasksQuery.refetch();
+              const newTasks = res.data?.tasks || [];
+              setTasks(newTasks);
+              setCachedTasks(newTasks);
+          }
       }
   };
 
@@ -376,7 +371,7 @@ export const TasksView: React.FC = () => {
   // Super Admin: system admin, sees everything across all tenants
   const isSuperAdmin = currentUser.isSuperAdmin === true;
   // Tenant Admin: CEO/Admin within their tenant, sees everything within their tenant
-  const isTenantAdmin = !isSuperAdmin && (currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין');
+  const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
   // Manager: has manage_team permission within tenant
   const isManager = hasPermission('manage_team');
 
@@ -710,7 +705,7 @@ export const TasksView: React.FC = () => {
                       setIsTaskStatusSheetOpen(false);
                       setTaskStatusSheetTaskId(null);
                     }}
-                    className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
                     aria-label="סגור"
                   >
                     <X size={18} />
@@ -1226,7 +1221,9 @@ export const TasksView: React.FC = () => {
 
       <div className="flex-1 md:overflow-hidden relative min-h-0">
         {/* Mobile List View */}
-        <div className="block md:hidden h-full overflow-y-auto px-2 pt-4 pb-12 min-h-0">
+        <div
+          className={`block md:hidden h-full overflow-y-auto px-2 pt-4 min-h-0 ${isTaskStatusSheetOpen ? 'pb-24' : 'pb-12'}`}
+        >
              {filteredTasks.length > 0 ? filteredTasks.map(task => (
                 <TaskItem 
                     key={task.id} 

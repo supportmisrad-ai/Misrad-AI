@@ -9,7 +9,7 @@ import {
   MessageSquareWarning,
 } from 'lucide-react';
 import { getOSModule } from '@/types/os-modules';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface PortalSidebarProps {
   activeScreen: string;
@@ -39,9 +39,7 @@ export const PortalSidebar: React.FC<PortalSidebarProps> = ({
     <aside className="hidden lg:flex w-72 flex-shrink-0 flex-col border-l border-slate-200 bg-white z-50 shadow-sm">
       <div className="p-8">
         <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm">
-            <OSModuleIcon moduleKey="client" size={22} className="text-white" />
-          </div>
+          <OSModuleSquircleIcon moduleKey="client" boxSize={40} iconSize={18} className="shadow-none" />
           <div>
             <h1 className="font-display font-bold text-lg text-slate-900 leading-none">{clientModule?.name || 'Client'}</h1>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{clientModule?.nameHebrew ? `${clientModule.nameHebrew}` : 'Client'}</span>

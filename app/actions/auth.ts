@@ -3,10 +3,26 @@
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendInvitationEmail } from './email';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { getBaseUrl } from '@/lib/utils';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string {
+  if (!error) return '';
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
 
 /**
  * Server Action: Send team member invitation via Clerk
@@ -15,7 +31,13 @@ export async function inviteTeamMember(
   email: string,
   role: string,
   orgSlug?: string
-): Promise<{ success: boolean; invitationId?: string; error?: string }> {
+): Promise<{
+  success: boolean;
+  invitationId?: string;
+  error?: string;
+  code?: 'UPGRADE_REQUIRED';
+  paywall?: { title: string; message: string; recommendedPackageType?: 'the_closer' | 'the_authority' | 'the_operator' | 'the_empire' | 'solo' | 'the_mentor' };
+}> {
   try {
     if (!email) {
       return {
@@ -47,6 +69,49 @@ export async function inviteTeamMember(
       };
     }
 
+    const clerkUserId = await getCurrentUserId();
+    if (clerkUserId) {
+      const supabase = createClient();
+      const { data: socialUser } = await supabase
+        .from('social_users')
+        .select('id')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+
+      const socialUserObj = asObject(socialUser);
+      const socialUserIdRaw = socialUserObj?.id;
+      const socialUserId = socialUserIdRaw ? String(socialUserIdRaw) : null;
+      if (socialUserId) {
+        const { data: tm } = await supabase
+          .from('social_team_members')
+          .select('subscription_status')
+          .eq('user_id', socialUserId)
+          .eq('organization_id', ws.id)
+          .maybeSingle();
+
+        const tmObj = asObject(tm);
+        const subscriptionStatusRaw = tmObj?.subscription_status;
+        const subscriptionStatus = subscriptionStatusRaw ? String(subscriptionStatusRaw) : 'trial';
+        const isTrial = subscriptionStatus === 'trial';
+
+        if (isTrial) {
+          const activeUsers = await countOrganizationActiveUsers(ws.id);
+          if (activeUsers >= 1) {
+            return {
+              success: false,
+              code: 'UPGRADE_REQUIRED',
+              error: 'ניהול צוות זמין למנויים משלמים. שדרג עכשיו',
+              paywall: {
+                title: 'שדרוג נדרש כדי להוסיף משתמשים',
+                message: 'ניהול צוות זמין למנויים משלמים. שדרג עכשיו',
+                recommendedPackageType: 'the_closer',
+              },
+            };
+          }
+        }
+      }
+    }
+
     const activeUsers = await countOrganizationActiveUsers(ws.id);
     if (activeUsers >= caps.seatsAllowed) {
       return {
@@ -69,7 +134,7 @@ export async function inviteTeamMember(
     // We can also send a custom email with a link to sign-in
     const baseUrl = getBaseUrl();
     const lobbyRedirect = orgSlug ? `${baseUrl}/w/${encodeURIComponent(orgSlug)}/lobby` : `${baseUrl}/`;
-    const invitationLink = `${baseUrl}/sign-up?redirect_url=${encodeURIComponent(lobbyRedirect)}`;
+    const invitationLink = `${baseUrl}/sign-up?redirect_url=${encodeURIComponent('/workspaces/onboarding')}`;
     
     // Send custom invitation email
     const emailResult = await sendTeamInvitationEmail({
@@ -82,11 +147,11 @@ export async function inviteTeamMember(
       success: true,
       invitationId: invitation.id,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error inviting team member:', error);
     return {
       success: false,
-      error: error.message || 'שגיאה בשליחת הזמנה',
+      error: getUnknownErrorMessage(error) || 'שגיאה בשליחת הזמנה',
     };
   }
 }
@@ -193,7 +258,7 @@ async function sendTeamInvitationEmail(params: {
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error sending team invitation email:', error);
     // Don't fail the invitation if email fails
     return { success: true };

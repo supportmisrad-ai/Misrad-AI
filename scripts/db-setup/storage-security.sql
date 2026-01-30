@@ -14,7 +14,6 @@
 -- - service_role עוקף RLS, ולכן server actions עם SERVICE_ROLE_KEY ימשיכו לעבוד.
 -- - Signed URLs (createSignedUrl) נוצרים בצד שרת; ה-client לא צריך גישה ישירה ל-storage API.
 
-begin;
 
 -- 1) Ensure buckets are private
 update storage.buckets
@@ -188,6 +187,14 @@ drop policy if exists "storage_objects_select_meeting_recordings" on storage.obj
 drop policy if exists "storage_objects_insert_meeting_recordings" on storage.objects;
 drop policy if exists "storage_objects_select_operations_files" on storage.objects;
 drop policy if exists "storage_objects_insert_operations_files" on storage.objects;
+drop policy if exists "storage_objects_delete_attachments" on storage.objects;
+drop policy if exists "storage_objects_update_attachments" on storage.objects;
+drop policy if exists "storage_objects_delete_call_recordings" on storage.objects;
+drop policy if exists "storage_objects_update_call_recordings" on storage.objects;
+drop policy if exists "storage_objects_delete_meeting_recordings" on storage.objects;
+drop policy if exists "storage_objects_update_meeting_recordings" on storage.objects;
+drop policy if exists "storage_objects_delete_operations_files" on storage.objects;
+drop policy if exists "storage_objects_update_operations_files" on storage.objects;
 
 -- 9) SELECT policies
 -- attachments:
@@ -356,4 +363,214 @@ with check (
   )
 );
 
-commit;
+create policy "storage_objects_delete_attachments"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'attachments'
+  and (
+    (
+      public.storage_path_org_id(name) is not null
+      and public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) is not null
+      and public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      split_part(name, '/', 1) = public.current_clerk_user_id()
+    )
+  )
+);
+
+create policy "storage_objects_update_attachments"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'attachments'
+  and (
+    (
+      public.storage_path_org_id(name) is not null
+      and public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) is not null
+      and public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      split_part(name, '/', 1) = public.current_clerk_user_id()
+    )
+  )
+)
+with check (
+  bucket_id = 'attachments'
+  and (
+    (
+      public.storage_path_org_id(name) is not null
+      and public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) is not null
+      and public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      split_part(name, '/', 1) = public.current_clerk_user_id()
+    )
+  )
+);
+
+create policy "storage_objects_delete_call_recordings"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'call-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+
+create policy "storage_objects_update_call_recordings"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'call-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+)
+with check (
+  bucket_id = 'call-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+
+create policy "storage_objects_delete_meeting_recordings"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'meeting-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+
+create policy "storage_objects_update_meeting_recordings"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'meeting-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+)
+with check (
+  bucket_id = 'meeting-recordings'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+
+create policy "storage_objects_delete_operations_files"
+on storage.objects
+for delete
+to authenticated
+using (
+  bucket_id = 'operations-files'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+
+create policy "storage_objects_update_operations_files"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'operations-files'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+)
+with check (
+  bucket_id = 'operations-files'
+  and (
+    (
+      public.storage_path_org_id(name) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+    or (
+      public.storage_metadata_org_id(metadata) = public.current_organization_id()
+      and public.is_member_of_org(public.current_organization_id())
+    )
+  )
+);
+

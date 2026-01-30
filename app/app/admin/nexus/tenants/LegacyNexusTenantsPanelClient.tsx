@@ -8,7 +8,10 @@ import { TenantsPanel } from '@/components/saas/TenantsPanel';
 import { AddTenantModal } from '@/components/saas/AddTenantModal';
 import { ModuleManagementModal } from '@/components/saas/ModuleManagementModal';
 import { getSystemMetrics } from '@/app/actions/admin';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+
+const unwrap = (data: any) =>
+  (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
 export default function LegacyNexusTenantsPanelClient(props: {
   navigateAction?: (path: string) => void;
@@ -79,12 +82,12 @@ export default function LegacyNexusTenantsPanelClient(props: {
         }
       }
 
-      const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-      const response = await fetch('/api/tenants', {
+      const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+      const response = await fetch('/api/admin/tenants', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(orgId ? { 'x-org-id': orgId } : {}),
+          ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
         },
         body: JSON.stringify({
           ...(tenantData as any),
@@ -96,12 +99,14 @@ export default function LegacyNexusTenantsPanelClient(props: {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error((errorData as any).error || 'שגיאה ביצירת tenant');
+        const raw = await response.json().catch(() => ({}));
+        const payload = unwrap(raw);
+        throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה ביצירת tenant');
       }
 
-      const data = await response.json();
-      const newTenant = (data as any).tenant;
+      const raw = await response.json().catch(() => ({}));
+      const payload = unwrap(raw);
+      const newTenant = (payload as any).tenant;
 
       addTenant?.(newTenant);
       addToast?.(`הלקוח ${(tenantData as any).name} הוקם בהצלחה!`, 'success');
@@ -121,23 +126,25 @@ export default function LegacyNexusTenantsPanelClient(props: {
   };
 
   const handleUpdateTenant = async (id: string, updates: Partial<Tenant>) => {
-    const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-    const response = await fetch(`/api/tenants/${id}`, {
+    const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+    const response = await fetch(`/api/admin/tenants/${id}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...(orgId ? { 'x-org-id': orgId } : {}),
+        ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
       },
       body: JSON.stringify(updates),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error((errorData as any).error || 'שגיאה בעדכון tenant');
+      const raw = await response.json().catch(() => ({}));
+      const payload = unwrap(raw);
+      throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בעדכון tenant');
     }
 
-    const data = await response.json();
-    const updatedTenant = (data as any).tenant;
+    const raw = await response.json().catch(() => ({}));
+    const payload = unwrap(raw);
+    const updatedTenant = (payload as any).tenant;
 
     updateTenant?.(id, updatedTenant);
     addToast?.('Tenant עודכן בהצלחה!', 'success');

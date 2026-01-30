@@ -1,6 +1,6 @@
 
 import { Lead, PipelineStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
-import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, BrainCircuit, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
 export const STAGES: { id: PipelineStage; label: string; color: string; accent: string }[] = [
   { id: 'incoming', label: 'נכנס', color: 'border-slate-200', accent: 'bg-slate-400' }, 
@@ -58,9 +58,7 @@ export const NAV_GROUPS = [
 
 export const NAV_ITEMS = NAV_GROUPS.flatMap(group => group.items);
 
-export const QUICK_ASSETS = [
-    
-];
+export const QUICK_ASSETS: Array<{ id: string; label: string; value: string; type: 'link' | 'text' }> = [];
 
 const subMinutes = (minutes: number) => {
   const d = new Date();

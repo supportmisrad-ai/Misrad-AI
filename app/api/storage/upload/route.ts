@@ -8,7 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient } from '@/lib/supabase';
+import { createClient, createServiceRoleClient } from '@/lib/supabase';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
@@ -21,6 +22,7 @@ async function POSTHandler(request: NextRequest) {
         const file = formData.get('file') as File;
         const bucket = formData.get('bucket') as string || 'attachments';
         const folder = formData.get('folder') as string || undefined;
+        const orgSlugRaw = formData.get('orgSlug') as string | null;
         const requestedUserId = formData.get('userId') as string | null;
         const userId = user.isSuperAdmin && requestedUserId ? requestedUserId : user.id;
 
@@ -41,22 +43,57 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 4. Upload file
-        const supabase = createClient();
+        const normalizePathPart = (v: string) => String(v || '').replace(/^\/+/, '').replace(/\/+$/, '');
+        const normalizedFolder = folder ? normalizePathPart(folder) : '';
+
+        const isGlobalBranding =
+            String(bucket || '').trim() === 'attachments' &&
+            (normalizedFolder === 'global-branding' || normalizedFolder.startsWith('global-branding/'));
+
+        let supabase = createClient();
+        let filePath = '';
+
+        if (isGlobalBranding) {
+            if (!user.isSuperAdmin) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+            }
+            supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'storage_upload_global_branding' });
+        } else {
+            if (!orgSlugRaw || !String(orgSlugRaw).trim()) {
+                return NextResponse.json({ error: 'Missing orgSlug' }, { status: 400 });
+            }
+
+            let workspace;
+            try {
+                ({ workspace } = await getWorkspaceByOrgKeyOrThrow(String(orgSlugRaw)));
+            } catch (e: any) {
+                const status = typeof e?.status === 'number' ? e.status : 403;
+                return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+            }
+
+            let decodedOrgSlug = String(orgSlugRaw);
+            try {
+                decodedOrgSlug = decodeURIComponent(String(orgSlugRaw));
+            } catch {
+                decodedOrgSlug = String(orgSlugRaw);
+            }
+
+            const slugSegment = String(workspace.slug || decodedOrgSlug).trim();
+            const orgPrefix = `${String(workspace.id)}/${slugSegment}`;
+            const userSegment = userId ? `users/${String(userId)}` : '';
+            const parts = [orgPrefix, userSegment, normalizedFolder].filter(Boolean);
+            filePath = parts.length ? `${parts.join('/')}/` : '';
+        }
 
         const timestamp = Date.now();
         const randomStr = Math.random().toString(36).substring(2, 15);
         const fileExtension = file.name.split('.').pop() || 'bin';
         const fileName = `${timestamp}-${randomStr}.${fileExtension}`;
 
-        let filePath = '';
-        if (userId && folder) {
-            filePath = `${userId}/${folder}/${fileName}`;
-        } else if (userId) {
-            filePath = `${userId}/${fileName}`;
-        } else if (folder) {
-            filePath = `${folder}/${fileName}`;
+        if (isGlobalBranding) {
+            filePath = `${normalizedFolder ? `${normalizedFolder}/` : ''}${fileName}`;
         } else {
-            filePath = fileName;
+            filePath = `${filePath}${fileName}`;
         }
 
         const arrayBuffer = await file.arrayBuffer();

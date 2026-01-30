@@ -7,8 +7,9 @@
  */
 
 const DB_NAME = 'nexus_offline_backup';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'backups';
+const META_STORE_NAME = 'meta';
 
 interface BackupData {
     id: string;
@@ -18,6 +19,59 @@ interface BackupData {
 }
 
 let db: IDBDatabase | null = null;
+
+async function getMetaValue(key: string): Promise<string | null> {
+    if (!db) {
+        const initialized = await initOfflineBackup();
+        if (!initialized) return null;
+    }
+
+    return new Promise((resolve) => {
+        if (!db) {
+            resolve(null);
+            return;
+        }
+
+        try {
+            const transaction = db.transaction([META_STORE_NAME], 'readonly');
+            const store = transaction.objectStore(META_STORE_NAME);
+            const request = store.get(key);
+
+            request.onsuccess = () => {
+                const row = request.result as { key: string; value: string } | undefined;
+                resolve(row?.value ?? null);
+            };
+
+            request.onerror = () => resolve(null);
+        } catch {
+            resolve(null);
+        }
+    });
+}
+
+async function setMetaValue(key: string, value: string): Promise<void> {
+    if (!db) {
+        const initialized = await initOfflineBackup();
+        if (!initialized) return;
+    }
+
+    return new Promise((resolve) => {
+        if (!db) {
+            resolve();
+            return;
+        }
+
+        try {
+            const transaction = db.transaction([META_STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(META_STORE_NAME);
+            const request = store.put({ key, value });
+            request.onsuccess = () => resolve();
+            request.onerror = () => resolve();
+        } catch {
+            resolve();
+        }
+    });
+}
 
 /**
  * Initialize IndexedDB
@@ -46,6 +100,10 @@ export async function initOfflineBackup(): Promise<boolean> {
             if (!database.objectStoreNames.contains(STORE_NAME)) {
                 const objectStore = database.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+
+            if (!database.objectStoreNames.contains(META_STORE_NAME)) {
+                database.createObjectStore(META_STORE_NAME, { keyPath: 'key' });
             }
         };
     });
@@ -196,7 +254,7 @@ export async function deleteOfflineBackup(backupId: string): Promise<boolean> {
  */
 export async function autoBackup(data: Record<string, any>): Promise<void> {
     // Only backup if offline or if last backup was more than 1 hour ago
-    const lastBackupTime = localStorage.getItem('last_offline_backup');
+    const lastBackupTime = await getMetaValue('last_offline_backup');
     const now = Date.now();
     
     if (lastBackupTime) {
@@ -215,7 +273,7 @@ export async function autoBackup(data: Record<string, any>): Promise<void> {
 
     // If offline, create local backup
     await createOfflineBackup(data);
-    localStorage.setItem('last_offline_backup', now.toString());
+    await setMetaValue('last_offline_backup', now.toString());
 }
 
 /**

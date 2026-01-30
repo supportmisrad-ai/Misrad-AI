@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import crypto from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,45 @@ export async function POST(req: Request) {
       select: { id: true },
     });
 
-    if (!org?.id) {
+    const isE2E =
+      String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' ||
+      String(process.env.IS_E2E_TESTING || '').toLowerCase() === '1';
+
+    let organizationId = org?.id || null;
+
+    if (!organizationId && isE2E) {
+      try {
+        const maybeId = isUuid(orgSlug) ? orgSlug : undefined;
+        const created = await prisma.social_organizations.create({
+          data: {
+            ...(maybeId ? { id: maybeId } : {}),
+            name: 'E2E Workspace',
+            slug: orgSlug,
+            owner_id: crypto.randomUUID(),
+            has_nexus: true,
+            has_social: true,
+            has_system: true,
+            has_finance: true,
+            has_client: true,
+            has_operations: true,
+          } as any,
+          select: { id: true },
+        });
+        organizationId = created?.id || null;
+      } catch {
+        // fall through to re-query below
+      }
+
+      if (!organizationId) {
+        const again = await prisma.social_organizations.findFirst({
+          where: orgWhere as any,
+          select: { id: true },
+        });
+        organizationId = again?.id || null;
+      }
+    }
+
+    if (!organizationId) {
       return NextResponse.json({ ok: false, error: 'Organization not found' }, { status: 404 });
     }
 
@@ -60,7 +99,7 @@ export async function POST(req: Request) {
 
     const lead = await prisma.systemLead.create({
       data: {
-        organizationId: org.id,
+        organizationId,
         name: leadName,
         company: company || null,
         phone,
@@ -78,7 +117,7 @@ export async function POST(req: Request) {
 
     const project = await prisma.operationsProject.create({
       data: {
-        organizationId: org.id,
+        organizationId,
         canonicalClientId: null,
         title: company?.trim() ? company.trim() : leadName,
         status: 'ACTIVE',
@@ -92,12 +131,13 @@ export async function POST(req: Request) {
 
     const invoice = await prisma.systemInvoice.create({
       data: {
+        organizationId,
         leadId: lead.id,
         client: company?.trim() ? company.trim() : leadName,
         amount: new Prisma.Decimal(value || 0),
         status: 'pending',
         item: 'מכירה (System)',
-      },
+      } as any,
       select: { id: true },
     });
 

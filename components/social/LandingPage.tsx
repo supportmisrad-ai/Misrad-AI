@@ -155,7 +155,7 @@ export default function LandingPage() {
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_20px_40px_-12px_rgba(59,130,246,0.3)] hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
             >
               <span className="relative z-10 flex items-center gap-3">
-                התחל בחינם <ChevronLeft size={24} />
+                התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </button>
@@ -204,7 +204,7 @@ export default function LandingPage() {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-6 rounded-2xl font-black text-xl shadow-[0_30px_60px_-15px_rgba(59,130,246,0.4)] flex items-center justify-center gap-4 hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-3">
-                  התחל בחינם <ChevronLeft size={24} />
+                  התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
@@ -212,7 +212,7 @@ export default function LandingPage() {
                 <CheckCircle2 className="text-emerald-500" size={20} />
                 <span>ללא כרטיס אשראי</span>
                 <span>•</span>
-                <span>14 ימים חינם</span>
+                <span>7 ימים חינם</span>
                 <span>•</span>
                 <span>ביטול בכל עת</span>
               </div>
@@ -515,7 +515,7 @@ export default function LandingPage() {
               },
               {
                 q: 'האם יש התחייבות?',
-                a: 'לא. תוכלו לבטל בכל עת ללא עמלות. הניסיון החינם הוא ל-14 ימים, ואחרי זה תשלמו רק אם אתם מרוצים.'
+                a: 'לא. תוכלו לבטל בכל עת ללא עמלות. הניסיון החינם הוא ל-7 ימים, ואחרי זה תשלמו רק אם אתם מרוצים.'
               },
               {
                 q: 'האם הפוסטים באמת נשמעים כמו המותג?',
@@ -582,7 +582,7 @@ export default function LandingPage() {
                 onClick={handleGetStarted}
                 className="bg-white text-blue-600 px-12 py-6 rounded-[32px] font-black text-xl shadow-2xl flex items-center justify-center gap-4 hover:bg-blue-50 hover:scale-[1.02] active:scale-95 transition-all"
               >
-                התחל ניסיון חינם <ChevronLeft size={24} />
+                התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
               </button>
               <button 
                 onClick={() => router.push('/pricing')}

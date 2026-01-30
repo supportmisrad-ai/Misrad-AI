@@ -10,6 +10,7 @@ import { getTeamRoleDisplayName } from '@/lib/roleTranslations';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { Avatar } from '@/components/Avatar';
+import PaywallModal from '@/components/shared/PaywallModal';
 
 interface TeamSettingsTabProps {
   onNotify: (msg: string, type?: 'success' | 'error' | 'info') => void;
@@ -42,6 +43,11 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
   const [editingMember, setEditingMember] = useState<Partial<TeamMember> | null>(null);
   const [deletingMemberId, setDeletingMemberId] = useState<string | null>(null);
 
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [paywallTitle, setPaywallTitle] = useState('');
+  const [paywallMessage, setPaywallMessage] = useState('');
+  const [recommendedPackageType, setRecommendedPackageType] = useState<any>(undefined);
+
   const [isInviting, setIsInviting] = useState(false);
 
   const handleInvite = async () => {
@@ -61,6 +67,14 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
         setInviteRole('account_manager');
         setIsInviteOpen(false);
       } else {
+        if ((result as any)?.code === 'UPGRADE_REQUIRED') {
+          const pw = (result as any)?.paywall;
+          setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
+          setPaywallMessage(String(pw?.message || result.error || 'פעולה זו זמינה למנויים משלמים'));
+          setRecommendedPackageType(pw?.recommendedPackageType);
+          setIsPaywallOpen(true);
+          return;
+        }
         const errorMsg = result.error ? translateError(result.error) : 'שגיאה בשליחת הזמנה';
         onNotify(errorMsg, 'error');
       }
@@ -121,6 +135,15 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-10" dir="rtl">
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onCloseAction={() => setIsPaywallOpen(false)}
+        title={paywallTitle}
+        message={paywallMessage}
+        reason="seats"
+        recommendedPackageType={recommendedPackageType}
+      />
+
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-black text-slate-800">ניהול הרשאות וצוות</h2>
       </div>

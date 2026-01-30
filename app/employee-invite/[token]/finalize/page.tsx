@@ -2,12 +2,34 @@ import { redirect } from 'next/navigation';
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 
-import { createServiceRoleClient } from '@/lib/supabase';
+import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 
 export const dynamic = 'force-dynamic';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getString(value: unknown): string | null {
+  if (value == null) return null;
+  return String(value);
+}
+
+function getBoolean(value: unknown): boolean {
+  return Boolean(value);
+}
+
+function getNumber(value: unknown): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 export default async function EmployeeInviteFinalizePage({
   params,
@@ -17,6 +39,17 @@ export default async function EmployeeInviteFinalizePage({
   const { token } = await params;
 
   if (!token) {
+    return <div>Token is required</div>;
+  }
+
+  const normalizedToken = String(token || '').trim();
+  if (!normalizedToken) {
+    return <div>Token is required</div>;
+  }
+  if (normalizedToken.length < 16 || normalizedToken.length > 256) {
+    return <div>Token is required</div>;
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(normalizedToken)) {
     return <div>Token is required</div>;
   }
 
@@ -34,12 +67,12 @@ export default async function EmployeeInviteFinalizePage({
     return <div>User email not found</div>;
   }
 
-  const supabase = createServiceRoleClient();
+  const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'employee_invite_finalize' });
 
   const { data: inviteRow, error: inviteError } = await supabase
     .from('nexus_employee_invitation_links')
     .select('*')
-    .eq('token', token)
+    .eq('token', normalizedToken)
     .limit(1)
     .maybeSingle();
 
@@ -47,61 +80,89 @@ export default async function EmployeeInviteFinalizePage({
     return <div>קישור הזמנה לא נמצא</div>;
   }
 
-  if (!(inviteRow as any).is_active) {
+  const inviteObj = asObject(inviteRow) ?? {};
+
+  if (!getBoolean(inviteObj.is_active)) {
     return <div>קישור זה לא פעיל</div>;
   }
 
-  if ((inviteRow as any).expires_at) {
-    const expiresAt = new Date(String((inviteRow as any).expires_at));
+  if (getBoolean(inviteObj.is_used)) {
+    return <div>קישור זה כבר נוצל</div>;
+  }
+
+  if (inviteObj.expires_at) {
+    const expiresAt = new Date(String(inviteObj.expires_at));
     if (expiresAt < new Date()) {
       return <div>קישור זה פג תוקף</div>;
     }
   }
 
-  const organizationId = (inviteRow as any).organization_id as string | null;
+  const inviteEmailRaw = getString(inviteObj.employee_email);
+  const inviteEmail = inviteEmailRaw ? inviteEmailRaw.trim().toLowerCase() : '';
+  const userEmailLower = String(email).trim().toLowerCase();
+  if (inviteEmail && inviteEmail !== userEmailLower) {
+    return <div>האימייל לא תואם להזמנה</div>;
+  }
+
+  const organizationId = getString(inviteObj.organization_id);
   if (!organizationId) {
     return <div>הזמנה לא משויכת לארגון</div>;
   }
 
+  const orgScoped = createServiceRoleClientScoped({
+    reason: 'employee_invite_finalize_org',
+    scopeColumn: 'organization_id',
+    scopeId: String(organizationId),
+  });
+
   // Load org module flags (with backwards compatibility for missing columns)
-  let org: any = null;
+  let org: Record<string, unknown> | null = null;
   try {
-    const orgWithSeats = await supabase
+    const orgRes = await orgScoped
       .from('organizations')
       .select('id, slug, has_nexus, has_system, has_social, has_finance, has_client, has_operations, seats_allowed')
       .eq('id', organizationId)
       .maybeSingle();
 
-    if (orgWithSeats.error?.code === '42703') {
-      const orgWithoutSeats = await supabase
-        .from('organizations')
-        .select('id, slug, has_nexus, has_system, has_social, has_finance, has_client')
-        .eq('id', organizationId)
-        .maybeSingle();
-      org = orgWithoutSeats.data as any;
-    } else {
-      org = orgWithSeats.data as any;
+    if (orgRes.error?.code === '42703') {
+      throw new Error('[SchemaMismatch] organizations is missing expected columns');
     }
-  } catch {
+    if (orgRes.error) {
+      throw new Error(orgRes.error.message || 'Failed to load organization');
+    }
+    org = asObject(orgRes.data);
+  } catch (e: unknown) {
+    if (String((e instanceof Error ? e.message : '') || '').includes('[SchemaMismatch]')) {
+      throw e;
+    }
     org = null;
+  }
+
+  if (!org) {
+    return <div>ארגון לא נמצא</div>;
   }
 
   const flags = await getSystemFeatureFlags();
   const caps = computeWorkspaceCapabilities({
     entitlements: {
-      nexus: (org as any)?.has_nexus ?? true,
-      system: (org as any)?.has_system ?? false,
-      social: (org as any)?.has_social ?? false,
-      finance: (org as any)?.has_finance ?? false,
-      client: (org as any)?.has_client ?? false,
-      operations: (org as any)?.has_operations ?? false,
+      nexus: getBoolean(org?.has_nexus),
+      system: getBoolean(org?.has_system),
+      social: getBoolean(org?.has_social),
+      finance: getBoolean(org?.has_finance),
+      client: getBoolean(org?.has_client),
+      operations: getBoolean(org?.has_operations),
     },
     fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
-    seatsAllowedOverride: (org as any)?.seats_allowed ?? null,
+    seatsAllowedOverride: getNumber(org?.seats_allowed),
   });
 
   if (!caps.isTeamManagementEnabled) {
     return <div>ניהול צוות זמין רק עם מודול Nexus</div>;
+  }
+
+  const activeUsers = await countOrganizationActiveUsers(String(organizationId));
+  if (activeUsers >= caps.seatsAllowed) {
+    return <div>{`הגעתם למכסת המשתמשים (${activeUsers} מתוך ${caps.seatsAllowed}). לא ניתן להשלים הרשמה`}</div>;
   }
 
   // Ensure user exists in social_users and is attached to the invited org.
@@ -110,77 +171,94 @@ export default async function EmployeeInviteFinalizePage({
     email,
     fullName || undefined,
     imageUrl || undefined,
-    String((org as any)?.slug || organizationId)
+    `employee-invite:${normalizedToken}`
   );
 
   if (!syncRes.success) {
     return <div>{syncRes.error || 'Failed to sync user'}</div>;
   }
 
-  // Upsert into nexus_users (employee directory). Some schemas might have tenant scoping columns.
-  const invitedEmail = (inviteRow as any).employee_email ? String((inviteRow as any).employee_email).trim().toLowerCase() : email.trim().toLowerCase();
+  if (syncRes.userId) {
+    const { data: socialUserRow } = await orgScoped
+      .from('social_users')
+      .select('id, organization_id')
+      .eq('id', syncRes.userId)
+      .maybeSingle();
 
-  const baseNexusUserPayload: any = {
-    name: (inviteRow as any).employee_name || fullName || invitedEmail,
+    const socialUserObj = asObject(socialUserRow);
+    const currentOrgId = socialUserObj?.organization_id ? String(socialUserObj.organization_id) : null;
+    if (currentOrgId && currentOrgId !== organizationId) {
+      return <div>המשתמש כבר משויך לארגון אחר</div>;
+    }
+
+    if (!currentOrgId) {
+      await orgScoped
+        .from('social_users')
+        .update({ organization_id: organizationId } as unknown as Record<string, unknown>)
+        .eq('id', syncRes.userId);
+    }
+  }
+
+  // Upsert into nexus_users (employee directory). Some schemas might have tenant scoping columns.
+  const invitedEmail = inviteEmail ? inviteEmail : email.trim().toLowerCase();
+
+  const baseNexusUserPayload: Record<string, unknown> = {
+    name: getString(inviteObj.employee_name) || fullName || invitedEmail,
     email: invitedEmail,
-    phone: (inviteRow as any).employee_phone || null,
-    department: (inviteRow as any).department || null,
-    role: (inviteRow as any).role || 'עובד',
-    payment_type: (inviteRow as any).payment_type || null,
-    hourly_rate: (inviteRow as any).hourly_rate || null,
-    monthly_salary: (inviteRow as any).monthly_salary || null,
-    commission_pct: (inviteRow as any).commission_pct || null,
-    manager_id: (inviteRow as any).created_by || null,
+    phone: getString(inviteObj.employee_phone),
+    department: getString(inviteObj.department),
+    role: getString(inviteObj.role) || 'עובד',
+    payment_type: getString(inviteObj.payment_type),
+    hourly_rate: getNumber(inviteObj.hourly_rate),
+    monthly_salary: getNumber(inviteObj.monthly_salary),
+    commission_pct: getNumber(inviteObj.commission_pct),
+    manager_id: getString(inviteObj.created_by),
     is_super_admin: false,
   };
 
-  const tryUpsertWithScope = async (scope: Record<string, any>) => {
-    const { data: existing } = await supabase
-      .from('nexus_users')
-      .select('id')
-      .eq('email', invitedEmail)
-      .limit(1)
-      .maybeSingle();
+  const { data: existingUserRow, error: existingUserError } = await orgScoped
+    .from('nexus_users')
+    .select('id')
+    .eq('email', invitedEmail)
+    .limit(1)
+    .maybeSingle();
 
-    if ((existing as any)?.id) {
-      return await supabase
-        .from('nexus_users')
-        .update({ ...baseNexusUserPayload, ...scope })
-        .eq('id', (existing as any).id);
-    }
-
-    return await supabase
-      .from('nexus_users')
-      .insert({ ...baseNexusUserPayload, ...scope })
-      .select('id')
-      .single();
-  };
-
-  let upsertResult = await tryUpsertWithScope({ tenant_id: organizationId });
-  if (upsertResult.error?.code === '42703') {
-    upsertResult = await tryUpsertWithScope({ organization_id: organizationId });
+  if (existingUserError?.code === '42703') {
+    throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
   }
-  if (upsertResult.error?.code === '42703') {
-    upsertResult = await tryUpsertWithScope({});
+  if (existingUserError) {
+    return <div>{existingUserError.message || 'Failed to load nexus user'}</div>;
   }
 
-  if (upsertResult.error) {
-    return <div>{upsertResult.error.message || 'Failed to upsert nexus user'}</div>;
+  const payload = { ...baseNexusUserPayload, organization_id: organizationId };
+  const existingObj = asObject(existingUserRow);
+  const existingId = existingObj?.id ? String(existingObj.id) : null;
+
+  const upsertResult = existingId
+    ? await orgScoped.from('nexus_users').update(payload).eq('id', existingId)
+    : await orgScoped.from('nexus_users').insert(payload).select('id').single();
+
+  const upsertErrorObj = asObject((upsertResult as { error?: unknown }).error);
+  if (upsertErrorObj?.code === '42703') {
+    throw new Error(`[SchemaMismatch] nexus_users upsert failed: ${String(upsertErrorObj?.message || 'missing column')}`);
+  }
+  if ((upsertResult as { error?: unknown }).error) {
+    return <div>{String(upsertErrorObj?.message || 'Failed to upsert nexus user')}</div>;
   }
 
   // Mark invite as used (idempotent)
-  if (!(inviteRow as any).is_used) {
-    await supabase
+  if (!getBoolean(inviteObj.is_used)) {
+    await orgScoped
       .from('nexus_employee_invitation_links')
       .update({
         is_used: true,
         used_at: new Date().toISOString(),
-        employee_name: (inviteRow as any).employee_name || fullName || (inviteRow as any).employee_email || null,
-        employee_phone: (inviteRow as any).employee_phone || null,
+        employee_name: getString(inviteObj.employee_name) || fullName || getString(inviteObj.employee_email),
+        employee_phone: getString(inviteObj.employee_phone),
       })
-      .eq('id', (inviteRow as any).id);
+      .eq('id', String(inviteObj.id || ''));
   }
 
-  const orgKey = String((org as any)?.slug || organizationId);
+  const orgKey = String((org?.slug as unknown) || organizationId);
   redirect(`/w/${encodeURIComponent(orgKey)}/lobby`);
 }

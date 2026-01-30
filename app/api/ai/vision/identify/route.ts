@@ -1,12 +1,11 @@
-import { NextResponse } from 'next/server';
-
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { createClient } from '@/lib/supabase';
 import { AIService } from '@/lib/services/ai/AIService';
 import { contractorResolveTokenForApi } from '@/app/actions/operations';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 export const runtime = 'nodejs';
 
@@ -20,6 +19,11 @@ function toImageDataUrl(params: { imageBase64: string; mimeType?: string | null 
   if (raw.startsWith('data:')) return raw;
   const mt = String(params.mimeType || 'image/jpeg').trim() || 'image/jpeg';
   return `data:${mt};base64,${raw}`;
+}
+
+function asNumber(v: any): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
 async function POSTHandler(req: Request) {
@@ -39,7 +43,7 @@ async function POSTHandler(req: Request) {
     if (token) {
       const tokenRes = await contractorResolveTokenForApi({ token });
       if (!tokenRes.success || !tokenRes.organizationId) {
-        return NextResponse.json({ error: tokenRes.error || 'Forbidden' }, { status: 403 });
+        return apiError(tokenRes.error || 'Forbidden', { status: 403 });
       }
       organizationId = String(tokenRes.organizationId);
       userId = `contractor:${String(tokenRes.tokenHash || '').slice(0, 24) || 'unknown'}`;
@@ -47,42 +51,55 @@ async function POSTHandler(req: Request) {
       await getAuthenticatedUser();
       const clerkUserId = await getCurrentUserId();
       if (!clerkUserId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return apiError('Unauthorized', { status: 401 });
       }
 
-      const orgIdFromHeader = req.headers.get('x-org-id') || req.headers.get('x-orgid');
-      const orgIdFromBody = body.orgId ? String(body.orgId) : null;
-      const requestedOrg = orgIdFromHeader || orgIdFromBody;
-
-      if (requestedOrg) {
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(String(requestedOrg));
-        organizationId = String(workspace.id);
-      } else {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from('social_users')
-          .select('organization_id')
-          .eq('clerk_user_id', clerkUserId)
-          .maybeSingle();
-
-        if (error) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
-        organizationId = (data as any)?.organization_id ? String((data as any).organization_id) : null;
-        if (!organizationId) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
-        await requireWorkspaceAccessByOrgSlugApi(organizationId);
-      }
+      const { workspaceId } = await getWorkspaceOrThrow(req);
+      organizationId = String(workspaceId);
 
       userId = clerkUserId;
     }
 
     const imageDataUrl = toImageDataUrl({ imageBase64: asString(body.imageBase64), mimeType: body.mimeType || null });
     if (!imageDataUrl) {
-      return NextResponse.json({ error: 'חסרה תמונה (imageBase64)' }, { status: 400 });
+      return apiError('חסרה תמונה (imageBase64)', { status: 400 });
+    }
+
+    // Paywall: AI Vision usage in trial (internal only)
+    // Rule: In trial, allow up to 5 scans. Block the 6th.
+    let shouldTrackUsage = false;
+    let currentUsage = 0;
+    if (!token && organizationId) {
+      try {
+        const supabase = createClient();
+
+        const { data: orgRow } = await supabase
+          .from('organizations')
+          .select('subscription_status')
+          .eq('id', String(organizationId))
+          .maybeSingle();
+
+        const subStatus = (orgRow as any)?.subscription_status ? String((orgRow as any).subscription_status) : 'trial';
+        const isTrial = subStatus === 'trial';
+
+        if (isTrial) {
+          const { data: settingsRow } = await supabase
+            .from('organization_settings')
+            .select('ai_dna')
+            .eq('organization_id', String(organizationId))
+            .maybeSingle();
+
+          const aiDna = (settingsRow as any)?.ai_dna || {};
+          currentUsage = asNumber((aiDna as any)?.ai_vision_usage);
+          shouldTrackUsage = true;
+
+          if (currentUsage >= 5) {
+            return apiError('הגעת למכסת סריקות ה-AI בחבילת הניסיון. שדרג לחבילת תפעול כדי להמשיך.', { status: 402 });
+          }
+        }
+      } catch {
+        // best-effort: do not block if paywall lookup fails
+      }
     }
 
     const ai = AIService.getInstance();
@@ -110,13 +127,45 @@ async function POSTHandler(req: Request) {
     const isFaulty = Boolean(out?.result?.isFaulty);
 
     if (!name) {
-      return NextResponse.json({ error: 'תשובת AI ריקה' }, { status: 502 });
+      return apiError('תשובת AI ריקה', { status: 502 });
     }
 
-    return NextResponse.json({ success: true, name, isFaulty });
+    // Best-effort usage tracking (internal only)
+    if (shouldTrackUsage && organizationId) {
+      try {
+        const supabase = createClient();
+        const nextUsage = currentUsage + 1;
+
+        const { data: settingsRow } = await supabase
+          .from('organization_settings')
+          .select('ai_dna')
+          .eq('organization_id', String(organizationId))
+          .maybeSingle();
+
+        const aiDna = (settingsRow as any)?.ai_dna || {};
+
+        await supabase
+          .from('organization_settings')
+          .upsert(
+            {
+              organization_id: String(organizationId),
+              ai_dna: {
+                ...(aiDna as any),
+                ai_vision_usage: nextUsage,
+              },
+              updated_at: new Date().toISOString(),
+            } as any,
+            { onConflict: 'organization_id' }
+          );
+      } catch {
+        // ignore
+      }
+    }
+
+    return apiSuccess({ name, isFaulty });
   } catch (e: any) {
     console.error('[ai.vision.identify] failed', e);
-    return NextResponse.json({ error: e?.message || 'שגיאה כללית' }, { status: 500 });
+    return apiError(e, { status: 500, message: e?.message || 'שגיאה כללית' });
   }
 }
 

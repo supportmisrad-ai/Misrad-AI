@@ -1,15 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
+import { Notification, Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
 import { DEFAULT_WORKFLOW } from '../constants';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { deleteNexusTask, updateNexusTask } from '@/app/actions/nexus';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type ToastKind = 'success' | 'error' | 'info' | 'warning';
+
+type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
 
 export const useTasks = (
     currentUser: User, 
-    addNotification: (n: any) => void, 
-    addToast: (m: string, t?: any) => void
+    addNotification: (n: NotificationInput) => void, 
+    addToast: (m: string, t?: ToastKind) => void
 ) => {
+
     const [tasks, setTasks] = useState<Task[]>([]);
     const [trashTasks, setTrashTasks] = useState<Task[]>([]);
     const [workflowStages, setWorkflowStages] = useState<WorkflowStage[]>(DEFAULT_WORKFLOW);
@@ -23,7 +43,7 @@ export const useTasks = (
     const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
     
     // Calendar Events (kept with tasks as they are related to scheduling)
-    const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+    const [calendarEvents, setCalendarEvents] = useState<Record<string, unknown>[]>([]);
     const [isCalendarConnected, setIsCalendarConnected] = useState(false);
     const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
 
@@ -32,15 +52,20 @@ export const useTasks = (
         let mounted = true;
         const checkCalendarStatus = async () => {
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/integrations/google/status?service=calendar', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (mounted && response.ok) {
-                    const data = await response.json();
-                    setIsCalendarConnected(data.status?.calendar?.connected || false);
+                    const data: unknown = await response.json();
+                    const dataObj = asObject(data);
+                    const payload = asObject(dataObj?.data) ?? dataObj ?? data;
+                    const payloadObj = asObject(payload) ?? {};
+                    const statusObj = asObject(payloadObj.status) ?? {};
+                    const calendarObj = asObject(statusObj.calendar) ?? {};
+                    setIsCalendarConnected(Boolean(calendarObj.connected));
                 }
-            } catch (error) {
+            } catch (error: unknown) {
                 // Silently fail - integration is optional
                 if (mounted) {
                     setIsCalendarConnected(false);
@@ -49,7 +74,7 @@ export const useTasks = (
         };
         checkCalendarStatus();
         return () => { mounted = false; };
-    }, []); // Only run once on mount
+    }, []);
 
     // Timer Interval
     useEffect(() => {
@@ -165,38 +190,19 @@ export const useTasks = (
         // Persist to DB via API (fire-and-forget). This is required for assignee/default-assignee.
         (async () => {
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                if (!orgId) {
-                    throw new Error('לא ניתן לעדכן משימה: חסר מזהה ארגון (orgId).');
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                if (!orgSlug) {
+                    throw new Error('לא ניתן לעדכן משימה: חסר מזהה ארגון (orgSlug).');
                 }
-                const response = await fetch(`/api/tasks?orgId=${encodeURIComponent(orgId)}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(orgId ? { 'x-org-id': orgId } : {}),
-                    },
-                    body: JSON.stringify({ taskId: id, updates }),
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error((errorData as any)?.error || 'שגיאה בעדכון המשימה');
+                const updated = await updateNexusTask({ orgId: orgSlug, taskId: id, updates });
+                setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                        new CustomEvent('nexusTaskUpdated', { detail: { taskId: id, updates: updated } })
+                    );
+                    window.dispatchEvent(new CustomEvent('nexusNotificationsRefresh'));
                 }
-
-                const data = await response.json().catch(() => null);
-                if (data?.task) {
-                    setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...data.task } : t)));
-                    if (typeof window !== 'undefined') {
-                        window.dispatchEvent(
-                            new CustomEvent('nexusTaskUpdated', { detail: { taskId: id, updates: data.task } })
-                        );
-                        window.dispatchEvent(new CustomEvent('nexusNotificationsRefresh'));
-                    }
-                } else {
-                    if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('nexusNotificationsRefresh'));
-                    }
-                }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // Rollback
                 if (prevTask) {
                     setTasks(prev => prev.map(t => (t.id === id ? prevTask : t)));
@@ -206,7 +212,7 @@ export const useTasks = (
                         );
                     }
                 }
-                addToast(error?.message || 'שגיאה בעדכון המשימה', 'error');
+                addToast(getErrorMessage(error) || 'שגיאה בעדכון המשימה', 'error');
             }
         })();
     };
@@ -215,20 +221,6 @@ export const useTasks = (
         const taskToDelete = tasks.find(t => t.id === id);
         if (!taskToDelete) return;
 
-        const updateLocalStorageCache = (updater: (prev: Task[]) => Task[]) => {
-            if (typeof window === 'undefined') return;
-            try {
-                const cached = localStorage.getItem('nexus_tasks_cache');
-                if (!cached) return;
-                const parsed = JSON.parse(cached) as Task[];
-                const next = updater(Array.isArray(parsed) ? parsed : []);
-                localStorage.setItem('nexus_tasks_cache', JSON.stringify(next));
-                localStorage.setItem('nexus_tasks_cache_time', Date.now().toString());
-            } catch {
-                // ignore
-            }
-        };
-
         // Optimistic UI: remove immediately
         setLastDeletedTask(taskToDelete);
         setTasks(prev => prev.filter(t => t.id !== id));
@@ -236,38 +228,23 @@ export const useTasks = (
         addToast('משימה נמחקה', 'info');
         setTimeout(() => setLastDeletedTask(null), 5000);
 
-        updateLocalStorageCache(prev => prev.filter(t => t.id !== id));
-
         if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('nexusTaskDeleted', { detail: { taskId: id } }));
         }
 
         // Persist deletion
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            if (!orgId) {
-                throw new Error('לא ניתן למחוק משימה: חסר מזהה ארגון (orgId).');
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) {
+                throw new Error('לא ניתן למחוק משימה: חסר מזהה ארגון (orgSlug).');
             }
 
-            const url = `/api/tasks?id=${encodeURIComponent(id)}&orgId=${encodeURIComponent(orgId)}`;
-            const response = await fetch(url, {
-                method: 'DELETE',
-                headers: {
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
-                },
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({} as any));
-                throw new Error(errorData.error || 'שגיאה במחיקת משימה');
-            }
-        } catch (error: any) {
+            await deleteNexusTask({ orgId: orgSlug, taskId: id });
+        } catch (error: unknown) {
             // Rollback
             setTrashTasks(prev => prev.filter(t => t.id !== id));
             setTasks(prev => [taskToDelete, ...prev]);
-            addToast(error?.message || 'שגיאה במחיקת משימה', 'error');
-
-            updateLocalStorageCache(prev => (prev.some(t => t.id === taskToDelete.id) ? prev : [taskToDelete, ...prev]));
+            addToast(getErrorMessage(error) || 'שגיאה במחיקת משימה', 'error');
 
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('nexusTaskRestored', { detail: { task: taskToDelete } }));
@@ -330,20 +307,6 @@ export const useTasks = (
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
 
-        const updateLocalStorageCache = (updater: (prev: Task[]) => Task[]) => {
-            if (typeof window === 'undefined') return;
-            try {
-                const cached = localStorage.getItem('nexus_tasks_cache');
-                if (!cached) return;
-                const parsed = JSON.parse(cached) as Task[];
-                const next = updater(Array.isArray(parsed) ? parsed : []);
-                localStorage.setItem('nexus_tasks_cache', JSON.stringify(next));
-                localStorage.setItem('nexus_tasks_cache_time', Date.now().toString());
-            } catch {
-                // ignore
-            }
-        };
-
         const newTimerState = !task.isTimerRunning;
 
         // Optimistic update
@@ -353,8 +316,6 @@ export const useTasks = (
             }
             return t;
         }));
-
-        updateLocalStorageCache(prev => prev.map(t => (t.id === taskId ? { ...t, isTimerRunning: newTimerState } : t)));
 
         if (typeof window !== 'undefined') {
             window.dispatchEvent(
@@ -366,36 +327,15 @@ export const useTasks = (
 
         // Save to database via API
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            if (!orgId) {
-                throw new Error('לא ניתן לעדכן טיימר: חסר מזהה ארגון (orgId).');
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) {
+                throw new Error('לא ניתן לעדכן טיימר: חסר מזהה ארגון (orgSlug).');
             }
-            const response = await fetch(`/api/tasks?orgId=${encodeURIComponent(orgId)}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
-                },
-                body: JSON.stringify({ 
-                    taskId, 
-                    updates: { isTimerRunning: newTimerState } 
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בעדכון הטיימר');
-            }
-
-            // Verify the update was successful
-            const updatedTask = await response.json();
-            if (updatedTask.task) {
-                // Update local state with the actual task from server
-                setTasks(prev => prev.map(t => 
-                    t.id === taskId ? { ...t, ...updatedTask.task } : t
-                ));
-            }
-        } catch (error) {
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { isTimerRunning: newTimerState } });
+            setTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, ...updated } : t
+            ));
+        } catch (error: unknown) {
             // Revert on error
             setTasks(prev => prev.map(t => {
                 if (t.id === taskId) {
@@ -403,10 +343,8 @@ export const useTasks = (
                 }
                 return t;
             }));
-
-            updateLocalStorageCache(prev => prev.map(t => (t.id === taskId ? { ...t, isTimerRunning: task.isTimerRunning } : t)));
-            console.error('Failed to update timer:', error);
-            addToast((error as any)?.message || 'שגיאה בעדכון הטיימר', 'error');
+            console.error('[Tasks] Failed to update timer', { message: getErrorMessage(error) });
+            addToast(getErrorMessage(error) || 'שגיאה בעדכון הטיימר', 'error');
 
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(
@@ -455,7 +393,7 @@ export const useTasks = (
         // Save to database
         try {
             await updateTask(taskId, { messages: newMessages });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[addMessage] Failed to save message to database:', error);
             // Revert optimistic update on error
             setTasks(prev => {
@@ -523,7 +461,7 @@ export const useTasks = (
         // Save to database
         try {
             await updateTask(taskId, { messages: updatedMessages });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[updateMessage] Failed to save message update to database:', error);
             // Revert optimistic update on error
             setTasks(prev => {
@@ -570,7 +508,7 @@ export const useTasks = (
         // Save to database
         try {
             await updateTask(taskId, { messages: updatedMessages });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('[deleteMessage] Failed to delete message from database:', error);
             // Revert optimistic update on error
             setTasks(prev => {
@@ -771,8 +709,8 @@ export const useTasks = (
         try {
             // Redirect to OAuth authorization
             window.location.href = '/api/integrations/google/authorize?service=calendar';
-        } catch (error: any) {
-            console.error('[Tasks] Error connecting Google Calendar:', error);
+        } catch (error: unknown) {
+            console.error('[Tasks] Error connecting Google Calendar', { message: getErrorMessage(error) });
             addToast('שגיאה בחיבור ל-Google Calendar', 'error');
             setIsConnectingCalendar(false);
         }

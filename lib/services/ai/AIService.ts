@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { AIProviderError, UpgradeRequiredError } from './errors';
@@ -23,6 +23,68 @@ type LoadedFeatureSettings = {
   settings: AIFeatureSettingsRow;
   modelDisplayName?: string | null;
 };
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') return value as Record<string, unknown>;
+  return null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return '';
+}
+
+function isAIProviderName(value: unknown): value is AIProviderName {
+  return value === 'google' || value === 'openai' || value === 'anthropic' || value === 'groq' || value === 'deepgram';
+}
+
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string') return value;
+  return new Date().toISOString();
+}
+
+function coerceFeatureSettingsRow(row: unknown): AIFeatureSettingsRow | null {
+  const obj = asObject(row);
+  if (!obj) return null;
+
+  const id = typeof obj.id === 'string' ? obj.id : '';
+  const feature_key = typeof obj.feature_key === 'string' ? obj.feature_key : '';
+  const enabled = typeof obj.enabled === 'boolean' ? obj.enabled : false;
+  const primary_provider = isAIProviderName(obj.primary_provider) ? obj.primary_provider : null;
+  const primary_model = typeof obj.primary_model === 'string' ? obj.primary_model : '';
+  const fallback_provider = obj.fallback_provider == null ? null : isAIProviderName(obj.fallback_provider) ? obj.fallback_provider : null;
+  const fallback_model = obj.fallback_model == null ? null : typeof obj.fallback_model === 'string' ? obj.fallback_model : null;
+  const reserve_cost_cents = typeof obj.reserve_cost_cents === 'number' ? obj.reserve_cost_cents : 0;
+  const timeout_ms = typeof obj.timeout_ms === 'number' ? obj.timeout_ms : 30000;
+
+  if (!id || !feature_key || !primary_provider || !primary_model) return null;
+
+  const organization_id = obj.organization_id == null ? null : String(obj.organization_id);
+  const base_prompt = obj.base_prompt == null ? null : typeof obj.base_prompt === 'string' ? obj.base_prompt : null;
+
+  const backup_provider = obj.backup_provider == null ? null : isAIProviderName(obj.backup_provider) ? obj.backup_provider : null;
+  const backup_model = obj.backup_model == null ? null : typeof obj.backup_model === 'string' ? obj.backup_model : null;
+
+  return {
+    id,
+    organization_id,
+    feature_key,
+    enabled,
+    primary_provider,
+    primary_model,
+    fallback_provider,
+    fallback_model,
+    backup_provider,
+    backup_model,
+    base_prompt,
+    reserve_cost_cents,
+    timeout_ms,
+    created_at: toIsoString(obj.created_at),
+    updated_at: toIsoString(obj.updated_at),
+  };
+}
 
 const GLOBAL_HEBREW_SYSTEM_INSTRUCTION = `ענה תמיד בעברית טבעית, זורמת ומודרנית. הימנע מתרגום מילולי מאנגלית (למשל: אל תכתוב "זה הגיוני" אלא "זה נשמע נכון").
 שפה נקייה ומכובדת: השתמש בעברית נקייה ומכובדת שמתאימה לקהל יעד דתי/חרדי. הימנע מסלנג פרובוקטיבי.
@@ -109,7 +171,7 @@ export class AIService {
     moduleId?: string | null;
     matchCount?: number;
     similarityThreshold?: number;
-  }): Promise<Array<{ id: string; docKey: string; chunkIndex: number; content: string; metadata: any; similarity: number }>> {
+  }): Promise<Array<{ id: string; docKey: string; chunkIndex: number; content: string; metadata: unknown; similarity: number }>> {
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
 
     const embedOut = await this.embedForMemory({
@@ -124,29 +186,42 @@ export class AIService {
       },
     });
 
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc('ai_semantic_search', {
-      p_organization_id: ctx.organizationId,
-      p_query_embedding: this.vectorToPgText(embedOut.embedding),
-      p_user_id: ctx.userId,
-      p_module_id: params.moduleId || null,
-      p_match_count: Math.max(1, Math.min(50, Math.floor(params.matchCount ?? 8))),
-      p_similarity_threshold: typeof params.similarityThreshold === 'number' ? params.similarityThreshold : 0.2,
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+      organizationId: ctx.organizationId,
+      reason: 'ai_semantic_search',
+      query:
+        'select r.*\n' +
+        'from (select $1::uuid as organization_id) scope\n' +
+        'join lateral ai_semantic_search(\n' +
+        '  p_organization_id := scope.organization_id,\n' +
+        '  p_query_embedding := $2::vector,\n' +
+        '  p_user_id := $3::uuid,\n' +
+        '  p_module_id := $4,\n' +
+        '  p_match_count := $5,\n' +
+        '  p_similarity_threshold := $6\n' +
+        ') r on true\n' +
+        'where scope.organization_id = $1::uuid',
+      values: [
+        ctx.organizationId,
+        this.vectorToPgText(embedOut.embedding),
+        ctx.userId,
+        params.moduleId || null,
+        Math.max(1, Math.min(50, Math.floor(params.matchCount ?? 8))),
+        typeof params.similarityThreshold === 'number' ? params.similarityThreshold : 0.2,
+      ],
     });
 
-    if (error) {
-      throw new Error(`Semantic search failed: ${error.message}`);
-    }
-
-    const rows = Array.isArray(data) ? data : [];
-    return rows.map((r: any) => ({
-      id: String(r?.id || ''),
-      docKey: String(r?.doc_key || ''),
-      chunkIndex: Number(r?.chunk_index || 0),
-      content: String(r?.content || ''),
-      metadata: r?.metadata ?? null,
-      similarity: Number(r?.similarity || 0),
-    }));
+    return rows.map((r) => {
+      const obj = asObject(r) ?? {};
+      return {
+        id: String(obj.id ?? ''),
+        docKey: String(obj.doc_key ?? ''),
+        chunkIndex: Number(obj.chunk_index ?? 0),
+        content: String(obj.content ?? ''),
+        metadata: obj.metadata ?? null,
+        similarity: Number(obj.similarity ?? 0),
+      };
+    });
   }
 
   async ingestText(params: {
@@ -157,7 +232,7 @@ export class AIService {
     docKey: string;
     text: string;
     isPublicInOrg: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }): Promise<{ chunks: number; chargedCents: number }> {
     const parentFeatureKey = String(params.featureKey || '').trim() || 'ai.memory';
     const embeddingFeatureKey = parentFeatureKey.toLowerCase().includes('embedding') ? parentFeatureKey : `${parentFeatureKey}.embedding`;
@@ -177,7 +252,6 @@ export class AIService {
       }
 
       const chunks = this.chunkText(String(params.text || ''));
-      const supabase = createClient();
 
       const apiKey = await this.getProviderKey({ provider: 'openai', organizationId: ctx.organizationId });
       const openai = new OpenAIProvider(apiKey);
@@ -186,27 +260,35 @@ export class AIService {
         const chunk = chunks[i];
         const vec = await openai.embedText({ model: modelUsed, input: chunk, timeoutMs: feature.settings.timeout_ms });
 
-        const { error } = await supabase
-          .from('ai_embeddings')
-          .upsert(
-            {
-              organization_id: ctx.organizationId,
-              module_id: params.moduleId,
-              user_id: ctx.userId,
-              is_public_in_org: Boolean(params.isPublicInOrg),
-              doc_key: params.docKey,
-              chunk_index: i,
-              content: chunk,
-              embedding: this.vectorToPgText(vec.embedding),
-              metadata: params.metadata || null,
-              updated_at: new Date().toISOString(),
-            } as any,
-            { onConflict: 'organization_id,doc_key,chunk_index' }
-          );
-
-        if (error) {
-          throw new Error(`Failed to upsert embedding: ${error.message}`);
-        }
+        await executeRawOrgScoped(prisma, {
+          organizationId: ctx.organizationId,
+          reason: 'ai_embeddings_upsert',
+          query:
+            'insert into ai_embeddings (\n' +
+            '  organization_id, module_id, user_id, is_public_in_org, doc_key, chunk_index, content, embedding, metadata, updated_at\n' +
+            ') values (\n' +
+            '  $1::uuid, $2, $3, $4, $5, $6, $7, $8::vector, $9::jsonb, now()\n' +
+            ')\n' +
+            'on conflict (organization_id, doc_key, chunk_index) do update set\n' +
+            '  module_id = excluded.module_id,\n' +
+            '  user_id = excluded.user_id,\n' +
+            '  is_public_in_org = excluded.is_public_in_org,\n' +
+            '  content = excluded.content,\n' +
+            '  embedding = excluded.embedding,\n' +
+            '  metadata = excluded.metadata,\n' +
+            '  updated_at = now()',
+          values: [
+            ctx.organizationId,
+            params.moduleId,
+            ctx.userId,
+            Boolean(params.isPublicInOrg),
+            params.docKey,
+            i,
+            chunk,
+            this.vectorToPgText(vec.embedding),
+            params.metadata || null,
+          ],
+        });
       }
 
       await this.logUsage({
@@ -231,9 +313,10 @@ export class AIService {
       });
 
       return { chunks: chunks.length, chargedCents };
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
+      const message = getErrorMessage(err);
       await this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
@@ -245,7 +328,7 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(err?.message || err),
+        errorMessage: message || String(err),
         meta: {
           ...(params.metadata || {}),
           parentFeatureKey,
@@ -255,7 +338,7 @@ export class AIService {
         },
       });
 
-      throw err;
+      throw err instanceof Error ? err : new Error(message || 'AI provider error');
     }
   }
 
@@ -266,7 +349,7 @@ export class AIService {
     const effectivePrompt = await this.assemblePrompt({
       organizationId: ctx.organizationId,
       featureKey: params.featureKey,
-      basePrompt: (feature.settings as any)?.base_prompt ?? null,
+      basePrompt: feature.settings.base_prompt ?? null,
       userRequest: params.prompt,
       meta: params.meta,
     });
@@ -503,7 +586,7 @@ export class AIService {
         modelDisplayName,
         chargedCents,
       };
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
       const modelDisplayName = await this.getModelDisplayName({
@@ -511,6 +594,8 @@ export class AIService {
         provider: providerUsed,
         model: modelUsed,
       });
+
+      const message = getErrorMessage(err);
 
       await this.logUsage({
         organizationId: ctx.organizationId,
@@ -523,11 +608,11 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(err?.message || err),
+        errorMessage: message || String(err),
         meta: { ...(params.meta || {}), refundedCents: chargedCents, kind: 'vision_json' },
       });
 
-      throw err;
+      throw err instanceof Error ? err : new Error(message || 'AI provider error');
     }
   }
 
@@ -538,7 +623,7 @@ export class AIService {
     const effectivePrompt = await this.assemblePrompt({
       organizationId: ctx.organizationId,
       featureKey: params.featureKey,
-      basePrompt: (feature.settings as any)?.base_prompt ?? null,
+      basePrompt: feature.settings.base_prompt ?? null,
       userRequest: params.prompt,
       meta: params.meta,
     });
@@ -767,9 +852,10 @@ export class AIService {
       }
 
       throw new AIProviderError({ provider: feature.settings.primary_provider, message: 'Transcription provider not supported yet' });
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.adjustCredits({ organizationId: ctx.organizationId, deltaCents: chargedCents });
 
+      const message = getErrorMessage(err);
       await this.logUsage({
         organizationId: ctx.organizationId,
         userId: ctx.userId,
@@ -781,11 +867,11 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(err?.message || err),
+        errorMessage: message || String(err),
         meta: { ...params.meta, refundedCents: chargedCents },
       });
 
-      throw err;
+      throw err instanceof Error ? err : new Error(message || 'AI provider error');
     }
   }
 
@@ -806,18 +892,12 @@ export class AIService {
       return { organizationId: String(workspace.id), userId: String(effectiveUserId) };
     }
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('social_users')
-      .select('organization_id')
-      .eq('clerk_user_id', effectiveUserId)
-      .maybeSingle();
+    const data = await prisma.social_users.findUnique({
+      where: { clerk_user_id: effectiveUserId },
+      select: { organization_id: true },
+    });
 
-    if (error) {
-      throw new Error(`Failed to resolve organization for user: ${error.message}`);
-    }
-
-    const orgId = (data as any)?.organization_id ? String((data as any).organization_id) : null;
+    const orgId = data?.organization_id ? String(data.organization_id) : null;
     if (!orgId) {
       throw new Error('Missing organization context');
     }
@@ -826,27 +906,17 @@ export class AIService {
   }
 
   private async loadFeatureSettings(params: { organizationId: string; featureKey: string }): Promise<LoadedFeatureSettings> {
-    const supabase = createClient();
+    const orgRow = await prisma.ai_feature_settings.findFirst({
+      where: { organization_id: params.organizationId, feature_key: params.featureKey, enabled: true },
+    });
 
-    const { data: orgRow, error: orgErr } = await supabase
-      .from('ai_feature_settings')
-      .select('*')
-      .eq('organization_id', params.organizationId)
-      .eq('feature_key', params.featureKey)
-      .eq('enabled', true)
-      .maybeSingle();
+    let settings = coerceFeatureSettingsRow(orgRow);
 
-    let settings: any = orgRow;
-
-    if (orgErr || !settings) {
-      const { data: globalRow } = await supabase
-        .from('ai_feature_settings')
-        .select('*')
-        .is('organization_id', null)
-        .eq('feature_key', params.featureKey)
-        .eq('enabled', true)
-        .maybeSingle();
-      settings = globalRow;
+    if (!settings) {
+      const globalRow = await prisma.ai_feature_settings.findFirst({
+        where: { organization_id: null, feature_key: params.featureKey, enabled: true },
+      });
+      settings = coerceFeatureSettingsRow(globalRow);
     }
 
     if (!settings) {
@@ -899,11 +969,11 @@ export class AIService {
       } as AIFeatureSettingsRow;
     }
 
-    if ((settings as any).backup_provider && !(settings as any).fallback_provider) {
-      (settings as any).fallback_provider = (settings as any).backup_provider;
+    if (settings.backup_provider && !settings.fallback_provider) {
+      settings = { ...settings, fallback_provider: settings.backup_provider };
     }
-    if ((settings as any).backup_model && !(settings as any).fallback_model) {
-      (settings as any).fallback_model = (settings as any).backup_model;
+    if (settings.backup_model && !settings.fallback_model) {
+      settings = { ...settings, fallback_model: settings.backup_model };
     }
 
     const modelDisplayName = await this.getModelDisplayName({
@@ -912,23 +982,15 @@ export class AIService {
       model: settings.primary_model,
     });
 
-    return { settings: settings as AIFeatureSettingsRow, modelDisplayName };
+    return { settings, modelDisplayName };
   }
 
   private async loadOrganizationAiDna(params: { organizationId: string }): Promise<Record<string, any>> {
-    const supabase = createClient();
+    const row = await prisma.organization_settings
+      .findUnique({ where: { organization_id: params.organizationId }, select: { ai_dna: true } })
+      .catch(() => null);
 
-    const { data, error } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', params.organizationId)
-      .maybeSingle();
-
-    if (error) {
-      return {};
-    }
-
-    const aiDna = (data as any)?.ai_dna;
+    const aiDna = (row as any)?.ai_dna;
     if (!aiDna || typeof aiDna !== 'object' || Array.isArray(aiDna)) return {};
     return aiDna as Record<string, any>;
   }
@@ -1014,35 +1076,28 @@ export class AIService {
   }
 
   private async getModelDisplayName(params: { organizationId: string; provider: AIProviderName; model: string }): Promise<string | null> {
-    const supabase = createClient();
+    const orgRow = await prisma.ai_model_aliases.findFirst({
+      where: { organization_id: params.organizationId, provider: params.provider, model: params.model },
+      select: { display_name: true },
+    });
 
-    const { data: orgRow } = await supabase
-      .from('ai_model_aliases')
-      .select('*')
-      .eq('organization_id', params.organizationId)
-      .eq('provider', params.provider)
-      .eq('model', params.model)
-      .maybeSingle();
-
-    const orgName = (orgRow as any)?.display_name ? String((orgRow as any).display_name) : null;
+    const orgName = orgRow?.display_name ? String(orgRow.display_name) : null;
     if (orgName) return orgName;
 
-    const { data: globalRow } = await supabase
-      .from('ai_model_aliases')
-      .select('*')
-      .is('organization_id', null)
-      .eq('provider', params.provider)
-      .eq('model', params.model)
-      .maybeSingle();
+    const globalRow = await prisma.ai_model_aliases.findFirst({
+      where: { organization_id: null, provider: params.provider, model: params.model },
+      select: { display_name: true },
+    });
 
-    const globalName = (globalRow as any)?.display_name ? String((globalRow as any).display_name) : null;
+    const globalName = globalRow?.display_name ? String(globalRow.display_name) : null;
     return globalName;
   }
 
-  private isRetryableProviderFailure(err: any): boolean {
-    const name = String(err?.name || '');
-    const msg = String(err?.message || err || '');
-    const status = typeof err?.status === 'number' ? err.status : undefined;
+  private isRetryableProviderFailure(err: unknown): boolean {
+    const obj = asObject(err) ?? {};
+    const name = typeof obj.name === 'string' ? obj.name : '';
+    const msg = typeof obj.message === 'string' ? obj.message : String(err || '');
+    const status = typeof obj.status === 'number' ? obj.status : undefined;
 
     if (name === 'UpgradeRequiredError') return false;
 
@@ -1063,28 +1118,20 @@ export class AIService {
   }
 
   private async getProviderKey(params: { provider: AIProviderName; organizationId: string }): Promise<string> {
-    const supabase = createClient();
+    const orgKeyRow = await prisma.ai_provider_keys.findFirst({
+      where: { provider: params.provider, organization_id: params.organizationId, enabled: true },
+      select: { api_key: true },
+    });
 
-    const { data: orgKeyRow } = await supabase
-      .from('ai_provider_keys')
-      .select('*')
-      .eq('provider', params.provider)
-      .eq('organization_id', params.organizationId)
-      .eq('enabled', true)
-      .maybeSingle();
-
-    const orgKey = (orgKeyRow as any)?.api_key ? String((orgKeyRow as any).api_key) : null;
+    const orgKey = orgKeyRow?.api_key ? String(orgKeyRow.api_key) : null;
     if (orgKey) return orgKey;
 
-    const { data: globalKeyRow } = await supabase
-      .from('ai_provider_keys')
-      .select('*')
-      .eq('provider', params.provider)
-      .is('organization_id', null)
-      .eq('enabled', true)
-      .maybeSingle();
+    const globalKeyRow = await prisma.ai_provider_keys.findFirst({
+      where: { provider: params.provider, organization_id: null, enabled: true },
+      select: { api_key: true },
+    });
 
-    const globalKey = (globalKeyRow as any)?.api_key ? String((globalKeyRow as any).api_key) : null;
+    const globalKey = globalKeyRow?.api_key ? String(globalKeyRow.api_key) : null;
 
     if (globalKey) return globalKey;
 
@@ -1120,19 +1167,26 @@ export class AIService {
     const reserve = Math.max(0, Math.floor(params.reserveCents || 0));
     if (reserve <= 0) return 0;
 
-    const supabase = createClient();
-
-    const { error: debitErr } = await supabase.rpc('ai_debit_credits', {
-      p_organization_id: params.organizationId,
-      p_amount_cents: reserve,
-    });
-
-    if (debitErr) {
-      const msg = String(debitErr.message || '');
-      if (msg.toLowerCase().includes('insufficient') || msg.toLowerCase().includes('credit')) {
+    try {
+      await executeRawOrgScoped(prisma, {
+        organizationId: params.organizationId,
+        reason: 'ai_debit_credits',
+        query:
+          'select ai_debit_credits(\n' +
+          '  p_organization_id := scope.organization_id,\n' +
+          '  p_amount_cents := $2::int\n' +
+          ')\n' +
+          'from (select $1::uuid as organization_id) scope\n' +
+          'where scope.organization_id = $1::uuid',
+        values: [params.organizationId, reserve],
+      });
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err);
+      const lower = msg.toLowerCase();
+      if (lower.includes('insufficient') || lower.includes('credit')) {
         throw new UpgradeRequiredError();
       }
-      throw new Error(`Failed to debit credits: ${debitErr.message}`);
+      throw new Error(`Failed to debit credits: ${msg || String(err)}`);
     }
 
     return reserve;
@@ -1142,10 +1196,17 @@ export class AIService {
     const delta = Math.floor(params.deltaCents || 0);
     if (delta === 0) return;
 
-    const supabase = createClient();
-    await supabase.rpc('ai_adjust_credits', {
-      p_organization_id: params.organizationId,
-      p_delta_cents: delta,
+    await executeRawOrgScoped(prisma, {
+      organizationId: params.organizationId,
+      reason: 'ai_adjust_credits',
+      query:
+        'select ai_adjust_credits(\n' +
+        '  p_organization_id := scope.organization_id,\n' +
+        '  p_delta_cents := $2::int\n' +
+        ')\n' +
+        'from (select $1::uuid as organization_id) scope\n' +
+        'where scope.organization_id = $1::uuid',
+      values: [params.organizationId, delta],
     });
   }
 
@@ -1214,8 +1275,10 @@ export class AIService {
       });
 
       return { embedding: out.embedding };
-    } catch (err: any) {
+    } catch (err: unknown) {
       await this.adjustCredits({ organizationId: params.organizationId, deltaCents: chargedCents });
+
+      const message = getErrorMessage(err);
 
       await this.logUsage({
         organizationId: params.organizationId,
@@ -1228,11 +1291,11 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(err?.message || err),
+        errorMessage: message || String(err),
         meta: { ...(params.meta || {}), parentFeatureKey: baseFeatureKey, refundedCents: chargedCents },
       });
 
-      throw err;
+      throw err instanceof Error ? err : new Error(message || 'AI provider error');
     }
   }
 
@@ -1364,21 +1427,21 @@ export class AIService {
     errorMessage?: string;
     meta?: Record<string, any>;
   }): Promise<void> {
-    const supabase = createClient();
-
-    await supabase.from('ai_usage_logs').insert({
-      organization_id: params.organizationId,
-      user_id: params.userId,
-      feature_key: params.featureKey,
-      task_kind: params.taskKind,
-      provider: params.provider,
-      model: params.model,
-      model_display_name: params.modelDisplayName,
-      charged_cents: params.chargedCents,
-      latency_ms: params.latencyMs,
-      status: params.status,
-      error_message: params.errorMessage || null,
-      meta: params.meta || null,
+    await prisma.ai_usage_logs.create({
+      data: {
+        organization_id: params.organizationId,
+        user_id: params.userId,
+        feature_key: params.featureKey,
+        task_kind: params.taskKind,
+        provider: params.provider,
+        model: params.model,
+        model_display_name: params.modelDisplayName,
+        charged_cents: params.chargedCents,
+        latency_ms: params.latencyMs,
+        status: params.status,
+        error_message: params.errorMessage || null,
+        meta: params.meta || null,
+      } as any,
     });
   }
 

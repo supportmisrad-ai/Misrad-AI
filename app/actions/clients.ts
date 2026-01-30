@@ -1,24 +1,166 @@
 'use server';
 
 import crypto from 'crypto';
-import { createClient as createSupabaseClient } from '@/lib/supabase';
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { Client, ClientStatus, PricingPlan } from '@/types/social';
 import { sendInvitationEmail } from './email';
 import { createClientSchema, validateWithSchema } from '@/lib/validation';
-import { requireAuth, requireSupabase, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireOrganizationId } from '@/lib/tenant-isolation';
 
-function isMissingTableError(err: any) {
-  const msg = String(err?.message || '').toLowerCase();
-  const code = String((err as any)?.code || '').toUpperCase();
-  return (
-    msg.includes("could not find the table 'public.clients'") ||
-    msg.includes('public.clients') ||
-    msg.includes('does not exist') ||
-    code === '42P01' ||
-    code === 'PGRST205'
-  );
+const clientClientSelect = {
+  id: true,
+  organizationId: true,
+  fullName: true,
+  phone: true,
+  email: true,
+  notes: true,
+  metadata: true,
+} satisfies Prisma.ClientClientSelect;
+
+const clientClientPageSelect = {
+  id: true,
+  organizationId: true,
+  fullName: true,
+  phone: true,
+  email: true,
+  notes: true,
+  metadata: true,
+  createdAt: true,
+} satisfies Prisma.ClientClientSelect;
+
+type ClientClientRow = Prisma.ClientClientGetPayload<{ select: typeof clientClientSelect }>;
+type ClientClientPageRow = Prisma.ClientClientGetPayload<{ select: typeof clientClientPageSelect }>;
+
+type JsonObjectInput = Record<string, Prisma.InputJsonValue | null>;
+
+function safeString(v: unknown, fallback = ''): string {
+  return typeof v === 'string' ? v : fallback;
+}
+
+function safeNumber(v: unknown, fallback = 0): number {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function safeBoolean(v: unknown, fallback = false): boolean {
+  return typeof v === 'boolean' ? v : fallback;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+function optionalString(v: unknown): string | undefined {
+  if (typeof v !== 'string') return undefined;
+  const trimmed = v.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function optionalOnboardingStatus(v: unknown): Client['onboardingStatus'] {
+  return v === 'invited' || v === 'completed' ? v : undefined;
+}
+
+function optionalPaymentStatus(v: unknown): Client['paymentStatus'] {
+  return v === 'paid' || v === 'pending' || v === 'overdue' ? v : undefined;
+}
+
+function randomToken(len = 22): string {
+  return Math.random().toString(36).slice(2, 2 + len);
+}
+
+function asRecord(value: unknown): JsonObjectInput {
+  if (!value || typeof value !== 'object') return {};
+  if (Array.isArray(value)) return {};
+  return value as unknown as JsonObjectInput;
+}
+
+function toJsonInput(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
+}
+
+function getOrganizationIdFromInvitationMetadata(value: unknown): string | null {
+  const record = asRecord(value);
+  const orgId = record.organizationId;
+  if (typeof orgId !== 'string') return null;
+  const trimmed = orgId.trim();
+  return trimmed ? trimmed : null;
+}
+
+function mapClientClientToSocialClient(row: {
+  id: string;
+  organizationId: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  notes: string | null;
+  metadata: unknown;
+}): Client {
+  const md = asRecord(row.metadata);
+
+  const companyName = safeString(md.companyName, safeString(md.name, safeString(row.fullName, '')));
+  const name = safeString(md.name, companyName || row.fullName);
+  const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(String(row.id))}`);
+
+  const portalToken = safeString(md.portalToken, safeString(md.portal_token, ''));
+
+  const businessId = optionalString(md.businessId ?? md.business_id);
+
+  const dna: Client['dna'] =
+    md.dna && typeof md.dna === 'object' && !Array.isArray(md.dna)
+      ? (md.dna as unknown as Client['dna'])
+      : {
+          brandSummary: '',
+          voice: { formal: 50, funny: 50, length: 50 },
+          vocabulary: { loved: [], forbidden: [] },
+          colors: { primary: '#1e293b', secondary: '#334155' },
+        };
+
+  const businessMetrics: Client['businessMetrics'] =
+    md.businessMetrics && typeof md.businessMetrics === 'object' && !Array.isArray(md.businessMetrics)
+      ? (md.businessMetrics as unknown as Client['businessMetrics'])
+      : {
+          timeSpentMinutes: 0,
+          expectedHours: 0,
+          punctualityScore: 100,
+          responsivenessScore: 100,
+          revisionCount: 0,
+        };
+
+  const internalNotes = row.notes ?? optionalString(md.internalNotes);
+
+  return {
+    id: String(row.id),
+    name,
+    companyName,
+    businessId,
+    phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    avatar,
+    brandVoice: safeString(md.brandVoice, safeString(md.brand_voice, '')),
+    dna,
+    credentials: Array.isArray(md.credentials) ? (md.credentials as Client['credentials']) : [],
+    postingRhythm: safeString(md.postingRhythm, safeString(md.posting_rhythm, '3 פעמים בשבוע')),
+    status: (md.status as ClientStatus) || 'Onboarding',
+    activePlatforms: Array.isArray(md.activePlatforms) ? (md.activePlatforms as Client['activePlatforms']) : [],
+    quotas: Array.isArray(md.quotas) ? (md.quotas as Client['quotas']) : [],
+    onboardingStatus: optionalOnboardingStatus(md.onboardingStatus ?? md.onboarding_status),
+    invitationToken: optionalString(md.invitationToken ?? md.invitation_token),
+    portalToken,
+    color: safeString(md.color, '#1e293b'),
+    plan: (md.plan as PricingPlan | undefined) ?? undefined,
+    monthlyFee: md.monthlyFee != null ? safeNumber(md.monthlyFee) : undefined,
+    nextPaymentDate: optionalString(md.nextPaymentDate),
+    nextPaymentAmount: md.nextPaymentAmount != null ? safeNumber(md.nextPaymentAmount) : undefined,
+    paymentStatus: optionalPaymentStatus(md.paymentStatus),
+    autoRemindersEnabled: safeBoolean(md.autoRemindersEnabled, true),
+    savedCardThumbnail: optionalString(md.savedCardThumbnail),
+    businessMetrics,
+    internalNotes,
+    organizationId: String(row.organizationId),
+  };
 }
 
 /**
@@ -31,63 +173,6 @@ export async function getClients(
   orgId?: string
 ): Promise<{ success: boolean; data?: Client[]; error?: string }> {
   try {
-    let supabase;
-    try {
-      supabase = createSupabaseClient();
-      
-      // Additional verification with better error messages
-      if (!supabase) {
-        console.error('[getClients] createSupabaseClient() returned null/undefined');
-        throw new Error('createSupabaseClient() returned null/undefined. This usually means environment variables are missing.');
-      }
-      
-      // More detailed check
-      const hasFromMethod = typeof supabase.from === 'function';
-      
-      if (!hasFromMethod) {
-        console.error('[getClients] Client structure issue - DETAILED:', {
-          isNull: supabase === null,
-          isUndefined: supabase === undefined,
-          type: typeof supabase,
-          isObject: typeof supabase === 'object',
-          hasFrom: supabase && 'from' in supabase,
-          fromType: supabase && typeof (supabase as any).from,
-          fromValue: supabase && (supabase as any).from,
-          constructor: supabase?.constructor?.name,
-          prototype: Object.getPrototypeOf(supabase)?.constructor?.name,
-          keys: supabase && typeof supabase === 'object' ? Object.keys(supabase).slice(0, 20) : 'N/A',
-          stringified: supabase ? JSON.stringify(Object.keys(supabase).slice(0, 10)) : 'N/A',
-        });
-        throw new Error('Supabase client missing .from() method. The client was created but is invalid. This may indicate an environment variable issue or a need to restart the server.');
-      }
-    } catch (clientError: any) {
-      console.error('[getClients] Failed to create/verify Supabase client:', clientError);
-      console.error('[getClients] Error details:', {
-        message: clientError.message,
-        stack: clientError.stack,
-        name: clientError.name,
-      });
-      return {
-        success: false,
-        error: `שגיאה בהתחברות למסד הנתונים: ${clientError.message}`,
-      };
-    }
-
-    // Verify supabase is still valid before using it (double-check)
-    if (!supabase || typeof supabase.from !== 'function') {
-      console.error('[getClients] Supabase client became invalid before query!', {
-        isNull: supabase === null,
-        isUndefined: supabase === undefined,
-        type: typeof supabase,
-        hasFrom: supabase && 'from' in supabase,
-        fromType: supabase && typeof (supabase as any).from,
-      });
-      return {
-        success: false,
-        error: 'שגיאה: לקוח Supabase הפך לא תקין לפני ביצוע השאילתה',
-      };
-    }
-
     // Get user info (role and organizationId)
     let userRole: string | undefined;
     let userOrganizationId: string | undefined;
@@ -105,25 +190,18 @@ export async function getClients(
     // This enables true multi-workspace behavior.
     if (orgId) {
       const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
-      userOrganizationId = workspace?.id ? String(workspace.id) : undefined;
+      const resolvedOrganizationId = String(workspace?.id || '').trim();
+      if (!resolvedOrganizationId) {
+        throw new Error('Missing organizationId');
+      }
+      userOrganizationId = resolvedOrganizationId;
     }
-
-    let query = supabase
-      .from('clients')
-      .select(`
-        *,
-        client_dna (*),
-        platform_credentials (*),
-        platform_quotas (*),
-        business_metrics (*)
-      `)
-      .order('created_at', { ascending: false });
 
     // Filter by organization
     // If orgId is explicitly provided -> ALWAYS filter by it (prevents leakage and enables workspace switching)
     // Otherwise keep legacy behavior (super_admin sees all, others filtered by their organization)
     if (userOrganizationId) {
-      query = query.eq('organization_id', userOrganizationId);
+      // ok
     } else {
       // Emergency isolation: do NOT allow any unscoped read, even for super_admin.
       // Fail closed to prevent cross-tenant leakage.
@@ -133,119 +211,194 @@ export async function getClients(
       };
     }
 
-    // Final verification before executing query
-    if (!supabase || typeof supabase.from !== 'function') {
-      console.error('[getClients] Supabase client became invalid before executing query!');
-      return {
-        success: false,
-        error: 'שגיאה: לקוח Supabase הפך לא תקין לפני ביצוע השאילתה',
+    const organizationId = String(userOrganizationId);
+    const pageSize = 200;
+    const maxTotal = 500;
+    let cursor: ClientsCursor | null = null;
+    const acc: Client[] = [];
+
+    while (acc.length < maxTotal) {
+      const where: Prisma.ClientClientWhereInput = {
+        organizationId,
+        ...(cursor
+          ? {
+              OR: [
+                { createdAt: { lt: new Date(cursor.createdAt) } },
+                { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
+              ],
+            }
+          : {}),
       };
+
+      const rows = await prisma.clientClient.findMany({
+        where,
+        select: clientClientPageSelect,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: pageSize + 1,
+      });
+
+      const list = Array.isArray(rows) ? rows : [];
+      const hasMore = list.length > pageSize;
+      const trimmed = hasMore ? list.slice(0, pageSize) : list;
+
+      acc.push(...trimmed.map((row: ClientClientPageRow) => mapClientClientToSocialClient(row)));
+
+      if (!hasMore) break;
+      const last = trimmed[trimmed.length - 1];
+      if (!last?.id || !last?.createdAt) break;
+      cursor = { createdAt: last.createdAt.toISOString(), id: String(last.id) };
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      if (isMissingTableError(error)) {
-        // Emergency isolation: do NOT fallback to legacy tables (social_clients / misrad_clients).
-        // Fail closed to prevent cross-tenant leakage.
-        return {
-          success: false,
-          error: 'טבלת clients לא קיימת במסד הנתונים. (מצב חירום: אין Fallback לטבלאות legacy)'
-        };
-      }
-
-      console.error('Error fetching clients:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-
-    // Transform Supabase data to Client type
-    const clients: Client[] = (data || []).map((client: any) => ({
-      id: client.id,
-      name: client.name,
-      companyName: client.company_name,
-      businessId: client.business_id,
-      phone: client.phone,
-      email: client.email,
-      avatar: client.avatar || '',
-      brandVoice: client.brand_voice || '',
-      dna: client.client_dna?.[0] ? {
-        brandSummary: client.client_dna[0].brand_summary || '',
-        voice: {
-          formal: client.client_dna[0].voice_formal || 50,
-          funny: client.client_dna[0].voice_funny || 50,
-          length: client.client_dna[0].voice_length || 50,
-        },
-        vocabulary: {
-          loved: client.client_dna[0].vocabulary_loved || [],
-          forbidden: client.client_dna[0].vocabulary_forbidden || [],
-        },
-        colors: {
-          primary: client.client_dna[0].color_primary || '#1e293b',
-          secondary: client.client_dna[0].color_secondary || '#334155',
-        },
-        strategy: client.client_dna[0].strategy ? JSON.parse(client.client_dna[0].strategy) : undefined,
-      } : {
-        brandSummary: '',
-        voice: { formal: 50, funny: 50, length: 50 },
-        vocabulary: { loved: [], forbidden: [] },
-        colors: { primary: '#1e293b', secondary: '#334155' },
-      },
-      credentials: (client.platform_credentials || []).map((cred: any) => ({
-        platform: cred.platform,
-        username: cred.username, // NO PASSWORD - we don't store passwords
-        notes: cred.notes,
-      })),
-      postingRhythm: client.posting_rhythm || '3 פעמים בשבוע',
-      status: (client.status as ClientStatus) || 'Active',
-      activePlatforms: (client.active_platforms || []) as any[],
-      quotas: (client.platform_quotas || []).map((q: any) => ({
-        platform: q.platform,
-        monthlyLimit: q.monthly_limit,
-        currentUsage: q.current_usage,
-      })),
-      onboardingStatus: client.onboarding_status as any,
-      invitationToken: client.invitation_token,
-      portalToken: client.portal_token,
-      color: client.color || '#1e293b',
-      plan: client.plan as PricingPlan,
-      monthlyFee: client.monthly_fee,
-      nextPaymentDate: client.next_payment_date,
-      nextPaymentAmount: client.next_payment_amount,
-      paymentStatus: client.payment_status as any,
-      autoRemindersEnabled: client.auto_reminders_enabled ?? true,
-      savedCardThumbnail: client.saved_card_thumbnail,
-      businessMetrics: client.business_metrics?.[0] ? {
-        timeSpentMinutes: client.business_metrics[0].time_spent_minutes || 0,
-        expectedHours: client.business_metrics[0].expected_hours || 0,
-        punctualityScore: client.business_metrics[0].punctuality_score || 100,
-        responsivenessScore: client.business_metrics[0].responsiveness_score || 100,
-        revisionCount: client.business_metrics[0].revision_count || 0,
-        lastAIBusinessAudit: client.business_metrics[0].last_ai_business_audit,
-        daysOverdue: client.business_metrics[0].days_overdue,
-      } : {
-        timeSpentMinutes: 0,
-        expectedHours: 0,
-        punctualityScore: 100,
-        responsivenessScore: 100,
-        revisionCount: 0,
-      },
-      internalNotes: client.internal_notes,
-      organizationId: client.organization_id, // Add organizationId
-    }));
-
-    return {
-      success: true,
-      data: clients,
-    };
-  } catch (error: any) {
+    return { success: true, data: acc.slice(0, maxTotal) };
+  } catch (error: unknown) {
     console.error('Error in getClients:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בטעינת לקוחות',
+    const message = error instanceof Error && error.message ? error.message : 'שגיאה בטעינת לקוחות';
+    return { success: false, error: message };
+  }
+}
+
+type ClientsCursor = {
+  createdAt: string;
+  id: string;
+};
+
+function encodeClientsCursor(cursor: ClientsCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64');
+}
+
+function decodeClientsCursor(raw?: string | null): ClientsCursor | null {
+  const v = String(raw || '').trim();
+  if (!v) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(v, 'base64').toString('utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    const rec = parsed as Record<string, unknown>;
+    const createdAt = typeof rec.createdAt === 'string' ? rec.createdAt.trim() : '';
+    const id = typeof rec.id === 'string' ? rec.id.trim() : '';
+    if (!createdAt || !id) return null;
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return { createdAt: d.toISOString(), id };
+  } catch {
+    return null;
+  }
+}
+
+export async function getClientsPage(params: {
+  orgSlug: string;
+  cursor?: string | null;
+  pageSize?: number;
+  query?: string;
+  plan?: string;
+  onboardingStatus?: string;
+}): Promise<
+  | { success: true; data: { clients: Client[]; nextCursor: string | null; hasMore: boolean } }
+  | { success: false; error: string }
+> {
+  try {
+    const orgSlug = String(params.orgSlug || '').trim();
+    if (!orgSlug) return { success: false, error: 'orgSlug חסר' };
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = requireOrganizationId('getClientsPage', workspace.id);
+
+    const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
+    const cursor = decodeClientsCursor(params.cursor);
+
+    const q = String(params.query || '').trim();
+    const plan = String(params.plan || '').trim();
+    const onboardingStatus = String(params.onboardingStatus || '').trim();
+
+    const where: Prisma.ClientClientWhereInput = {
+      organizationId: String(organizationId),
     };
+
+    const and: Prisma.ClientClientWhereInput[] = [];
+
+    if (q) {
+      where.OR = [
+        { fullName: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
+    if (plan) {
+      and.push({ metadata: { path: ['plan'], equals: plan } });
+    }
+
+    if (onboardingStatus) {
+      and.push({ metadata: { path: ['onboardingStatus'], equals: onboardingStatus } });
+    }
+
+    if (cursor) {
+      and.push({
+        OR: [
+          { createdAt: { lt: new Date(cursor.createdAt) } },
+          { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
+        ],
+      });
+    }
+
+    if (and.length > 0) {
+      where.AND = and;
+    }
+
+    const rows = await prisma.clientClient.findMany({
+      where,
+      select: clientClientPageSelect,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pageSize + 1,
+    });
+
+    const list = Array.isArray(rows) ? rows : [];
+    const hasMore = list.length > pageSize;
+    const trimmed = hasMore ? list.slice(0, pageSize) : list;
+
+    const clients: Client[] = trimmed.map((row: ClientClientPageRow) => mapClientClientToSocialClient(row));
+
+    const last = trimmed[trimmed.length - 1];
+    const nextCursor = hasMore && last?.id && last?.createdAt
+      ? encodeClientsCursor({ createdAt: last.createdAt.toISOString(), id: String(last.id) })
+      : null;
+
+    return { success: true, data: { clients, nextCursor, hasMore } };
+  } catch (error: unknown) {
+    console.error('Error in getClientsPage:', error);
+    return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוחות') };
+  }
+}
+
+export async function getClientByIdForWorkspace(params: {
+  orgSlug: string;
+  clientId: string;
+}): Promise<{ success: true; data: Client } | { success: false; error: string }> {
+  try {
+    const orgSlug = String(params.orgSlug || '').trim();
+    const clientId = String(params.clientId || '').trim();
+    if (!orgSlug) return { success: false, error: 'orgSlug חסר' };
+    if (!clientId) return { success: false, error: 'clientId חסר' };
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = requireOrganizationId('getClientByIdForWorkspace', workspace.id);
+
+    const row = await prisma.clientClient.findFirst({
+      where: { id: clientId, organizationId: String(organizationId) },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+      },
+    });
+
+    if (!row?.id) return { success: false, error: 'לקוח לא נמצא' };
+    return { success: true, data: mapClientClientToSocialClient(row) };
+  } catch (error: unknown) {
+    console.error('Error in getClientByIdForWorkspace:', error);
+    return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };
   }
 }
 
@@ -255,7 +408,7 @@ export async function createClientInvitationLinkForWorkspace(params: {
   clerkUserId: string;
   expiresInDays?: number;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
     const resolvedOrgSlug = String(params.orgSlug || '').trim();
@@ -269,20 +422,13 @@ export async function createClientInvitationLinkForWorkspace(params: {
       return { success: false, error: 'לא מחובר' };
     }
 
-    const supabaseCheck = requireSupabase();
-    if (!supabaseCheck.success) {
-      return supabaseCheck as any;
-    }
-
     // Enforce workspace access (orgSlug is the source of truth)
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    if (!workspace?.id) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('createClientInvitationLinkForWorkspace', workspace.id);
+    } catch {
       return { success: false, error: 'ארגון לא נמצא' };
-    }
-
-    const userResult = await getOrCreateSupabaseUserAction(params.clerkUserId);
-    if (!userResult.success || !userResult.userId) {
-      return { success: false, error: userResult.error || 'שגיאה ביצירת משתמש' };
     }
 
     // Token generation: 32 hex chars (similar to existing generateInvitationToken, but without DB read dependency)
@@ -292,34 +438,28 @@ export async function createClientInvitationLinkForWorkspace(params: {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    const supabase = createSupabaseClient();
-
-    const { error } = await supabase
-      .from('system_invitation_links')
-      .insert({
+    await prisma.system_invitation_links.create({
+      data: {
         token,
         client_id: params.clientId,
-        created_by: userResult.userId,
-        expires_at: expiresAt.toISOString(),
+        created_by: null,
+        expires_at: expiresAt,
         is_used: false,
         is_active: true,
         source: params.source || 'social',
         metadata: {
           ...(params.metadata || {}),
           orgSlug: resolvedOrgSlug,
-          organizationId: String(workspace.id),
+          organizationId,
         },
-      });
-
-    if (error) {
-      console.error('[createClientInvitationLinkForWorkspace] Error creating invitation link:', error);
-      return { success: false, error: error.message || 'שגיאה ביצירת לינק הזמנה' };
-    }
+      },
+      select: { id: true },
+    });
 
     return { success: true, token };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in createClientInvitationLinkForWorkspace:', error);
-    return { success: false, error: error.message || 'שגיאה ביצירת לינק הזמנה' };
+    return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לינק הזמנה') };
   }
 }
 
@@ -339,193 +479,133 @@ export async function createClientForWorkspace(
       return validation;
     }
 
-    const supabaseCheck = requireSupabase();
-    if (!supabaseCheck.success) {
-      return supabaseCheck;
-    }
-
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    const organizationId = workspace?.id ? String(workspace.id) : '';
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('createClientForWorkspace', workspace.id);
+    } catch {
       return createErrorResponse(new Error('Organization not found'), 'שגיאה: ארגון לא נמצא');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(clerkUserId);
-    if (!userResult.success || !userResult.userId) {
-      return createErrorResponse(new Error('שגיאה ביצירת משתמש'), userResult.error || 'שגיאה ביצירת משתמש');
-    }
-
-    const supabase = createSupabaseClient();
-
-    const invitationToken = clientData.invitationToken || Math.random().toString(36).substring(2, 15);
-    const portalToken = clientData.portalToken || Math.random().toString(36).substring(7);
-
-    const clientsTable = 'clients';
-    const dnaTable = 'client_dna';
-    const metricsTable = 'business_metrics';
-
     const normalizedEmail = (clientData.email || '').trim().toLowerCase();
-    let existingClientId: string | null = null;
-    let existingPortalToken: string | null = null;
-    if (normalizedEmail) {
-      const { data: existing, error: existingError } = await supabase
-        .from(clientsTable)
-        .select('id, company_name, portal_token')
-        .eq('organization_id', organizationId)
-        .ilike('email', normalizedEmail)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingError) {
-        console.warn('[createClientForWorkspace] Failed checking existing client by email:', existingError);
-      }
-      if (existing?.id) {
-        existingClientId = String(existing.id);
-        existingPortalToken = existing.portal_token ? String(existing.portal_token) : null;
-      }
-    }
+    const invitationToken = clientData.invitationToken || randomToken(14);
+    const portalToken = clientData.portalToken || randomToken(22);
 
     const cleanCompanyName = String(clientData.companyName || '').trim();
     const cleanName = String(clientData.name || '').trim();
-    const shouldUpdateCompanyName = !!cleanCompanyName && cleanCompanyName !== 'ממתין להזנה';
-    const shouldUpdateAvatar = typeof clientData.avatar === 'string' ? clientData.avatar.trim().length > 0 : !!clientData.avatar;
-    const shouldUpdateBrandVoice = typeof clientData.brandVoice === 'string' ? clientData.brandVoice.trim().length > 0 : !!clientData.brandVoice;
-    const shouldUpdatePostingRhythm = typeof clientData.postingRhythm === 'string' ? clientData.postingRhythm.trim().length > 0 : !!clientData.postingRhythm;
-
-    const requiredName = cleanName || String(clientData.companyName || '').trim() || 'לקוח חדש';
+    const requiredName = cleanName || cleanCompanyName || 'לקוח חדש';
     const requiredCompanyName = cleanCompanyName || requiredName;
 
-    const patch: any = {
-      // Always keep these stable on dedupe
-      organization_id: organizationId,
-      user_id: userResult.userId,
-      email: normalizedEmail ? normalizedEmail : null,
-      status: clientData.status || 'Onboarding',
-      onboarding_status: clientData.onboardingStatus || 'invited',
-      plan: clientData.plan,
-      monthly_fee: clientData.monthlyFee,
-      payment_status: clientData.paymentStatus || 'pending',
-      auto_reminders_enabled: clientData.autoRemindersEnabled ?? true,
-      internal_notes: clientData.internalNotes,
-      business_id: clientData.businessId,
-      phone: clientData.phone,
-      color: clientData.color || '#1e293b',
+    const metadata: JsonObjectInput = {
+      name: requiredName,
+      companyName: requiredCompanyName,
+      businessId: clientData.businessId ?? null,
+      avatar: clientData.avatar ?? '',
+      brandVoice: clientData.brandVoice ?? '',
+      postingRhythm: clientData.postingRhythm ?? '3 פעמים בשבוע',
+      status: clientData.status ?? ('Onboarding' as ClientStatus),
+      onboardingStatus: clientData.onboardingStatus ?? 'invited',
+      invitationToken,
+      portalToken,
+      color: clientData.color ?? '#1e293b',
+      plan: clientData.plan ?? null,
+      monthlyFee: clientData.monthlyFee ?? null,
+      nextPaymentDate: clientData.nextPaymentDate ?? null,
+      nextPaymentAmount: clientData.nextPaymentAmount ?? null,
+      paymentStatus: clientData.paymentStatus ?? 'pending',
+      autoRemindersEnabled: clientData.autoRemindersEnabled ?? true,
+      savedCardThumbnail: clientData.savedCardThumbnail ?? null,
+      businessMetrics: clientData.businessMetrics ? toJsonInput(clientData.businessMetrics) : null,
+      dna: clientData.dna ? toJsonInput(clientData.dna) : null,
+      credentials: clientData.credentials ? toJsonInput(clientData.credentials) : toJsonInput([]),
+      activePlatforms: clientData.activePlatforms ? toJsonInput(clientData.activePlatforms) : toJsonInput([]),
+      quotas: clientData.quotas ? toJsonInput(clientData.quotas) : toJsonInput([]),
+      legacy: toJsonInput({
+        source: 'social_os',
+      }),
     };
 
-    if (!existingClientId) {
-      patch.name = requiredName;
-      patch.company_name = requiredCompanyName;
-    } else {
-      if (cleanName) patch.name = cleanName;
-      if (shouldUpdateCompanyName) patch.company_name = cleanCompanyName;
-    }
-    if (shouldUpdateAvatar) patch.avatar = clientData.avatar;
-    if (shouldUpdateBrandVoice) patch.brand_voice = clientData.brandVoice;
-    if (shouldUpdatePostingRhythm) patch.posting_rhythm = clientData.postingRhythm;
+    let row:
+      | ClientClientRow
+      | null = null;
 
-    // Tokens should exist; don't rotate them on dedupe
-    if (!existingClientId) {
-      patch.invitation_token = invitationToken;
-      patch.portal_token = portalToken;
-    }
+    if (normalizedEmail) {
+      const existing = await prisma.clientClient.findFirst({
+        where: {
+          organizationId,
+          email: {
+            equals: normalizedEmail,
+            mode: 'insensitive',
+          },
+        },
+        select: {
+          id: true,
+          organizationId: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          notes: true,
+          metadata: true,
+        },
+      });
 
-    const { data: client, error: clientError } = existingClientId
-      ? await supabase
-          .from(clientsTable)
-          .update(patch)
-          .eq('id', existingClientId)
-          .eq('organization_id', organizationId)
-          .select()
-          .maybeSingle()
-      : await supabase
-          .from(clientsTable)
-          .insert(patch)
-          .select()
-          .single();
+      if (existing?.id) {
+        const merged: JsonObjectInput = { ...asRecord(existing.metadata), ...metadata };
+        const updated = await prisma.clientClient.updateMany({
+          where: { id: existing.id, organizationId },
+          data: {
+            fullName: requiredCompanyName,
+            phone: clientData.phone ?? existing.phone ?? null,
+            email: normalizedEmail,
+            notes: clientData.internalNotes ?? existing.notes ?? null,
+            metadata: merged,
+          },
+        });
+        if (!updated.count) {
+          return { success: false, error: 'שגיאה בעדכון לקוח' };
+        }
 
-    if (clientError) {
-      if (isMissingTableError(clientError)) {
-        return createErrorResponse(
-          new Error('Canonical clients table is missing'),
-          'שגיאה: טבלת clients לא קיימת במסד הנתונים. (מצב חירום: אין Fallback לטבלאות legacy)'
-        );
-      }
-
-      return { success: false, error: clientError.message };
-    }
-
-    if (clientData.dna && client?.id) {
-      try {
-        await supabase
-          .from(dnaTable)
-          .upsert(
-            {
-              client_id: client.id,
-              brand_summary: clientData.dna.brandSummary,
-              voice_formal: clientData.dna.voice.formal,
-              voice_funny: clientData.dna.voice.funny,
-              voice_length: clientData.dna.voice.length,
-              vocabulary_loved: clientData.dna.vocabulary.loved,
-              vocabulary_forbidden: clientData.dna.vocabulary.forbidden,
-              color_primary: clientData.dna.colors.primary,
-              color_secondary: clientData.dna.colors.secondary,
-              strategy: clientData.dna.strategy ? JSON.stringify(clientData.dna.strategy) : null,
-            },
-            {
-              onConflict: 'client_id',
-            }
-          );
-      } catch (e) {
-        console.error('[createClientForWorkspace] Failed to upsert client DNA (non-blocking):', {
-          table: dnaTable,
-          clientId: client.id,
-          error: e,
+        row = await prisma.clientClient.findFirst({
+          where: { id: existing.id, organizationId },
+          select: {
+            id: true,
+            organizationId: true,
+            fullName: true,
+            phone: true,
+            email: true,
+            notes: true,
+            metadata: true,
+          },
         });
       }
     }
 
-    if (client?.id) {
-      try {
-        await supabase
-          .from(metricsTable)
-          .upsert(
-            {
-              client_id: client.id,
-              time_spent_minutes: clientData.businessMetrics?.timeSpentMinutes || 0,
-              expected_hours: clientData.businessMetrics?.expectedHours || 0,
-              punctuality_score: clientData.businessMetrics?.punctualityScore || 100,
-              responsiveness_score: clientData.businessMetrics?.responsivenessScore || 100,
-              revision_count: clientData.businessMetrics?.revisionCount || 0,
-              days_overdue: clientData.businessMetrics?.daysOverdue,
-            },
-            {
-              onConflict: 'client_id',
-            }
-          );
-      } catch (e) {
-        console.error('[createClientForWorkspace] Failed to upsert business metrics (non-blocking):', {
-          table: metricsTable,
-          clientId: client.id,
-          error: e,
-        });
-      }
+    if (!row) {
+      row = await prisma.clientClient.create({
+        data: {
+          organizationId,
+          fullName: requiredCompanyName,
+          phone: clientData.phone ?? null,
+          email: normalizedEmail ? normalizedEmail : null,
+          notes: clientData.internalNotes ?? null,
+          metadata,
+        },
+        select: {
+          id: true,
+          organizationId: true,
+          fullName: true,
+          phone: true,
+          email: true,
+          notes: true,
+          metadata: true,
+        },
+      });
     }
 
-    const result = await getClients(undefined, resolvedOrgSlug);
-    if (result.success && result.data) {
-      const createdClient = result.data.find((c) => c.id === client.id);
-      if (createdClient) {
-        return { success: true, data: createdClient };
-      }
-    }
-
-    return { success: false, error: 'הלקוח נוצר אך נכשל בטעינת הנתונים המלאים' };
-  } catch (error: any) {
+    return { success: true, data: mapClientClientToSocialClient(row) };
+  } catch (error: unknown) {
     console.error('Error in createClientForWorkspace:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה ביצירת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
   }
 }
 
@@ -543,171 +623,72 @@ export async function createClient(
       return validation;
     }
 
-    // Check Supabase configuration
-    const supabaseCheck = requireSupabase();
-    if (!supabaseCheck.success) {
-      return supabaseCheck;
-    }
-
-    // Create Supabase client
-    let supabase;
-    try {
-      supabase = createSupabaseClient();
-      if (!supabase || typeof supabase.from !== 'function') {
-        throw new Error('Invalid Supabase client returned');
-      }
-    } catch (clientError: any) {
-      console.error('[createClient] Failed to create Supabase client:', clientError);
-      return createErrorResponse(new Error('שגיאה בהתחברות למסד הנתונים'), clientError.message);
-    }
-
-    // Get or create Supabase user from Clerk user ID - use Server Action
-    const userResult = await getOrCreateSupabaseUserAction(clerkUserId);
-    if (!userResult.success || !userResult.userId) {
-      console.error('[createClient] Failed to get or create user:', {
-        clerkUserId,
-        error: userResult.error,
-        success: userResult.success,
-        userId: userResult.userId,
-      });
-      
-      // Provide more specific error message
-      const errorMessage = userResult.error 
-        ? (userResult.error.includes('organization') || userResult.error.includes('ארגון')
-            ? 'שגיאה: משתמש לא שייך לארגון. נא ליצור קשר עם התמיכה.'
-            : userResult.error.includes('Supabase') || userResult.error.includes('database')
-            ? 'שגיאה בהתחברות למסד הנתונים. נא לנסות שוב.'
-            : userResult.error)
-        : 'שגיאה ביצירת משתמש';
-      
-      return createErrorResponse(new Error('שגיאה ביצירת משתמש'), errorMessage);
-    }
-    const supabaseUserId = userResult.userId;
-
-    // Get user info (role and organizationId) to determine which organization this client belongs to
     const { getCurrentUserInfo } = await import('@/app/actions/users');
     const userInfo = await getCurrentUserInfo();
     if (!userInfo.success) {
-      console.error('[createClient] Failed to get user info:', {
-        error: userInfo.error,
-        success: userInfo.success,
-      });
-      return createErrorResponse(
-        new Error('שגיאה בקבלת פרטי משתמש'), 
-        userInfo.error || 'שגיאה בקבלת פרטי משתמש. נא לנסות שוב או ליצור קשר עם התמיכה.'
-      );
+      return createErrorResponse(new Error('שגיאה בקבלת פרטי משתמש'), userInfo.error || 'שגיאה בקבלת פרטי משתמש');
     }
 
-    // Determine organizationId:
-    // - If clientData has organizationId, use it (for super_admin creating clients for other orgs)
-    // - Otherwise, use user's organizationId (for owner/team_member creating clients)
-    // - Super admin can create clients without organizationId (legacy support)
-    let organizationId = clientData.organizationId || userInfo.organizationId;
-    
-    // Super admin can create clients without organizationId, but owner/team_member must have one
-    if (!organizationId && userInfo.role !== 'super_admin') {
-      console.error('[createClient] User has no organizationId:', {
-        role: userInfo.role,
-        organizationId: userInfo.organizationId,
-        userId: userInfo.userId,
-      });
-      return createErrorResponse(
-        new Error('שגיאה: משתמש לא שייך לארגון'),
-        'לא ניתן ליצור לקוח ללא ארגון. נא ליצור קשר עם התמיכה כדי להוסיף אותך לארגון.'
-      );
+    const organizationId = clientData.organizationId || userInfo.organizationId;
+    if (!organizationId) {
+      return createErrorResponse(new Error('חסר organizationId'), 'לא ניתן ליצור לקוח ללא ארגון');
     }
 
-    // Generate tokens
-    const invitationToken = clientData.invitationToken || Math.random().toString(36).substring(2, 15);
-    const portalToken = clientData.portalToken || Math.random().toString(36).substring(7);
+    const normalizedEmail = (clientData.email || '').trim().toLowerCase();
+    const invitationToken = clientData.invitationToken || randomToken(14);
+    const portalToken = clientData.portalToken || randomToken(22);
 
-    // Insert client - email is now optional
-    const { data: client, error: clientError } = await supabase
-      .from('clients')
-      .insert({
-        user_id: supabaseUserId,
-        organization_id: organizationId, // Add organizationId
-        name: clientData.name || '',
-        company_name: clientData.companyName || 'לקוח חדש',
-        business_id: clientData.businessId,
-        phone: clientData.phone,
-        email: clientData.email || null, // Email is optional
-        avatar: clientData.avatar,
-        brand_voice: clientData.brandVoice || '',
-        posting_rhythm: clientData.postingRhythm || '3 פעמים בשבוע',
-        status: clientData.status || 'Onboarding',
-        onboarding_status: clientData.onboardingStatus || 'invited',
-        invitation_token: invitationToken,
-        portal_token: portalToken,
-        color: clientData.color || '#1e293b',
-        plan: clientData.plan,
-        monthly_fee: clientData.monthlyFee,
-        payment_status: clientData.paymentStatus || 'pending',
-        auto_reminders_enabled: clientData.autoRemindersEnabled ?? true,
-        internal_notes: clientData.internalNotes,
-      })
-      .select()
-      .single();
+    const requiredName = String(clientData.name || '').trim() || String(clientData.companyName || '').trim() || 'לקוח חדש';
+    const requiredCompanyName = String(clientData.companyName || '').trim() || requiredName;
 
-    if (clientError) {
-      console.error('Error creating client:', clientError);
-      return {
-        success: false,
-        error: clientError.message,
-      };
-    }
-
-    // Insert DNA if provided
-    if (clientData.dna && client.id) {
-      await supabase.from('client_dna').insert({
-        client_id: client.id,
-        brand_summary: clientData.dna.brandSummary,
-        voice_formal: clientData.dna.voice.formal,
-        voice_funny: clientData.dna.voice.funny,
-        voice_length: clientData.dna.voice.length,
-        vocabulary_loved: clientData.dna.vocabulary.loved,
-        vocabulary_forbidden: clientData.dna.vocabulary.forbidden,
-        color_primary: clientData.dna.colors.primary,
-        color_secondary: clientData.dna.colors.secondary,
-        strategy: clientData.dna.strategy ? JSON.stringify(clientData.dna.strategy) : null,
-      });
-    }
-
-    // Insert business metrics
-    if (client.id) {
-      await supabase.from('business_metrics').insert({
-        client_id: client.id,
-        time_spent_minutes: clientData.businessMetrics?.timeSpentMinutes || 0,
-        expected_hours: clientData.businessMetrics?.expectedHours || 0,
-        punctuality_score: clientData.businessMetrics?.punctualityScore || 100,
-        responsiveness_score: clientData.businessMetrics?.responsivenessScore || 100,
-        revision_count: clientData.businessMetrics?.revisionCount || 0,
-        days_overdue: clientData.businessMetrics?.daysOverdue,
-      });
-    }
-
-    // Fetch the complete client with relations
-    const result = await getClients(clerkUserId);
-    if (result.success && result.data) {
-      const createdClient = result.data.find(c => c.id === client.id);
-      if (createdClient) {
-        return {
-          success: true,
-          data: createdClient,
-        };
-      }
-    }
-
-    return {
-      success: false,
-      error: 'הלקוח נוצר אך נכשל בטעינת הנתונים המלאים',
+    const metadata: JsonObjectInput = {
+      name: requiredName,
+      companyName: requiredCompanyName,
+      businessId: clientData.businessId ?? null,
+      avatar: clientData.avatar ?? '',
+      brandVoice: clientData.brandVoice ?? '',
+      postingRhythm: clientData.postingRhythm ?? '3 פעמים בשבוע',
+      status: clientData.status ?? ('Onboarding' as ClientStatus),
+      onboardingStatus: clientData.onboardingStatus ?? 'invited',
+      invitationToken,
+      portalToken,
+      color: clientData.color ?? '#1e293b',
+      plan: clientData.plan ?? null,
+      monthlyFee: clientData.monthlyFee ?? null,
+      paymentStatus: clientData.paymentStatus ?? 'pending',
+      autoRemindersEnabled: clientData.autoRemindersEnabled ?? true,
+      savedCardThumbnail: clientData.savedCardThumbnail ?? null,
+      businessMetrics: clientData.businessMetrics ? toJsonInput(clientData.businessMetrics) : null,
+      dna: clientData.dna ? toJsonInput(clientData.dna) : null,
+      credentials: clientData.credentials ? toJsonInput(clientData.credentials) : toJsonInput([]),
+      activePlatforms: clientData.activePlatforms ? toJsonInput(clientData.activePlatforms) : toJsonInput([]),
+      quotas: clientData.quotas ? toJsonInput(clientData.quotas) : toJsonInput([]),
     };
-  } catch (error: any) {
+
+    const created = await prisma.clientClient.create({
+      data: {
+        organizationId: String(organizationId),
+        fullName: requiredCompanyName,
+        phone: clientData.phone ?? null,
+        email: normalizedEmail ? normalizedEmail : null,
+        notes: clientData.internalNotes ?? null,
+        metadata,
+      },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+      },
+    });
+
+    return { success: true, data: mapClientClientToSocialClient(created) };
+  } catch (error: unknown) {
     console.error('Error in createClient:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה ביצירת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
   }
 }
 
@@ -719,74 +700,66 @@ export async function updateClient(
   updates: Partial<Client>
 ): Promise<{ success: boolean; data?: Client; error?: string }> {
   try {
-    const supabase = createSupabaseClient();
-
-    const updateData: any = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.companyName !== undefined) updateData.company_name = updates.companyName;
-    if (updates.businessId !== undefined) updateData.business_id = updates.businessId;
-    if (updates.phone !== undefined) updateData.phone = updates.phone;
-    if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
-    if (updates.brandVoice !== undefined) updateData.brand_voice = updates.brandVoice;
-    if (updates.postingRhythm !== undefined) updateData.posting_rhythm = updates.postingRhythm;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.onboardingStatus !== undefined) updateData.onboarding_status = updates.onboardingStatus;
-    if (updates.plan !== undefined) updateData.plan = updates.plan;
-    if (updates.monthlyFee !== undefined) updateData.monthly_fee = updates.monthlyFee;
-    if (updates.nextPaymentDate !== undefined) updateData.next_payment_date = updates.nextPaymentDate;
-    if (updates.nextPaymentAmount !== undefined) updateData.next_payment_amount = updates.nextPaymentAmount;
-    if (updates.paymentStatus !== undefined) updateData.payment_status = updates.paymentStatus;
-    if (updates.autoRemindersEnabled !== undefined) updateData.auto_reminders_enabled = updates.autoRemindersEnabled;
-    if (updates.internalNotes !== undefined) updateData.internal_notes = updates.internalNotes;
-    if (updates.organizationId !== undefined) updateData.organization_id = updates.organizationId;
-
-    const { error } = await supabase
-      .from('clients')
-      .update(updateData)
-      .eq('id', clientId);
-
-    if (error) {
-      console.error('Error updating client:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    const { getCurrentUserInfo } = await import('@/app/actions/users');
+    const userInfo = await getCurrentUserInfo();
+    if (!userInfo.success || !userInfo.organizationId) {
+      return { success: false, error: 'אין הרשאה' };
     }
 
-    // Update DNA if provided
-    if (updates.dna) {
-      const { error: dnaError } = await supabase
-        .from('client_dna')
-        .upsert({
-          client_id: clientId,
-          brand_summary: updates.dna.brandSummary,
-          voice_formal: updates.dna.voice.formal,
-          voice_funny: updates.dna.voice.funny,
-          voice_length: updates.dna.voice.length,
-          vocabulary_loved: updates.dna.vocabulary.loved,
-          vocabulary_forbidden: updates.dna.vocabulary.forbidden,
-          color_primary: updates.dna.colors.primary,
-          color_secondary: updates.dna.colors.secondary,
-          strategy: updates.dna.strategy ? JSON.stringify(updates.dna.strategy) : null,
-        }, {
-          onConflict: 'client_id',
-        });
-
-      if (dnaError) {
-        console.error('Error updating client DNA:', dnaError);
-      }
+    const orgId = String(userInfo.organizationId);
+    const existing = await prisma.clientClient.findFirst({
+      where: { id: String(clientId), organizationId: orgId },
+      select: { id: true, organizationId: true, fullName: true, phone: true, email: true, notes: true, metadata: true },
+    });
+    if (!existing) {
+      return { success: false, error: 'לקוח לא נמצא' };
     }
 
-    return {
-      success: true,
-    };
-  } catch (error: any) {
+    const mdPatch: JsonObjectInput = {};
+    if (updates.name !== undefined) mdPatch.name = updates.name;
+    if (updates.companyName !== undefined) mdPatch.companyName = updates.companyName;
+    if (updates.businessId !== undefined) mdPatch.businessId = updates.businessId;
+    if (updates.avatar !== undefined) mdPatch.avatar = updates.avatar;
+    if (updates.brandVoice !== undefined) mdPatch.brandVoice = updates.brandVoice;
+    if (updates.postingRhythm !== undefined) mdPatch.postingRhythm = updates.postingRhythm;
+    if (updates.status !== undefined) mdPatch.status = updates.status;
+    if (updates.onboardingStatus !== undefined) mdPatch.onboardingStatus = updates.onboardingStatus;
+    if (updates.plan !== undefined) mdPatch.plan = updates.plan;
+    if (updates.monthlyFee !== undefined) mdPatch.monthlyFee = updates.monthlyFee;
+    if (updates.nextPaymentDate !== undefined) mdPatch.nextPaymentDate = updates.nextPaymentDate;
+    if (updates.nextPaymentAmount !== undefined) mdPatch.nextPaymentAmount = updates.nextPaymentAmount;
+    if (updates.paymentStatus !== undefined) mdPatch.paymentStatus = updates.paymentStatus;
+    if (updates.autoRemindersEnabled !== undefined) mdPatch.autoRemindersEnabled = updates.autoRemindersEnabled;
+    if (updates.savedCardThumbnail !== undefined) mdPatch.savedCardThumbnail = updates.savedCardThumbnail;
+    if (updates.businessMetrics !== undefined) mdPatch.businessMetrics = updates.businessMetrics ? toJsonInput(updates.businessMetrics) : null;
+    if (updates.dna !== undefined) mdPatch.dna = updates.dna ? toJsonInput(updates.dna) : null;
+    if (updates.credentials !== undefined) mdPatch.credentials = updates.credentials ? toJsonInput(updates.credentials) : toJsonInput([]);
+    if (updates.activePlatforms !== undefined) mdPatch.activePlatforms = updates.activePlatforms ? toJsonInput(updates.activePlatforms) : toJsonInput([]);
+    if (updates.quotas !== undefined) mdPatch.quotas = updates.quotas ? toJsonInput(updates.quotas) : toJsonInput([]);
+    if (updates.invitationToken !== undefined) mdPatch.invitationToken = updates.invitationToken;
+    if (updates.portalToken !== undefined) mdPatch.portalToken = updates.portalToken;
+    if (updates.color !== undefined) mdPatch.color = updates.color;
+
+    const merged: JsonObjectInput = { ...asRecord(existing.metadata), ...mdPatch };
+
+    const updated = await prisma.clientClient.updateMany({
+      where: { id: existing.id, organizationId: orgId },
+      data: {
+        fullName: updates.companyName ?? updates.name ?? existing.fullName,
+        phone: updates.phone ?? existing.phone,
+        email: updates.email != null ? String(updates.email) : existing.email,
+        notes: updates.internalNotes != null ? String(updates.internalNotes) : existing.notes,
+        metadata: merged,
+      },
+    });
+    if (!updated.count) {
+      return { success: false, error: 'שגיאה בעדכון לקוח' };
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
     console.error('Error in updateClient:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בעדכון לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה בעדכון לקוח') };
   }
 }
 
@@ -805,80 +778,76 @@ export async function updateClientForWorkspace(
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    const organizationId = workspace?.id ? String(workspace.id) : '';
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('updateClientForWorkspace', workspace.id);
+    } catch {
       return { success: false, error: 'ארגון לא נמצא' };
     }
 
-    const supabase = createSupabaseClient();
+    const existing = await prisma.clientClient.findFirst({
+      where: { id: String(clientId), organizationId },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+      },
+    });
 
-    const updateData: any = {};
-    if (updates.name !== undefined) updateData.name = updates.name;
-    if (updates.companyName !== undefined) updateData.company_name = updates.companyName;
-    if (updates.businessId !== undefined) updateData.business_id = updates.businessId;
-    if (updates.phone !== undefined) updateData.phone = updates.phone;
-    if (updates.email !== undefined) updateData.email = updates.email;
-    if (updates.avatar !== undefined) updateData.avatar = updates.avatar;
-    if (updates.brandVoice !== undefined) updateData.brand_voice = updates.brandVoice;
-    if (updates.postingRhythm !== undefined) updateData.posting_rhythm = updates.postingRhythm;
-    if (updates.status !== undefined) updateData.status = updates.status;
-    if (updates.onboardingStatus !== undefined) updateData.onboarding_status = updates.onboardingStatus;
-    if (updates.plan !== undefined) updateData.plan = updates.plan;
-    if (updates.monthlyFee !== undefined) updateData.monthly_fee = updates.monthlyFee;
-    if (updates.nextPaymentDate !== undefined) updateData.next_payment_date = updates.nextPaymentDate;
-    if (updates.nextPaymentAmount !== undefined) updateData.next_payment_amount = updates.nextPaymentAmount;
-    if (updates.paymentStatus !== undefined) updateData.payment_status = updates.paymentStatus;
-    if (updates.autoRemindersEnabled !== undefined) updateData.auto_reminders_enabled = updates.autoRemindersEnabled;
-    if (updates.internalNotes !== undefined) updateData.internal_notes = updates.internalNotes;
-
-    const { data: updated, error } = await supabase
-      .from('clients')
-      .update(updateData)
-      .eq('id', clientId)
-      .eq('organization_id', organizationId)
-      .select('id')
-      .maybeSingle();
-
-    if (error || !updated?.id) {
-      return {
-        success: false,
-        error: error?.message || 'לקוח לא נמצא',
-      };
+    if (!existing) {
+      return { success: false, error: 'לקוח לא נמצא' };
     }
 
-    if (updates.dna) {
-      const { error: dnaError } = await supabase
-        .from('client_dna')
-        .upsert(
-          {
-            client_id: clientId,
-            brand_summary: updates.dna.brandSummary,
-            voice_formal: updates.dna.voice.formal,
-            voice_funny: updates.dna.voice.funny,
-            voice_length: updates.dna.voice.length,
-            vocabulary_loved: updates.dna.vocabulary.loved,
-            vocabulary_forbidden: updates.dna.vocabulary.forbidden,
-            color_primary: updates.dna.colors.primary,
-            color_secondary: updates.dna.colors.secondary,
-            strategy: updates.dna.strategy ? JSON.stringify(updates.dna.strategy) : null,
-          },
-          {
-            onConflict: 'client_id',
-          }
-        );
+    const mdPatch: JsonObjectInput = {};
+    if (updates.name !== undefined) mdPatch.name = updates.name;
+    if (updates.companyName !== undefined) mdPatch.companyName = updates.companyName;
+    if (updates.businessId !== undefined) mdPatch.businessId = updates.businessId;
+    if (updates.avatar !== undefined) mdPatch.avatar = updates.avatar;
+    if (updates.brandVoice !== undefined) mdPatch.brandVoice = updates.brandVoice;
+    if (updates.postingRhythm !== undefined) mdPatch.postingRhythm = updates.postingRhythm;
+    if (updates.status !== undefined) mdPatch.status = updates.status;
+    if (updates.onboardingStatus !== undefined) mdPatch.onboardingStatus = updates.onboardingStatus;
+    if (updates.plan !== undefined) mdPatch.plan = updates.plan;
+    if (updates.monthlyFee !== undefined) mdPatch.monthlyFee = updates.monthlyFee;
+    if (updates.nextPaymentDate !== undefined) mdPatch.nextPaymentDate = updates.nextPaymentDate;
+    if (updates.nextPaymentAmount !== undefined) mdPatch.nextPaymentAmount = updates.nextPaymentAmount;
+    if (updates.paymentStatus !== undefined) mdPatch.paymentStatus = updates.paymentStatus;
+    if (updates.autoRemindersEnabled !== undefined) mdPatch.autoRemindersEnabled = updates.autoRemindersEnabled;
+    if (updates.savedCardThumbnail !== undefined) mdPatch.savedCardThumbnail = updates.savedCardThumbnail;
+    if (updates.businessMetrics !== undefined) mdPatch.businessMetrics = updates.businessMetrics ? toJsonInput(updates.businessMetrics) : null;
+    if (updates.dna !== undefined) mdPatch.dna = updates.dna ? toJsonInput(updates.dna) : null;
+    if (updates.credentials !== undefined) mdPatch.credentials = updates.credentials ? toJsonInput(updates.credentials) : toJsonInput([]);
+    if (updates.activePlatforms !== undefined) mdPatch.activePlatforms = updates.activePlatforms ? toJsonInput(updates.activePlatforms) : toJsonInput([]);
+    if (updates.quotas !== undefined) mdPatch.quotas = updates.quotas ? toJsonInput(updates.quotas) : toJsonInput([]);
+    if (updates.invitationToken !== undefined) mdPatch.invitationToken = updates.invitationToken;
+    if (updates.portalToken !== undefined) mdPatch.portalToken = updates.portalToken;
+    if (updates.color !== undefined) mdPatch.color = updates.color;
 
-      if (dnaError) {
-        console.error('Error updating client DNA:', dnaError);
-      }
+    const merged: JsonObjectInput = { ...asRecord(existing.metadata), ...mdPatch };
+
+    const updated = await prisma.clientClient.updateMany({
+      where: { id: existing.id, organizationId },
+      data: {
+        fullName: updates.companyName ?? updates.name ?? existing.fullName,
+        phone: updates.phone ?? existing.phone,
+        email: updates.email != null ? String(updates.email) : existing.email,
+        notes: updates.internalNotes != null ? String(updates.internalNotes) : existing.notes,
+        metadata: merged,
+      },
+    });
+
+    if (!updated.count) {
+      return { success: false, error: 'לקוח לא נמצא' };
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in updateClientForWorkspace:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בעדכון לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה בעדכון לקוח') };
   }
 }
 
@@ -887,30 +856,24 @@ export async function updateClientForWorkspace(
  */
 export async function deleteClient(clientId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createSupabaseClient();
-
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', clientId);
-
-    if (error) {
-      console.error('Error deleting client:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+    const { getCurrentUserInfo } = await import('@/app/actions/users');
+    const userInfo = await getCurrentUserInfo();
+    if (!userInfo.success || !userInfo.organizationId) {
+      return { success: false, error: 'אין הרשאה' };
     }
 
-    return {
-      success: true,
-    };
-  } catch (error: any) {
+    const deleted = await prisma.clientClient.deleteMany({
+      where: { id: String(clientId), organizationId: String(userInfo.organizationId) },
+    });
+
+    if (!deleted.count) {
+      return { success: false, error: 'לקוח לא נמצא' };
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
     console.error('Error in deleteClient:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה במחיקת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה במחיקת לקוח') };
   }
 }
 
@@ -928,29 +891,25 @@ export async function deleteClientForWorkspace(
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    const organizationId = workspace?.id ? String(workspace.id) : '';
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('deleteClientForWorkspace', workspace.id);
+    } catch {
       return { success: false, error: 'ארגון לא נמצא' };
     }
 
-    const supabase = createSupabaseClient();
-    const { error } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', clientId)
-      .eq('organization_id', organizationId);
+    const deleted = await prisma.clientClient.deleteMany({
+      where: { id: String(clientId), organizationId: String(organizationId) },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!deleted.count) {
+      return { success: false, error: 'לקוח לא נמצא' };
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in deleteClientForWorkspace:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה במחיקת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה במחיקת לקוח') };
   }
 }
 
@@ -962,27 +921,25 @@ export async function inviteClient(
   invitationLink: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const supabase = createSupabaseClient();
-
-    // Get client data
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('name, email, plan, monthly_fee')
-      .eq('id', clientId)
-      .single();
-
-    if (error || !client) {
-      return {
-        success: false,
-        error: 'לקוח לא נמצא',
-      };
+    const { getCurrentUserInfo } = await import('@/app/actions/users');
+    const userInfo = await getCurrentUserInfo();
+    if (!userInfo.success || !userInfo.organizationId) {
+      return { success: false, error: 'אין הרשאה' };
     }
 
-    if (!client.email) {
-      return {
-        success: false,
-        error: 'אימייל הלקוח לא הוגדר',
-      };
+    const row = await prisma.clientClient.findFirst({
+      where: { id: String(clientId), organizationId: String(userInfo.organizationId) },
+      select: { fullName: true, email: true, metadata: true },
+    });
+
+    if (!row) {
+      return { success: false, error: 'לקוח לא נמצא' };
+    }
+
+    const md = asRecord(row.metadata);
+    const clientEmail = row.email ? String(row.email) : '';
+    if (!clientEmail) {
+      return { success: false, error: 'אימייל הלקוח לא הוגדר' };
     }
 
     const planNames: Record<string, string> = {
@@ -992,13 +949,14 @@ export async function inviteClient(
       custom: 'Custom',
     };
 
-    const planName = planNames[client.plan || 'pro'] || 'Professional';
-    const planPrice = client.monthly_fee || 2990;
+    const planKey = String(md.plan || 'pro');
+    const planName = planNames[planKey] || 'Professional';
+    const planPrice = md.monthlyFee != null ? safeNumber(md.monthlyFee, 2990) : 2990;
 
     // Send invitation email
     const emailResult = await sendInvitationEmail({
-      clientName: client.name,
-      clientEmail: client.email,
+      clientName: String(md.name || row.fullName || 'לקוח'),
+      clientEmail,
       invitationLink,
       planName,
       planPrice,
@@ -1014,12 +972,9 @@ export async function inviteClient(
     return {
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in inviteClient:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בהזמנת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה בהזמנת לקוח') };
   }
 }
 
@@ -1038,32 +993,26 @@ export async function inviteClientForWorkspace(
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    const organizationId = workspace?.id ? String(workspace.id) : '';
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('inviteClientForWorkspace', workspace.id);
+    } catch {
       return { success: false, error: 'ארגון לא נמצא' };
     }
 
-    const supabase = createSupabaseClient();
+    const row = await prisma.clientClient.findFirst({
+      where: { id: String(clientId), organizationId: String(organizationId) },
+      select: { fullName: true, email: true, metadata: true },
+    });
 
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select('name, email, plan, monthly_fee')
-      .eq('id', clientId)
-      .eq('organization_id', organizationId)
-      .maybeSingle();
-
-    if (error || !client) {
-      return {
-        success: false,
-        error: 'לקוח לא נמצא',
-      };
+    if (!row) {
+      return { success: false, error: 'לקוח לא נמצא' };
     }
 
-    if (!client.email) {
-      return {
-        success: false,
-        error: 'אימייל הלקוח לא הוגדר',
-      };
+    const md = asRecord(row.metadata);
+    const clientEmail = row.email ? String(row.email) : '';
+    if (!clientEmail) {
+      return { success: false, error: 'אימייל הלקוח לא הוגדר' };
     }
 
     const planNames: Record<string, string> = {
@@ -1073,12 +1022,13 @@ export async function inviteClientForWorkspace(
       custom: 'Custom',
     };
 
-    const planName = planNames[(client as any).plan || 'pro'] || 'Professional';
-    const planPrice = (client as any).monthly_fee || 2990;
+    const planKey = String(md.plan || 'pro');
+    const planName = planNames[planKey] || 'Professional';
+    const planPrice = md.monthlyFee != null ? safeNumber(md.monthlyFee, 2990) : 2990;
 
     const emailResult = await sendInvitationEmail({
-      clientName: (client as any).name,
-      clientEmail: (client as any).email,
+      clientName: String(md.name || row.fullName || 'לקוח'),
+      clientEmail,
       invitationLink,
       planName,
       planPrice,
@@ -1092,12 +1042,9 @@ export async function inviteClientForWorkspace(
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in inviteClientForWorkspace:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בהזמנת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה בהזמנת לקוח') };
   }
 }
 
@@ -1115,128 +1062,66 @@ export async function getClientByInvitationToken(
       };
     }
 
-    const supabase = createSupabaseClient();
-    if (!supabase || typeof supabase.from !== 'function') {
-      return {
-        success: false,
-        error: 'שגיאה בהתחברות למסד הנתונים',
-      };
-    }
-
-    // Get client by invitation token
-    const { data: client, error } = await supabase
-      .from('clients')
-      .select(`
-        *,
-        client_dna (*),
-        platform_credentials (*),
-        platform_quotas (*),
-        business_metrics (*)
-      `)
-      .eq('invitation_token', invitationToken)
-      .is('deleted_at', null)
-      .single();
-
-    if (error || !client) {
-      return {
-        success: false,
-        error: 'טוקן הזמנה לא תקין או שהלקוח לא נמצא',
-      };
-    }
-
-    // Check if client is in invited status
-    if (client.onboarding_status !== 'invited') {
-      return {
-        success: false,
-        error: 'ההזמנה כבר הושלמה או לא תקינה',
-      };
-    }
-
-    // Transform to Client type (matching getClients transformation)
-    const transformedClient: Client = {
-      id: client.id,
-      name: client.name,
-      companyName: client.company_name,
-      businessId: client.business_id,
-      phone: client.phone,
-      email: client.email,
-      avatar: client.avatar || '',
-      brandVoice: client.brand_voice || '',
-      dna: client.client_dna?.[0] ? {
-        brandSummary: client.client_dna[0].brand_summary || '',
-        voice: {
-          formal: client.client_dna[0].voice_formal || 50,
-          funny: client.client_dna[0].voice_funny || 50,
-          length: client.client_dna[0].voice_length || 50,
-        },
-        vocabulary: {
-          loved: client.client_dna[0].vocabulary_loved || [],
-          forbidden: client.client_dna[0].vocabulary_forbidden || [],
-        },
-        colors: {
-          primary: client.client_dna[0].color_primary || '#1e293b',
-          secondary: client.client_dna[0].color_secondary || '#334155',
-        },
-        strategy: client.client_dna[0].strategy ? JSON.parse(client.client_dna[0].strategy) : undefined,
-      } : {
-        brandSummary: '',
-        voice: { formal: 50, funny: 50, length: 50 },
-        vocabulary: { loved: [], forbidden: [] },
-        colors: { primary: '#1e293b', secondary: '#334155' },
+    const link = await prisma.system_invitation_links.findUnique({
+      where: { token: String(invitationToken) },
+      select: {
+        token: true,
+        client_id: true,
+        is_used: true,
+        is_active: true,
+        used_at: true,
+        expires_at: true,
+        metadata: true,
       },
-      credentials: (client.platform_credentials || []).map((cred: any) => ({
-        platform: cred.platform,
-        username: cred.username, // NO PASSWORD - we don't store passwords
-        notes: cred.notes,
-      })),
-      postingRhythm: client.posting_rhythm || '3 פעמים בשבוע',
-      status: (client.status as ClientStatus) || 'Active',
-      activePlatforms: (client.active_platforms || []) as any[],
-      quotas: (client.platform_quotas || []).map((q: any) => ({
-        platform: q.platform,
-        monthlyLimit: q.monthly_limit,
-        currentUsage: q.current_usage,
-      })),
-      onboardingStatus: client.onboarding_status as any,
-      invitationToken: client.invitation_token,
-      portalToken: client.portal_token,
-      color: client.color || '#1e293b',
-      plan: client.plan as PricingPlan,
-      monthlyFee: client.monthly_fee,
-      nextPaymentDate: client.next_payment_date,
-      nextPaymentAmount: client.next_payment_amount,
-      paymentStatus: client.payment_status as any,
-      autoRemindersEnabled: client.auto_reminders_enabled ?? true,
-      savedCardThumbnail: client.saved_card_thumbnail,
-      businessMetrics: client.business_metrics?.[0] ? {
-        timeSpentMinutes: client.business_metrics[0].time_spent_minutes || 0,
-        expectedHours: client.business_metrics[0].expected_hours || 0,
-        punctualityScore: client.business_metrics[0].punctuality_score || 100,
-        responsivenessScore: client.business_metrics[0].responsiveness_score || 100,
-        revisionCount: client.business_metrics[0].revision_count || 0,
-        lastAIBusinessAudit: client.business_metrics[0].last_ai_business_audit,
-        daysOverdue: client.business_metrics[0].days_overdue,
-      } : {
-        timeSpentMinutes: 0,
-        expectedHours: 0,
-        punctualityScore: 100,
-        responsivenessScore: 100,
-        revisionCount: 0,
-      },
-      internalNotes: client.internal_notes,
-      organizationId: client.organization_id, // Add organizationId
-    };
+    });
 
-    return {
-      success: true,
-      data: transformedClient,
-    };
-  } catch (error: any) {
+    if (!link) {
+      return { success: false, error: 'טוקן הזמנה לא תקין או שהלקוח לא נמצא' };
+    }
+
+    if (link.is_used) {
+      return { success: false, error: 'ההזמנה כבר הושלמה או לא תקינה' };
+    }
+    if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
+      return { success: false, error: 'טוקן הזמנה לא תקין או שהלקוח לא נמצא' };
+    }
+    if (link.is_active === false) {
+      return { success: false, error: 'ההזמנה כבר הושלמה או לא תקינה' };
+    }
+    if (!link.client_id) {
+      return { success: false, error: 'טוקן הזמנה לא תקין או שהלקוח לא נמצא' };
+    }
+
+    const organizationId = getOrganizationIdFromInvitationMetadata(link.metadata);
+    if (!organizationId) {
+      return { success: false, error: 'חסר organizationId להקשר. (Tenant Isolation lockdown: קריאה ללא סינון חסומה)' };
+    }
+
+    const row = await prisma.clientClient.findFirst({
+      where: { id: String(link.client_id), organizationId },
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        phone: true,
+        email: true,
+        notes: true,
+        metadata: true,
+      },
+    });
+    if (!row) {
+      return { success: false, error: 'טוקן הזמנה לא תקין או שהלקוח לא נמצא' };
+    }
+
+    const client = mapClientClientToSocialClient(row);
+    if (client.onboardingStatus && String(client.onboardingStatus) !== 'invited') {
+      return { success: false, error: 'ההזמנה כבר הושלמה או לא תקינה' };
+    }
+
+    return { success: true, data: client };
+  } catch (error: unknown) {
     console.error('Error in getClientByInvitationToken:', error);
-    return {
-      success: false,
-      error: error.message || 'שגיאה בטעינת לקוח',
-    };
+    return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };
   }
 }
 

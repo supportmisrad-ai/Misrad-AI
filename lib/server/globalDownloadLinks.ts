@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
@@ -25,20 +25,13 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
   const envFallback = fallbackFromEnv();
 
   try {
-    const supabase = createClient();
-
     // Preferred storage: global_settings singleton row
-    const { data: row, error } = await supabase
-      .from('global_settings')
-      .select('windows_download_url, android_download_url')
-      .eq('id', 'global')
-      .maybeSingle();
+    const row = await prisma.global_settings.findUnique({
+      where: { id: 'global' },
+      select: { windows_download_url: true, android_download_url: true },
+    });
 
-    if (error && !isMissingRelationError(error)) {
-      return envFallback;
-    }
-
-    if (!error && row) {
+    if (row) {
       const windowsDownloadUrl = String((row as any)?.windows_download_url ?? '').trim() || null;
       const androidDownloadUrl = String((row as any)?.android_download_url ?? '').trim() || null;
       if (windowsDownloadUrl || androidDownloadUrl) {
@@ -48,19 +41,18 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     }
 
     // Fallback: legacy key-value storage
-    const legacy = await supabase
-      .from('social_system_settings')
-      .select('value')
-      .eq('key', LEGACY_KEY)
-      .maybeSingle();
+    const legacy = await prisma.social_system_settings
+      .findUnique({ where: { key: LEGACY_KEY }, select: { value: true } })
+      .catch((e: any) => {
+        if (isMissingRelationError(e)) return null;
+        throw e;
+      });
 
-    if (!legacy.error) {
-      const value = (legacy.data as any)?.value;
-      const windowsDownloadUrl = String(value?.windowsDownloadUrl ?? value?.windows_download_url ?? '').trim() || null;
-      const androidDownloadUrl = String(value?.androidDownloadUrl ?? value?.android_download_url ?? '').trim() || null;
-      if (windowsDownloadUrl || androidDownloadUrl) {
-        return { windowsDownloadUrl, androidDownloadUrl };
-      }
+    const value = (legacy as any)?.value;
+    const windowsDownloadUrl = String(value?.windowsDownloadUrl ?? value?.windows_download_url ?? '').trim() || null;
+    const androidDownloadUrl = String(value?.androidDownloadUrl ?? value?.android_download_url ?? '').trim() || null;
+    if (windowsDownloadUrl || androidDownloadUrl) {
+      return { windowsDownloadUrl, androidDownloadUrl };
     }
 
     return envFallback;
@@ -73,8 +65,6 @@ export async function setGlobalDownloadLinksUnsafe(input: {
   windowsDownloadUrl?: string | null;
   androidDownloadUrl?: string | null;
 }): Promise<GlobalDownloadLinks> {
-  const supabase = createClient();
-
   const nextWindows = input.windowsDownloadUrl === undefined ? undefined : input.windowsDownloadUrl ? String(input.windowsDownloadUrl).trim() : null;
   const nextAndroid = input.androidDownloadUrl === undefined ? undefined : input.androidDownloadUrl ? String(input.androidDownloadUrl).trim() : null;
 
@@ -84,42 +74,49 @@ export async function setGlobalDownloadLinksUnsafe(input: {
     androidDownloadUrl: nextAndroid === undefined ? current.androidDownloadUrl : nextAndroid,
   };
 
-  const now = new Date().toISOString();
+  const now = new Date();
 
   // Preferred storage: global_settings
-  const { error } = await supabase
-    .from('global_settings')
-    .upsert(
-      {
+  try {
+    await prisma.global_settings.upsert({
+      where: { id: 'global' },
+      update: {
+        windows_download_url: next.windowsDownloadUrl,
+        android_download_url: next.androidDownloadUrl,
+        updated_at: now,
+      },
+      create: {
         id: 'global',
         windows_download_url: next.windowsDownloadUrl,
         android_download_url: next.androidDownloadUrl,
         updated_at: now,
-      } as any,
-      { onConflict: 'id' }
-    );
-
-  if (error && isMissingRelationError(error)) {
-    // Fallback: legacy storage
-    await supabase
-      .from('social_system_settings')
-      .upsert(
-        {
+      },
+    });
+  } catch (error: any) {
+    if (isMissingRelationError(error)) {
+      // Fallback: legacy storage
+      await prisma.social_system_settings.upsert({
+        where: { key: LEGACY_KEY },
+        update: {
+          value: {
+            windowsDownloadUrl: next.windowsDownloadUrl,
+            androidDownloadUrl: next.androidDownloadUrl,
+          } as any,
+          updated_at: now as any,
+        } as any,
+        create: {
           key: LEGACY_KEY,
           value: {
             windowsDownloadUrl: next.windowsDownloadUrl,
             androidDownloadUrl: next.androidDownloadUrl,
-          },
-          updated_at: now,
+          } as any,
+          updated_at: now as any,
         } as any,
-        { onConflict: 'key' }
-      );
+      });
 
-    return next;
-  }
-
-  if (error) {
-    throw new Error(error.message);
+      return next;
+    }
+    throw error instanceof Error ? error : new Error(String((error as any)?.message || 'Failed to update global download links'));
   }
 
   return next;

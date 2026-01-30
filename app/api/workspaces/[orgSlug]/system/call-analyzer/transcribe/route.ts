@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -14,21 +14,21 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const { orgSlug } = await params;
     if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
+      return apiError('orgSlug is required', { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
 
     const form = await req.formData();
     const file = form.get('file');
 
     if (!file || !(file instanceof File)) {
-      return NextResponse.json({ error: 'file is required' }, { status: 400 });
+      return apiError('file is required', { status: 400 });
     }
 
     const mimeType = String(file.type || 'application/octet-stream');
@@ -60,15 +60,17 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
       },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       transcriptText: out.text || '',
       provider: out.provider,
       model: out.model,
       chargedCents: out.chargedCents,
     });
   } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : e?.name === 'UpgradeRequiredError' ? 402 : 500;
-    return NextResponse.json({ error: e?.message ?? 'Failed to transcribe' }, { status });
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
+    return apiError(e, { message: 'Failed to transcribe' });
   }
 }
 

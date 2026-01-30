@@ -3,15 +3,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useData } from '../context/DataContext';
-import { useSecureAPI } from '../hooks/useSecureAPI';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket, Image as ImageIcon, Upload, Plus, Mic } from 'lucide-react';
 import { Status, Priority, LeadStatus, User as UserType } from '../types';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
-import { getWorkspaceOrgIdFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
 import { Skeleton } from '@/components/ui/skeletons';
+import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
+import { isCeoRole } from '@/lib/constants/roles';
+import { listNexusUsers } from '@/app/actions/nexus';
 
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
@@ -50,11 +53,10 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     }
 
     const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
-    const { fetchUsers } = useSecureAPI();
     const [users, setUsers] = useState<UserType[]>([]);
-    const [cachedUsers, setCachedUsers] = useState<UserType[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { navigate, pathname } = useNexusNavigation();
+    const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const isHomeDashboard = useRef(false);
     isHomeDashboard.current = typeof pathname === 'string' ? /\/nexus\/?$/.test(pathname) : false;
     const [ownerDashboard, setOwnerDashboard] = useState<any>(initialOwnerDashboard ?? null);
@@ -100,57 +102,29 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
         setTimeout(() => startTutorial(), 0);
     }, [startTutorial]);
     
-    // Load users from secure API with cache (only once on mount)
+    const usersQuery = useQuery({
+        queryKey: ['nexus', 'users', workspaceOrgSlug],
+        queryFn: async () => {
+            return listNexusUsers({ orgId: workspaceOrgSlug as string, page: 1, pageSize: 200 });
+        },
+        enabled: Boolean(workspaceOrgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
     useEffect(() => {
-        let isMounted = true;
-        let hasLoaded = false;
-        
-        const loadUsers = async () => {
-            // Prevent multiple simultaneous loads
-            if (hasLoaded) return;
-            hasLoaded = true;
-            
-            // Show cached data immediately if available
-            if (cachedUsers.length > 0 && isMounted) {
-                setUsers(cachedUsers);
-            }
-            
-            setIsRefreshing(true);
-            try {
-                const fetchedUsers = await fetchUsers();
-                if (isMounted) {
-                    const newUsers = fetchedUsers || [];
-                    setUsers(newUsers);
-                    setCachedUsers(newUsers);
-                }
-            } catch (error: any) {
-                // Silently handle network errors - don't log to console
-                if (error?.name !== 'TypeError' || !error?.message?.includes('fetch')) {
-                    console.error('Failed to load users:', error);
-                }
-                if (isMounted) {
-                    // Keep cached data on error
-                    if (cachedUsers.length === 0) {
-                        setUsers([]);
-                    }
-                }
-            } finally {
-                hasLoaded = false;
-                setIsRefreshing(false);
-            }
-        };
-        
-        loadUsers();
-        
-        return () => {
-            isMounted = false;
-        };
-    }, []); // Empty dependency array - only run once on mount
+        setIsRefreshing(Boolean(usersQuery.isFetching));
+        const next = (usersQuery.data as any)?.users;
+        if (Array.isArray(next)) {
+            setUsers(next);
+        }
+    }, [usersQuery.data, usersQuery.isFetching]);
 
     // Load Pilot (Owner Control Center) KPIs + Next Actions
     useEffect(() => {
         if (initialOwnerDashboard) return;
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
         if (pilotErrorCount >= 3) return;
@@ -207,7 +181,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     }, []);
 
     useEffect(() => {
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
         let cancelled = false;
@@ -236,7 +210,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     }, [pathname]);
 
     useEffect(() => {
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
         let cancelled = false;
@@ -265,7 +239,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     }, [pathname]);
 
     const applyNexusOnboardingTemplate = async (templateKey: 'retainer_fixed' | 'deliverables_package') => {
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) {
             addToast('לא ניתן לזהות סביבת עבודה (org). נסה לרענן.', 'error');
             return;
@@ -408,7 +382,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
         if (onboardingPersistedRef.current) return;
         if (!isAllComplete) return;
 
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
         const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
@@ -443,7 +417,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const dismissOnboarding = () => {
         setShowOnboarding(false);
 
-        const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
         const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
@@ -877,7 +851,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
                                     <button
                                         onClick={() => {
-                                            const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+                                            const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
                                             if (!orgSlug) return;
                                             if (isPilotLoading) return;
                                             setIsPilotLoading(true);
@@ -1024,7 +998,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
             {/* CEO Logo Reminder - Only for CEO/Manager */}
             <AnimatePresence>
-                {showLogoReminder && (!organization.logo || organization.logo === '') && (currentUser.role === 'מנכ״ל' || currentUser.role === 'מנכ"ל' || currentUser.role === 'מנכל' || currentUser.isSuperAdmin) && (
+                {showLogoReminder && (!organization.logo || organization.logo === '') && (isCeoRole(currentUser.role) || currentUser.isSuperAdmin) && (
                     <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -1218,6 +1192,20 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                 </>
                             )}
                         </div>
+
+
+                        {isHomeDashboard.current && workspaceOrgSlug ? (
+                            <div className="mt-5 pt-5 border-t border-white/50">
+                                <div className="text-sm font-black text-slate-900 text-right mb-3">מעבר מהיר למודולים</div>
+                                <OSAppSwitcher
+                                    mode="inlineGrid"
+                                    compact={true}
+                                    hideLockedModules={true}
+                                    orgSlug={workspaceOrgSlug}
+                                    className="w-full"
+                                />
+                            </div>
+                        ) : null}
                     </div>
                 </div>
             </div>

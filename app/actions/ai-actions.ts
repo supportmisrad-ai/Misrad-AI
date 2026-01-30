@@ -3,6 +3,22 @@
 import { PostVariation, AIOpportunity, ClientDNA } from "@/types/social";
 import { AIService } from "@/lib/services/ai/AIService";
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string {
+  const v = obj?.[key];
+  return typeof v === 'string' ? v : '';
+}
+
+function getNumberProp(obj: Record<string, unknown> | null, key: string): number {
+  const v = obj?.[key];
+  return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+}
+
 export async function generatePostVariationsAction(
   brief: string,
   clientName: string,
@@ -50,13 +66,17 @@ export async function generatePostVariationsAction(
     // Parse JSON response
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed.map((p: any, i: number) => ({
-        id: p.id || `var-${Date.now()}-${i}`,
-        type: p.type || ['sales', 'social', 'value'][i],
-        content: p.content || '',
-        imageSuggestion: p.imageSuggestion || ''
-      }));
+      const parsed: unknown = JSON.parse(jsonMatch[0]);
+      const list: unknown[] = Array.isArray(parsed) ? parsed : [];
+      const fallbackTypes = ['sales', 'social', 'value'];
+      return list.map((p, i): PostVariation => {
+        const obj = asObject(p);
+        const id = getStringProp(obj, 'id') || `var-${Date.now()}-${i}`;
+        const type = getStringProp(obj, 'type') || fallbackTypes[i] || '';
+        const content = getStringProp(obj, 'content') || '';
+        const imageSuggestion = getStringProp(obj, 'imageSuggestion') || '';
+        return { id, type, content, imageSuggestion };
+      });
     }
     
     return [];
@@ -81,9 +101,9 @@ export async function getTrendingOpportunitiesAction(): Promise<AIOpportunity[]>
   return [];
 }
 
-export async function getBusinessAuditAction(clientId: string): Promise<any> {
+export async function getBusinessAuditAction(clientId: string): Promise<string> {
   // Returns empty object - to be implemented with real AI analysis
-  return {};
+  return '';
 }
 
 export async function draftAIResponseAction(message: string, context: string): Promise<string> {
@@ -102,11 +122,23 @@ export async function draftAIResponseAction(message: string, context: string): P
   }
 }
 
-export async function getGlobalAgencyAuditAction(clients: any[], team: any[]): Promise<string> {
+export async function getGlobalAgencyAuditAction(clients: unknown[], team: unknown[]): Promise<string> {
   try {
-    const totalRevenue = clients.reduce((sum, c) => sum + (c.monthlyFee || 0), 0);
-    const totalMinutes = clients.reduce((sum, c) => sum + (c.businessMetrics?.timeSpentMinutes || 0), 0);
-    const totalStaffCost = team.reduce((sum, m) => sum + (m.monthlySalary || (m.hourlyRate || 0) * 160), 0);
+    const totalRevenue = clients.reduce<number>((sum, c) => {
+      const obj = asObject(c);
+      return sum + getNumberProp(obj, 'monthlyFee');
+    }, 0);
+    const totalMinutes = clients.reduce<number>((sum, c) => {
+      const obj = asObject(c);
+      const metrics = asObject(obj?.businessMetrics);
+      return sum + getNumberProp(metrics, 'timeSpentMinutes');
+    }, 0);
+    const totalStaffCost = team.reduce<number>((sum, m) => {
+      const obj = asObject(m);
+      const monthlySalary = getNumberProp(obj, 'monthlySalary');
+      const hourlyRate = getNumberProp(obj, 'hourlyRate');
+      return sum + (monthlySalary || hourlyRate * 160);
+    }, 0);
     const netProfit = totalRevenue - totalStaffCost;
     
     const prompt = `

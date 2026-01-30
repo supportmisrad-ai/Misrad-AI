@@ -78,11 +78,16 @@ http://localhost:4000
 
 ### Secure APIs
 
-כל ה-API routes מוגנים עם Clerk Authentication:
-- `/api/users` - ניהול משתמשים
+הלוגיקה העסקית המרכזית של המערכת מבוצעת בצד שרת באמצעות **Server Actions** (ולא דרך API routes) ומוגנת ע"י Clerk + בדיקות הרשאות/Workspace.
+
+דוגמאות ל-Server Actions מרכזיות:
+- `getSystemLeads` - טעינת לידים של System (נמצא תחת `app/actions/system-leads.ts`)
+- `listNexusUsers`, `updateNexusUser`, `createNexusUser` - ניהול משתמשים של Nexus (נמצא תחת `app/actions/nexus.ts`)
+- `createNexusTask`, `updateNexusTask`, `deleteNexusTask` - ניהול משימות של Nexus (נמצא תחת `app/actions/nexus.ts`)
+- `listNexusTimeEntries`, `createNexusTimeEntry`, `updateNexusTimeEntry`, `voidNexusTimeEntry` - ניהול דיווחי שעות של Nexus (נמצא תחת `app/actions/nexus.ts`)
+
+בנוסף, קיימים עדיין API routes עבור אינטגרציות/כלים ספציפיים (לדוגמה):
 - `/api/clients` - ניהול לקוחות
-- `/api/tasks` - ניהול משימות
-- `/api/time-entries` - רישומי זמן
 - `/api/financials` - נתונים פיננסיים
 - `/api/ai/analyze` - ניתוח AI
 

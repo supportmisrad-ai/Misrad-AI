@@ -7,7 +7,7 @@ import { useBrand } from '../system/contexts/BrandContext';
 import { BusinessSwitcher } from '../BusinessSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   activeTab: string;
@@ -21,7 +21,7 @@ interface SidebarProps {
 
 const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = false, onClose, navItems }: SidebarProps) => {
   const { brandName, brandLogo } = useBrand();
-  const { roomName, roomIconName, gradient } = useRoomBranding();
+  const { roomName, gradient } = useRoomBranding();
 
   const isProbablyTokenOrId = (value: string) => {
     const trimmed = value.trim();
@@ -64,7 +64,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                     {brandLogo ? (
                         <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
                     ) : (
-                        roomIconName ? <DynamicIcon name={roomIconName} size={22} /> : null
+                        <OSModuleSquircleIcon moduleKey="finance" boxSize={48} iconSize={20} className="shadow-none" />
                     )}
                 </div>
                 <div className="flex flex-col justify-center overflow-hidden">

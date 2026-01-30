@@ -12,22 +12,31 @@ import { Button } from '@/components/ui/button';
 export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader }) => {
     const { addToast, updateSettings } = useData();
     const [logo, setLogo] = useState<string>('');
-    const [logoText, setLogoText] = useState<string>('Misrad');
+    const [logoText, setLogoText] = useState<string>('MISRAD AI');
     const [previewLogo, setPreviewLogo] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Load logo from settings
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedLogo = localStorage.getItem('landing_page_logo');
-            const savedText = localStorage.getItem('landing_page_logo_text');
-            if (savedLogo) {
-                setLogo(savedLogo);
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const data = await res.json().catch(() => null);
+                if (cancelled) return;
+                const nextLogo = typeof data?.logo === 'string' ? data.logo : '';
+                const nextText = typeof data?.logoText === 'string' ? data.logoText : 'MISRAD AI';
+                setLogo(nextLogo);
+                setLogoText(nextText || 'MISRAD AI');
+            } catch {
+                // ignore
             }
-            if (savedText) {
-                setLogoText(savedText);
-            }
-        }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,29 +67,39 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
         }
     };
 
-    const saveLogo = (logoData: string, text: string) => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('landing_page_logo', logoData);
-            localStorage.setItem('landing_page_logo_text', text);
+    const saveLogo = async (logoData: string, text: string) => {
+        const nextText = String(text || '').trim() || 'MISRAD AI';
+        const nextLogo = logoData ? String(logoData) : '';
+
+        setLogo(nextLogo);
+        setLogoText(nextText);
+
+        try {
+            const res = await fetch('/api/landing/settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ logo: nextLogo || null, logoText: nextText }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error || 'שגיאה בשמירה');
+            }
+            updateSettings('landingPageLogo', nextLogo);
+            updateSettings('landingPageLogoText', nextText);
+        } catch (e: any) {
+            addToast(e?.message || 'שגיאה בשמירה', 'error');
         }
-        updateSettings('landingPageLogo', logoData);
-        updateSettings('landingPageLogoText', text);
     };
 
     const handleSaveText = () => {
-        saveLogo(logo, logoText);
+        void saveLogo(logo, logoText);
         addToast('טקסט הלוגו עודכן בהצלחה!', 'success');
     };
 
     const handleDeleteLogo = () => {
         setLogo('');
-        setLogoText('Misrad');
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('landing_page_logo');
-            localStorage.removeItem('landing_page_logo_text');
-        }
-        updateSettings('landingPageLogo', '');
-        updateSettings('landingPageLogoText', 'Misrad');
+        setLogoText('MISRAD AI');
+        void saveLogo('', 'MISRAD AI');
         addToast('לוגו נמחק בהצלחה', 'success');
         setIsDeleting(false);
     };
@@ -158,7 +177,7 @@ export const LandingPageLogoPanel: React.FC<{ hideHeader?: boolean }> = ({ hideH
                                     value={logoText}
                                     onChange={(e) => setLogoText(e.target.value)}
                                     className="flex-1 bg-white border border-slate-200 rounded-xl p-3 text-slate-900 text-sm placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all"
-                                    placeholder="Misrad"
+                                    placeholder="MISRAD AI"
                                 />
                                 <Button
                                     onClick={handleSaveText}

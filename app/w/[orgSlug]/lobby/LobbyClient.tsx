@@ -2,13 +2,14 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreditCard, GraduationCap, Megaphone, Target, Wrench } from 'lucide-react';
 import { useAIModuleChat } from '@/components/command-palette/useAIModuleChat';
 import { CommandPaletteChat } from '@/components/command-palette/CommandPaletteChat';
 import NexusCard from '@/components/shared/NexusCard';
 import NexusMasterLayout from '@/components/shared/NexusMasterLayout';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { modulesRegistry } from '@/lib/os/modules/registry';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 const GLOBAL_STARTERS = [
   {
@@ -95,9 +96,9 @@ export default function LobbyClient({
         <div className="text-sm font-black text-slate-700 mb-4">Power Tiles</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <NexusCard
-            title="System"
-            subtitle="מרכז המכירות והלידים"
-            icon={Target}
+            title={modulesRegistry.system.label}
+            subtitle={modulesRegistry.system.labelHe}
+            iconSlot={<OSModuleSquircleIcon moduleKey="system" boxSize={44} iconSize={18} />}
             metric={systemMetric}
             metricLabel="לידים"
             onClickAction={() => openModule('system')}
@@ -105,9 +106,9 @@ export default function LobbyClient({
           />
 
           <NexusCard
-            title="Operations"
-            subtitle="תפעול, מלאי ושטח"
-            icon={Wrench}
+            title={modulesRegistry.operations.label}
+            subtitle={modulesRegistry.operations.labelHe}
+            iconSlot={<OSModuleSquircleIcon moduleKey="operations" boxSize={44} iconSize={18} />}
             metric={operationsMetric}
             metricLabel={kpis?.operations?.locked ? 'אין הרשאה' : 'פרויקטים'}
             onClickAction={() => openModule('operations')}
@@ -115,9 +116,9 @@ export default function LobbyClient({
           />
 
           <NexusCard
-            title="Finance"
-            subtitle="שליטה פיננסית מלאה"
-            icon={CreditCard}
+            title={modulesRegistry.finance.label}
+            subtitle={modulesRegistry.finance.labelHe}
+            iconSlot={<OSModuleSquircleIcon moduleKey="finance" boxSize={44} iconSize={18} />}
             metric={financeMetric}
             metricLabel={kpis?.finance?.locked ? 'אין הרשאה' : 'שעות'}
             onClickAction={() => openModule('finance')}
@@ -125,9 +126,9 @@ export default function LobbyClient({
           />
 
           <NexusCard
-            title="Client"
-            subtitle="מעקב לקוחות ומתאמנים"
-            icon={GraduationCap}
+            title={modulesRegistry.client.label}
+            subtitle={modulesRegistry.client.labelHe}
+            iconSlot={<OSModuleSquircleIcon moduleKey="client" boxSize={44} iconSize={18} />}
             metric={clientMetric}
             metricLabel="לקוחות"
             onClickAction={() => openModule('client')}
@@ -135,9 +136,9 @@ export default function LobbyClient({
           />
 
           <NexusCard
-            title="Social"
-            subtitle="שיווק, תוכן וקמפיינים"
-            icon={Megaphone}
+            title={modulesRegistry.social.label}
+            subtitle={modulesRegistry.social.labelHe}
+            iconSlot={<OSModuleSquircleIcon moduleKey="social" boxSize={44} iconSize={18} />}
             metric={socialMetric}
             metricLabel="מתוזמנים"
             onClickAction={() => openModule('social')}

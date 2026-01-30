@@ -7,8 +7,10 @@ import NexusCommand from '@/components/client-os-full/components/NexusCommand';
 import NexusComposer from '@/components/client-os-full/components/NexusComposer';
 import { GlobalProcessor } from '@/components/client-os-full/components/GlobalProcessor';
 import { ToastManager } from '@/components/client-os-full/components/ui/ToastManager';
-import { ClientProvider } from '@/components/client-os-full/context/ClientContext';
+import { ClientProvider } from '../context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { useAuth } from '@clerk/nextjs';
+import { createBrowserClientWithClerk } from '@/lib/supabase-client';
 
 export default function ClientOsAppLayoutClient({
   children,
@@ -31,6 +33,21 @@ export default function ClientOsAppLayoutClient({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { getToken } = useAuth();
+
+  const supabase = useMemo(() => {
+    return createBrowserClientWithClerk(async () => {
+      try {
+        return await getToken({ template: 'supabase' });
+      } catch {
+        try {
+          return await getToken();
+        } catch {
+          return null;
+        }
+      }
+    });
+  }, [getToken]);
 
   const [showComposer, setShowComposer] = useState(false);
   const [selectedClientIdForComposer, setSelectedClientIdForComposer] = useState<string | null>(null);
@@ -67,6 +84,12 @@ export default function ClientOsAppLayoutClient({
     (window as any).__CLIENT_OS_USER__ = userData;
     window.dispatchEvent(new CustomEvent('client-os-user-updated', { detail: userData }));
   }, [userData]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if ((window as any).supabaseForOrgLookup) return;
+    (window as any).supabaseForOrgLookup = supabase;
+  }, [supabase]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;

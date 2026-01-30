@@ -13,25 +13,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { revokeToken } from '@/lib/integrations/google-oauth';
-import { supabase } from '@/lib/supabase';
-import { getUsers } from '@/lib/db';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function POSTHandler(request: NextRequest) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
         const clerkUser = await getAuthenticatedUser();
+
+        const sb = createClient();
         
-        // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUserId = await selectDbUserId({ supabase: sb, workspaceId: workspace.id, email: clerkUser.email });
         
-        if (!dbUser) {
+        if (!dbUserId) {
             return NextResponse.json(
                 { error: 'User not found in database. Please sync your account first.' },
                 { status: 404 }
@@ -48,17 +62,12 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        if (!supabase) {
-            throw new Error('Supabase not configured');
-        }
-
-        const sb = supabase;
-
         // Find integration(s) to revoke
         let query = sb
             .from('misrad_integrations')
             .select('*')
-            .eq('user_id', dbUser.id) // Use Supabase UUID, not Clerk ID
+            .eq('user_id', dbUserId) // Use Supabase UUID, not Clerk ID
+            .eq('organization_id', workspace.id)
             .eq('service_type', serviceType)
             .eq('is_active', true);
 
@@ -70,6 +79,9 @@ async function POSTHandler(request: NextRequest) {
 
         if (fetchError) {
             console.error('[API] Error fetching integrations:', fetchError);
+            if (fetchError.code === '42703') {
+                return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
+            }
             throw new Error('Failed to fetch integrations');
         }
 
@@ -99,7 +111,8 @@ async function POSTHandler(request: NextRequest) {
             return sb
                 .from('misrad_integrations')
                 .delete()
-                .eq('id', integration.id);
+                .eq('id', integration.id)
+                .eq('organization_id', workspace.id);
         });
 
         await Promise.all(revokePromises);
@@ -114,6 +127,9 @@ async function POSTHandler(request: NextRequest) {
             message: error?.message,
             name: error?.name
         });
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'Failed to revoke integration' },
             { status: 500 }

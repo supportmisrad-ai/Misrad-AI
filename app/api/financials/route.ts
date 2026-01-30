@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, hasPermission } from '../../../lib/auth';
 import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
 import { getFinanceOverviewData } from '@/lib/services/finance-service';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -17,14 +17,7 @@ async function GETHandler(request: NextRequest) {
         // 1. Authenticate user
         const user = await getAuthenticatedUser();
 
-        const headerOrgId = request.headers.get('x-org-id');
-        const queryOrgId = request.nextUrl.searchParams.get('orgId');
-        const effectiveOrgId = headerOrgId || queryOrgId;
-        if (!effectiveOrgId) {
-            return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(effectiveOrgId);
+        const { workspace } = await getWorkspaceOrThrow(request);
         
         // 2. Check permissions - STRICT: Only financial permission
         const canViewFinancials = await hasPermission('view_financials');
@@ -102,6 +95,10 @@ async function GETHandler(request: NextRequest) {
             success: false,
             error: error.message
         });
+
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         
         if (error.message.includes('Unauthorized')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -117,6 +114,5 @@ async function GETHandler(request: NextRequest) {
         );
     }
 }
-
 
 export const GET = shabbatGuard(GETHandler);

@@ -7,18 +7,32 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getUsers } from '@/lib/db';
-import { supabase } from '@/lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function POSTHandler(request: NextRequest) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
         // 1. Authenticate user
         let clerkUser;
         try {
@@ -37,21 +51,15 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        // 2. Find user in database
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const supabase = createClient();
 
-        if (!user) {
+        // 2. Find user in database
+        const dbUserId = await selectDbUserId({ supabase, workspaceId: workspace.id, email: clerkUser.email });
+
+        if (!dbUserId) {
             return NextResponse.json(
                 { error: 'User not found in database. Please sync your account first.' },
                 { status: 404 }
-            );
-        }
-
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
             );
         }
 
@@ -70,12 +78,16 @@ async function POSTHandler(request: NextRequest) {
         const { data: existingIntegration, error: checkError } = await supabase
             .from('misrad_integrations')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', dbUserId)
+            .eq('organization_id', workspace.id)
             .eq('service_type', 'green_invoice')
             .maybeSingle();
 
         if (checkError && checkError.code !== 'PGRST116') {
             console.error('[API] Error checking existing integration:', checkError);
+            if (checkError.code === '42703') {
+                return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
+            }
             throw new Error('Failed to check existing integration');
         }
 
@@ -88,10 +100,14 @@ async function POSTHandler(request: NextRequest) {
                     is_active: true,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', existingIntegration.id);
+                .eq('id', existingIntegration.id)
+                .eq('organization_id', workspace.id);
 
             if (updateError) {
                 console.error('[API] Error updating integration:', updateError);
+                if (updateError.code === '42703') {
+                    return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
+                }
                 throw new Error('Failed to update integration');
             }
         } else {
@@ -99,8 +115,8 @@ async function POSTHandler(request: NextRequest) {
             const { error: insertError } = await supabase
                 .from('misrad_integrations')
                 .insert({
-                    user_id: user.id,
-                    tenant_id: null, // Can be set if needed
+                    user_id: dbUserId,
+                    organization_id: workspace.id,
                     service_type: 'green_invoice',
                     access_token: apiKey,
                     token_type: 'Bearer',
@@ -114,6 +130,9 @@ async function POSTHandler(request: NextRequest) {
 
             if (insertError) {
                 console.error('[API] Error creating integration:', insertError);
+                if (insertError.code === '42703') {
+                    return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
+                }
                 throw new Error(`Failed to create integration: ${insertError.message}`);
             }
         }
@@ -125,6 +144,9 @@ async function POSTHandler(request: NextRequest) {
 
     } catch (error: any) {
         console.error('[API] Error connecting Green Invoice:', error);
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'Failed to connect Green Invoice' },
             { status: 500 }

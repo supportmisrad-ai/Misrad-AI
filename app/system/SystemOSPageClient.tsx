@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Target, Check, Users, TrendingUp, Crown, BrainCircuit, Zap, FileText, BarChart3, HeartPulse, CheckCircle2, ArrowUp, Phone, Activity, DollarSign, Clock } from 'lucide-react';
+import { ArrowRight, Target, Check, Users, TrendingUp, Crown, Sparkles, Zap, FileText, BarChart3, HeartPulse, CheckCircle2, ArrowUp, Phone, Activity, DollarSign, Clock } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { PricingCard } from '@/components/landing/PricingCard';
@@ -52,7 +52,7 @@ export default function SystemOSLandingPage() {
                 onClick={() => router.push('/sign-up')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => router.push('/login')}
@@ -216,7 +216,7 @@ export default function SystemOSLandingPage() {
               {
                 title: 'בינה מלאכותית (AI)',
                 desc: 'ניתוח לידים, המלצות מכירות, ותובנות עסקיות',
-                icon: BrainCircuit
+                icon: Sparkles
               }
             ].map((feature, i) => (
               <motion.div
@@ -253,7 +253,7 @@ export default function SystemOSLandingPage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-600 via-red-700 to-rose-600">שמתאימה לך</span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-4">
-              ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 14 יום.
+              ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 7 ימים.
             </p>
 
             {/* Billing Toggle */}
@@ -341,7 +341,7 @@ export default function SystemOSLandingPage() {
 
           <div className="mt-16 text-center">
             <p className="text-slate-600 text-sm mb-4">
-              כל התוכניות כוללות: <span className="text-slate-900 font-bold">14 יום ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span>
+              כל התוכניות כוללות: <span className="text-slate-900 font-bold">7 ימים ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span>
             </p>
           </div>
         </div>
@@ -363,7 +363,7 @@ export default function SystemOSLandingPage() {
               onClick={() => router.push('/sign-up')}
               className="px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105"
             >
-              התחל ניסיון חינם <ArrowRight size={20} className="rotate-180" />
+              התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={20} className="rotate-180" />
             </button>
             <button
               onClick={() => {

@@ -3,7 +3,7 @@ import React from 'react';
 import { Lead, PipelineStage } from '../types';
 import PipelineBoard from './PipelineBoard';
 import ContactsView from './ContactsView';
-import SystemTargetsView from './SystemTargetsView';
+import SystemTargetsView from './SalesTargetsView';
 
 interface LeadsHubProps {
   leads: Lead[];

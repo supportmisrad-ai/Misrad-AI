@@ -26,7 +26,7 @@ export async function uploadFile(
     file: File | Blob,
     bucket: string = 'attachments',
     folder?: string,
-    userId?: string
+    userId?: string | { userId?: string; organizationId?: string; orgSlug?: string }
 ): Promise<UploadResult> {
     if (!supabase) {
         return {
@@ -37,6 +37,21 @@ export async function uploadFile(
     }
 
     try {
+        const userIdValue =
+            typeof userId === 'object' && userId !== null
+                ? String((userId as any).userId || '').trim() || undefined
+                : userId
+                  ? String(userId).trim() || undefined
+                  : undefined;
+        const organizationId =
+            typeof userId === 'object' && userId !== null
+                ? String((userId as any).organizationId || '').trim() || undefined
+                : undefined;
+        const orgSlug =
+            typeof userId === 'object' && userId !== null
+                ? String((userId as any).orgSlug || '').trim() || undefined
+                : undefined;
+
         // Generate unique filename
         const timestamp = Date.now();
         const randomStr = Math.random().toString(36).substring(2, 15);
@@ -45,10 +60,13 @@ export async function uploadFile(
         
         // Build file path
         let filePath = '';
-        if (userId && folder) {
-            filePath = `${userId}/${folder}/${fileName}`;
-        } else if (userId) {
-            filePath = `${userId}/${fileName}`;
+        const scopedPrefix = organizationId ? `${organizationId}/${orgSlug ? `${orgSlug}/` : ''}${userIdValue ? `users/${userIdValue}/` : ''}` : '';
+        if (scopedPrefix) {
+            filePath = `${scopedPrefix}${folder ? `${folder}/` : ''}${fileName}`;
+        } else if (userIdValue && folder) {
+            filePath = `${userIdValue}/${folder}/${fileName}`;
+        } else if (userIdValue) {
+            filePath = `${userIdValue}/${fileName}`;
         } else if (folder) {
             filePath = `${folder}/${fileName}`;
         } else {

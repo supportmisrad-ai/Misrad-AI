@@ -54,8 +54,7 @@ export function formatHebrewDate(date: Date, options?: {
  */
 export function formatHebrewDateWithDay(date: Date): string {
   try {
-    const hDate = gregorianToHebrew(date);
-    const dayName = hDate.getDayName('he');
+    const dayName = new Intl.DateTimeFormat('he-IL', { weekday: 'long' }).format(date);
     const dateStr = formatHebrewDate(date, { includeYear: true });
     return `${dayName}, ${dateStr}`;
   } catch (error) {
@@ -102,7 +101,7 @@ export function getHebrewMonthName(date: Date): string {
     }
     
     // Fallback: try getMonthName and map
-    const monthName = hDate.getMonthName('he') || hDate.getMonthName('en');
+    const monthName = hDate.getMonthName();
     const monthMap: Record<string, string> = {
       'Nisan': 'ניסן', 'Iyyar': 'אייר', 'Sivan': 'סיוון',
       'Tammuz': 'תמוז', 'Tamuz': 'תמוז',
@@ -214,12 +213,11 @@ export function getHebrewDay(date: Date): string {
  */
 export function getHebrewDayName(date: Date, abbreviated: boolean = true): string {
   try {
-    const hDate = gregorianToHebrew(date);
     if (abbreviated) {
       const dayNames = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
-      return dayNames[hDate.getDayOfWeek()] || '';
+      return dayNames[date.getDay()] || '';
     }
-    return hDate.getDayName('he');
+    return new Intl.DateTimeFormat('he-IL', { weekday: 'long' }).format(date);
   } catch (error) {
     console.error('[Hebrew Calendar] Error getting day name:', error);
     return '';

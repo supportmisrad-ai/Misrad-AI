@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '../../../../../lib/supabase';
-import { createServiceRoleClient } from '../../../../../lib/supabase';
+import { isSupabaseConfigured, createServiceRoleClient } from '../../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../../lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -11,18 +10,18 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
     }
 
-    if (!isSupabaseConfigured || !supabase) {
+    if (!isSupabaseConfigured()) {
         return NextResponse.json({
             error: 'Supabase not configured',
             tables: {}
         }, { status: 500 });
     }
 
-    let db = supabase;
+    let db: any;
     try {
-        db = createServiceRoleClient();
+        db = createServiceRoleClient({ allowUnscoped: true, reason: 'health_check_tables' }) as any;
     } catch {
-        db = supabase;
+        return NextResponse.json({ error: 'Supabase service role is not configured', tables: {} }, { status: 500 });
     }
 
     const results: Record<string, { exists: boolean; count?: number; error?: string }> = {};

@@ -8,9 +8,100 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link2, Copy, Check, X, Plus, Mail, Calendar, User, Building2, ExternalLink, Trash2, RefreshCw, Rocket, CheckCircle2, Phone } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
+
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as UnknownRecord;
+}
+
+function getString(obj: UnknownRecord, key: string, fallback = ''): string {
+    const v = obj[key];
+    return typeof v === 'string' ? v : String(v ?? fallback);
+}
+
+function getNullableString(obj: UnknownRecord, key: string): string | undefined {
+    const v = obj[key];
+    if (v == null) return undefined;
+    return typeof v === 'string' ? v : String(v);
+}
+
+function getBoolean(obj: UnknownRecord, key: string, fallback = false): boolean {
+    const v = obj[key];
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v !== 0;
+    if (typeof v === 'string') return v === 'true' || v === '1';
+    return fallback;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function unwrapApiPayload(raw: unknown): UnknownRecord {
+    const obj = asObject(raw);
+    if (!obj) return {};
+    const data = obj['data'];
+    const dataObj = asObject(data);
+    return dataObj ?? obj;
+}
+
+function getApiErrorMessage(raw: unknown, status: number, fallback: string): string {
+    const obj = asObject(raw);
+    if (!obj) return `${fallback} (${status})`;
+    const direct = obj['error'];
+    if (typeof direct === 'string' && direct.trim()) return direct;
+    const payload = unwrapApiPayload(raw);
+    const nested = payload['error'];
+    if (typeof nested === 'string' && nested.trim()) return nested;
+    return `${fallback} (${status})`;
+}
+
+function isInvitationSource(value: unknown): value is InvitationLink['source'] {
+    return value === 'manual' || value === 'automatic';
+}
+
+function parseInvitationLink(value: unknown): InvitationLink | null {
+    const obj = asObject(value);
+    if (!obj) return null;
+
+    const id = getString(obj, 'id');
+    const token = getString(obj, 'token');
+    const url = getString(obj, 'url');
+    const createdAt = getString(obj, 'created_at');
+    const sourceRaw = obj['source'];
+    if (!id || !token || !url || !createdAt || !isInvitationSource(sourceRaw)) return null;
+
+    return {
+        id,
+        token,
+        url,
+        client_id: getNullableString(obj, 'client_id'),
+        created_at: createdAt,
+        expires_at: getNullableString(obj, 'expires_at'),
+        is_used: getBoolean(obj, 'is_used', false),
+        is_active: getBoolean(obj, 'is_active', true),
+        used_at: getNullableString(obj, 'used_at'),
+        ceo_name: getNullableString(obj, 'ceo_name'),
+        ceo_email: getNullableString(obj, 'ceo_email'),
+        ceo_phone: getNullableString(obj, 'ceo_phone'),
+        company_name: getNullableString(obj, 'company_name'),
+        company_logo: getNullableString(obj, 'company_logo'),
+        company_address: getNullableString(obj, 'company_address'),
+        company_website: getNullableString(obj, 'company_website'),
+        additional_notes: getNullableString(obj, 'additional_notes'),
+        source: sourceRaw,
+    };
+}
 
 interface InvitationLink {
     id: string;
@@ -57,9 +148,9 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
 
         setIsLoading(true);
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/invitations', {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (!response.ok) {
                 // Handle 401 Unauthorized gracefully - user might not be authenticated yet
@@ -74,16 +165,22 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                     setInvitations([]);
                     return;
                 }
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || `Failed to load invitations (${response.status})`);
+                const errorData: unknown = await response.json().catch(() => ({ error: 'Unknown error' }));
+                throw new Error(getApiErrorMessage(errorData, response.status, 'Failed to load invitations'));
             }
-            const data = await response.json();
-            setInvitations(data.invitations || []);
-        } catch (error: any) {
+            const data: unknown = await response.json().catch(() => ({}));
+            const payload = unwrapApiPayload(data);
+            const invitationsRaw = payload['invitations'];
+            const parsed = Array.isArray(invitationsRaw)
+                ? (invitationsRaw as unknown[]).map(parseInvitationLink).filter((x): x is InvitationLink => Boolean(x))
+                : [];
+            setInvitations(parsed);
+        } catch (error: unknown) {
             console.error('[InvitationLinks] Error loading invitations:', error);
+            const msg = getErrorMessage(error);
             // Only show error toast for non-auth errors
-            if (!error.message?.includes('Unauthorized') && !error.message?.includes('Forbidden')) {
-                addToast(error.message || 'שגיאה בטעינת קישורים', 'error');
+            if (!msg.includes('Unauthorized') && !msg.includes('Forbidden')) {
+                addToast(msg || 'שגיאה בטעינת קישורים', 'error');
             }
             setInvitations([]);
         } finally {
@@ -102,12 +199,12 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
     const handleCreateInvitation = async () => {
         setIsCreating(true);
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/invitations/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     expiresInDays,
@@ -116,18 +213,18 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to create invitation');
+                const error: unknown = await response.json().catch(() => ({}));
+                throw new Error(getApiErrorMessage(error, response.status, 'Failed to create invitation'));
             }
 
-            const data = await response.json();
+            await response.json().catch(() => ({}));
             addToast('קישור חד פעמי נוצר בהצלחה', 'success');
             
             // Reload invitations
             await loadInvitations();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[InvitationLinks] Error creating invitation:', error);
-            addToast(error.message || 'שגיאה ביצירת קישור', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה ביצירת קישור', 'error');
         } finally {
             setIsCreating(false);
         }
@@ -148,20 +245,21 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
     // Deactivate invitation
     const handleDeactivate = async (id: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/invitations/${id}/deactivate`, {
                 method: 'POST',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
 
             if (!response.ok) {
-                throw new Error('Failed to deactivate invitation');
+                const err: unknown = await response.json().catch(() => ({}));
+                throw new Error(getApiErrorMessage(err, response.status, 'Failed to deactivate invitation'));
             }
 
             addToast('קישור בוטל', 'success');
             await loadInvitations();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בביטול קישור', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בביטול קישור', 'error');
         }
     };
 
@@ -198,12 +296,12 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
                 .replace(/^-+|-+$/g, '')
                 .substring(0, 50);
 
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch('/api/tenants', {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/admin/tenants', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     name: invitation.company_name,
@@ -219,14 +317,15 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה ביצירת Tenant');
+                const raw: unknown = await response.json().catch(() => ({}));
+                throw new Error(getApiErrorMessage(raw, response.status, 'שגיאה ביצירת Tenant'));
             }
 
-            const data = await response.json();
+            const raw: unknown = await response.json().catch(() => ({}));
+            const data = unwrapApiPayload(raw);
             
             // Show success message with invitation status
-            if (data.invitationSent) {
+            if (Boolean(data['invitationSent'])) {
                 addToast(`Tenant "${invitation.company_name}" נוצר והזמנה נשלחה אוטומטית!`, 'success');
             } else {
                 addToast(`Tenant "${invitation.company_name}" נוצר בהצלחה! (הזמנה לא נשלחה - ניתן לשלוח ידנית מפאנל Tenants)`, 'success');
@@ -234,9 +333,9 @@ export const InvitationLinksPanel: React.FC<InvitationLinksPanelProps> = ({ addT
             
             // Reload invitations to refresh
             await loadInvitations();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[InvitationLinks] Error creating tenant:', error);
-            addToast(error.message || 'שגיאה ביצירת Tenant', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה ביצירת Tenant', 'error');
         } finally {
             setCreatingTenantFor(null);
         }

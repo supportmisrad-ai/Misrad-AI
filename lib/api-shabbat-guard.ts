@@ -4,8 +4,8 @@
  * Wrapper function to protect API routes from being accessed during Shabbat
  */
 
-import { NextRequest, NextResponse } from 'next/server';
 import { isShabbatNow } from './shabbat';
+import { apiError } from '@/lib/server/api-response';
 
 /**
  * Wrapper function that blocks API access during Shabbat
@@ -15,37 +15,27 @@ import { isShabbatNow } from './shabbat';
  *   // Your handler code
  * });
  */
-export function shabbatGuard(
-  handler: (...args: any[]) => Promise<NextResponse>
-) {
-  return async (...args: any[]): Promise<NextResponse> => {
+export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) => Promise<Response>) {
+  return async (...args: TArgs): Promise<Response> => {
     try {
       const shabbatCheck = isShabbatNow();
       
       if (shabbatCheck.isShabbat) {
-        return NextResponse.json(
-          {
-            error: 'Shabbat Mode',
-            message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
-            havdalah: shabbatCheck.havdalah.toISOString(),
-            timeUntilHavdalah: calculateTimeUntil(shabbatCheck.havdalah)
-          },
-          { status: 503 } // Service Unavailable
-        );
+        return apiError('Shabbat Mode', {
+          status: 503,
+          message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
+        });
       }
       
       // Not Shabbat - proceed with the handler
       return handler(...args);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ShabbatGuard] Error checking Shabbat:', error);
       // Fail closed: do not allow system activity if we cannot determine Shabbat state.
-      return NextResponse.json(
-        {
-          error: 'Shabbat Mode',
-          message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
-        },
-        { status: 503 }
-      );
+      return apiError(error, {
+        status: 503,
+        message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
+      });
     }
   };
 }

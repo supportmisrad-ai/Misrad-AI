@@ -113,6 +113,52 @@ npm install
 npm run test:e2e -- tests/e2e/system/system-home.spec.ts --project=chromium
 ```
 
+## בדיקת RLS / Tenant Isolation (קריטית)
+
+בדיקה זו מאמתת Tenant Isolation דרך Supabase RLS בפועל, כולל בדיקה ש־`current_organization_id()` מחלץ את ה־Org ID מה־Clerk JWT template ושאין דליפה בין טננטים.
+
+הטסט:
+- `tests/e2e/security/tenant-isolation.spec.ts`
+
+### דרישות מקדימות
+- להגדיר ב־`.env.local` (או env ב־CLI): `CLERK_SUPABASE_JWT_TEMPLATE=supabase`
+- להגדיר 2 משתמשים אמיתיים ב־Clerk:
+  - Victim: `E2E_EMAIL` / `E2E_PASSWORD`
+  - Attacker: `E2E_ATTACKER_EMAIL` / `E2E_ATTACKER_PASSWORD`
+- `E2E_API_KEY` תואם ל־API routes תחת `/api/e2e/*`
+
+### מומלץ: ליצור storageState נפרד ל‑Victim ול‑Attacker
+
+> קבצי storageState מכילים cookies/session ולכן אסור לקומיט.
+
+#### יצירת Victim storageState
+```powershell
+$env:E2E_LOGIN_HEADED="1"
+$env:E2E_AUTH_EMAIL=$env:E2E_EMAIL
+$env:E2E_AUTH_PASSWORD=$env:E2E_PASSWORD
+$env:E2E_STORAGE_STATE="tests/e2e/.auth/victim.storageState.json"
+
+npm run e2e:auth
+```
+
+#### יצירת Attacker storageState
+```powershell
+$env:E2E_LOGIN_HEADED="1"
+$env:E2E_AUTH_EMAIL=$env:E2E_ATTACKER_EMAIL
+$env:E2E_AUTH_PASSWORD=$env:E2E_ATTACKER_PASSWORD
+$env:E2E_STORAGE_STATE="tests/e2e/.auth/attacker.storageState.json"
+
+npm run e2e:auth
+```
+
+### הרצת הטסט
+```powershell
+$env:E2E_VICTIM_STORAGE_STATE="tests/e2e/.auth/victim.storageState.json"
+$env:E2E_ATTACKER_STORAGE_STATE="tests/e2e/.auth/attacker.storageState.json"
+
+npm run test:e2e -- tests/e2e/security/tenant-isolation.spec.ts
+```
+
 ### הרצת כל בדיקות System
 ```powershell
 npm run test:e2e -- tests/e2e/system --project=chromium

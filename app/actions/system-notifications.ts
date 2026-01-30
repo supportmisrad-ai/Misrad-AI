@@ -3,8 +3,32 @@
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
-import { Prisma } from '@prisma/client';
 import type { MisradNotificationType } from '@prisma/client';
+import { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+function toMisradNotificationType(value: unknown): MisradNotificationType {
+  const v = String(value || '').toUpperCase();
+  if (v === 'ALERT') return 'ALERT' as MisradNotificationType;
+  if (v === 'MESSAGE') return 'MESSAGE' as MisradNotificationType;
+  if (v === 'SUCCESS') return 'SUCCESS' as MisradNotificationType;
+  if (v === 'TASK') return 'TASK' as MisradNotificationType;
+  if (v === 'SYSTEM') return 'SYSTEM' as MisradNotificationType;
+  return 'SYSTEM' as MisradNotificationType;
+}
 
 export type SystemNotificationDTO = {
   id: string;
@@ -55,23 +79,6 @@ function mapCategory(t: MisradNotificationType): SystemNotificationDTO['category
   return 'system';
 }
 
-async function resolveMisradNotificationsReadColumn(): Promise<'is_read' | 'isRead' | null> {
-  try {
-    const rows = await prisma.$queryRaw<{ column_name: string }[]>(Prisma.sql`
-      select column_name
-      from information_schema.columns
-      where table_schema = 'public'
-        and table_name = 'misrad_notifications'
-    `);
-    const names = new Set((rows || []).map((r) => String(r.column_name)));
-    if (names.has('is_read')) return 'is_read';
-    if (names.has('isRead')) return 'isRead';
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export async function getSystemNotifications(params: {
   orgSlug: string;
   limit?: number;
@@ -81,41 +88,43 @@ export async function getSystemNotifications(params: {
 
   const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50)));
 
-  const readColumn = await resolveMisradNotificationsReadColumn();
-
-  const rows = await prisma.$queryRaw<any[]>(Prisma.sql`
-    select
-      id,
-      title,
-      message,
-      link,
-      type,
-      timestamp,
-      created_at,
-      updated_at,
-      ${readColumn ? Prisma.raw(`"${readColumn}"`) : Prisma.sql`false`} as "isRead"
-    from misrad_notifications
-    where organization_id::text = ${String(workspace.id)}
-      and recipient_id::text = ${String(currentUser.id)}
-    order by created_at desc
-    limit ${limit}
-  `);
+  const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+    organizationId: String(workspace.id),
+    reason: 'system_notifications_get',
+    query: `
+      select
+        id::text as id,
+        type,
+        text,
+        created_at,
+        updated_at,
+        is_read as "isRead"
+      from misrad_notifications
+      where organization_id = $1::uuid
+        and recipient_id::text = $2::text
+      order by created_at desc
+      limit $3::int
+    `,
+    values: [String(workspace.id), String(currentUser.id), limit],
+  });
 
   return rows.map((r) => {
-    const createdAt = r.created_at ? new Date(r.created_at) : new Date();
-    const type = mapType(r.type);
-    const category = mapCategory(r.type);
+    const obj = asObject(r) ?? {};
+    const createdAt = obj.created_at ? new Date(String(obj.created_at)) : new Date();
+    const rawType = toMisradNotificationType(obj.type);
+    const type = mapType(rawType);
+    const category = mapCategory(rawType);
 
     return {
-      id: String(r.id),
-      title: String(r.title || ''),
-      description: String(r.message || ''),
+      id: String(obj.id ?? ''),
+      title: String(obj.type ?? ''),
+      description: String(obj.text ?? ''),
       time: formatRelativeTime(createdAt),
       type,
       category,
-      isRead: Boolean(r.isRead),
-      actionLabel: r.link ? 'פתח' : undefined,
-      link: r.link ? String(r.link) : null,
+      isRead: Boolean(obj.isRead),
+      actionLabel: undefined,
+      link: null,
     };
   });
 }
@@ -128,22 +137,23 @@ export async function markSystemNotificationRead(params: {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
     const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
 
-    const readColumn = await resolveMisradNotificationsReadColumn();
-
-    if (readColumn) {
-      await prisma.$executeRaw(Prisma.sql`
+    await executeRawOrgScoped(prisma, {
+      organizationId: String(workspace.id),
+      reason: 'system_notifications_mark_read',
+      query: `
         update misrad_notifications
-        set ${Prisma.raw(`"${readColumn}"`)} = true,
+        set is_read = true,
             updated_at = now()
-        where id::text = ${String(params.id)}
-          and organization_id::text = ${String(workspace.id)}
-          and recipient_id::text = ${String(currentUser.id)}
-      `);
-    }
+        where organization_id = $1::uuid
+          and recipient_id::text = $2::text
+          and id::text = $3::text
+      `,
+      values: [String(workspace.id), String(currentUser.id), String(params.id)],
+    });
 
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה בסימון התראה כנקראה' };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בסימון התראה כנקראה' };
   }
 }
 
@@ -154,22 +164,23 @@ export async function markAllSystemNotificationsRead(params: {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
     const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
 
-    const readColumn = await resolveMisradNotificationsReadColumn();
-
-    if (readColumn) {
-      await prisma.$executeRaw(Prisma.sql`
+    await executeRawOrgScoped(prisma, {
+      organizationId: String(workspace.id),
+      reason: 'system_notifications_mark_all_read',
+      query: `
         update misrad_notifications
-        set ${Prisma.raw(`"${readColumn}"`)} = true,
+        set is_read = true,
             updated_at = now()
-        where organization_id::text = ${String(workspace.id)}
-          and recipient_id::text = ${String(currentUser.id)}
-          and ${Prisma.raw(`"${readColumn}"`)} = false
-      `);
-    }
+        where organization_id = $1::uuid
+          and recipient_id::text = $2::text
+          and is_read = false
+      `,
+      values: [String(workspace.id), String(currentUser.id)],
+    });
 
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה בסימון כל ההתראות כנקראו' };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בסימון כל ההתראות כנקראו' };
   }
 }
 
@@ -181,15 +192,20 @@ export async function deleteSystemNotification(params: {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
     const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
 
-    await prisma.$executeRaw(Prisma.sql`
-      delete from misrad_notifications
-      where id::text = ${String(params.id)}
-        and organization_id::text = ${String(workspace.id)}
-        and recipient_id::text = ${String(currentUser.id)}
-    `);
+    await executeRawOrgScoped(prisma, {
+      organizationId: String(workspace.id),
+      reason: 'system_notifications_delete',
+      query: `
+        delete from misrad_notifications
+        where organization_id = $1::uuid
+          and recipient_id::text = $2::text
+          and id::text = $3::text
+      `,
+      values: [String(workspace.id), String(currentUser.id), String(params.id)],
+    });
 
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, message: e?.message || 'שגיאה במחיקת התראה' };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה במחיקת התראה' };
   }
 }

@@ -1,0 +1,135 @@
+import { NextRequest } from 'next/server';
+import { clerkClient } from '@clerk/nextjs/server';
+import { createServiceRoleClientScoped } from '@/lib/supabase';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function POSTHandler(request: NextRequest) {
+  try {
+    const pairingSecret = process.env.KIOSK_PAIRING_SECRET;
+    if (!pairingSecret && process.env.NODE_ENV === 'production') {
+      return apiError('Kiosk pairing is not configured', { status: 500 });
+    }
+    if (pairingSecret) {
+      const header = request.headers.get('x-kiosk-secret');
+      if (header !== pairingSecret) {
+        return apiError('Unauthorized', { status: 401 });
+      }
+    }
+
+    const approvingUser = await getAuthenticatedUser();
+    const approvingClerkUserId = String(approvingUser.id);
+
+    const { workspace } = await getWorkspaceOrThrow(request);
+    await requirePermission('manage_team');
+
+    const body = await request.json().catch(() => ({} as any));
+    const code = String(body?.code || '').trim().toUpperCase();
+    const approvedForUserId = String(body?.approvedForUserId || '').trim();
+
+    if (!code || !approvedForUserId) {
+      return apiError('Missing code/approvedForUserId', { status: 400 });
+    }
+
+    const supabase = createServiceRoleClientScoped({
+      reason: 'kiosk_pairing_approve',
+      scopeColumn: 'organization_id',
+      scopeId: String(workspace.id),
+    });
+
+  const { data: tokenRow } = await supabase
+    .from('device_pairing_tokens')
+    .select('*')
+    .eq('code', code)
+    .eq('organization_id', workspace.id)
+    .maybeSingle();
+
+  if (!tokenRow?.id) {
+    return apiError('קוד לא נמצא', { status: 404 });
+  }
+
+  const now = new Date();
+  const expiresAt = tokenRow.expires_at ? new Date(String(tokenRow.expires_at)) : null;
+  if (expiresAt && expiresAt.getTime() <= now.getTime()) {
+    return apiError('הקוד פג תוקף', { status: 400 });
+  }
+
+  const status = String(tokenRow.status || '').toUpperCase();
+  if (status !== 'PENDING') {
+    return apiError('הקוד כבר טופל', { status: 400 });
+  }
+
+  const { data: approvedForUser } = await supabase
+    .from('nexus_users')
+    .select('id, email, organization_id')
+    .eq('id', approvedForUserId)
+    .eq('organization_id', workspace.id)
+    .maybeSingle();
+
+  const email = String((approvedForUser as any)?.email || '').trim();
+  if (!email) {
+    return apiError('לא נמצא אימייל למשתמש', { status: 400 });
+  }
+
+  const clerk = await clerkClient();
+  const clerkUsers = await clerk.users.getUserList({ emailAddress: [email], limit: 1 });
+  const targetClerkUserId = clerkUsers?.data?.[0]?.id ? String(clerkUsers.data[0].id) : null;
+
+  if (!targetClerkUserId) {
+    return apiError('המשתמש לא נמצא ב-Clerk', { status: 400 });
+  }
+
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) {
+    return apiError('Clerk secret key not configured', { status: 500 });
+  }
+
+  const createTokenRes = await fetch('https://api.clerk.com/v1/sign_in_tokens', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      user_id: targetClerkUserId,
+      expires_in_seconds: 300,
+    }),
+  });
+
+  if (!createTokenRes.ok) {
+    return apiError('שגיאה ביצירת sign-in token', { status: 500 });
+  }
+
+  const created = await createTokenRes.json().catch(() => null as any);
+  const signInToken = created?.token ? String(created.token) : null;
+
+  if (!signInToken) {
+    return apiError('שגיאה ביצירת sign-in token', { status: 500 });
+  }
+
+  await supabase
+    .from('device_pairing_tokens')
+    .update({
+      status: 'APPROVED',
+      organization_id: workspace.id,
+      approved_by_user_id: approvingClerkUserId,
+      approved_for_user_id: approvedForUserId,
+      approved_for_clerk_user_id: targetClerkUserId,
+      sign_in_token: signInToken,
+      approved_at: now.toISOString(),
+      updated_at: now.toISOString(),
+    } as any)
+    .eq('id', tokenRow.id);
+
+    return apiSuccess({});
+  } catch (e: any) {
+    if (e instanceof APIError) {
+      return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
+    }
+    return apiError(e, { status: 500, message: e?.message || 'Internal server error' });
+  }
+}
+
+export const POST = shabbatGuard(POSTHandler);

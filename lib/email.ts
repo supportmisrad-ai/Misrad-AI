@@ -4,6 +4,34 @@
 
 import { Resend } from 'resend';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorField(error: unknown, field: string): string {
+    const obj = asObject(error);
+    const value = obj ? obj[field] : undefined;
+    return typeof value === 'string' ? value : '';
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    return getErrorField(error, 'message');
+}
+
+function getErrorName(error: unknown): string {
+    if (error instanceof Error && error.name) return error.name;
+    return getErrorField(error, 'name');
+}
+
+function getErrorCode(error: unknown): string {
+    return getErrorField(error, 'code');
+}
+
 // Lazy initialization - only create Resend client when needed
 function getResendClient(): Resend | null {
     const apiKey = process.env.RESEND_API_KEY;
@@ -327,7 +355,7 @@ export async function sendEmployeeInvitationEmail(
         // Get Resend client (lazy initialization)
         const resend = getResendClient();
         if (!resend) {
-            console.error('[Email] RESEND_API_KEY is not configured');
+            if (!IS_PROD) console.error('[Email] Email service is not configured');
             return { success: false, error: 'Email service not configured' };
         }
 
@@ -343,12 +371,16 @@ export async function sendEmployeeInvitationEmail(
         });
 
         if (error) {
-            console.error('[Email] Resend error:', {
-                message: (error as any)?.message,
-                name: (error as any)?.name,
-                code: (error as any)?.code
-            });
-            return { success: false, error: error.message || 'Failed to send email' };
+            if (!IS_PROD) {
+                console.error('[Email] Resend error:', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
         }
 
         console.log('[Email] Employee invitation email sent successfully:', {
@@ -358,12 +390,18 @@ export async function sendEmployeeInvitationEmail(
         });
 
         return { success: true };
-    } catch (error: any) {
-        console.error('[Email] Error sending employee invitation email:', {
-            message: error?.message,
-            name: error?.name
-        });
-        return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending employee invitation email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending employee invitation email');
+        }
+        return { success: false, error: message || 'Unknown error' };
     }
 }
 
@@ -424,14 +462,14 @@ export async function sendFirstCustomerEmail(params: {
     try {
         const resend = getResendClient();
         if (!resend) {
-            console.warn('[Email] RESEND_API_KEY is not configured - skipping first customer email');
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping first customer email');
             return { success: false, error: 'Email service not configured' };
         }
 
         const founderName = (process.env.MISRAD_FOUNDER_NAME || 'איציק').trim();
         const founderPhone = (process.env.MISRAD_FOUNDER_PHONE || '').trim();
         if (!founderPhone) {
-            return { success: false, error: 'MISRAD_FOUNDER_PHONE is not configured' };
+            return { success: false, error: IS_PROD ? 'Missing required configuration' : 'MISRAD_FOUNDER_PHONE is not configured' };
         }
 
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
@@ -451,12 +489,16 @@ export async function sendFirstCustomerEmail(params: {
         });
 
         if (error) {
-            console.error('[Email] Resend error (first-customer):', {
-                message: (error as any)?.message,
-                name: (error as any)?.name,
-                code: (error as any)?.code
-            });
-            return { success: false, error: error.message || 'Failed to send email' };
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (first-customer):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (first-customer)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
         }
 
         console.log('[Email] First customer email sent successfully:', {
@@ -464,14 +506,151 @@ export async function sendFirstCustomerEmail(params: {
         });
 
         return { success: true };
-    } catch (error: any) {
-        console.error('[Email] Error sending first customer email:', {
-            message: error?.message,
-            name: error?.name
-        });
-        return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending first customer email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending first customer email');
+        }
+        return { success: false, error: message || 'Unknown error' };
     }
 }
+
+function generateAbandonedSignupFollowupEmailHTML(params: {
+    ownerName?: string | null;
+    checkoutUrl: string;
+    founderName: string;
+    founderPhone?: string | null;
+}): string {
+    const greeting = params.ownerName ? `היי ${params.ownerName},` : 'היי,';
+    const founderPhone = String(params.founderPhone || '').trim();
+
+    return `
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>רק לבדוק שהכל הסתדר</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5; direction: rtl;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #0f172a 0%, #334155 100%); padding: 34px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 900; letter-spacing: -0.5px;">MISRAD</h1>
+                            <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.85); font-size: 13px; font-weight: 600;">רק לבדוק שהכל הסתדר</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 36px 30px;">
+                            <div style="color: #0f172a; font-size: 18px; font-weight: 900; margin: 0 0 14px 0;">${greeting}</div>
+                            <div style="color: #334155; font-size: 16px; line-height: 1.8;">
+                                אני ${params.founderName}. ראיתי שנרשמת ל-MISRAD ב-24 השעות האחרונות, אבל לא ראיתי מנוי פעיל.
+                                <br />
+                                רציתי לשאול אם משהו נתקע בדרך, ואם אני יכול לעזור.
+                            </div>
+
+                            <table role="presentation" style="width: 100%; margin: 24px 0 0 0;">
+                                <tr>
+                                    <td align="center" style="padding: 0;">
+                                        <a href="${params.checkoutUrl}" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #ffffff; text-decoration: none; padding: 14px 22px; border-radius: 12px; font-weight: 900; font-size: 14px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">להשלמת מנוי / תשלום</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            ${founderPhone ? `
+                            <div style="margin: 18px 0 0 0; color: #475569; font-size: 14px; line-height: 1.7;">
+                                אם נוח יותר, אפשר גם לשלוח לי וואטסאפ/להתקשר: <strong style="color: #0f172a;">${founderPhone}</strong>
+                            </div>
+                            ` : ''}
+
+                            <div style="margin: 26px 0 0 0; padding-top: 18px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; line-height: 1.6;">
+                                אם קיבלת את ההודעה בטעות, אפשר להתעלם.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `.trim();
+}
+
+export async function sendAbandonedSignupFollowupEmail(params: {
+    toEmail: string;
+    ownerName?: string | null;
+    checkoutUrl: string;
+}): Promise<{ success: boolean; error?: string }> {
+    try {
+        const resend = getResendClient();
+        if (!resend) {
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping abandoned signup followup email');
+            return { success: false, error: 'Email service not configured' };
+        }
+
+        const founderName = (process.env.MISRAD_FOUNDER_NAME || 'איציק').trim();
+        const founderPhone = (process.env.MISRAD_FOUNDER_PHONE || '').trim();
+
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        const toEmail = resolveRecipientEmail(params.toEmail);
+
+        const html = generateAbandonedSignupFollowupEmailHTML({
+            ownerName: params.ownerName || null,
+            checkoutUrl: params.checkoutUrl,
+            founderName,
+            founderPhone: founderPhone || null,
+        });
+
+        const { data, error } = await resend.emails.send({
+            from: fromEmail,
+            to: toEmail,
+            subject: 'רק לבדוק שהכל הסתדר עם ההרשמה ל-MISRAD',
+            html,
+        });
+
+        if (error) {
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (abandoned-signup-followup):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (abandoned-signup-followup)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
+        }
+
+        console.log('[Email] Abandoned signup follow-up email sent successfully:', {
+            emailId: data?.id,
+        });
+
+        return { success: true };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending abandoned signup followup email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending abandoned signup followup email');
+        }
+        return { success: false, error: message || 'Unknown error' };
+    }
+}
+
 export async function sendOrganizationWelcomeEmail(params: {
     ownerEmail: string;
     organizationName: string;
@@ -481,7 +660,7 @@ export async function sendOrganizationWelcomeEmail(params: {
     try {
         const resend = getResendClient();
         if (!resend) {
-            console.warn('[Email] RESEND_API_KEY is not configured - skipping welcome email');
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping welcome email');
             return { success: false, error: 'Email service not configured' };
         }
 
@@ -502,12 +681,16 @@ export async function sendOrganizationWelcomeEmail(params: {
         });
 
         if (error) {
-            console.error('[Email] Resend error (welcome):', {
-                message: (error as any)?.message,
-                name: (error as any)?.name,
-                code: (error as any)?.code
-            });
-            return { success: false, error: error.message || 'Failed to send email' };
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (welcome):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (welcome)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
         }
 
         console.log('[Email] Organization welcome email sent successfully:', {
@@ -516,12 +699,18 @@ export async function sendOrganizationWelcomeEmail(params: {
         });
 
         return { success: true };
-    } catch (error: any) {
-        console.error('[Email] Error sending organization welcome email:', {
-            message: error?.message,
-            name: error?.name
-        });
-        return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending organization welcome email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending organization welcome email');
+        }
+        return { success: false, error: message || 'Unknown error' };
     }
 }
 
@@ -658,7 +847,7 @@ export async function sendMisradWelcomeEmail(params: {
     try {
         const resend = getResendClient();
         if (!resend) {
-            console.warn('[Email] RESEND_API_KEY is not configured - skipping welcome email');
+            if (!IS_PROD) console.warn('[Email] Email service is not configured - skipping welcome email');
             return { success: false, error: 'Email service not configured' };
         }
 
@@ -703,12 +892,16 @@ export async function sendMisradWelcomeEmail(params: {
         });
 
         if (error) {
-            console.error('[Email] Resend error (misrad-welcome):', {
-                message: (error as any)?.message,
-                name: (error as any)?.name,
-                code: (error as any)?.code
-            });
-            return { success: false, error: error.message || 'Failed to send email' };
+            if (!IS_PROD) {
+                console.error('[Email] Resend error (misrad-welcome):', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error (misrad-welcome)');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
         }
 
         console.log('[Email] MISRAD welcome email sent successfully:', {
@@ -716,12 +909,18 @@ export async function sendMisradWelcomeEmail(params: {
         });
 
         return { success: true };
-    } catch (error: any) {
-        console.error('[Email] Error sending MISRAD welcome email:', {
-            message: error?.message,
-            name: error?.name
-        });
-        return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending MISRAD welcome email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending MISRAD welcome email');
+        }
+        return { success: false, error: message || 'Unknown error' };
     }
 }
 
@@ -749,7 +948,7 @@ export async function sendTenantInvitationEmail(
         // Get Resend client (lazy initialization)
         const resend = getResendClient();
         if (!resend) {
-            console.error('[Email] RESEND_API_KEY is not configured');
+            if (!IS_PROD) console.error('[Email] Email service is not configured');
             return { success: false, error: 'Email service not configured' };
         }
 
@@ -765,12 +964,16 @@ export async function sendTenantInvitationEmail(
         });
 
         if (error) {
-            console.error('[Email] Resend error:', {
-                message: (error as any)?.message,
-                name: (error as any)?.name,
-                code: (error as any)?.code
-            });
-            return { success: false, error: error.message || 'Failed to send email' };
+            if (!IS_PROD) {
+                console.error('[Email] Resend error:', {
+                    message: getErrorMessage(error),
+                    name: getErrorName(error),
+                    code: getErrorCode(error)
+                });
+            } else {
+                console.error('[Email] Resend error');
+            }
+            return { success: false, error: getErrorMessage(error) || 'Failed to send email' };
         }
 
         console.log('[Email] Invitation email sent successfully:', {
@@ -779,11 +982,17 @@ export async function sendTenantInvitationEmail(
         });
 
         return { success: true };
-    } catch (error: any) {
-        console.error('[Email] Error sending invitation email:', {
-            message: error?.message,
-            name: error?.name
-        });
-        return { success: false, error: error.message || 'Unknown error' };
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const name = getErrorName(error);
+        if (!IS_PROD) {
+            console.error('[Email] Error sending invitation email:', {
+                message,
+                name
+            });
+        } else {
+            console.error('[Email] Error sending invitation email');
+        }
+        return { success: false, error: message || 'Unknown error' };
     }
 }

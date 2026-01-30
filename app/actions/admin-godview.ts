@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 
@@ -43,80 +43,50 @@ function startOfMonthISO() {
   return d.toISOString();
 }
 
-async function sumPaidInvoicesThisMonth(supabase: ReturnType<typeof createClient>): Promise<number> {
-  const monthStart = startOfMonthISO();
+async function sumPaidInvoicesThisMonth(): Promise<number> {
+  const monthStart = new Date(startOfMonthISO());
+  const res = await prisma.social_invoices.aggregate({
+    where: {
+      status: 'paid',
+      OR: [{ date: { gte: monthStart } }, { created_at: { gte: monthStart } }],
+    },
+    _sum: { amount: true },
+  });
 
-  const attemptPaidDate = await supabase
-    .from('invoices')
-    .select('amount, paid_date, status')
-    .eq('status', 'paid')
-    .gte('paid_date', monthStart);
-
-  if (!attemptPaidDate.error) {
-    const rows = Array.isArray(attemptPaidDate.data) ? attemptPaidDate.data : [];
-    return rows.reduce((sum: number, r: any) => sum + (Number(r?.amount) || 0), 0);
-  }
-
-  const attemptDate = await supabase
-    .from('invoices')
-    .select('amount, date, status')
-    .eq('status', 'paid')
-    .gte('date', monthStart);
-
-  if (!attemptDate.error) {
-    const rows = Array.isArray(attemptDate.data) ? attemptDate.data : [];
-    return rows.reduce((sum: number, r: any) => sum + (Number(r?.amount) || 0), 0);
-  }
-
-  const attemptCreatedAt = await supabase
-    .from('invoices')
-    .select('amount, created_at, status')
-    .eq('status', 'paid')
-    .gte('created_at', monthStart);
-
-  if (!attemptCreatedAt.error) {
-    const rows = Array.isArray(attemptCreatedAt.data) ? attemptCreatedAt.data : [];
-    return rows.reduce((sum: number, r: any) => sum + (Number(r?.amount) || 0), 0);
-  }
-
-  return 0;
+  return res?._sum?.amount === null || res?._sum?.amount === undefined ? 0 : Number(res._sum.amount);
 }
 
-async function sumAiCreditsUsedTodayCents(supabase: ReturnType<typeof createClient>): Promise<number> {
-  const todayStart = startOfTodayISO();
-  const { data, error } = await supabase
-    .from('ai_usage_logs')
-    .select('charged_cents, status, created_at')
-    .eq('status', 'success')
-    .gte('created_at', todayStart)
-    .limit(10000);
+async function sumAiCreditsUsedTodayCents(): Promise<number> {
+  const todayStart = new Date(startOfTodayISO());
+  const res = await prisma.ai_usage_logs.aggregate({
+    where: { status: 'success', created_at: { gte: todayStart } },
+    _sum: { charged_cents: true },
+  });
 
-  if (error) return 0;
-
-  const rows = Array.isArray(data) ? data : [];
-  return rows.reduce((sum: number, r: any) => sum + (Number(r?.charged_cents) || 0), 0);
+  return res?._sum?.charged_cents === null || res?._sum?.charged_cents === undefined ? 0 : Number(res._sum.charged_cents);
 }
 
-async function getRecentOrganizationsWithPrimaryClientId(supabase: ReturnType<typeof createClient>): Promise<AdminGodViewRecentOrganization[]> {
-  const { data: orgs, error } = await supabase
-    .from('organizations')
-    .select('id, name, slug, created_at, subscription_status')
-    .order('created_at', { ascending: false })
-    .limit(5);
+async function getRecentOrganizationsWithPrimaryClientId(): Promise<AdminGodViewRecentOrganization[]> {
+  const orgs = await prisma.social_organizations.findMany({
+    select: { id: true, name: true, slug: true, created_at: true, subscription_status: true },
+    orderBy: { created_at: 'desc' },
+    take: 5,
+  });
 
-  if (error || !Array.isArray(orgs) || orgs.length === 0) return [];
+  if (!Array.isArray(orgs) || orgs.length === 0) return [];
 
-  const orgIds = orgs.map((o: any) => String(o.id)).filter(Boolean);
-  const { data: clients } = await supabase
-    .from('client_clients')
-    .select('id, organization_id, created_at')
-    .in('organization_id', orgIds)
-    .order('created_at', { ascending: true })
-    .limit(500);
+  const orgIds = orgs.map((o) => String(o.id)).filter(Boolean);
+
+  const clients = await prisma.clientClient.findMany({
+    where: { organizationId: { in: orgIds } },
+    select: { id: true, organizationId: true, createdAt: true },
+    orderBy: { createdAt: 'asc' },
+    take: 500,
+  });
 
   const primaryClientByOrgId = new Map<string, string>();
   for (const c of Array.isArray(clients) ? clients : []) {
-    const orgId = (c as any)?.organization_id ? String((c as any).organization_id) : '';
+    const orgId = (c as any)?.organizationId ? String((c as any).organizationId) : '';
     const clientId = (c as any)?.id ? String((c as any).id) : '';
     if (!orgId || !clientId) continue;
     if (!primaryClientByOrgId.has(orgId)) primaryClientByOrgId.set(orgId, clientId);
@@ -128,22 +98,24 @@ async function getRecentOrganizationsWithPrimaryClientId(supabase: ReturnType<ty
       id,
       name: String(o.name || ''),
       slug: o.slug ? String(o.slug) : null,
-      createdAt: o.created_at ? String(o.created_at) : null,
+      createdAt: o.created_at ? new Date(o.created_at as any).toISOString() : null,
       subscriptionStatus: o.subscription_status ? String(o.subscription_status) : null,
       primaryClientId: primaryClientByOrgId.get(id) || null,
     };
   });
 }
 
-async function getSystemAlerts(supabase: ReturnType<typeof createClient>): Promise<AdminGodViewAlert[]> {
+async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
   const alerts: AdminGodViewAlert[] = [];
 
   try {
-    const { data: settingsRows } = await supabase
-      .from('organization_settings')
-      .select('organization_id, ai_quota_cents')
-      .not('ai_quota_cents', 'is', null)
-      .limit(30);
+    const monthStart = new Date(startOfMonthISO());
+
+    const settingsRows = await prisma.organization_settings.findMany({
+      where: { ai_quota_cents: { not: null } },
+      select: { organization_id: true, ai_quota_cents: true },
+      take: 30,
+    });
 
     const orgIds = (Array.isArray(settingsRows) ? settingsRows : [])
       .map((r: any) => (r?.organization_id ? String(r.organization_id) : null))
@@ -151,10 +123,10 @@ async function getSystemAlerts(supabase: ReturnType<typeof createClient>): Promi
 
     let orgsById = new Map<string, { name: string; slug: string | null }>();
     if (orgIds.length) {
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id, name, slug')
-        .in('id', orgIds);
+      const orgs = await prisma.social_organizations.findMany({
+        where: { id: { in: orgIds } },
+        select: { id: true, name: true, slug: true },
+      });
 
       for (const o of Array.isArray(orgs) ? orgs : []) {
         const id = String((o as any).id);
@@ -162,21 +134,34 @@ async function getSystemAlerts(supabase: ReturnType<typeof createClient>): Promi
       }
     }
 
+    const usageByOrg = orgIds.length
+      ? await prisma.ai_usage_logs.groupBy({
+          by: ['organization_id'],
+          where: {
+            organization_id: { in: orgIds },
+            status: 'success',
+            created_at: { gte: monthStart },
+          },
+          _sum: { charged_cents: true },
+        })
+      : [];
+
+    const usedCentsByOrgId = new Map<string, number>();
+    for (const row of Array.isArray(usageByOrg) ? usageByOrg : []) {
+      const orgId = (row as any)?.organization_id ? String((row as any).organization_id) : '';
+      const used = (row as any)?._sum?.charged_cents === null || (row as any)?._sum?.charged_cents === undefined ? 0 : Number((row as any)._sum.charged_cents);
+      if (orgId) usedCentsByOrgId.set(orgId, used);
+    }
+
     for (const row of Array.isArray(settingsRows) ? settingsRows : []) {
       const orgId = row?.organization_id ? String(row.organization_id) : null;
       const quota = row?.ai_quota_cents === null || row?.ai_quota_cents === undefined ? null : Number(row.ai_quota_cents);
       if (!orgId || quota === null) continue;
 
-      const { data: statusRows, error } = await supabase.rpc('ai_get_credit_status', {
-        p_organization_id: orgId,
-      });
+      const used = usedCentsByOrgId.get(orgId) ?? 0;
+      const remaining = quota - used;
 
-      if (error) continue;
-      const st = Array.isArray(statusRows) ? statusRows[0] : null;
-      const remaining = st?.remaining_cents === null || st?.remaining_cents === undefined ? null : Number(st.remaining_cents);
-      const used = st?.used_cents === null || st?.used_cents === undefined ? 0 : Number(st.used_cents);
-
-      if (remaining !== null && remaining <= 0 && used > 0) {
+      if (remaining <= 0 && used > 0) {
         const info = orgsById.get(orgId);
         alerts.push({
           type: 'ai_quota_exceeded',
@@ -194,25 +179,27 @@ async function getSystemAlerts(supabase: ReturnType<typeof createClient>): Promi
   }
 
   try {
-    const { data: clients } = await supabase
-      .from('client_clients')
-      .select('organization_id, metadata')
-      .limit(2000);
+    const overdueOrgs = await prisma.clientClient.findMany({
+      where: {
+        metadata: {
+          path: ['paymentStatus'],
+          equals: 'overdue',
+        } as any,
+      },
+      select: { organizationId: true },
+      distinct: ['organizationId'],
+      take: 20,
+    });
 
-    const overdueOrgIds = new Set<string>();
-    for (const c of Array.isArray(clients) ? clients : []) {
-      const orgId = (c as any)?.organization_id ? String((c as any).organization_id) : null;
-      const paymentStatus = (c as any)?.metadata?.paymentStatus ? String((c as any).metadata.paymentStatus) : '';
-      if (!orgId) continue;
-      if (paymentStatus.toLowerCase() === 'overdue') overdueOrgIds.add(orgId);
-    }
+    const orgIds = (Array.isArray(overdueOrgs) ? overdueOrgs : [])
+      .map((r: any) => (r?.organizationId ? String(r.organizationId) : null))
+      .filter(Boolean) as string[];
 
-    const orgIds = Array.from(overdueOrgIds).slice(0, 20);
     if (orgIds.length) {
-      const { data: orgs } = await supabase
-        .from('organizations')
-        .select('id, name, slug')
-        .in('id', orgIds);
+      const orgs = await prisma.social_organizations.findMany({
+        where: { id: { in: orgIds } },
+        select: { id: true, name: true, slug: true },
+      });
 
       for (const o of Array.isArray(orgs) ? orgs : []) {
         alerts.push({
@@ -249,20 +236,15 @@ export async function getAdminGodView(): Promise<{
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
-    const [orgCountRes, profilesCountRes] = await Promise.all([
-      supabase.from('organizations').select('id', { count: 'exact', head: true }),
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-    ]);
-
-    const totalOrganizations = Number(orgCountRes.count || 0);
-    const totalProfiles = Number(profilesCountRes.count || 0);
-
-    const revenuePaidThisMonth = await sumPaidInvoicesThisMonth(supabase);
-    const aiCreditsUsedTodayCents = await sumAiCreditsUsedTodayCents(supabase);
-    const recentOrganizations = await getRecentOrganizationsWithPrimaryClientId(supabase);
-    const alerts = await getSystemAlerts(supabase);
+    const [totalOrganizations, totalProfiles, revenuePaidThisMonth, aiCreditsUsedTodayCents, recentOrganizations, alerts] =
+      await Promise.all([
+        prisma.social_organizations.count(),
+        prisma.profile.count(),
+        sumPaidInvoicesThisMonth(),
+        sumAiCreditsUsedTodayCents(),
+        getRecentOrganizationsWithPrimaryClientId(),
+        getSystemAlerts(),
+      ]);
 
     return createSuccessResponse({
       kpis: {

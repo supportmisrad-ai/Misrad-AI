@@ -1,8 +1,9 @@
 import type { OSModule } from '@/types/os-modules';
-import { getOSModule, OS_MODULES } from '@/types/os-modules';
+import { OS_MODULES } from '@/types/os-modules';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { getModuleLabel } from '@/lib/os/modules/registry';
 
-export const MISRAD_APP_NAME = 'Misrad';
+export const MISRAD_APP_NAME = 'MISRAD AI';
 
 export const getActiveRoomFromPathname = (pathname: string | null | undefined): OSModule | null => {
   if (!pathname) return null;
@@ -72,16 +73,7 @@ export const getScreenNameFromPathname = (pathname: string | null | undefined): 
 
 export const getRoomName = (room: OSModule | null): string | null => {
   if (!room) return null;
-  const module = getOSModule(room);
-  if (!module) return null;
-  return `${module.name}`;
-};
-
-export const getRoomNameHebrew = (room: OSModule | null): string | null => {
-  if (!room) return null;
-  const module = getOSModule(room);
-  if (!module) return null;
-  return `${module.nameHebrew}`;
+  return getModuleLabel(room as OSModuleKey);
 };
 
 export const buildDocumentTitle = (args: {

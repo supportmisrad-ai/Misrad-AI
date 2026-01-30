@@ -32,7 +32,7 @@ const ClientOSAdminApp: React.FC = () => {
       case 'clients':
         return <ClientView />;
       case 'client-portal':
-        return <ClientPortal clientId={portalClientId || '1'} onBack={() => setCurrentView('clients')} />;
+        return <ClientPortal clientId={portalClientId || '1'} />;
       default:
         return <Dashboard />;
     }

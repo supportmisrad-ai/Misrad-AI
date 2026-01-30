@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from './contexts/ToastContext';
 import { Lead, Task, PipelineStage } from './types';
 import { STAGES } from './constants';
-import useLocalStorage from './hooks/useLocalStorage';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface SimpleAutomation {
   id: string;
@@ -46,9 +46,11 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
   onStatusChange 
 }) => {
   const { addToast } = useToast();
-  const [automations, setAutomations] = useLocalStorage<SimpleAutomation[]>('automations_v1', []);
+  const [automations, setAutomations] = useState<SimpleAutomation[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const lastRunRef = useRef(new Map<string, number>());
 
   const [formData, setFormData] = useState<Omit<SimpleAutomation, 'id' | 'stats'>>({
     name: '',
@@ -69,6 +71,77 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
   const [isPriorityDropdownOpen, setIsPriorityDropdownOpen] = useState(false);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
+
+  const orgSlug = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    return getWorkspaceOrgSlugFromPathname(window.location.pathname);
+  }, []);
+
+  const persistAutomations = async (next: SimpleAutomation[]) => {
+    if (!orgSlug) return;
+    try {
+      await fetch('/api/system/automations', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
+        body: JSON.stringify({ automations: next }),
+      });
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!orgSlug) return;
+
+    const load = async () => {
+      let serverAutomations: SimpleAutomation[] = [];
+      try {
+        const res = await fetch('/api/system/automations', { headers: { 'x-org-id': orgSlug }, cache: 'no-store' });
+        const data = await res.json().catch(() => null);
+        serverAutomations = Array.isArray(data?.automations) ? (data.automations as SimpleAutomation[]) : [];
+      } catch {
+        serverAutomations = [];
+      }
+
+      let legacy: SimpleAutomation[] | null = null;
+      try {
+        const raw = localStorage.getItem('automations_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          legacy = Array.isArray(parsed) ? (parsed as SimpleAutomation[]) : null;
+        }
+      } catch {
+        legacy = null;
+      }
+
+      try {
+        localStorage.removeItem('automations_v1');
+      } catch {
+        // ignore
+      }
+
+      const shouldMigrate = legacy && legacy.length > 0 && serverAutomations.length === 0;
+      if (shouldMigrate && legacy) {
+        await persistAutomations(legacy);
+        if (!cancelled) {
+          setAutomations(legacy);
+          hasLoadedRef.current = true;
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        setAutomations(serverAutomations);
+        hasLoadedRef.current = true;
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgSlug]);
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -154,13 +227,9 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
     const runKey = `automation_${automation.id}_lead_${lead.id}_${triggerSuffix}`;
     
     try {
-      const lastRun = localStorage.getItem(runKey);
-      if (lastRun) {
-        // Check if this is a very recent run (within last 5 seconds) to prevent rapid duplicates
-        const lastRunTime = parseInt(lastRun);
-        if (Date.now() - lastRunTime < 5000) {
-          return; // Already ran very recently for this lead/trigger combination
-        }
+      const lastRunTime = lastRunRef.current.get(runKey);
+      if (typeof lastRunTime === 'number' && Date.now() - lastRunTime < 5000) {
+        return;
       }
       
       if (automation.action.type === 'create_task') {
@@ -198,8 +267,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
           : a
       ));
 
-      // Mark as run with timestamp
-      localStorage.setItem(runKey, Date.now().toString());
+      lastRunRef.current.set(runKey, Date.now());
       
     } catch (error) {
       console.error('Automation execution failed:', error);
@@ -223,11 +291,15 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
     }
 
     if (editingId) {
-      setAutomations(prev => prev.map(a => 
+      const next = automations.map(a =>
         a.id === editingId 
           ? { ...a, ...formData }
           : a
-      ));
+      );
+      setAutomations(next);
+      if (hasLoadedRef.current) {
+        void persistAutomations(next);
+      }
       addToast('האוטומציה עודכנה', 'success');
     } else {
       const newAutomation: SimpleAutomation = {
@@ -235,7 +307,11 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
         ...formData,
         stats: { runs: 0, lastRun: null }
       };
-      setAutomations(prev => [...prev, newAutomation]);
+      const next = [...automations, newAutomation];
+      setAutomations(next);
+      if (hasLoadedRef.current) {
+        void persistAutomations(next);
+      }
       addToast('אוטומציה חדשה נוצרה!', 'success');
     }
 
@@ -257,15 +333,23 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
 
   const handleDelete = (id: string) => {
     if (confirm('האם אתה בטוח שברצונך למחוק את האוטומציה?')) {
-      setAutomations(prev => prev.filter(a => a.id !== id));
+      const next = automations.filter(a => a.id !== id);
+      setAutomations(next);
+      if (hasLoadedRef.current) {
+        void persistAutomations(next);
+      }
       addToast('האוטומציה נמחקה', 'success');
     }
   };
 
   const handleToggle = (id: string) => {
-    setAutomations(prev => prev.map(a => 
+    const next = automations.map(a => 
       a.id === id ? { ...a, enabled: !a.enabled } : a
-    ));
+    );
+    setAutomations(next);
+    if (hasLoadedRef.current) {
+      void persistAutomations(next);
+    }
   };
 
   const resetForm = () => {

@@ -82,7 +82,7 @@ export function LockedModuleUpgradeModal({
           <button
             type="button"
             onClick={onCloseAction}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="סגור"
           >
             <X size={16} />

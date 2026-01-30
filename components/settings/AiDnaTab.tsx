@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { useData } from '@/context/DataContext';
 
 type AiDna = {
@@ -16,7 +16,7 @@ type AiDna = {
 
 export const AiDnaTab: React.FC = () => {
   const pathname = usePathname();
-  const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+  const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
   const { addToast } = useData();
 
   const [isLoading, setIsLoading] = useState(true);

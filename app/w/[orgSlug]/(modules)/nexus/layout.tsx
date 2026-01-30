@@ -1,9 +1,13 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('nexus');
 
 
 export default async function NexusModuleLayout({

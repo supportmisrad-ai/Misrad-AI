@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -18,7 +18,20 @@ export default function WorkspaceCanonicalRedirect({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoaded } = useUser();
+  let clerkUser: ReturnType<typeof useUser>['user'] | null = null;
+  let clerkIsLoaded = true;
+
+  try {
+    const clerk = useUser();
+    clerkUser = clerk.user;
+    clerkIsLoaded = clerk.isLoaded;
+  } catch {
+    clerkUser = null;
+    clerkIsLoaded = true;
+  }
+
+  const user = clerkUser;
+  const isLoaded = clerkIsLoaded;
 
   useEffect(() => {
     if (!canonicalSlug) return;
@@ -48,7 +61,7 @@ export default function WorkspaceCanonicalRedirect({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
         e.preventDefault();
-        const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+        const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
         if (!orgSlug) return;
 
         const returnTo = `${window.location.pathname}${window.location.search || ''}`;

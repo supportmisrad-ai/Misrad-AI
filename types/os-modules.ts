@@ -1,4 +1,5 @@
 import type { OSModuleKey } from '../lib/os/modules/types';
+import { modulesRegistry } from '@/lib/os/modules/registry';
 
 export type OSModule = OSModuleKey;
 
@@ -18,8 +19,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   social: {
     id: 'social',
     name: 'Social',
-    nameHebrew: 'שיווק, תוכן וקמפיינים',
-    iconName: 'Megaphone',
+    nameHebrew: 'שיווק',
+    iconName: modulesRegistry.social.iconName,
     color: 'text-purple-600',
     gradient: 'from-indigo-600 via-purple-600 to-pink-600',
     description: 'שיווק קמפיינים תוכן',
@@ -29,10 +30,10 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   system: {
     id: 'system',
     name: 'System',
-    nameHebrew: 'מרכז המכירות והלידים',
-    iconName: 'Target',
+    nameHebrew: 'מכירות',
+    iconName: modulesRegistry.system.iconName,
     color: 'text-rose-600',
-    gradient: 'from-rose-500 to-pink-600',
+    gradient: 'from-[#A21D3C] to-[#881337]',
     description: 'לידים מכירות טלפוניה',
     purchased: true, // Currently exists
     route: '/w/[orgSlug]/system'
@@ -40,19 +41,19 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   finance: {
     id: 'finance',
     name: 'Finance',
-    nameHebrew: 'שליטה פיננסית מלאה',
-    iconName: 'Banknote',
+    nameHebrew: 'כספים',
+    iconName: modulesRegistry.finance.iconName,
     color: 'text-emerald-600',
     gradient: 'from-emerald-500 to-teal-600',
     description: 'חשבוניות תשלומים דוחות',
-    purchased: false, // Ready for use
+    purchased: true, // Ready for use
     route: '/w/[orgSlug]/finance'
   },
   nexus: {
     id: 'nexus',
     name: 'Nexus',
     nameHebrew: 'ניהול, משימות וצוות',
-    iconName: 'BrainCircuit',
+    iconName: modulesRegistry.nexus.iconName,
     color: 'text-indigo-600',
     gradient: 'from-indigo-500 to-purple-600',
     description: 'משימות ואירועים צוות',
@@ -63,9 +64,9 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
     id: 'client',
     name: 'Client',
     nameHebrew: 'מעקב לקוחות ומתאמנים',
-    iconName: 'GraduationCap',
+    iconName: modulesRegistry.client.iconName,
     color: 'text-[#C5A572]',
-    gradient: 'from-[#0F172A] to-[#334155]',
+    gradient: 'from-[#EAD7A1] via-[#C5A572] to-[#B45309]',
     description: 'לקוחות תמלול תובנות',
     purchased: true, // Ready for use
     route: '/w/[orgSlug]/client'
@@ -73,8 +74,8 @@ const OS_MODULES_BY_ID: Record<OSModule, OSModuleInfo> = {
   operations: {
     id: 'operations',
     name: 'Operations',
-    nameHebrew: 'תפעול, מלאי ושטח',
-    iconName: 'Wrench',
+    nameHebrew: 'תפעול',
+    iconName: modulesRegistry.operations.iconName,
     color: 'text-sky-600',
     gradient: 'from-sky-500 to-cyan-600',
     description: 'פרויקטים פקודות עבודה מלאי',

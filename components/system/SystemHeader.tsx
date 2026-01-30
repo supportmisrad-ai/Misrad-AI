@@ -5,7 +5,6 @@ import { Bell } from 'lucide-react';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 
 export function SystemHeader({
   title,
@@ -83,11 +82,10 @@ export function SystemHeader({
   );
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
+    <>
       <button
         onClick={onNavigateToNotificationsAction}
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+        className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
         aria-label="התראות"
         type="button"
       >
@@ -95,17 +93,13 @@ export function SystemHeader({
       </button>
       <button
         onClick={onProfileClickAction}
-        className="md:hidden w-9 h-9 rounded-full bg-nexus-gradient flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden"
+        className="md:hidden w-10 h-10 rounded-full bg-nexus-gradient flex items-center justify-center text-white text-sm font-bold shadow-md border-2 border-white overflow-hidden"
         aria-label="פרופיל"
         type="button"
       >
-        {hasValidAvatarSrc ? (
-          <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-        ) : (
-          user.name.charAt(0)
-        )}
+        {hasValidAvatarSrc ? <img src={avatarUrl} alt={user.name} className="w-full h-full object-cover" /> : user.name.charAt(0)}
       </button>
-    </div>
+    </>
   );
 
   const switcherSlot = (

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Building2, Trash2, Lock, Upload, Image as ImageIcon } from 'lucide-react';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { usePathname } from 'next/navigation';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const OrganizationTab: React.FC = () => {
     const { organization, updateOrganization, addToast } = useData();
@@ -18,7 +18,7 @@ export const OrganizationTab: React.FC = () => {
     useEffect(() => {
         const loadAccess = async () => {
             try {
-                const orgSlug = getWorkspaceOrgIdFromPathname(pathname);
+                const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
                 if (!orgSlug) {
                     setCanManageBranding(false);
                     return;

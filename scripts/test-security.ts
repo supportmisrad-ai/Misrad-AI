@@ -6,6 +6,8 @@ const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const jwtOrgA = process.env.SUPABASE_JWT_ORG_A;
 const jwtOrgB = process.env.SUPABASE_JWT_ORG_B;
 
+const jwtTemplate = process.env.CLERK_SUPABASE_JWT_TEMPLATE;
+
 const orgA = process.env.SUPABASE_ORG_A_ID;
 const orgB = process.env.SUPABASE_ORG_B_ID;
 
@@ -19,6 +21,26 @@ function requireEnv(name: string, value: unknown) {
 async function run() {
   requireEnv('NEXT_PUBLIC_SUPABASE_URL', url);
   requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', anonKey);
+  if (!jwtOrgA || !jwtOrgB) {
+    console.log(
+      JSON.stringify(
+        {
+          ok: false,
+          error:
+            'Missing SUPABASE_JWT_ORG_A / SUPABASE_JWT_ORG_B. Provide two JWTs that Supabase can validate and that include organization_id claims. ' +
+            'If you are using Clerk JWT templates, set CLERK_SUPABASE_JWT_TEMPLATE and mint two tokens for two orgs, then set them here.',
+          hint: {
+            CLERK_SUPABASE_JWT_TEMPLATE: jwtTemplate || null,
+          },
+        },
+        null,
+        2
+      )
+    );
+    process.exitCode = 1;
+    return;
+  }
+
   requireEnv('SUPABASE_JWT_ORG_A', jwtOrgA);
   requireEnv('SUPABASE_JWT_ORG_B', jwtOrgB);
   requireEnv('SUPABASE_ORG_A_ID', orgA);

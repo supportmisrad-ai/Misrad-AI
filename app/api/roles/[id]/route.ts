@@ -7,11 +7,22 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { updateRole, deleteRole } from '../../../../lib/db';
 import { RoleDefinition, PermissionId } from '../../../../types';
 import { logAuditEvent } from '../../../../lib/audit';
+import { createClient } from '@/lib/supabase';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function mapRoleRow(row: any): RoleDefinition {
+    return {
+        id: row?.id,
+        name: row?.name,
+        permissions: (row?.permissions || []) as any,
+        isSystem: row?.is_system || false,
+        description: row?.description,
+    } as any;
+}
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -62,8 +73,26 @@ async function PATCHHandler(
                 { status: 400 }
             );
         }
-        
-        const updatedRole = await updateRole(roleId, allowedUpdates);
+
+        const supabase = createClient();
+
+        const dbUpdates: any = {};
+        if (allowedUpdates.name !== undefined) dbUpdates.name = allowedUpdates.name;
+        if (allowedUpdates.permissions !== undefined) dbUpdates.permissions = allowedUpdates.permissions;
+        if ((allowedUpdates as any).description !== undefined) dbUpdates.description = (allowedUpdates as any).description;
+
+        const { data, error } = await supabase
+            .from('misrad_roles')
+            .update(dbUpdates)
+            .eq('id', roleId)
+            .select('*')
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        const updatedRole = mapRoleRow(data);
         
         await logAuditEvent('role.update', 'role', {
             resourceId: updatedRole.id,
@@ -103,8 +132,32 @@ async function DELETEHandler(
         await requirePermission('manage_system');
         
         const { id: roleId } = await params;
-        
-        await deleteRole(roleId);
+
+        const supabase = createClient();
+
+        // Check if role is system role
+        const { data: roleRow, error: fetchError } = await supabase
+            .from('misrad_roles')
+            .select('is_system')
+            .eq('id', roleId)
+            .single();
+
+        if (fetchError) {
+            throw fetchError;
+        }
+
+        if ((roleRow as any)?.is_system) {
+            throw new Error('Cannot delete system role');
+        }
+
+        const { error: deleteError } = await supabase
+            .from('misrad_roles')
+            .delete()
+            .eq('id', roleId);
+
+        if (deleteError) {
+            throw deleteError;
+        }
         
         await logAuditEvent('role.delete', 'role', {
             resourceId: roleId,

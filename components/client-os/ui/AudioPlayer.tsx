@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Play, Pause, Rewind, FastForward } from 'lucide-react';
 
 interface AudioPlayerProps {

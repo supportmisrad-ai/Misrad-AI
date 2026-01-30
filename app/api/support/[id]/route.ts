@@ -3,11 +3,13 @@
  * PATCH /api/support/[id] - Update support ticket (status, assignment, response)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createClient } from '../../../../lib/supabase';
 import { SupportTicket } from '../../../../types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function PATCHHandler(
@@ -17,24 +19,14 @@ async function PATCHHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else if (!user.isSuperAdmin) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const { workspaceId } = await getWorkspaceOrThrow(request);
 
         const supabase = createClient();
 
         const { id: ticketId } = await params;
 
         if (!ticketId) {
-            return NextResponse.json(
-                { error: 'Ticket ID is required' },
-                { status: 400 }
-            );
+            return apiError('Ticket ID is required', { status: 400 });
         }
 
         // Get existing ticket
@@ -45,27 +37,21 @@ async function PATCHHandler(
             .single();
 
         if (getError || !existingTicket) {
-            return NextResponse.json(
-                { error: 'קריאת תמיכה לא נמצאה' },
-                { status: 404 }
-            );
+            return apiError('קריאת תמיכה לא נמצאה', { status: 404 });
         }
 
         // Zero-trust: ensure the ticket belongs to the current workspace context.
-        if (workspaceId && String(existingTicket.tenant_id || '') !== String(workspaceId)) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        if (String(existingTicket.tenant_id || '') !== String(workspaceId)) {
+            return apiError('Forbidden', { status: 403 });
         }
 
         // Check permissions
-        const isAdmin = user.isSuperAdmin || user.role === 'מנכ״ל' || user.role === 'מנכ"ל' || user.role === 'אדמין';
+        const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
         const isOwner = existingTicket.user_id === user.id;
 
         // Only owner (if open) or admin can update
         if (!isAdmin && (!isOwner || existingTicket.status !== 'open')) {
-            return NextResponse.json(
-                { error: 'אין הרשאה לעדכן קריאת תמיכה זו' },
-                { status: 403 }
-            );
+            return apiError('אין הרשאה לעדכן קריאת תמיכה זו', { status: 403 });
         }
 
         const body = await request.json();
@@ -109,10 +95,7 @@ async function PATCHHandler(
         }
 
         if (Object.keys(updateData).length === 0) {
-            return NextResponse.json(
-                { error: 'אין שינויים לעדכן' },
-                { status: 400 }
-            );
+            return apiError('אין שינויים לעדכן', { status: 400 });
         }
 
         // Update ticket
@@ -125,10 +108,7 @@ async function PATCHHandler(
 
         if (updateError) {
             console.error('[API] Error updating support ticket:', updateError);
-            return NextResponse.json(
-                { error: 'שגיאה בעדכון קריאת תמיכה' },
-                { status: 500 }
-            );
+            return apiError('שגיאה בעדכון קריאת תמיכה', { status: 500 });
         }
 
         // Transform response
@@ -153,18 +133,20 @@ async function PATCHHandler(
             metadata: updatedTicket.metadata || {}
         };
 
-        return NextResponse.json({
-            success: true,
+        return apiSuccess({
             ticket: transformedTicket,
             message: 'קריאת תמיכה עודכנה בהצלחה'
         });
 
     } catch (error: any) {
         console.error('[API] Error in /api/support/[id] PATCH:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בעדכון קריאת תמיכה' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, {
+            status: error.message?.includes('Unauthorized') ? 401 : 500,
+            message: error.message || 'שגיאה בעדכון קריאת תמיכה',
+        });
     }
 }
 

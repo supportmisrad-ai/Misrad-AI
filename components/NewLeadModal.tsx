@@ -1,9 +1,8 @@
-
-
+'use client';
 
 import React, { useState } from 'react';
 import { X, User, Building, Phone, Mail, Globe, DollarSign, Flame, Save, CheckCircle, AlertCircle, Clock, Package } from 'lucide-react';
-import { Lead, ProductType } from '../types';
+import { Lead, ProductType } from './system/types';
 
 interface NewLeadModalProps {
   onClose: () => void;

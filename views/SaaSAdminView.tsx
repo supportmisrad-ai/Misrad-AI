@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Shield, LayoutGrid, Lock, BrainCircuit, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image as ImageIcon, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
+import { Shield, LayoutGrid, Lock, Rocket, Database, LogOut, UserCheck, Code, Link2, Package, LifeBuoy, Sparkles, Globe, ExternalLink, Video, Image as ImageIcon, Building2, Moon, Server, Zap, Users, FileText, ChevronRight, UserPlus, Search, Filter, MessageSquare, ShieldCheck, X, Copy, Plug, SlidersHorizontal } from 'lucide-react';
 import { Tenant, GeneratedReport, ModuleId, SystemScreenStatus, Product } from '../types';
 import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
@@ -34,7 +34,7 @@ import { FounderImagePanel } from '../components/saas/FounderImagePanel';
 import { AnnouncementsPanel } from '../components/saas/AnnouncementsPanel';
 import { LandingPaymentLinksPanel } from '../components/saas/LandingPaymentLinksPanel';
 import { AiBrainPanel } from '../components/saas/AiBrainPanel';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { IntegrationsTab } from '../components/saas/social/tabs/IntegrationsTab';
 import { AutomationTab } from '../components/saas/social/tabs/AutomationTab';
 import { QuotasTab } from '../components/saas/social/tabs/QuotasTab';
@@ -138,6 +138,9 @@ export const SaaSAdminView: React.FC = () => {
             { label: 'Nexus · דף שיווק', path: '/nexus' },
             { label: 'Finance · דף שיווק', path: '/finance-landing' },
             { label: 'Operations · דף שיווק', path: '/operations' },
+            { label: 'Save Time · Hub', path: '/save-time' },
+            { label: 'Save Time · שטח (מלאי ברכב)', path: '/save-time/field' },
+            { label: 'Save Time · מכירות (סיכום שיחה)', path: '/save-time/calls' },
             { label: 'Checkout · מודול בודד (System)', path: '/subscribe/checkout?package=solo&module=system&billing=monthly' },
             { label: 'Checkout · חבילת מכירות', path: '/subscribe/checkout?package=the_closer&billing=monthly' },
             { label: 'Checkout · חבילת שיווק ומיתוג', path: '/subscribe/checkout?package=the_authority&billing=monthly' },
@@ -151,6 +154,9 @@ export const SaaSAdminView: React.FC = () => {
         if (!base) return path;
         return `${base}${path}`;
     };
+
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
     const handleCopyMarketingLinks = async () => {
         const links = getMarketingLinks();
@@ -174,19 +180,23 @@ export const SaaSAdminView: React.FC = () => {
             
             setIsLoadingTenants(true);
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                const response = await fetch('/api/tenants', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                const response = await fetch('/api/admin/tenants', {
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
+
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+
                 if (!response.ok) {
                     if (response.status === 401) {
                         addToast('אינך מורשה לראות tenants', 'error');
                         return;
                     }
-                    throw new Error('Failed to load tenants');
+                    throw new Error((payload as any)?.error || (raw as any)?.error || 'Failed to load tenants');
                 }
-                const data = await response.json();
-                const loadedTenants = data.tenants || [];
+
+                const loadedTenants = (payload as any).tenants || [];
                 
                 // Update local state with loaded tenants
                 // Add tenants that don't exist yet
@@ -256,12 +266,12 @@ export const SaaSAdminView: React.FC = () => {
 
             // Import useSecureAPI dynamically (since this is a component, we need to use it differently)
             // For now, we'll call the API directly
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch('/api/tenants', {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/admin/tenants', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     ...tenantData,
@@ -273,12 +283,14 @@ export const SaaSAdminView: React.FC = () => {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה ביצירת tenant');
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה ביצירת tenant');
             }
 
-            const data = await response.json();
-            const newTenant = data.tenant;
+            const raw = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+            const newTenant = (payload as any).tenant;
 
             // Add to local state
             addTenant(newTenant);
@@ -302,23 +314,25 @@ export const SaaSAdminView: React.FC = () => {
 
     const handleUpdateTenant = async (id: string, updates: Partial<Tenant>) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch(`/api/tenants/${id}`, {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch(`/api/admin/tenants/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify(updates),
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בעדכון tenant');
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בעדכון tenant');
             }
 
-            const data = await response.json();
-            const updatedTenant = data.tenant;
+            const raw = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+            const updatedTenant = (payload as any).tenant;
 
             // Update local state only if API call succeeded
             updateTenant(id, updatedTenant);
@@ -349,21 +363,22 @@ export const SaaSAdminView: React.FC = () => {
         }
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch(`/api/tenants/${id}`, {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch(`/api/admin/tenants/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה במחיקת tenant');
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה במחיקת tenant');
             }
 
-            const data = await response.json();
+            await response.json().catch(() => ({}));
 
             // Remove from local state only if API call succeeded
             deleteTenant(id);
@@ -498,80 +513,80 @@ export const SaaSAdminView: React.FC = () => {
                         <ChevronRight size={14} className={`transition-transform duration-200 ${selectedSystem === 'global' ? 'rotate-90' : ''}`} />
                     </button>
 
-                    {/* Global Submenu */}
-                    {selectedSystem === 'global' && (
-                        <div className="space-y-1 pr-4 pt-2">
-                            {[
-                                { id: 'control' as GlobalTab, label: 'בקרת מערכת', icon: Lock },
-                                { id: 'ai' as GlobalTab, label: 'מוח ה-AI', icon: BrainCircuit },
-                                { id: 'users' as GlobalTab, label: 'ניהול משתמשים', icon: Users },
-                                { id: 'announcements' as GlobalTab, label: 'הודעות מערכת', icon: MessageSquare },
-                                { id: 'versions' as GlobalTab, label: 'ניהול גרסאות', icon: Code },
-                                { id: 'data' as GlobalTab, label: 'ניהול נתונים', icon: Database },
-                                { id: 'updates' as GlobalTab, label: 'מרכז עדכונים', icon: Rocket },
-                                { id: 'approvals' as GlobalTab, label: 'אישורי משתמשים', icon: UserCheck },
-                            ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <button 
-                                        key={item.id}
-                                        onClick={() => setGlobalTab(item.id)} 
-                                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
-                                            globalTab === item.id 
-                                                ? 'text-emerald-800 bg-emerald-100/70 border border-emerald-200' 
-                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                                        }`}
-                                    >
-                                        <Icon size={14} /> 
-                                        <span>{item.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
+                {/* Global Submenu */}
+                {selectedSystem === 'global' && (
+                    <div className="space-y-1 pr-4 pt-2">
+                        {[
+                            { id: 'control' as GlobalTab, label: 'בקרת מערכת', icon: Lock },
+                            { id: 'ai' as GlobalTab, label: 'מוח ה-AI', icon: Sparkles },
+                            { id: 'users' as GlobalTab, label: 'ניהול משתמשים', icon: Users },
+                            { id: 'announcements' as GlobalTab, label: 'הודעות מערכת', icon: MessageSquare },
+                            { id: 'versions' as GlobalTab, label: 'ניהול גרסאות', icon: Code },
+                            { id: 'data' as GlobalTab, label: 'ניהול נתונים', icon: Database },
+                            { id: 'updates' as GlobalTab, label: 'מרכז עדכונים', icon: Rocket },
+                            { id: 'approvals' as GlobalTab, label: 'אישורי משתמשים', icon: UserCheck },
+                        ].map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <button 
+                                    key={item.id}
+                                    onClick={() => setGlobalTab(item.id)} 
+                                    className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                        globalTab === item.id 
+                                            ? 'text-emerald-800 bg-emerald-100/70 border border-emerald-200' 
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                                    }`}
+                                >
+                                    <Icon size={14} /> 
+                                    <span>{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
-                    {/* Nexus OS Button */}
-                    <button 
-                        onClick={() => setSelectedSystem(selectedSystem === 'nexus' ? null : 'nexus')} 
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
-                            selectedSystem === 'nexus' 
-                                ? 'text-indigo-800 bg-indigo-50 border border-indigo-200' 
-                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                        }`}
-                    >
-                        <Zap size={18} /> 
-                        <span className="flex-1 text-right">מערכת Nexus</span>
-                        <ChevronRight size={14} className={`transition-transform duration-200 ${selectedSystem === 'nexus' ? 'rotate-90' : ''}`} />
-                    </button>
+                {/* Nexus OS Button */}
+                <button 
+                    onClick={() => setSelectedSystem(selectedSystem === 'nexus' ? null : 'nexus')} 
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
+                        selectedSystem === 'nexus' 
+                            ? 'text-indigo-800 bg-indigo-50 border border-indigo-200' 
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                    }`}
+                >
+                    <Zap size={18} /> 
+                    <span className="flex-1 text-right">מערכת Nexus</span>
+                    <ChevronRight size={14} className={`transition-transform duration-200 ${selectedSystem === 'nexus' ? 'rotate-90' : ''}`} />
+                </button>
 
-                    {/* Nexus Submenu */}
-                    {selectedSystem === 'nexus' && (
-                        <div className="space-y-1 pr-4 pt-2">
-                            {[
-                                { id: 'control' as NexusTab, label: 'בקרת מערכת', icon: Lock },
-                                { id: 'tenants' as NexusTab, label: 'ניהול לקוחות', icon: LayoutGrid },
-                                { id: 'intelligence' as NexusTab, label: 'דוחות ובינה', icon: BrainCircuit },
-                                { id: 'invitations' as NexusTab, label: 'קישורים חד פעמיים', icon: Link2 },
-                                { id: 'announcements' as NexusTab, label: 'הודעות מערכת', icon: MessageSquare },
-                            ].map((item) => {
-                                const Icon = item.icon;
-                                return (
-                                    <button 
-                                        key={item.id}
-                                        onClick={() => setNexusTab(item.id)} 
-                                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
-                                            nexusTab === item.id 
-                                                ? 'text-indigo-800 bg-indigo-100/70 border border-indigo-200' 
-                                                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
-                                        }`}
-                                    >
-                                        <Icon size={14} /> 
-                                        <span>{item.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
+                {/* Nexus Submenu */}
+                {selectedSystem === 'nexus' && (
+                    <div className="space-y-1 pr-4 pt-2">
+                        {[
+                            { id: 'control' as NexusTab, label: 'בקרת מערכת', icon: Lock },
+                            { id: 'tenants' as NexusTab, label: 'ניהול לקוחות', icon: LayoutGrid },
+                            { id: 'intelligence' as NexusTab, label: 'דוחות ובינה', icon: Sparkles },
+                            { id: 'invitations' as NexusTab, label: 'קישורים חד פעמיים', icon: Link2 },
+                            { id: 'announcements' as NexusTab, label: 'הודעות מערכת', icon: MessageSquare },
+                        ].map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <button 
+                                    key={item.id}
+                                    onClick={() => setNexusTab(item.id)} 
+                                    className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                        nexusTab === item.id 
+                                            ? 'text-indigo-800 bg-indigo-100/70 border border-indigo-200' 
+                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
+                                    }`}
+                                >
+                                    <Icon size={14} /> 
+                                    <span>{item.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
 
                     {/* Social OS Button */}
                     <button

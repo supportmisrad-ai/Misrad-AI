@@ -1,15 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+'use client';
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { analyzeMeetingTranscript } from '../services/geminiService'; 
 // Fix: Removed Modality from local types import as it should come from the GenAI SDK
 import { MeetingAnalysisResult } from '../types';
-import { BrainCircuit, UploadCloud, Video, UserPlus, Trash2, ArrowRight, X, Check, UserCircle, Mic, MicOff, Zap } from 'lucide-react';
+import { UploadCloud, Video, UserPlus, Trash2, ArrowRight, X, Check, UserCircle, Mic, MicOff, Zap } from 'lucide-react';
 import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
-import { supabase } from '@/lib/supabase-client';
+import { useAuth } from '@clerk/nextjs';
+import { createBrowserClientWithClerk } from '@/lib/supabase-client';
 import { Skeleton } from '@/components/ui/skeletons';
 
 const MeetingIntelligence: React.FC = () => {
   const { clients, meetings: contextMeetings } = useNexus();
+  const { getToken } = useAuth();
   const [activeView, setActiveView] = useState<'LIST' | 'PROCESSING' | 'RESULT' | 'LIVE'>('LIST');
   const [meetings, setMeetings] = useState(contextMeetings);
   const [analysisResult, setAnalysisResult] = useState<MeetingAnalysisResult | undefined>(contextMeetings[0]?.aiAnalysis);
@@ -22,6 +26,16 @@ const MeetingIntelligence: React.FC = () => {
   const [liveTranscription, setLiveTranscription] = useState('');
   const [liveInsight, setLiveInsight] = useState('ממתין לתחילת השיחה...');
   const sessionRef = useRef<any>(null);
+
+  const supabase = useMemo(() => {
+    return createBrowserClientWithClerk(async () => {
+      try {
+        return await getToken({ template: 'supabase' });
+      } catch {
+        return await getToken();
+      }
+    });
+  }, [getToken]);
 
   const orgId = (typeof window !== 'undefined'
     ? ((window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined)?.organizationId

@@ -4,8 +4,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock, LogOut } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { getNexusMe, listNexusTimeEntries, updateNexusTimeEntry } from '@/app/actions/nexus';
 
-const STORAGE_KEY_PREFIX = 'NEXUS_ACTIVE_SHIFT_V1';
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
 function formatDuration(ms: number) {
@@ -18,58 +18,6 @@ function formatDuration(ms: number) {
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   }
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function readActiveShiftStartTime(orgSlug: string | null) {
-  if (typeof window === 'undefined') return null;
-  if (!orgSlug) return null;
-  try {
-    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}:${orgSlug}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const startTime = parsed?.startTime ? String(parsed.startTime) : null;
-    if (!startTime) return null;
-    const dt = new Date(startTime);
-    if (Number.isNaN(dt.getTime())) return null;
-    return dt.toISOString();
-  } catch {
-    return null;
-  }
-}
-
-function readActiveShiftEntryId(orgSlug: string | null) {
-  if (typeof window === 'undefined') return null;
-  if (!orgSlug) return null;
-  try {
-    const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}:${orgSlug}`);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const entryId = parsed?.entryId ? String(parsed.entryId) : null;
-    return entryId || null;
-  } catch {
-    return null;
-  }
-}
-
-function writeActiveShift(orgSlug: string, data: { entryId: string; startTime: string } | null) {
-  if (typeof window === 'undefined') return;
-  try {
-    const key = `${STORAGE_KEY_PREFIX}:${orgSlug}`;
-    if (!data) {
-      localStorage.removeItem(key);
-      return;
-    }
-    localStorage.setItem(
-      key,
-      JSON.stringify({
-        entryId: data.entryId,
-        startTime: data.startTime,
-        updatedAt: new Date().toISOString(),
-      })
-    );
-  } catch {
-    // ignore
-  }
 }
 
 export default function AttendanceMiniStatus() {
@@ -104,18 +52,11 @@ export default function AttendanceMiniStatus() {
     loadEntitlements();
   }, [orgSlug]);
 
-  const orgHeaders = useMemo(() => {
-    if (!orgSlug) return null;
-    return { 'x-org-id': orgSlug } as Record<string, string>;
-  }, [orgSlug]);
-
   useEffect(() => {
     const loadMe = async () => {
-      if (!orgHeaders) return;
+      if (!orgSlug) return;
       try {
-        const res = await fetch('/api/users/me', { headers: orgHeaders, cache: 'no-store' });
-        if (!res.ok) return;
-        const data = await res.json().catch(() => ({}));
+        const data = await getNexusMe({ orgId: orgSlug });
         const id = data?.user?.id ? String(data.user.id) : null;
         if (id) setUserId(id);
       } catch {
@@ -124,7 +65,7 @@ export default function AttendanceMiniStatus() {
     };
 
     loadMe();
-  }, [orgHeaders]);
+  }, [orgSlug]);
 
   const broadcast = useCallback(
     (payload: { orgSlug: string; entryId: string | null; startTime: string | null }) => {
@@ -140,21 +81,19 @@ export default function AttendanceMiniStatus() {
     []
   );
 
-  const syncFromStorage = useCallback(() => {
-    setStartTime(readActiveShiftStartTime(orgSlug));
-    setEntryId(readActiveShiftEntryId(orgSlug));
-  }, [orgSlug]);
-
   const loadActiveShift = useCallback(async () => {
-    if (!orgSlug || !orgHeaders) return;
+    if (!orgSlug) return;
     try {
       const dateFrom = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const dateTo = new Date().toISOString().split('T')[0];
-      const params = new URLSearchParams({ dateFrom, dateTo });
-      if (userId) params.set('userId', userId);
-      const res = await fetch(`/api/time-entries?${params.toString()}`, { headers: orgHeaders, cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json().catch(() => ({}));
+      const data = await listNexusTimeEntries({
+        orgId: orgSlug,
+        userId: userId || undefined,
+        dateFrom,
+        dateTo,
+        page: 1,
+        pageSize: 200,
+      });
       const list = Array.isArray(data?.timeEntries) ? data.timeEntries : [];
       const active = list
         .filter((e: any) => !e?.endTime)
@@ -164,22 +103,16 @@ export default function AttendanceMiniStatus() {
         const next = { entryId: String(active.id), startTime: new Date(active.startTime).toISOString() };
         setEntryId(next.entryId);
         setStartTime(next.startTime);
-        writeActiveShift(orgSlug, next);
         broadcast({ orgSlug, entryId: next.entryId, startTime: next.startTime });
       } else {
         setEntryId(null);
         setStartTime(null);
-        writeActiveShift(orgSlug, null);
         broadcast({ orgSlug, entryId: null, startTime: null });
       }
     } catch {
       // ignore
     }
-  }, [broadcast, orgHeaders, orgSlug, userId]);
-
-  useEffect(() => {
-    syncFromStorage();
-  }, [syncFromStorage]);
+  }, [broadcast, orgSlug, userId]);
 
   useEffect(() => {
     if (!orgSlug) return;
@@ -193,31 +126,19 @@ export default function AttendanceMiniStatus() {
         if (!data || data.orgSlug !== orgSlug) return;
         setEntryId(data.entryId || null);
         setStartTime(data.startTime || null);
-        if (data.entryId && data.startTime) {
-          writeActiveShift(orgSlug, { entryId: String(data.entryId), startTime: String(data.startTime) });
-        } else {
-          writeActiveShift(orgSlug, null);
-        }
       };
     } catch {
       // ignore
     }
 
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== `${STORAGE_KEY_PREFIX}:${orgSlug}`) return;
-      syncFromStorage();
-    };
-
-    window.addEventListener('storage', onStorage);
     return () => {
-      window.removeEventListener('storage', onStorage);
       try {
         bc?.close();
       } catch {
         // ignore
       }
     };
-  }, [orgSlug, syncFromStorage]);
+  }, [orgSlug]);
 
   useEffect(() => {
     if (!orgSlug) return;
@@ -242,24 +163,18 @@ export default function AttendanceMiniStatus() {
   }, [startTime]);
 
   const clockOutQuick = useCallback(async () => {
-    if (!orgHeaders || !entryId || !orgSlug) return;
+    if (!entryId || !orgSlug) return;
     setIsBusy(true);
     try {
-      const res = await fetch(`/api/time-entries?id=${encodeURIComponent(entryId)}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...orgHeaders },
-        body: JSON.stringify({ endTime: new Date().toISOString() }),
-      });
-      if (!res.ok) return;
+      await updateNexusTimeEntry({ orgId: orgSlug, entryId, endTime: new Date().toISOString() });
       setEntryId(null);
       setStartTime(null);
-      writeActiveShift(orgSlug, null);
       broadcast({ orgSlug, entryId: null, startTime: null });
       void loadActiveShift();
     } finally {
       setIsBusy(false);
     }
-  }, [broadcast, entryId, loadActiveShift, orgHeaders, orgSlug]);
+  }, [broadcast, entryId, loadActiveShift, orgSlug]);
 
   if (!orgSlug) return null;
   if (hasNexus === false) return null;

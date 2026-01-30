@@ -8,6 +8,9 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Palette, Image, Type, FileText, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import PaywallModal from '@/components/shared/PaywallModal';
 
 interface CreateInvoiceModalProps {
     isOpen: boolean;
@@ -30,6 +33,9 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     defaultAmount = 0,
     defaultDescription = ''
 }) => {
+    const pathname = usePathname();
+    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
+
     const [amount, setAmount] = useState(defaultAmount.toString());
     const [description, setDescription] = useState(defaultDescription);
     const [quantity, setQuantity] = useState('1');
@@ -47,6 +53,11 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     
     const [isCreating, setIsCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+    const [paywallTitle, setPaywallTitle] = useState('');
+    const [paywallMessage, setPaywallMessage] = useState('');
+    const [recommendedPackageType, setRecommendedPackageType] = useState<any>(undefined);
 
     const handleCreate = async () => {
         if (!amount || !description) {
@@ -71,6 +82,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     clientName,
@@ -90,8 +102,16 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to create invoice');
+                const errorData = await response.json().catch(() => ({} as any));
+                if (response.status === 402 && (errorData as any)?.code === 'UPGRADE_REQUIRED') {
+                    const pw = (errorData as any)?.paywall;
+                    setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
+                    setPaywallMessage(String(pw?.message || errorData.error || 'פעולה זו זמינה למנויים משלמים'));
+                    setRecommendedPackageType(pw?.recommendedPackageType);
+                    setIsPaywallOpen(true);
+                    return;
+                }
+                throw new Error((errorData as any)?.error || 'Failed to create invoice');
             }
 
             const result = await response.json();
@@ -127,6 +147,15 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
     return (
         <AnimatePresence>
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <PaywallModal
+                    isOpen={isPaywallOpen}
+                    onCloseAction={() => setIsPaywallOpen(false)}
+                    title={paywallTitle}
+                    message={paywallMessage}
+                    reason="finance"
+                    recommendedPackageType={recommendedPackageType}
+                />
+
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

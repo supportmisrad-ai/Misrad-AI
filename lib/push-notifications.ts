@@ -31,8 +31,8 @@ export function showPushNotification(
 
     if (Notification.permission === 'granted') {
         const notification = new Notification(title, {
-            icon: '/icons/misrad-icon.svg',
-            badge: '/icons/misrad-icon.svg',
+            icon: '/icon-192.png',
+            badge: '/icon-192.png',
             tag: 'leave-request-urgent',
             requireInteraction: false,
             ...options
@@ -70,8 +70,8 @@ export function showUrgentLeaveRequestNotification(
 
     showPushNotification('בקשת חופש דחופה!', {
         body: `${employeeName} - ${leaveTypeLabel} (${startDate} עד ${endDate})`,
-        icon: '/icons/misrad-icon.svg',
-        badge: '/icons/misrad-icon.svg',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
         tag: `leave-request-urgent-${Date.now()}`,
         requireInteraction: true
     });

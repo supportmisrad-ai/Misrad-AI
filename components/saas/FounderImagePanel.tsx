@@ -18,13 +18,30 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
 
     // Load image from localStorage
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const savedImage = localStorage.getItem('founder_image');
-            if (savedImage) {
-                setFounderImage(savedImage);
-                setPreviewImage(savedImage);
-            }
+        let cancelled = false;
+
+        try {
+            localStorage.removeItem('founder_image');
+        } catch {
+            // ignore
         }
+
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const data = await res.json().catch(() => null);
+                if (cancelled) return;
+                const next = typeof data?.founderImage === 'string' ? data.founderImage : '';
+                setFounderImage(next);
+                setPreviewImage(next || null);
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,27 +66,43 @@ export const FounderImagePanel: React.FC<{ hideHeader?: boolean }> = ({ hideHead
                 const imageData = reader.result as string;
                 setFounderImage(imageData);
                 setPreviewImage(imageData);
-                saveImage(imageData);
+                void saveImage(imageData);
                 addToast('תמונת המייסד עודכנה בהצלחה!', 'success');
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const saveImage = (imageData: string) => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('founder_image', imageData);
+    const saveImage = async (imageData: string) => {
+        const next = imageData ? String(imageData) : '';
+        setFounderImage(next);
+        setPreviewImage(next || null);
+
+        try {
+            const res = await fetch('/api/landing/settings', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ founderImage: next || null }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error || 'שגיאה בשמירה');
+            }
+            updateSettings('founderImage', next);
+        } catch (e: any) {
+            addToast(e?.message || 'שגיאה בשמירה', 'error');
         }
-        updateSettings('founderImage', imageData);
     };
 
     const handleDeleteImage = () => {
         setFounderImage('');
         setPreviewImage(null);
-        if (typeof window !== 'undefined') {
+        try {
             localStorage.removeItem('founder_image');
+        } catch {
+            // ignore
         }
-        updateSettings('founderImage', '');
+        void saveImage('');
         addToast('תמונת המייסד נמחקה בהצלחה', 'success');
         setIsDeleting(false);
     };

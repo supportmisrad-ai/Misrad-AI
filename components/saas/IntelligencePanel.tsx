@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText, BrainCircuit, ArrowUpRight } from 'lucide-react';
+import { FileText, Zap, ArrowUpRight } from 'lucide-react';
 import { GeneratedReport, Feedback } from '../../types';
 import { Button } from '@/components/ui/button';
 
@@ -86,7 +86,7 @@ export const IntelligencePanel: React.FC<IntelligencePanelProps> = ({
                 <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 rounded-3xl overflow-hidden flex flex-col h-[500px] shadow-2xl">
                     <div className="p-6 border-b border-slate-200/70 flex justify-between items-center bg-white/60 backdrop-blur-sm">
                         <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-                            <BrainCircuit size={20} className="text-emerald-600" /> משובי AI מהצוות
+                            <Zap size={20} className="text-emerald-600" /> משובי AI מהצוות
                         </h3>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar">

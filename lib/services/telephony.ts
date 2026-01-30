@@ -11,7 +11,7 @@
  */
 
 import { Buffer } from 'buffer';
-import { prisma } from '../prisma';
+import { prisma, queryRawTenantScoped } from '../prisma';
 
 export interface TelephonyCredentials {
     // Voicenter credentials
@@ -54,22 +54,33 @@ export class TelephonyService {
         orgId: string
     ): Promise<CallInitiationResult> {
         try {
-            // 1. Retrieve telephony integration from database
-            const integration = await prisma.systemTelephonyIntegration.findFirst({
-                where: {
-                    tenantId: orgId,
-                    isActive: true
-                }
+            const rows = await queryRawTenantScoped<any[]>(prisma, {
+                tenantId: orgId,
+                reason: 'telephony_load_system_settings_flags',
+                query: `
+                    SELECT system_flags
+                    FROM system_settings
+                    WHERE tenant_id = $1::uuid
+                    LIMIT 1
+                `,
+                values: [orgId],
             });
 
-            if (!integration) {
+            const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+            const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
+                ? row.system_flags.telephony
+                : null;
+
+            const provider = telephony?.provider ? String(telephony.provider) : '';
+            const isActive = Boolean(telephony?.isActive ?? true);
+            const credentials = telephony?.credentials as TelephonyCredentials | undefined;
+
+            if (!provider || !isActive || !credentials) {
                 return {
                     success: false,
                     error: 'No active telephony integration found for this organization'
                 };
             }
-
-            const { provider, credentials } = integration;
 
             // 2. Route to appropriate provider implementation
             switch (provider.toLowerCase()) {
@@ -272,12 +283,25 @@ export class TelephonyService {
      * @returns Active integration or null
      */
     static async getActiveIntegration(orgId: string) {
-        return await prisma.systemTelephonyIntegration.findFirst({
-            where: {
-                tenantId: orgId,
-                isActive: true
-            }
+        const rows = await queryRawTenantScoped<any[]>(prisma, {
+            tenantId: orgId,
+            reason: 'telephony_get_active_integration',
+            query: `
+                SELECT system_flags
+                FROM system_settings
+                WHERE tenant_id = $1::uuid
+                LIMIT 1
+            `,
+            values: [orgId],
         });
+
+        const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+        const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
+            ? row.system_flags.telephony
+            : null;
+
+        if (!telephony?.provider || telephony?.isActive === false) return null;
+        return telephony;
     }
 
     /**

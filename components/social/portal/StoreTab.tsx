@@ -51,9 +51,9 @@ const StoreTab: React.FC<StoreTabProps> = ({ marketplaceAddons, cart, updateCart
               <div className="flex items-center justify-between pt-6 border-t border-slate-200">
                 <span className="text-xl font-black text-slate-900">₪{addon.basePrice.toLocaleString()}</span>
                 <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-200">
-                  <button onClick={() => updateCart(addon, -1)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900"><Minus size={16}/></button>
+                  <button onClick={() => updateCart(addon, -1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900"><Minus size={16}/></button>
                   <span className="font-black text-sm min-w-[20px] text-center">{cartItem?.qty || 0}</span>
-                  <button onClick={() => updateCart(addon, 1)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900"><Plus size={16}/></button>
+                  <button onClick={() => updateCart(addon, 1)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900"><Plus size={16}/></button>
                 </div>
               </div>
             </div>

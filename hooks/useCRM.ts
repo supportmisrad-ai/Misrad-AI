@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Client, Lead, Asset, Invoice, Product, Tenant, LeadStatus } from '../types';
 import { DEFAULT_PRODUCTS } from '../constants';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const useCRM = (
     currentUser: any,
@@ -176,12 +176,12 @@ export const useCRM = (
         }
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/integrations/green-invoice/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     clientName: client.companyName || client.name,
@@ -204,6 +204,11 @@ export const useCRM = (
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
                     const error = await response.json();
+                    if (response.status === 402 && (error as any)?.code === 'UPGRADE_REQUIRED') {
+                        const pkg = (error as any)?.paywall?.recommendedPackageType || 'the_operator';
+                        window.location.href = `/subscribe/checkout?billing=monthly&package=${encodeURIComponent(String(pkg))}`;
+                        return;
+                    }
                     throw new Error(error.error || 'Failed to create invoice');
                 } else {
                     // Response is HTML (error page)
@@ -304,9 +309,9 @@ export const useCRM = (
         let mounted = true;
         const checkGreenInvoiceStatus = async () => {
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/integrations/green-invoice/status', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (!mounted) return;
                 
@@ -337,16 +342,17 @@ export const useCRM = (
         try {
             // Show modal or prompt for API key
             const apiKey = prompt('הזן את מפתח ה-API של מורנינג:');
-            if (!apiKey) {
+            if (!apiKey || !apiKey.trim()) {
+                addToast('נא להזין API Key', 'warning');
                 return;
             }
 
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/integrations/green-invoice/connect', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({ apiKey })
             });

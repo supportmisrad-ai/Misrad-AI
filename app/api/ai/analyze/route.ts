@@ -4,15 +4,16 @@
  * Server-side AI processing with data filtering
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, hasPermission } from '../../../../lib/auth';
 import { prepareAIContext, validateAIResponse } from '../../../../lib/ai-security';
 import { logAuditEvent } from '../../../../lib/audit';
 import { Type } from "@google/genai";
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
@@ -23,7 +24,7 @@ async function POSTHandler(request: NextRequest) {
         // Resolve the caller organization_id from DB (server-side source of truth)
         const clerkUserId = await getCurrentUserId();
         if (!clerkUserId) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return apiError('Unauthorized', { status: 401 });
         }
         const supabase = createClient();
         const { data: socialUser, error: socialUserError } = await supabase
@@ -37,21 +38,18 @@ async function POSTHandler(request: NextRequest) {
         const callerOrganizationId = (socialUser as any)?.organization_id ? String((socialUser as any).organization_id) : null;
 
         if (!callerOrganizationId) {
-            return NextResponse.json({ error: 'Forbidden - missing organization context' }, { status: 403 });
+            return apiError('Forbidden - missing organization context', { status: 403 });
         }
 
         // Strict tenant enforcement: the caller must have access to their resolved organization
-        await requireWorkspaceAccessByOrgSlugApi(callerOrganizationId);
+        await getWorkspaceByOrgKeyOrThrow(callerOrganizationId);
         
         // 2. Parse request
         const body = await request.json();
         const { query, rawData: initialRawData } = body;
         
         if (!query) {
-            return NextResponse.json(
-                { error: 'Query is required' },
-                { status: 400 }
-            );
+            return apiError('Query is required', { status: 400 });
         }
         
         // 3. Check permissions
@@ -64,7 +62,7 @@ async function POSTHandler(request: NextRequest) {
         // If the caller has an org, ensure any explicitly provided org context matches.
         const rawOrg = (rawData as any)?.organizationId ?? (rawData as any)?.organization_id ?? null;
         if (callerOrganizationId && rawOrg && String(rawOrg) !== String(callerOrganizationId)) {
-            return NextResponse.json({ error: 'Forbidden - organization mismatch' }, { status: 403 });
+            return apiError('Forbidden - organization mismatch', { status: 403 });
         }
 
         // If a leadId is provided, verify it belongs to the caller org (prevents cross-tenant AI analysis).
@@ -77,15 +75,15 @@ async function POSTHandler(request: NextRequest) {
                 .maybeSingle();
             if (leadErr) {
                 console.error('[AI SECURITY] Failed lead org check:', leadErr);
-                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+                return apiError('Forbidden', { status: 403 });
             }
             const leadOrgId = (leadRow as any)?.organization_id ? String((leadRow as any).organization_id) : null;
             if (!leadOrgId || String(leadOrgId) !== String(callerOrganizationId)) {
-                return NextResponse.json({ error: 'Forbidden - lead organization mismatch' }, { status: 403 });
+                return apiError('Forbidden - lead organization mismatch', { status: 403 });
             }
         }
         if (isManager && (!rawData?.users || rawData.users.length === 0)) {
-            // In production, fetch from /api/users here
+            // In production, fetch users from the secure users data source here
             // For now, we'll use empty array - users should be provided in rawData
             rawData = { ...rawData, users: [] };
         }
@@ -202,17 +200,11 @@ async function POSTHandler(request: NextRequest) {
         
         if (!validateAIResponse(result)) {
             console.error('[AI SECURITY] Response validation failed');
-            return NextResponse.json(
-                { error: 'Security validation failed' },
-                { status: 500 }
-            );
+            return apiError('Security validation failed', { status: 500 });
         }
         
         // 9. Return safe response
-        return NextResponse.json({
-            success: true,
-            result
-        });
+        return apiSuccess({ result });
         
     } catch (error: any) {
         await logAuditEvent('ai.query', 'intelligence', {
@@ -221,17 +213,14 @@ async function POSTHandler(request: NextRequest) {
         });
 
         if (error?.status === 402 || error?.name === 'UpgradeRequiredError') {
-            return NextResponse.json({ error: error.message || 'Upgrade Required' }, { status: 402 });
+            return apiError(error, { status: 402, message: error.message || 'Upgrade Required' });
         }
         
         if (error.message.includes('Unauthorized')) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+            return apiError('Unauthorized', { status: 401 });
         }
         
-        return NextResponse.json(
-            { error: 'Internal server error' },
-            { status: 500 }
-        );
+        return apiError('Internal server error', { status: 500 });
     }
 }
 

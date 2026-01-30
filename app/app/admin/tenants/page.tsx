@@ -13,6 +13,9 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 
+const unwrap = (data: any) =>
+  (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
 export default function AdminTenantsPage() {
   const router = useRouter();
   const { tenants, addTenant, updateTenant, products, addToast, switchToTenantConfig, currentUser } = useData();
@@ -28,13 +31,14 @@ export default function AdminTenantsPage() {
     if (!currentUser?.isSuperAdmin) return;
     setIsLoading(true);
     try {
-      const res = await fetch('/api/tenants', { cache: 'no-store' });
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch('/api/admin/tenants', { cache: 'no-store' });
+      const raw = await res.json().catch(() => ({}));
+      const data = unwrap(raw);
       if (!res.ok) {
-        throw new Error(data.error || 'שגיאה בטעינת טננטים');
+        throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה בטעינת טננטים');
       }
 
-      const loaded = Array.isArray(data.tenants) ? (data.tenants as Tenant[]) : [];
+      const loaded = Array.isArray((data as any).tenants) ? ((data as any).tenants as Tenant[]) : [];
       const existingIds = new Set((Array.isArray(tenants) ? tenants : []).map((t: Tenant) => t.id));
       for (const t of loaded) {
         if (!existingIds.has(t.id)) addTenant(t);
@@ -89,7 +93,7 @@ export default function AdminTenantsPage() {
     setIsAddTenantOpen(false);
 
     try {
-      const res = await fetch('/api/tenants', {
+      const res = await fetch('/api/admin/tenants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,10 +104,11 @@ export default function AdminTenantsPage() {
           logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(tenantData.name)}&background=6366f1&color=fff`,
         }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'שגיאה ביצירת tenant');
+      const raw = await res.json().catch(() => ({}));
+      const data = unwrap(raw);
+      if (!res.ok) throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה ביצירת tenant');
 
-      const newTenant = data.tenant as Tenant;
+      const newTenant = (data as any).tenant as Tenant;
       addTenant(newTenant);
       addToast(`הלקוח ${tenantData.name} הוקם בהצלחה!`, 'success');
 
@@ -121,14 +126,15 @@ export default function AdminTenantsPage() {
   };
 
   const handleUpdateTenant = async (id: string, updates: Partial<Tenant>) => {
-    const res = await fetch(`/api/tenants/${id}`, {
+    const res = await fetch(`/api/admin/tenants/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'שגיאה בעדכון טננט');
-    const updatedTenant = data.tenant as Tenant;
+    const raw = await res.json().catch(() => ({}));
+    const data = unwrap(raw);
+    if (!res.ok) throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה בעדכון טננט');
+    const updatedTenant = (data as any).tenant as Tenant;
     updateTenant(id, updatedTenant);
     return updatedTenant;
   };

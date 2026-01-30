@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Lead } from './system/types';
-import { Sparkles, Target, Zap, TrendingUp, AlertCircle, RefreshCw, BrainCircuit } from 'lucide-react';
+import { Sparkles, Target, Zap, TrendingUp, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface LeadScoringToolProps {
   lead: Lead;

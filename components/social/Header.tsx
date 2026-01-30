@@ -10,12 +10,12 @@ import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { SharedHeader } from '@/components/shared/SharedHeader';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { getSocialBasePath, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { Skeleton } from '@/components/ui/skeletons';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 
 const titles: Record<string, string> = {
   dashboard: 'מרכז שליטה',
@@ -67,7 +67,7 @@ export default function Header() {
   const [hasMounted, setHasMounted] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-  const { title, roomNameHebrew, gradient } = useRoomBranding();
+  const { title, roomName, gradient } = useRoomBranding();
   const workspaceInfo = parseWorkspaceRoute(pathname);
   const isWorkspaceSocial = Boolean(workspaceInfo.orgSlug && workspaceInfo.module === 'social');
   const basePath = getSocialBasePath(pathname);
@@ -161,8 +161,7 @@ export default function Header() {
   );
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
+    <>
       <button
         onClick={() => setIsNotificationCenterOpen(true)}
         className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
@@ -201,7 +200,7 @@ export default function Header() {
           )}
         </button>
       ) : null}
-    </div>
+    </>
   );
 
   const profileSlot = !hasMounted || !isLoaded ? (
@@ -259,12 +258,8 @@ export default function Header() {
   const mobileBrand = {
     name: 'Social OS',
     logoUrl: null,
-    fallbackIcon: (
-      <div className={`w-full h-full flex items-center justify-center text-white text-xs font-black bg-gradient-to-br ${gradient || 'from-indigo-600 via-purple-600 to-pink-600'}`}>
-        S
-      </div>
-    ),
-    badgeIcon: <OSModuleIcon moduleKey="social" size={10} className="text-slate-900" />,
+    fallbackIcon: <OSModuleSquircleIcon moduleKey="social" boxSize={32} iconSize={16} className="shadow-none" />,
+    badgeModuleKey: 'social' as OSModuleKey,
   };
 
   return (
@@ -278,7 +273,7 @@ export default function Header() {
       actionsSlot={<ModuleHelpVideos moduleKey="social" />}
       switcherSlot={switcherSlot}
       notificationsSlot={notificationsSlot}
-      user={{ name: systemIdentity?.name || roomNameHebrew || 'סושיאל', role: systemIdentity?.role || null }}
+      user={{ name: systemIdentity?.name || roomName || 'Social', role: systemIdentity?.role || null }}
       onProfileClickAction={undefined}
       userAvatarSlot={null}
       profileSlot={profileSlot}

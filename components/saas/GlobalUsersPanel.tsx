@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CheckCircle2, XCircle, Shield } from 'lucide-react';
 import { User, Tenant } from '../../types';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
 import Image from 'next/image';
 import { getAdminUsersPage } from '@/app/actions/admin-users';
+import { deleteAdminUser } from '@/app/actions/admin-users';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -91,14 +91,9 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
         }
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch(`/api/users/${userId}`, {
-                method: 'DELETE',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete user');
+            const result = await deleteAdminUser(userId);
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to delete user');
             }
 
             setUsers(prev => prev.filter(u => u.id !== userId));

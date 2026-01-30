@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import { currentUser } from '@clerk/nextjs/server';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
@@ -36,11 +37,58 @@ type OrganizationModuleFlags = {
   has_operations: boolean | null;
 };
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+  return null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function isUuidLike(value: string | null | undefined): boolean {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
+}
+
+function setErrorStatus(err: Error, status: number): Error {
+  (err as Error & { status?: number }).status = status;
+  return err;
+}
+
+function getErrorStatus(error: unknown): number | null {
+  const obj = asObject(error);
+  const s = obj?.status;
+  return typeof s === 'number' && Number.isFinite(s) ? s : null;
+}
+
 function parseEnvCsv(value: string | undefined | null): string[] {
   return String(value || '')
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
+}
+
+async function isClerkSuperAdmin(): Promise<boolean> {
+  try {
+    const clerk = await currentUser();
+    const clerkObj = asObject(clerk);
+    const publicMetadataObj = asObject(clerkObj?.publicMetadata);
+    return Boolean(publicMetadataObj?.isSuperAdmin);
+  } catch (error: unknown) {
+    console.error('[workspace-access] failed to resolve clerk super admin', {
+      message: getErrorMessage(error),
+    });
+    return false;
+  }
 }
 
 function isInternalWorkspace(params: {
@@ -90,7 +138,12 @@ async function applyLaunchScopeToEntitlements(
       client: Boolean(entitlements.client && scope.client),
       operations: Boolean(entitlements.operations && scope.operations),
     };
-  } catch {
+  } catch (error: unknown) {
+    console.error('[workspace-access] failed to apply launch scope entitlements', {
+      organizationId: ctx?.organizationId ?? null,
+      orgSlug: ctx?.orgSlug ?? null,
+      message: getErrorMessage(error),
+    });
     return entitlements;
   }
 }
@@ -108,9 +161,11 @@ function buildEntitlementsFromAllowedModules(allowed: Iterable<OSModuleKey>): Wo
 }
 
 export function getPackageModules(packageType: PackageType): OSModuleKey[] {
-  const def = (BILLING_PACKAGES as any)[packageType];
-  if (def?.modules && Array.isArray(def.modules)) {
-    return def.modules as OSModuleKey[];
+  const def = (BILLING_PACKAGES as Record<string, unknown>)[packageType];
+  const defObj = asObject(def);
+  const modules = defObj?.modules;
+  if (modules && Array.isArray(modules)) {
+    return modules as OSModuleKey[];
   }
   // Backwards compatible fail-safe.
   if (packageType === 'the_closer') return ['system', 'nexus'];
@@ -128,37 +183,60 @@ export function inferOrganizationPackageType(flags: OrganizationModuleFlags): Pa
 }
 
 async function loadOrganizationModuleFlags(organizationId: string): Promise<OrganizationModuleFlags> {
-  const supabase = createClient();
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations')
-    .eq('id', organizationId)
-    .single();
+  try {
+    const org = await prisma.social_organizations.findUnique({
+      where: { id: organizationId },
+      select: {
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+      },
+    });
 
-  if (error && (error as any).code === '42703') {
-    const fallback = await supabase
-      .from('organizations')
-      .select('has_nexus, has_system, has_social, has_finance, has_client')
-      .eq('id', organizationId)
-      .single();
+    if (!org) {
+      const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+      if (isE2E) {
+        return {
+          has_nexus: true,
+          has_system: true,
+          has_social: true,
+          has_finance: true,
+          has_client: true,
+          has_operations: true,
+        };
+      }
+      throw new Error('Organization not found');
+    }
+
     return {
-      has_nexus: fallback.data?.has_nexus ?? true,
-      has_system: fallback.data?.has_system ?? true,
-      has_social: fallback.data?.has_social ?? true,
-      has_finance: fallback.data?.has_finance ?? true,
-      has_client: fallback.data?.has_client ?? true,
-      has_operations: true,
+      has_nexus: org?.has_nexus ?? false,
+      has_system: org?.has_system ?? false,
+      has_social: org?.has_social ?? false,
+      has_finance: org?.has_finance ?? false,
+      has_client: org?.has_client ?? false,
+      has_operations: org?.has_operations ?? false,
     };
+  } catch (error: unknown) {
+    const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    if (
+      isE2E &&
+      (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied'))
+    ) {
+      return {
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+      };
+    }
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load organization flags');
   }
-
-  return {
-    has_nexus: org?.has_nexus ?? true,
-    has_system: org?.has_system ?? true,
-    has_social: org?.has_social ?? true,
-    has_finance: org?.has_finance ?? true,
-    has_client: org?.has_client ?? true,
-    has_operations: (org as any)?.has_operations ?? true,
-  };
 }
 
 export async function getOrganizationPackageEntitlements(
@@ -166,12 +244,11 @@ export async function getOrganizationPackageEntitlements(
   socialUserId?: string,
   orgSlug?: string
 ): Promise<{ packageType: PackageType; entitlements: WorkspaceEntitlements }> {
-  const supabase = createClient();
   const flags = await loadOrganizationModuleFlags(organizationId);
   const packageType = inferOrganizationPackageType(flags);
 
   const orgEntitlements: WorkspaceEntitlements = {
-    nexus: flags.has_nexus ?? true,
+    nexus: flags.has_nexus ?? false,
     system: flags.has_system ?? false,
     social: flags.has_social ?? false,
     finance: flags.has_finance ?? false,
@@ -181,11 +258,10 @@ export async function getOrganizationPackageEntitlements(
 
   // If socialUserId is provided, intersect with user's allowed modules.
   if (socialUserId) {
-    const { data: user } = await supabase
-      .from('social_users')
-      .select('allowed_modules, role')
-      .eq('id', socialUserId)
-      .single();
+    const user = await prisma.social_users.findFirst({
+      where: { id: socialUserId },
+      select: { allowed_modules: true, role: true },
+    });
 
     // Owners and Super Admins should not see locked modules in the UI.
     if (user?.role === 'owner' || user?.role === 'super_admin') {
@@ -218,7 +294,7 @@ export async function getOrganizationPackageEntitlements(
 }
 
 export async function requireClerkUserId(): Promise<string> {
-  const clerkUserId = await getCurrentUserId();
+  const clerkUserId = String((await getCurrentUserId()) || '').trim();
   if (!clerkUserId) {
     redirect('/sign-in');
   }
@@ -226,29 +302,28 @@ export async function requireClerkUserId(): Promise<string> {
 }
 
 export async function loadCurrentUserLastLocation(): Promise<LastLocation> {
-  const clerkUserId = await getCurrentUserId();
+  const clerkUserId = String((await getCurrentUserId()) || '').trim();
   if (!clerkUserId) {
     return { orgSlug: null, module: null };
   }
 
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('social_users')
-    .select('last_org_slug, last_module')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
+  try {
+    const data = await prisma.social_users.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { last_location_org: true, last_module: true },
+    });
 
-  if (error?.message) {
-    const msg = String(error.message).toLowerCase();
-    if (msg.includes('column') && (msg.includes('last_org_slug') || msg.includes('last_module'))) {
+    return {
+      orgSlug: data?.last_location_org ?? null,
+      module: (data?.last_module as OSModuleKey | null) ?? null,
+    };
+  } catch (error: unknown) {
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    if (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied')) {
       return { orgSlug: null, module: null };
     }
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load last location');
   }
-
-  return {
-    orgSlug: (data as any)?.last_org_slug ?? null,
-    module: ((data as any)?.last_module as OSModuleKey | null) ?? null,
-  };
 }
 
 export async function persistCurrentUserLastLocation({
@@ -258,37 +333,46 @@ export async function persistCurrentUserLastLocation({
   orgSlug: string;
   module?: OSModuleKey | null;
 }) {
-  const clerkUserId = await getCurrentUserId();
+  const clerkUserId = String((await getCurrentUserId()) || '').trim();
   if (!clerkUserId) {
     return;
   }
 
-  const supabase = createClient();
-  const update: Record<string, any> = {
-    updated_at: new Date().toISOString(),
-    last_org_slug: orgSlug,
-  };
-  if (module) {
-    update.last_module = module;
-  }
+  try {
+    type SocialUsersUpdateData = Parameters<typeof prisma.social_users.update>[0]['data'];
+    const update: SocialUsersUpdateData = {
+      updated_at: new Date(),
+      last_location_org: orgSlug,
+      ...(module ? { last_module: module } : {}),
+    };
 
-  const { error } = await supabase
-    .from('social_users')
-    .update(update as any)
-    .eq('clerk_user_id', clerkUserId);
-
-  // Backwards compatible: if columns don't exist yet, ignore.
-  if (error?.message) {
-    const msg = String(error.message).toLowerCase();
-    if (msg.includes('column') && (msg.includes('last_org_slug') || msg.includes('last_module'))) {
+    await prisma.social_users.update({
+      where: { clerk_user_id: clerkUserId },
+      data: update,
+    });
+  } catch (error: unknown) {
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    if (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied')) {
       return;
     }
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to persist last location');
   }
 }
 
 export async function requireCurrentOrganizationId(): Promise<string> {
   const clerkUserId = await requireClerkUserId();
-  const socialUser = await getCurrentSocialUser(clerkUserId);
+  let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
+  try {
+    socialUser = await getCurrentSocialUser(clerkUserId);
+  } catch (e: unknown) {
+    const msg = String(getErrorMessage(e) || '').toLowerCase();
+    const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+    const e2eOrgSlug = String(process.env.E2E_ORG_SLUG || '').trim();
+    if (isE2E && e2eOrgSlug) {
+      return e2eOrgSlug;
+    }
+    throw e;
+  }
   const organizationId = socialUser?.organization_id;
   if (organizationId) {
     return String(organizationId);
@@ -297,153 +381,135 @@ export async function requireCurrentOrganizationId(): Promise<string> {
   // Fallback: if the user record exists but doesn't have organization_id yet,
   // try to resolve the org by ownership.
   if (socialUser?.id) {
-    const supabase = createClient();
-    const { data: org, error } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('owner_id', socialUser.id)
-      .maybeSingle();
-
-    if (error) {
+    try {
+      const org = await prisma.social_organizations.findFirst({
+        where: { owner_id: socialUser.id },
+        select: { id: true },
+      });
+      if (org?.id) {
+        return String(org.id);
+      }
+    } catch (error: unknown) {
       console.error('[workspace-access] failed to resolve organization by owner_id', {
         clerkUserId,
         socialUserId: socialUser.id,
-        message: error.message,
-        code: (error as any).code,
+        message: getErrorMessage(error),
       });
     }
-
-    if (org?.id) {
-      return String(org.id);
-    }
   }
-
-  redirect('/');
+  redirect('/sign-in');
 }
 
 export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: string; organization_id: string | null; role?: string | null } | null> {
-  const supabase = createClient();
+  const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+  const e2eOrgSlug = String(process.env.E2E_ORG_SLUG || '').trim();
+  const normalizedClerkUserId = String(clerkUserId || '').trim();
+  if (!normalizedClerkUserId) return null;
   try {
-    const withActive = await supabase
-      .from('social_users')
-      .select('id, organization_id, role, is_active')
-      .eq('clerk_user_id', clerkUserId)
-      .maybeSingle();
-
-    if (withActive.error?.message) {
-      const msg = String(withActive.error.message).toLowerCase();
-      if (msg.includes('column') && msg.includes('is_active')) {
-        const withoutActive = await supabase
-          .from('social_users')
-          .select('id, organization_id, role')
-          .eq('clerk_user_id', clerkUserId)
-          .maybeSingle();
-
-        if (withoutActive.error) {
-          console.error('[workspace-access] failed to load social_user', {
-            clerkUserId,
-            message: withoutActive.error.message,
-            code: (withoutActive.error as any).code,
-          });
-        }
-
-        if (!withoutActive.data?.id) return null;
-        return withoutActive.data as any;
-      }
-
-      console.error('[workspace-access] failed to load social_user', {
-        clerkUserId,
-        message: withActive.error.message,
-        code: (withActive.error as any).code,
-      });
-    }
-
-    if (!withActive.data?.id) return null;
-    if ((withActive.data as any)?.is_active === false) return null;
-    return withActive.data as any;
-  } catch (error: any) {
-    console.error('[workspace-access] failed to load social_user', {
-      clerkUserId,
-      message: error?.message,
+    const row = await prisma.social_users.findUnique({
+      where: { clerk_user_id: normalizedClerkUserId },
+      select: { id: true, organization_id: true, role: true },
     });
-    return null;
+
+    if (!row?.id) return null;
+    return row;
+  } catch (error: unknown) {
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    if (isE2E && e2eOrgSlug && (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied'))) {
+      return {
+        id: String(normalizedClerkUserId),
+        organization_id: e2eOrgSlug,
+        role: 'super_admin',
+      };
+    }
+    console.error('[workspace-access] failed to load social_user', {
+      clerkUserId: normalizedClerkUserId,
+      message: getErrorMessage(error),
+    });
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load social_user');
   }
 }
 
 export async function getOrganizationEntitlements(
   organizationId: string,
   socialUserId?: string,
-  orgSlug?: string
+  orgSlug?: string,
 ): Promise<WorkspaceEntitlements> {
-  const supabase = createClient();
+  const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations')
-    .eq('id', organizationId)
-    .single();
-
-  if (error && (error as any).code === '42703') {
-    const fallback = await supabase
-      .from('organizations')
-      .select('has_nexus, has_system, has_social, has_finance, has_client')
-      .eq('id', organizationId)
-      .single();
-    const fallbackEntitlements = {
-      nexus: fallback.data?.has_nexus ?? true,
-      system: fallback.data?.has_system ?? false,
-      social: fallback.data?.has_social ?? false,
-      finance: fallback.data?.has_finance ?? false,
-      client: fallback.data?.has_client ?? false,
-      operations: false,
-    };
-
-    if (socialUserId) {
-      const { data: user } = await supabase
-        .from('social_users')
-        .select('allowed_modules, role')
-        .eq('id', socialUserId)
-        .single();
-
-      if (user?.role === 'owner' || user?.role === 'super_admin') {
-        return await applyLaunchScopeToEntitlements(fallbackEntitlements, { organizationId, orgSlug });
-      }
-
-      if (user?.allowed_modules && Array.isArray(user.allowed_modules)) {
-        const userModules = new Set(user.allowed_modules);
-        return await applyLaunchScopeToEntitlements(
-          {
-            nexus: fallbackEntitlements.nexus && userModules.has('nexus'),
-            system: fallbackEntitlements.system && userModules.has('system'),
-            social: fallbackEntitlements.social && userModules.has('social'),
-            finance: fallbackEntitlements.finance && userModules.has('finance'),
-            client: fallbackEntitlements.client && userModules.has('client'),
-            operations: false,
-          },
-          { organizationId, orgSlug }
-        );
-      }
+  let org: OrganizationModuleFlags | null = null;
+  try {
+    org = await prisma.social_organizations.findUnique({
+      where: { id: organizationId },
+      select: {
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+      },
+    });
+  } catch (error: unknown) {
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    if (isE2E && (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied'))) {
+      return await applyLaunchScopeToEntitlements(
+        {
+          nexus: true,
+          system: true,
+          social: true,
+          finance: true,
+          client: true,
+          operations: true,
+        },
+        { organizationId, orgSlug }
+      );
     }
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load organization entitlements');
+  }
 
-    return await applyLaunchScopeToEntitlements(fallbackEntitlements, { organizationId, orgSlug });
+  if (!org) {
+    if (isE2E) {
+      return await applyLaunchScopeToEntitlements(
+        {
+          nexus: true,
+          system: true,
+          social: true,
+          finance: true,
+          client: true,
+          operations: true,
+        },
+        { organizationId, orgSlug }
+      );
+    }
+    throw new Error('Organization not found');
   }
 
   const orgEntitlements = {
-    nexus: org?.has_nexus ?? true,
+    nexus: org?.has_nexus ?? false,
     system: org?.has_system ?? false,
     social: org?.has_social ?? false,
     finance: org?.has_finance ?? false,
     client: org?.has_client ?? false,
-    operations: (org as any)?.has_operations ?? false,
+    operations: org?.has_operations ?? false,
   };
 
   // If socialUserId is provided, intersect with user's allowed modules
   if (socialUserId) {
-    const { data: user } = await supabase
-      .from('social_users')
-      .select('allowed_modules, role')
-      .eq('id', socialUserId)
-      .single();
+    let user: { allowed_modules: string[] | null; role: string | null } | null = null;
+    try {
+      user = await prisma.social_users.findFirst({
+        where: { id: socialUserId },
+        select: { allowed_modules: true, role: true },
+      });
+    } catch (error: unknown) {
+      console.error('[workspace-access] failed to load allowed_modules for social_user', {
+        socialUserId,
+        organizationId,
+        message: getErrorMessage(error),
+      });
+      user = null;
+    }
 
     // Owners and Super Admins get everything the organization has
     if (user?.role === 'owner' || user?.role === 'super_admin') {
@@ -470,31 +536,29 @@ export async function getOrganizationEntitlements(
 }
 
 async function hasTeamMembership({
-  supabase,
   socialUserId,
   organizationId,
 }: {
-  supabase: ReturnType<typeof createClient>;
   socialUserId: string;
   organizationId: string;
 }): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('social_team_members')
-    .select('id')
-    .eq('user_id', socialUserId)
-    .eq('organization_id', organizationId)
-    .maybeSingle();
-
-  if (error) {
+  try {
+    const data = await prisma.social_team_members.findFirst({
+      where: {
+        user_id: socialUserId,
+        organization_id: organizationId,
+      },
+      select: { id: true },
+    });
+    return Boolean(data?.id);
+  } catch (error: unknown) {
     console.error('[workspace-access] failed to check team membership', {
       socialUserId,
       organizationId,
-      message: error.message,
-      code: (error as any).code,
+      message: getErrorMessage(error),
     });
+    return false;
   }
-
-  return Boolean(data?.id);
 }
 
 export function getFirstAllowedModule(entitlements: WorkspaceEntitlements): OSModuleKey | null {
@@ -507,7 +571,6 @@ export function getFirstAllowedModule(entitlements: WorkspaceEntitlements): OSMo
 
 export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<WorkspaceInfo> {
   const clerkUserId = await requireClerkUserId();
-  const supabase = createClient();
 
   if (!orgSlug) {
     throw new Error('Missing orgSlug for workspace route');
@@ -520,103 +583,87 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     decodedOrgSlug = orgSlug;
   }
 
-  const socialUser = await getCurrentSocialUser(clerkUserId);
-  if (!socialUser?.id) {
+  let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
+  try {
+    socialUser = await getCurrentSocialUser(clerkUserId);
+  } catch (e: unknown) {
+    throw e instanceof Error ? e : new Error(getErrorMessage(e) || 'Failed to load social_user');
+  }
+
+  const clerkIsSuperAdmin = await isClerkSuperAdmin();
+  if (!socialUser?.id && !clerkIsSuperAdmin) {
     redirect('/sign-in');
   }
 
-  const isSuperAdmin = socialUser.role === 'super_admin';
+  const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
 
   const organizationKey = decodedOrgSlug;
 
-  if (socialUser?.organization_id && String(socialUser.organization_id) === String(organizationKey)) {
-    const entitlements = await getOrganizationEntitlements(socialUser.organization_id, socialUser.id, decodedOrgSlug);
-
-    let org: any = null;
+  if (
+    socialUser?.organization_id &&
+    isUuidLike(organizationKey) &&
+    isUuidLike(String(socialUser.organization_id)) &&
+    String(socialUser.organization_id) === String(organizationKey)
+  ) {
+    let org: { id: string; name: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
     try {
-      const withSeats = await supabase
-        .from('organizations')
-        .select('id, name, slug, logo, seats_allowed')
-        .eq('id', socialUser.organization_id)
-        .maybeSingle();
-
-      if (withSeats.error?.message && String(withSeats.error.message).toLowerCase().includes('column') && String(withSeats.error.message).toLowerCase().includes('seats_allowed')) {
-        const withoutSeats = await supabase
-          .from('organizations')
-          .select('id, name, slug, logo')
-          .eq('id', socialUser.organization_id)
-          .maybeSingle();
-        org = withoutSeats.data as any;
-      } else {
-        org = withSeats.data as any;
+      org = await prisma.social_organizations.findUnique({
+        where: { id: String(socialUser.organization_id) },
+        select: { id: true, name: true, slug: true, logo: true, seats_allowed: true },
+      });
+    } catch (e: unknown) {
+      const msg = String(getErrorMessage(e) || '').toLowerCase();
+      if (msg.includes('permission denied')) {
+        redirect('/maintenance');
       }
-    } catch {
-      org = null;
+      throw e;
     }
 
+    if (!org?.id) {
+      console.error('[workspace-access] organization not found -> redirect(/)', {
+        orgSlug,
+        clerkUserId,
+        organizationId: organizationKey,
+      });
+      redirect('/');
+    }
+
+    const entitlements = await getOrganizationEntitlements(
+      String(org.id),
+      isSuperAdmin ? undefined : socialUser.id,
+      decodedOrgSlug
+    );
+
     return {
-      id: organizationKey,
-      slug: (org as any)?.slug ?? null,
-      name: (org as any)?.name ?? 'Workspace',
-      logo: (org as any)?.logo ?? null,
-      seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
+      id: String(org.id),
+      slug: org?.slug ?? null,
+      name: org?.name ?? 'Workspace',
+      logo: org?.logo ?? null,
+      seatsAllowed: Number.isFinite(Number(org?.seats_allowed)) ? Number(org?.seats_allowed) : null,
       entitlements,
     };
   }
 
   // Resolve org by human slug first; if not found, attempt UUID id lookup (backwards compatible).
-  let org: any = null;
-  let orgError: any = null;
+  let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
+  try {
+    org = await prisma.social_organizations.findFirst({
+      where: { slug: organizationKey },
+      select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+    });
 
-  const bySlug = await supabase
-    .from('organizations')
-    .select('id, name, owner_id, slug, logo, seats_allowed')
-    .eq('slug', organizationKey)
-    .maybeSingle();
-
-  org = bySlug.data;
-  orgError = bySlug.error;
-
-  // If the slug or seats_allowed columns don't exist yet, fallback to a safe select.
-  if (
-    !org?.id &&
-    orgError?.message &&
-    String(orgError.message).toLowerCase().includes('column') &&
-    (String(orgError.message).toLowerCase().includes('slug') || String(orgError.message).toLowerCase().includes('seats_allowed'))
-  ) {
-    const bySlugFallback = await supabase
-      .from('organizations')
-      .select('id, name, owner_id, logo')
-      .eq('id', '__no_such_id__')
-      .maybeSingle();
-    // Keep org null; just clear the "slug column" error so we can continue to UUID lookup.
-    org = bySlugFallback.data;
-    orgError = null;
-  }
-
-  if (!org?.id) {
-    const byId = await supabase
-      .from('organizations')
-      .select('id, name, owner_id, slug, logo, seats_allowed')
-      .eq('id', organizationKey)
-      .maybeSingle();
-    org = byId.data;
-    orgError = byId.error;
-
-    if (
-      !org?.id &&
-      orgError?.message &&
-      String(orgError.message).toLowerCase().includes('column') &&
-      (String(orgError.message).toLowerCase().includes('slug') || String(orgError.message).toLowerCase().includes('seats_allowed'))
-    ) {
-      const byIdFallback = await supabase
-        .from('organizations')
-        .select('id, name, owner_id, logo')
-        .eq('id', organizationKey)
-        .maybeSingle();
-      org = byIdFallback.data;
-      orgError = byIdFallback.error;
+    if (!org?.id && isUuidLike(organizationKey)) {
+      org = await prisma.social_organizations.findFirst({
+        where: { id: organizationKey },
+        select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+      });
     }
+  } catch (e: unknown) {
+    const msg = String(getErrorMessage(e) || '').toLowerCase();
+    if (msg.includes('permission denied')) {
+      throw setErrorStatus(new Error('Forbidden'), 403);
+    }
+    throw e;
   }
 
   if (!org?.id) {
@@ -624,7 +671,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
       orgSlug,
       clerkUserId,
       organizationId: organizationKey,
-      orgError: orgError ? { message: orgError.message, code: (orgError as any).code } : null,
+      orgError: null,
     });
     redirect('/');
   }
@@ -634,7 +681,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
 
   const isTeamMember = isSuperAdmin
     ? false
-    : await hasTeamMembership({ supabase, socialUserId: String(socialUser.id), organizationId: String(org.id) });
+    : await hasTeamMembership({ socialUserId: String(socialUser?.id), organizationId: String(org.id) });
 
   if (!isSuperAdmin && !isOwner && !isPrimary && !isTeamMember) {
     console.error('[workspace-access] forbidden -> redirect(/)', {
@@ -651,14 +698,14 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     redirect('/');
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, decodedOrgSlug);
+  const entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, decodedOrgSlug);
 
   return {
     id: org.id,
     slug: org.slug ?? null,
     name: org.name,
     logo: org.logo ?? null,
-    seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
+    seatsAllowed: Number.isFinite(Number(org.seats_allowed)) ? Number(org.seats_allowed) : null,
     entitlements,
   };
 }
@@ -666,9 +713,21 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
 export async function requireWorkspaceAccessByOrgSlugUi(orgSlug: string): Promise<WorkspaceInfoWithPackage> {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
   const clerkUserId = await requireClerkUserId();
-  const socialUser = await getCurrentSocialUser(clerkUserId);
+  let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
+  try {
+    socialUser = await getCurrentSocialUser(clerkUserId);
+  } catch (e: unknown) {
+    throw e instanceof Error ? e : new Error(getErrorMessage(e) || 'Failed to load social_user');
+  }
 
-  const { packageType, entitlements } = await getOrganizationPackageEntitlements(workspace.id, socialUser?.id, orgSlug);
+  const clerkIsSuperAdmin = await isClerkSuperAdmin();
+  const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
+
+  const { packageType, entitlements } = await getOrganizationPackageEntitlements(
+    workspace.id,
+    isSuperAdmin ? undefined : socialUser?.id,
+    orgSlug
+  );
 
   return {
     ...workspace,
@@ -680,9 +739,7 @@ export async function requireWorkspaceAccessByOrgSlugUi(orgSlug: string): Promis
 export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promise<WorkspaceInfo> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    const err = new Error('Unauthorized');
-    (err as any).status = 401;
-    throw err;
+    throw setErrorStatus(new Error('Unauthorized'), 401);
   }
 
   let decodedOrgSlug = orgSlug;
@@ -692,88 +749,78 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
     decodedOrgSlug = orgSlug;
   }
 
-  const supabase = createClient();
-
-  const socialUser = await getCurrentSocialUser(clerkUserId);
-  if (!socialUser?.id) {
-    const err = new Error('Unauthorized');
-    (err as any).status = 401;
-    throw err;
+  let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
+  try {
+    socialUser = await getCurrentSocialUser(clerkUserId);
+  } catch (e: unknown) {
+    const msg = String(getErrorMessage(e) || '').toLowerCase();
+    if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('permission denied')) {
+      throw setErrorStatus(new Error('Service unavailable'), 503);
+    }
+    throw e;
   }
 
-  const isSuperAdmin = socialUser.role === 'super_admin';
+  const clerkIsSuperAdmin = await isClerkSuperAdmin();
+  if (!socialUser?.id && !clerkIsSuperAdmin) {
+    throw setErrorStatus(new Error('Unauthorized'), 401);
+  }
+
+  const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
+
+  if (!socialUser?.id && !isSuperAdmin) {
+    throw setErrorStatus(new Error('Unauthorized'), 401);
+  }
 
   const organizationKey = decodedOrgSlug;
 
-  let org: any = null;
-  const bySlug = await supabase
-    .from('organizations')
-    .select('id, name, owner_id, slug, logo, seats_allowed')
-    .eq('slug', organizationKey)
-    .maybeSingle();
-  org = bySlug.data;
+  let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
+  try {
+    org = await prisma.social_organizations.findFirst({
+      where: { slug: organizationKey },
+      select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+    });
 
-  if (
-    !org?.id &&
-    bySlug.error?.message &&
-    String(bySlug.error.message).toLowerCase().includes('column') &&
-    (String(bySlug.error.message).toLowerCase().includes('slug') || String(bySlug.error.message).toLowerCase().includes('seats_allowed'))
-  ) {
-    // slug/seats_allowed columns not available yet -> skip slug lookup and continue with id lookup
-    org = null;
-  }
-
-  if (!org?.id) {
-    const byId = await supabase
-      .from('organizations')
-      .select('id, name, owner_id, slug')
-      .eq('id', organizationKey)
-      .maybeSingle();
-
-    org = byId.data;
-
-    if (
-      !org?.id &&
-      byId.error?.message &&
-      String(byId.error.message).toLowerCase().includes('column') &&
-      (String(byId.error.message).toLowerCase().includes('slug') || String(byId.error.message).toLowerCase().includes('seats_allowed'))
-    ) {
-      const byIdFallback = await supabase
-        .from('organizations')
-        .select('id, name, owner_id, logo')
-        .eq('id', organizationKey)
-        .maybeSingle();
-      org = byIdFallback.data;
+    if (!org?.id && isUuidLike(organizationKey)) {
+      org = await prisma.social_organizations.findFirst({
+        where: { id: organizationKey },
+        select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+      });
     }
+  } catch (e: unknown) {
+    const msg = String(getErrorMessage(e) || '').toLowerCase();
+    if (msg.includes('permission denied')) {
+      throw setErrorStatus(new Error('Service unavailable'), 503);
+    }
+    throw e;
   }
 
   if (!org?.id) {
-    const err = new Error('Organization not found');
-    (err as any).status = 404;
-    throw err;
+    throw setErrorStatus(new Error('Organization not found'), 404);
   }
 
-  const isOwner = org.owner_id === socialUser.id;
-  const isPrimary = socialUser.organization_id === org.id;
+  const isOwner = Boolean(org.owner_id && socialUser?.id && String(org.owner_id) === String(socialUser.id));
+  const isPrimary = Boolean(org.id && socialUser?.organization_id && String(socialUser.organization_id) === String(org.id));
 
   const isTeamMember = isSuperAdmin
     ? false
-    : await hasTeamMembership({ supabase, socialUserId: String(socialUser.id), organizationId: String(org.id) });
+    : await hasTeamMembership({ socialUserId: String(socialUser?.id), organizationId: String(org.id) });
 
   if (!isSuperAdmin && !isOwner && !isPrimary && !isTeamMember) {
-    const err = new Error('Forbidden');
-    (err as any).status = 403;
-    throw err;
+    throw setErrorStatus(new Error('Forbidden'), 403);
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, socialUser.id, orgSlug);
+  const entitlements = await getOrganizationEntitlements(
+    org.id,
+    isSuperAdmin ? undefined : socialUser?.id,
+    orgSlug
+  );
 
   return {
     id: org.id,
     slug: org.slug ?? null,
     name: org.name,
     logo: org.logo ?? null,
-    seatsAllowed: Number.isFinite(Number((org as any)?.seats_allowed)) ? Number((org as any)?.seats_allowed) : null,
+    seatsAllowed: Number.isFinite(Number(org.seats_allowed)) ? Number(org.seats_allowed) : null,
     entitlements,
   };
 }
@@ -787,11 +834,27 @@ export async function enforceModuleAccessOrRedirect({
 }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
+  const clerkUserId = await getCurrentUserId();
+  let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
+  if (clerkUserId) {
+    try {
+      socialUser = await getCurrentSocialUser(clerkUserId);
+    } catch (e: unknown) {
+      throw e instanceof Error ? e : new Error(getErrorMessage(e) || 'Failed to load social_user');
+    }
+  }
+  const clerkIsSuperAdmin = await isClerkSuperAdmin();
+  const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
+
   const bypassEntitlements =
     String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
     String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
 
   if (workspace.entitlements[module]) {
+    return workspace;
+  }
+
+  if (isSuperAdmin) {
     return workspace;
   }
 

@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { Target, TrendingUp, Users, DollarSign, Edit2, Save, X, Trophy, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User } from '../types';
+import { Lead, User } from '../types';
+import { isCeoRole } from '@/lib/constants/roles';
 
 export const SalesTargets: React.FC = () => {
     const { monthlyGoals, updateMonthlyGoals, users, updateUser, tasks, leads } = useData();
@@ -13,14 +14,14 @@ export const SalesTargets: React.FC = () => {
     const [tempUserTarget, setTempUserTarget] = useState(0);
 
     // Filter Sales Team
-    const salesTeam = users.filter(u => 
+    const salesTeam = users.filter((u: User) => 
         u.role === 'סמנכ״ל מכירות' || 
         u.role === 'איש מכירות' || 
-        u.role === 'מנכ״ל'
+        isCeoRole(u.role)
     );
 
     // Calculate Global Progress
-    const currentRevenue = leads.filter(l => l.status === 'Won').reduce((acc, l) => acc + l.value, 0);
+    const currentRevenue = (leads as Lead[]).filter((l: Lead) => l.status === 'Won').reduce((acc: number, l: Lead) => acc + l.value, 0);
     const globalProgress = Math.min((currentRevenue / monthlyGoals.revenue) * 100, 100);
 
     const handleSaveGlobal = () => {
@@ -29,7 +30,7 @@ export const SalesTargets: React.FC = () => {
     };
 
     const handleSaveUserTarget = (userId: string) => {
-        const user = users.find(u => u.id === userId);
+        const user = users.find((u: User) => u.id === userId);
         if (user) {
             updateUser(userId, {
                 targets: {
@@ -122,10 +123,10 @@ export const SalesTargets: React.FC = () => {
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {salesTeam.map(user => {
+                    {salesTeam.map((user: User) => {
                         const target = user.targets?.leadsMonth || 0; // Sales Target (Revenue or Leads count, using leadsMonth as placeholder for Revenue Target here for simplicity)
                         // Mock actual performance for demo based on their ID
-                        const actual = leads.filter(l => l.status === 'Won').length * 5000; // Mock 5k per deal
+                        const actual = (leads as Lead[]).filter((l: Lead) => l.status === 'Won').length * 5000; // Mock 5k per deal
                         const userProgress = target > 0 ? Math.min((actual / target) * 100, 100) : 0;
                         const isEditing = editingUserId === user.id;
 

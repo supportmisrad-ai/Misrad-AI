@@ -4,6 +4,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 import { createOperationsWorkOrder, getOperationsProjectOptions } from '@/app/actions/operations';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 
 export default async function OperationsNewWorkOrderPage({
   params,
@@ -66,11 +70,11 @@ export default async function OperationsNewWorkOrderPage({
             <label htmlFor="title" className="block text-xs font-black text-slate-700">
               כותרת
             </label>
-            <input
+            <Input
               id="title"
               name="title"
               required
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              className="mt-2 h-12 rounded-2xl bg-white/80"
               placeholder="לדוגמה: בדיקת תקלה במזגן"
             />
           </div>
@@ -79,11 +83,11 @@ export default async function OperationsNewWorkOrderPage({
             <label htmlFor="description" className="block text-xs font-black text-slate-700">
               תיאור
             </label>
-            <textarea
+            <Textarea
               id="description"
               name="description"
               rows={4}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              className="mt-2 min-h-[120px] rounded-2xl bg-white/80"
               placeholder="פרטים נוספים שיעזרו לטכנאי בשטח"
             />
           </div>
@@ -92,12 +96,12 @@ export default async function OperationsNewWorkOrderPage({
             <label htmlFor="projectId" className="block text-xs font-black text-slate-700">
               פרויקט (חובה)
             </label>
-            <select
+            <Select
               id="projectId"
               name="projectId"
               required
               defaultValue={initialProjectId ? String(initialProjectId) : ''}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              className="mt-2 h-12 rounded-2xl bg-white/80"
             >
               <option value="" disabled>
                 {projects.length ? 'בחר פרויקט…' : 'אין פרויקטים פעילים'}
@@ -107,7 +111,7 @@ export default async function OperationsNewWorkOrderPage({
                   {p.title}
                 </option>
               ))}
-            </select>
+            </Select>
             {!projectsRes.success ? (
               <div className="mt-2 text-xs font-bold text-rose-700">{projectsRes.error}</div>
             ) : null}
@@ -117,11 +121,11 @@ export default async function OperationsNewWorkOrderPage({
             <label htmlFor="scheduledStart" className="block text-xs font-black text-slate-700">
               תאריך יעד
             </label>
-            <input
+            <Input
               id="scheduledStart"
               name="scheduledStart"
               type="datetime-local"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              className="mt-2 h-12 rounded-2xl bg-white/80"
             />
           </div>
 
@@ -132,12 +136,13 @@ export default async function OperationsNewWorkOrderPage({
             >
               ביטול
             </Link>
-            <button
+            <Button
               type="submit"
-              className="inline-flex items-center justify-center rounded-2xl px-4 py-2 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              variant="secondary"
+              className="rounded-2xl"
             >
               צור קריאה
-            </button>
+            </Button>
           </div>
         </form>
       </section>

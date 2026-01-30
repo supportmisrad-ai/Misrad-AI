@@ -1,23 +1,27 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Status, User, RoleDefinition } from '../types';
 import { Settings, UserPlus, Trophy, X, Shield, Building2, Users, Lock, Calendar, CalendarDays, BarChart3, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNexusNavigation } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { CustomSelect } from '../components/CustomSelect';
 import { TeamMemberModal } from '../components/nexus/team/TeamMemberModal';
 import { BonusConfirmationModal } from '../components/nexus/team/BonusConfirmationModal';
 import { TaskAssignmentModal } from '../components/nexus/team/TaskAssignmentModal';
+
 import { TeamMemberCard } from '../components/nexus/team/TeamMemberCard';
 import { UnassignedTasksSidebar } from '../components/nexus/team/UnassignedTasksSidebar';
 import { EmployeeInvitationsPanel } from '../components/nexus/EmployeeInvitationsPanel';
 import { TeamEventsPanel } from '../components/nexus/team/TeamEventsPanel';
 import { LeaveRequestsPanel } from '../components/nexus/team/LeaveRequestsPanel';
 import { Skeleton } from '@/components/ui/skeletons';
+import { isAdminRole, isCeoRole, isTenantAdminRole } from '@/lib/constants/roles';
+import { createNexusUser, deleteNexusUser, listNexusUsers, sendNexusUserInvitation, updateNexusUser } from '@/app/actions/nexus';
 
 // Helper to check if a task is "active" (contributes to workload)
 const isActiveTask = (status: string) => 
@@ -25,30 +29,20 @@ const isActiveTask = (status: string) =>
 
 export const TeamView: React.FC = () => {
   const { tasks, updateTask, openCreateTask, addUser, updateUser, removeUser, switchUser, roleDefinitions, currentUser, hasPermission, addNotification, addToast, departments, users: allUsers } = useData();
-  const { fetchUsers, isLoading: isLoadingUsers, updateUserAPI, setUserManagerAPI, fetchRoles } = useSecureAPI();
+  const { fetchRoles } = useSecureAPI();
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<User[]>(allUsers || []);
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roleDefinitions || []);
-  const [cachedUsers, setCachedUsers] = useState<User[]>(() => {
-      // Prefer context users over localStorage cache
-      if (allUsers && allUsers.length > 0) {
-          return allUsers;
-      }
-      if (typeof window !== 'undefined') {
-          const stored = localStorage.getItem('team_cached_users');
-          return stored ? JSON.parse(stored) : [];
-      }
-      return [];
-  });
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const isLoadingRef = useRef(false);
   const lastAllUsersRef = useRef<User[] | null>(null);
-  const { navigate } = useNexusNavigation();
-  
+  const { navigate, pathname } = useNexusNavigation();
+  const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname), [pathname]);
+
   // HIERARCHY LOGIC
   // Super Admin: system admin, sees everything across all tenants
   const isSuperAdmin = currentUser.isSuperAdmin === true;
   // Tenant Admin: CEO/Admin within their tenant, sees everything within their tenant
-  const isTenantAdmin = !isSuperAdmin && (currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין');
+  const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
   // Combined: sees all users/tasks within their scope (Super Admin sees all tenants, Tenant Admin sees their tenant)
   const isGlobalAdmin = isSuperAdmin || isTenantAdmin;
   const myDepartment = currentUser.department;
@@ -58,25 +52,60 @@ export const TeamView: React.FC = () => {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('All');
   const [showHeadsOnly, setShowHeadsOnly] = useState(false);
 
+  const usersQuery = useQuery({
+      queryKey: ['nexus', 'users', orgSlug, selectedDepartment],
+      queryFn: async () => {
+          return listNexusUsers({
+              orgId: orgSlug as string,
+              department: selectedDepartment !== 'All' ? selectedDepartment : undefined,
+              page: 1,
+              pageSize: 200,
+          });
+      },
+      enabled: Boolean(orgSlug),
+      staleTime: 30_000,
+      refetchInterval: 60_000,
+      retry: 1,
+  });
+
+  const createUserMutation = useMutation({
+      mutationFn: async (input: Omit<User, 'id'>) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          return createNexusUser({ orgId: orgSlug, input });
+      },
+  });
+
+  const updateUserMutation = useMutation({
+      mutationFn: async (params: { userId: string; updates: Partial<User> }) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          return updateNexusUser({ orgId: orgSlug, userId: params.userId, updates: params.updates });
+      },
+  });
+
+  const deleteUserMutation = useMutation({
+      mutationFn: async (userId: string) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          return deleteNexusUser({ orgId: orgSlug, userId });
+      },
+  });
+
+  const inviteUserMutation = useMutation({
+      mutationFn: async (params: { email: string; userId?: string | null; userName?: string | null; department?: string | null; role?: string | null }) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          return sendNexusUserInvitation({ orgId: orgSlug, ...params });
+      },
+  });
+
   // Modal State
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingUser, setEditingUser] = useState<User | undefined>(undefined);
-  
-  // Delete Modal State
-  const [userToDelete, setUserToDelete] = useState<{id: string, name: string} | null>(null);
 
-  // Dropdown Menu State
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-
-  // AI Recommendation State
   const [rewardRecommendation, setRewardRecommendation] = useState<any | null>(null);
-  
-  // NEW STATES
   const [isBonusConfirmOpen, setIsBonusConfirmOpen] = useState(false);
   const [assigningToUserId, setAssigningToUserId] = useState<string | null>(null);
-  
-  // TABS STATE
   const [activeTab, setActiveTab] = useState<'workload' | 'invitations' | 'events' | 'leave'>('workload');
 
   useEffect(() => {
@@ -100,118 +129,76 @@ export const TeamView: React.FC = () => {
               if (roles && roles.length > 0) {
                   setAvailableRoles(roles);
               } else if (roleDefinitions && roleDefinitions.length > 0) {
-                  // Fallback to context roles
                   setAvailableRoles(roleDefinitions);
               }
-          } catch (error) {
-              // If fetch fails (e.g., no permission), use context roles
-              console.warn('[TeamView] Could not load roles from API, using context roles');
+          } catch {
               if (roleDefinitions && roleDefinitions.length > 0) {
                   setAvailableRoles(roleDefinitions);
               }
           }
       };
-      
-      // Use context roles immediately, then try to refresh from API
+
       if (roleDefinitions && roleDefinitions.length > 0) {
           setAvailableRoles(roleDefinitions);
       }
       loadRoles();
   }, [roleDefinitions, fetchRoles]);
 
-  // Sync users from context when allUsers changes
   useEffect(() => {
       if (allUsers && allUsers.length > 0) {
-          // Check if allUsers actually changed by comparing IDs and content
           const currentIds = allUsers.map((u: any) => u.id).sort().join(',');
           const lastIds = lastAllUsersRef.current?.map((u: any) => u.id).sort().join(',') || '';
-          
-          // Also check if any user data changed (for edits)
+
           let hasChanges = false;
           if (lastAllUsersRef.current) {
-              // Check if IDs changed (new/removed users)
               if (currentIds !== lastIds) {
                   hasChanges = true;
               } else {
-                  // Check if any user data changed (edits)
                   for (const user of allUsers) {
                       const lastUser = lastAllUsersRef.current.find((u: any) => u.id === user.id);
                       if (!lastUser) {
                           hasChanges = true;
                           break;
                       }
-                      // Compare key fields that might change
-                      if (user.name !== lastUser.name || 
-                          user.role !== lastUser.role || 
+                      if (
+                          user.name !== lastUser.name ||
+                          user.role !== lastUser.role ||
                           user.department !== lastUser.department ||
-                          user.capacity !== lastUser.capacity) {
+                          user.capacity !== lastUser.capacity
+                      ) {
                           hasChanges = true;
                           break;
                       }
                   }
               }
           } else {
-              hasChanges = true; // First load
+              hasChanges = true;
           }
-          
+
           if (hasChanges) {
               setUsers(allUsers);
-              setCachedUsers(allUsers);
               lastAllUsersRef.current = allUsers;
           }
       } else if (allUsers && allUsers.length === 0 && lastAllUsersRef.current) {
-          // Clear if allUsers becomes empty
           setUsers([]);
-          setCachedUsers([]);
           lastAllUsersRef.current = null;
       }
   }, [allUsers]);
 
-  // Load users from secure API when department filter changes
   useEffect(() => {
-      // Skip if already loading
-      if (isLoadingRef.current) return;
-      
-      // If we have context users and no filter, use them
-      if (allUsers && allUsers.length > 0 && selectedDepartment === 'All') {
-          return; // Use context data, no need to fetch
+      const list = (usersQuery.data as any)?.users;
+      if (Array.isArray(list)) {
+          setUsers(list as any);
+          lastAllUsersRef.current = list as any;
       }
-      
-      const loadUsers = async () => {
-          // Prevent multiple simultaneous loads
-          if (isLoadingRef.current) return;
-          isLoadingRef.current = true;
-          setIsRefreshing(true);
-          
-          try {
-              const fetchedUsers = await fetchUsers({
-                  department: selectedDepartment !== 'All' ? selectedDepartment : undefined
-              });
-              const newUsers = fetchedUsers || [];
-              
-              setUsers(newUsers);
-              setCachedUsers(newUsers);
-              
-              // Persist to localStorage
-              if (typeof window !== 'undefined') {
-                  localStorage.setItem('team_cached_users', JSON.stringify(newUsers));
-              }
-          } catch (error) {
-              console.error('Failed to load users:', error);
-              // Keep existing users on error
-          } finally {
-              setIsRefreshing(false);
-              isLoadingRef.current = false;
-          }
-      };
-      
-      loadUsers();
-  }, [selectedDepartment, fetchUsers]); // Only depend on selectedDepartment and fetchUsers
+  }, [usersQuery.data]);
 
-  // Close menu when clicking outside
+  useEffect(() => {
+      setIsRefreshing(Boolean(usersQuery.isFetching));
+  }, [usersQuery.isFetching]);
+
   useEffect(() => {
       if (typeof document === 'undefined') return;
-      
       const handleClickOutside = () => setActiveMenuId(null);
       if (activeMenuId) {
           document.addEventListener('click', handleClickOutside);
@@ -223,9 +210,8 @@ export const TeamView: React.FC = () => {
       };
   }, [activeMenuId]);
 
-  // Simulate AI Scan for Rewards
   useEffect(() => {
-      const bestUser = users.find(u => u.pendingReward);
+      const bestUser = users.find((u: any) => u?.pendingReward);
       if (bestUser && !rewardRecommendation) {
           setTimeout(() => {
               setRewardRecommendation({
@@ -234,96 +220,119 @@ export const TeamView: React.FC = () => {
                   avatar: bestUser.avatar,
                   reason: bestUser.pendingReward?.reason,
                   amount: bestUser.pendingReward?.suggestedBonus,
-                  type: bestUser.pendingReward?.type
+                  type: bestUser.pendingReward?.type,
               });
           }, 1000);
       }
-  }, [users]);
-  
-  // --- Smart Filtering Logic ---
-  const visibleUsers = users.filter(user => {
-      // 0. Heads Only Filter
+  }, [users, rewardRecommendation]);
+
+  const visibleUsers = users.filter((user: any) => {
       if (showHeadsOnly) {
-          const isHead = user.role.includes('מנהל') || user.role.includes('ראש') || user.role.includes('VP') || user.role.includes('מנכ') || user.role.includes('סמנכ');
+          const roleStr = String(user.role || '');
+          const isHead =
+              roleStr.includes('מנהל') ||
+              roleStr.includes('ראש') ||
+              roleStr.includes('VP') ||
+              roleStr.includes('סמנכ') ||
+              isCeoRole(roleStr) ||
+              isAdminRole(roleStr);
           if (!isHead) return false;
       }
 
-      // 1. If Global Admin: Show based on dropdown filter
       if (isGlobalAdmin) {
           if (selectedDepartment !== 'All') {
               return user.department === selectedDepartment;
           }
           return true;
       }
-      
-      // 2. If Department Manager: Show ONLY their department
+
       if (hasPermission('manage_team')) {
           return user.department === myDepartment || user.id === currentUser.id;
       }
 
-      // 3. Regular Employee: Show only themselves
       return user.id === currentUser.id;
   });
 
-  // Unassigned tasks created by current user
-  const myUnassignedTasks = tasks.filter((t: any) => 
-      (!t.assigneeIds || t.assigneeIds.length === 0) && 
+  const myUnassignedTasks = tasks.filter((t: any) =>
+      (!t.assigneeIds || t.assigneeIds.length === 0) &&
       t.creatorId === currentUser.id &&
-      t.status !== Status.DONE && 
+      t.status !== Status.DONE &&
       t.status !== Status.CANCELED
   );
 
   const getWorkloadData = (user: User) => {
-    const activeTasks = tasks.filter((t: any) => 
-        (t.assigneeIds?.includes(user.id)) && isActiveTask(t.status)
-    );
-    const count = activeTasks.length;
-    const maxCapacity = user.capacity || 5; 
-    const percentage = Math.min((count / maxCapacity) * 100, 100);
-    const streak = user.streakDays || 0;
-    
-    // Performance vs Role Average (Mock calculation)
-    const roleAvg = 70; // Arbitrary 70% efficiency
-    const userEfficiency = Math.min(100, Math.round((activeTasks.filter((t: any) => t.status === Status.DONE).length / (user.targets?.tasksMonth || 1)) * 100) || 75);
-    const performanceDiff = userEfficiency - roleAvg;
+      const activeTasks = tasks.filter((t: any) =>
+          (t.assigneeIds?.includes(user.id)) && isActiveTask(t.status)
+      );
+      const count = activeTasks.length;
+      const maxCapacity = user.capacity || 5;
+      const percentage = Math.min((count / maxCapacity) * 100, 100);
+      const streak = user.streakDays || 0;
 
-    let statusColor = 'bg-green-500';
-    if (percentage >= 100) statusColor = 'bg-red-500';
-    else if (percentage >= 75) statusColor = 'bg-orange-500';
-    else if (percentage >= 50) statusColor = 'bg-yellow-500';
+      const roleAvg = 70;
+      const userEfficiency =
+          Math.min(
+              100,
+              Math.round((activeTasks.filter((t: any) => t.status === Status.DONE).length / (user.targets?.tasksMonth || 1)) * 100) || 75
+          );
+      const performanceDiff = userEfficiency - roleAvg;
 
-    return { activeTasks, count, percentage, statusColor, maxCapacity, streak, performanceDiff };
+      let statusColor = 'bg-green-500';
+      if (percentage >= 100) statusColor = 'bg-red-500';
+      else if (percentage >= 75) statusColor = 'bg-orange-500';
+      else if (percentage >= 50) statusColor = 'bg-yellow-500';
+
+      return { activeTasks, count, percentage, statusColor, maxCapacity, streak, performanceDiff };
   };
 
-  // Drag and Drop Logic
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-    e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('taskId', taskId);
+      e.dataTransfer.effectAllowed = 'copy';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+      e.preventDefault();
   };
 
   const handleDrop = (e: React.DragEvent, userId: string) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData('taskId');
-    if (taskId) {
-      const task = tasks.find((t: any) => t.id === taskId);
-      if (task) {
-          const currentAssignees = task.assigneeIds || [];
-          if (!currentAssignees.includes(userId)) {
-              updateTask(taskId, { 
-                  assigneeIds: [...currentAssignees, userId],
-                  status: task.status === Status.BACKLOG ? Status.TODO : task.status
-              });
-              addToast(`המשימה הוקצתה בהצלחה`, 'success');
+      e.preventDefault();
+      const taskId = e.dataTransfer.getData('taskId');
+      if (taskId) {
+          const task = tasks.find((t: any) => t.id === taskId);
+          if (task) {
+              const currentAssignees = task.assigneeIds || [];
+              if (!currentAssignees.includes(userId)) {
+                  updateTask(taskId, {
+                      assigneeIds: [...currentAssignees, userId],
+                      status: task.status === Status.BACKLOG ? Status.TODO : task.status,
+                  });
+                  addToast(`המשימה הוקצתה בהצלחה`, 'success');
+              }
           }
       }
-    }
   };
 
-  // --- Handlers ---
+  const canManageTeam = hasPermission('manage_team');
+  const canSwitchUser = isGlobalAdmin;
+
+  const canEditUser = (targetUser: User) => {
+      if (!canManageTeam) return { canEdit: false, tooltip: '' };
+
+      const isTargetCEO = isCeoRole(targetUser.role);
+      const isTargetAdmin = isAdminRole(targetUser.role);
+      const isCurrentUserAdmin = isAdminRole(currentUser.role) || currentUser.isSuperAdmin;
+      const isCurrentUserSuperAdmin = currentUser.isSuperAdmin;
+
+      if (isTargetCEO && !isCurrentUserAdmin) {
+          return { canEdit: false, tooltip: 'רק אדמין יכול לערוך מנכ״ל' };
+      }
+
+      if (isTargetAdmin && !isCurrentUserSuperAdmin) {
+          return { canEdit: false, tooltip: 'רק סופר אדמין יכול לערוך אדמין' };
+      }
+
+      return { canEdit: true, tooltip: '' };
+  };
 
   const openAddModal = () => {
       setEditingUser(undefined);
@@ -332,7 +341,6 @@ export const TeamView: React.FC = () => {
   };
 
   const openEditModal = (user: User) => {
-      // Check if user can edit this user
       const editCheck = canEditUser(user);
       if (!editCheck.canEdit) {
           addToast(editCheck.tooltip, 'error');
@@ -344,83 +352,41 @@ export const TeamView: React.FC = () => {
   };
 
   const handleSaveMember = async (formData: any) => {
-      if (!formData.name) return;
+      if (!formData?.name) return;
 
       try {
           if (modalMode === 'add') {
-              // Validate email for new users
-              if (!formData.email || !formData.email.trim()) {
+              if (!formData.email || !String(formData.email).trim()) {
                   addToast('נא להזין כתובת אימייל', 'error');
                   return;
               }
 
-              // Create user via API
-              const response = await fetch('/api/users', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      name: formData.name,
+              const newUser = await createUserMutation.mutateAsync({
+                  name: formData.name,
+                  email: formData.email,
+                  role: formData.role,
+                  department: formData.department,
+                  avatar: '',
+                  online: false,
+                  capacity: Number(formData.capacity),
+                  paymentType: formData.paymentType,
+                  hourlyRate: Number(formData.hourlyRate),
+                  monthlySalary: Number(formData.monthlySalary),
+                  commissionPct: Number(formData.commissionPct),
+                  bonusPerTask: Number(formData.bonusPerTask),
+                  managerId: formData.managerId || null,
+              } as any);
+
+              try {
+                  const inviteData = await inviteUserMutation.mutateAsync({
                       email: formData.email,
-                      role: formData.role,
+                      userId: newUser.id,
+                      userName: formData.name,
                       department: formData.department,
-                      capacity: Number(formData.capacity),
-                      paymentType: formData.paymentType,
-                      hourlyRate: Number(formData.hourlyRate),
-                      monthlySalary: Number(formData.monthlySalary),
-                      commissionPct: Number(formData.commissionPct),
-                      bonusPerTask: Number(formData.bonusPerTask)
-                  })
-              });
-
-              if (!response.ok) {
-                  let error;
-                  try {
-                      const errorText = await response.text();
-                      error = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
-                  } catch {
-                      error = { error: 'Unknown error' };
-                  }
-                  throw new Error(error.error || 'שגיאה ביצירת המשתמש');
-              }
-
-              let result;
-              try {
-                  const resultText = await response.text();
-                  result = resultText ? JSON.parse(resultText) : {};
-              } catch (e) {
-                  console.error('Error parsing response:', e);
-                  throw new Error('שגיאה בקריאת תגובת השרת');
-              }
-              const newUser = result.user;
-              
-              // Send invitation email
-              try {
-                  const inviteResponse = await fetch('/api/users/invite', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          email: formData.email,
-                          userId: newUser.id,
-                          userName: formData.name,
-                          department: formData.department,
-                          role: formData.role
-                      })
+                      role: formData.role,
                   });
-
-                  if (inviteResponse.ok) {
-                      let inviteData;
-                      try {
-                          const inviteText = await inviteResponse.text();
-                          inviteData = inviteText ? JSON.parse(inviteText) : { emailSent: false };
-                      } catch (e) {
-                          console.error('Error parsing invite response:', e);
-                          inviteData = { emailSent: false };
-                      }
-                      if (inviteData.emailSent) {
-                          addToast(`העובד נוסף והזמנה נשלחה למייל ${formData.email}`, 'success');
-                      } else {
-                          addToast('העובד נוסף, אך שליחת ההזמנה נכשלה', 'warning');
-                      }
+                  if (inviteData.emailSent) {
+                      addToast(`העובד נוסף והזמנה נשלחה למייל ${formData.email}`, 'success');
                   } else {
                       addToast('העובד נוסף, אך שליחת ההזמנה נכשלה', 'warning');
                   }
@@ -429,57 +395,38 @@ export const TeamView: React.FC = () => {
                   addToast('העובד נוסף, אך שליחת ההזמנה נכשלה', 'warning');
               }
 
-              // Update context
-              addUser(newUser);
-          } else if (editingUser) {
-              // Update user via API
-              await updateUserAPI(editingUser.id, {
-                  name: formData.name,
-                  role: formData.role,
-                  department: formData.department,
-                  capacity: Number(formData.capacity),
-                  paymentType: formData.paymentType,
-                  hourlyRate: Number(formData.hourlyRate),
-                  monthlySalary: Number(formData.monthlySalary),
-                  commissionPct: Number(formData.commissionPct),
-                  bonusPerTask: Number(formData.bonusPerTask)
-              });
-              
-              // Update context - this will trigger useEffect to sync local state
-              // The context update will automatically sync to TeamView via useEffect
-              updateUser(editingUser.id, {
-                  name: formData.name,
-                  role: formData.role,
-                  department: formData.department,
-                  capacity: Number(formData.capacity),
-                  paymentType: formData.paymentType,
-                  hourlyRate: Number(formData.hourlyRate),
-                  monthlySalary: Number(formData.monthlySalary),
-                  commissionPct: Number(formData.commissionPct),
-                  bonusPerTask: Number(formData.bonusPerTask)
-              });
-              
-              // Refresh local state from API to ensure consistency
-              // This is a backup in case context doesn't update immediately
-              try {
-                  const fetchedUsers = await fetchUsers({
-                      department: selectedDepartment !== 'All' ? selectedDepartment : undefined
-                  });
-                  if (fetchedUsers && fetchedUsers.length > 0) {
-                      setUsers(fetchedUsers);
-                      setCachedUsers(fetchedUsers);
-                  }
-              } catch (error) {
-                  console.error('Failed to refresh users:', error);
-                  // Context update should be enough - useEffect will sync
+              addUser(newUser as any);
+              if (orgSlug) {
+                  queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
               }
-              
+          } else if (editingUser) {
+              const updated = await updateUserMutation.mutateAsync({
+                  userId: editingUser.id,
+                  updates: {
+                      name: formData.name,
+                      role: formData.role,
+                      department: formData.department,
+                      capacity: Number(formData.capacity),
+                      paymentType: formData.paymentType,
+                      hourlyRate: Number(formData.hourlyRate),
+                      monthlySalary: Number(formData.monthlySalary),
+                      commissionPct: Number(formData.commissionPct),
+                      bonusPerTask: Number(formData.bonusPerTask),
+                      managerId: formData.managerId,
+                  },
+              });
+
+              updateUser(editingUser.id, updated as any);
+              if (orgSlug) {
+                  queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+              }
               addToast('פרטי העובד עודכנו בהצלחה', 'success');
           }
+
           setIsMemberModalOpen(false);
       } catch (error: any) {
           console.error('Error saving member:', error);
-          addToast(error.message || 'שגיאה בשמירת הפרטים', 'error');
+          addToast(error?.message || 'שגיאה בשמירת הפרטים', 'error');
       }
   };
 
@@ -488,9 +435,17 @@ export const TeamView: React.FC = () => {
       setActiveMenuId(null);
   };
 
-  const confirmDelete = () => {
-      if (userToDelete) {
+  const confirmDelete = async () => {
+      if (!userToDelete) return;
+      try {
+          await deleteUserMutation.mutateAsync(userToDelete.id);
           removeUser(userToDelete.id);
+          if (orgSlug) {
+              queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+          }
+      } catch (error: any) {
+          addToast(error?.message || 'שגיאה במחיקת המשתמש', 'error');
+      } finally {
           setUserToDelete(null);
       }
   };
@@ -554,34 +509,6 @@ export const TeamView: React.FC = () => {
           setAssigningToUserId(null);
       }
   };
-
-  // Permissions Check
-  const canManageTeam = hasPermission('manage_team');
-  const canSwitchUser = isGlobalAdmin;
-  
-  // Check if user can edit a specific user (only Admin can edit CEO, only Super Admin can edit Admin)
-  const canEditUser = (targetUser: User) => {
-      if (!canManageTeam) return { canEdit: false, tooltip: '' };
-      
-      const ceoRoles = ['מנכ״ל', 'מנכ"ל', 'מנכל'];
-      const adminRoles = ['אדמין'];
-      const isTargetCEO = ceoRoles.includes(targetUser.role);
-      const isTargetAdmin = adminRoles.includes(targetUser.role);
-      const isCurrentUserAdmin = currentUser.role === 'אדמין' || currentUser.isSuperAdmin;
-      const isCurrentUserSuperAdmin = currentUser.isSuperAdmin;
-      
-      // If target is CEO, only Admin can edit
-      if (isTargetCEO && !isCurrentUserAdmin) {
-          return { canEdit: false, tooltip: 'רק אדמין יכול לערוך מנכ״ל' };
-      }
-      
-      // If target is Admin, only Super Admin can edit
-      if (isTargetAdmin && !isCurrentUserSuperAdmin) {
-          return { canEdit: false, tooltip: 'רק סופר אדמין יכול לערוך אדמין' };
-      }
-      
-      return { canEdit: true, tooltip: '' };
-  }; 
 
   return (
     <div className="w-full flex gap-4 md:gap-6 h-auto md:h-[calc(100vh-140px)] overflow-visible md:overflow-hidden pb-12 md:pb-0" style={{ touchAction: 'pan-y' }}>

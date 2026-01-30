@@ -6,6 +6,7 @@ import { motion, LayoutGroup } from 'framer-motion';
 import { useBrand } from '../system/contexts/BrandContext';
 import { BusinessSwitcher } from '../BusinessSwitcher';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   activeTab: string;
@@ -45,7 +46,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
          <div className="h-[80px] md:h-[100px] flex items-center justify-between mb-3">
             <div className="flex items-center gap-4 flex-shrink-0">
                 <div className="w-10 h-10 rounded-xl bg-[#0F172A] flex items-center justify-center shadow-glow-gold border border-white/10 overflow-hidden">
-                  <img src="/icons/client-icon.svg" alt="Client" className="w-full h-full object-contain p-1.5" />
+                  <OSModuleIcon moduleKey="client" size={40} className="w-full h-full object-contain p-1.5" />
                 </div>
                 <div className="flex flex-col">
                     <span className="font-display font-semibold text-2xl tracking-tight text-slate-900 leading-none">Client</span>

@@ -35,20 +35,17 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
           
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 mb-4 leading-tight">
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-              Misrad
+              MISRAD AI
             </span>
             <br />
             מערכת אחת
             <br />
             לכל העסק שלך
           </h1>
-          <p className="text-sm sm:text-base md:text-lg text-slate-400 mb-6">
-            מבית MISRAD
-          </p>
           
           <p className="text-lg sm:text-xl md:text-2xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed">
             <span className="hidden sm:inline">
-              Misrad נבנתה כדי לעבוד בשבילך. בחר תחום וראה איך זה עובד בזמן אמת.
+              MISRAD AI נבנתה כדי לעבוד בשבילך. בחר תחום וראה איך זה עובד בזמן אמת.
             </span>
             <span className="sm:hidden">
               מערכת אחת לכל העסק שלך
@@ -60,13 +57,13 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
               onClick={() => isAuthenticated ? window.location.href = '/app' : router.push('/sign-up')}
               className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם'} <ArrowRight size={20} className="rotate-180" />
+              {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם (בלי כרטיס)'} <ArrowRight size={20} className="rotate-180" />
             </button>
             <button
               onClick={onWatchDemo}
               className="w-full sm:w-auto px-8 py-4 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
             >
-              <Play size={20} fill="currentColor" /> צפה בדמו
+              <Play size={20} fill="currentColor" /> איך זה עובד
             </button>
           </div>
         </motion.div>

@@ -1,9 +1,67 @@
 'use server';
 
 import crypto from 'crypto';
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScoped, queryRawAllowlisted, queryRawOrgScoped } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
+import { createClient } from '@/lib/supabase';
+
+const OPERATIONS_RAW_REASON = 'operations_raw_sql';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+function isUuidLike(value: string | null | undefined): boolean {
+  const v = String(value || '').trim();
+  if (!v) return false;
+  const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
+}
+
+function toIsoDate(value: unknown): string | null {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function firstRowField(rows: unknown[] | null | undefined, key: string): string | null {
+  const first = (rows || [])[0];
+  const obj = asObject(first);
+  if (!obj) return null;
+  const val = obj[key];
+  return val === null || val === undefined ? null : String(val);
+}
+
+async function orgQuery<T>(db: unknown, organizationId: string, query: string, values: unknown[]): Promise<T> {
+  return queryRawOrgScoped<T>(db, {
+    organizationId,
+    reason: OPERATIONS_RAW_REASON,
+    query,
+    values,
+  });
+}
+
+async function orgExec(db: unknown, organizationId: string, query: string, values: unknown[]): Promise<number> {
+  return executeRawOrgScoped(db, {
+    organizationId,
+    reason: OPERATIONS_RAW_REASON,
+    query,
+    values,
+  });
+}
 
 export type OperationsClientOption = {
   id: string;
@@ -90,7 +148,1140 @@ function parseSbRef(ref: string): { bucket: string; path: string } | null {
   return { bucket, path };
 }
 
-async function resolveStorageUrlMaybe(refOrUrl: string | null | undefined, ttlSeconds: number): Promise<string | null> {
+function assertStoragePathScoped(params: {
+  rawRef: string;
+  path: string;
+  organizationId: string;
+  orgSlug?: string | null;
+}) {
+  const orgId = String(params.organizationId || '').trim();
+  if (!orgId) {
+    throw new Error('[TenantIsolation] Missing organizationId for storage scope validation.');
+  }
+
+  const segments = String(params.path || '')
+    .split('/')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!segments.length || segments[0] !== orgId) {
+    throw new Error(
+      `[TenantIsolation] Storage ref blocked: path must start with organizationId. expected=${orgId} ref=${params.rawRef}`
+    );
+  }
+
+  if (params.orgSlug) {
+    const slug = String(params.orgSlug).trim();
+    if (slug && !segments.includes(slug)) {
+      throw new Error(
+        `[TenantIsolation] Storage ref blocked: orgSlug not present in path. expectedSlug=${slug} ref=${params.rawRef}`
+      );
+    }
+  }
+}
+
+export type OperationsVehicleRow = {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
+export async function getOperationsVehicles(params: {
+  orgSlug: string;
+}): Promise<{ success: boolean; data?: OperationsVehicleRow[]; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT id::text as id, name, created_at as created_at
+        FROM operations_vehicles
+        WHERE organization_id = $1::uuid
+        ORDER BY lower(name) ASC
+      `,
+      [workspace.id]
+    );
+
+    return {
+      success: true,
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        return {
+          id: String(obj.id ?? ''),
+          name: String(obj.name ?? ''),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+        };
+      }),
+    };
+  } catch (e: unknown) {
+    console.error('[operations] getOperationsVehicles failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכבים' };
+  }
+}
+
+export async function createOperationsVehicle(params: {
+  orgSlug: string;
+  name: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const name = String(params.name || '').trim();
+    if (!name) return { success: false, error: 'חובה להזין שם רכב' };
+
+    await orgExec(
+      prisma,
+      workspace.id,
+      `INSERT INTO operations_vehicles (organization_id, name) VALUES ($1::uuid, $2::text)`,
+      [workspace.id, name]
+    );
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] createOperationsVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהוספת רכב' };
+  }
+}
+
+export async function createOperationsItem(params: {
+  orgSlug: string;
+  name: string;
+  sku?: string | null;
+  unit?: string | null;
+}): Promise<{ success: boolean; data?: { itemId: string }; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+
+    const name = String(params.name || '').trim();
+    const sku = params.sku === undefined || params.sku === null ? null : String(params.sku || '').trim();
+    const unit = params.unit === undefined || params.unit === null ? null : String(params.unit || '').trim();
+
+    if (!name) return { success: false, error: 'חובה להזין שם פריט' };
+
+    const created = await prisma.operationsItem.create({
+      data: {
+        organizationId: workspace.id,
+        name,
+        sku: sku ? sku : null,
+        unit: unit ? unit : null,
+      },
+      select: { id: true },
+    });
+
+    await prisma.operationsInventory.upsert({
+      where: { organizationId_itemId: { organizationId: workspace.id, itemId: created.id } },
+      create: {
+        organizationId: workspace.id,
+        itemId: created.id,
+        onHand: 0,
+        minLevel: 0,
+      },
+      update: {},
+    });
+
+    const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+    await orgExec(
+      prisma,
+      workspace.id,
+      `
+        INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+        VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+        ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+      `,
+      [workspace.id, whHolderId, created.id]
+    );
+
+    return { success: true, data: { itemId: String(created.id) } };
+  } catch (e: unknown) {
+    console.error('[operations] createOperationsItem failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
+  }
+}
+
+export async function deleteOperationsVehicle(params: {
+  orgSlug: string;
+  id: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const id = String(params.id || '').trim();
+    if (!id) return { success: false, error: 'חסר מזהה רכב' };
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await orgExec(
+        tx,
+        workspace.id,
+        `DELETE FROM operations_technician_vehicle_assignments WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid`,
+        [workspace.id, id]
+      );
+      await orgExec(
+        tx,
+        workspace.id,
+        `DELETE FROM operations_stock_holders WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid`,
+        [workspace.id, id]
+      );
+      await orgExec(
+        tx,
+        workspace.id,
+        `DELETE FROM operations_vehicles WHERE organization_id = $1::uuid AND id = $2::uuid`,
+        [workspace.id, id]
+      );
+    });
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] deleteOperationsVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת רכב' };
+  }
+}
+
+export async function setOperationsTechnicianActiveVehicle(params: {
+  orgSlug: string;
+  technicianId: string;
+  vehicleId: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const technicianId = String(params.technicianId || '').trim();
+    const vehicleIdRaw = params.vehicleId === null ? null : String(params.vehicleId || '').trim();
+    const vehicleId = vehicleIdRaw ? vehicleIdRaw : null;
+
+    if (!technicianId) return { success: false, error: 'חסר טכנאי' };
+
+    const tech = await prisma.profile.findFirst({
+      where: { id: technicianId, organizationId: workspace.id },
+      select: { id: true },
+    });
+    if (!tech?.id) return { success: false, error: 'טכנאי לא תקין או שאין הרשאה' };
+
+    let vehicleName: string | null = null;
+    if (vehicleId) {
+      const vRows = await orgQuery<unknown[]>(
+        prisma,
+        workspace.id,
+        `SELECT id::text as id, name FROM operations_vehicles WHERE organization_id = $1::uuid AND id = $2::uuid LIMIT 1`,
+        [workspace.id, vehicleId]
+      );
+      const first = (vRows || [])[0];
+      const obj = asObject(first);
+      if (!obj?.id) return { success: false, error: 'רכב לא תקין או שאין הרשאה' };
+      vehicleName = obj.name ? String(obj.name) : 'רכב';
+    }
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_technician_vehicle_assignments
+          SET active = false,
+              ended_at = now()
+          WHERE organization_id = $1::uuid
+            AND technician_id = $2::uuid
+            AND active = true
+        `,
+        [workspace.id, technicianId]
+      );
+
+      if (vehicleId) {
+        await orgExec(
+          tx,
+          workspace.id,
+          `
+            INSERT INTO operations_technician_vehicle_assignments (organization_id, technician_id, vehicle_id, active)
+            VALUES ($1::uuid, $2::uuid, $3::uuid, true)
+          `,
+          [workspace.id, technicianId, vehicleId]
+        );
+
+        // Ensure holder exists for this vehicle
+        await ensureOperationsVehicleHolderIdTx(tx, {
+          organizationId: workspace.id,
+          vehicleId,
+          label: vehicleName || 'רכב',
+        });
+      }
+    });
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] setOperationsTechnicianActiveVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת רכב פעיל' };
+  }
+}
+
+export type OperationsStockSourceOption = {
+  holderId: string;
+  label: string;
+  group: 'WAREHOUSE' | 'VEHICLE' | 'TECHNICIAN';
+};
+
+export type OperationsHolderStockRow = {
+  itemId: string;
+  label: string;
+  onHand: number;
+  unit: string | null;
+};
+
+export async function getOperationsTechnicianActiveVehicle(params: {
+  orgSlug: string;
+  technicianId: string;
+}): Promise<{ success: boolean; data?: { vehicleId: string | null; vehicleName: string | null }; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const technicianId = String(params.technicianId || '').trim();
+    if (!technicianId) return { success: false, error: 'חסר טכנאי' };
+
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT a.vehicle_id::text as vehicle_id, v.name as vehicle_name
+        FROM operations_technician_vehicle_assignments a
+        JOIN operations_vehicles v
+          ON v.id = a.vehicle_id
+         AND v.organization_id = a.organization_id
+        WHERE a.organization_id = $1::uuid
+          AND a.technician_id = $2::uuid
+          AND a.active = true
+        ORDER BY a.assigned_at DESC
+        LIMIT 1
+      `,
+      [workspace.id, technicianId]
+    );
+
+    const first = (rows || [])[0];
+    const obj = asObject(first);
+    if (!obj?.vehicle_id) {
+      return { success: true, data: { vehicleId: null, vehicleName: null } };
+    }
+
+    return {
+      success: true,
+      data: {
+        vehicleId: String(obj.vehicle_id),
+        vehicleName: obj.vehicle_name ? String(obj.vehicle_name) : null,
+      },
+    };
+  } catch (e: unknown) {
+    console.error('[operations] getOperationsTechnicianActiveVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכב פעיל' };
+  }
+}
+
+export async function getOperationsStockSourceOptions(params: {
+  orgSlug: string;
+}): Promise<{ success: boolean; data?: OperationsStockSourceOption[]; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+
+    const warehouseHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+    const warehouseLabel = await resolveOperationsStockHolderLabel({ organizationId: workspace.id, holderId: warehouseHolderId });
+
+    const vehiclesRes = await getOperationsVehicles({ orgSlug: params.orgSlug });
+    const vehicles = vehiclesRes.success ? vehiclesRes.data ?? [] : [];
+
+    const vehicleOptions: OperationsStockSourceOption[] = [];
+    for (const v of vehicles) {
+      const holderId = await ensureOperationsVehicleHolderId({
+        organizationId: workspace.id,
+        vehicleId: v.id,
+        label: v.name,
+      });
+      vehicleOptions.push({ holderId, label: v.name, group: 'VEHICLE' });
+    }
+
+    const techRows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT
+          p.id::text as technician_id,
+          COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text) as technician_label,
+          a.vehicle_id::text as vehicle_id,
+          v.name as vehicle_name
+        FROM operations_technician_vehicle_assignments a
+        JOIN profiles p
+          ON p.id = a.technician_id
+         AND p.organization_id = a.organization_id
+        JOIN operations_vehicles v
+          ON v.id = a.vehicle_id
+         AND v.organization_id = a.organization_id
+        WHERE a.organization_id = $1::uuid
+          AND a.active = true
+        ORDER BY lower(COALESCE(NULLIF(p.full_name, ''), NULLIF(p.email, ''), p.id::text)) ASC
+      `,
+      [workspace.id]
+    );
+
+    const techOptions: OperationsStockSourceOption[] = [];
+    for (const r of techRows || []) {
+      const obj = asObject(r) ?? {};
+      const vehicleId = String(obj.vehicle_id ?? '').trim();
+      const vehicleName = String(obj.vehicle_name ?? '').trim();
+      if (!vehicleId) continue;
+      const holderId = await ensureOperationsVehicleHolderId({
+        organizationId: workspace.id,
+        vehicleId,
+        label: vehicleName,
+      });
+      const label = `${String(obj.technician_label ?? '')} (${vehicleName})`;
+      techOptions.push({ holderId, label, group: 'TECHNICIAN' });
+    }
+
+    const data: OperationsStockSourceOption[] = [];
+    data.push({ holderId: warehouseHolderId, label: warehouseLabel || 'מחסן', group: 'WAREHOUSE' });
+    data.push(...vehicleOptions);
+    data.push(...techOptions);
+    return { success: true, data };
+  } catch (e: unknown) {
+    console.error('[operations] getOperationsStockSourceOptions failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מקורות מלאי' };
+  }
+}
+
+export async function setOperationsWorkOrderStockSource(params: {
+  orgSlug: string;
+  workOrderId: string;
+  holderId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const workOrderId = String(params.workOrderId || '').trim();
+    const holderId = String(params.holderId || '').trim();
+    if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
+    if (!holderId) return { success: false, error: 'חובה לבחור מקור מלאי' };
+
+    const wo = await prisma.operationsWorkOrder.findFirst({
+      where: { id: workOrderId, organizationId: workspace.id },
+      select: { id: true },
+    });
+    if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה או שאין הרשאה' };
+
+    const hRows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND id = $2::uuid LIMIT 1`,
+      [workspace.id, holderId]
+    );
+    const holderRow = asObject((hRows || [])[0]);
+    if (!holderRow?.id) return { success: false, error: 'מקור מלאי לא תקין' };
+
+    await orgExec(
+      prisma,
+      workspace.id,
+      `UPDATE operations_work_orders SET stock_source_holder_id = $1::uuid WHERE id = $2::uuid AND organization_id = $3::uuid`,
+      [holderId, workOrderId, workspace.id]
+    );
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] setOperationsWorkOrderStockSource failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת מקור מלאי' };
+  }
+}
+
+export async function setOperationsWorkOrderStockSourceToMyActiveVehicle(params: {
+  orgSlug: string;
+  workOrderId: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const workOrderId = String(params.workOrderId || '').trim();
+    if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
+
+    const currentUser = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
+    const currentUserObj = asObject(currentUser) ?? {};
+    const technicianId = String(currentUserObj.profileId ?? '').trim();
+    if (!technicianId) return { success: false, error: 'לא נמצא טכנאי מחובר' };
+
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT a.vehicle_id::text as vehicle_id, v.name as vehicle_name
+        FROM operations_technician_vehicle_assignments a
+        JOIN operations_vehicles v
+          ON v.id = a.vehicle_id
+         AND v.organization_id = a.organization_id
+        WHERE a.organization_id = $1::uuid
+          AND a.technician_id = $2::uuid
+          AND a.active = true
+        ORDER BY a.assigned_at DESC
+        LIMIT 1
+      `,
+      [workspace.id, technicianId]
+    );
+
+    const first = asObject((rows || [])[0]);
+    if (!first?.vehicle_id) return { success: false, error: 'אין לך רכב פעיל' };
+    const vehicleId = String(first.vehicle_id);
+    const vehicleName = first.vehicle_name ? String(first.vehicle_name) : 'רכב';
+
+    const holderId = await ensureOperationsVehicleHolderId({ organizationId: workspace.id, vehicleId, label: vehicleName });
+
+    return await setOperationsWorkOrderStockSource({
+      orgSlug: params.orgSlug,
+      workOrderId,
+      holderId,
+    });
+  } catch (e: unknown) {
+    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
+  }
+}
+
+export async function getOperationsVehicleStockBalances(params: {
+  orgSlug: string;
+  vehicleId: string;
+}): Promise<{ success: boolean; data?: OperationsHolderStockRow[]; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const vehicleId = String(params.vehicleId || '').trim();
+    if (!vehicleId) return { success: false, error: 'חסר רכב' };
+
+    const vRows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `SELECT id::text as id, name FROM operations_vehicles WHERE organization_id = $1::uuid AND id = $2::uuid LIMIT 1`,
+      [workspace.id, vehicleId]
+    );
+    const vFirst = asObject((vRows || [])[0]);
+    if (!vFirst?.id) return { success: false, error: 'רכב לא נמצא או שאין הרשאה' };
+
+    const vehicleName = vFirst.name ? String(vFirst.name) : 'רכב';
+    const holderId = await ensureOperationsVehicleHolderId({ organizationId: workspace.id, vehicleId, label: vehicleName });
+
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT
+          i.id::text as item_id,
+          i.name as item_name,
+          i.sku as item_sku,
+          i.unit as item_unit,
+          sb.on_hand as on_hand
+        FROM operations_stock_balances sb
+        JOIN operations_items i
+          ON i.id = sb.item_id
+         AND i.organization_id = sb.organization_id
+        WHERE sb.organization_id = $1::uuid
+          AND sb.holder_id = $2::uuid
+        ORDER BY lower(i.name) ASC
+      `,
+      [workspace.id, holderId]
+    );
+
+    const data: OperationsHolderStockRow[] = (rows || []).map((r) => {
+      const obj = asObject(r) ?? {};
+      const sku = obj.item_sku ? String(obj.item_sku) : '';
+      const labelBase = obj.item_name ? String(obj.item_name) : '';
+      const label = sku ? `${labelBase} (${sku})` : labelBase;
+      return {
+        itemId: String(obj.item_id),
+        label,
+        onHand: toNumberSafe(obj.on_hand),
+        unit: obj.item_unit ? String(obj.item_unit) : null,
+      };
+    });
+
+    return { success: true, data };
+  } catch (e: unknown) {
+    console.error('[operations] getOperationsVehicleStockBalances failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי רכב' };
+  }
+}
+
+export async function transferOperationsStockToVehicle(params: {
+  orgSlug: string;
+  vehicleId: string;
+  itemId: string;
+  qty: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const vehicleId = String(params.vehicleId || '').trim();
+    const itemId = String(params.itemId || '').trim();
+    const qty = Number(params.qty);
+
+    if (!vehicleId) return { success: false, error: 'חסר רכב' };
+    if (!itemId) return { success: false, error: 'חסר פריט' };
+    if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
+
+    const vRows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `SELECT id::text as id, name FROM operations_vehicles WHERE organization_id = $1::uuid AND id = $2::uuid LIMIT 1`,
+      [workspace.id, vehicleId]
+    );
+    const vFirst = asObject((vRows || [])[0]);
+    if (!vFirst?.id) return { success: false, error: 'רכב לא נמצא או שאין הרשאה' };
+    const vehicleName = String(vFirst.name);
+
+    const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+    const vehicleHolderId = await ensureOperationsVehicleHolderId({ organizationId: workspace.id, vehicleId, label: vehicleName });
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Best effort ensure rows exist
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+          ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+        `,
+        [workspace.id, whHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+          ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+        `,
+        [workspace.id, vehicleHolderId, itemId]
+      );
+
+      const decCount = await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand - $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+            AND on_hand >= $1::numeric
+        `,
+        [qty, workspace.id, whHolderId, itemId]
+      );
+      if (Number(decCount) !== 1) throw new Error('אין מספיק מלאי במחסן');
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand + $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+        `,
+        [qty, workspace.id, vehicleHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_movements (organization_id, item_id, work_order_id, qty, direction, created_by_type, from_holder_id, to_holder_id)
+          VALUES ($1::uuid, $2::uuid, NULL, $3::numeric, 'TRANSFER', 'INTERNAL', $4::uuid, $5::uuid)
+        `,
+        [workspace.id, itemId, qty, whHolderId, vehicleHolderId]
+      );
+    });
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] transferOperationsStockToVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהעברת מלאי לרכב' };
+  }
+}
+
+export async function addOperationsStockToActiveVehicle(params: {
+  orgSlug: string;
+  technicianId: string;
+  itemId: string;
+  qty: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const technicianId = String(params.technicianId || '').trim();
+    const itemId = String(params.itemId || '').trim();
+    const qty = Number(params.qty);
+
+    if (!technicianId) return { success: false, error: 'חסר טכנאי' };
+    if (!itemId) return { success: false, error: 'חסר פריט' };
+    if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
+
+    const tech = await prisma.profile.findFirst({
+      where: { id: technicianId, organizationId: workspace.id },
+      select: { id: true },
+    });
+    if (!tech?.id) return { success: false, error: 'טכנאי לא תקין או שאין הרשאה' };
+
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT a.vehicle_id::text as vehicle_id, v.name as vehicle_name
+        FROM operations_technician_vehicle_assignments a
+        JOIN operations_vehicles v
+          ON v.id = a.vehicle_id
+         AND v.organization_id = a.organization_id
+        WHERE a.organization_id = $1::uuid
+          AND a.technician_id = $2::uuid
+          AND a.active = true
+        ORDER BY a.assigned_at DESC
+        LIMIT 1
+      `,
+      [workspace.id, technicianId]
+    );
+
+    const vehicleIdVal = firstRowField(rows, 'vehicle_id');
+    if (!vehicleIdVal) {
+      return { success: false, error: 'אין רכב פעיל לטכנאי. הגדירו רכב פעיל ואז נסו שוב.' };
+    }
+
+    const vehicleId = vehicleIdVal;
+    const vehicleName = firstRowField(rows, 'vehicle_name') || 'רכב';
+
+    const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+    const vehicleHolderId = await ensureOperationsVehicleHolderId({
+      organizationId: workspace.id,
+      vehicleId,
+      label: vehicleName,
+    });
+
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.operationsInventory.upsert({
+        where: { organizationId_itemId: { organizationId: workspace.id, itemId } },
+        create: {
+          organizationId: workspace.id,
+          itemId,
+          onHand: qty,
+          minLevel: 0,
+        },
+        update: {
+          onHand: { increment: qty },
+        },
+      });
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+          ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+        `,
+        [workspace.id, whHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+          ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+        `,
+        [workspace.id, vehicleHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand + $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+        `,
+        [qty, workspace.id, whHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_movements (organization_id, item_id, work_order_id, qty, direction, created_by_type, from_holder_id, to_holder_id)
+          VALUES ($1::uuid, $2::uuid, NULL, $3::numeric, 'IN', 'INTERNAL', NULL, $4::uuid)
+        `,
+        [workspace.id, itemId, qty, whHolderId]
+      );
+
+      const decCount = await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand - $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+            AND on_hand >= $1::numeric
+        `,
+        [qty, workspace.id, whHolderId, itemId]
+      );
+      if (Number(decCount) !== 1) throw new Error('אין מספיק מלאי במחסן');
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand + $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+        `,
+        [qty, workspace.id, vehicleHolderId, itemId]
+      );
+
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_movements (organization_id, item_id, work_order_id, qty, direction, created_by_type, from_holder_id, to_holder_id)
+          VALUES ($1::uuid, $2::uuid, NULL, $3::numeric, 'TRANSFER', 'INTERNAL', $4::uuid, $5::uuid)
+        `,
+        [workspace.id, itemId, qty, whHolderId, vehicleHolderId]
+      );
+    });
+
+    return { success: true };
+  } catch (e: unknown) {
+    console.error('[operations] addOperationsStockToActiveVehicle failed', e);
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקליטת מלאי לרכב' };
+  }
+}
+
+async function ensureOperationsPrimaryWarehouseHolderId(params: { organizationId: string }): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  if (!orgId) throw new Error('Missing organizationId');
+
+  const rows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `
+      SELECT h.id::text as id
+      FROM operations_locations l
+      JOIN operations_stock_holders h
+        ON h.location_id = l.id
+       AND h.organization_id = l.organization_id
+      WHERE l.organization_id = $1::uuid
+        AND lower(l.name) = lower('מחסן ראשי')
+      LIMIT 1
+    `,
+    [orgId]
+  );
+  const existingId = firstRowField(rows, 'id');
+  if (existingId) return existingId;
+
+  const locRows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `
+      INSERT INTO operations_locations (organization_id, name)
+      VALUES ($1::uuid, 'מחסן ראשי')
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId]
+  );
+
+  let locId = firstRowField(locRows, 'id');
+  if (!locId) {
+    const existingLocRows = await orgQuery<unknown[]>(
+      prisma,
+      orgId,
+      `SELECT id::text as id FROM operations_locations WHERE organization_id = $1::uuid AND lower(name) = lower('מחסן ראשי') LIMIT 1`,
+      [orgId]
+    );
+    locId = firstRowField(existingLocRows, 'id');
+  }
+  if (!locId) throw new Error('Failed to ensure warehouse location');
+
+  const holderRows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `
+      INSERT INTO operations_stock_holders (organization_id, type, label, location_id)
+      VALUES ($1::uuid, 'LOCATION', 'מחסן ראשי', $2::uuid)
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId, locId]
+  );
+
+  const holderId = firstRowField(holderRows, 'id');
+  if (holderId) return holderId;
+
+  const holderRows2 = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND location_id = $2::uuid LIMIT 1`,
+    [orgId, locId]
+  );
+  const holderId2 = firstRowField(holderRows2, 'id');
+  if (!holderId2) throw new Error('Failed to ensure warehouse holder');
+  return holderId2;
+}
+
+async function ensureOperationsPrimaryWarehouseHolderIdTx(
+  tx: Prisma.TransactionClient,
+  params: { organizationId: string }
+): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  if (!orgId) throw new Error('Missing organizationId');
+
+  const rows = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `
+      SELECT h.id::text as id
+      FROM operations_locations l
+      JOIN operations_stock_holders h
+        ON h.location_id = l.id
+       AND h.organization_id = l.organization_id
+      WHERE l.organization_id = $1::uuid
+        AND lower(l.name) = lower('מחסן ראשי')
+      LIMIT 1
+    `,
+    [orgId]
+  );
+  const existingId = firstRowField(rows, 'id');
+  if (existingId) return existingId;
+
+  const locRows = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `
+      INSERT INTO operations_locations (organization_id, name)
+      VALUES ($1::uuid, 'מחסן ראשי')
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId]
+  );
+
+  let locId = firstRowField(locRows, 'id');
+  if (!locId) {
+    const existingLocRows = await orgQuery<unknown[]>(
+      tx,
+      orgId,
+      `SELECT id::text as id FROM operations_locations WHERE organization_id = $1::uuid AND lower(name) = lower('מחסן ראשי') LIMIT 1`,
+      [orgId]
+    );
+    locId = firstRowField(existingLocRows, 'id');
+  }
+  if (!locId) throw new Error('Failed to ensure warehouse location');
+
+  const holderRows = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `
+      INSERT INTO operations_stock_holders (organization_id, type, label, location_id)
+      VALUES ($1::uuid, 'LOCATION', 'מחסן ראשי', $2::uuid)
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId, locId]
+  );
+
+  const holderId = firstRowField(holderRows, 'id');
+  if (holderId) return holderId;
+
+  const holderRows2 = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND location_id = $2::uuid LIMIT 1`,
+    [orgId, locId]
+  );
+  const holderId2 = firstRowField(holderRows2, 'id');
+  if (!holderId2) throw new Error('Failed to ensure warehouse holder');
+  return holderId2;
+}
+
+async function ensureOperationsVehicleHolderId(params: {
+  organizationId: string;
+  vehicleId: string;
+  label: string;
+}): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  const vehicleId = String(params.vehicleId || '').trim();
+  const label = String(params.label || '').trim() || 'רכב';
+  if (!orgId || !vehicleId) throw new Error('Missing organizationId/vehicleId');
+
+  const rows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid LIMIT 1`,
+    [orgId, vehicleId]
+  );
+  const existingId = firstRowField(rows, 'id');
+  if (existingId) return existingId;
+
+  const ins = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `
+      INSERT INTO operations_stock_holders (organization_id, type, label, vehicle_id)
+      VALUES ($1::uuid, 'VEHICLE', $2::text, $3::uuid)
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId, label, vehicleId]
+  );
+  const createdId = firstRowField(ins, 'id');
+  if (createdId) return createdId;
+
+  const rows2 = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid LIMIT 1`,
+    [orgId, vehicleId]
+  );
+  const id2 = firstRowField(rows2, 'id');
+  if (!id2) throw new Error('Failed to ensure vehicle holder');
+  return id2;
+}
+
+async function ensureOperationsVehicleHolderIdTx(
+  tx: Prisma.TransactionClient,
+  params: { organizationId: string; vehicleId: string; label: string }
+): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  const vehicleId = String(params.vehicleId || '').trim();
+  const label = String(params.label || '').trim() || 'רכב';
+  if (!orgId || !vehicleId) throw new Error('Missing organizationId/vehicleId');
+
+  const rows = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid LIMIT 1`,
+    [orgId, vehicleId]
+  );
+  const existingId = firstRowField(rows, 'id');
+  if (existingId) return existingId;
+
+  const ins = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `
+      INSERT INTO operations_stock_holders (organization_id, type, label, vehicle_id)
+      VALUES ($1::uuid, 'VEHICLE', $2::text, $3::uuid)
+      ON CONFLICT DO NOTHING
+      RETURNING id::text as id
+    `,
+    [orgId, label, vehicleId]
+  );
+  const createdId = firstRowField(ins, 'id');
+  if (createdId) return createdId;
+
+  const rows2 = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `SELECT id::text as id FROM operations_stock_holders WHERE organization_id = $1::uuid AND vehicle_id = $2::uuid LIMIT 1`,
+    [orgId, vehicleId]
+  );
+  const id2 = firstRowField(rows2, 'id');
+  if (!id2) throw new Error('Failed to ensure vehicle holder');
+  return id2;
+}
+
+async function resolveDefaultOperationsStockSourceHolderIdForTechnician(params: {
+  organizationId: string;
+  technicianId: string;
+}): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  const technicianId = String(params.technicianId || '').trim();
+  if (!orgId || !technicianId) return ensureOperationsPrimaryWarehouseHolderId({ organizationId: orgId });
+
+  const rows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `
+      SELECT a.vehicle_id::text as vehicle_id, v.name as vehicle_name
+      FROM operations_technician_vehicle_assignments a
+      JOIN operations_vehicles v
+        ON v.id = a.vehicle_id
+       AND v.organization_id = a.organization_id
+      WHERE a.organization_id = $1::uuid
+        AND a.technician_id = $2::uuid
+        AND a.active = true
+      ORDER BY a.assigned_at DESC
+      LIMIT 1
+    `,
+    [orgId, technicianId]
+  );
+  const vehicleIdVal = firstRowField(rows, 'vehicle_id');
+  if (vehicleIdVal) {
+    const vehicleId = vehicleIdVal;
+    const vehicleName = firstRowField(rows, 'vehicle_name') || 'רכב';
+    return ensureOperationsVehicleHolderId({ organizationId: orgId, vehicleId, label: vehicleName });
+  }
+
+  return ensureOperationsPrimaryWarehouseHolderId({ organizationId: orgId });
+}
+
+async function resolveDefaultOperationsStockSourceHolderIdForTechnicianTx(
+  tx: Prisma.TransactionClient,
+  params: { organizationId: string; technicianId: string }
+): Promise<string> {
+  const orgId = String(params.organizationId || '').trim();
+  const technicianId = String(params.technicianId || '').trim();
+  if (!orgId || !technicianId) return ensureOperationsPrimaryWarehouseHolderIdTx(tx, { organizationId: orgId });
+
+  const rows = await orgQuery<unknown[]>(
+    tx,
+    orgId,
+    `
+      SELECT a.vehicle_id::text as vehicle_id, v.name as vehicle_name
+      FROM operations_technician_vehicle_assignments a
+      JOIN operations_vehicles v
+        ON v.id = a.vehicle_id
+       AND v.organization_id = a.organization_id
+      WHERE a.organization_id = $1::uuid
+        AND a.technician_id = $2::uuid
+        AND a.active = true
+      ORDER BY a.assigned_at DESC
+      LIMIT 1
+    `,
+    [orgId, technicianId]
+  );
+  const vehicleIdVal = firstRowField(rows, 'vehicle_id');
+  if (vehicleIdVal) {
+    const vehicleId = vehicleIdVal;
+    const vehicleName = firstRowField(rows, 'vehicle_name') || 'רכב';
+    return ensureOperationsVehicleHolderIdTx(tx, { organizationId: orgId, vehicleId, label: vehicleName });
+  }
+  return ensureOperationsPrimaryWarehouseHolderIdTx(tx, { organizationId: orgId });
+}
+
+async function resolveOperationsStockHolderLabel(params: {
+  organizationId: string;
+  holderId: string;
+}): Promise<string | null> {
+  const orgId = String(params.organizationId || '').trim();
+  const holderId = String(params.holderId || '').trim();
+  if (!orgId || !holderId) return null;
+  const rows = await orgQuery<unknown[]>(
+    prisma,
+    orgId,
+    `SELECT label FROM operations_stock_holders WHERE organization_id = $1::uuid AND id = $2::uuid LIMIT 1`,
+    [orgId, holderId]
+  );
+  const label = firstRowField(rows, 'label');
+  return label ? String(label) : null;
+}
+
+async function resolveStorageUrlMaybe(
+  refOrUrl: string | null | undefined,
+  ttlSeconds: number,
+  scope: { organizationId: string; orgSlug?: string | null }
+): Promise<string | null> {
   const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
   if (!raw) return null;
 
@@ -98,7 +1289,13 @@ async function resolveStorageUrlMaybe(refOrUrl: string | null | undefined, ttlSe
   if (!parsed) return raw;
 
   try {
-    const supabase = createServiceRoleClient();
+    assertStoragePathScoped({
+      rawRef: raw,
+      path: parsed.path,
+      organizationId: scope.organizationId,
+      orgSlug: scope.orgSlug,
+    });
+    const supabase = createClient();
     const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
     if (error || !data?.signedUrl) return null;
     return String(data.signedUrl);
@@ -148,8 +1345,11 @@ export type OperationsWorkOrderTypeRow = {
 
 function toNumberSafe(value: unknown): number {
   if (typeof value === 'number') return value;
-  if (value && typeof (value as any).toNumber === 'function') {
-    return (value as any).toNumber();
+  const obj = asObject(value);
+  const maybeToNumber = obj?.toNumber;
+  if (typeof maybeToNumber === 'function') {
+    const out = (maybeToNumber as (...args: never[]) => unknown).call(value);
+    return typeof out === 'number' ? out : Number(out);
   }
   return Number(value);
 }
@@ -188,7 +1388,7 @@ export async function getOperationsClientOptions(params: {
     const options: OperationsClientOption[] = [];
     const seen = new Set<string>();
 
-    for (const c of nexusClients as any[]) {
+    for (const c of nexusClients) {
       const id = String(c.id);
       const label = String(c.companyName || c.name || '').trim();
       if (!id || !label || seen.has(id)) continue;
@@ -196,7 +1396,7 @@ export async function getOperationsClientOptions(params: {
       options.push({ id, label, source: 'nexus' });
     }
 
-    for (const c of misradClients as any[]) {
+    for (const c of misradClients) {
       const id = String(c.id);
       const label = String(c.name || '').trim();
       if (!id || !label || seen.has(id)) continue;
@@ -204,7 +1404,7 @@ export async function getOperationsClientOptions(params: {
       options.push({ id, label, source: 'misrad' });
     }
 
-    for (const c of clientClients as any[]) {
+    for (const c of clientClients) {
       const id = String(c.id);
       const label = String(c.fullName || '').trim();
       if (!id || !label || seen.has(id)) continue;
@@ -213,13 +1413,12 @@ export async function getOperationsClientOptions(params: {
     }
 
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
-
     return { success: true, data: options };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsClientOptions failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת רשימת הלקוחות',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הלקוחות',
     };
   }
 }
@@ -229,16 +1428,16 @@ async function setOperationsWorkOrderCompletionSignatureUnsafe(params: {
   workOrderId: string;
   signatureUrl: string;
 }) {
-  await prisma.$executeRawUnsafe(
+  await orgExec(
+    prisma,
+    params.organizationId,
     `
       UPDATE operations_work_orders
       SET completion_signature_url = $3::text
       WHERE organization_id = $1::uuid
         AND id = $2::uuid
     `,
-    params.organizationId,
-    params.workOrderId,
-    params.signatureUrl
+    [params.organizationId, params.workOrderId, params.signatureUrl]
   );
 }
 
@@ -263,9 +1462,9 @@ export async function setOperationsWorkOrderCompletionSignature(params: {
 
     await setOperationsWorkOrderCompletionSignatureUnsafe({ organizationId: workspace.id, workOrderId: id, signatureUrl });
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderCompletionSignature failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת חתימה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }
 
@@ -297,9 +1496,9 @@ export async function contractorSetWorkOrderCompletionSignature(params: {
     });
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorSetWorkOrderCompletionSignature failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת חתימה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }
 
@@ -333,7 +1532,9 @@ export async function addOperationsWorkOrderAttachment(params: {
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה או שאין הרשאה' };
 
-    await prisma.$executeRawUnsafe(
+    await orgExec(
+      prisma,
+      workspace.id,
       `
         INSERT INTO operations_work_order_attachments (
           organization_id,
@@ -346,20 +1547,13 @@ export async function addOperationsWorkOrderAttachment(params: {
           created_by_ref
         ) VALUES ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::text, $7::text, $8::text)
       `,
-      workspace.id,
-      workOrderId,
-      storageBucket,
-      storagePath,
-      url,
-      mimeType,
-      createdByType,
-      createdByRef
+      [workspace.id, workOrderId, storageBucket, storagePath, url, mimeType, createdByType, createdByRef]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] addOperationsWorkOrderAttachment failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת קובץ לקריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
   }
 }
 
@@ -369,27 +1563,32 @@ export async function getOperationsLocations(params: {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT id::text as id, name, created_at
         FROM operations_locations
         WHERE organization_id = $1::uuid
         ORDER BY created_at DESC
       `,
-      workspace.id
-    )) as any[];
+      [workspace.id]
+    );
 
     return {
       success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        name: String(r.name),
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        return {
+          id: String(obj.id ?? ''),
+          name: String(obj.name ?? ''),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+        };
+      }),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsLocations failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת מחסנים' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מחסנים' };
   }
 }
 
@@ -402,21 +1601,21 @@ export async function createOperationsLocation(params: {
     const name = String(params.name || '').trim();
     if (!name) return { success: false, error: 'חובה להזין שם מחסן' };
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO operations_locations (organization_id, name) VALUES ($1::uuid, $2::text)`
-      ,
+    await orgExec(
+      prisma,
       workspace.id,
-      name
+      `INSERT INTO operations_locations (organization_id, name) VALUES ($1::uuid, $2::text)`,
+      [workspace.id, name]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] createOperationsLocation failed', e);
-    const msg = String(e?.message || '');
+    const msg = String(getUnknownErrorMessage(e) || '');
     if (msg.toLowerCase().includes('uq_operations_locations_org_name')) {
       return { success: false, error: 'מחסן בשם הזה כבר קיים' };
     }
-    return { success: false, error: e?.message || 'שגיאה ביצירת מחסן' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת מחסן' };
   }
 }
 
@@ -429,16 +1628,17 @@ export async function deleteOperationsLocation(params: {
     const id = String(params.id || '').trim();
     if (!id) return { success: false, error: 'חסר מזהה מחסן' };
 
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM operations_locations WHERE organization_id = $1::uuid AND id = $2::uuid`,
+    await orgExec(
+      prisma,
       workspace.id,
-      id
+      `DELETE FROM operations_locations WHERE organization_id = $1::uuid AND id = $2::uuid`,
+      [workspace.id, id]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] deleteOperationsLocation failed', e);
-    return { success: false, error: e?.message || 'שגיאה במחיקת מחסן' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת מחסן' };
   }
 }
 
@@ -448,27 +1648,32 @@ export async function getOperationsWorkOrderTypes(params: {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT id::text as id, name, created_at
         FROM operations_work_order_types
         WHERE organization_id = $1::uuid
         ORDER BY created_at DESC
       `,
-      workspace.id
-    )) as any[];
+      [workspace.id]
+    );
 
     return {
       success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        name: String(r.name),
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        return {
+          id: String(obj.id ?? ''),
+          name: String(obj.name ?? ''),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+        };
+      }),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderTypes failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת סוגי קריאות' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת סוגי קריאות' };
   }
 }
 
@@ -481,20 +1686,21 @@ export async function createOperationsWorkOrderType(params: {
     const name = String(params.name || '').trim();
     if (!name) return { success: false, error: 'חובה להזין שם סוג קריאה' };
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO operations_work_order_types (organization_id, name) VALUES ($1::uuid, $2::text)`,
+    await orgExec(
+      prisma,
       workspace.id,
-      name
+      `INSERT INTO operations_work_order_types (organization_id, name) VALUES ($1::uuid, $2::text)`,
+      [workspace.id, name]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] createOperationsWorkOrderType failed', e);
-    const msg = String(e?.message || '');
+    const msg = String(getUnknownErrorMessage(e) || '');
     if (msg.toLowerCase().includes('uq_operations_work_order_types_org_name')) {
       return { success: false, error: 'סוג קריאה בשם הזה כבר קיים' };
     }
-    return { success: false, error: e?.message || 'שגיאה ביצירת סוג קריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת סוג קריאה' };
   }
 }
 
@@ -507,16 +1713,17 @@ export async function deleteOperationsWorkOrderType(params: {
     const id = String(params.id || '').trim();
     if (!id) return { success: false, error: 'חסר מזהה סוג קריאה' };
 
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM operations_work_order_types WHERE organization_id = $1::uuid AND id = $2::uuid`,
+    await orgExec(
+      prisma,
       workspace.id,
-      id
+      `DELETE FROM operations_work_order_types WHERE organization_id = $1::uuid AND id = $2::uuid`,
+      [workspace.id, id]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] deleteOperationsWorkOrderType failed', e);
-    return { success: false, error: e?.message || 'שגיאה במחיקת סוג קריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת סוג קריאה' };
   }
 }
 
@@ -543,8 +1750,8 @@ async function geocodeAddressNominatim(address: string): Promise<{ lat: number; 
     });
 
     if (!res.ok) return null;
-    const data = (await res.json()) as any;
-    const first = Array.isArray(data) ? data[0] : null;
+    const data: unknown = await res.json();
+    const first = Array.isArray(data) ? asObject(data[0]) : null;
     const lat = first?.lat ? Number(first.lat) : NaN;
     const lng = first?.lon ? Number(first.lon) : NaN;
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
@@ -582,9 +1789,9 @@ export async function getOperationsTechnicianOptions(params: {
 
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
     return { success: true, data: options };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsTechnicianOptions failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת רשימת הטכנאים' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הטכנאים' };
   }
 }
 
@@ -610,24 +1817,50 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
         return { success: false, error: 'טכנאי לא תקין או שאין הרשאה' };
       }
 
-      await prisma.$executeRawUnsafe(
+      await orgExec(
+        prisma,
+        workspace.id,
         `UPDATE operations_work_orders SET assigned_technician_id = $1::uuid WHERE id = $2::uuid AND organization_id = $3::uuid`,
-        technicianId,
-        id,
-        workspace.id
+        [technicianId, id, workspace.id]
       );
     } else {
-      await prisma.$executeRawUnsafe(
+      await orgExec(
+        prisma,
+        workspace.id,
         `UPDATE operations_work_orders SET assigned_technician_id = NULL WHERE id = $1::uuid AND organization_id = $2::uuid`,
-        id,
-        workspace.id
+        [id, workspace.id]
       );
     }
 
+    // Best effort: set stock source for the work order (only if not already set)
+    try {
+      const holderId = technicianId
+        ? await resolveDefaultOperationsStockSourceHolderIdForTechnician({
+            organizationId: workspace.id,
+            technicianId,
+          })
+        : await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+
+      await orgExec(
+        prisma,
+        workspace.id,
+        `
+          UPDATE operations_work_orders
+          SET stock_source_holder_id = $1::uuid
+          WHERE id = $2::uuid
+            AND organization_id = $3::uuid
+            AND stock_source_holder_id IS NULL
+        `,
+        [holderId, id, workspace.id]
+      );
+    } catch {
+      // ignore
+    }
+
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderAssignedTechnician failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשיוך טכנאי לקריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשיוך טכנאי לקריאה' };
   }
 }
 
@@ -640,7 +1873,9 @@ export async function getOperationsWorkOrderAttachments(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT id::text as id, url, mime_type, created_at
         FROM operations_work_order_attachments
@@ -648,28 +1883,28 @@ export async function getOperationsWorkOrderAttachments(params: {
           AND work_order_id = $2::uuid
         ORDER BY created_at DESC
       `,
-      workspace.id,
-      workOrderId
-    )) as any[];
+      [workspace.id, workOrderId]
+    );
 
     const ttlSeconds = 60 * 60;
     const data = await Promise.all(
       (rows || []).map(async (r) => {
-        const rawUrl = String(r.url || '');
-        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds);
+        const obj = asObject(r) ?? {};
+        const rawUrl = String(obj.url || '');
+        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds, { organizationId: workspace.id, orgSlug: params.orgSlug });
         return {
-          id: String(r.id),
+          id: String(obj.id),
           url: resolved || rawUrl,
-          mimeType: r.mime_type ? String(r.mime_type) : null,
-          createdAt: new Date(r.created_at).toISOString(),
+          mimeType: obj.mime_type ? String(obj.mime_type) : null,
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
         };
       })
     );
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderAttachments failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת קבצים לקריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };
   }
 }
 
@@ -682,7 +1917,9 @@ export async function getOperationsWorkOrderCheckins(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT id::text as id, lat, lng, accuracy, created_at
         FROM operations_work_order_checkins
@@ -691,23 +1928,25 @@ export async function getOperationsWorkOrderCheckins(params: {
         ORDER BY created_at DESC
         LIMIT 20
       `,
-      workspace.id,
-      workOrderId
-    )) as any[];
+      [workspace.id, workOrderId]
+    );
 
     return {
       success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        lat: Number(r.lat),
-        lng: Number(r.lng),
-        accuracy: r.accuracy === null || r.accuracy === undefined ? null : Number(r.accuracy),
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        return {
+          id: String(obj.id),
+          lat: Number(obj.lat),
+          lng: Number(obj.lng),
+          accuracy: obj.accuracy === null || obj.accuracy === undefined ? null : Number(obj.accuracy),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+        };
+      }),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderCheckins failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת Check-In לקריאה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
   }
 }
 
@@ -738,24 +1977,20 @@ export async function addOperationsWorkOrderCheckin(params: {
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה או שאין הרשאה' };
 
-    await prisma.$executeRawUnsafe(
+    await orgExec(
+      prisma,
+      workspace.id,
       `
         INSERT INTO operations_work_order_checkins (organization_id, work_order_id, lat, lng, accuracy, created_by_type, created_by_ref)
         VALUES ($1::uuid, $2::uuid, $3::double precision, $4::double precision, $5::double precision, $6::text, $7::text)
       `,
-      workspace.id,
-      workOrderId,
-      lat,
-      lng,
-      accuracy,
-      createdByType,
-      createdByRef
+      [workspace.id, workOrderId, lat, lng, accuracy, createdByType, createdByRef]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] addOperationsWorkOrderCheckin failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת Check-In' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }
 
@@ -768,22 +2003,25 @@ async function resolveOperationsContractorToken(token: string): Promise<{
 }> {
   const t = String(token || '').trim();
   if (!t) return { ok: false, error: 'טוקן חסר' };
+  if (t.length < 20 || t.length > 200) return { ok: false, error: 'טוקן לא תקין' };
+  if (!/^[A-Za-z0-9_-]+$/.test(t)) return { ok: false, error: 'טוקן לא תקין' };
   const tokenHash = hashPortalToken(t);
 
-  const rows = (await prisma.$queryRawUnsafe(
-    `
+  const rows = await queryRawAllowlisted<unknown[]>(prisma, {
+    reason: 'ops_portal_token_lookup',
+    query: `
       SELECT organization_id::text as organization_id, contractor_label, expires_at, revoked_at
       FROM operations_contractor_tokens
       WHERE token_hash = $1::text
       LIMIT 1
     `,
-    tokenHash
-  )) as any[];
+    values: [tokenHash],
+  });
 
-  const row = rows?.[0];
+  const row = asObject((rows || [])[0]);
   if (!row?.organization_id) return { ok: false, error: 'טוקן לא תקין' };
-  const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
-  const revokedAt = row.revoked_at ? new Date(row.revoked_at) : null;
+  const expiresAt = row.expires_at ? new Date(String(row.expires_at)) : null;
+  const revokedAt = row.revoked_at ? new Date(String(row.revoked_at)) : null;
   if (revokedAt) return { ok: false, error: 'טוקן בוטל' };
   if (!expiresAt || expiresAt.getTime() < Date.now()) return { ok: false, error: 'טוקן פג תוקף' };
 
@@ -804,9 +2042,9 @@ export async function contractorResolveTokenForApi(params: {
       return { success: false, error: tokenOut.error || 'גישה נדחתה' };
     }
     return { success: true, organizationId: tokenOut.organizationId, tokenHash: tokenOut.tokenHash };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorResolveTokenForApi failed', e);
-    return { success: false, error: e?.message || 'שגיאה באימות טוקן' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה באימות טוקן' };
   }
 }
 
@@ -830,9 +2068,9 @@ export async function contractorValidateWorkOrderAccess(params: {
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
     return { success: true, organizationId: tokenOut.organizationId };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorValidateWorkOrderAccess failed', e);
-    return { success: false, error: e?.message || 'שגיאה באימות גישה' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה באימות גישה' };
   }
 }
 
@@ -844,16 +2082,20 @@ export async function contractorGetWorkOrderAttachments(params: {
     const tokenOut = await resolveOperationsContractorToken(params.token);
     if (!tokenOut.ok || !tokenOut.organizationId) return { success: false, error: tokenOut.error || 'גישה נדחתה' };
 
+    const organizationId = String(tokenOut.organizationId);
+
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
     const wo = await prisma.operationsWorkOrder.findFirst({
-      where: { id: workOrderId, organizationId: tokenOut.organizationId },
+      where: { id: workOrderId, organizationId },
       select: { id: true },
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      organizationId,
       `
         SELECT id::text as id, url, mime_type, created_at
         FROM operations_work_order_attachments
@@ -861,28 +2103,28 @@ export async function contractorGetWorkOrderAttachments(params: {
           AND work_order_id = $2::uuid
         ORDER BY created_at DESC
       `,
-      tokenOut.organizationId,
-      workOrderId
-    )) as any[];
+      [organizationId, workOrderId]
+    );
 
     const ttlSeconds = 60 * 60;
     const data = await Promise.all(
       (rows || []).map(async (r) => {
-        const rawUrl = String(r.url || '');
-        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds);
+        const obj = asObject(r) ?? {};
+        const rawUrl = String(obj.url || '');
+        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds, { organizationId });
         return {
-          id: String(r.id),
+          id: String(obj.id),
           url: resolved || rawUrl,
-          mimeType: r.mime_type ? String(r.mime_type) : null,
-          createdAt: new Date(r.created_at).toISOString(),
+          mimeType: obj.mime_type ? String(obj.mime_type) : null,
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
         };
       })
     );
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorGetWorkOrderAttachments failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת קבצים' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים' };
   }
 }
 
@@ -914,7 +2156,9 @@ export async function contractorAddWorkOrderAttachment(params: {
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
-    await prisma.$executeRawUnsafe(
+    await orgExec(
+      prisma,
+      String(tokenOut.organizationId),
       `
         INSERT INTO operations_work_order_attachments (
           organization_id,
@@ -927,19 +2171,21 @@ export async function contractorAddWorkOrderAttachment(params: {
           created_by_ref
         ) VALUES ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::text, 'CONTRACTOR', $7::text)
       `,
-      tokenOut.organizationId,
-      workOrderId,
-      storageBucket,
-      storagePath,
-      url,
-      mimeType,
-      tokenOut.tokenHash ? String(tokenOut.tokenHash) : null
+      [
+        tokenOut.organizationId,
+        workOrderId,
+        storageBucket,
+        storagePath,
+        url,
+        mimeType,
+        tokenOut.tokenHash ? String(tokenOut.tokenHash) : null,
+      ]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorAddWorkOrderAttachment failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת קובץ' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ' };
   }
 }
 
@@ -960,7 +2206,9 @@ export async function contractorGetWorkOrderCheckins(params: {
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      String(tokenOut.organizationId),
       `
         SELECT id::text as id, lat, lng, accuracy, created_at
         FROM operations_work_order_checkins
@@ -969,23 +2217,25 @@ export async function contractorGetWorkOrderCheckins(params: {
         ORDER BY created_at DESC
         LIMIT 20
       `,
-      tokenOut.organizationId,
-      workOrderId
-    )) as any[];
+      [tokenOut.organizationId, workOrderId]
+    );
 
     return {
       success: true,
-      data: rows.map((r) => ({
-        id: String(r.id),
-        lat: Number(r.lat),
-        lng: Number(r.lng),
-        accuracy: r.accuracy === null || r.accuracy === undefined ? null : Number(r.accuracy),
-        createdAt: new Date(r.created_at).toISOString(),
-      })),
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        return {
+          id: String(obj.id),
+          lat: Number(obj.lat),
+          lng: Number(obj.lng),
+          accuracy: obj.accuracy === null || obj.accuracy === undefined ? null : Number(obj.accuracy),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+        };
+      }),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorGetWorkOrderCheckins failed', e);
-    return { success: false, error: e?.message || 'שגיאה בטעינת Check-Ins' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-Ins' };
   }
 }
 
@@ -1014,23 +2264,27 @@ export async function contractorAddWorkOrderCheckin(params: {
     });
     if (!wo?.id) return { success: false, error: 'קריאה לא נמצאה' };
 
-    await prisma.$executeRawUnsafe(
+    await orgExec(
+      prisma,
+      String(tokenOut.organizationId),
       `
         INSERT INTO operations_work_order_checkins (organization_id, work_order_id, lat, lng, accuracy, created_by_type, created_by_ref)
         VALUES ($1::uuid, $2::uuid, $3::double precision, $4::double precision, $5::double precision, 'CONTRACTOR', $6::text)
       `,
-      tokenOut.organizationId,
-      workOrderId,
-      lat,
-      lng,
-      accuracy,
-      tokenOut.tokenHash ? String(tokenOut.tokenHash) : null
+      [
+        tokenOut.organizationId,
+        workOrderId,
+        lat,
+        lng,
+        accuracy,
+        tokenOut.tokenHash ? String(tokenOut.tokenHash) : null,
+      ]
     );
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorAddWorkOrderCheckin failed', e);
-    return { success: false, error: e?.message || 'שגיאה בשמירת Check-In' };
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }
 
@@ -1063,11 +2317,83 @@ export async function getOperationsInventoryOptions(params: {
     });
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsInventoryOptions failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת רשימת המלאי',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי',
+    };
+  }
+}
+
+export async function getOperationsInventoryOptionsForHolder(params: {
+  orgSlug: string;
+  holderId: string;
+}): Promise<{ success: boolean; data?: OperationsInventoryOption[]; error?: string }> {
+  try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    const holderId = String(params.holderId || '').trim();
+    if (!holderId) return { success: false, error: 'חסר מקור מלאי' };
+
+    const hRows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT id::text as id
+        FROM operations_stock_holders
+        WHERE organization_id = $1::uuid
+          AND id = $2::uuid
+        LIMIT 1
+      `,
+      [workspace.id, holderId]
+    );
+    if (!firstRowField(hRows, 'id')) return { success: false, error: 'מקור מלאי לא תקין' };
+
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
+      `
+        SELECT
+          inv.id::text as inventory_id,
+          i.id::text as item_id,
+          i.name as item_name,
+          i.sku as item_sku,
+          i.unit as item_unit,
+          COALESCE(sb.on_hand, 0) as holder_on_hand
+        FROM operations_inventory inv
+        JOIN operations_items i
+          ON i.id = inv.item_id
+         AND i.organization_id = inv.organization_id
+        LEFT JOIN operations_stock_balances sb
+          ON sb.organization_id = inv.organization_id
+         AND sb.holder_id = $2::uuid
+         AND sb.item_id = inv.item_id
+        WHERE inv.organization_id = $1::uuid
+        ORDER BY lower(i.name) ASC
+      `,
+      [workspace.id, holderId]
+    );
+
+    const data: OperationsInventoryOption[] = (rows || []).map((r) => {
+      const obj = asObject(r) ?? {};
+      const sku = obj.item_sku ? String(obj.item_sku) : '';
+      const labelBase = obj.item_name ? String(obj.item_name) : '';
+      const label = sku ? `${labelBase} (${sku})` : labelBase;
+      return {
+        inventoryId: String(obj.inventory_id),
+        itemId: String(obj.item_id),
+        label,
+        onHand: toNumberSafe(obj.holder_on_hand),
+        unit: obj.item_unit ? String(obj.item_unit) : null,
+      };
+    });
+
+    return { success: true, data };
+  } catch (e: unknown) {
+    console.error('[operations] getOperationsInventoryOptionsForHolder failed', e);
+    return {
+      success: false,
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי לפי מקור',
     };
   }
 }
@@ -1088,13 +2414,47 @@ export async function consumeOperationsInventoryForWorkOrder(params: {
     if (!inventoryId) return { success: false, error: 'חובה לבחור פריט' };
     if (!Number.isFinite(qty) || qty <= 0) return { success: false, error: 'כמות לא תקינה' };
 
-    await prisma.$transaction(async (tx) => {
-      const wo = await tx.operationsWorkOrder.findFirst({
-        where: { id: workOrderId, organizationId: workspace.id },
-        select: { id: true },
-      });
-      if (!wo?.id) {
-        throw new Error('קריאה לא נמצאה או שאין הרשאה');
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const woRows = await orgQuery<unknown[]>(
+        tx,
+        workspace.id,
+        `
+          SELECT
+            id::text as id,
+            assigned_technician_id::text as assigned_technician_id,
+            stock_source_holder_id::text as stock_source_holder_id
+          FROM operations_work_orders
+          WHERE organization_id = $1::uuid
+            AND id = $2::uuid
+          LIMIT 1
+        `,
+        [workspace.id, workOrderId]
+      );
+      const woRow = asObject((woRows || [])[0]);
+      if (!woRow?.id) throw new Error('קריאה לא נמצאה או שאין הרשאה');
+
+      const assignedTechnicianId = woRow.assigned_technician_id ? String(woRow.assigned_technician_id) : null;
+      let sourceHolderId = woRow.stock_source_holder_id ? String(woRow.stock_source_holder_id) : null;
+      if (!sourceHolderId) {
+        sourceHolderId = assignedTechnicianId
+          ? await resolveDefaultOperationsStockSourceHolderIdForTechnicianTx(tx, {
+              organizationId: workspace.id,
+              technicianId: assignedTechnicianId,
+            })
+          : await ensureOperationsPrimaryWarehouseHolderIdTx(tx, { organizationId: workspace.id });
+
+        await orgExec(
+          tx,
+          workspace.id,
+          `
+            UPDATE operations_work_orders
+            SET stock_source_holder_id = $1::uuid
+            WHERE id = $2::uuid
+              AND organization_id = $3::uuid
+              AND stock_source_holder_id IS NULL
+          `,
+          [sourceHolderId, workOrderId, workspace.id]
+        );
       }
 
       const inv = await tx.operationsInventory.findFirst({
@@ -1105,29 +2465,61 @@ export async function consumeOperationsInventoryForWorkOrder(params: {
         throw new Error('פריט מלאי לא נמצא או שאין הרשאה');
       }
 
+      // Ensure balances row exists for the selected source (best effort)
+      await orgExec(
+        tx,
+        workspace.id,
+        `
+          INSERT INTO operations_stock_balances (organization_id, holder_id, item_id, on_hand, min_level)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, 0, 0)
+          ON CONFLICT (organization_id, holder_id, item_id) DO NOTHING
+        `,
+        [workspace.id, sourceHolderId, inv.itemId]
+      );
+
+      // Decrement from source holder
+      const decCount = await orgExec(
+        tx,
+        workspace.id,
+        `
+          UPDATE operations_stock_balances
+          SET on_hand = on_hand - $1::numeric,
+              updated_at = now()
+          WHERE organization_id = $2::uuid
+            AND holder_id = $3::uuid
+            AND item_id = $4::uuid
+            AND on_hand >= $1::numeric
+        `,
+        [qty, workspace.id, sourceHolderId, inv.itemId]
+      );
+
+      if (Number(decCount) !== 1) {
+        throw new Error('אין מספיק מלאי במקור שנבחר');
+      }
+
+      // Decrement global inventory total (existing behavior)
       const updated = await tx.operationsInventory.updateMany({
-        where: { id: inv.id, organizationId: workspace.id, onHand: { gte: qty } },
+        where: { organizationId: workspace.id, itemId: inv.itemId, onHand: { gte: qty } },
         data: { onHand: { decrement: qty } },
       });
       if (updated.count !== 1) {
         throw new Error('אין מספיק מלאי');
       }
 
-      await tx.$executeRawUnsafe(
-        `INSERT INTO operations_stock_movements (organization_id, item_id, work_order_id, qty, direction, created_by_type) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::numeric, 'OUT', 'INTERNAL')`,
+      await orgExec(
+        tx,
         workspace.id,
-        inv.itemId,
-        workOrderId,
-        qty
+        `INSERT INTO operations_stock_movements (organization_id, item_id, work_order_id, qty, direction, created_by_type, from_holder_id) VALUES ($1::uuid, $2::uuid, $3::uuid, $4::numeric, 'OUT', 'INTERNAL', $5::uuid)`,
+        [workspace.id, inv.itemId, workOrderId, qty, sourceHolderId]
       );
     });
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] consumeOperationsInventoryForWorkOrder failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בהורדת מלאי',
+      error: getUnknownErrorMessage(e) || 'שגיאה בהורדת מלאי',
     };
   }
 }
@@ -1145,7 +2537,9 @@ export async function getOperationsMaterialsForWorkOrder(params: {
     const workOrderId = String(params.workOrderId || '').trim();
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT
           m.id::text as id,
@@ -1159,28 +2553,28 @@ export async function getOperationsMaterialsForWorkOrder(params: {
           AND m.work_order_id = $2::uuid
         ORDER BY m.created_at DESC
       `,
-      workspace.id,
-      workOrderId
-    )) as any[];
+      [workspace.id, workOrderId]
+    );
 
     return {
       success: true,
-      data: rows.map((r) => {
-        const sku = r.item_sku ? String(r.item_sku) : '';
-        const label = sku ? `${String(r.item_name)} (${sku})` : String(r.item_name);
+      data: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        const sku = obj.item_sku ? String(obj.item_sku) : '';
+        const label = sku ? `${String(obj.item_name)} (${sku})` : String(obj.item_name);
         return {
-          id: String(r.id),
+          id: String(obj.id),
           itemLabel: label,
-          qty: Number(r.qty),
-          createdAt: new Date(r.created_at).toISOString(),
+          qty: Number(obj.qty),
+          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
         };
       }),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsMaterialsForWorkOrder failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת חומרים לקריאה',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת חומרים לקריאה',
     };
   }
 }
@@ -1207,20 +2601,19 @@ export async function createOperationsContractorToken(params: {
     const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
     const contractorLabel = params.contractorLabel ? String(params.contractorLabel).trim() : null;
 
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO operations_contractor_tokens (organization_id, token_hash, contractor_label, expires_at) VALUES ($1::uuid, $2::text, $3::text, $4::timestamptz)`,
+    await orgExec(
+      prisma,
       workspace.id,
-      tokenHash,
-      contractorLabel,
-      expiresAt.toISOString()
+      `INSERT INTO operations_contractor_tokens (organization_id, token_hash, contractor_label, expires_at) VALUES ($1::uuid, $2::text, $3::text, $4::timestamptz)`,
+      [workspace.id, tokenHash, contractorLabel, expiresAt.toISOString()]
     );
 
     return { success: true, token };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] createOperationsContractorToken failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה ביצירת טוקן קבלן',
+      error: getUnknownErrorMessage(e) || 'שגיאה ביצירת טוקן קבלן',
     };
   }
 }
@@ -1245,36 +2638,34 @@ export async function getOperationsContractorPortalData(params: {
   error?: string;
 }> {
   try {
-    const token = String(params.token || '').trim();
-    if (!token) return { success: false, error: 'טוקן חסר' };
-
-    const tokenHash = hashPortalToken(token);
-    const tokenRow = (await prisma.$queryRawUnsafe(
-      `
-        SELECT organization_id::text as organization_id, contractor_label, expires_at, revoked_at
-        FROM operations_contractor_tokens
-        WHERE token_hash = $1::text
-        LIMIT 1
-      `,
-      tokenHash
-    )) as any[];
-
-    const row = tokenRow?.[0];
-    if (!row?.organization_id) {
-      return { success: false, error: 'טוקן לא תקין' };
+    const tokenOut = await resolveOperationsContractorToken(params.token);
+    if (!tokenOut.ok || !tokenOut.organizationId) {
+      return { success: false, error: tokenOut.error || 'גישה נדחתה' };
     }
 
-    const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
-    const revokedAt = row.revoked_at ? new Date(row.revoked_at) : null;
-    if (revokedAt) return { success: false, error: 'טוקן בוטל' };
-    if (!expiresAt || expiresAt.getTime() < Date.now()) return { success: false, error: 'טוקן פג תוקף' };
+    const organizationKey = String(tokenOut.organizationId).trim();
 
-    const organizationId = String(row.organization_id);
+    let organizationId = organizationKey;
+    let orgSlug: string | null = null;
 
-    const org = await prisma.social_organizations.findFirst({
-      where: { id: organizationId },
-      select: { slug: true },
-    });
+    if (isUuidLike(organizationKey)) {
+      const org = await prisma.social_organizations.findFirst({
+        where: { id: organizationKey },
+        select: { id: true, slug: true },
+      });
+      if (org?.id) organizationId = String(org.id);
+      orgSlug = org?.slug ? String(org.slug) : null;
+    } else {
+      const org = await prisma.social_organizations.findFirst({
+        where: { slug: organizationKey },
+        select: { id: true, slug: true },
+      });
+      if (!org?.id) {
+        return { success: false, error: 'ארגון לא נמצא' };
+      }
+      organizationId = String(org.id);
+      orgSlug = org?.slug ? String(org.slug) : null;
+    }
 
     const workOrders = await prisma.operationsWorkOrder.findMany({
       where: { organizationId, status: { not: 'DONE' } },
@@ -1293,8 +2684,8 @@ export async function getOperationsContractorPortalData(params: {
       success: true,
       data: {
         organizationId,
-        orgSlug: org?.slug ? String(org.slug) : null,
-        contractorLabel: row.contractor_label ? String(row.contractor_label) : null,
+        orgSlug,
+        contractorLabel: tokenOut.contractorLabel ?? null,
         workOrders: workOrders.map((w) => ({
           id: w.id,
           title: w.title,
@@ -1305,11 +2696,11 @@ export async function getOperationsContractorPortalData(params: {
         })),
       },
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsContractorPortalData failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת פורטל קבלן',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת פורטל קבלן',
     };
   }
 }
@@ -1319,45 +2710,31 @@ export async function contractorMarkWorkOrderDone(params: {
   workOrderId: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const token = String(params.token || '').trim();
     const workOrderId = String(params.workOrderId || '').trim();
-    if (!token) return { success: false, error: 'טוקן חסר' };
     if (!workOrderId) return { success: false, error: 'חסר מזהה קריאה' };
 
-    const tokenHash = hashPortalToken(token);
-    const tokenRow = (await prisma.$queryRawUnsafe(
-      `
-        SELECT organization_id::text as organization_id, expires_at, revoked_at
-        FROM operations_contractor_tokens
-        WHERE token_hash = $1::text
-        LIMIT 1
-      `,
-      tokenHash
-    )) as any[];
-
-    const row = tokenRow?.[0];
-    if (!row?.organization_id) {
-      return { success: false, error: 'טוקן לא תקין' };
+    const tokenOut = await resolveOperationsContractorToken(params.token);
+    if (!tokenOut.ok || !tokenOut.organizationId) {
+      return { success: false, error: tokenOut.error || 'גישה נדחתה' };
     }
 
-    const expiresAt = row.expires_at ? new Date(row.expires_at) : null;
-    const revokedAt = row.revoked_at ? new Date(row.revoked_at) : null;
-    if (revokedAt) return { success: false, error: 'טוקן בוטל' };
-    if (!expiresAt || expiresAt.getTime() < Date.now()) return { success: false, error: 'טוקן פג תוקף' };
+    const organizationId = String(tokenOut.organizationId);
 
-    const organizationId = String(row.organization_id);
-
-    await prisma.operationsWorkOrder.updateMany({
+    const updated = await prisma.operationsWorkOrder.updateMany({
       where: { id: workOrderId, organizationId },
       data: { status: 'DONE' },
     });
 
+    if (updated.count < 1) {
+      return { success: false, error: 'קריאה לא נמצאה' };
+    }
+
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] contractorMarkWorkOrderDone failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בעדכון סטטוס',
+      error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס',
     };
   }
 }
@@ -1386,19 +2763,22 @@ async function resolveClientNamesByCanonicalId(canonicalClientIds: string[]): Pr
 
   const clientNameById = new Map<string, string>();
 
-  for (const c of nexusClients as any[]) {
+  for (const c of nexusClients) {
+    const id = String(c.id);
     const label = String(c.companyName || c.name || '').trim();
-    if (label) clientNameById.set(String(c.id), label);
+    if (id && label) clientNameById.set(id, label);
   }
 
-  for (const c of misradClients as any[]) {
+  for (const c of misradClients) {
+    const id = String(c.id);
     const label = String(c.name || '').trim();
-    if (label && !clientNameById.has(String(c.id))) clientNameById.set(String(c.id), label);
+    if (id && label && !clientNameById.has(id)) clientNameById.set(id, label);
   }
 
-  for (const c of clientClients as any[]) {
+  for (const c of clientClients) {
+    const id = String(c.id);
     const label = String(c.fullName || '').trim();
-    if (label && !clientNameById.has(String(c.id))) clientNameById.set(String(c.id), label);
+    if (id && label && !clientNameById.has(id)) clientNameById.set(id, label);
   }
 
   return clientNameById;
@@ -1438,7 +2818,7 @@ export async function getOperationsDashboardData(params: {
     let low = 0;
     let critical = 0;
 
-    for (const row of inventoryRows as any[]) {
+    for (const row of inventoryRows) {
       const onHand = toNumberSafe(row.onHand);
       const minLevel = toNumberSafe(row.minLevel);
 
@@ -1472,11 +2852,11 @@ export async function getOperationsDashboardData(params: {
     };
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsDashboardData failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת נתוני הדשבורד',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת נתוני הדשבורד',
     };
   }
 }
@@ -1516,11 +2896,11 @@ export async function getOperationsProjectsData(params: {
     };
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsProjectsData failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת הפרויקטים',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הפרויקטים',
     };
   }
 }
@@ -1558,11 +2938,11 @@ export async function getOperationsInventoryData(params: {
     };
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsInventoryData failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת המלאי',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת המלאי',
     };
   }
 }
@@ -1583,11 +2963,11 @@ export async function getOperationsProjectOptions(params: {
       success: true,
       data: rows.map((p) => ({ id: p.id, title: p.title })),
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsProjectOptions failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת רשימת הפרויקטים',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הפרויקטים',
     };
   }
 }
@@ -1604,7 +2984,7 @@ export async function getOperationsWorkOrdersData(params: {
     const projectId = params.projectId ? String(params.projectId).trim() : '';
     const assignedTechnicianId = params.assignedTechnicianId ? String(params.assignedTechnicianId).trim() : '';
 
-    const values: any[] = [workspace.id];
+    const values: unknown[] = [workspace.id];
     let idx = values.length;
 
     let whereSql = `wo.organization_id = $1::uuid`;
@@ -1629,7 +3009,9 @@ export async function getOperationsWorkOrdersData(params: {
       whereSql += ` AND wo.assigned_technician_id = $${idx}::uuid`;
     }
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT
           wo.id::text as id,
@@ -1647,11 +3029,18 @@ export async function getOperationsWorkOrdersData(params: {
         WHERE ${whereSql}
         ORDER BY wo.created_at DESC
       `,
-      ...values
-    )) as any[];
+      values
+    );
 
     const technicianIds = Array.from(
-      new Set(rows.map((r) => (r as any).assigned_technician_id).filter(Boolean).map((v) => String(v)))
+      new Set(
+        (rows || [])
+          .map((r) => {
+            const obj = asObject(r);
+            return obj?.assigned_technician_id ? String(obj.assigned_technician_id) : null;
+          })
+          .filter(Boolean)
+      )
     ) as string[];
 
     const technicians = technicianIds.length
@@ -1667,30 +3056,30 @@ export async function getOperationsWorkOrdersData(params: {
     }
 
     const data: OperationsWorkOrdersData = {
-      workOrders: rows.map((r) => ({
-        id: String((r as any).id),
-        title: String((r as any).title),
-        projectId: String((r as any).project_id),
-        projectTitle: String((r as any).project_title),
-        status: String((r as any).status) as OperationsWorkOrderStatus,
-        technicianLabel: (r as any).assigned_technician_id ? techById.get(String((r as any).assigned_technician_id)) ?? null : null,
-        installationLat:
-          (r as any).installation_lat === null || (r as any).installation_lat === undefined
-            ? null
-            : Number((r as any).installation_lat),
-        installationLng:
-          (r as any).installation_lng === null || (r as any).installation_lng === undefined
-            ? null
-            : Number((r as any).installation_lng),
-      })),
+      workOrders: (rows || []).map((r) => {
+        const obj = asObject(r) ?? {};
+        const assignedId = obj.assigned_technician_id ? String(obj.assigned_technician_id) : '';
+        const latRaw = obj.installation_lat;
+        const lngRaw = obj.installation_lng;
+        return {
+          id: String(obj.id ?? ''),
+          title: String(obj.title ?? ''),
+          projectId: String(obj.project_id ?? ''),
+          projectTitle: String(obj.project_title ?? ''),
+          status: String(obj.status ?? 'NEW') as OperationsWorkOrderStatus,
+          technicianLabel: assignedId ? techById.get(assignedId) ?? null : null,
+          installationLat: latRaw === null || latRaw === undefined ? null : Number(latRaw),
+          installationLng: lngRaw === null || lngRaw === undefined ? null : Number(lngRaw),
+        };
+      }),
     };
 
     return { success: true, data };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrdersData failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת הקריאות',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאות',
     };
   }
 }
@@ -1756,7 +3145,9 @@ export async function createOperationsWorkOrder(params: {
     if (address) {
       const coords = await geocodeAddressNominatim(address);
       if (coords) {
-        await prisma.$executeRawUnsafe(
+        await orgExec(
+          prisma,
+          workspace.id,
           `
             UPDATE operations_work_orders
             SET installation_lat = $1::double precision,
@@ -1764,20 +3155,17 @@ export async function createOperationsWorkOrder(params: {
             WHERE organization_id = $3::uuid
               AND id = $4::uuid
           `,
-          coords.lat,
-          coords.lng,
-          workspace.id,
-          created.id
+          [coords.lat, coords.lng, workspace.id, created.id]
         );
       }
     }
 
     return { success: true, id: created.id };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] createOperationsWorkOrder failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה ביצירת קריאה',
+      error: getUnknownErrorMessage(e) || 'שגיאה ביצירת קריאה',
     };
   }
 }
@@ -1797,6 +3185,8 @@ export async function getOperationsWorkOrderById(params: {
     project: { id: string; title: string };
     assignedTechnicianId: string | null;
     technicianLabel: string | null;
+    stockSourceHolderId: string | null;
+    stockSourceLabel: string | null;
     completionSignatureUrl: string | null;
     createdAt: string;
     updatedAt: string;
@@ -1810,7 +3200,9 @@ export async function getOperationsWorkOrderById(params: {
       return { success: false, error: 'חסר מזהה קריאה' };
     }
 
-    const rows = (await prisma.$queryRawUnsafe(
+    const rows = await orgQuery<unknown[]>(
+      prisma,
+      workspace.id,
       `
         SELECT
           wo.id::text as id,
@@ -1819,6 +3211,7 @@ export async function getOperationsWorkOrderById(params: {
           wo.status as status,
           wo.scheduled_start as scheduled_start,
           wo.installation_address as installation_address,
+          wo.stock_source_holder_id::text as stock_source_holder_id,
           wo.completion_signature_url as completion_signature_url,
           wo.created_at as created_at,
           wo.updated_at as updated_at,
@@ -1832,11 +3225,10 @@ export async function getOperationsWorkOrderById(params: {
           AND wo.id = $2::uuid
         LIMIT 1
       `,
-      workspace.id,
-      id
-    )) as any[];
+      [workspace.id, id]
+    );
 
-    const row = rows?.[0];
+    const row = asObject((rows || [])[0]);
     if (!row?.id) {
       return { success: false, error: 'קריאה לא נמצאה' };
     }
@@ -1851,8 +3243,53 @@ export async function getOperationsWorkOrderById(params: {
       technicianLabel = tech?.id ? String(tech.fullName || tech.email || tech.id) : null;
     }
 
+    const stockSourceHolderIdRaw = row.stock_source_holder_id ? String(row.stock_source_holder_id) : null;
+    let stockSourceHolderId: string | null = stockSourceHolderIdRaw;
+    if (!stockSourceHolderId) {
+      stockSourceHolderId = assignedTechnicianId
+        ? await resolveDefaultOperationsStockSourceHolderIdForTechnician({
+            organizationId: workspace.id,
+            technicianId: assignedTechnicianId,
+          })
+        : await ensureOperationsPrimaryWarehouseHolderId({ organizationId: workspace.id });
+
+      await orgExec(
+        prisma,
+        workspace.id,
+        `
+          UPDATE operations_work_orders
+          SET stock_source_holder_id = $1::uuid
+          WHERE id = $2::uuid
+            AND organization_id = $3::uuid
+            AND stock_source_holder_id IS NULL
+        `,
+        [stockSourceHolderId, id, workspace.id]
+      );
+    }
+
+    let stockSourceLabel: string | null = null;
+    if (stockSourceHolderId) {
+      const hRows = await orgQuery<unknown[]>(
+        prisma,
+        workspace.id,
+        `
+          SELECT label
+          FROM operations_stock_holders
+          WHERE organization_id = $1::uuid
+            AND id = $2::uuid
+          LIMIT 1
+        `,
+        [workspace.id, stockSourceHolderId]
+      );
+      stockSourceLabel = firstRowField(hRows, 'label');
+    }
+
     const ttlSeconds = 60 * 60;
-    const completionSignatureUrl = await resolveStorageUrlMaybe(row.completion_signature_url ? String(row.completion_signature_url) : null, ttlSeconds);
+    const completionSignatureUrl = await resolveStorageUrlMaybe(
+      row.completion_signature_url ? String(row.completion_signature_url) : null,
+      ttlSeconds,
+      { organizationId: workspace.id, orgSlug: params.orgSlug }
+    );
 
     return {
       success: true,
@@ -1861,21 +3298,23 @@ export async function getOperationsWorkOrderById(params: {
         title: String(row.title),
         description: row.description === null || row.description === undefined ? null : String(row.description),
         status: String(row.status) as OperationsWorkOrderStatus,
-        scheduledStart: row.scheduled_start ? new Date(row.scheduled_start).toISOString() : null,
+        scheduledStart: row.scheduled_start ? toIsoDate(row.scheduled_start) : null,
         installationAddress: row.installation_address ? String(row.installation_address) : null,
         project: { id: String(row.project_id), title: String(row.project_title) },
         assignedTechnicianId,
         technicianLabel,
+        stockSourceHolderId,
+        stockSourceLabel,
         completionSignatureUrl: completionSignatureUrl || (row.completion_signature_url ? String(row.completion_signature_url) : null),
-        createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
-        updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : new Date().toISOString(),
+        createdAt: toIsoDate(row.created_at) ?? new Date().toISOString(),
+        updatedAt: toIsoDate(row.updated_at) ?? new Date().toISOString(),
       },
     };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderById failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בטעינת הקריאה',
+      error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאה',
     };
   }
 }
@@ -1904,11 +3343,11 @@ export async function setOperationsWorkOrderStatus(params: {
     });
 
     return { success: true };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderStatus failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה בעדכון סטטוס קריאה',
+      error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס קריאה',
     };
   }
 }
@@ -1946,11 +3385,11 @@ export async function createOperationsProject(params: {
     });
 
     return { success: true, id: created.id };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[operations] createOperationsProject failed', e);
     return {
       success: false,
-      error: e?.message || 'שגיאה ביצירת פרויקט',
+      error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פרויקט',
     };
   }
 }

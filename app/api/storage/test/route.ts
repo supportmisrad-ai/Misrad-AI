@@ -8,24 +8,49 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
-import { supabase } from '../../../../lib/supabase';
+import { createServiceRoleClient, isSupabaseConfigured } from '../../../../lib/supabase';
 import { uploadFile, listFiles, deleteFile } from '../../../../lib/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj ? obj['message'] : undefined;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type StorageBucket = { name: string; public?: boolean };
+
+type SupabaseStorageClientLike = {
+    listBuckets: () => Promise<{ data: StorageBucket[] | null; error: { message: string } | null }>;
+};
+
+type SupabaseClientLike = {
+    storage: SupabaseStorageClientLike;
+};
+
 async function GETHandler(request: NextRequest) {
     try {
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
+        } catch (e: unknown) {
             return NextResponse.json({
                 success: false,
-                error: e?.message || 'Forbidden - Super Admin required',
+                error: getErrorMessage(e) || 'Forbidden - Super Admin required',
                 checks: {}
             }, { status: 403 });
         }
 
         // 1. Check if Supabase is configured
-        if (!supabase) {
+        if (!isSupabaseConfigured()) {
             return NextResponse.json({
                 success: false,
                 error: 'Supabase not configured',
@@ -36,6 +61,17 @@ async function GETHandler(request: NextRequest) {
                     canRead: false,
                     canDelete: false
                 }
+            }, { status: 500 });
+        }
+
+        let supabase: SupabaseClientLike;
+        try {
+            supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'storage_test_admin' }) as unknown as SupabaseClientLike;
+        } catch {
+            return NextResponse.json({
+                success: false,
+                error: 'Supabase service role is not configured',
+                checks: {},
             }, { status: 500 });
         }
 
@@ -57,14 +93,14 @@ async function GETHandler(request: NextRequest) {
             if (listError) {
                 checks.bucketExists = `Error: ${listError.message}`;
             } else {
-                const attachmentsBucket = buckets?.find(b => b.name === 'attachments');
+                const attachmentsBucket = buckets?.find((b) => b.name === 'attachments');
                 checks.bucketExists = !!attachmentsBucket;
                 if (attachmentsBucket) {
-                    checks.bucketPublic = attachmentsBucket.public;
+                    checks.bucketPublic = Boolean(attachmentsBucket.public);
                 }
             }
-        } catch (error: any) {
-            checks.bucketExists = `Error: ${error.message}`;
+        } catch (error: unknown) {
+            checks.bucketExists = `Error: ${getErrorMessage(error)}`;
         }
 
         // 4. Test upload (small test file)
@@ -83,25 +119,25 @@ async function GETHandler(request: NextRequest) {
 
                 // 5. Test read (list files)
                 try {
-                    const files = await listFiles(`test/${user.id}`, 'attachments');
+                    const files = await listFiles(`${user.id}/test`, 'attachments');
                     checks.canRead = files.length > 0;
-                    checks.filesFound = files.length;
-                } catch (readError: any) {
-                    checks.canRead = `Error: ${readError.message}`;
+                    checks.filesFound = String(files.length);
+                } catch (readError: unknown) {
+                    checks.canRead = `Error: ${getErrorMessage(readError)}`;
                 }
 
                 // 6. Test delete
                 try {
                     const deleted = await deleteFile(uploadResult.path, 'attachments');
                     checks.canDelete = deleted;
-                } catch (deleteError: any) {
-                    checks.canDelete = `Error: ${deleteError.message}`;
+                } catch (deleteError: unknown) {
+                    checks.canDelete = `Error: ${getErrorMessage(deleteError)}`;
                 }
             } else {
                 checks.canUpload = 'Upload returned no URL';
             }
-        } catch (uploadError: any) {
-            checks.canUpload = `Error: ${uploadError.message}`;
+        } catch (uploadError: unknown) {
+            checks.canUpload = `Error: ${getErrorMessage(uploadError)}`;
         }
 
         // 7. Summary
@@ -123,11 +159,11 @@ async function GETHandler(request: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Storage test error:', error);
         return NextResponse.json({
             success: false,
-            error: error.message || 'Test failed',
+            error: getErrorMessage(error) || 'Test failed',
             checks: {}
         }, { status: 500 });
     }

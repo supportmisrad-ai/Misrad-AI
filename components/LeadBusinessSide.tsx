@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { Briefcase, X, Activity as ActivityIcon, Clock, Gauge, AlertCircle, ExternalLink, Presentation, Layers, UserX, RotateCcw } from 'lucide-react';
-import { Lead, Activity } from '../types';
-import ProposalModal from './ProposalModal';
-import QBRGeneratorModal from './QBRGeneratorModal';
-import { useCallAnalysis } from '../contexts/CallAnalysisContext';
-import { useToast } from '../contexts/ToastContext';
+import { Lead, Activity } from './system/types';
+import ProposalModal from './system/ProposalModal';
+import QBRGeneratorModal from './system/QBRGeneratorModal';
+import { useCallAnalysis } from './system/contexts/CallAnalysisContext';
+import { useToast } from './system/contexts/ToastContext';
 
 interface LeadBusinessSideProps {
     lead: Lead;

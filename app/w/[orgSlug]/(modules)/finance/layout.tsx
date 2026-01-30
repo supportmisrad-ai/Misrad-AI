@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import {
   enforceModuleAccessOrRedirect,
@@ -8,8 +9,11 @@ import {
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import FinanceModuleEntryClient from './FinanceModuleEntryClient';
 import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('finance');
 
 export default async function FinanceModuleLayout({
   children,

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@/lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 async function POSTHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
@@ -12,20 +13,9 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { clientId, month, year, orgId } = body;
+    const { clientId, month, year } = body;
 
-    const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-    const resolvedOrgId = orgIdFromHeader || orgId;
-    if (!resolvedOrgId) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
-
-    try {
-      await requireWorkspaceAccessByOrgSlugApi(resolvedOrgId);
-    } catch (e: any) {
-      const status = typeof e?.status === 'number' ? e.status : 403;
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
-    }
+    const { workspaceId } = await getWorkspaceOrThrow(request);
 
     if (clientId && clientId !== 'all') {
       const supabase = createClient();
@@ -35,7 +25,7 @@ async function POSTHandler(request: NextRequest) {
         .eq('id', clientId)
         .single();
 
-      if (!client?.id || client.organization_id !== resolvedOrgId) {
+      if (!client?.id || client.organization_id !== workspaceId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
@@ -51,6 +41,9 @@ async function POSTHandler(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[generatePDF] Error:', error);
+    if (error instanceof APIError) {
+      return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+    }
     return NextResponse.json(
       { error: error.message || 'שגיאה ביצירת PDF' },
       { status: 500 }

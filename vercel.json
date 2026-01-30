@@ -1,6 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "NODE_OPTIONS=--max-old-space-size=4096 npm run build",
+  "crons": [
+    {
+      "path": "/api/cron/employee-invite-emails",
+      "schedule": "*/5 * * * *"
+    }
+  ],
+  "buildCommand": "npm run security:scan-api-guards && NODE_OPTIONS=--max-old-space-size=6144 npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",

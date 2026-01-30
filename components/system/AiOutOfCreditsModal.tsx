@@ -38,7 +38,7 @@ export default function AiOutOfCreditsModal({
           <button
             type="button"
             onClick={onCloseAction}
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
             aria-label="סגור"
           >
             <X size={18} />

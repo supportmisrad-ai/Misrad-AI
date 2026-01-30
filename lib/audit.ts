@@ -61,7 +61,7 @@ export async function logAuditEvent(
             // If user is not authenticated, use system user
             user = {
                 id: 'system',
-                email: 'system@nexus-os.co',
+                email: 'support@misrad-ai.com',
                 firstName: 'System',
                 lastName: '',
                 imageUrl: '',
@@ -143,7 +143,7 @@ export async function logIntegrationEvent(
         const auditLog: AuditLog = {
             id: `audit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             userId: 'integration',
-            userEmail: 'integration@nexus-os.co',
+            userEmail: 'support@misrad-ai.com',
             action,
             resourceType,
             resourceId: options.resourceId,

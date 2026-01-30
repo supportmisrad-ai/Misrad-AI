@@ -1,4 +1,4 @@
-import { getSystemCallHistory, getSystemLeads } from '@/app/actions/system-leads';
+import { getSystemCallHistory, getSystemLeadsPage } from '@/app/actions/system-leads';
 import { getSystemPipelineStages } from '@/app/actions/system-pipeline-stages';
 import SystemDialerClient from './SystemDialerClient';
 
@@ -11,11 +11,24 @@ export default async function SystemDialerPage({
 }) {
   const { orgSlug } = await params;
 
-  const [initialLeads, callHistory, initialStages] = await Promise.all([
-    getSystemLeads(orgSlug),
+  const [leadsRes, callHistory, initialStages] = await Promise.all([
+    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
     getSystemCallHistory({ orgSlug, take: 200 }),
     getSystemPipelineStages({ orgSlug }),
   ]);
 
-  return <SystemDialerClient orgSlug={orgSlug} initialLeads={initialLeads} callHistory={callHistory} initialStages={initialStages} />;
+  const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
+  const initialNextCursor = leadsRes.success ? leadsRes.data.nextCursor : null;
+  const initialHasMore = leadsRes.success ? leadsRes.data.hasMore : false;
+
+  return (
+    <SystemDialerClient
+      orgSlug={orgSlug}
+      initialLeads={initialLeads}
+      initialNextCursor={initialNextCursor}
+      initialHasMore={initialHasMore}
+      callHistory={callHistory}
+      initialStages={initialStages}
+    />
+  );
 }

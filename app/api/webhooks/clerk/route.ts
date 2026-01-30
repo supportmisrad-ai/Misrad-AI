@@ -2,10 +2,13 @@ import { Webhook } from 'svix';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { WebhookEvent } from '@clerk/nextjs/server';
-import { createClient } from '@/lib/supabase';
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import crypto from 'crypto';
+import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
+import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/app/actions/users';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 async function POSTHandler(req: Request) {
   // Get the Svix headers for verification
   const headerPayload = await headers();
@@ -30,7 +33,11 @@ async function POSTHandler(req: Request) {
     '';
 
   if (!webhookSecret) {
-    console.error('[clerk-webhook] Missing webhook secret. Set CLERK_WEBHOOK_SECRET (recommended) or CLERK_WEB_HOOK_SECRET.');
+    if (!IS_PROD) {
+      console.error('[clerk-webhook] Missing webhook secret.');
+    } else {
+      console.error('[clerk-webhook] Webhook secret is not configured');
+    }
     return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 500 });
   }
 
@@ -46,7 +53,8 @@ async function POSTHandler(req: Request) {
       'svix-signature': svix_signature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error('Error verifying webhook:', err);
+    if (!IS_PROD) console.error('Error verifying webhook:', err);
+    else console.error('Error verifying webhook');
     return NextResponse.json({ error: 'Error occured' }, { status: 400 });
   }
 
@@ -76,7 +84,7 @@ async function POSTHandler(req: Request) {
       // Fallback for employee-invite flow: infer org by matching a recently completed invite for this email.
       let preferredOrgKey = publicMetadata?.orgSlug ? String(publicMetadata.orgSlug) : undefined;
       if (!preferredOrgKey && primaryEmail) {
-        const supabase = createClient();
+        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_invite_lookup' });
         const nowIso = new Date().toISOString();
 
         // Organization signup invite flow (Super Admin creates a pending invite by email)
@@ -103,7 +111,7 @@ async function POSTHandler(req: Request) {
         // First preference: an active, unused invite for this email (prevents auto-provisioning wrong org)
         const { data: activeInviteRow } = await supabase
           .from('nexus_employee_invitation_links')
-          .select('organization_id, created_at')
+          .select('organization_id, token, created_at')
           .eq('employee_email', primaryEmail)
           .eq('is_active', true)
           .eq('is_used', false)
@@ -113,8 +121,9 @@ async function POSTHandler(req: Request) {
           .maybeSingle();
 
         const activeInviteOrgId = (activeInviteRow as any)?.organization_id as string | null;
-        if (activeInviteOrgId) {
-          preferredOrgKey = String(activeInviteOrgId);
+        const activeInviteToken = (activeInviteRow as any)?.token as string | null;
+        if (activeInviteOrgId && activeInviteToken) {
+          preferredOrgKey = `employee-invite:${String(activeInviteToken)}`;
         }
 
         // Fallback: a recently used invite for this email (backwards compatibility)
@@ -122,7 +131,7 @@ async function POSTHandler(req: Request) {
           const cutoff = new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString();
           const { data: usedInviteRow } = await supabase
             .from('nexus_employee_invitation_links')
-            .select('organization_id, used_at, is_used')
+            .select('organization_id, token, used_at, is_used')
             .eq('employee_email', primaryEmail)
             .eq('is_used', true)
             .gte('used_at', cutoff)
@@ -131,31 +140,41 @@ async function POSTHandler(req: Request) {
             .maybeSingle();
 
           const usedInviteOrgId = (usedInviteRow as any)?.organization_id as string | null;
-          if (usedInviteOrgId) {
-            preferredOrgKey = String(usedInviteOrgId);
+          const usedInviteToken = (usedInviteRow as any)?.token as string | null;
+          if (usedInviteOrgId && usedInviteToken) {
+            preferredOrgKey = `employee-invite:${String(usedInviteToken)}`;
           }
         }
       }
 
       // Get or create user in Supabase and sync profile image
-      const shouldSendWelcomeEmail = eventType === 'user.created';
-      const result = await getOrCreateSupabaseUserAction(
-        id,
-        primaryEmail,
-        first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
-        image_url || undefined,
-        preferredOrgKey,
-        shouldSendWelcomeEmail
-      );
+      const bodyHash = crypto.createHash('sha256').update(body).digest('hex');
+      const internalCallToken = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(`${svix_id}.${svix_timestamp}.${bodyHash}`)
+        .digest('hex');
+
+      const result = await getOrCreateSupabaseUserFromClerkWebhookAction({
+        clerkUserId: id,
+        email: primaryEmail,
+        fullName: first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
+        imageUrl: image_url || undefined,
+        preferredOrganizationKey: preferredOrgKey,
+        svixId: svix_id,
+        svixTimestamp: svix_timestamp,
+        bodyHash,
+        internalCallToken,
+      });
 
       if (!result.success) {
-        console.error('Error syncing user profile:', result.error);
+        if (!IS_PROD) console.error('Error syncing user profile:', result.error);
+        else console.error('Error syncing user profile');
         return NextResponse.json({ error: 'Error syncing user profile' }, { status: 500 });
       }
 
       // Also update social_team_members table if user exists there
       if (result.userId) {
-        const supabase = createClient();
+        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_team_member_sync' });
 
         // If we have a pending org signup invite for this email, create/link org with exact name+slug
         if (orgSignupInvite?.token) {
@@ -201,7 +220,7 @@ async function POSTHandler(req: Request) {
                     subscription_status: 'trial',
                     subscription_plan: null,
                     trial_start_date: nowIso,
-                    trial_days: 30,
+                    trial_days: 7,
                     created_at: nowIso,
                     updated_at: nowIso,
                   } as any)
@@ -214,7 +233,13 @@ async function POSTHandler(req: Request) {
               }
 
               if (orgId) {
-                await supabase
+                const scoped = createServiceRoleClientScoped({
+                  reason: 'clerk_webhook_sync_user_scoped',
+                  scopeColumn: 'organization_id',
+                  scopeId: orgId,
+                });
+
+                await scoped
                   .from('social_users')
                   .update({ organization_id: orgId, updated_at: nowIso } as any)
                   .eq('id', result.userId);
@@ -230,27 +255,63 @@ async function POSTHandler(req: Request) {
                     updated_at: nowIso,
                   } as any)
                   .eq('token', String(orgSignupInvite.token));
+
+                try {
+                  await ensureProfileForClerkUserInOrganizationAction({
+                    clerkUserId: id,
+                    organizationId: orgId,
+                    role: 'owner',
+                    email: primaryEmail,
+                    fullName: first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
+                    imageUrl: image_url || undefined,
+                  });
+                } catch {
+                  // ignore
+                }
               }
             }
           } catch (e) {
-            console.error('[clerk-webhook] org signup invite handling failed (ignored)', e);
+            if (!IS_PROD) console.error('[clerk-webhook] org signup invite handling failed (ignored)', e);
+            else console.error('[clerk-webhook] org signup invite handling failed (ignored)');
           }
         }
 
-        await supabase
+        const nowIsoTeam = new Date().toISOString();
+        const { data: teamRow } = await supabase
           .from('social_team_members')
-          .update({
-            avatar: image_url || undefined,
-            name: first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
-            email: email_addresses?.[0]?.email_address || undefined,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', result.userId);
+          .select('id, organization_id')
+          .eq('user_id', result.userId)
+          .maybeSingle();
+
+        const teamOrgId = (teamRow as any)?.organization_id ? String((teamRow as any).organization_id).trim() : '';
+        const teamScoped = teamOrgId
+          ? createServiceRoleClientScoped({
+              reason: 'clerk_webhook_team_member_sync_scoped',
+              scopeColumn: 'organization_id',
+              scopeId: teamOrgId,
+            })
+          : null;
+
+        const memberUpdate = {
+          avatar: image_url || undefined,
+          name: first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
+          email: email_addresses?.[0]?.email_address || undefined,
+          updated_at: nowIsoTeam,
+        } as any;
+
+        const baseTeamUpdate = teamScoped ? teamScoped.from('social_team_members') : supabase.from('social_team_members');
+        let teamUpdateQuery = baseTeamUpdate.update(memberUpdate).eq('user_id', result.userId);
+        if (!teamScoped && teamOrgId) {
+          teamUpdateQuery = (teamUpdateQuery as any).eq('organization_id', teamOrgId);
+        }
+
+        await (teamUpdateQuery as any);
       }
 
       return NextResponse.json({ ok: true }, { status: 200 });
     } catch (error) {
-      console.error('Error handling webhook:', error);
+      if (!IS_PROD) console.error('Error handling webhook:', error);
+      else console.error('Error handling webhook');
       return NextResponse.json({ error: 'Error handling webhook' }, { status: 500 });
     }
   }
@@ -263,41 +324,83 @@ async function POSTHandler(req: Request) {
 
       const userData = evt.data as any;
       const clerkUserId = userData.id;
-      const supabase = createClient();
+      const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_user_deleted' });
       const nowIso = new Date().toISOString();
 
-      // Preferred path: mark user inactive (soft delete)
-      const attempt = await supabase
+      const { data: socialUserRow, error: socialUserError } = await supabase
         .from('social_users')
-        .update({ is_active: false, updated_at: nowIso } as any)
+        .select('id, organization_id')
+        .eq('clerk_user_id', clerkUserId)
+        .limit(1)
+        .maybeSingle();
+
+      if (socialUserError) {
+        throw new Error(socialUserError.message);
+      }
+
+      const socialUserId = (socialUserRow as any)?.id ? String((socialUserRow as any).id) : null;
+      const orgId = (socialUserRow as any)?.organization_id ? String((socialUserRow as any).organization_id).trim() : '';
+      const scoped = orgId
+        ? createServiceRoleClientScoped({
+            reason: 'clerk_webhook_user_deleted_scoped',
+            scopeColumn: 'organization_id',
+            scopeId: orgId,
+          })
+        : null;
+
+      // Preferred path: mark user inactive (soft delete)
+      const baseUserUpdate = scoped ? scoped.from('social_users') : supabase.from('social_users');
+
+      let attempt = baseUserUpdate
+        .update({ is_active: false, updated_at: nowIso, role: 'deleted', organization_id: null } as any)
         .eq('clerk_user_id', clerkUserId);
 
-      // Backwards compatibility: if is_active column doesn't exist
-      if (attempt.error?.message) {
-        const msg = String(attempt.error.message).toLowerCase();
-        if (msg.includes('column') && msg.includes('is_active')) {
-          await supabase
-            .from('social_users')
-            .update({ role: 'deleted', allowed_modules: [], updated_at: nowIso } as any)
+      if (!scoped && orgId) {
+        attempt = (attempt as any).eq('organization_id', orgId);
+      }
+
+      const attemptRes = await (attempt as any);
+
+      if (attemptRes.error) {
+        const code = String((attemptRes.error as any)?.code || '');
+        if (code === '42703') {
+          const baseFallback = scoped ? scoped.from('social_users') : supabase.from('social_users');
+          let fallbackQuery = baseFallback
+            .update({ updated_at: nowIso, role: 'deleted', organization_id: null } as any)
             .eq('clerk_user_id', clerkUserId);
+
+          if (!scoped && orgId) {
+            fallbackQuery = (fallbackQuery as any).eq('organization_id', orgId);
+          }
+
+          const fallback = await (fallbackQuery as any);
+
+          if (fallback.error) {
+            throw new Error(fallback.error.message);
+          }
         } else {
-          throw new Error(attempt.error.message);
+          throw new Error(attemptRes.error.message);
         }
       }
 
-      // Best-effort: also deactivate any team membership rows if schema supports it
-      try {
-        await supabase
-          .from('social_team_members')
-          .update({ is_active: false, updated_at: nowIso } as any)
-          .eq('clerk_user_id', clerkUserId);
-      } catch {
-        // ignore
+      if (socialUserId) {
+        const baseMembershipDelete = scoped ? scoped.from('social_team_members') : supabase.from('social_team_members');
+        let membershipDeleteQuery = baseMembershipDelete.delete().eq('user_id', socialUserId);
+        if (!scoped && orgId) {
+          membershipDeleteQuery = (membershipDeleteQuery as any).eq('organization_id', orgId);
+        }
+
+        const membershipDelete = await (membershipDeleteQuery as any);
+
+        if ((membershipDelete as any)?.error) {
+          throw new Error((membershipDelete as any).error.message);
+        }
       }
 
       return NextResponse.json({ ok: true }, { status: 200 });
     } catch (error) {
-      console.error('Error handling webhook (user.deleted):', error);
+      if (!IS_PROD) console.error('Error handling webhook (user.deleted):', error);
+      else console.error('Error handling webhook (user.deleted)');
       return NextResponse.json({ error: 'Error handling webhook' }, { status: 500 });
     }
   }

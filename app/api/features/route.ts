@@ -6,32 +6,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../lib/auth';
-import { supabase } from '../../../lib/supabase';
+import { createClient } from '../../../lib/supabase';
 import { FeatureRequest } from '../../../types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
+
     try {
         const user = await getAuthenticatedUser();
 
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else {
-            // Strict mode: no unscoped feature requests
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
+        const { workspaceId } = await getWorkspaceOrThrow(request);
 
+        const supabase = createClient();
+        
         const searchParams = request.nextUrl.searchParams;
         const requestId = searchParams.get('id');
         const status = searchParams.get('status');
@@ -39,7 +28,7 @@ async function GETHandler(request: NextRequest) {
         const userId = searchParams.get('userId');
 
         // Check if user is admin
-        const isAdmin = user.isSuperAdmin || user.role === 'מנכ״ל' || user.role === 'מנכ"ל' || user.role === 'אדמין';
+        const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
         let query = supabase
             .from('misrad_feature_requests')
@@ -109,6 +98,9 @@ async function GETHandler(request: NextRequest) {
 
     } catch (error: any) {
         console.error('[API] Error in /api/features GET:', error);
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'שגיאה בטעינת בקשות פיצ\'רים' },
             { status: error.message?.includes('Unauthorized') ? 401 : 500 }
@@ -120,23 +112,10 @@ async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        let workspaceId: string | null = null;
-        if (orgIdFromHeader) {
-            const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-            workspaceId = workspace.id;
-        } else {
-            // Strict mode: no unscoped feature requests
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
+        const { workspaceId } = await getWorkspaceOrThrow(request);
 
+        const supabase = createClient();
+        
         const body = await request.json();
         const { title, description, type, priority } = body;
 
@@ -215,6 +194,9 @@ async function POSTHandler(request: NextRequest) {
 
     } catch (error: any) {
         console.error('[API] Error in /api/features POST:', error);
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'שגיאה ביצירת בקשת פיצ\'ר' },
             { status: error.message?.includes('Unauthorized') ? 401 : 500 }

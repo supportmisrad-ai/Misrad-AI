@@ -8,8 +8,7 @@ import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { useRouter } from 'next/navigation';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -40,14 +39,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   renderCountRef.current += 1;
   console.log(`[Nexus][Sidebar] render #${renderCountRef.current}`);
 
-  const { roomIconName, roomName, roomNameHebrew, room } = useRoomBranding();
+  const { roomName, room } = useRoomBranding();
 
-  const fallbackIcon =
-    room === 'nexus' ? (
-      <img src="/icons/nexus-icon.svg" alt="Nexus" className="w-full h-full object-cover" />
-    ) : roomIconName ? (
-      <DynamicIcon name={roomIconName} size={20} className="text-gray-900" />
-    ) : null;
+  const fallbackIcon = room ? <OSModuleSquircleIcon moduleKey={room} boxSize={40} iconSize={18} className="shadow-none" /> : null;
 
   return (
     <SharedSidebar
@@ -57,9 +51,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         name: organization.name,
         logoUrl: organization.logo || null,
         fallbackIcon,
-        badgeIcon: <OSModuleIcon moduleKey={room} size={12} className="text-slate-900" />,
+        badgeModuleKey: room,
       }}
-      brandSubtitle={roomName || roomNameHebrew || null}
+      brandSubtitle={roomName || null}
       onBrandClickAction={() => router.push('/workspaces')}
       topSlot={
         <div className="flex flex-col gap-2">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
-import { Lead, PipelineStage, ProductType } from '../types';
-import { STAGES } from '../constants';
+import { Lead, PipelineStage, ProductType } from './system/types';
+import { STAGES } from './system/constants';
 import { Phone, MessageSquare, Clock, User, GripVertical, Crown, Users, BookOpen, Flame, Zap, ArrowRight, MoreHorizontal, AlertCircle } from 'lucide-react';
 
 interface PipelineBoardProps {

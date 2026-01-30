@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { SocialPlatform, ClientStatus, PostStatus, PricingPlan } from '@/types';
+import { SocialPlatform, ClientStatus, PostStatus, PricingPlan } from '@/types/social';
 
 // Client validation schemas
 export const createClientSchema = z.object({

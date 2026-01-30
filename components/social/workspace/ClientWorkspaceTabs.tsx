@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LayoutGrid, Calendar as CalIcon, Inbox, ShieldCheck, Database, BrainCircuit, MessageSquare } from 'lucide-react';
+import { LayoutGrid, Calendar as CalIcon, Inbox, ShieldCheck, Database, Zap, MessageSquare } from 'lucide-react';
 
 interface ClientWorkspaceTabsProps {
   activeTab: 'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault';
@@ -15,7 +15,7 @@ export function ClientWorkspaceTabs({ activeTab, onTabChange }: ClientWorkspaceT
     { id: 'requests', label: 'בקשות', icon: Inbox },
     { id: 'vault', label: 'כספת גישה', icon: ShieldCheck },
     { id: 'bank', label: 'בנק תכנים', icon: Database },
-    { id: 'dna', label: 'זהות', icon: BrainCircuit },
+    { id: 'dna', label: 'זהות', icon: Zap },
     { id: 'messages', label: 'הודעות', icon: MessageSquare }
   ] as const;
 

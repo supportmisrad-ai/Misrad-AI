@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=24.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev -p 4000 --webpack",
     "dev:turbo": "next dev -p 5000",
     "postinstall": "prisma generate --schema prisma/schema.prisma",
-    "build": "prisma generate --schema prisma/schema.prisma && next build --webpack",
+    "prebuild": "npm run security:scan-api-guards",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "set \"NODE_OPTIONS=--max-old-space-size=8192\" && npm run security:scan-api-guards && prisma generate --schema prisma/schema.prisma && next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "security:scan-api-guards": "node scripts/security/scan-api-guards.js",
+    "e2e:auth": "node scripts/e2e-auth.cjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",
@@ -23,6 +27,7 @@
     "prisma:db:push": "dotenv -e .env -e .env.local -- prisma db push --schema prisma/schema.prisma",
     "prisma:studio": "dotenv -e .env -e .env.local -- prisma studio --schema prisma/schema.prisma",
     "generate-icons": "node scripts/generate-icons.js",
+    "generate-brand-assets": "node scripts/generate-brand-assets.js",
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4000 && electron .\"",
     "electron:build": "npm run build && electron-builder",
@@ -43,10 +48,12 @@
     "@prisma/client": "^5.22.0",
     "@sentry/nextjs": "^10.36.0",
     "@supabase/supabase-js": "^2.89.0",
+    "@tanstack/react-query": "^5.90.20",
     "@types/canvas-confetti": "^1.9.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/recharts": "^1.8.29",
     "@upstash/redis": "^1.35.0",
+    "@zxing/browser": "^0.1.5",
     "ai": "^6.0.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.23.26",
@@ -55,6 +62,7 @@
     "lucide-react": "^0.561.0",
     "next": "16.0.10",
     "prisma": "^5.22.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "react-hook-form": "^7.69.0",
@@ -75,6 +83,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.9.19",
     "concurrently": "^8.2.2",
     "dotenv": "^17.2.3",
     "dotenv-cli": "^11.0.0",
@@ -89,13 +98,15 @@
   },
   "main": "electron/main.js",
   "build": {
-    "appId": "com.scalecrm.app",
-    "productName": "Scale CRM",
+    "appId": "com.misrad.ai",
+    "productName": "MISRAD AI",
     "directories": {
       "output": "dist"
     },
     "files": [
       "electron/**/*",
+      "app/favicon.ico",
+      "app/icon.ico",
       "public/**/*",
       "package.json"
     ],
@@ -108,7 +119,7 @@
           ]
         }
       ],
-      "icon": "public/icon-512.png"
+      "icon": "app/icon.ico"
     },
     "mac": {
       "target": [
@@ -136,8 +147,15 @@
       "category": "Office"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "perMachine": false,
+      "language": "1037",
+      "multiLanguageInstaller": true,
+      "displayLanguageSelector": true,
+      "installerIcon": "app/icon.ico",
+      "uninstallerIcon": "app/icon.ico",
+      "shortcutName": "MISRAD AI",
+      "uninstallDisplayName": "MISRAD AI",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { Clock, History, MapPin, CheckCircle2, Users, ArrowRight, Star, AlertCircle, Calendar, Trash2, Filter, ArrowLeft, FileSpreadsheet, Plus, Edit2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Priority, Status, TimeEntry } from '../types';
+import { Priority, Status, TimeEntry, User } from '../types';
 import { PRIORITY_LABELS } from '../constants';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
@@ -26,11 +26,11 @@ export const TimeClockView: React.FC = () => {
   const [entryToEdit, setEntryToEdit] = useState<TimeEntry | null>(null);
 
   // 1. Real-time Status (Independent of filter)
-  const activeEntries = timeEntries.filter(t => !t.endTime);
+  const activeEntries = timeEntries.filter((t: TimeEntry) => !t.endTime);
   const onlineUsersCount = activeEntries.length;
 
   // 2. Historical Data (Filtered by Range)
-  const filteredEntries = timeEntries.filter(t => {
+  const filteredEntries = timeEntries.filter((t: TimeEntry) => {
       const entryDate = new Date(t.date);
       const start = new Date(dateRange.start);
       const end = new Date(dateRange.end);
@@ -40,10 +40,10 @@ export const TimeClockView: React.FC = () => {
       const entryTime = new Date(t.date); 
       // A safer comparison for YYYY-MM-DD strings:
       return t.date >= dateRange.start && t.date <= dateRange.end;
-  }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()); // Sort Descending
+  }).sort((a: TimeEntry, b: TimeEntry) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()); // Sort Descending
 
-  const totalHoursInRange = Math.floor(filteredEntries.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0) / 60);
-  const uniqueEmployeesInRange = new Set(filteredEntries.map(e => e.userId)).size;
+  const totalHoursInRange = Math.floor(filteredEntries.reduce((acc: number, curr: TimeEntry) => acc + (curr.durationMinutes || 0), 0) / 60);
+  const uniqueEmployeesInRange = new Set(filteredEntries.map((e: TimeEntry) => e.userId)).size;
   
   const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit' });
@@ -88,8 +88,8 @@ export const TimeClockView: React.FC = () => {
         }
 
         const headers = ['שם העובד', 'תאריך', 'שעת כניסה', 'שעת יציאה', 'משך זמן (דקות)', 'סטטוס'];
-        const rows = filteredEntries.map(entry => {
-            const user = users.find(u => u.id === entry.userId);
+        const rows = filteredEntries.map((entry: TimeEntry) => {
+            const user = users.find((u: User) => u.id === entry.userId);
             const startTime = new Date(entry.startTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
             const endTime = entry.endTime ? new Date(entry.endTime).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '-';
             const status = entry.endTime ? 'הושלם' : 'פעיל';
@@ -106,7 +106,7 @@ export const TimeClockView: React.FC = () => {
 
         const csvContent = [
             headers.join(','),
-            ...rows.map(row => row.join(','))
+            ...rows.map((row: Array<string | number>) => row.join(','))
         ].join('\n');
 
         if (typeof document === 'undefined') return; // SSR guard
@@ -258,11 +258,11 @@ export const TimeClockView: React.FC = () => {
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {users.map(user => {
-                        const userActiveShift = timeEntries.find(t => t.userId === user.id && !t.endTime);
+                    {users.map((user: User) => {
+                        const userActiveShift = timeEntries.find((t: TimeEntry) => t.userId === user.id && !t.endTime);
                         // Stats for the selected range for this specific user
-                        const userRangeEntries = filteredEntries.filter(t => t.userId === user.id);
-                        const totalMinutes = userRangeEntries.reduce((acc, curr) => acc + (curr.durationMinutes || 0), 0);
+                        const userRangeEntries = filteredEntries.filter((t: TimeEntry) => t.userId === user.id);
+                        const totalMinutes = userRangeEntries.reduce((acc: number, curr: TimeEntry) => acc + (curr.durationMinutes || 0), 0);
                         
                         return (
                             <div key={user.id} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:border-gray-300 transition-all">
@@ -317,19 +317,20 @@ export const TimeClockView: React.FC = () => {
                     })}
                 </div>
             </div>
+        </div>
 
-            {/* Detailed Log Table */}
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                        <History size={20} className="text-gray-500" />
-                        <h3 className="font-bold text-gray-900 text-lg">רישום כניסות ויציאות</h3>
-                    </div>
-                    <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-                        {filteredEntries.length} רשומות
-                    </span>
+        {/* Detailed Log Table */}
+        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100 bg-gray-50/30 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <History size={20} className="text-gray-500" />
+                    <h3 className="font-bold text-gray-900 text-lg">רישום כניסות ויציאות</h3>
                 </div>
-                <div className="overflow-x-auto">
+                <span className="text-xs font-bold text-gray-500 bg-white px-3 py-1 rounded-full border border-gray-200 shadow-sm">
+                    {filteredEntries.length} רשומות
+                </span>
+            </div>
+            <div className="overflow-x-auto">
                     <table className="w-full text-sm text-right">
                         <thead className="bg-gray-50 text-gray-500 font-bold text-xs uppercase tracking-wider">
                             <tr>
@@ -343,8 +344,8 @@ export const TimeClockView: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredEntries.length > 0 ? filteredEntries.map((entry) => {
-                                const user = users.find(u => u.id === entry.userId);
+                            {filteredEntries.length > 0 ? filteredEntries.map((entry: TimeEntry) => {
+                                const user = users.find((u: User) => u.id === entry.userId);
                                 return (
                                     <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4 flex items-center gap-3 font-bold text-gray-900">
@@ -399,7 +400,6 @@ export const TimeClockView: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-            </div>
 
         </div>
     </div>

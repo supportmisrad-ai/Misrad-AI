@@ -99,6 +99,10 @@ function SubscribeCheckoutContent({
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [partnerReferralCode, setPartnerReferralCode] = useState(() => {
+    const raw = searchParams.get('partner') || searchParams.get('partner_code') || '';
+    return String(raw).trim();
+  });
 
   const [paymentTitle, setPaymentTitle] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
@@ -155,14 +159,17 @@ function SubscribeCheckoutContent({
 
   const handleCreateOrder = async () => {
     if (!isSignedIn || !initialUserId) {
-      const qs = new URLSearchParams({
-        redirect: 'subscribe-checkout',
+      const checkoutQs = new URLSearchParams({
         plan,
         billing: billingCycle,
       });
-      if (packageType) qs.set('package', packageType);
-      if (packageType === 'solo' && soloModuleKey) qs.set('module', String(soloModuleKey));
-      router.push(`/sign-up?${qs.toString()}`);
+      if (packageType) checkoutQs.set('package', packageType);
+      if (packageType === 'solo' && soloModuleKey) checkoutQs.set('module', String(soloModuleKey));
+      if (seats) checkoutQs.set('seats', String(seats));
+      if (partnerReferralCode.trim()) checkoutQs.set('partner', partnerReferralCode.trim());
+
+      const redirectUrl = `/subscribe/checkout?${checkoutQs.toString()}`;
+      router.push(`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`);
       return;
     }
 
@@ -204,6 +211,7 @@ function SubscribeCheckoutContent({
         customerEmail: email,
         customerPhone: phone,
         seats: seats ?? undefined,
+        partnerReferralCode: partnerReferralCode.trim() || undefined,
       });
 
       if (!result.success || !result.data?.id) {
@@ -367,6 +375,13 @@ function SubscribeCheckoutContent({
                 className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
               />
             </div>
+
+            <input
+              value={partnerReferralCode}
+              onChange={e => setPartnerReferralCode(e.target.value)}
+              placeholder='קוד שותף / רו"ח (אופציונלי)'
+              className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+            />
 
             {shouldShowPaymentSelector && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">

@@ -1,7 +1,8 @@
+'use client';
 
 import React, { useState } from 'react';
 import { MeetingAnalysisResult } from '../types';
-import { Sparkles, BrainCircuit, CheckSquare, ShieldAlert, UserCircle, Briefcase, ArrowRight, Eraser, ArrowLeft } from 'lucide-react';
+import { Sparkles, CheckSquare, ShieldAlert, UserCircle, Briefcase, ArrowRight, Eraser, ArrowLeft } from 'lucide-react';
 import { GlowButton } from './ui/GlowButton';
 import { useNexus } from '../context/ClientContext';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal-clinic';
@@ -153,7 +154,7 @@ const MeetingAnalyzer: React.FC = () => {
         <div className="lg:col-span-8 h-full overflow-y-auto pr-2 custom-scrollbar">
            {!result && !isAnalyzing && (
              <div className="h-full flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
-                <BrainCircuit size={48} className="mb-4 opacity-50" />
+                <Sparkles size={48} className="mb-4 opacity-50" />
                 <p>תדביק את הטקסט בצד ימין</p>
              </div>
            )}

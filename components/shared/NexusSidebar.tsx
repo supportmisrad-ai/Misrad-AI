@@ -6,7 +6,7 @@ import { ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 export type NexusNavItem = {
   label: string;
@@ -31,7 +31,7 @@ export default function NexusSidebar({
   const router = useRouter();
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { roomIconName, roomName } = useRoomBranding();
+  const { roomName } = useRoomBranding();
 
   const filteredNavItems = useMemo(() => navItems, [navItems]);
 
@@ -66,7 +66,7 @@ export default function NexusSidebar({
                   {organization.logo ? (
                     <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
                   ) : (
-                    roomIconName ? <DynamicIcon name={roomIconName} size={20} className="text-gray-900" /> : null
+                    <OSModuleSquircleIcon moduleKey="nexus" boxSize={40} iconSize={18} className="shadow-none" />
                   )}
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
@@ -92,7 +92,7 @@ export default function NexusSidebar({
               {organization.logo ? (
                 <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
               ) : (
-                roomIconName ? <DynamicIcon name={roomIconName} size={20} className="text-gray-900" /> : null
+                <OSModuleSquircleIcon moduleKey="nexus" boxSize={40} iconSize={18} className="shadow-none" />
               )}
             </div>
           )}

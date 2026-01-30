@@ -204,7 +204,7 @@ const FinanceView: React.FC<FinanceViewProps> = ({ invoices = [], onAddInvoice, 
                                             <YAxis axisLine={false} tickLine={false} tick={{fill: '#94A3B8', fontSize: 11}} />
                                             <Tooltip 
                                                 contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 50px -10px rgba(0,0,0,0.1)', padding: '16px' }}
-                                                formatter={(value: number) => [`₪${value.toLocaleString()}`, 'MRR']}
+                                                formatter={(value: number | undefined) => [`₪${(value ?? 0).toLocaleString()}`, 'MRR']}
                                             />
                                             <Area type="monotone" dataKey="mrr" stroke="#4338CA" strokeWidth={4} fillOpacity={1} fill="url(#colorMrr)" />
                                         </AreaChart>

@@ -1,3 +1,5 @@
+ 'use client';
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, AlertCircle, DollarSign, Activity, Ghost, Clock, Zap, ShieldAlert, Sparkles, ArrowRight, Filter, AlertTriangle, Share2, MessageCircle, Star, Sun, Users, Video, Calendar, X, Check, Search, Mail, Plus, Layers, UserCheck, CheckSquare, Square, Smartphone, FileText } from 'lucide-react';
 import { HealthStatus, GroupEvent, ClientStatus } from '../types';

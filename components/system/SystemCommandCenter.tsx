@@ -6,7 +6,7 @@ import {
     Flame, CircleCheck, Video, Target, Phone, ChevronRight, TriangleAlert, 
     Mic, Users, Coins, BarChart2, Plus, Calendar, Wifi, Check, X, 
     Voicemail, Mail, ArrowRight, Play, Megaphone, Activity, Layers, Zap,
-    Sun, BrainCircuit, Timer, MousePointer2, ArrowUpRight, Radio, CalendarClock, Gauge,
+    Sun, Timer, MousePointer2, ArrowUpRight, Radio, CalendarClock, Gauge,
     Cpu, ShieldCheck, HeartPulse, Sparkles, MessageSquare, ExternalLink, Clock, User, PhoneCall
 } from 'lucide-react';
 import { useAuth } from './contexts/AuthContext';
@@ -173,38 +173,50 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
       </div>
 
       <div className="hidden md:block space-y-6 animate-fade-in pb-20 font-sans">
+
+      <div className="rounded-[48px] bg-white/60 border border-slate-200/60 backdrop-blur-xl p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-black text-slate-500">התחלה מהירה · מכירות</div>
+            <div className="text-xl font-black text-slate-900 mt-1">העלה שיחה → קבל משימות → קבע (יוצר משימה אמיתית)</div>
+            <div className="text-sm text-slate-600 mt-2">הכפתור "קבע" יוצר משימה ב-Nexus ומקשר אותה לליד.</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onQuickAction('lead')}
+              className="h-11 px-5 inline-flex items-center justify-center rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-black transition-colors"
+            >
+              צור ליד
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('sales_pipeline')}
+              className="h-11 px-5 inline-flex items-center justify-center rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 transition-all"
+            >
+              ללידים
+            </button>
+          </div>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
          
          {/* FRONT WING PILOT INTERFACE */}
          <section 
-            className="xl:col-span-8 relative overflow-hidden group bg-onyx-900 text-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] rounded-[48px] min-h-[400px] flex flex-col justify-between p-12 border border-white/10 isolate"
+            className="xl:col-span-8 relative overflow-hidden group bg-white/60 text-slate-900 shadow-sm rounded-[48px] min-h-[360px] flex flex-col justify-between p-12 border border-slate-200/60 backdrop-blur-xl"
          >
-            <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
-                <svg className="w-full h-full" viewBox="0 0 800 400" preserveAspectRatio="none">
-                    <defs>
-                        <pattern id="grid-pilot-new" width="60" height="60" patternUnits="userSpaceOnUse">
-                            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="0.5"/>
-                        </pattern>
-                    </defs>
-                    <rect width="100%" height="100%" fill="url(#grid-pilot-new)" />
-                </svg>
-            </div>
-
-            <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-primary/30 rounded-full blur-[140px] -z-10 animate-pulse-soft"></div>
-            <div className="absolute bottom-[-20%] left-[-10%] w-[400px] h-[400px] bg-indigo-600/20 rounded-full blur-[100px] -z-10 animate-blob"></div>
+            <div className="absolute inset-0 z-0 pointer-events-none bg-gradient-to-b from-white/70 to-white/30"></div>
             
             <div className="flex justify-between items-start relative z-10">
                 <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-xl border border-white/10 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-rose-300 mb-6">
-                        <Activity size={12} className="animate-pulse" /> ממשק טייס פעיל
+                    <div className="inline-flex items-center gap-2 bg-white/70 border border-slate-200/70 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-600 mb-6">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true" /> תצוגה חדשה
                     </div>
                     <div className="max-w-2xl">
-                        <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-4 leading-[0.9] font-display">
-                            {greeting}, <br/>
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-rose-100 to-indigo-200">
-                                {user?.name.split(' ')[0]}.
-                            </span>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-3 leading-tight font-display">
+                            {greeting},
+                            <span className="block">{user?.name.split(' ')[0]}.</span>
                         </h2>
                     </div>
                 </div>
@@ -251,7 +263,7 @@ const SystemCommandCenter: React.FC<SystemCommandCenterProps> = ({
                         onClick={() => onNavigate('focus_mode')}
                         className="flex-1 bg-white/10 text-white hover:bg-white/20 px-4 py-5 rounded-[28px] font-bold text-lg border border-white/10 flex items-center justify-center gap-3 transition-all backdrop-blur-2xl group"
                     >
-                        <BrainCircuit size={24} className="text-indigo-300 group-hover:scale-110 transition-transform" />
+                        <Timer size={24} className="text-indigo-300 group-hover:scale-110 transition-transform" />
                         מיקוד
                     </button>
                 </div>

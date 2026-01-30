@@ -332,14 +332,29 @@ input, select, textarea {
   padding: 0.5rem 1rem; /* הוספתי לשיפור מראה */
   color: #0F172A;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 700;
   transition: all 0.2s ease;
 }
 
+input::placeholder, textarea::placeholder {
+  color: #94A3B8;
+}
+
+input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #FB7185;
+}
+
 input:focus, select:focus, textarea:focus {
-  border-color: #A21D3C;
+  border-color: var(--theme-accent);
   outline: none;
-  box-shadow: 0 0 0 4px rgba(162, 29, 60, 0.08);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-accent) 12%, transparent);
 }
 
 /* Custom Date/DateTime Input Styling (מהקוד המקורי שלך - מלא!) */

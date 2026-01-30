@@ -10,7 +10,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface SidebarProps {
   activeTab: string;
@@ -26,7 +26,7 @@ interface SidebarProps {
 const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps) => {
   const { brandName, brandLogo } = useBrand();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { roomName, roomIconName, room } = useRoomBranding();
+  const { roomName, room } = useRoomBranding();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -46,12 +46,7 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
     []
   );
 
-  const fallbackIcon =
-    room === 'system' ? (
-      <img src="/icons/system-icon.svg" alt="System" className="w-full h-full object-cover" />
-    ) : roomIconName ? (
-      <DynamicIcon name={roomIconName} size={20} className="text-slate-900" />
-    ) : null;
+  const fallbackIcon = <OSModuleSquircleIcon moduleKey="system" boxSize={40} iconSize={18} className="shadow-none" />;
 
   const onNavigate = (tabId: string) => {
     if (!basePath) return;
@@ -92,8 +87,9 @@ const Sidebar = React.memo(({ activeTab, mobile = false, onClose }: SidebarProps
           name: brandName,
           logoUrl: brandLogo,
           fallbackIcon,
+          badgeModuleKey: 'system',
         }}
-        brandSubtitle={roomName || 'מרכז המכירות והלידים'}
+        brandSubtitle={roomName || 'System'}
         onBrandClickAction={() => router.push('/workspaces')}
         topSlot={
           <div className="flex flex-col gap-2">

@@ -2,7 +2,7 @@
 
 import { currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 
@@ -12,6 +12,7 @@ export type HelpVideo = {
   title: string;
   videoUrl: string;
   order: number;
+  duration?: string | null;
 };
 
 const moduleKeySchema = z.enum(['nexus', 'system', 'social', 'finance', 'client', 'operations']);
@@ -21,32 +22,73 @@ const helpVideoCreateSchema = z.object({
   title: z.string().min(1),
   videoUrl: z.string().min(1),
   order: z.number().int().min(0).optional(),
+  duration: z.string().optional(),
 });
 
 const helpVideoUpdateSchema = z.object({
   title: z.string().min(1).optional(),
   videoUrl: z.string().min(1).optional(),
   order: z.number().int().min(0).optional(),
+  duration: z.string().optional(),
 });
 
-async function requireSuperAdminOrFail() {
-  const authCheck = await requireAuth();
-  if (!authCheck.success) return authCheck as any;
-  const u = await currentUser();
-  const isSuperAdmin = Boolean((u as any)?.publicMetadata?.isSuperAdmin);
-  if (!isSuperAdmin) {
-    return createErrorResponse('Forbidden', 'אין הרשאה');
-  }
-  return { success: true, userId: authCheck.userId } as const;
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
 }
 
-function mapRow(row: any): HelpVideo {
+function getUnknownErrorMessage(error: unknown): string {
+  if (!error) return '';
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+type AdminCheckResult =
+  | { success: true; userId: string }
+  | { success: false; error?: string };
+
+type HelpVideoRow = {
+  id: unknown;
+  module_key: unknown;
+  title: unknown;
+  video_url: unknown;
+  order: unknown;
+  route_prefix?: unknown;
+  duration?: unknown;
+  created_at?: unknown;
+};
+
+async function requireSuperAdminOrFail(): Promise<AdminCheckResult> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) {
+    return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+  }
+  const u = await currentUser();
+  const md = asObject(u?.publicMetadata);
+  const isSuperAdmin = Boolean(md?.isSuperAdmin);
+  if (!isSuperAdmin) {
+    return { success: false, error: 'אין הרשאה' };
+  }
+  if (!authCheck.userId) {
+    return { success: false, error: 'נדרשת התחברות' };
+  }
+  return { success: true, userId: authCheck.userId };
+}
+
+function mapRow(row: unknown): HelpVideo {
+  const obj = asObject(row) ?? {};
+  const mk = moduleKeySchema.safeParse(obj.module_key);
+  const moduleKey: OSModuleKey = mk.success ? mk.data : 'system';
   return {
-    id: String(row?.id || ''),
-    moduleKey: String(row?.module_key || 'system') as OSModuleKey,
-    title: String(row?.title || ''),
-    videoUrl: String(row?.video_url || ''),
-    order: Number(row?.order ?? 0),
+    id: String(obj.id ?? ''),
+    moduleKey,
+    title: String(obj.title ?? ''),
+    videoUrl: String(obj.video_url ?? ''),
+    order: Number(obj.order ?? 0),
+    duration: obj.duration == null ? null : String(obj.duration),
   };
 }
 
@@ -56,7 +98,7 @@ export async function getHelpVideoByRoute(params: {
 }): Promise<{ success: boolean; data?: HelpVideo | null; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
     const pathname = String(params?.pathname || '/');
     const mk = params?.moduleKey ? moduleKeySchema.safeParse(params.moduleKey) : null;
@@ -67,33 +109,31 @@ export async function getHelpVideoByRoute(params: {
       return pathname || '/';
     })();
 
-    const supabase = createClient();
-    let q = supabase
-      .from('help_videos')
-      .select('id, module_key, title, video_url, order, route_prefix')
-      .order('order', { ascending: true })
-      .order('created_at', { ascending: true });
+    const rows = await prisma.help_videos.findMany({
+      where: mk && mk.success ? { module_key: mk.data } : undefined,
+      select: {
+        id: true,
+        module_key: true,
+        title: true,
+        video_url: true,
+        order: true,
+        route_prefix: true,
+        duration: true,
+        created_at: true,
+      },
+      orderBy: [{ order: 'asc' }, { created_at: 'asc' }],
+    });
 
-    if (mk && mk.success) {
-      q = q.eq('module_key', mk.data);
-    }
-
-    const { data, error } = await q;
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת סרטון') as any;
-    }
-
-    const rows: any[] = Array.isArray(data) ? data : [];
     if (rows.length === 0) {
-      return createSuccessResponse(null) as any;
+      return createSuccessResponse(null);
     }
 
-    let best: any | null = null;
+    let best: HelpVideoRow | null = null;
     let bestLen = -1;
-    let moduleDefault: any | null = null;
+    let moduleDefault: HelpVideoRow | null = null;
 
     for (const row of rows) {
-      const rp = String((row as any)?.route_prefix ?? '').trim();
+      const rp = String((row as HelpVideoRow)?.route_prefix ?? '').trim();
       if (!rp) {
         if (!moduleDefault) moduleDefault = row;
         continue;
@@ -108,44 +148,38 @@ export async function getHelpVideoByRoute(params: {
     }
 
     if (best) {
-      return createSuccessResponse(mapRow(best)) as any;
+      return createSuccessResponse(mapRow(best));
     }
 
     if (moduleDefault) {
-      return createSuccessResponse(mapRow(moduleDefault)) as any;
+      return createSuccessResponse(mapRow(moduleDefault));
     }
 
-    return createSuccessResponse(null) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת סרטון') as any;
+    return createSuccessResponse(null);
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בטעינת סרטון');
   }
 }
 
 export async function getHelpVideosByModule(moduleKey: OSModuleKey): Promise<{ success: boolean; data?: HelpVideo[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
     const parsed = moduleKeySchema.safeParse(moduleKey);
     if (!parsed.success) {
-      return createErrorResponse('Invalid module key', 'מודול לא תקין') as any;
+      return createErrorResponse('Invalid module key', 'מודול לא תקין');
     }
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('help_videos')
-      .select('id, module_key, title, video_url, order')
-      .eq('module_key', parsed.data)
-      .order('order', { ascending: true })
-      .order('created_at', { ascending: true });
+    const data = await prisma.help_videos.findMany({
+      where: { module_key: parsed.data },
+      select: { id: true, module_key: true, title: true, video_url: true, order: true, duration: true, created_at: true },
+      orderBy: [{ order: 'asc' }, { created_at: 'asc' }],
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת סרטונים') as any;
-    }
-
-    return createSuccessResponse((data || []).map(mapRow)) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת סרטונים') as any;
+    return createSuccessResponse((data || []).map(mapRow));
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בטעינת סרטונים');
   }
 }
 
@@ -154,26 +188,20 @@ export async function adminListHelpVideos(params?: {
 }): Promise<{ success: boolean; data?: HelpVideo[]; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return { success: false, error: adminCheck.error || 'אין הרשאה' };
 
     const moduleKey = params?.moduleKey;
     const mk = moduleKey ? moduleKeySchema.safeParse(moduleKey) : null;
 
-    const supabase = createClient();
-    let q = supabase.from('help_videos').select('id, module_key, title, video_url, order');
+    const data = await prisma.help_videos.findMany({
+      where: mk && mk.success ? { module_key: mk.data } : undefined,
+      select: { id: true, module_key: true, title: true, video_url: true, order: true, duration: true, created_at: true },
+      orderBy: [{ module_key: 'asc' }, { order: 'asc' }, { created_at: 'asc' }],
+    });
 
-    if (mk && mk.success) {
-      q = q.eq('module_key', mk.data);
-    }
-
-    const { data, error } = await q.order('module_key', { ascending: true }).order('order', { ascending: true }).order('created_at', { ascending: true });
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת סרטונים') as any;
-    }
-
-    return createSuccessResponse((data || []).map(mapRow)) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת סרטונים') as any;
+    return createSuccessResponse((data || []).map(mapRow));
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בטעינת סרטונים');
   }
 }
 
@@ -182,111 +210,97 @@ export async function adminCreateHelpVideo(input: {
   title: string;
   videoUrl: string;
   order?: number;
+  duration?: string;
 }): Promise<{ success: boolean; data?: HelpVideo; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return { success: false, error: adminCheck.error || 'אין הרשאה' };
 
     const parsed = helpVideoCreateSchema.safeParse(input);
     if (!parsed.success) {
-      return createErrorResponse(parsed.error, 'שדות לא תקינים') as any;
+      return createErrorResponse(parsed.error, 'שדות לא תקינים');
     }
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
+    const normalizedDuration = typeof parsed.data.duration === 'string' ? parsed.data.duration.trim() : '';
 
-    const { data, error } = await supabase
-      .from('help_videos')
-      .insert({
+    const data = await prisma.help_videos.create({
+      data: {
         module_key: parsed.data.moduleKey,
         title: parsed.data.title,
         video_url: parsed.data.videoUrl,
         order: Number.isFinite(parsed.data.order) ? Number(parsed.data.order) : 0,
+        duration: normalizedDuration ? normalizedDuration : null,
         created_at: now,
         updated_at: now,
-      } as any)
-      .select('id, module_key, title, video_url, order')
-      .single();
+      },
+      select: { id: true, module_key: true, title: true, video_url: true, order: true, duration: true },
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה ביצירת סרטון') as any;
-    }
-
-    return createSuccessResponse(mapRow(data)) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה ביצירת סרטון') as any;
+    return createSuccessResponse(mapRow(data));
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה ביצירת סרטון');
   }
 }
 
 export async function adminUpdateHelpVideo(
   id: string,
-  patch: { title?: string; videoUrl?: string; order?: number }
+  patch: { title?: string; videoUrl?: string; order?: number; duration?: string }
 ): Promise<{ success: boolean; data?: HelpVideo; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return { success: false, error: adminCheck.error || 'אין הרשאה' };
 
     const resolvedId = String(id || '').trim();
     if (!resolvedId) {
-      return createErrorResponse('Missing id', 'מזהה לא תקין') as any;
+      return createErrorResponse('Missing id', 'מזהה לא תקין');
     }
 
     const parsed = helpVideoUpdateSchema.safeParse({
       title: patch.title,
       videoUrl: patch.videoUrl,
       order: patch.order,
+      duration: patch.duration,
     });
 
     if (!parsed.success || Object.keys(parsed.data).length === 0) {
-      return createErrorResponse(parsed.error || 'Empty patch', 'אין מה לעדכן') as any;
+      return createErrorResponse(parsed.error || 'Empty patch', 'אין מה לעדכן');
     }
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
+    const normalizedDuration = typeof parsed.data.duration === 'string' ? parsed.data.duration.trim() : null;
 
-    const { data, error } = await supabase
-      .from('help_videos')
-      .update(
-        {
-          ...(parsed.data.title ? { title: parsed.data.title } : {}),
-          ...(parsed.data.videoUrl ? { video_url: parsed.data.videoUrl } : {}),
-          ...(typeof parsed.data.order === 'number' ? { order: parsed.data.order } : {}),
-          updated_at: now,
-        } as any
-      )
-      .eq('id', resolvedId)
-      .select('id, module_key, title, video_url, order')
-      .single();
+    const data = await prisma.help_videos.update({
+      where: { id: resolvedId },
+      data: {
+        ...(parsed.data.title ? { title: parsed.data.title } : {}),
+        ...(parsed.data.videoUrl ? { video_url: parsed.data.videoUrl } : {}),
+        ...(typeof parsed.data.order === 'number' ? { order: parsed.data.order } : {}),
+        ...(typeof parsed.data.duration === 'string' ? { duration: normalizedDuration ? normalizedDuration : null } : {}),
+        updated_at: now,
+      },
+      select: { id: true, module_key: true, title: true, video_url: true, order: true, duration: true },
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בעדכון סרטון') as any;
-    }
-
-    return createSuccessResponse(mapRow(data)) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בעדכון סרטון') as any;
+    return createSuccessResponse(mapRow(data));
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בעדכון סרטון');
   }
 }
 
 export async function adminDeleteHelpVideo(id: string): Promise<{ success: boolean; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return { success: false, error: adminCheck.error || 'אין הרשאה' };
 
     const resolvedId = String(id || '').trim();
     if (!resolvedId) {
-      return createErrorResponse('Missing id', 'מזהה לא תקין') as any;
+      return createErrorResponse('Missing id', 'מזהה לא תקין');
     }
 
-    const supabase = createClient();
-    const { error } = await supabase.from('help_videos').delete().eq('id', resolvedId);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה במחיקת סרטון') as any;
-    }
-
-    return createSuccessResponse(true) as any;
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה במחיקת סרטון') as any;
+    await prisma.help_videos.delete({ where: { id: resolvedId } });
+    return createSuccessResponse(true);
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה במחיקת סרטון');
   }
 }

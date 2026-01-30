@@ -1,8 +1,8 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 /**
  * Get system maintenance info
@@ -26,24 +26,14 @@ export async function getMaintenanceInfo(): Promise<{
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
-    // Get database stats
-    const { data: stats } = await supabase
-      .rpc('get_database_stats')
-      .single();
-
-    // Get last backup info (from backups table if exists)
-    const { data: lastBackup } = await supabase
-      .from('system_backups')
-      .select('created_at')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    const lastBackup = await prisma.social_system_backups.findFirst({
+      select: { created_at: true },
+      orderBy: { created_at: 'desc' },
+    });
 
     return createSuccessResponse({
-      databaseSize: (stats && typeof stats === 'object' && 'size' in stats) ? String(stats.size) : 'לא זמין',
-      lastBackup: lastBackup?.created_at || null,
+      databaseSize: 'לא זמין',
+      lastBackup: lastBackup?.created_at ? new Date(lastBackup.created_at as any).toISOString() : null,
       systemVersion: 'v2.4.12-admin',
       uptime: Date.now() - (Date.now() - 7 * 24 * 60 * 60 * 1000),
       pendingUpdates: [],
@@ -76,29 +66,38 @@ export async function createBackup(): Promise<{
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     // Create backup record
     const backupId = `backup-${Date.now()}`;
     
     // In production, this would trigger an actual backup process
     // For now, just log it
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `יצירת גיבוי: ${backupId}`,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await prisma.social_sync_logs.create({
+        data: {
+          user_id: authCheck.userId ? String(authCheck.userId) : null,
+          integration_name: 'admin',
+          sync_type: 'maintenance_backup_create',
+          status: 'success',
+          items_synced: 1,
+          started_at: new Date(),
+          completed_at: new Date(),
+          metadata: { backupId } as any,
+        },
+      });
+    } catch {
+      // Best-effort only
+    }
 
     // Try to save backup record
     try {
-      await supabase
-        .from('system_backups')
-        .insert({
+      await prisma.social_system_backups.create({
+        data: {
           id: backupId,
-          created_at: new Date().toISOString(),
+          created_at: new Date(),
           status: 'completed',
-          size: '0 MB', // Would be calculated in production
-        });
+          size: '0 MB',
+        },
+      });
     } catch {
       // Table might not exist, that's okay
     }
@@ -125,26 +124,35 @@ export async function runSystemCleanup(): Promise<{
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     // Clean up old activity logs (older than 90 days)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const { data: deletedLogs } = await supabase
-      .from('activity_logs')
-      .delete()
-      .lt('created_at', ninetyDaysAgo.toISOString())
-      .select();
+    const deleted = await prisma.social_sync_logs.deleteMany({
+      where: {
+        started_at: { lt: ninetyDaysAgo },
+      },
+    });
 
-    const cleanedItems = deletedLogs?.length || 0;
+    const cleanedItems = Number((deleted as any)?.count ?? 0);
 
     // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `ניקוי מערכת: נמחקו ${cleanedItems} רשומות ישנות`,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await prisma.social_sync_logs.create({
+        data: {
+          user_id: authCheck.userId ? String(authCheck.userId) : null,
+          integration_name: 'admin',
+          sync_type: 'maintenance_cleanup',
+          status: 'success',
+          items_synced: cleanedItems,
+          started_at: new Date(),
+          completed_at: new Date(),
+          metadata: { cleanedItems } as any,
+        },
+      });
+    } catch {
+      // Best-effort only
+    }
 
     return createSuccessResponse({ cleanedItems });
   } catch (error) {
@@ -170,29 +178,42 @@ export async function updateSystemSettings(
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     // Update system settings
     try {
-      await supabase
-        .from('social_system_settings')
-        .upsert({
+      await prisma.social_system_settings.upsert({
+        where: { key: 'maintenance_settings' },
+        create: {
           key: 'maintenance_settings',
-          value: JSON.stringify(settings),
-          updated_at: new Date().toISOString(),
-        }, {
-          onConflict: 'key',
-        });
+          value: settings as any,
+          updated_at: new Date(),
+          created_at: new Date(),
+        },
+        update: {
+          value: settings as any,
+          updated_at: new Date(),
+        },
+      });
     } catch {
       // Table might not exist, that's okay
     }
 
     // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `עדכון הגדרות מערכת: ${JSON.stringify(settings)}`,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await prisma.social_sync_logs.create({
+        data: {
+          user_id: authCheck.userId ? String(authCheck.userId) : null,
+          integration_name: 'admin',
+          sync_type: 'maintenance_settings_update',
+          status: 'success',
+          items_synced: 1,
+          started_at: new Date(),
+          completed_at: new Date(),
+          metadata: { settings } as any,
+        },
+      });
+    } catch {
+      // Best-effort only
+    }
 
     return createSuccessResponse(true);
   } catch (error) {

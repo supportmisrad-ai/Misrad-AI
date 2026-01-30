@@ -4,7 +4,7 @@ import React from 'react';
 import { OSModuleInfo, OS_MODULES } from '../../types/os-modules';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface OSSelectionScreenProps {
   purchasedModules: OSModuleInfo[];
@@ -25,7 +25,7 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
 
   const lgColsClass =
     purchasedModules.length >= 6
-      ? 'lg:grid-cols-6'
+      ? 'lg:grid-cols-3 xl:grid-cols-6'
       : purchasedModules.length === 5
         ? 'lg:grid-cols-5'
         : 'lg:grid-cols-4';
@@ -36,12 +36,12 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
     if (orgSlug && orgSlug.length > 0) {
       return route.replace('[orgSlug]', encodeURIComponent(orgSlug));
     }
-    if (typeof window === 'undefined') return '/';
+    if (typeof window === 'undefined') return '/workspaces';
     const pathname = window.location.pathname || '';
-    if (!pathname.startsWith('/w/')) return '/';
+    if (!pathname.startsWith('/w/')) return '/workspaces';
     const parts = pathname.split('/').filter(Boolean);
     const fallbackOrgSlug = parts[1] ? String(parts[1]) : '';
-    if (!fallbackOrgSlug) return '/';
+    if (!fallbackOrgSlug) return '/workspaces';
     return route.replace('[orgSlug]', encodeURIComponent(fallbackOrgSlug));
   };
 
@@ -76,7 +76,7 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
       </div>
 
       {/* Content */}
-      <div className="w-full max-w-4xl relative z-10">
+      <div className="w-full max-w-6xl relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -89,7 +89,7 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
               ברוכים הבאים
             </h1>
             <p className="text-slate-600 text-lg font-bold">
-              בחרו את המערכת שבה תרצו להיכנס
+              בחרו את המודול שבו תרצו להיכנס
             </p>
           </div>
 
@@ -116,11 +116,10 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
                   <div
                     className={`
                       w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mx-auto mb-3
-                      bg-gradient-to-br ${module.gradient}
                       shadow-[0_12px_30px_-18px_rgba(0,0,0,0.65)] group-hover:shadow-[0_18px_45px_-20px_rgba(0,0,0,0.75)] transition-shadow
                     `}
                   >
-                    <OSModuleIcon moduleKey={module.id} size={32} className="text-white" />
+                    <OSModuleSquircleIcon moduleKey={module.id} boxSize={56} iconSize={26} />
                   </div>
 
                   {/* Name */}
@@ -150,7 +149,7 @@ export const OSSelectionScreen: React.FC<OSSelectionScreenProps> = ({
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-white/40 text-center">
             <p className="text-xs text-slate-500 font-bold">
-              {purchasedModules.length} מתוך {OS_MODULES.length} מערכות פעילות
+              {purchasedModules.length} מתוך {OS_MODULES.length} מודולים פעילים
             </p>
           </div>
         </motion.div>

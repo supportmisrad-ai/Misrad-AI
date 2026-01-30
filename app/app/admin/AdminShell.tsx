@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, X, ExternalLink, Copy, Check, ChevronDown, ChevronRight, Shield, ShieldCheck, MoreHorizontal } from 'lucide-react';
+import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, MoreHorizontal } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -44,10 +44,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     openSupport,
     leads,
   } = useData();
-
-  const [isMarketingLinksOpen, setIsMarketingLinksOpen] = useState(false);
-  const [marketingLinksCopied, setMarketingLinksCopied] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const normalizedRole = String(currentUser?.role || '').trim().toLowerCase();
+  const isAuditServiceRole =
+    normalizedRole === 'audit_service' || normalizedRole === 'audit-service' || normalizedRole === 'audit service';
 
   const [expandedGroups, setExpandedGroups] = useState<{ global: boolean; nexus: boolean; social: boolean; system: boolean; client: boolean; landing: boolean }>(() => ({
     global: pathname.startsWith('/app/admin/global'),
@@ -96,24 +97,30 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     []
   );
 
+  const effectiveNavItems = useMemo(() => {
+    if (!isAuditServiceRole) return navItems;
+    return navItems.filter((i) => i.href === '/app/admin/logs');
+  }, [isAuditServiceRole, navItems]);
+
   const mobileNavItems = useMemo(() => {
-    const find = (href: string) => navItems.find((i) => i.href === href);
+    const find = (href: string) => effectiveNavItems.find((i) => i.href === href);
     const base = [
       find('/app/admin'),
       find('/app/admin/users'),
-      find('/app/admin/organizations'),
-      find('/app/admin/support'),
-    ].filter(Boolean) as typeof navItems;
+      find('/app/admin/ai'),
+      find('/app/admin/logs'),
+    ].filter(Boolean) as any[];
     return base;
-  }, [navItems]);
+  }, [effectiveNavItems]);
 
   const globalSubItems = useMemo(
     () => [
       { href: '/app/admin/global/control', label: 'בקרת מערכת' },
       { href: '/app/admin/global/ai', label: 'מוח ה-AI' },
+      { href: '/app/admin/global/links', label: 'מרכז קישורים' },
       { href: '/app/admin/global/downloads', label: 'הורדות' },
-      { href: '/app/admin/global/kb-videos', label: 'Knowledge Base' },
       { href: '/app/admin/global/help-videos', label: 'ניהול סרטוני הדרכה' },
+      { href: '/app/admin/global/work-listings', label: 'Work Listings' },
       { href: '/app/admin/global/users', label: 'ניהול משתמשים' },
       { href: '/app/admin/global/data', label: 'דאטה' },
       { href: '/app/admin/global/updates', label: 'עדכונים' },
@@ -174,6 +181,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/landing/founder', label: 'מייסד' },
       { href: '/app/admin/landing/logo', label: 'לוגו' },
       { href: '/app/admin/landing/videos', label: 'וידאו' },
+      { href: '/app/admin/landing/package-videos', label: 'וידאו לחבילות' },
       { href: '/app/admin/landing/branding', label: 'מיתוג' },
       { href: '/app/admin/landing/announcements', label: 'הודעות מערכת' },
     ],
@@ -181,7 +189,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   );
 
   const commandPaletteNavItems = useMemo(() => {
-    const main = navItems.map((i) => ({ id: i.href, label: i.label, icon: i.icon }));
+    const main = effectiveNavItems.map((i) => ({ id: i.href, label: i.label, icon: i.icon }));
+    if (isAuditServiceRole) {
+      return main;
+    }
     const global = globalSubItems.map((i) => ({ id: i.href, label: `גלובלי · ${i.label}`, icon: Globe }));
     const nexus = nexusSubItems.map((i) => ({ id: i.href, label: `נקסוס · ${i.label}`, icon: Sparkles }));
     const social = socialSubItems.map((i) => ({ id: i.href, label: `סושיאל · ${i.label}`, icon: ShieldCheck }));
@@ -189,7 +200,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const client = clientSubItems.map((i) => ({ id: i.href, label: `Client · ${i.label}`, icon: Users }));
     const landing = landingSubItems.map((i) => ({ id: i.href, label: `דף נחיתה · ${i.label}`, icon: Globe }));
     return [...main, ...global, ...nexus, ...social, ...system, ...client, ...landing];
-  }, [clientSubItems, globalSubItems, landingSubItems, navItems, nexusSubItems, socialSubItems, systemSubItems]);
+  }, [clientSubItems, effectiveNavItems, globalSubItems, isAuditServiceRole, landingSubItems, nexusSubItems, socialSubItems, systemSubItems]);
 
   const userName = String(currentUser?.name || 'Admin');
   const userRole = currentUser?.role ? String(currentUser.role) : null;
@@ -202,47 +213,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       // ignore
     }
     return '/';
-  };
-
-  const getBaseUrl = () => {
-    if (typeof window === 'undefined') return '';
-    return window.location.origin;
-  };
-
-  const getMarketingLinks = () => {
-    return [
-      { label: 'Social · דף נחיתה', path: '/social' },
-      { label: 'Pricing · מחירון', path: '/pricing' },
-      { label: 'System · דף שיווק', path: '/system' },
-      { label: 'Client · דף שיווק', path: '/client' },
-      { label: 'Nexus · דף שיווק', path: '/nexus' },
-      { label: 'Finance · דף שיווק', path: '/finance-landing' },
-      { label: 'Operations · דף שיווק', path: '/operations' },
-      { label: 'Checkout · מודול בודד (System)', path: '/subscribe/checkout?package=solo&module=system&billing=monthly' },
-      { label: 'Checkout · חבילת מכירות', path: '/subscribe/checkout?package=the_closer&billing=monthly' },
-      { label: 'Checkout · חבילת שיווק ומיתוג', path: '/subscribe/checkout?package=the_authority&billing=monthly' },
-      { label: 'Checkout · חבילת תפעול ושטח', path: '/subscribe/checkout?package=the_operator&billing=monthly' },
-      { label: 'Checkout · הכל כלול', path: '/subscribe/checkout?package=the_empire&billing=monthly' },
-    ];
-  };
-
-  const toAbsoluteUrl = (path: string) => {
-    const base = getBaseUrl();
-    if (!base) return path;
-    return `${base}${path}`;
-  };
-
-  const handleCopyMarketingLinks = async () => {
-    const links = getMarketingLinks();
-    const text = links.map((l) => `${l.label}: ${toAbsoluteUrl(l.path)}`).join('\n');
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      setMarketingLinksCopied(true);
-      setTimeout(() => setMarketingLinksCopied(false), 2000);
-    } catch {
-      // ignore
-    }
   };
 
   return (
@@ -273,7 +243,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           </div>
 
           <nav className="p-3 flex-1 min-h-0 overflow-y-auto relative z-10">
-            {navItems.map((item) => {
+            {effectiveNavItems.map((item) => {
               const active = isActivePath(pathname, item.href, currentSearch);
               const Icon = item.icon;
               return (
@@ -292,6 +262,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               );
             })}
 
+            {!isAuditServiceRole ? (
             <div className="mt-4 space-y-2">
               <Button
                 type="button"
@@ -497,6 +468,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </div>
               ) : null}
             </div>
+            ) : null}
           </nav>
 
           <div className="p-4 border-t border-slate-200/70 relative z-10 bg-gradient-to-t from-white/60 to-transparent">
@@ -519,21 +491,21 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             title="ענן משרד"
             subtitle="Super Admin"
             currentDate={new Date().toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })}
-            mobileBrand={{ name: 'ענן משרד', badgeIcon: <OSModuleIcon moduleKey="system" size={10} className="text-slate-900" /> }}
+            mobileBrand={{ name: 'ענן משרד', badgeModuleKey: 'system' }}
             onOpenCommandPaletteAction={() => setCommandPaletteOpen(true)}
             onOpenSupportAction={() => openSupport?.()}
             user={{ name: userName, role: userRole }}
             userAvatarSlot={<Avatar src={currentUser?.avatar || null} name={userName} size="md" rounded="full" />}
-            switcherSlot={
+            switcherSlot={!isAuditServiceRole ? (
               <div className="flex items-center gap-1">
                 <Button
                   type="button"
-                  onClick={() => setIsMarketingLinksOpen(true)}
+                  onClick={() => router.push('/app/admin/global/links')}
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
-                  title="קישורים לשיווק"
-                  aria-label="קישורים לשיווק"
+                  title="מרכז קישורים"
+                  aria-label="מרכז קישורים"
                 >
                   <Globe size={18} />
                 </Button>
@@ -570,7 +542,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                   <RefreshCw size={18} />
                 </Button>
               </div>
-            }
+            ) : null}
             className="bg-white/80 backdrop-blur-3xl border-b border-slate-200/70"
           />
 
@@ -792,81 +764,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 >
                   סגור
                 </Button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {isMarketingLinksOpen ? (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4" role="dialog" aria-modal="true">
-            <Button
-              type="button"
-              variant="ghost"
-              className="absolute inset-0 w-full h-full p-0 bg-slate-900/40 backdrop-blur-sm rounded-none"
-              onClick={() => setIsMarketingLinksOpen(false)}
-              aria-label="Close"
-            />
-            <div className="relative w-full max-w-xl rounded-3xl bg-white border border-slate-200 shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-                <div className="flex flex-col">
-                  <h3 className="text-lg font-black text-slate-900">קישורים לדפי שיווק</h3>
-                  <p className="text-xs font-bold text-slate-500">פתיחה בטאב חדש</p>
-                </div>
-                <Button
-                  onClick={() => setIsMarketingLinksOpen(false)}
-                  variant="ghost"
-                  size="icon"
-                  className="h-11 w-11"
-                  aria-label="Close"
-                  type="button"
-                >
-                  <X size={18} />
-                </Button>
-              </div>
-
-              <div className="p-6">
-                <div className="space-y-2">
-                  {getMarketingLinks().map((link) => (
-                    <a
-                      key={link.path}
-                      href={link.path}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 hover:bg-slate-50 transition-colors"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        const url = toAbsoluteUrl(link.path);
-                        window.open(url, '_blank');
-                      }}
-                    >
-                      <ExternalLink size={16} className="text-indigo-600" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-black text-slate-900 truncate">{link.label}</div>
-                        <div className="text-xs font-bold text-slate-500 truncate">{toAbsoluteUrl(link.path)}</div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-
-                <div className="mt-5 flex items-center justify-between gap-3">
-                  <Button
-                    onClick={handleCopyMarketingLinks}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    type="button"
-                  >
-                    {marketingLinksCopied ? <Check size={16} /> : <Copy size={16} />}
-                    <span>{marketingLinksCopied ? 'הועתק!' : 'העתק הכל'}</span>
-                  </Button>
-                  <Button
-                    onClick={() => setIsMarketingLinksOpen(false)}
-                    type="button"
-                    size="sm"
-                  >
-                    סגור
-                  </Button>
-                </div>
               </div>
             </div>
           </div>

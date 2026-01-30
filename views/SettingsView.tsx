@@ -6,7 +6,7 @@ import { Building2, Users, Kanban, Zap, Copy, Archive, Rocket, Lightbulb, Shield
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScreenGuard } from '../components/ScreenGuard';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getNexusBasePath, getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getNexusBasePath, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 // Import Tabs
 import { OrganizationTab } from '../components/settings/OrganizationTab';
@@ -30,7 +30,7 @@ export const SettingsView: React.FC = () => {
   const searchParams = useSearchParams();
   const basePath = getNexusBasePath(pathname);
 
-  const orgSlug = useMemo(() => getWorkspaceOrgIdFromPathname(pathname || ''), [pathname]);
+  const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname || ''), [pathname]);
   const [canManageBranding, setCanManageBranding] = useState(false);
   const [isLoadingBrandingAccess, setIsLoadingBrandingAccess] = useState(false);
 
@@ -215,7 +215,7 @@ export const SettingsView: React.FC = () => {
             onPointerDown={(e) => {
                 e.stopPropagation();
             }}
-            className="h-9 w-9 inline-flex items-center justify-center bg-white text-gray-600 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-95 transition-all touch-manipulation relative z-10"
+            className="h-10 w-10 inline-flex items-center justify-center bg-white text-gray-600 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md hover:bg-gray-50 active:scale-95 transition-all touch-manipulation relative z-10"
             aria-label="פתח תפריט הגדרות"
             type="button"
           >

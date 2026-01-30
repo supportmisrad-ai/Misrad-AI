@@ -29,12 +29,12 @@ import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { getUnreadUpdatesCount } from '@/app/actions/updates';
 import { openComingSoon } from '@/components/shared/ComingSoonPortal';
 import { Skeleton } from '@/components/ui/skeletons';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useSocialData } from '@/contexts/SocialDataContext';
@@ -73,7 +73,7 @@ export default function SocialFrame({
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { roomNameHebrew, roomName, gradient, roomIconName } = useRoomBranding();
+  const { roomName, gradient, roomIconName } = useRoomBranding();
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
     name: initialCurrentUser?.name ?? null,
     role: initialCurrentUser?.role ?? null,
@@ -147,7 +147,7 @@ export default function SocialFrame({
   };
 
   const currentView = useMemo(() => getViewFromPath(pathname), [pathname]);
-  const moduleTitle = useMemo(() => roomNameHebrew || roomName || 'סושיאל', [roomName, roomNameHebrew]);
+  const moduleTitle = useMemo(() => roomName || 'Social', [roomName]);
   const screenTitle = useMemo(() => titles[currentView] || 'סושיאל', [currentView]);
 
   useEffect(() => {
@@ -212,22 +212,19 @@ export default function SocialFrame({
   );
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
-      <button
-        onClick={() => setIsNotificationCenterOpen(true)}
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
-        aria-label="התראות"
-        type="button"
-      >
-        <Bell size={18} />
-        {unreadCount > 0 ? (
-          <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        ) : null}
-      </button>
-    </div>
+    <button
+      onClick={() => setIsNotificationCenterOpen(true)}
+      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      aria-label="התראות"
+      type="button"
+    >
+      <Bell size={18} />
+      {unreadCount > 0 ? (
+        <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black">
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      ) : null}
+    </button>
   );
 
   const menuItems = useMemo(
@@ -311,14 +308,8 @@ export default function SocialFrame({
           brand={{
             name: initialOrganization?.name || 'Workspace',
             logoUrl: initialOrganization?.logo || null,
-            fallbackIcon: (
-              <div
-                className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient || 'from-indigo-600 via-purple-600 to-pink-600'} flex items-center justify-center text-white font-black`}
-              >
-                {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-white" /> : null}
-              </div>
-            ),
-            badgeIcon: <OSModuleIcon moduleKey="social" size={12} className="text-slate-900" />,
+            fallbackIcon: <OSModuleSquircleIcon moduleKey="social" boxSize={40} iconSize={18} className="shadow-none" />,
+            badgeModuleKey: 'social',
           }}
           brandSubtitle={moduleTitle}
           onBrandClickAction={() => onNavigateAction('/dashboard')}
@@ -347,12 +338,14 @@ export default function SocialFrame({
             mobileBrand={{
               name: moduleTitle,
               logoUrl: initialOrganization?.logo || null,
-              badgeIcon: <OSModuleIcon moduleKey="social" size={10} className="text-slate-900" />,
+              fallbackIcon: <OSModuleSquircleIcon moduleKey="social" boxSize={32} iconSize={16} className="shadow-none" />,
+              badgeModuleKey: 'social',
             }}
             mobileLeadingSlot={mobileLeadingSlot}
             onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
             onOpenSupportAction={() => setIsHelpModalOpen(true)}
-            switcherSlot={null}
+            actionsSlot={<ModuleHelpVideos moduleKey="social" />}
+            switcherSlot={<WorkspaceSwitcher />}
             notificationsSlot={notificationsSlot}
             user={{ name: resolvedUser.name, role: resolvedUser.role }}
             onProfileClickAction={undefined}

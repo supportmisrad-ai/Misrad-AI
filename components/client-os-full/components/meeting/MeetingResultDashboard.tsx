@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { MeetingAnalysisResult } from '../../types';
-import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, BrainCircuit, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare } from 'lucide-react';
+import { ArrowLeft, UserCircle, Briefcase, Activity, Lightbulb, Zap, Send, Check, Clock, CalendarCheck, ShieldAlert, AlertTriangle, MessageSquare, Quote, CheckSquare } from 'lucide-react';
 import { AudioPlayer } from '../ui/AudioPlayer';
 
 interface MeetingResultDashboardProps {
@@ -177,7 +177,9 @@ export const MeetingResultDashboard: React.FC<MeetingResultDashboardProps> = ({
               {/* Intent Decoder */}
               <div className="glass-card p-6 rounded-2xl border border-purple-100 bg-gradient-to-br from-white to-purple-50/30">
                   <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-purple-100 text-purple-600 rounded-xl"><BrainCircuit size={20}/></div>
+                      <div className="p-2 bg-purple-100 text-purple-600 rounded-xl">
+                          <Zap size={20} />
+                      </div>
                       <div>
                           <h3 className="font-bold text-gray-900">פענוח כוונות נסתרות</h3>
                           <p className="text-xs text-gray-500">מה הם אמרו vs. למה הם התכוונו</p>

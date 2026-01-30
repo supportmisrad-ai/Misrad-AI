@@ -92,11 +92,11 @@ export const SalesPipeline: React.FC = () => {
                                                         <User size={12} />
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button className="p-1.5 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors">
+                                                <div className="flex gap-1">
+                                                    <button className="w-10 h-10 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors flex items-center justify-center">
                                                         <Phone size={12} />
                                                     </button>
-                                                    <button className="p-1.5 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors">
+                                                    <button className="w-10 h-10 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors flex items-center justify-center">
                                                         <Mail size={12} />
                                                     </button>
                                                 </div>

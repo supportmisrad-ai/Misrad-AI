@@ -38,6 +38,9 @@ export const SearchableEmployeeSelect: React.FC<SearchableEmployeeSelectProps> =
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const portalContainer: Element | DocumentFragment | null =
+    typeof document !== 'undefined' ? (document.body ?? document.documentElement) : null;
+
   const selectedEmployee = employees.find(emp => emp.id === value);
 
   // Filter employees based on search term
@@ -176,7 +179,9 @@ export const SearchableEmployeeSelect: React.FC<SearchableEmployeeSelectProps> =
         </button>
       </div>
 
-      {isOpen && position && createPortal(
+      {portalContainer ? (
+        isOpen && position
+          ? createPortal(
         <AnimatePresence>
             {position.isMobile && (
                 <motion.div 
@@ -297,8 +302,10 @@ export const SearchableEmployeeSelect: React.FC<SearchableEmployeeSelectProps> =
                 </div>
             </motion.div>
         </AnimatePresence>,
-        typeof document !== 'undefined' ? document.body : null
-      )}
+        portalContainer
+      )
+          : null
+      ) : null}
     </>
   );
 };

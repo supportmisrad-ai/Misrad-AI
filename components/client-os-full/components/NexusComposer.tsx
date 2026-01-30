@@ -29,8 +29,14 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
     const handleGenerate = async () => {
         setIsGenerating(true);
         try {
-            const healthContext = `Health Score: ${client.healthScore}, Status: ${client.healthStatus}, Last Note: ${client.handoffData?.notes || 'None'}`;
-            const result = await generateEmailDraft(client.name, client.mainContact, intent, tone, healthContext);
+            const clientName = client?.name ?? '';
+            const clientMainContact = client?.mainContact ?? '';
+            const healthScore = (client as any)?.healthScore ?? 'N/A';
+            const healthStatus = (client as any)?.healthStatus ?? 'N/A';
+            const lastNote = (client as any)?.handoffData?.notes ?? 'None';
+
+            const healthContext = `Health Score: ${healthScore}, Status: ${healthStatus}, Last Note: ${lastNote}`;
+            const result = await generateEmailDraft(clientName, clientMainContact, intent, tone, healthContext);
             setGeneratedContent(result);
         } catch (e) {
             console.error(e);
@@ -50,14 +56,14 @@ const NexusComposer: React.FC<NexusComposerProps> = ({ isOpen, onClose, preselec
     if (!isOpen) return null;
 
     return (
-        <div className="fixed bottom-0 right-8 z-[60] w-[500px] h-[600px] bg-white rounded-t-2xl shadow-2xl shadow-black/20 border border-gray-200 animate-slide-up flex flex-col overflow-hidden">
+        <div className="fixed bottom-0 right-0 sm:right-8 z-[60] w-full sm:w-[500px] h-[600px] bg-white rounded-t-2xl shadow-2xl shadow-black/20 border border-gray-200 animate-slide-up flex flex-col overflow-hidden">
             {/* Header */}
             <div className="bg-nexus-primary p-4 flex justify-between items-center text-white">
                 <div className="flex items-center gap-2">
                     <Sparkles size={18} className="text-nexus-accent" />
                     <span className="font-display font-bold">המנסח האוטומטי</span>
                 </div>
-                <button onClick={onClose} className="hover:bg-white/10 p-1 rounded transition-colors"><X size={18} /></button>
+                <button onClick={onClose} className="w-10 h-10 hover:bg-white/10 rounded transition-colors flex items-center justify-center" aria-label="סגור"><X size={18} /></button>
             </div>
 
             {/* Context Controls */}

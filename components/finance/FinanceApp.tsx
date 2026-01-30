@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, Bell, User, Compass } from 'lucide-react';
+import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, User, Compass } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,6 @@ import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { buildDocumentTitle } from '@/lib/room-branding';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
@@ -21,8 +20,8 @@ import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 // Import placeholder components
 import InvoicesView from './invoices/InvoicesView';
@@ -68,7 +67,7 @@ const FinanceOSApp: React.FC<{
 }> = ({ initialFinanceOverview, initialCurrentUser, initialOrganization }) => {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
-  const { pathname, roomNameHebrew, roomName, roomIconName } = useRoomBranding();
+  const { pathname, roomName } = useRoomBranding();
   const nextPathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -297,10 +296,10 @@ const FinanceOSApp: React.FC<{
     []
   );
 
-  const moduleTitle = roomNameHebrew || roomName || 'Finance';
+  const moduleTitle = roomName || 'Finance';
   const screenTitle = activeNavItem?.label || null;
 
-  const fallbackIcon = roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-gray-900" /> : null;
+  const fallbackIcon = <OSModuleSquircleIcon moduleKey="finance" boxSize={40} iconSize={18} className="shadow-none" />;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -389,18 +388,7 @@ const FinanceOSApp: React.FC<{
     />
   );
 
-  const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
-      <button
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
-        aria-label="התראות"
-        type="button"
-      >
-        <Bell size={18} />
-      </button>
-    </div>
-  );
+  const notificationsSlot = null;
 
   return (
     <div className="flex h-screen w-full bg-[#f1f5f9] text-gray-900 overflow-hidden" dir="rtl">
@@ -411,7 +399,7 @@ const FinanceOSApp: React.FC<{
           name: String(initialOrganization?.name || moduleTitle),
           logoUrl: (initialOrganization as any)?.logo || null,
           fallbackIcon,
-          badgeIcon: <OSModuleIcon moduleKey="finance" size={12} className="text-slate-900" />,
+          badgeModuleKey: 'finance',
         }}
         brandSubtitle={moduleTitle}
         onBrandClickAction={() => router.push('/workspaces')}
@@ -446,7 +434,7 @@ const FinanceOSApp: React.FC<{
             name: moduleTitle,
             logoUrl: (initialOrganization as any)?.logo || null,
             fallbackIcon,
-            badgeIcon: <OSModuleIcon moduleKey="finance" size={10} className="text-slate-900" />,
+            badgeModuleKey: 'finance',
           }}
           mobileLeadingSlot={
             <button
@@ -460,7 +448,8 @@ const FinanceOSApp: React.FC<{
           }
           onOpenCommandPaletteAction={() => setIsCommandPaletteOpen(true)}
           onOpenSupportAction={undefined}
-          switcherSlot={null}
+          actionsSlot={<ModuleHelpVideos moduleKey="finance" />}
+          switcherSlot={<WorkspaceSwitcher />}
           notificationsSlot={notificationsSlot}
           user={{ name: headerName, role: headerRole }}
           onProfileClickAction={goToMe}

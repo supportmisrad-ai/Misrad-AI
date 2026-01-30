@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { OSModuleKey } from '@/lib/os/modules/types';
 
 export type SystemFeatureFlags = {
@@ -36,15 +36,11 @@ function normalizeLaunchScopeModules(input: any): Record<OSModuleKey, boolean> {
 
 export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
   try {
-    const supabase = createClient();
+    const row = await prisma.social_system_settings.findUnique({
+      where: { key: 'feature_flags' },
+    });
 
-    const { data: row, error } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'feature_flags')
-      .maybeSingle();
-
-    if (error) {
+    if (!row) {
       return {
         maintenanceMode: false,
         aiEnabled: true,

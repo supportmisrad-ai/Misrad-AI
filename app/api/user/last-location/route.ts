@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 type LastLocationPayload = {
@@ -38,19 +39,15 @@ async function safeUpdateLastLocation({
     .update(update as any)
     .eq('clerk_user_id', clerkUserId);
 
-  // Backwards compatible: if columns don't exist yet, ignore.
-  if (error?.message) {
-    const msg = String(error.message).toLowerCase();
-    if (msg.includes('column') && (msg.includes('last_org_slug') || msg.includes('last_module'))) {
-      return;
-    }
+  if (error) {
+    throw error;
   }
 }
 
 async function GETHandler() {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', { status: 401 });
   }
 
   const supabase = createClient();
@@ -61,14 +58,8 @@ async function GETHandler() {
     .eq('clerk_user_id', clerkUserId)
     .maybeSingle();
 
-  if (error?.message) {
-    const msg = String(error.message).toLowerCase();
-    if (msg.includes('column') && (msg.includes('last_org_slug') || msg.includes('last_module'))) {
-      await logAuditEvent('data.read', 'user.last-location', {
-        details: { clerkUserId, orgSlug: null, module: null },
-      });
-      return NextResponse.json({ orgSlug: null, module: null });
-    }
+  if (error) {
+    return apiError(error, { status: 500 });
   }
 
   await logAuditEvent('data.read', 'user.last-location', {
@@ -79,7 +70,7 @@ async function GETHandler() {
     },
   });
 
-  return NextResponse.json({
+  return apiSuccess({
     orgSlug: (data as any)?.last_org_slug ?? null,
     module: ((data as any)?.last_module as OSModuleKey | null) ?? null,
   });
@@ -88,7 +79,7 @@ async function GETHandler() {
 async function POSTHandler(req: NextRequest) {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', { status: 401 });
   }
 
   const body = (await req.json().catch(() => ({}))) as LastLocationPayload;
@@ -97,23 +88,23 @@ async function POSTHandler(req: NextRequest) {
 
   if (orgSlug) {
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+      await getWorkspaceByOrgKeyOrThrow(orgSlug);
     } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status: (e as any)?.status || 403 });
+      return apiError(e, { status: (e as any)?.status || 403 });
     }
   }
 
   try {
     await safeUpdateLastLocation({ clerkUserId, orgSlug, module });
-  } catch {
-    // Ignore - should never block navigation
+  } catch (e: any) {
+    return apiError(e, { status: 500, message: 'Failed to persist last location' });
   }
 
   await logAuditEvent('data.write', 'user.last-location', {
     details: { clerkUserId, orgSlug, module },
   });
 
-  return NextResponse.json({ success: true });
+  return apiSuccess({ ok: true });
 }
 
 export const GET = shabbatGuard(GETHandler);

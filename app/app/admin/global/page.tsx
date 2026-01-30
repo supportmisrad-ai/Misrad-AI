@@ -7,9 +7,10 @@ export const dynamic = 'force-dynamic';
 export default async function AdminGlobalPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const tab = typeof searchParams?.tab === 'string' ? searchParams?.tab : undefined;
+  const sp = (await searchParams) ?? {};
+  const tab = typeof sp?.tab === 'string' ? sp?.tab : undefined;
   if (tab === 'control') redirect('/app/admin/global/control');
   if (tab === 'ai') redirect('/app/admin/global/ai');
   if (tab === 'data') redirect('/app/admin/global/data');

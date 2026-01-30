@@ -11,6 +11,7 @@
 # playwright auth state
 storageState.json
 /test-results/storageState.json
+/tests/e2e/.auth/
 
 # playwright reports / test artifacts
 /playwright-report/
@@ -28,11 +29,16 @@ storageState.json
 .DS_Store
 local.properties
 *.pem
+/backups/
+/tmp_db_schema.prisma
+/prisma/_prisma_diff_full.sql
+/prisma/*diff*.sql
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # local env files
 .env*.local

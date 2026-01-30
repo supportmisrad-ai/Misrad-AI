@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { getPermissions } from '../../../lib/db';
+import { createClient } from '@/lib/supabase';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -16,7 +16,23 @@ async function GETHandler(request: NextRequest) {
         // Only users with manage_system permission can view permissions
         await requirePermission('manage_system');
         
-        const permissions = await getPermissions();
+        const supabase = createClient();
+
+        const { data, error } = await supabase
+            .from('misrad_permissions')
+            .select('*')
+            .order('id');
+
+        if (error) {
+            throw error;
+        }
+
+        const permissions = (data || []).map((p: any) => ({
+            id: p.id,
+            label: p.label,
+            description: p.description,
+            category: p.category || 'access',
+        }));
         
         return NextResponse.json({ permissions });
         

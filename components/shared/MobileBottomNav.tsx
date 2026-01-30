@@ -52,7 +52,7 @@ export default function MobileBottomNav({
 
   return (
     <div
-      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 relative overflow-visible ${className || ''}`}
+      className={`md:hidden fixed bottom-0 left-0 right-0 z-40 overflow-visible ${className || ''}`}
       style={{ height: `calc(${baseHeight}px + env(safe-area-inset-bottom))` }}
       aria-label="ניווט תחתון"
     >

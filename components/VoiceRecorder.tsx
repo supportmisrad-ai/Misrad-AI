@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, X, Check, BrainCircuit, Save, AlertCircle } from 'lucide-react';
+import { Mic, Square, X, Check, Sparkles, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { AIAnalysisResult, Priority } from '../types';
@@ -285,7 +285,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
              <div className="flex flex-col items-center gap-4">
                  <div className="relative">
                     <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
-                    <BrainCircuit size={64} className="text-blue-400 animate-pulse relative z-10" />
+                    <Sparkles size={64} className="text-blue-400 animate-pulse relative z-10" />
                  </div>
                  <p className="text-blue-200 text-sm font-medium animate-pulse">מפענח ומייצר משימה...</p>
              </div>

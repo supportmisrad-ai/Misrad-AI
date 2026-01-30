@@ -95,6 +95,8 @@ const PipelineCard = memo(({
     const timeStatus = getTimeStatus(lead.createdAt);
     const isWon = lead.status === 'won';
     const followUpTone = getFollowUpTone({ nextActionDate: lead.nextActionDate ?? null, now });
+    const suggestedFollowUpDate = lead.nextActionDateSuggestion ? new Date(lead.nextActionDateSuggestion) : null;
+    const hasSuggestedFollowUp = Boolean(suggestedFollowUpDate && !Number.isNaN(suggestedFollowUpDate.getTime()));
     const followUpBarColor =
       followUpTone === 'overdue'
         ? 'bg-red-500'
@@ -173,6 +175,24 @@ const PipelineCard = memo(({
                         <div className={`flex items-center gap-1 ${followUpTextColor}`}>
                           <Clock size={12} />
                         </div>
+                        {!lead.nextActionDate && hasSuggestedFollowUp ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!suggestedFollowUpDate) return;
+                              setFollowUpInput(toLocalDateTimeInputValue(suggestedFollowUpDate));
+                              onUpdateFollowUp?.({
+                                leadId: lead.id,
+                                nextActionDate: suggestedFollowUpDate,
+                                nextActionNote: followUpNote.trim() ? followUpNote : null,
+                              });
+                            }}
+                            className="px-2 py-1 rounded-full bg-indigo-600 text-white text-[11px] font-black"
+                            title={lead.nextActionDateRationale || undefined}
+                          >
+                            קבע
+                          </button>
+                        ) : null}
                         <input
                           type="datetime-local"
                           value={followUpInput}
@@ -206,6 +226,10 @@ const PipelineCard = memo(({
                       {lead.nextActionDate ? (
                         <div className={`mt-1 text-[10px] font-bold ${followUpTextColor}`}>
                           {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'} · {formatDateTimeShort(new Date(lead.nextActionDate))}
+                        </div>
+                      ) : !lead.nextActionDate && hasSuggestedFollowUp ? (
+                        <div className="mt-1 text-[10px] font-bold text-indigo-700">
+                          הצעה · {formatDateTimeShort(suggestedFollowUpDate as Date)}
                         </div>
                       ) : null}
                     </div>

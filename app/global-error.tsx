@@ -9,7 +9,7 @@ export default function GlobalError({
   reset,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  reset?: () => void;
 }) {
   useEffect(() => {
     Sentry.captureException(error);
@@ -23,7 +23,17 @@ export default function GlobalError({
             <div className="text-lg font-black">משהו השתבש</div>
             <div className="mt-2 text-sm font-bold text-slate-600">נסה לרענן את העמוד או לחזור אחורה.</div>
             <div className="mt-4 flex justify-end">
-              <Button type="button" onClick={() => reset()}>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (typeof reset === 'function') {
+                    reset();
+                    return;
+                  }
+
+                  window.location.reload();
+                }}
+              >
                 נסה שוב
               </Button>
             </div>

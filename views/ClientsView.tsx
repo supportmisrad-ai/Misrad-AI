@@ -8,6 +8,12 @@ import { ClientDetailModal } from '../components/ClientDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CustomSelect } from '../components/CustomSelect';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
 const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof Client, sortConfig: { key: keyof Client; direction: 'asc' | 'desc' } }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-300" />;
     return sortConfig.direction === 'asc' ? <ArrowUp size={14} className="text-black" /> : <ArrowDown size={14} className="text-black" />;
@@ -93,8 +99,14 @@ export const ClientsView: React.FC = () => {
         const loadClients = async () => {
             setIsRefreshing(true);
             try {
-                const fetchedClients = await fetchClients();
-                const newClients = fetchedClients || [];
+                const fetchedClients: unknown = await fetchClients();
+                const obj = asObject(fetchedClients);
+                const list = Array.isArray(fetchedClients)
+                    ? fetchedClients
+                    : Array.isArray(obj?.clients)
+                      ? obj?.clients
+                      : [];
+                const newClients: Client[] = list as Client[];
                 setClients(newClients);
                 setCachedClients(newClients);
             } catch (error) {

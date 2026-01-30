@@ -1,9 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { getSiteContent, updateSiteContent } from './site-content';
+import { getContentByKey, getSiteContent, updateSiteContent } from './site-content';
 import { requireSuperAdmin } from '@/lib/auth';
+import { LEGAL_DEFAULTS } from '@/lib/legal-defaults';
+
+function applyDefaultDate(markdown: string) {
+  return String(markdown).replace(/\{\{DATE\}\}/g, new Date().toLocaleDateString('he-IL'));
+}
 
 /**
  * Get all site content for admin panel
@@ -38,6 +42,50 @@ export async function getAllSiteContent(): Promise<{
     });
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
+  }
+}
+
+export async function seedDefaultLegalDocuments(): Promise<{
+  success: boolean;
+  data?: { seededKeys: string[] };
+  error?: string;
+}> {
+  try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return authCheck as any;
+    }
+
+    await requireSuperAdmin();
+
+    const seededKeys: string[] = [];
+    const entries = Object.entries(LEGAL_DEFAULTS) as Array<[string, string]>;
+
+    for (const [key, markdown] of entries) {
+      const existing = await getContentByKey('legal', 'documents', key as any);
+      const existingText = typeof existing.data === 'string' ? existing.data.trim() : '';
+
+      const needsRepair =
+        !existingText ||
+        (existingText.includes('Misrad ') && existingText.includes('CRM')) ||
+        (existingText.includes('@misrad.ai') && existingText.includes('support@')) ||
+        (existingText.includes('@misrad.ai') && existingText.includes('privacy@')) ||
+        (existingText.includes('@misrad.ai') && existingText.includes('billing@')) ||
+        existingText.includes('**הבהרה:**') ||
+        existingText.includes('(או כתובת התמיכה המוצגת במערכת)');
+
+      if (!needsRepair) continue;
+
+      const result = await updateSiteContent('legal', 'documents', key as any, applyDefaultDate(markdown));
+      if (!result.success) {
+        return result as any;
+      }
+      seededKeys.push(key);
+    }
+
+    return createSuccessResponse({ seededKeys });
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה בהזרעת מסמכים משפטיים');
   }
 }
 

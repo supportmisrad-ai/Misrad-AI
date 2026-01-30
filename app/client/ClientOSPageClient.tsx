@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, BrainCircuit, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar } from 'lucide-react';
+import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { ClientOSDemo } from '@/components/landing/demos/ClientOSDemo';
@@ -88,7 +88,7 @@ export default function ClientOSPage() {
                 onClick={() => router.push('/sign-up')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#C5A572]/30 hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => {
@@ -528,7 +528,7 @@ export default function ClientOSPage() {
               <strong className="text-slate-900">₪149/חודש</strong> למודול בודד = חיסכון של <strong className="text-[#C5A572]">₪4,000-8,000/חודש</strong> בזמן.
             </p>
             <p className="text-sm text-slate-600">
-              זה לא הוצאה. זה השקעה. <strong className="text-slate-900">14 יום ניסיון חינם</strong> - תראה בעצמך.
+              זה לא הוצאה. זה השקעה. <strong className="text-slate-900">7 ימים ניסיון חינם</strong> - תראה בעצמך.
             </p>
           </div>
         </div>
@@ -551,7 +551,7 @@ export default function ClientOSPage() {
               </span>
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-4">
-              ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 14 יום.
+              ללא התחייבות. ביטול בכל עת. כל התוכניות כוללות ניסיון חינם של 7 ימים.
             </p>
 
             {/* Billing Toggle */}
@@ -642,7 +642,7 @@ export default function ClientOSPage() {
 
           <div className="mt-16 text-center">
             <p className="text-slate-600 text-sm mb-4">
-              כל התוכניות כוללות: <span className="text-slate-900 font-bold">14 יום ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span>
+              כל התוכניות כוללות: <span className="text-slate-900 font-bold">7 ימים ניסיון חינם</span> • <span className="text-slate-900 font-bold">ביטול בכל עת</span> • <span className="text-slate-900 font-bold">תמיכה בעברית</span>
             </p>
           </div>
         </div>
@@ -664,7 +664,7 @@ export default function ClientOSPage() {
               onClick={() => router.push('/sign-up')}
               className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-slate-900 border border-[#C5A572]/30 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
             >
-              התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+              התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
             </button>
             <button
               onClick={() => {

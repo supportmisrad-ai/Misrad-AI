@@ -1,10 +1,10 @@
 
 import React, { useMemo } from 'react';
-import { Lead, PipelineStage } from '../types';
-import { STAGES } from '../constants';
+import { Lead, PipelineStage } from './system/types';
+import { STAGES } from './system/constants';
 import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
-import useLocalStorage from '../hooks/useLocalStorage';
-import { useToast } from '../contexts/ToastContext';
+import useLocalStorage from './system/hooks/useLocalStorage';
+import { useToast } from './system/contexts/ToastContext';
 
 interface ContactsViewProps {
   leads: Lead[];

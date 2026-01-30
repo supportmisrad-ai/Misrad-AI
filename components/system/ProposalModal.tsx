@@ -346,7 +346,10 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
             <div className="w-full max-w-[375px] h-[700px] bg-white rounded-[40px] shadow-2xl overflow-hidden relative border-8 border-slate-900 flex flex-col animate-float-in">
                 
                 {/* Dynamic Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#FAFAFA]">
+                <div
+                  className="flex-1 overflow-y-auto custom-scrollbar relative bg-[#FAFAFA]"
+                  style={{ paddingBottom: 'calc(6rem + env(safe-area-inset-bottom))' }}
+                >
                     
                     {/* 1. Hero */}
                     <div className="h-40 bg-slate-900 relative p-6 flex flex-col justify-end text-white">
@@ -438,12 +441,13 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
                             )}
                         </div>
                     </div>
-
-                    <div className="h-24"></div>
                 </div>
 
                 {/* Sticky Footer (Client Action) */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-slate-100 z-20">
+                <div
+                  className="absolute bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-slate-100 z-20 max-h-24 overflow-hidden"
+                  style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
+                >
                     <button 
                         onClick={simulateClientSignature}
                         disabled={isSigning || signature !== null}

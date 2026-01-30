@@ -19,8 +19,13 @@ async function GETHandler(
   { params }: { params: Promise<{ orgSlug: string }> }
 ) {
   const { orgSlug } = await params;
-
-  const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+  let workspace;
+  try {
+    workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+  } catch (e: any) {
+    const status = typeof e?.status === 'number' ? e.status : 403;
+    return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+  }
   const entitlements = workspace.entitlements;
 
   const supabase = createClient();
@@ -112,8 +117,8 @@ async function GETHandler(
   if (entitlements.social) {
     const { data: posts } = await supabase
       .from('social_posts')
-      .select('id,status,scheduled_at,published_at,clients!inner(organization_id)')
-      .eq('clients.organization_id', workspace.id)
+      .select('id,status,scheduled_at,published_at,organization_id')
+      .eq('organization_id', workspace.id)
       .order('created_at', { ascending: false })
       .limit(500);
 

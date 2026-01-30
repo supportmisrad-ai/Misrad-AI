@@ -1,12 +1,27 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 import { AIService } from '@/lib/services/ai/AIService';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
 async function GETHandler(
   _req: Request,
   { params }: { params: Promise<{ orgSlug: string }> }
@@ -16,15 +31,15 @@ async function GETHandler(
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const { orgSlug } = await params;
     if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
+      return apiError('orgSlug is required', { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceContextOrThrow(_req, { params });
     const supabase = createClient();
 
     const { data, error } = await supabase
@@ -34,7 +49,7 @@ async function GETHandler(
       .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error, { status: 500 });
     }
 
     await logAuditEvent('data.read', 'organization_settings.ai_dna', {
@@ -44,9 +59,15 @@ async function GETHandler(
       },
     });
 
-    return NextResponse.json({ aiDna: (data as any)?.ai_dna ?? {} });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Failed to load ai_dna' }, { status: 500 });
+    const dataObj = asObject(data);
+    const aiDna = asObject(dataObj?.ai_dna) ?? {};
+
+    return apiSuccess({ aiDna });
+  } catch (e: unknown) {
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
+    return apiError(e, { status: 500, message: 'Failed to load ai_dna' });
   }
 }
 
@@ -59,26 +80,28 @@ async function PUTHandler(
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const canManage = await hasPermission('manage_system');
     if (!canManage) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', { status: 403 });
     }
 
     const { orgSlug } = await params;
     if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
+      return apiError('orgSlug is required', { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
 
-    const body = (await req.json().catch(() => ({}))) as { aiDna?: any };
-    const aiDna = body?.aiDna ?? {};
+    const body: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(body) ?? {};
+    const aiDnaRaw = bodyObj.aiDna;
+    const aiDna = asObject(aiDnaRaw) ?? {};
 
-    if (aiDna === null || typeof aiDna !== 'object' || Array.isArray(aiDna)) {
-      return NextResponse.json({ error: 'aiDna must be a JSON object' }, { status: 400 });
+    if (aiDnaRaw === null || typeof aiDnaRaw !== 'object' || Array.isArray(aiDnaRaw)) {
+      return apiError('aiDna must be a JSON object', { status: 400 });
     }
 
     const supabase = createClient();
@@ -91,12 +114,12 @@ async function PUTHandler(
           organization_id: workspace.id,
           ai_dna: aiDna,
           updated_at: now,
-        } as any,
+        } as Record<string, unknown>,
         { onConflict: 'organization_id' }
       );
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error, { status: 500 });
     }
 
     try {
@@ -114,9 +137,9 @@ async function PUTHandler(
           kind: 'dna',
         },
       });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.warn('[ai-dna] pgvector ingest skipped/failed (non-fatal)', {
-        message: String(e?.message || e),
+        message: getErrorMessage(e) || String(e),
       });
     }
 
@@ -128,9 +151,12 @@ async function PUTHandler(
       },
     });
 
-    return NextResponse.json({ success: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Failed to save ai_dna' }, { status: 500 });
+    return apiSuccess({ ok: true });
+  } catch (e: unknown) {
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
+    return apiError(e, { status: 500, message: 'Failed to save ai_dna' });
   }
 }
 

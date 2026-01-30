@@ -1,15 +1,44 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { randomUUID } from 'crypto';
 import type { PackageType } from '@/lib/server/workspace';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { uploadFile } from '@/app/actions/files';
 import { calculateOrderAmount } from '@/lib/billing/pricing';
+import prisma from '@/lib/prisma';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
 export type BillingCycle = 'monthly' | 'yearly';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+function isMissingColumnError(error: unknown, columnName: string): boolean {
+  const obj = asObject(error) ?? {};
+  const msg = String(obj.message ?? '').toLowerCase();
+  const code = String(obj.code ?? '').toLowerCase();
+  return (
+    code === '42703' ||
+    (msg.includes('column') && msg.includes(String(columnName || '').toLowerCase()) && msg.includes('does not exist'))
+  );
+}
+
+function normalizePaymentMethod(value: unknown): 'manual' | 'automatic' {
+  return String(value ?? '').toLowerCase() === 'automatic' ? 'automatic' : 'manual';
+}
 
 export type CreateSubscriptionOrderInput = {
   organizationId?: string;
@@ -22,6 +51,7 @@ export type CreateSubscriptionOrderInput = {
   customerEmail: string;
   customerPhone: string;
   seats?: number;
+  partnerReferralCode?: string;
 };
 
 export type SubscriptionOrder = {
@@ -53,7 +83,7 @@ export async function createSubscriptionOrder(
 ): Promise<{ success: boolean; data?: SubscriptionOrder; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
     const clerkUserId = authCheck.userId || null;
 
@@ -68,18 +98,22 @@ export async function createSubscriptionOrder(
       return createErrorResponse(null, 'מייל לא תקין');
     }
 
-    const supabase = createClient();
-
-    const { data: socialUser } = await supabase
-      .from('social_users')
-      .select('id, organization_id')
-      .eq('clerk_user_id', clerkUserId)
-      .maybeSingle();
+    const socialUser = clerkUserId
+      ? await prisma.social_users.findUnique({
+          where: { clerk_user_id: String(clerkUserId) },
+          select: { id: true, organization_id: true },
+        })
+      : null;
 
     const id = randomUUID();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const organizationId = input.organizationId || socialUser?.organization_id || null;
+    const userOrganizationId = socialUser?.organization_id || null;
+    if (input.organizationId && input.organizationId !== userOrganizationId) {
+      return createErrorResponse(null, 'אין הרשאה');
+    }
+
+    const organizationId = userOrganizationId || null;
 
     const packageType = (input.packageType || 'solo') as PackageType;
     const soloModuleKey = input.soloModuleKey ?? null;
@@ -95,17 +129,18 @@ export async function createSubscriptionOrder(
     let calculatedAmount = 0;
     try {
       const calc = calculateOrderAmount({
-        packageType: packageType as any,
-        soloModuleKey: soloModuleKey as any,
+        packageType,
+        soloModuleKey,
         billingCycle: input.billingCycle,
         seats,
       });
       calculatedAmount = calc.amount;
-    } catch (e: any) {
-      return createErrorResponse(e, e?.message || 'שגיאה בחישוב מחיר');
+    } catch (error) {
+      const errorMessage = getUnknownErrorMessage(error);
+      return createErrorResponse(error, errorMessage || 'שגיאה בחישוב מחיר');
     }
 
-    const insertPayload: any = {
+    const createData: Record<string, unknown> = {
       id,
       clerk_user_id: clerkUserId,
       social_user_id: socialUser?.id || null,
@@ -124,27 +159,62 @@ export async function createSubscriptionOrder(
       updated_at: now,
     };
 
-    if (seats) {
-      insertPayload.seats = seats;
-    }
+    if (seats) createData.seats = seats;
 
-    const insertAttempt = await supabase
-      .from('subscription_orders')
-      .insert(insertPayload);
-
-    if (insertAttempt.error) {
-      const msg = String(insertAttempt.error.message || '').toLowerCase();
-      if (msg.includes('column') && msg.includes('seats')) {
-        delete insertPayload.seats;
-        const retry = await supabase
-          .from('subscription_orders')
-          .insert(insertPayload);
-
-        if (retry.error) {
-          return createErrorResponse(retry.error, 'שגיאה ביצירת הזמנת מנוי');
+    try {
+      await prisma.subscription_orders.create({ data: createData as any });
+    } catch (error: unknown) {
+      if (seats && isMissingColumnError(error, 'seats')) {
+        try {
+          delete (createData as any).seats;
+          await prisma.subscription_orders.create({ data: createData as any });
+        } catch (retryError: unknown) {
+          return createErrorResponse(retryError, 'שגיאה ביצירת הזמנת מנוי');
         }
       } else {
-        return createErrorResponse(insertAttempt.error, 'שגיאה ביצירת הזמנת מנוי');
+        return createErrorResponse(error, 'שגיאה ביצירת הזמנת מנוי');
+      }
+    }
+
+    const partnerReferralCode = String(input.partnerReferralCode || '').trim();
+    if (partnerReferralCode) {
+      let partnerId: string | null = null;
+      try {
+        const partner = await prisma.partner.findFirst({
+          where: { referralCode: { equals: partnerReferralCode } },
+          select: { id: true },
+        });
+        partnerId = partner?.id ? String(partner.id) : null;
+      } catch {
+        partnerId = null;
+      }
+
+      if (!partnerId) {
+        const upper = partnerReferralCode.toUpperCase();
+        try {
+          const partner = await prisma.partner.findFirst({
+            where: { referralCode: { equals: upper } },
+            select: { id: true },
+          });
+          partnerId = partner?.id ? String(partner.id) : null;
+        } catch {
+          partnerId = null;
+        }
+      }
+
+      if (!partnerId) {
+        return createErrorResponse(null, 'קוד שותף לא נמצא');
+      }
+
+      if (organizationId) {
+        try {
+          await prisma.social_organizations.updateMany({
+            where: { id: organizationId },
+            data: { partnerId: partnerId } as any,
+          });
+        } catch (error) {
+          return createErrorResponse(error, 'שגיאה בעדכון שיוך שותף');
+        }
       }
     }
 
@@ -153,44 +223,45 @@ export async function createSubscriptionOrder(
       clerkUserId,
       socialUserId: socialUser?.id || null,
       organizationId,
-      packageType: insertPayload.package_type,
-      planKey: insertPayload.plan_key,
+      packageType: packageType,
+      planKey: packageType === 'solo' ? (soloModuleKey ? String(soloModuleKey) : null) : null,
       billingCycle: input.billingCycle,
       amount: Number(calculatedAmount) || 0,
-      currency: insertPayload.currency,
+      currency: String(input.currency || 'ILS'),
       status: 'pending',
       paymentMethod: 'bit',
-      createdAt: now,
+      createdAt: now.toISOString(),
     };
 
     return createSuccessResponse(order);
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה ביצירת הזמנת מנוי');
+    const errorMessage = getUnknownErrorMessage(error);
+    return createErrorResponse(error, errorMessage || 'שגיאה ביצירת הזמנת מנוי');
   }
 }
 
 export async function getSubscriptionOrder(
   orderId: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const supabase = createClient();
+    const id = String(orderId || '').trim();
+    if (!id) return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנת מנוי');
 
-    const { data, error } = await supabase
-      .from('subscription_orders')
-      .select('*')
-      .eq('id', orderId)
-      .single();
+    const row = await prisma.subscription_orders.findFirst({
+      where: { id },
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת הזמנת מנוי');
+    if (!row) {
+      return createErrorResponse('Not found', 'שגיאה בטעינת הזמנת מנוי');
     }
 
-    return createSuccessResponse(data);
+    return createSuccessResponse(row as any);
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת הזמנת מנוי');
+    const errorMessage = getUnknownErrorMessage(error);
+    return createErrorResponse(error, errorMessage || 'שגיאה בטעינת הזמנת מנוי');
   }
 }
 
@@ -199,19 +270,12 @@ export async function getSubscriptionPaymentConfig(
 ): Promise<{ success: boolean; data?: SubscriptionPaymentConfig; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const supabase = createClient();
-
-    const { data, error } = await supabase
-      .from('subscription_payment_configs')
-      .select('package_type, title, qr_image_url, instructions_text, payment_method, external_payment_url')
-      .eq('package_type', packageType)
-      .maybeSingle();
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת הגדרות תשלום');
-    }
+    const data = await prisma.subscription_payment_configs.findUnique({
+      where: { package_type: String(packageType) },
+      select: { package_type: true, title: true, qr_image_url: true, instructions_text: true, payment_method: true, external_payment_url: true },
+    });
 
     if (!data) {
       return createSuccessResponse({
@@ -225,15 +289,16 @@ export async function getSubscriptionPaymentConfig(
     }
 
     return createSuccessResponse({
-      packageType: data.package_type,
-      title: data.title,
-      qrImageUrl: data.qr_image_url,
-      instructionsText: data.instructions_text,
-      paymentMethod: (data as any).payment_method === 'automatic' ? 'automatic' : 'manual',
-      externalPaymentUrl: (data as any).external_payment_url || null,
+      packageType: String(data.package_type ?? packageType),
+      title: data.title == null ? null : String(data.title),
+      qrImageUrl: data.qr_image_url == null ? null : String(data.qr_image_url),
+      instructionsText: data.instructions_text == null ? null : String(data.instructions_text),
+      paymentMethod: normalizePaymentMethod(data.payment_method),
+      externalPaymentUrl: data.external_payment_url == null ? null : String(data.external_payment_url),
     } satisfies SubscriptionPaymentConfig);
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת הגדרות תשלום');
+    const errorMessage = getUnknownErrorMessage(error);
+    return createErrorResponse(error, errorMessage || 'שגיאה בטעינת הגדרות תשלום');
   }
 }
 
@@ -243,19 +308,17 @@ export async function submitSubscriptionPaymentProof(input: {
 }): Promise<{ success: boolean; data?: { url?: string; path?: string } ; error?: string }> {
   try {
     const authCheck = await requireAuth();
-    if (!authCheck.success) return authCheck as any;
+    if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const supabase = createClient();
-
-    const { data: order, error: orderError } = await supabase
-      .from('subscription_orders')
-      .select('id, clerk_user_id, status')
-      .eq('id', input.orderId)
-      .single();
-
-    if (orderError) {
-      return createErrorResponse(orderError, 'שגיאה בטעינת הזמנה');
+    const orderId = String(input.orderId || '').trim();
+    if (!orderId) {
+      return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנה');
     }
+
+    const order = await prisma.subscription_orders.findFirst({
+      where: { id: orderId },
+      select: { id: true, clerk_user_id: true, status: true },
+    });
 
     if (!order?.id) {
       return createErrorResponse(new Error('Order not found'), 'הזמנה לא נמצאה');
@@ -265,7 +328,7 @@ export async function submitSubscriptionPaymentProof(input: {
       return createErrorResponse(new Error('Forbidden'), 'אין הרשאה לעדכן הזמנה זו');
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
 
     let proof: { url?: string; path?: string } = {};
     if (input.proofFile) {
@@ -277,18 +340,18 @@ export async function submitSubscriptionPaymentProof(input: {
       proof = { url: upload.url, path: upload.path };
     }
 
-    const { error: updateError } = await supabase
-      .from('subscription_orders')
-      .update({
-        status: 'pending_verification',
-        pending_verification_at: now,
-        proof_image_url: proof.url || null,
-        proof_image_path: proof.path || null,
-        updated_at: now,
-      })
-      .eq('id', input.orderId);
-
-    if (updateError) {
+    try {
+      await prisma.subscription_orders.update({
+        where: { id: orderId },
+        data: {
+          status: 'pending_verification',
+          pending_verification_at: now,
+          proof_image_url: proof.url || null,
+          proof_image_path: proof.path || null,
+          updated_at: now,
+        },
+      });
+    } catch (updateError) {
       return createErrorResponse(updateError, 'שגיאה בעדכון הזמנה');
     }
 

@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -91,7 +91,7 @@ async function POSTHandler(req: Request) {
       fileName = String(body.fileName || fileName);
       mimeType = String(body.mimeType || '');
 
-      if (!body.dataBase64) return NextResponse.json({ error: 'dataBase64 is required' }, { status: 400 });
+      if (!body.dataBase64) return apiError('dataBase64 is required', { status: 400 });
       inputBuf = decodeBase64ToBuffer(body.dataBase64);
     } else {
       // Fallback to multipart/form-data
@@ -103,39 +103,32 @@ async function POSTHandler(req: Request) {
         location = String(formData.get('location') || location) as any;
 
         const file = formData.get('file');
-        if (!file || !(file instanceof File)) return NextResponse.json({ error: 'file is required' }, { status: 400 });
+        if (!file || !(file instanceof File)) return apiError('file is required', { status: 400 });
         fileName = file.name || fileName;
         mimeType = file.type || '';
         inputBuf = await fileToBuffer(file);
       } catch (e: any) {
-        return NextResponse.json(
-          {
-            error: 'Failed to parse multipart form data. Try JSON upload.',
-            details: e?.message ?? String(e),
-            contentType,
-          },
-          { status: 400 }
-        );
+        return apiError(`Failed to parse multipart form data. Try JSON upload. (${e?.message ?? String(e)})`, { status: 400 });
       }
     }
 
-    if (!orgIdInput) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
-    if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
-    if (!inputBuf) return NextResponse.json({ error: 'Missing file data' }, { status: 400 });
+    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!clientId) return apiError('clientId is required', { status: 400 });
+    if (!inputBuf) return apiError('Missing file data', { status: 400 });
 
     let orgId: string;
     try {
-      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+      return apiError(e, { status, message: e?.message || 'Forbidden' });
     }
 
     const isAudio = mimeType.startsWith('audio/');
     const isVideo = mimeType.startsWith('video/');
     if (!isAudio && !isVideo) {
-      return NextResponse.json({ error: 'Only audio/video files are supported' }, { status: 400 });
+      return apiError('Only audio/video files are supported', { status: 400 });
     }
 
     const inputExt = path.extname(fileName || '') || (isVideo ? '.mp4' : '.wav');
@@ -171,9 +164,9 @@ async function POSTHandler(req: Request) {
       transcript,
     });
 
-    return NextResponse.json({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
+    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Upload failed' }, { status: 500 });
+    return apiError(e, { status: 500, message: 'Upload failed' });
   } finally {
     try {
       await fs.rm(tmpDir, { recursive: true, force: true });

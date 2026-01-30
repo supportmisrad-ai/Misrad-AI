@@ -13,14 +13,14 @@ const isPublicRoute = createRouteMatcher([
 const BYPASS_CLERK_USER_ID = (process.env.MAINTENANCE_BYPASS_CLERK_USER_ID || "").trim();
 
 const BYPASS_EMAILS = new Set(
-  String(process.env.MAINTENANCE_BYPASS_EMAILS || 'itsikdahan1@gmail.com,support@misrad-ai.com')
+  String(process.env.MAINTENANCE_BYPASS_EMAILS || '')
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean)
 );
 
 const BYPASS_USER_IDS = new Set(
-  String(process.env.MAINTENANCE_BYPASS_USER_IDS || 'user_36taRKpH1VdyycRdg9POOD0trxH')
+  String(process.env.MAINTENANCE_BYPASS_USER_IDS || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -101,6 +101,13 @@ function extractEmailFromClaims(claims: unknown): string | null {
 
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req?.nextUrl?.pathname ?? "";
+  const isE2E =
+    String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' ||
+    String(process.env.IS_E2E_TESTING || '').toLowerCase() === '1';
+  const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+  const allowDevMaintenance =
+    String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === 'true' ||
+    String(process.env.ALLOW_DEV_MAINTENANCE || '').toLowerCase() === '1';
   const configuredSignInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || "/login";
   const configuredSignInUrl = configuredSignInUrlRaw.startsWith("/sign-in") ? "/login" : configuredSignInUrlRaw;
   const unauthenticatedUrl = configuredSignInUrl.startsWith("http")
@@ -153,7 +160,9 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  const maintenanceMode = await isMaintenanceModeEnabled(req.nextUrl.origin);
+  const maintenanceMode = (isE2E || (isDev && !allowDevMaintenance))
+    ? false
+    : await isMaintenanceModeEnabled(req.nextUrl.origin);
   const isSuperAdmin = Boolean(
     getProp(getProp(claims, 'publicMetadata'), 'isSuperAdmin') === true ||
       getProp(getProp(claims, 'public_metadata'), 'isSuperAdmin') === true ||
@@ -169,13 +178,21 @@ export default clerkMiddleware(async (auth, req) => {
   const isMaintenanceBypass = isSuperAdmin || isBypassUser || isBypassEmail || isBypassUserId;
 
   if (maintenanceMode && !isMaintenanceBypass) {
+    const isAuthRoute =
+      pathname === "/login" ||
+      pathname.startsWith("/login/") ||
+      pathname === "/sign-in" ||
+      pathname.startsWith("/sign-in/") ||
+      pathname === "/sign-up" ||
+      pathname.startsWith("/sign-up/");
+
     const isStatic =
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
       pathname.startsWith("/icons/") ||
       pathname.startsWith("/public/");
 
-    if (!isStatic && !pathname.startsWith("/maintenance")) {
+    if (!isStatic && !isAuthRoute && !pathname.startsWith("/maintenance")) {
       const url = req.nextUrl.clone();
       url.pathname = "/maintenance";
       return NextResponse.redirect(url, 307);

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 import { useData } from '../../context/DataContext';
 import { Status, Priority, Task } from '../../types';
-import { Sun, AlertTriangle, CheckCircle2, X, Calendar, Clock, BrainCircuit, ChevronRight, ArrowLeft, Trophy, Target, Sparkles, Coffee, ArrowUpRight, Zap, ArrowRight, Play, Quote, Plus, Check, Trash2, GripVertical, Lock, Flame, Lightbulb, ListPlus } from 'lucide-react';
+import { Sun, AlertTriangle, CheckCircle2, X, Calendar, Clock, ChevronRight, ArrowLeft, Trophy, Target, Sparkles, Coffee, ArrowUpRight, Zap, ArrowRight, Play, Quote, Plus, Check, Trash2, GripVertical, Lock, Flame, Lightbulb, ListPlus } from 'lucide-react';
 import { PRIORITY_LABELS } from '../../constants';
 
 // --- Types for the Scheduler ---
@@ -508,7 +508,7 @@ export const MorningBriefing: React.FC = () => {
                                     
                                     <div className="mb-4">
                                         <h3 className="font-black text-gray-900 flex items-center gap-2 text-lg">
-                                            <BrainCircuit size={20} className="text-orange-500" /> 
+                                            <Sparkles size={20} className="text-orange-500" /> 
                                             Brain Dump
                                         </h3>
                                         <p className="text-xs text-gray-500 mt-1">שפוך לכאן כל מה שעולה לך לראש ולא רשום במערכת.</p>
@@ -558,7 +558,7 @@ export const MorningBriefing: React.FC = () => {
                             >
                                 {isOptimizing ? (
                                     <>
-                                        <BrainCircuit size={20} className="animate-pulse" /> מעבד נתונים...
+                                        <Sparkles size={20} className="animate-pulse" /> מעבד נתונים...
                                     </>
                                 ) : (
                                     <>

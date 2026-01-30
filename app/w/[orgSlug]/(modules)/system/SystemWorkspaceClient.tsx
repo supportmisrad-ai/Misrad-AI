@@ -17,8 +17,8 @@ import {
   type SystemCalendarEventDTO,
 } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import type { SystemTaskDTO } from '@/app/actions/system-tasks';
-import { createSystemTask, updateSystemTask } from '@/app/actions/system-tasks';
+import type { Task as NexusTask } from '@/types';
+import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
 
@@ -31,22 +31,25 @@ function normalizeTaskPriority(value: string): TaskPriority {
 function normalizeTaskStatus(value: string): TaskStatus {
   const v = String(value || '').toLowerCase();
   if (v === 'todo' || v === 'in_progress' || v === 'review' || v === 'done') return v;
+  if (v.includes('in progress')) return 'in_progress';
+  if (v.includes('review') || v.includes('waiting')) return 'review';
+  if (v.includes('done') || v.includes('completed')) return 'done';
   return 'todo';
 }
 
-function mapTaskDto(dto: SystemTaskDTO): Task {
-  const due = new Date(String(dto.due_date || ''));
+function mapNexusTaskToUiTask(row: NexusTask): Task {
+  const due = row.dueDate ? new Date(String(row.dueDate)) : new Date();
   const dueDate = Number.isNaN(due.getTime()) ? new Date() : due;
 
   return {
-    id: String(dto.id),
-    title: String(dto.title || ''),
-    description: dto.description == null ? undefined : String(dto.description),
-    assigneeId: String(dto.assignee_id || ''),
+    id: String(row.id),
+    title: String(row.title || ''),
+    description: row.description == null ? undefined : String(row.description),
+    assigneeId: String(row.assigneeId || (Array.isArray(row.assigneeIds) ? row.assigneeIds[0] : '') || ''),
     dueDate,
-    priority: normalizeTaskPriority(String(dto.priority || '')),
-    status: normalizeTaskStatus(String(dto.status || '')),
-    tags: Array.isArray(dto.tags) ? dto.tags.map((t) => String(t)).filter(Boolean) : [],
+    priority: normalizeTaskPriority(String(row.priority || 'medium')),
+    status: normalizeTaskStatus(String(row.status || 'todo')),
+    tags: Array.isArray(row.tags) ? row.tags.map((t) => String(t)).filter(Boolean) : [],
   };
 }
 
@@ -101,7 +104,7 @@ export default function SystemWorkspaceClient({
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
   initialEvents: SystemCalendarEventDTO[];
-  initialTasks: SystemTaskDTO[];
+  initialTasks: NexusTask[];
   initialCampaigns: WorkspaceCampaignDTO[];
   initialNotifications: SystemNotificationDTO[];
 }) {
@@ -112,7 +115,7 @@ export default function SystemWorkspaceClient({
 
   const [leadsDto, setLeadsDto] = useState<SystemLeadDTO[]>(initialLeads);
   const [events, setEvents] = useState<CalendarEvent[]>(() => (initialEvents || []).map(mapDtoToCalendarEvent));
-  const [tasks, setTasks] = useState<Task[]>(() => (initialTasks || []).map(mapTaskDto));
+  const [tasks, setTasks] = useState<Task[]>(() => (initialTasks || []).map(mapNexusTaskToUiTask));
 
   const leads: Lead[] = useMemo(() => (leadsDto || []).map(mapDtoToLead), [leadsDto]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);
@@ -243,50 +246,55 @@ export default function SystemWorkspaceClient({
   };
 
   const handleUpdateTask = async (task: Task) => {
-    const res = await updateSystemTask({
-      orgSlug,
-      taskId: String(task.id),
-      patch: {
-        title: task.title,
-        description: task.description ?? null,
-        assigneeId: task.assigneeId,
-        dueDate: task.dueDate.toISOString(),
-        priority: task.priority,
-        status: task.status,
-        tags: task.tags,
-      },
-    });
+    try {
+      const updated = await updateNexusTaskByOrgSlug({
+        orgSlug,
+        taskId: String(task.id),
+        updates: {
+          title: task.title,
+          description: task.description ?? '',
+          assigneeId: task.assigneeId,
+          assigneeIds: [task.assigneeId],
+          dueDate: task.dueDate.toISOString().slice(0, 10),
+          priority: task.priority,
+          status: task.status,
+          tags: task.tags,
+        } as any,
+      });
 
-    if (!res.ok) {
-      addToast(res.message || 'שגיאה בעדכון משימה', 'error');
-      return;
+      const next = mapNexusTaskToUiTask(updated);
+      setTasks((prev) => prev.map((t) => (String(t.id) === String(next.id) ? next : t)));
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה בעדכון משימה', 'error');
     }
-
-    const next = mapTaskDto(res.task);
-    setTasks((prev) => prev.map((t) => (String(t.id) === String(next.id) ? next : t)));
   };
 
   const handleAddTask = async (task: Task) => {
-    const res = await createSystemTask({
-      orgSlug,
-      input: {
-        title: task.title,
-        description: task.description ?? null,
-        assigneeId: task.assigneeId,
-        dueDate: task.dueDate.toISOString(),
-        priority: task.priority,
-        status: task.status,
-        tags: task.tags,
-      },
-    });
+    try {
+      const created = await createNexusTaskByOrgSlug({
+        orgSlug,
+        input: {
+          title: task.title,
+          description: task.description ?? '',
+          status: task.status,
+          priority: task.priority,
+          assigneeId: task.assigneeId,
+          assigneeIds: [task.assigneeId],
+          tags: task.tags,
+          dueDate: task.dueDate.toISOString().slice(0, 10),
+          timeSpent: 0,
+          isTimerRunning: false,
+          messages: [],
+          createdAt: new Date().toISOString(),
+        } as any,
+      });
 
-    if (!res.ok) {
-      addToast(res.message || 'שגיאה ביצירת משימה', 'error');
+      const next = mapNexusTaskToUiTask(created);
+      setTasks((prev) => [next, ...prev]);
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה ביצירת משימה', 'error');
       return;
     }
-
-    const next = mapTaskDto(res.task);
-    setTasks((prev) => [next, ...prev]);
   };
 
   return (

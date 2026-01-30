@@ -177,7 +177,11 @@ export function gregorianToHebrew(date: Date): HebrewDate {
   const hebrewDay = hd.getDate();
   
   // Get month name in Hebrew
-  const monthName = hd.getMonthName('h');
+  const isLeapYear = HDate.isLeapYear(hebrewYear);
+  const monthIndex = hebrewMonth - 1;
+  const monthName =
+    (isLeapYear ? HEBREW_MONTHS_LEAP : HEBREW_MONTHS)[monthIndex] ||
+    hd.getMonthName();
   
   // Get day of week
   const dayOfWeek = date.getDay();

@@ -1,12 +1,18 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import prisma, { queryRawAllowlisted } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { GlobalSystemMetrics, ClientStatus } from '@/types/social';
-import { translateError } from '@/lib/errorTranslations';
 import { updateClinicClient } from '@/app/actions/client-clinic';
-import { requireSuperAdmin } from '@/lib/auth';
+import { requireSuperAdmin, requireAuditLogAccess } from '@/lib/auth';
 import { randomUUID } from 'crypto';
+
+function isMissingOrganizationIdColumnError(err: any): boolean {
+  const message = String(err?.message || '').toLowerCase();
+  const code = String((err as any)?.code || '').toLowerCase();
+  return code === '42703' || (message.includes('column') && message.includes('organization_id'));
+}
 
 export type AdminClientLite = {
   id: string;
@@ -28,35 +34,41 @@ export async function getAdminClients(params?: {
     }
 
     await requireSuperAdmin();
-
-    const supabase = createClient();
     const limit = Math.max(1, Math.min(500, Number(params?.limit ?? 200)));
     const query = String(params?.query ?? '').trim();
 
-    let q = supabase
-      .from('client_clients')
-      .select('id, organization_id, full_name, metadata, created_at')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (query) {
-      q = q.ilike('full_name', `%${query}%`);
-    }
-
-    const { data, error } = await q;
-    if (error) return createErrorResponse(error, 'שגיאה בטעינת לקוחות') as any;
+    const data = await prisma.clientClient.findMany({
+      where: query
+        ? {
+            fullName: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          }
+        : undefined,
+      select: {
+        id: true,
+        organizationId: true,
+        fullName: true,
+        email: true,
+        metadata: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
 
     const clients: AdminClientLite[] = (data || []).map((row: any) => {
       const md = row?.metadata ?? {};
-      const companyName = (md.companyName || md.name || row.full_name || '').toString();
+      const companyName = (md.companyName || md.name || row.fullName || '').toString();
       const email = (md.email || row.email || null) as string | null;
       return {
         id: String(row.id),
-        organizationId: row.organization_id ? String(row.organization_id) : null,
-        fullName: String(row.full_name || ''),
+        organizationId: row.organizationId ? String(row.organizationId) : null,
+        fullName: String(row.fullName || ''),
         companyName,
         email: email ? String(email) : null,
-        createdAt: row.created_at ? String(row.created_at) : null,
+        createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
       };
     });
 
@@ -72,23 +84,40 @@ export async function getAdminClients(params?: {
 export async function getSystemMetrics(): Promise<{ success: boolean; data?: GlobalSystemMetrics & { trends?: any }; error?: string }> {
   try {
     await requireSuperAdmin();
-    const supabase = createClient();
 
     // Get metrics from database
-    const { data: metricsData, error: metricsError } = await supabase
-      .from('global_system_metrics')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(2); // Get last 2 to calculate trends
+    const metricsData = await prisma.social_global_system_metrics.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 2,
+    });
 
-    // Calculate real-time metrics from clients
-    const { data: clientsData } = await supabase
-      .from('client_clients')
-      .select('created_at, metadata');
+    const aggRows = await queryRawAllowlisted<
+      Array<{
+        total_mrr: unknown;
+        active_subscriptions: unknown;
+        overdue_invoices_count: unknown;
+        new_clients_this_month: unknown;
+      }>
+    >(prisma, {
+      reason: 'admin_metrics_client_clients_agg',
+      query: `
+      SELECT
+        COALESCE(
+          SUM(COALESCE(NULLIF((metadata->>'monthlyFee'), '')::numeric, 0)),
+          0
+        ) AS total_mrr,
+        COUNT(*) FILTER (WHERE COALESCE(metadata->>'status', '') = 'Active') AS active_subscriptions,
+        COUNT(*) FILTER (WHERE COALESCE(metadata->>'paymentStatus', '') = 'overdue') AS overdue_invoices_count,
+        COUNT(*) FILTER (WHERE created_at >= date_trunc('month', now())) AS new_clients_this_month
+      FROM client_clients;
+    `,
+      values: [],
+    });
 
-    const totalMRR = (clientsData || []).reduce((sum, c: any) => sum + (Number(c?.metadata?.monthlyFee) || 0), 0);
-    const activeSubscriptions = (clientsData || []).filter((c: any) => (c?.metadata?.status ?? '') === 'Active').length;
-    const overdueInvoicesCount = (clientsData || []).filter((c: any) => (c?.metadata?.paymentStatus ?? '') === 'overdue').length;
+    const agg = Array.isArray(aggRows) && aggRows.length > 0 ? aggRows[0] : null;
+    const totalMRR = agg?.total_mrr == null ? 0 : Number(agg.total_mrr);
+    const activeSubscriptions = agg?.active_subscriptions == null ? 0 : Number(agg.active_subscriptions);
+    const overdueInvoicesCount = agg?.overdue_invoices_count == null ? 0 : Number(agg.overdue_invoices_count);
 
     // Calculate trends
     const previousMRR = metricsData?.[1]?.total_mrr ? Number(metricsData[1].total_mrr) : totalMRR;
@@ -101,12 +130,7 @@ export async function getSystemMetrics(): Promise<{ success: boolean; data?: Glo
     const previousOverdue = metricsData?.[1]?.overdue_invoices_count || overdueInvoicesCount;
     const overdueTrend = previousOverdue > 0 ? ((overdueInvoicesCount - previousOverdue) / previousOverdue * 100).toFixed(0) : '0';
 
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    const newClientsThisMonth = clientsData?.filter(c => {
-      const created = new Date(c.created_at);
-      return created >= thisMonth;
-    }).length || 0;
+    const newClientsThisMonth = agg?.new_clients_this_month == null ? 0 : Number(agg.new_clients_this_month);
 
     const metrics: GlobalSystemMetrics & { trends?: any } = {
       totalMRR: currentMRR,
@@ -143,21 +167,18 @@ export async function updateClientStatus(
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
+    const clientRow = await prisma.clientClient.findUnique({
+      where: { id: clientId },
+      select: { id: true, organizationId: true, metadata: true },
+    });
 
-    const { data: clientRow, error } = await supabase
-      .from('client_clients')
-      .select('id, organization_id, metadata')
-      .eq('id', clientId)
-      .maybeSingle();
-
-    if (error || !clientRow?.id) {
-      return createErrorResponse(error || new Error('Client not found'), 'שגיאה בעדכון סטטוס לקוח');
+    if (!clientRow?.id) {
+      return createErrorResponse(new Error('Client not found'), 'שגיאה בעדכון סטטוס לקוח');
     }
 
     const nextMetadata = { ...(clientRow as any).metadata, status };
     await updateClinicClient({
-      orgId: String((clientRow as any).organization_id),
+      orgId: String((clientRow as any).organizationId),
       clientId: String((clientRow as any).id),
       updates: { metadata: nextMetadata },
     });
@@ -183,22 +204,20 @@ export async function toggleClientAccess(
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     const status: ClientStatus = blocked ? 'Overdue' : 'Active';
-    const { data: clientRow, error } = await supabase
-      .from('client_clients')
-      .select('id, organization_id, metadata')
-      .eq('id', clientId)
-      .maybeSingle();
 
-    if (error || !clientRow?.id) {
-      return createErrorResponse(error || new Error('Client not found'), 'שגיאה בחסימת/שחרור לקוח');
+    const clientRow = await prisma.clientClient.findUnique({
+      where: { id: clientId },
+      select: { id: true, organizationId: true, metadata: true },
+    });
+
+    if (!clientRow?.id) {
+      return createErrorResponse(new Error('Client not found'), 'שגיאה בחסימת/שחרור לקוח');
     }
 
     const nextMetadata = { ...(clientRow as any).metadata, status };
     await updateClinicClient({
-      orgId: String((clientRow as any).organization_id),
+      orgId: String((clientRow as any).organizationId),
       clientId: String((clientRow as any).id),
       updates: { metadata: nextMetadata },
     });
@@ -221,35 +240,44 @@ export async function refreshSystemData(): Promise<{ success: boolean; error?: s
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     // Recalculate and update system metrics
-    const { data: clients } = await supabase
-      .from('client_clients')
-      .select('created_at, metadata');
+    const aggRows = await queryRawAllowlisted<
+      Array<{
+        total_mrr: unknown;
+        active_subscriptions: unknown;
+        overdue_invoices_count: unknown;
+        new_clients_this_month: unknown;
+      }>
+    >(prisma, {
+      reason: 'admin_metrics_client_clients_agg',
+      query: `
+      SELECT
+        COALESCE(
+          SUM(COALESCE(NULLIF((metadata->>'monthlyFee'), '')::numeric, 0)),
+          0
+        ) AS total_mrr,
+        COUNT(*) FILTER (WHERE COALESCE(metadata->>'status', '') = 'Active') AS active_subscriptions,
+        COUNT(*) FILTER (WHERE COALESCE(metadata->>'paymentStatus', '') = 'overdue') AS overdue_invoices_count,
+        COUNT(*) FILTER (WHERE created_at >= date_trunc('month', now())) AS new_clients_this_month
+      FROM client_clients;
+    `,
+      values: [],
+    });
 
-    const totalMRR = (clients || []).reduce((sum, c: any) => sum + (Number(c?.metadata?.monthlyFee) || 0), 0);
-    const activeSubscriptions = (clients || []).filter((c: any) => (c?.metadata?.status ?? '') === 'Active').length;
-    const overdueInvoicesCount = (clients || []).filter((c: any) => (c?.metadata?.paymentStatus ?? '') === 'overdue').length;
-    
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    const newClientsThisMonth = clients?.filter(c => {
-      const created = new Date(c.created_at);
-      return created >= thisMonth;
-    }).length || 0;
+    const agg = Array.isArray(aggRows) && aggRows.length > 0 ? aggRows[0] : null;
+    const totalMRR = agg?.total_mrr == null ? 0 : Number(agg.total_mrr);
+    const activeSubscriptions = agg?.active_subscriptions == null ? 0 : Number(agg.active_subscriptions);
+    const overdueInvoicesCount = agg?.overdue_invoices_count == null ? 0 : Number(agg.overdue_invoices_count);
+    const newClientsThisMonth = agg?.new_clients_this_month == null ? 0 : Number(agg.new_clients_this_month);
 
-    // Update or insert metrics
-    await supabase
-      .from('global_system_metrics')
-      .upsert({
-        total_mrr: totalMRR,
+    await prisma.social_global_system_metrics.create({
+      data: {
+        total_mrr: new Prisma.Decimal(totalMRR),
         active_subscriptions: activeSubscriptions,
         overdue_invoices_count: overdueInvoicesCount,
         new_clients_this_month: newClientsThisMonth,
-      }, {
-        onConflict: 'id',
-      });
+      },
+    });
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -291,11 +319,9 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: a
     await requireSuperAdmin();
 
     // Check integration statuses
-    const supabase = createClient();
-    const { data: integrations } = await supabase
-      .from('integration_status')
-      .select('*')
-      .order('name');
+    const integrations = await prisma.social_integration_status.findMany({
+      orderBy: { name: 'asc' },
+    });
 
     // Measure actual latencies
     const [metaLatency, googleLatency, geminiLatency, supabaseLatency] = await Promise.all([
@@ -357,55 +383,25 @@ export async function getSecurityAuditLog(params?: {
       return authCheck as any;
     }
 
-    await requireSuperAdmin();
-
-    const supabase = createClient();
+    await requireAuditLogAccess();
 
     const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
     const offset = Math.max(0, Number(params?.offset ?? 0));
 
-    // Get activity logs (if table exists)
-    const { data: activityLogs } = await supabase
-      .from('activity_logs')
-      .select(`
-        *,
-        nexus_users (name)
-      `)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const syncLogs = await prisma.social_sync_logs.findMany({
+      orderBy: { completed_at: 'desc' },
+      skip: offset,
+      take: Math.min(limit, 20),
+    });
 
-    // Transform to audit log format
-    const auditLog = (activityLogs || []).map((log: any) => ({
-      action: log.action,
-      user: log.nexus_users?.name || 'משתמש',
-      time: new Date(log.created_at).toLocaleString('he-IL'),
-      timestamp: log.created_at,
+    const fallbackLogs = (syncLogs || []).map((log: any) => ({
+      action: `סנכרון ${log.integration_name || 'מערכת'}`,
+      user: 'מערכת',
+      time: log.completed_at ? new Date(log.completed_at).toLocaleString('he-IL') : '',
+      timestamp: log.completed_at ? new Date(log.completed_at).toISOString() : null,
     }));
 
-    // If we have logs, return them
-    if (auditLog.length > 0) {
-      return createSuccessResponse(auditLog);
-    }
-
-    // If no logs, try to get from sync_logs as fallback
-    const { data: syncLogs } = await supabase
-      .from('sync_logs')
-      .select('*')
-      .order('completed_at', { ascending: false })
-      .range(offset, offset + Math.min(limit, 20) - 1);
-
-    if (syncLogs && syncLogs.length > 0) {
-      const fallbackLogs = syncLogs.map((log: any) => ({
-        action: `סנכרון ${log.integration_name || 'מערכת'}`,
-        user: 'מערכת',
-        time: new Date(log.completed_at).toLocaleString('he-IL'),
-        timestamp: log.completed_at,
-      }));
-      return createSuccessResponse(fallbackLogs);
-    }
-
-    // If no data at all, return empty array with message
-    return createSuccessResponse([]);
+    return createSuccessResponse(fallbackLogs);
   } catch (error) {
     console.error('[getSecurityAuditLog] Error:', error);
     // Return empty array instead of mock data
@@ -426,46 +422,35 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
     // Verify client exists
-    const { data: client, error: clientError } = await supabase
-      .from('client_clients')
-      .select('id, organization_id, full_name, metadata')
-      .eq('id', clientId)
-      .maybeSingle();
+    const client = await prisma.clientClient.findUnique({
+      where: { id: clientId },
+      select: { id: true, organizationId: true, fullName: true, metadata: true },
+    });
 
-    if (clientError || !client) {
-      return createErrorResponse(clientError, 'לקוח לא נמצא');
+    if (!client?.id) {
+      return createErrorResponse(new Error('Client not found'), 'לקוח לא נמצא');
+    }
+
+    const organizationId = (client as any)?.organizationId ? String((client as any).organizationId) : '';
+    if (!organizationId) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: לקוח ללא organization_id לא ניתן להתחזות אליו');
     }
 
     // Create impersonation session record
     // Note: in DB schema `token` is required (unique), and in some deployments the table name is `social_impersonation_sessions`.
     const token = randomUUID();
-    const sessionPayload: any = {
-      admin_user_id: authCheck.userId,
-      client_id: clientId,
-      token,
-      created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour
-    };
-
     let session: any = null;
-    let sessionError: any = null;
-
-    const tryInsert = async (table: string) => {
-      const res = await supabase.from(table).insert(sessionPayload).select().single();
-      session = res.data as any;
-      sessionError = res.error as any;
-      return res;
-    };
-
-    await tryInsert('impersonation_sessions');
-    if (sessionError) {
-      await tryInsert('social_impersonation_sessions');
-    }
-
-    if (sessionError) {
+    try {
+      session = await prisma.social_impersonation_sessions.create({
+        data: {
+          admin_user_id: String(authCheck.userId || ''),
+          client_id: clientId,
+          token,
+          expires_at: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      });
+    } catch (sessionError: any) {
       // If table doesn't exist / RLS / schema mismatch - still allow navigation, but return token for traceability.
       return createSuccessResponse({ impersonationToken: token });
     }
@@ -473,12 +458,8 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
     // Log the impersonation action
     try {
       const displayName =
-        (client as any)?.metadata?.companyName || (client as any)?.metadata?.name || (client as any)?.full_name || 'לקוח';
-      await supabase.from('activity_logs').insert({
-        user_id: authCheck.userId,
-        action: `התחזות ללקוח: ${displayName}`,
-        created_at: new Date().toISOString(),
-      });
+        (client as any)?.metadata?.companyName || (client as any)?.metadata?.name || (client as any)?.fullName || 'לקוח';
+      void displayName;
     } catch (logError) {
       // Logging is optional
       console.warn('[impersonateUser] Failed to log action:', logError);

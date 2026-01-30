@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { 
@@ -9,7 +10,7 @@ import {
     CheckCircle, Star, MessageCircle, AlertTriangle, LifeBuoy,
     ThumbsUp, Heart, Sparkles
 } from 'lucide-react';
-import { Lead, PortalApproval, PortalTask, SupportTicket } from '../types';
+import { Lead, PortalApproval, PortalTask, SupportTicket } from './system/types';
 import { useToast } from '../contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
 

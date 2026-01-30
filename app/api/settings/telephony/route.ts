@@ -8,42 +8,25 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { getTenants } from '../../../../lib/db';
 import { prisma } from '../../../../lib/prisma';
+import { createClient } from '@/lib/supabase';
+import { queryRawTenantScoped } from '@/lib/prisma';
+import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 /**
  * Helper function to get tenantId from request/user
  */
-async function getTenantId(request: NextRequest, userEmail: string | null): Promise<string | null> {
+async function getTenantId(request: NextRequest, userEmail: string | null, workspaceId: string): Promise<string | null> {
+    void userEmail;
     const searchParams = request.nextUrl.searchParams;
     const providedTenantId = searchParams.get('tenantId');
-    
-    if (providedTenantId) {
-        return providedTenantId;
+
+    if (providedTenantId && String(providedTenantId) !== String(workspaceId)) {
+        return null;
     }
-    
-    // Try to get from subdomain
-    const hostname = request.headers.get('host') || '';
-    const subdomainMatch = hostname.match(/^([^.]+)\.nexus-os\.co$/);
-    const subdomain = subdomainMatch ? subdomainMatch[1] : null;
-    
-    if (subdomain) {
-        const tenants = await getTenants({ subdomain });
-        if (tenants.length > 0) {
-            return tenants[0].id;
-        }
-    }
-    
-    // Try to find by user's email (owner_email)
-    if (userEmail) {
-        const tenants = await getTenants({ ownerEmail: userEmail });
-        if (tenants.length > 0) {
-            return tenants[0].id;
-        }
-    }
-    
-    return null;
+
+    return String(workspaceId);
 }
 
 /**
@@ -57,34 +40,51 @@ async function GETHandler(request: NextRequest) {
         
         // 2. Check permissions - only admins can view telephony settings
         await requirePermission('manage_system');
+
+        const { workspace } = await getWorkspaceOrThrow(request);
         
         // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email);
+        const tenantId = await getTenantId(request, user.email, String(workspace.id));
         if (!tenantId) {
             return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
+                { error: 'Forbidden - Invalid tenant context' },
+                { status: 403 }
             );
         }
-        
-        // 4. Fetch telephony integrations from database
-        const integrations = await prisma.systemTelephonyIntegration.findMany({
-            where: {
-                tenantId: tenantId
-            },
-            select: {
-                id: true,
-                provider: true,
-                isActive: true,
-                createdAt: true,
-                updatedAt: true,
-                // Don't expose credentials in GET - use separate endpoint if needed
-            }
+
+        const rows = await queryRawTenantScoped<any[]>(prisma, {
+            tenantId,
+            reason: 'telephony_settings_get',
+            query: `
+                SELECT id, system_flags, created_at, updated_at
+                FROM system_settings
+                WHERE tenant_id = $1::uuid
+                LIMIT 1
+            `,
+            values: [tenantId],
         });
+
+        const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+
+        const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
+            ? row.system_flags.telephony
+            : null;
+
+        const integrations = telephony
+            ? [
+                {
+                    id: String(row.id),
+                    provider: String(telephony.provider || ''),
+                    isActive: Boolean(telephony.isActive ?? true),
+                    createdAt: row.created_at,
+                    updatedAt: row.updated_at,
+                },
+            ]
+            : [];
         
         return NextResponse.json({
             tenantId,
-            integrations: integrations.map(integration => ({
+            integrations: integrations.map((integration: any) => ({
                 id: integration.id,
                 provider: integration.provider,
                 isActive: integration.isActive,
@@ -119,13 +119,15 @@ async function PUTHandler(request: NextRequest) {
         
         // 2. Check permissions - only admins can update telephony settings
         await requirePermission('manage_system');
+
+        const { workspace } = await getWorkspaceOrThrow(request);
         
         // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email);
+        const tenantId = await getTenantId(request, user.email, String(workspace.id));
         if (!tenantId) {
             return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
+                { error: 'Forbidden - Invalid tenant context' },
+                { status: 403 }
             );
         }
         
@@ -150,36 +152,35 @@ async function PUTHandler(request: NextRequest) {
             );
         }
         
-        // 6. Check if integration already exists
-        const existingIntegration = await prisma.systemTelephonyIntegration.findFirst({
-            where: {
-                tenantId: tenantId,
-                provider: provider.toLowerCase()
-            }
+        const active = isActive !== undefined ? Boolean(isActive) : true;
+        const nextTelephony = {
+            provider: provider.toLowerCase(),
+            credentials: credentials,
+            isActive: active,
+        };
+
+        const upserted = await queryRawTenantScoped<any[]>(prisma, {
+            tenantId,
+            reason: 'telephony_settings_upsert',
+            query: `
+                INSERT INTO system_settings (tenant_id, system_flags)
+                VALUES ($1::uuid, jsonb_build_object('telephony', $2::jsonb))
+                ON CONFLICT (tenant_id)
+                DO UPDATE SET
+                    system_flags = COALESCE(system_settings.system_flags, '{}'::jsonb) || jsonb_build_object('telephony', $2::jsonb),
+                    updated_at = NOW()
+                RETURNING id, tenant_id, system_flags
+            `,
+            values: [tenantId, nextTelephony],
         });
 
-        let integration;
-        if (existingIntegration) {
-            // Update existing integration
-            integration = await prisma.systemTelephonyIntegration.update({
-                where: {
-                    id: existingIntegration.id
-                },
-                data: {
-                    credentials: credentials,
-                    isActive: isActive !== undefined ? isActive : true
-                }
-            });
-        } else {
-            // Create new integration
-            integration = await prisma.systemTelephonyIntegration.create({
-                data: {
-                    tenantId: tenantId,
-                    provider: provider.toLowerCase(),
-                    credentials: credentials,
-                    isActive: isActive !== undefined ? isActive : true
-                }
-            });
+        const integration = Array.isArray(upserted) && upserted.length ? upserted[0] : null;
+
+        if (!integration?.id) {
+            return NextResponse.json(
+                { error: 'Failed to save telephony configuration' },
+                { status: 500 }
+            );
         }
         
         return NextResponse.json({
@@ -187,9 +188,9 @@ async function PUTHandler(request: NextRequest) {
             message: 'Telephony configuration saved successfully',
             integration: {
                 id: integration.id,
-                provider: integration.provider,
-                isActive: integration.isActive,
-                tenantId: integration.tenantId
+                provider: provider.toLowerCase(),
+                isActive: active,
+                tenantId: tenantId
             }
         });
         

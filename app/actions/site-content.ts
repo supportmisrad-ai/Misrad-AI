@@ -2,16 +2,75 @@
 
 import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as UnknownRecord;
+}
+
+function getUnknownErrorCode(error: unknown): string {
+  const obj = asObject(error);
+  const code = obj?.code;
+  return typeof code === 'string' ? code : '';
+}
+
+function isMissingTableError(error: unknown) {
+  return String(getUnknownErrorCode(error) || '').toUpperCase() === '42P01';
+}
+
+async function selectFromSiteContentTable(
+  supabase: SupabaseClient,
+  query: (tableName: string) => PromiseLike<{ data: unknown; error?: unknown }>
+) {
+  const candidates = ['site_content', 'social_site_content'] as const;
+  let lastError: unknown = null;
+
+  for (const tableName of candidates) {
+    const result = await query(tableName);
+    if (!result?.error) return { ...result, tableName };
+    lastError = result.error;
+    if (!isMissingTableError(result.error)) return { ...result, tableName };
+  }
+
+  return { data: null, error: lastError, tableName: candidates[0] };
+}
+
+async function bestEffortLogActivity(supabase: SupabaseClient, payload: UnknownRecord) {
+  try {
+    const { error } = await supabase.from('activity_logs').insert(payload);
+    if (!error) return;
+  } catch {
+    // ignore
+  }
+}
 
 export interface SiteContent {
   id: string;
   page: 'landing' | 'pricing' | 'legal';
   section: string;
   key: string;
-  content: any; // Can be string, object, array, etc.
+  content: unknown; // Can be string, object, array, etc.
   updatedAt: string;
   updatedBy: string;
 }
+
+type LandingFeatureContent = {
+  title: string;
+  desc: string;
+  icon: string;
+  color: string;
+};
+
+type LandingTestimonialContent = {
+  name: string;
+  role: string;
+  quote: string;
+  avatar: string;
+};
 
 /**
  * Get all content for a page
@@ -22,23 +81,28 @@ export async function getSiteContent(
   try {
     const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('site_content')
-      .select('*')
-      .eq('page', page)
-      .order('section', { ascending: true });
+    const { data, error } = await selectFromSiteContentTable(supabase, (tableName) =>
+      supabase
+        .from(tableName)
+        .select('*')
+        .eq('page', page)
+        .order('section', { ascending: true })
+    );
 
     if (error) {
       // If table doesn't exist, return empty array
-      if (error.code === '42P01') {
-        return createSuccessResponse([]);
+      if (isMissingTableError(error)) {
+        return { success: true, data: [] };
       }
-      return createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
+
+      const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
+      return { success: false, error: res.error };
     }
 
-    return createSuccessResponse(data || []);
+    return { success: true, data: Array.isArray(data) ? (data as SiteContent[]) : [] };
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
+    const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
+    return { success: false, error: res.error };
   }
 }
 
@@ -49,44 +113,50 @@ export async function updateSiteContent(
   page: 'landing' | 'pricing' | 'legal',
   section: string,
   key: string,
-  content: any
+  content: unknown
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     const supabase = createClient();
 
     // Upsert content
-    const { error } = await supabase
-      .from('site_content')
-      .upsert({
-        page,
-        section,
-        key,
-        content: typeof content === 'string' ? content : JSON.stringify(content),
-        updated_at: new Date().toISOString(),
-        updated_by: authCheck.userId,
-      }, {
-        onConflict: 'page,section,key',
-      });
+    const { error } = await selectFromSiteContentTable(supabase, (tableName) =>
+      supabase
+        .from(tableName)
+        .upsert(
+          {
+            page,
+            section,
+            key,
+            content: typeof content === 'string' ? content : JSON.stringify(content),
+            updated_at: new Date().toISOString(),
+            updated_by: authCheck.userId,
+          },
+          {
+            onConflict: 'page,section,key',
+          }
+        )
+    );
 
     if (error) {
-      return createErrorResponse(error, 'שגיאה בשמירת תוכן');
+      const res = createErrorResponse(error, 'שגיאה בשמירת תוכן');
+      return { success: false, error: res.error };
     }
 
-    // Log the action
-    await supabase.from('activity_logs').insert({
+    await bestEffortLogActivity(supabase, {
       user_id: authCheck.userId,
       action: `עדכון תוכן: ${page}/${section}/${key}`,
       created_at: new Date().toISOString(),
     });
 
-    return createSuccessResponse(true);
+    return { success: true };
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בשמירת תוכן');
+    const res = createErrorResponse(error, 'שגיאה בשמירת תוכן');
+    return { success: false, error: res.error };
   }
 }
 
@@ -94,33 +164,60 @@ export async function updateSiteContent(
  * Get content by key (for public pages)
  */
 export async function getContentByKey(
+  page: 'landing',
+  section: 'hero',
+  key: 'hero_title' | 'hero_subtitle'
+): Promise<{ success: boolean; data?: string | null; error?: string }>;
+export async function getContentByKey(
+  page: 'landing',
+  section: 'features',
+  key: 'features'
+): Promise<{ success: boolean; data?: LandingFeatureContent[] | null; error?: string }>;
+export async function getContentByKey(
+  page: 'landing',
+  section: 'testimonials',
+  key: 'testimonials'
+): Promise<{ success: boolean; data?: LandingTestimonialContent[] | null; error?: string }>;
+export async function getContentByKey(
   page: 'landing' | 'pricing' | 'legal',
   section: string,
   key: string
-): Promise<{ success: boolean; data?: any; error?: string }> {
+): Promise<{ success: boolean; data?: unknown; error?: string }>;
+export async function getContentByKey(
+  page: 'landing' | 'pricing' | 'legal',
+  section: string,
+  key: string
+): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
     const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('site_content')
-      .select('content')
-      .eq('page', page)
-      .eq('section', section)
-      .eq('key', key)
-      .single();
+    const { data, error } = await selectFromSiteContentTable(supabase, (tableName) =>
+      supabase
+        .from(tableName)
+        .select('content')
+        .eq('page', page)
+        .eq('section', section)
+        .eq('key', key)
+        .single()
+    );
 
     if (error || !data) {
-      return createSuccessResponse(null); // Return null if not found
+      return { success: true, data: null }; // Return null if not found
     }
 
     // Try to parse JSON, if fails return as string
     try {
-      return createSuccessResponse(JSON.parse(data.content));
+      const obj = asObject(data);
+      const raw = obj?.content;
+      return { success: true, data: JSON.parse(String(raw ?? '')) };
     } catch {
-      return createSuccessResponse(data.content);
+      const obj = asObject(data);
+      const raw = obj?.content;
+      return { success: true, data: raw };
     }
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת תוכן');
+    const res = createErrorResponse(error, 'שגיאה בטעינת תוכן');
+    return { success: false, error: res.error };
   }
 }
 

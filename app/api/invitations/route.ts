@@ -5,14 +5,33 @@
  * Gets all invitation links (for admin panel)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../lib/auth';
-import { getUsers } from '../../../lib/db';
-import { supabase } from '../../../lib/supabase';
 import { getBaseUrl } from '../../../lib/utils';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -20,56 +39,36 @@ async function GETHandler(request: NextRequest) {
         try {
             clerkUser = await getAuthenticatedUser();
         } catch (authError: any) {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
+            return apiError('Unauthorized', { status: 401 });
         }
 
         try {
             await requireSuperAdmin();
         } catch (e: any) {
-            return NextResponse.json(
-                { error: e?.message || 'Forbidden - Super Admin required' },
-                { status: 403 }
-            );
+            return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
         }
 
         if (!clerkUser.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
+        const { workspace } = await getWorkspaceOrThrow(request);
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        let supabaseClient: any;
+        try {
+            supabaseClient = createClient();
+        } catch {
+            return apiError('Database not configured', { status: 500 });
+        }
 
         // 2. Find user in database by email
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const user = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUserId = await selectDbUserId({ supabase: supabaseClient, workspaceId: workspace.id, email: clerkUser.email });
 
-        if (!user) {
-            return NextResponse.json(
-                { error: 'User not found in database. Please sync your account first.' },
-                { status: 404 }
-            );
+        if (!dbUserId) {
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
         // Super admin already validated above
-
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const supabaseClient = supabase;
 
         // 3. Get all invitation links (scoped to workspace)
         const baseQuery = () => supabaseClient
@@ -96,13 +95,7 @@ async function GETHandler(request: NextRequest) {
         let error = (byOrg as any).error;
 
         if (error?.code === '42703') {
-            const byTenant = await baseQuery().eq('tenant_id', workspace.id);
-            invitations = (byTenant as any).data;
-            error = (byTenant as any).error;
-            if (error?.code === '42703') {
-                // Fail closed: table exists but has no tenant scoping columns
-                return NextResponse.json({ success: true, invitations: [] });
-            }
+            return apiError('[SchemaMismatch] system_invitation_links is missing organization_id', { status: 500 });
         }
 
         if (error) {
@@ -110,8 +103,7 @@ async function GETHandler(request: NextRequest) {
             // If table doesn't exist, return empty array instead of error
             if (error.code === '42P01' || error.message?.includes('does not exist')) {
                 console.warn('[API] invitation_links table does not exist. Please run the schema SQL.');
-                return NextResponse.json({
-                    success: true,
+                return apiSuccess({
                     invitations: [],
                     warning: 'invitation_links table does not exist. Please run supabase-invitation-links-schema.sql'
                 });
@@ -127,17 +119,14 @@ async function GETHandler(request: NextRequest) {
             url: `${baseUrl}/invite/${invitation.token}`
         }));
 
-        return NextResponse.json({
-            success: true,
-            invitations: invitationsWithUrls
-        });
+        return apiSuccess({ invitations: invitationsWithUrls });
 
     } catch (error: any) {
         console.error('[API] Error getting invitations:', error);
-        return NextResponse.json(
-            { error: error.message || 'Failed to get invitations' },
-            { status: 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'Failed to get invitations' });
     }
 }
 

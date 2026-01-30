@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     Play, Pause, RotateCcw, CheckCircle, Volume2, 
-    VolumeX, X, Maximize2, Minimize2, Coffee, BrainCircuit, 
+    VolumeX, X, Maximize2, Minimize2, Coffee, 
     ArrowRight, Zap, Target, Award, ListTodo,
     Moon, Wind, CloudRain
 } from 'lucide-react';
@@ -110,7 +110,7 @@ const FocusModeView: React.FC = () => {
             <div className="relative z-20 p-5 md:p-8 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-2xl flex items-center justify-center text-indigo-400 shadow-inner">
-                        <BrainCircuit size={24} />
+                        <Zap size={24} />
                     </div>
                     <div>
                         <h2 className="text-xs md:text-sm font-black uppercase tracking-[0.2em] text-slate-500">מצב ריכוז</h2>

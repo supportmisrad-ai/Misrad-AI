@@ -199,9 +199,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
                     <span>{new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</span>
                 </div>
                 <div className="flex gap-2">
-                    <button className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronRight size={18} /></button>
+                    <button className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronRight size={18} /></button>
                     <button className="px-4 py-1 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-600 hover:border-slate-300 transition-colors">היום</button>
-                    <button className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronLeft size={18} /></button>
+                    <button className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronLeft size={18} /></button>
                 </div>
             </div>
 

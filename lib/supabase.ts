@@ -1,22 +1,309 @@
+import 'server-only';
+
 import { createClient as createSupabaseClient, SupabaseClient } from '@supabase/supabase-js';
+import prisma from '@/lib/prisma';
 
-const DEBUG_SUPABASE = process.env.DEBUG_SUPABASE === 'true';
+const DEBUG_SUPABASE = process.env.DEBUG_SUPABASE === 'true' && process.env.NODE_ENV !== 'production';
+const SUPABASE_SECURITY_LOGS = process.env.SUPABASE_SECURITY_LOGS === 'true';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-function supabaseDebugLog(...args: any[]) {
+type UnknownRecord = Record<string, unknown>;
+type AnyFn = (...args: unknown[]) => unknown;
+
+function asObject(value: unknown): UnknownRecord | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as UnknownRecord;
+  return null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : 'Unknown error';
+}
+
+function getErrorName(error: unknown): string | null {
+  if (error instanceof Error) return error.name;
+  const obj = asObject(error);
+  const name = obj?.name;
+  return typeof name === 'string' ? name : null;
+}
+
+const SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENABLED =
+  process.env.SUPABASE_PRISMA_FIRST_RUNTIME_GUARD !== 'false' &&
+  process.env.SUPABASE_PRISMA_FIRST_ALLOW_UNSAFE_DB !== 'true';
+
+const SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE =
+  process.env.NODE_ENV === 'production' || process.env.SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_DEV === 'true';
+
+const SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV = process.env.SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV === 'true';
+
+function supabaseDebugLog(...args: unknown[]) {
   if (DEBUG_SUPABASE) console.log(...args);
 }
 
-function supabaseDebugWarn(...args: any[]) {
+function supabaseDebugWarn(...args: unknown[]) {
   if (DEBUG_SUPABASE) console.warn(...args);
 }
 
+function supabaseErrorLog(message: string, meta?: unknown, error?: unknown) {
+  if (DEBUG_SUPABASE) {
+    if (error) {
+      console.error(message, meta, error);
+    } else if (meta !== undefined) {
+      console.error(message, meta);
+    } else {
+      console.error(message);
+    }
+  }
+
+  if (IS_PROD) {
+    console.error(message);
+    return;
+  }
+
+  if (error) {
+    console.error(message, meta, error);
+  } else if (meta !== undefined) {
+    console.error(message, meta);
+  } else {
+    console.error(message);
+  }
+}
+
+function supabaseSecurityWarn(message: string, meta?: unknown) {
+  if (process.env.NODE_ENV !== 'production' || SUPABASE_SECURITY_LOGS) {
+    if (meta !== undefined) console.warn(message, meta);
+    else console.warn(message);
+  }
+}
+
+const ORG_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function decodeBase64UrlToUtf8(input: string): string {
+  const b64 = String(input || '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+
+  try {
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(padded, 'base64').toString('utf8');
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof atob !== 'function') {
+    throw new Error('[Supabase] JWT decode failed: no decoder available');
+  }
+
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function parseJwtPayload(token: string): unknown {
+  const t = String(token || '').trim();
+  const parts = t.split('.');
+  if (parts.length < 2) {
+    throw new Error('[Supabase] Invalid JWT format (missing payload)');
+  }
+
+  const json = decodeBase64UrlToUtf8(parts[1]);
+  try {
+    return JSON.parse(json);
+  } catch {
+    throw new Error('[Supabase] Invalid JWT payload JSON');
+  }
+}
+
+function extractOrganizationIdFromJwtClaims(claims: unknown): string | null {
+  const root = asObject(claims);
+  const orgObj = asObject(root?.org);
+  const metadata = asObject(root?.metadata);
+  const publicMetadata = asObject(root?.public_metadata);
+  const appMetadata = asObject(root?.app_metadata);
+
+  const candidates = [
+    root?.organization_id,
+    root?.org_id,
+    root?.orgId,
+    orgObj?.id,
+    metadata?.organization_id,
+    publicMetadata?.organization_id,
+    appMetadata?.organization_id,
+  ];
+
+  for (const c of candidates) {
+    const v = String(c ?? '').trim();
+    if (!v) continue;
+    if (ORG_UUID_REGEX.test(v)) return v;
+    return null;
+  }
+
+  return null;
+}
+
+export function assertClerkSupabaseJwtHasOrganizationId(token: string, context: string) {
+  const t = String(token || '').trim();
+  if (!t) return;
+
+  const payload = parseJwtPayload(t);
+  const orgId = extractOrganizationIdFromJwtClaims(payload);
+
+  if (!orgId) {
+    throw new Error(
+      `[Supabase] חסר/לא תקין organization_id ב-JWT של Clerk שנשלח ל-Supabase. ` +
+        `ה-RLS תלוי בזה (current_organization_id()). Context: ${context}`
+    );
+  }
+}
+
+async function reportServiceRoleUsage(params: {
+  kind: 'unscoped' | 'scoped';
+  reason: string;
+  scopeColumn?: 'organization_id';
+  scopeId?: string;
+}) {
+  try {
+    const reason = String(params.reason || '').trim();
+    const scopeColumn = params.scopeColumn;
+    const scopeId = params.scopeId ? String(params.scopeId) : undefined;
+
+    const meta = {
+      kind: params.kind,
+      reason,
+      scope: scopeColumn && scopeId ? `${scopeColumn}=${scopeId}` : null,
+      ts: new Date().toISOString(),
+    };
+
+    supabaseSecurityWarn('[Supabase][ServiceRole]', meta);
+
+    try {
+      const { headers } = await import('next/headers');
+      const h = await headers();
+      const requestMeta = {
+        ip: h.get('x-forwarded-for') || h.get('x-real-ip') || null,
+        ua: h.get('user-agent') || null,
+        referer: h.get('referer') || null,
+      };
+      supabaseSecurityWarn('[Supabase][ServiceRole][RequestMeta]', { ...meta, ...requestMeta });
+    } catch {
+      // ignore
+    }
+
+    try {
+      const Sentry = (await import('@sentry/nextjs')) as unknown;
+      const sentryObj = asObject(Sentry);
+      const withScope = sentryObj?.withScope;
+      const captureMessage = sentryObj?.captureMessage;
+      if (typeof withScope === 'function') {
+        (withScope as (cb: (scope: unknown) => void) => void)((scope: unknown) => {
+          try {
+            const scopeObj = asObject(scope);
+            const setTag = scopeObj?.setTag;
+            const setExtra = scopeObj?.setExtra;
+            if (typeof setTag === 'function') {
+              (setTag as AnyFn)('security_event', 'supabase_service_role_client_created');
+              (setTag as AnyFn)('supabase_service_role_kind', String(params.kind));
+            }
+            if (typeof setExtra === 'function') {
+              (setExtra as AnyFn)('supabase_service_role_reason', reason);
+              if (scopeColumn) (setExtra as AnyFn)('supabase_service_role_scope_column', scopeColumn);
+              if (scopeId) (setExtra as AnyFn)('supabase_service_role_scope_id', scopeId);
+            }
+          } catch {
+            // ignore
+          }
+          if (typeof captureMessage === 'function') {
+            (captureMessage as (message: string, level?: unknown) => void)(
+              'Supabase Service Role client created', 'warning');
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+  } catch {
+    // ignore
+  }
+}
+
+const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
+  'auth_find_user_global_by_email',
+  'clerk_webhook_invite_lookup',
+  'clerk_webhook_sync_user',
+  'clerk_webhook_team_member_sync',
+  'clerk_webhook_user_deleted',
+  'cron_abandoned_signups_followup',
+  'e2e_tenant_isolation_seed',
+  'e2e_storage_cross_org_seed',
+  'e2e_rls_check_resolve_org',
+  'device_login_pairing_token_consume',
+  'employee_invite_token_lookup',
+  'employee_invite_finalize',
+  'health_check_test_write',
+  'health_check_tables',
+  'integrations_onboard_client_resolve_org',
+  'kiosk_pairing_create_or_refresh',
+  'kiosk_pairing_status',
+  'storage_test_admin',
+  'storage_upload_global_branding',
+  'system_flags_resolve_tenant',
+  'system_maintenance_mode_update',
+  'tenants_admin_list',
+  'tenants_api_key_create',
+  'tenants_super_admin_create',
+  'tenants_super_admin_delete',
+  'tenants_super_admin_update',
+  'tenants_update_metadata',
+]);
+
+const ALLOWED_SERVICE_ROLE_SCOPED_REASONS = new Set<string>([
+  'cron_abandoned_signups_followup_write',
+  'clerk_webhook_sync_user_scoped',
+  'clerk_webhook_user_deleted_scoped',
+  'clerk_webhook_team_member_sync_scoped',
+  'device_login_pairing_token_consume',
+  'employee_invite_finalize_org',
+  'integrations_onboard_client',
+  'kiosk_pairing_admin_create',
+  'kiosk_pairing_approve',
+  'kiosk_pairing_status_update',
+  'workspace_user_ensure_profile_org',
+  'ops_portal_attachment_upload',
+  'ops_portal_signature_upload',
+]);
+
+function assertServiceRoleReasonAllowed(params: {
+  reason: string;
+  kind: 'unscoped' | 'scoped';
+}) {
+  const reason = String(params.reason || '').trim();
+  if (!reason) {
+    throw new Error('[Supabase] Service Role blocked: missing reason');
+  }
+
+  const allow =
+    params.kind === 'unscoped'
+      ? ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS.has(reason)
+      : ALLOWED_SERVICE_ROLE_SCOPED_REASONS.has(reason);
+
+  if (!allow) {
+    throw new Error(`[Supabase] Service Role blocked: reason is not allowlisted: ${reason}`);
+  }
+}
+
 // Type guard to verify Supabase client
-function isValidSupabaseClient(client: any): client is SupabaseClient {
+function isValidSupabaseClient(client: unknown): client is SupabaseClient {
+  const obj = asObject(client);
   return (
-    client !== null &&
-    client !== undefined &&
-    typeof client === 'object' &&
-    typeof client.from === 'function'
+    obj !== null &&
+    typeof obj === 'object' &&
+    typeof obj.from === 'function'
   );
 }
 
@@ -32,16 +319,120 @@ export const supabase = supabaseUrl && supabaseAnonKey
 
 type ClerkTokenProvider = () => Promise<string | null | undefined>;
 
+export type CreateClientOptions = {
+
+  useServiceRole?: boolean;
+};
+
+function normalizeStackPath(p: string): string {
+  return String(p || '')
+    .replaceAll('\\', '/')
+    .replaceAll('\r', '')
+    .trim();
+}
+
+function extractCallerFileFromStack(stack: string | undefined, selfFileHint: string): string | null {
+  const s = String(stack || '');
+  if (!s) return null;
+
+  const lines = s.split('\n').map((x) => x.trim()).filter(Boolean);
+  for (const line of lines) {
+    const mParen = line.match(/\((.*?):\d+:\d+\)$/);
+    const mBare = line.match(/at\s+([^\s]+?):\d+:\d+$/);
+    const fileRaw = mParen?.[1] ?? mBare?.[1];
+    if (!fileRaw) continue;
+
+    const file = normalizeStackPath(fileRaw);
+    if (!file) continue;
+    if (file.includes('/node_modules/')) continue;
+    if (file.includes('/internal/')) continue;
+    if (file.endsWith('/' + selfFileHint)) continue;
+    if (file.includes('/' + selfFileHint + ':')) continue;
+
+    return file;
+  }
+  return null;
+}
+
+function isAllowedSupabaseDbCaller(file: string | null): boolean {
+  const f = normalizeStackPath(String(file || ''));
+  if (!f) return true;
+
+  const allow = [
+    '/app/api/e2e/',
+    '/app/api/webhooks/',
+  ];
+  if (allow.some((x) => f.includes(x))) return true;
+
+  return false;
+}
+
+async function reportBlockedDbAccess(params: {
+  callerFile: string | null;
+  kind: 'from' | 'rpc';
+  target: string;
+}) {
+  try {
+    const meta = {
+      kind: params.kind,
+      target: params.target,
+      callerFile: params.callerFile,
+      ts: new Date().toISOString(),
+    };
+    supabaseSecurityWarn('[Supabase][PrismaFirst][BlockedDbAccess]', meta);
+
+    if (!IS_PROD && !SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE && !SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV) {
+      return;
+    }
+
+    try {
+      const Sentry = (await import('@sentry/nextjs')) as unknown;
+      const sentryObj = asObject(Sentry);
+      const withScope = sentryObj?.withScope;
+      const captureMessage = sentryObj?.captureMessage;
+      if (typeof withScope === 'function') {
+        (withScope as (cb: (scope: unknown) => void) => void)((scope: unknown) => {
+          try {
+            const scopeObj = asObject(scope);
+            const setTag = scopeObj?.setTag;
+            const setExtra = scopeObj?.setExtra;
+            if (typeof setTag === 'function') {
+              (setTag as AnyFn)('security_event', 'supabase_prisma_first_blocked_db_access');
+              (setTag as AnyFn)('supabase_db_access_kind', String(params.kind));
+            }
+            if (typeof setExtra === 'function') {
+              (setExtra as AnyFn)('supabase_db_access_target', params.target);
+              (setExtra as AnyFn)('supabase_db_access_caller_file', params.callerFile);
+            }
+          } catch {
+            // ignore
+          }
+          if (typeof captureMessage === 'function') {
+            (captureMessage as AnyFn)(
+              'Supabase Prisma-First blocked PostgREST access',
+              SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE ? 'error' : 'warning'
+            );
+          }
+        });
+      }
+    } catch {
+      // ignore
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url) {
-    throw new Error('Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
+    throw new Error(IS_PROD ? 'Supabase is not configured' : 'Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
   }
 
   if (!anonKey) {
-    throw new Error('Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    throw new Error(IS_PROD ? 'Supabase is not configured' : 'Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 
   return createSupabaseClient(url, anonKey, {
@@ -54,99 +445,401 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
         const token = await tokenProvider();
         const headers = new Headers(init?.headers);
         if (token && String(token).length > 0) {
+          assertClerkSupabaseJwtHasOrganizationId(String(token), 'browser_client_with_clerk');
           headers.set('Authorization', `Bearer ${token}`);
         }
         return fetch(input, { ...init, headers });
       },
     },
   });
-}
+};
 
-export function createServiceRoleClient(): SupabaseClient {
+export type ServiceRoleClientScopedParams = {
+  reason: string;
+  scopeColumn: 'organization_id';
+  scopeId: string;
+};
+
+function createRawServiceRoleClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) {
-    const error = new Error('Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
-    console.error('[Supabase]', error.message);
+    const error = new Error(IS_PROD ? 'Supabase is not configured' : 'Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
+    supabaseErrorLog('[Supabase]', { message: error.message });
     throw error;
   }
 
-  if (!serviceKey) {
-    const error = new Error('Supabase SERVICE_ROLE key not configured. Please set SUPABASE_SERVICE_ROLE_KEY');
-    console.error('[Supabase]', error.message);
+  if (!serviceRoleKey) {
+    const error = new Error(IS_PROD ? 'Supabase is not configured' : 'Supabase SERVICE_ROLE key not configured. Please set SUPABASE_SERVICE_ROLE_KEY');
+    supabaseErrorLog('[Supabase]', { message: error.message });
     throw error;
   }
 
-  return createSupabaseClient(url, serviceKey, {
+  const fetchWithClerkJwt: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      const headers = new Headers(init?.headers);
+      if (!headers.has('apikey')) {
+        headers.set('apikey', serviceRoleKey);
+      }
+
+      if (!headers.has('Authorization')) {
+        const { auth } = await import('@clerk/nextjs/server');
+        const authRes = await auth();
+        const tokenFn =
+          authRes &&
+          typeof authRes === 'object' &&
+          'getToken' in authRes &&
+          typeof (authRes as { getToken?: unknown }).getToken === 'function'
+            ? ((authRes as { getToken: (opts?: { template?: string }) => Promise<string | null> }).getToken)
+            : null;
+        if (tokenFn) {
+          const template = process.env.CLERK_SUPABASE_JWT_TEMPLATE;
+          const token = template ? await tokenFn({ template }) : await tokenFn();
+          if (token && String(token).length > 0) {
+            headers.set('Authorization', `Bearer ${token}`);
+          }
+        }
+      }
+
+      return fetch(input, { ...init, headers });
+    } catch {
+      return fetch(input, init);
+    }
+  };
+
+  return createSupabaseClient(url, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
     },
+    global: {
+      fetch: fetchWithClerkJwt,
+    },
   });
 }
 
+/**
+ * @deprecated Prisma-First: אסור להשתמש ב-Service Role כדי לבצע גישה לנתונים עסקיים.
+ * Service Role עוקף RLS ולכן הוא מותר רק עבור Infra/Storage/Webhooks/E2E/תחזוקה ייעודית.
+ * למידע נוסף: docs/ARCHITECTURE_DECISION.md
+ */
+export function createServiceRoleClient(params: { reason: string; allowUnscoped: true }): SupabaseClient {
+  if (!params?.allowUnscoped) {
+    throw new Error('[Supabase] Refusing to create unscoped Service Role client without allowUnscoped=true');
+  }
+
+  if (!params?.reason || String(params.reason).trim().length === 0) {
+    throw new Error('[Supabase] Refusing to create Service Role client without a reason');
+  }
+
+  assertServiceRoleReasonAllowed({ reason: String(params.reason), kind: 'unscoped' });
+
+  void reportServiceRoleUsage({ kind: 'unscoped', reason: String(params.reason) });
+
+  supabaseDebugWarn('[Supabase] Creating GLOBAL Service Role client (RLS bypassed):', String(params.reason));
+  return createRawServiceRoleClient();
+}
+
+function wrapScopedBuilder(params: {
+  builder: unknown;
+  scopeColumn: 'organization_id';
+  scopeId: string;
+}): unknown {
+  const { builder, scopeColumn, scopeId } = params;
+  if (!builder || typeof builder !== 'object') return builder;
+
+  const wrapReturn = (val: unknown) => {
+    if (val && typeof val === 'object') return wrapScopedBuilder({ builder: val, scopeColumn, scopeId });
+    return val;
+  };
+
+  const ensureScopedWrite = (payload: unknown) => {
+    const values = Array.isArray(payload) ? payload : [payload];
+    for (const v of values) {
+      if (!v || typeof v !== 'object') {
+        throw new Error(`[Supabase] Service Role scoped write expects object payload (scope: ${scopeColumn}=${scopeId})`);
+      }
+      const obj = asObject(v);
+      const existing = obj ? obj[scopeColumn] : undefined;
+      if (existing === undefined || existing === null || String(existing).trim().length === 0) {
+        throw new Error(`[Supabase] Refusing Service Role write without ${scopeColumn} in payload (scope: ${scopeId})`);
+      }
+      if (String(existing) !== String(scopeId)) {
+        throw new Error(`[Supabase] Refusing Service Role write with mismatched ${scopeColumn} (got ${existing}, expected ${scopeId})`);
+      }
+    }
+  };
+
+  return new Proxy(builder as object, {
+    get(target, prop, receiver) {
+      const original = Reflect.get(target, prop, receiver);
+
+      if (typeof original !== 'function') return original;
+
+      if (prop === 'select') {
+        return (...args: unknown[]) => {
+          const res = (original as AnyFn).apply(target, args);
+          const resObj = asObject(res);
+          const eqFn = resObj?.eq;
+          if (typeof eqFn === 'function') {
+            return wrapReturn((eqFn as AnyFn)(scopeColumn, scopeId));
+          }
+          return wrapReturn(res);
+        };
+      }
+
+      if (prop === 'update') {
+        return (...args: unknown[]) => {
+          const res = (original as AnyFn).apply(target, args);
+          const resObj = asObject(res);
+          const eqFn = resObj?.eq;
+          if (typeof eqFn === 'function') {
+            return wrapReturn((eqFn as AnyFn)(scopeColumn, scopeId));
+          }
+          return wrapReturn(res);
+        };
+      }
+
+      if (prop === 'delete') {
+        return (...args: unknown[]) => {
+          const res = (original as AnyFn).apply(target, args);
+          const resObj = asObject(res);
+          const eqFn = resObj?.eq;
+          if (typeof eqFn === 'function') {
+            return wrapReturn((eqFn as AnyFn)(scopeColumn, scopeId));
+          }
+          return wrapReturn(res);
+        };
+      }
+
+      if (prop === 'insert' || prop === 'upsert') {
+        return (payload: unknown, ...rest: unknown[]) => {
+          ensureScopedWrite(payload);
+          const res = (original as AnyFn).apply(target, [payload, ...rest]);
+          return wrapReturn(res);
+        };
+      }
+
+      return (...args: unknown[]) => wrapReturn((original as AnyFn).apply(target, args));
+    },
+  });
+}
+
+export function getScopedSupabaseClient(organizationId: string): SupabaseClient {
+  const scopeId = String(organizationId || '').trim();
+  if (!scopeId) {
+    throw new Error('[Supabase] Refusing to create scoped client without organizationId');
+  }
+
+  if (!ORG_UUID_REGEX.test(scopeId)) {
+    throw new Error('[Supabase] Refusing to create scoped client with invalid organizationId');
+  }
+
+  const client = createClient();
+  const originalFrom = client.from.bind(client);
+  const originalRpc = typeof client.rpc === 'function' ? client.rpc.bind(client) : null;
+
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === 'from' && typeof originalFrom === 'function') {
+        return (table: string) => {
+          const builder = originalFrom(table);
+          const wrapped = wrapScopedBuilder({ builder, scopeColumn: 'organization_id', scopeId });
+          const wrappedObj = asObject(wrapped);
+          const eqFn = wrappedObj?.eq;
+          if (typeof eqFn === 'function') {
+            return (eqFn as AnyFn)('organization_id', scopeId);
+          }
+          return wrapped;
+        };
+      }
+
+      if (prop === 'rpc' && typeof originalRpc === 'function') {
+        return () => {
+          throw new Error('[Supabase] Scoped client: rpc is blocked (Tenant Isolation)');
+        };
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as SupabaseClient;
+}
+
+/**
+ * @deprecated Prisma-First: אסור להשתמש ב-Service Role כדי לבצע גישה לנתונים עסקיים.
+ * למידע נוסף: docs/ARCHITECTURE_DECISION.md
+ */
+export function createServiceRoleClientScoped(params: ServiceRoleClientScopedParams): SupabaseClient {
+  const reason = params?.reason ? String(params.reason).trim() : '';
+  const scopeId = params?.scopeId ? String(params.scopeId).trim() : '';
+  const scopeColumn = params?.scopeColumn;
+
+  if (!reason) {
+    throw new Error('[Supabase] Refusing to create scoped Service Role client without a reason');
+  }
+  if (!scopeId) {
+    throw new Error('[Supabase] Refusing to create scoped Service Role client without scopeId');
+  }
+  if (scopeColumn !== 'organization_id') {
+    throw new Error('[Supabase] Refusing to create scoped Service Role client without a valid scopeColumn');
+  }
+
+  assertServiceRoleReasonAllowed({ reason, kind: 'scoped' });
+
+  supabaseDebugWarn(
+    '[Supabase] Creating SCOPED Service Role client (RLS bypassed):',
+    reason,
+    `(scope: ${scopeColumn}=${scopeId})`
+  );
+
+  void reportServiceRoleUsage({
+    kind: 'scoped',
+    reason,
+    scopeColumn,
+    scopeId,
+  });
+
+  const client = createRawServiceRoleClient();
+  const clientObj = client as unknown as { from?: unknown; rpc?: unknown };
+  const originalFrom = typeof clientObj.from === 'function' ? (clientObj.from as (table: string) => unknown).bind(client) : null;
+  if (typeof originalFrom !== 'function') return client;
+
+  (clientObj as { from: (table: string) => unknown }).from = (table: string) => {
+    const builder = originalFrom(table);
+    const wrapped = wrapScopedBuilder({ builder, scopeColumn, scopeId });
+    const wrappedObj = asObject(wrapped);
+    const eqFn = wrappedObj?.eq;
+    if (typeof eqFn === 'function') {
+      return (eqFn as AnyFn)(scopeColumn, scopeId);
+    }
+    return wrapped;
+  };
+
+  const originalRpc = typeof clientObj.rpc === 'function' ? (clientObj.rpc as AnyFn).bind(client) : null;
+  if (typeof originalRpc === 'function') {
+    (clientObj as { rpc: () => never }).rpc = () => {
+      throw new Error('[Supabase] Service Role scoped client: rpc is blocked (Tenant Isolation)');
+    };
+  }
+
+  return client;
+}
+
 // Helper function to create a new Supabase client (for server-side use)
-// Uses Service Role key to bypass RLS when available, falls back to anon key
-export function createClient(): SupabaseClient {
+// Security: This client MUST respect RLS. Do not use Service Role here.
+/**
+ * @deprecated Prisma-First: אסור להשתמש ב-createClient + supabase.from(...) כדי לקרוא/לכתוב נתונים עסקיים.
+ * כל גישה לנתונים עסקיים חייבת להיות דרך Prisma עם ה-Guard המובנה.
+ * Supabase (PostgREST) מותר רק עבור Storage/Realtime/Infra ובנתיבי E2E/תחזוקה ייעודיים.
+ */
+export function createClient(options?: CreateClientOptions): SupabaseClient {
   // Read environment variables fresh each time (important for Server Actions)
   // This ensures we always get the latest values, even if .env.local was updated
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
   if (!url) {
-    const error = new Error('Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
-    console.error('[Supabase]', error.message);
+    const error = new Error(IS_PROD ? 'Supabase is not configured' : 'Supabase URL not configured. Please set NEXT_PUBLIC_SUPABASE_URL');
+    supabaseErrorLog('[Supabase]', { message: error.message });
     throw error;
   }
+
   
-  // Use Service Role key if available (bypasses RLS - recommended for server-side)
-  // Otherwise fall back to anon key (subject to RLS)
-  const key = serviceKey || anonKey;
-  const usingServiceRole = !!serviceKey;
+  // Hardening (Tenant Isolation): default is ANON key.
+  // Service Role bypasses RLS and is only allowed when explicitly requested.
+  const useServiceRole = options?.useServiceRole === true;
+  const key = useServiceRole ? serviceRoleKey : anonKey;
+
+  if (!useServiceRole && key && serviceRoleKey && String(key).trim() === String(serviceRoleKey).trim()) {
+    throw new Error(
+      IS_PROD
+        ? '[Supabase] Invalid configuration'
+        : '[Supabase] Refusing to create regular client with Service Role key. ' +
+          'NEXT_PUBLIC_SUPABASE_ANON_KEY must be the ANON key. Use createServiceRoleClient/createServiceRoleClientScoped for Service Role.'
+    );
+  }
   
   if (!key) {
-    const error = new Error('Supabase keys not configured. Please set SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    console.error('[Supabase]', error.message);
-    console.error('[Supabase] Available env vars:', {
-      hasUrl: !!url,
-      hasServiceKey: !!serviceKey,
-      hasAnonKey: !!anonKey,
-    });
+    const error = new Error(
+      IS_PROD
+        ? 'Supabase is not configured'
+        : useServiceRole
+          ? 'Supabase SERVICE_ROLE key not configured. Please set SUPABASE_SERVICE_ROLE_KEY'
+          : 'Supabase anon key not configured. Please set NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    );
+    supabaseErrorLog('[Supabase]', { message: error.message });
     throw error;
   }
   
   // Log which key is being used (for debugging)
-  if (usingServiceRole) {
-    supabaseDebugLog('[Supabase] Using SERVICE_ROLE key (bypasses RLS)');
+  if (useServiceRole) {
+    supabaseDebugWarn('[Supabase] Using SERVICE ROLE key (RLS bypassed)');
   } else {
-    supabaseDebugWarn('[Supabase] Using ANON key (subject to RLS) - Server Actions should use SERVICE_ROLE key!');
+    supabaseDebugLog('[Supabase] Using ANON key (RLS enforced where configured)');
   }
   
   // Validate key format
   if (key.length < 20) {
-    const error = new Error(`Supabase key is too short (${key.length} chars). Expected at least 20 characters.`);
-    console.error('[Supabase]', error.message);
+    const error = new Error('Supabase key is too short. Expected at least 20 characters.');
+    supabaseErrorLog('[Supabase]', { message: error.message });
     throw error;
   }
   
   try {
     // Validate URL format
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      throw new Error(`Invalid Supabase URL format: ${url.substring(0, 50)}`);
+      throw new Error('Invalid Supabase URL format');
     }
     
     // Create the client with minimal options first
-    let client: any;
+    let client: SupabaseClient | null = null;
     try {
       // Try creating client with minimal config
       supabaseDebugLog('[Supabase] Attempting to create client with URL and key...');
-      supabaseDebugLog('[Supabase] URL length:', url.length);
-      supabaseDebugLog('[Supabase] Key length:', key.length);
-      supabaseDebugLog('[Supabase] Key starts with:', key.substring(0, 10));
-      
-      client = createSupabaseClient(url, key);
+
+      const fetchWithClerkJwt: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        try {
+          const headers = new Headers(init?.headers);
+          if (!headers.has('apikey')) {
+            headers.set('apikey', key);
+          }
+
+          if (!headers.has('Authorization')) {
+            const { auth } = await import('@clerk/nextjs/server');
+            const authRes = await auth();
+            const tokenFn =
+              authRes &&
+              typeof authRes === 'object' &&
+              'getToken' in authRes &&
+              typeof (authRes as { getToken?: unknown }).getToken === 'function'
+                ? ((authRes as { getToken: (opts?: { template?: string }) => Promise<string | null> }).getToken)
+                : null;
+            if (tokenFn) {
+              const template = process.env.CLERK_SUPABASE_JWT_TEMPLATE;
+              const token = template ? await tokenFn({ template }) : await tokenFn();
+              if (token && String(token).length > 0) {
+                assertClerkSupabaseJwtHasOrganizationId(String(token), 'anon_client_fetch_with_clerk_jwt');
+                headers.set('Authorization', `Bearer ${token}`);
+              }
+            }
+          }
+          return fetch(input, { ...init, headers });
+        } catch {
+          return fetch(input, init);
+        }
+      };
+
+      client = createSupabaseClient(url, key, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        global: {
+          fetch: fetchWithClerkJwt,
+        },
+      });
       
       // Immediately verify the client structure
       if (!client) {
@@ -164,6 +857,9 @@ export function createClient(): SupabaseClient {
             autoRefreshToken: false,
             persistSession: false,
           },
+          global: {
+            fetch: fetchWithClerkJwt,
+          },
         });
         supabaseDebugLog('[Supabase] Client recreated with options, has from:', typeof client?.from);
         
@@ -172,16 +868,24 @@ export function createClient(): SupabaseClient {
           throw new Error('Supabase client creation succeeded but result is invalid. This usually means the API key is incorrect or the server needs to be restarted after changing environment variables.');
         }
       }
-    } catch (createError: any) {
-      console.error('[Supabase] createSupabaseClient threw error:', createError);
-      console.error('[Supabase] Error stack:', createError.stack);
+    } catch (createError: unknown) {
+      const createErrorMessage = getErrorMessage(createError);
+      supabaseErrorLog(
+        '[Supabase] createSupabaseClient threw error',
+        IS_PROD ? undefined : { message: createErrorMessage, name: getErrorName(createError) },
+        DEBUG_SUPABASE ? createError : undefined
+      );
       
       // Check if this might be an environment variable issue
-      if (createError.message?.includes('invalid') || createError.message?.includes('key')) {
-        throw new Error(`Failed to create Supabase client: ${createError.message}. Please verify NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file, then restart the dev server.`);
+      if (createErrorMessage.includes('invalid') || createErrorMessage.includes('key')) {
+        throw new Error(
+          IS_PROD
+            ? 'Failed to create Supabase client'
+            : `Failed to create Supabase client: ${createErrorMessage}. Please verify NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file, then restart the dev server.`
+        );
       }
       
-      throw new Error(`Failed to create Supabase client: ${createError.message}`);
+      throw new Error(IS_PROD ? 'Failed to create Supabase client' : `Failed to create Supabase client: ${createErrorMessage}`);
     }
     
     // Verify the client is valid using type guard
@@ -193,67 +897,114 @@ export function createClient(): SupabaseClient {
       type: typeof client,
       isObject: typeof client === 'object',
       hasFrom: client && 'from' in client,
-      fromType: client && typeof (client as any).from,
-      isFunction: client && typeof (client as any).from === 'function',
-      constructor: client?.constructor?.name,
+      fromType: client && typeof client.from,
+      isFunction: client && typeof client.from === 'function',
+      constructor: client && typeof client === 'object' ? (client as { constructor?: { name?: string } }).constructor?.name : undefined,
     });
     
     if (!isValid) {
-      // Log the client structure for debugging
-      console.error('[Supabase] Invalid client structure:', {
-        isNull: client === null,
-        isUndefined: client === undefined,
-        type: typeof client,
-        isObject: typeof client === 'object',
-        hasFrom: client && 'from' in client,
-        fromType: client && typeof (client as any).from,
-        fromValue: client && (client as any).from,
-        keys: client && typeof client === 'object' ? Object.keys(client).slice(0, 20) : 'N/A',
-        constructor: client?.constructor?.name,
-        clientPreview: client ? JSON.stringify(Object.keys(client).slice(0, 10)) : 'N/A',
-      });
+      if (DEBUG_SUPABASE) {
+        supabaseErrorLog('[Supabase] Invalid client structure', {
+          isNull: client === null,
+          isUndefined: client === undefined,
+          type: typeof client,
+          isObject: typeof client === 'object',
+          hasFrom: client && 'from' in client,
+          fromType: client && typeof client.from,
+          constructor: client && typeof client === 'object' ? (client as { constructor?: { name?: string } }).constructor?.name : undefined,
+          keys:
+            client && typeof client === 'object'
+              ? Object.keys(client as unknown as Record<string, unknown>).slice(0, 20)
+              : 'N/A',
+        });
+      }
       
       // Provide helpful error message
-      const errorMsg = 'Invalid Supabase client: missing .from() method. This usually means:\n' +
-        '1. The NEXT_PUBLIC_SUPABASE_ANON_KEY is incorrect or incomplete\n' +
-        '2. The dev server needs to be restarted after changing .env.local\n' +
-        '3. The Supabase package version might be incompatible\n' +
-        '\nPlease check your environment variables and restart the dev server.';
+      const errorMsg = IS_PROD
+        ? 'Invalid Supabase client'
+        : 'Invalid Supabase client: missing .from() method. This usually means:\n' +
+          '1. The NEXT_PUBLIC_SUPABASE_ANON_KEY is incorrect or incomplete\n' +
+          '2. The dev server needs to be restarted after changing .env.local\n' +
+          '3. The Supabase package version might be incompatible\n' +
+          '\nPlease check your environment variables and restart the dev server.';
       
       throw new Error(errorMsg);
     }
     
     supabaseDebugLog('[Supabase] Client validated successfully, has .from() method');
-    
-    return client as SupabaseClient;
-  } catch (error: any) {
-    console.error('[Supabase] Error creating client:', {
-      message: error?.message,
-      name: error?.name,
+
+    const originalFrom = client.from.bind(client);
+    const originalRpc = typeof client.rpc === 'function' ? client.rpc.bind(client) : null;
+
+    const guarded = new Proxy(client, {
+      get(target, prop, receiver) {
+        if (prop === 'from' && typeof originalFrom === 'function') {
+          return (table: string) => {
+            if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENABLED) {
+              const callerFile = extractCallerFileFromStack(new Error().stack, 'lib/supabase.ts');
+              const ok = isAllowedSupabaseDbCaller(callerFile);
+              if (!ok) {
+                void reportBlockedDbAccess({ callerFile, kind: 'from', target: String(table || '') });
+                const message =
+                  '[Supabase] Prisma-First runtime guard: Direct PostgREST access is blocked. ' +
+                  `Caller=${callerFile || 'unknown'} table=${String(table || '')}`;
+                if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE) {
+                  throw new Error(message);
+                }
+                supabaseSecurityWarn(message);
+              }
+            }
+            return originalFrom(table);
+          };
+        }
+
+        if (prop === 'rpc' && typeof originalRpc === 'function') {
+          return (fn: string, ...rest: unknown[]) => {
+            if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENABLED) {
+              const callerFile = extractCallerFileFromStack(new Error().stack, 'lib/supabase.ts');
+              const ok = isAllowedSupabaseDbCaller(callerFile);
+              if (!ok) {
+                void reportBlockedDbAccess({ callerFile, kind: 'rpc', target: String(fn || '') });
+                const message =
+                  '[Supabase] Prisma-First runtime guard: Direct PostgREST rpc is blocked. ' +
+                  `Caller=${callerFile || 'unknown'} rpc=${String(fn || '')}`;
+                if (SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE) {
+                  throw new Error(message);
+                }
+                supabaseSecurityWarn(message);
+              }
+            }
+            return (originalRpc as AnyFn)(fn, ...rest);
+          };
+        }
+
+        return Reflect.get(target, prop, receiver);
+      },
     });
-    console.error('[Supabase] URL:', url ? `${url.substring(0, 30)}...` : 'MISSING');
-    console.error('[Supabase] Key type:', serviceKey ? 'Service Role' : (anonKey ? 'Anon' : 'NONE'));
-    throw new Error(`Failed to create Supabase client: ${error.message}`);
+
+    return guarded as SupabaseClient;
+  } catch (error: unknown) {
+    const msg = getErrorMessage(error);
+    supabaseErrorLog('[Supabase] Error creating client');
+    throw new Error(IS_PROD ? 'Failed to create Supabase client' : `Failed to create Supabase client: ${msg}`);
   }
 }
 
 // Helper to check if Supabase is configured
 export function isSupabaseConfigured(): boolean {
-  return !!supabaseUrl && (!!supabaseServiceRoleKey || !!supabaseAnonKey);
+  return !!supabaseUrl && !!supabaseAnonKey;
 }
 
 // Helper to test Supabase connection
 export async function testConnection(): Promise<boolean> {
   try {
-    const client = createClient();
-    // Simple query to test connection
-    const { error } = await client.from('_prisma_migrations').select('id').limit(1);
-    return !error;
+    await prisma.social_organizations.findFirst({ select: { id: true } });
+    return true;
   } catch (error) {
-    console.error('[Supabase] Connection test failed:', {
-      message: (error as any)?.message,
-      name: (error as any)?.name,
-    });
+    supabaseErrorLog('[Supabase] Connection test failed', {
+      message: getErrorMessage(error),
+      name: getErrorName(error),
+    }, DEBUG_SUPABASE ? error : undefined);
     return false;
   }
 }

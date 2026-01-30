@@ -1,16 +1,22 @@
+'use client';
+
 import React, { useRef, useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { 
-    UploadCloud, FileAudio, X, BrainCircuit, Activity, 
+    UploadCloud, FileAudio, X, Activity, 
     MessageSquare, CheckCircle, AlertTriangle, Target, 
     ListTodo, ThumbsUp, ThumbsDown, MessageCircle, 
     Play, Pause, Mic, User, Fingerprint, Clock, FileText,
     ListChecks, Heart, Smile, History, Trash2, ArrowRight,
     Edit2, Link as LinkIcon, StickyNote
 } from 'lucide-react';
+
 import { useCallAnalysis } from '../contexts/CallAnalysisContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import AiOutOfCreditsModal from '../../AiOutOfCreditsModal';
-import { Lead } from '../types';
+import { CallAnalysisTask, Lead } from '../types';
+import { createNexusTaskByOrgSlug } from '../../../../app/actions/nexus';
 import { Skeleton } from '../../../ui/skeletons';
 
 interface CallAnalyzerViewProps {
@@ -18,6 +24,7 @@ interface CallAnalyzerViewProps {
 }
 
 const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
+
     const {
         state,
         history,
@@ -31,13 +38,19 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         closeCreditsModal,
     } = useCallAnalysis();
     const { addToast } = useToast();
+    const { user } = useAuth();
+    const pathname = usePathname();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
-    
+
     // Editing States
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [tempTitle, setTempTitle] = useState('');
     const [tempNotes, setTempNotes] = useState('');
+
+    const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
+    const [editingDueAt, setEditingDueAt] = useState<string>('');
+    const [creatingTaskIndex, setCreatingTaskIndex] = useState<number | null>(null);
 
     // Sync state when result changes
     useEffect(() => {
@@ -47,43 +60,11 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         }
     }, [state.result]);
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            startAnalysis(file);
-            addToast('הקובץ עלה לעיבוד ברקע. אפשר להמשיך לגלוש במערכת.', 'info');
-        }
-    };
-
-    const handleDeleteHistory = (e: React.MouseEvent, id: string) => {
-        e.stopPropagation();
-        if (window.confirm('האם למחוק את הניתוח לצמיתות?')) {
-            deleteFromHistory(id);
-            addToast('הניתוח נמחק מההיסטוריה', 'success');
-        }
-    };
-
     const handleSaveTitle = () => {
         if (state.result?.id) {
             updateHistoryItem(state.result.id, { title: tempTitle });
             setIsEditingTitle(false);
             addToast('כותרת עודכנה', 'success');
-        }
-    };
-
-    const handleSaveNotes = () => {
-        if (state.result?.id) {
-            updateHistoryItem(state.result.id, { userNotes: tempNotes });
-            addToast('הערות נשמרו', 'success');
-        }
-    };
-
-    const handleLinkLead = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const leadId = e.target.value;
-        if (state.result?.id) {
-            updateHistoryItem(state.result.id, { leadId });
-            const leadName = leads.find(l => l.id === leadId)?.name;
-            if (leadName) addToast(`השיחה שויכה ל-${leadName}`, 'success');
         }
     };
 
@@ -96,6 +77,96 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
     const formatDate = (isoString?: string) => {
         if (!isoString) return '';
         return new Date(isoString).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const orgSlugFromPathname = () => {
+        const parts = String(pathname || '').split('/').filter(Boolean);
+        const wIndex = parts.indexOf('w');
+        if (wIndex === -1) return null;
+        return parts[wIndex + 1] || null;
+    };
+
+    const toLocalDateTimeInputValue = (date: Date) => {
+        const pad = (n: number) => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    };
+
+    const isCallAnalysisTask = (t: any): t is CallAnalysisTask => {
+        return Boolean(t && typeof t === 'object' && typeof t.title === 'string');
+    };
+
+    const updateTaskAtIndex = (idx: number, patch: Partial<CallAnalysisTask>) => {
+        if (!state.result?.id || !state.result?.topics) return;
+        const existing = state.result.topics.tasks || [];
+        const next = existing.map((t: any, i: number) => {
+            if (i !== idx) return t;
+            if (!isCallAnalysisTask(t)) return t;
+            return { ...t, ...patch };
+        });
+        updateHistoryItem(state.result.id, {
+            topics: {
+                ...(state.result.topics as any),
+                tasks: next,
+            } as any,
+        } as any);
+    };
+
+    const confirmTask = async (idx: number, dueDateIso: string) => {
+        const orgSlug = orgSlugFromPathname();
+        if (!orgSlug) {
+            addToast('לא ניתן לקבוע תזכורת (orgSlug חסר)', 'error');
+            return;
+        }
+
+        const assigneeId = user?.id ? String(user.id) : '';
+        if (!assigneeId) {
+            addToast('לא ניתן לקבוע תזכורת (משתמש לא מחובר)', 'error');
+            return;
+        }
+        const tasks = state.result?.topics?.tasks || [];
+        const t = tasks[idx];
+        if (!isCallAnalysisTask(t)) return;
+
+        setCreatingTaskIndex(idx);
+        try {
+            const due = new Date(String(dueDateIso || ''));
+            if (Number.isNaN(due.getTime())) {
+                addToast('תאריך לא תקין', 'error');
+                return;
+            }
+            const dueDate = due.toISOString().slice(0, 10);
+
+            const created = await createNexusTaskByOrgSlug({
+                orgSlug,
+                input: {
+                    title: String(t.title || '').trim(),
+                    description: t.dueAtRationale ? String(t.dueAtRationale) : '',
+                    assigneeId,
+                    assigneeIds: [assigneeId],
+                    dueDate,
+                    priority: 'medium' as any,
+                    status: 'todo' as any,
+                    tags: ['Call Analyzer'],
+                    timeSpent: 0,
+                    isTimerRunning: false,
+                    messages: [],
+                    createdAt: new Date().toISOString(),
+                    leadId: state.result?.leadId ? String(state.result.leadId) : null,
+                } as any,
+            });
+
+            updateTaskAtIndex(idx, {
+                confirmedDueAt: due.toISOString(),
+                systemTaskId: String(created.id),
+                dismissed: false,
+            });
+            addToast('נקבע ביומן', 'success');
+        } catch (e: any) {
+            console.error(e);
+            addToast(e?.message || 'שגיאה בקביעת תזכורת', 'error');
+        } finally {
+            setCreatingTaskIndex(null);
+        }
     };
 
     // --- RENDER STATES ---
@@ -121,7 +192,13 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                         <input 
                             type="file" 
                             ref={fileInputRef} 
-                            onChange={handleFileSelect} 
+                            onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                    const file = e.target.files[0];
+                                    startAnalysis(file);
+                                    addToast('הקובץ עלה לעיבוד ברקע. אפשר להמשיך לגלוש במערכת.', 'info');
+                                }
+                            }} 
                             className="hidden" 
                             accept="audio/*,.mp3,.wav,.m4a"
                         />
@@ -173,7 +250,13 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                             </div>
                                         </div>
                                         <button 
-                                            onClick={(e) => handleDeleteHistory(e, item.id || '')}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm('האם למחוק את הניתוח לצמיתות?')) {
+                                                    deleteFromHistory(item.id);
+                                                    addToast('הניתוח נמחק מההיסטוריה', 'success');
+                                                }
+                                            }}
                                             className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors z-10"
                                         >
                                             <Trash2 size={16} />
@@ -212,7 +295,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     <div className="w-20 h-20 mx-auto mb-6 relative">
                         <div className="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
                         <Skeleton className="absolute inset-0 rounded-full bg-indigo-100" />
-                        <BrainCircuit className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
+                        <Activity className="absolute inset-0 m-auto text-indigo-600 animate-pulse" size={32} />
                     </div>
 
                     <h3 className="text-xl font-bold text-slate-800 mb-2">מנתח שיחה...</h3>
@@ -285,7 +368,14 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                 <LinkIcon size={10} />
                                 <select 
                                     value={result.leadId || ''} 
-                                    onChange={handleLinkLead}
+                                    onChange={(e) => {
+                                        const leadId = e.target.value;
+                                        if (state.result?.id) {
+                                            updateHistoryItem(state.result.id, { leadId });
+                                            const leadName = leads.find(l => l.id === leadId)?.name;
+                                            if (leadName) addToast(`השיחה שויכה ל-${leadName}`, 'success');
+                                        }
+                                    }}
                                     className="bg-transparent border-none text-xs font-medium text-slate-600 focus:ring-0 cursor-pointer outline-none p-0 w-24"
                                 >
                                     <option value="">שייך לליד...</option>
@@ -382,10 +472,21 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                             rows={3}
                             value={tempNotes}
                             onChange={(e) => setTempNotes(e.target.value)}
-                            onBlur={handleSaveNotes}
+                            onBlur={(e) => {
+                                if (state.result?.id) {
+                                    updateHistoryItem(state.result.id, { userNotes: tempNotes });
+                                    addToast('הערות נשמרו', 'success');
+                                }
+                            }}
                         />
                         <div className="absolute bottom-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={handleSaveNotes} className="bg-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded hover:bg-yellow-300">שמור</button>
+                            <button onClick={(e) => {
+                                e.stopPropagation();
+                                if (state.result?.id) {
+                                    updateHistoryItem(state.result.id, { userNotes: tempNotes });
+                                    addToast('הערות נשמרו', 'success');
+                                }
+                            }} className="bg-yellow-200 text-yellow-800 text-[10px] font-bold px-2 py-1 rounded hover:bg-yellow-300">שמור</button>
                         </div>
                     </div>
 
@@ -459,7 +560,89 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                                     {result.topics.tasks.map((t, i) => (
                                         <li key={i} className="text-xs font-medium text-slate-700 flex items-start gap-2">
                                             <ListTodo size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                                            {t}
+                                            {isCallAnalysisTask(t) ? (
+                                                <div className="flex-1">
+                                                    <div className="font-bold text-slate-800">{t.title}</div>
+
+                                                    {!t.dismissed && !t.confirmedDueAt && t.dueAtSuggestion ? (
+                                                        <div className="mt-1 flex flex-col gap-2">
+                                                            <div className="text-[11px] text-slate-500">
+                                                                מוצע: <span className="font-bold text-slate-700">{formatDate(t.dueAtSuggestion)}</span>
+                                                            </div>
+
+                                                            {editingTaskIndex === i ? (
+                                                                <div className="flex flex-col gap-2">
+                                                                    <input
+                                                                        type="datetime-local"
+                                                                        value={editingDueAt}
+                                                                        onChange={(e) => setEditingDueAt(e.target.value)}
+                                                                        className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs"
+                                                                    />
+                                                                    <div className="flex gap-2">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="px-3 py-1 rounded-lg bg-slate-900 text-white text-xs font-bold"
+                                                                            onClick={() => {
+                                                                                const d = editingDueAt ? new Date(editingDueAt) : null;
+                                                                                if (!d || Number.isNaN(d.getTime())) {
+                                                                                    addToast('תאריך לא תקין', 'error');
+                                                                                    return;
+                                                                                }
+                                                                                void confirmTask(i, d.toISOString());
+                                                                                setEditingTaskIndex(null);
+                                                                            }}
+                                                                        >
+                                                                            שמור
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-bold"
+                                                                            onClick={() => setEditingTaskIndex(null)}
+                                                                        >
+                                                                            ביטול
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={creatingTaskIndex === i}
+                                                                        className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-60"
+                                                                        onClick={() => void confirmTask(i, String(t.dueAtSuggestion))}
+                                                                    >
+                                                                        קבע
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-bold"
+                                                                        onClick={() => {
+                                                                            const suggested = t.dueAtSuggestion ? new Date(String(t.dueAtSuggestion)) : null;
+                                                                            setEditingDueAt(suggested && !Number.isNaN(suggested.getTime()) ? toLocalDateTimeInputValue(suggested) : '');
+                                                                            setEditingTaskIndex(i);
+                                                                        }}
+                                                                    >
+                                                                        ערוך
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="px-3 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 text-xs font-bold"
+                                                                        onClick={() => updateTaskAtIndex(i, { dismissed: true })}
+                                                                    >
+                                                                        דחה
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : null}
+
+                                                    {t.confirmedDueAt ? (
+                                                        <div className="mt-1 text-[11px] text-emerald-700 font-bold">נקבע: {formatDate(t.confirmedDueAt)}</div>
+                                                    ) : null}
+                                                </div>
+                                            ) : (
+                                                <span>{String(t)}</span>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>

@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { Client, SocialPost, SocialTask, TeamMember, AIOpportunity, ClientRequest, ManagerRequest, PaymentOrder, AgencyServiceConfig, Conversation, Idea, UserRole } from '@/types/social';
 import { DEFAULT_PLATFORM_CONFIGS, MARKETPLACE_ADDONS } from '@/lib/constants';
-import { getClients } from '@/app/actions/clients';
+import { getClientByIdForWorkspace, getClientsPage } from '@/app/actions/clients';
 import { getCampaigns } from '@/app/actions/campaigns';
 import { getTasks } from '@/app/actions/tasks';
 import { getPosts } from '@/app/actions/posts';
@@ -14,9 +14,6 @@ import { getClientRequests, getManagerRequests } from '@/app/actions/requests';
 import { getTeamMembers } from '@/app/actions/team';
 import { getConversations } from '@/app/actions/conversations';
 import { getUserRole } from '@/lib/rbac';
-import { 
-  fetchActivePlatforms
-} from '@/lib/services/supabaseService';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import type { SocialInitialData } from '@/lib/services/social-service';
 
@@ -133,7 +130,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   children,
   initialSocialData,
 }) => {
-  const { user, isLoaded } = useUser();
+  let clerkUser: ReturnType<typeof useUser>['user'] | null = null;
+  let clerkIsLoaded = true;
+
+  try {
+    const clerk = useUser();
+    clerkUser = clerk.user;
+    clerkIsLoaded = clerk.isLoaded;
+  } catch {
+    clerkUser = null;
+    clerkIsLoaded = true;
+  }
+
+  const user = clerkUser;
+  const isLoaded = clerkIsLoaded;
   const isAuthenticated = !!user && isLoaded;
   const pathname = usePathname();
   const workspaceRoute = parseWorkspaceRoute(pathname);
@@ -400,8 +410,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       setIsLoadingData(true);
       
       // Check if Supabase is configured
-      const { isSupabaseConfigured } = await import('@/lib/supabase-client');
-      if (!isSupabaseConfigured()) {
+      const hasUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
+      const hasAnonKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+      if (!hasUrl || !hasAnonKey) {
         console.error('Supabase not configured');
         throw new Error('Supabase not configured');
       }
@@ -411,41 +422,28 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       
       // 1. Critical data for initial render (Clients, Team)
       const [clientsResult, teamResult] = await Promise.all([
-        // When in workspace route -> pass orgId as second arg (source of truth)
-        workspaceOrgId
-          ? getClients(user?.id || undefined, workspaceOrgId)
-          : getClients(user?.id || undefined),
+        (() => {
+          const orgSlug = effectiveOrgSlug || workspaceOrgId;
+          return orgSlug ? getClientsPage({ orgSlug, pageSize: 200 }) : Promise.resolve({ success: true, data: { clients: [], nextCursor: null, hasMore: false } } as any);
+        })(),
         getTeamMembers(),
       ]);
 
       if (!isMountedRef.current) return;
 
       // Handle clients result
-      let clientsWithPlatforms: Client[] = [];
-      if (clientsResult.success && clientsResult.data) {
-        // Fetch active platforms for each client - Limit concurrency
-        // Optimized: Parallelize but not all at once if too many clients
-        const clients = clientsResult.data;
-        clientsWithPlatforms = await Promise.all(
-          clients.map(async (client: Client) => {
-            try {
-              const platforms = await fetchActivePlatforms(client.id);
-              return { ...client, activePlatforms: platforms as any };
-            } catch (e) {
-              return client; // Fallback if platforms fetch fails
-            }
-          })
-        );
-        
+      if (clientsResult.success && (clientsResult as any).data) {
+        const raw = (clientsResult as any).data;
+        const clients = Array.isArray(raw?.clients) ? raw.clients : (Array.isArray(raw) ? raw : []);
         if (isMountedRef.current) {
-          setClients(clientsWithPlatforms);
-          if (clientsWithPlatforms.length > 0) {
-            setPinnedClientIds(clientsWithPlatforms.slice(0, 2).map((c: Client) => c.id));
+          setClients(clients);
+          if (clients.length > 0) {
+            setPinnedClientIds(clients.slice(0, 2).map((c: Client) => c.id));
           }
         }
       } else {
         if (isMountedRef.current) setClients([]);
-        console.error('[AppContext] Failed to fetch clients:', clientsResult.error);
+        console.error('[AppContext] Failed to fetch clients:', (clientsResult as any).error);
       }
 
       // Handle team result
@@ -516,7 +514,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         setIsLoadingData(false);
       }
     }
-  }, [user, addToast, workspaceOrgId]);
+  }, [user, addToast, workspaceOrgId, effectiveOrgSlug]);
 
   // Load data from Supabase when authenticated (only once, not on every navigation)
   useEffect(() => {
@@ -586,6 +584,32 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       }
     }
   }, [activeClientId]);
+
+  useEffect(() => {
+    const run = async () => {
+      try {
+        if (!activeClientId) return;
+        if (!effectiveOrgSlug) return;
+        const exists = Array.isArray(clients) && clients.some((c: any) => String(c?.id) === String(activeClientId));
+        if (exists) return;
+
+        const res = await getClientByIdForWorkspace({ orgSlug: effectiveOrgSlug, clientId: activeClientId });
+        if (!res.success || !res.data) return;
+
+        if (!isMountedRef.current) return;
+        setClients((prev) => {
+          const list = Array.isArray(prev) ? prev : [];
+          const already = list.some((c: any) => String(c?.id) === String(res.data.id));
+          if (already) return list;
+          return [res.data, ...list];
+        });
+      } catch {
+        // ignore
+      }
+    };
+
+    run();
+  }, [activeClientId, effectiveOrgSlug, clients, setClients]);
 
   return (
     <AppContext.Provider value={{

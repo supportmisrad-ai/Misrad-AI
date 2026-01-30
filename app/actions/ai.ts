@@ -3,6 +3,12 @@
 import { Type } from '@google/genai';
 import { AIService } from '@/lib/services/ai/AIService';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 export async function analyzeMeetingTranscriptAction(transcript: string) {
   try {
     const systemPrompt = `
@@ -104,31 +110,31 @@ export async function analyzeMeetingTranscriptAction(transcript: string) {
     };
 
     const ai = AIService.getInstance();
-    const out = await ai.generateJson<any>({
+    const out = await ai.generateJson<unknown>({
       featureKey: 'client_os.meetings.analyze',
       prompt: transcript,
       systemInstruction: systemPrompt,
       responseSchema,
     });
 
-    const data = out.result;
+    const dataObj = asObject(out.result) ?? {};
 
-    if (Array.isArray(data?.agencyTasks)) {
-      data.agencyTasks = data.agencyTasks.map((t: any, i: number) => ({
-        ...t,
+    if (Array.isArray(dataObj?.agencyTasks)) {
+      dataObj.agencyTasks = (dataObj.agencyTasks as unknown[]).map((t: unknown, i: number) => ({
+        ...(asObject(t) ?? {}),
         id: `at-${Date.now()}-${i}`,
         status: 'PENDING',
       }));
     }
-    if (Array.isArray(data?.clientTasks)) {
-      data.clientTasks = data.clientTasks.map((t: any, i: number) => ({
-        ...t,
+    if (Array.isArray(dataObj?.clientTasks)) {
+      dataObj.clientTasks = (dataObj.clientTasks as unknown[]).map((t: unknown, i: number) => ({
+        ...(asObject(t) ?? {}),
         id: `ct-${Date.now()}-${i}`,
         status: 'PENDING',
       }));
     }
 
-    return data;
+    return dataObj;
   } catch {
     return {
       summary: 'לא הצלחנו לנתח את השיחה כרגע.',

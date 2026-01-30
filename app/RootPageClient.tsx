@@ -26,6 +26,9 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
   const [purchasedModulesInfo, setPurchasedModulesInfo] = useState<OSModuleInfo[]>([]);
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
 
+  const unwrap = (data: any) =>
+    (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
   useEffect(() => {
     // Wait for Clerk to load
     if (!isLoaded) {
@@ -36,8 +39,7 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
     if (isSignedIn && userId) {
       const load = async () => {
         try {
-          const [purchasedModules, workspacesResponse, lastLocationResponse] = await Promise.all([
-            getUserPurchasedModules(userId),
+          const [workspacesResponse, lastLocationResponse] = await Promise.all([
             fetch('/api/workspaces', { cache: 'no-store' }).catch(() => null),
             fetch('/api/user/last-location', { cache: 'no-store' }).catch(() => null),
           ]);
@@ -45,11 +47,12 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
           const workspacesJson = workspacesResponse && workspacesResponse.ok
             ? await workspacesResponse.json()
             : { workspaces: [] as WorkspaceApiItem[] };
-          const workspaces = (workspacesJson?.workspaces || []) as WorkspaceApiItem[];
+          const workspacesPayload = unwrap(workspacesJson);
+          const workspaces = ((workspacesPayload as any)?.workspaces || []) as WorkspaceApiItem[];
 
           const lastLocationJson: LastLocationApiResponse =
             lastLocationResponse && lastLocationResponse.ok
-              ? await lastLocationResponse.json()
+              ? (unwrap(await lastLocationResponse.json()) as LastLocationApiResponse)
               : ({ orgSlug: null, module: null } as LastLocationApiResponse);
 
           const lastOrgSlug = lastLocationJson?.orgSlug ? String(lastLocationJson.orgSlug) : null;
@@ -58,7 +61,15 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
           const resolvedOrgSlug: string | null =
             (hasLastOrg ? lastOrgSlug : null) || (workspaces[0]?.slug ? String(workspaces[0].slug) : null);
 
+          if (!resolvedOrgSlug) {
+            setIsLoadingModules(false);
+            router.push('/workspaces');
+            return;
+          }
+
           setOrgSlug(resolvedOrgSlug);
+
+          const purchasedModules = await getUserPurchasedModules(userId, resolvedOrgSlug);
 
           const modulesInfo = OS_MODULES.filter(m => 
             purchasedModules.includes(m.id) && m.purchased

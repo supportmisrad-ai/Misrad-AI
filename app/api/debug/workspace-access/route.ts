@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireSuperAdmin } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 async function GETHandler(req: NextRequest) {
   try {
     try {
@@ -25,13 +26,14 @@ async function GETHandler(req: NextRequest) {
     }
 
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+      await getWorkspaceByOrgKeyOrThrow(orgSlug);
     } catch (e: any) {
       await logAuditEvent('data.read', 'debug.workspace-access', {
         success: false,
         details: { orgSlug, clerkUserId },
         error: e?.message || 'Forbidden',
       });
+
       return NextResponse.json({ ok: false, error: e?.message || 'Forbidden' }, { status: (e as any)?.status || 403 });
     }
 

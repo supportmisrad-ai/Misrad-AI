@@ -6,6 +6,10 @@ import { createClient } from '@/lib/supabase';
 import { createClientForWorkspace } from '@/app/actions/clients';
 import { auth } from '@clerk/nextjs/server';
 import { AIService } from '@/lib/services/ai/AIService';
+import { requireOrganizationId } from '@/lib/tenant-isolation';
+import { Prisma } from '@prisma/client';
+import type { SystemCalendarEvent, SystemLead, SystemLeadActivity } from '@prisma/client';
+import type { Client } from '@/types/social';
 
 export type SystemLeadDTO = {
   id: string;
@@ -26,11 +30,30 @@ export type SystemLeadDTO = {
   product_interest?: string | null;
   ai_tags?: string[];
   next_action_date?: string | null;
+  next_action_date_suggestion?: string | null;
   next_action_note?: string | null;
+  next_action_date_rationale?: string | null;
   activities?: SystemLeadActivityDTO[];
 };
 
-function toDto(row: any): SystemLeadDTO {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+type SystemLeadRow = SystemLead & { activities?: SystemLeadActivity[] };
+
+function toDto(row: SystemLeadRow): SystemLeadDTO {
   return {
     id: row.id,
     organization_id: row.organizationId,
@@ -43,19 +66,21 @@ function toDto(row: any): SystemLeadDTO {
     status: row.status,
     value: Number(row.value ?? 0),
     last_contact: new Date(row.lastContact).toISOString(),
-    created_at: new Date(row.createdAt).toISOString(),
+    created_at: new Date(row.createdAt ?? row.lastContact).toISOString(),
     is_hot: Boolean(row.isHot),
     score: Number(row.score ?? 0),
     assigned_agent_id: row.assignedAgentId ?? null,
     product_interest: row.productInterest ?? null,
-    ai_tags: Array.isArray(row.aiTags) ? row.aiTags.map((t: any) => String(t)).filter(Boolean) : [],
+    ai_tags: Array.isArray(row.aiTags) ? row.aiTags.map((t) => String(t)).filter(Boolean) : [],
     next_action_date: row.nextActionDate ? new Date(row.nextActionDate).toISOString() : null,
+    next_action_date_suggestion: row.nextActionDateSuggestion ? new Date(row.nextActionDateSuggestion).toISOString() : null,
     next_action_note: row.nextActionNote != null ? String(row.nextActionNote) : null,
+    next_action_date_rationale: row.nextActionDateRationale != null ? String(row.nextActionDateRationale) : null,
     activities: Array.isArray(row.activities) ? row.activities.map(toActivityDto) : [],
   };
 }
 
-function parseFollowUpDateFromHebrew(text: string, now: Date): Date | null {
+function parseFollowUpDateFromHebrew(text: string, now: Date): { date: Date; rationale: string } | null {
   const content = String(text || '').trim();
   if (!content) return null;
 
@@ -66,13 +91,13 @@ function parseFollowUpDateFromHebrew(text: string, now: Date): Date | null {
     const d = new Date(now);
     d.setDate(d.getDate() + 1);
     d.setHours(10, 0, 0, 0);
-    return d;
+    return { date: d, rationale: 'זוהתה בקשה ל-follow-up מחר; הוצעה שעה 10:00 כברירת מחדל.' };
   }
 
   if (lower.includes('היום')) {
     const d = new Date(now);
     d.setHours(16, 0, 0, 0);
-    return d;
+    return { date: d, rationale: 'זוהתה בקשה ל-follow-up היום; הוצעה שעה 16:00 כברירת מחדל.' };
   }
 
   const days: Array<{ key: string; idx: number }> = [
@@ -97,7 +122,7 @@ function parseFollowUpDateFromHebrew(text: string, now: Date): Date | null {
   let diff = (found.idx - currentDow + 7) % 7;
   if (diff === 0) diff = 7;
   target.setDate(target.getDate() + diff);
-  return target;
+  return { date: target, rationale: `זוהתה בקשה ל-follow-up ביום ${found.key}; הוצעה שעה 10:00 כברירת מחדל.` };
 }
 
 async function upsertCanonicalClientByEmail(params: {
@@ -126,45 +151,50 @@ async function upsertCanonicalClientByEmail(params: {
     .maybeSingle();
 
   if (findError) {
+    const findErrorObj = asObject(findError);
+    const code = findErrorObj?.code;
+    const details = findErrorObj?.details;
     console.error('[system-leads] failed to find existing canonical client', {
       message: findError.message,
-      code: (findError as any).code,
-      details: (findError as any).details,
+      code: typeof code === 'string' ? code : undefined,
+      details: typeof details === 'string' ? details : undefined,
     });
     // Continue: fallback to createClientForWorkspace (which has its own dedupe).
   }
 
   // Use canonical action to ensure consistent schema + dedupe rules.
   // We pass orgSlug and use orgSlug as source of truth.
+  const clientPayload: Partial<Client> = {
+    name: params.fullName,
+    companyName: params.companyName,
+    email: normalizedEmail,
+    phone: params.phone ?? undefined,
+    status: 'Active',
+    onboardingStatus: 'completed',
+    postingRhythm: '3 פעמים בשבוע',
+    brandVoice: '',
+    dna: {
+      brandSummary: '',
+      voice: { formal: 50, funny: 50, length: 50 },
+      vocabulary: { loved: [], forbidden: [] },
+      colors: { primary: '#1e293b', secondary: '#334155' },
+    },
+    activePlatforms: [],
+    quotas: [],
+    credentials: [],
+    autoRemindersEnabled: true,
+    businessMetrics: {
+      timeSpentMinutes: 0,
+      expectedHours: 0,
+      punctualityScore: 100,
+      responsivenessScore: 100,
+      revisionCount: 0,
+    },
+  };
+
   const result = await createClientForWorkspace(
     params.orgSlug,
-    {
-      name: params.fullName,
-      companyName: params.companyName,
-      email: normalizedEmail,
-      phone: params.phone ?? undefined,
-      status: 'Active' as any,
-      onboardingStatus: 'completed' as any,
-      postingRhythm: '3 פעמים בשבוע',
-      brandVoice: '',
-      dna: {
-        brandSummary: '',
-        voice: { formal: 50, funny: 50, length: 50 },
-        vocabulary: { loved: [], forbidden: [] },
-        colors: { primary: '#1e293b', secondary: '#334155' },
-      },
-      activePlatforms: [],
-      quotas: [],
-      credentials: [],
-      autoRemindersEnabled: true,
-      businessMetrics: {
-        timeSpentMinutes: 0,
-        expectedHours: 0,
-        punctualityScore: 100,
-        responsivenessScore: 100,
-        revisionCount: 0,
-      },
-    } as any,
+    clientPayload,
     params.clerkUserId
   );
 
@@ -177,28 +207,150 @@ async function upsertCanonicalClientByEmail(params: {
   }
 
   console.error('[system-leads] failed to upsert canonical client', {
-    error: (result as any).error,
+    error: result.error,
   });
 
   return { canonicalClientId: null };
 }
 
 export async function getSystemLeads(orgSlug: string): Promise<SystemLeadDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  const res = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+  if (!res.success) {
+    throw new Error(res.error || 'שגיאה בטעינת לידים');
+  }
+  return res.data.leads;
+}
 
-  const rows = await prisma.systemLead.findMany({
-    where: { organizationId: workspace.id },
-    include: {
-      activities: {
-        orderBy: { timestamp: 'desc' },
-        take: 50,
+type SystemLeadsCursor = {
+  createdAt: string;
+  id: string;
+};
+function encodeSystemLeadsCursor(cursor: SystemLeadsCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64');
+}
+
+function decodeSystemLeadsCursor(raw?: string | null): SystemLeadsCursor | null {
+  const v = String(raw || '').trim();
+  if (!v) return null;
+  try {
+    const parsed: unknown = JSON.parse(Buffer.from(v, 'base64').toString('utf8'));
+    const obj = asObject(parsed);
+    const createdAt = String(obj?.createdAt || '').trim();
+    const id = String(obj?.id || '').trim();
+    if (!createdAt || !id) return null;
+    const d = new Date(createdAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return { createdAt: d.toISOString(), id };
+  } catch {
+    return null;
+  }
+}
+
+export async function getSystemCalendarEventsRange(params: {
+  orgSlug: string;
+  from: string;
+  to: string;
+  take?: number;
+}): Promise<SystemCalendarEventDTO[]> {
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  requireOrganizationId('getSystemCalendarEventsRange', workspace?.id);
+
+  const fromRaw = String(params.from || '').trim();
+  const toRaw = String(params.to || '').trim();
+  if (!fromRaw || !toRaw) return [];
+
+  const fromDate = new Date(fromRaw);
+  const toDate = new Date(toRaw);
+  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return [];
+
+  const take = Math.max(1, Math.min(500, Math.floor(params.take ?? 400)));
+
+  // Prefer occursAt (indexed), but include legacy rows where occursAt is null and date is in range.
+  // `date` is stored as ISO YYYY-MM-DD so lexical comparisons are safe.
+  const fromDateStr = fromDate.toISOString().slice(0, 10);
+  const toDateStr = toDate.toISOString().slice(0, 10);
+
+  try {
+    const where: Prisma.SystemCalendarEventWhereInput = {
+      lead: { organizationId: workspace.id },
+      date: { gte: fromDateStr, lt: toDateStr },
+    };
+
+    const rows = await prisma.systemCalendarEvent.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+
+    return rows.map(toCalendarEventDto);
+  } catch (e: unknown) {
+    console.error('[system-leads] getSystemCalendarEventsRange failed; fallback to legacy date filter', e);
+    const rows = await prisma.systemCalendarEvent.findMany({
+      where: {
+        lead: { organizationId: workspace.id },
+        date: { gte: fromDateStr, lt: toDateStr },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 200,
-  });
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
 
-  return rows.map(toDto);
+    return rows.map(toCalendarEventDto);
+  }
+}
+
+export async function getSystemLeadsPage(params: {
+  orgSlug: string;
+  cursor?: string | null;
+  pageSize?: number;
+}): Promise<
+  | { success: true; data: { leads: SystemLeadDTO[]; nextCursor: string | null; hasMore: boolean } }
+  | { success: false; error: string }
+> {
+  try {
+    const orgSlug = String(params.orgSlug || '').trim();
+    if (!orgSlug) return { success: false, error: 'orgSlug חסר' };
+
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    requireOrganizationId('getSystemLeadsPage', workspace?.id);
+
+    const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
+    const cursor = decodeSystemLeadsCursor(params.cursor);
+
+    const where: Prisma.SystemLeadWhereInput = {
+      organizationId: workspace.id,
+      ...(cursor
+        ? {
+            OR: [
+              { createdAt: { lt: new Date(cursor.createdAt) } },
+              { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
+            ],
+          }
+        : {}),
+    };
+
+    const rows = await prisma.systemLead.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: pageSize + 1,
+    });
+
+    const list = Array.isArray(rows) ? rows : [];
+    const hasMore = list.length > pageSize;
+    const trimmed = hasMore ? list.slice(0, pageSize) : list;
+
+    const leads = trimmed.map((r) => toDto(r));
+
+    const last = trimmed[trimmed.length - 1];
+    const lastCreatedAt = last?.createdAt ? new Date(last.createdAt) : last?.lastContact ? new Date(last.lastContact) : null;
+    const nextCursor =
+      hasMore && last?.id && lastCreatedAt && !Number.isNaN(lastCreatedAt.getTime())
+        ? encodeSystemLeadsCursor({ createdAt: lastCreatedAt.toISOString(), id: String(last.id) })
+        : null;
+
+    return { success: true, data: { leads, nextCursor, hasMore } };
+  } catch (e: unknown) {
+    return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת לידים' };
+  }
 }
 
 export type SystemCalendarEventDTO = {
@@ -213,11 +365,11 @@ export type SystemCalendarEventDTO = {
   type: string;
   location: string;
   participants: number | null;
-  reminders: any;
-  post_meeting: any;
+  reminders: Prisma.JsonValue | null;
+  post_meeting: Prisma.JsonValue | null;
 };
 
-function toCalendarEventDto(row: any): SystemCalendarEventDTO {
+function toCalendarEventDto(row: SystemCalendarEvent): SystemCalendarEventDTO {
   return {
     id: String(row.id),
     lead_id: row.leadId ? String(row.leadId) : null,
@@ -240,12 +392,25 @@ export async function getSystemCalendarEvents(params: {
   take?: number;
 }): Promise<SystemCalendarEventDTO[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const rows = await prisma.systemCalendarEvent.findMany({
-    where: { lead: { organizationId: workspace.id } },
-    orderBy: { createdAt: 'desc' },
-    take: Math.max(1, Math.min(500, Math.floor(params.take ?? 200))),
-  });
-  return rows.map(toCalendarEventDto);
+  requireOrganizationId('getSystemCalendarEvents', workspace?.id);
+  const take = Math.max(1, Math.min(500, Math.floor(params.take ?? 200)));
+
+  try {
+    const rows = await prisma.systemCalendarEvent.findMany({
+      where: { lead: { organizationId: workspace.id } },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+    return rows.map(toCalendarEventDto);
+  } catch (e: unknown) {
+    // Backwards-compatible fallback for DBs that don't have occurs_at yet.
+    const rows = await prisma.systemCalendarEvent.findMany({
+      where: { lead: { organizationId: workspace.id } },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+    return rows.map(toCalendarEventDto);
+  }
 }
 
 export async function createSystemCalendarEvent(params: {
@@ -260,11 +425,12 @@ export async function createSystemCalendarEvent(params: {
   type: string;
   location: string;
   participants?: number | null;
-  reminders?: any;
-  postMeeting?: any;
+  reminders?: Prisma.InputJsonValue | null;
+  postMeeting?: Prisma.InputJsonValue | null;
 }): Promise<{ ok: true; event: SystemCalendarEventDTO } | { ok: false; message: string }> {
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    requireOrganizationId('createSystemCalendarEvent', workspace?.id);
 
     const title = String(params.title || '').trim();
     const leadName = String(params.leadName || '').trim();
@@ -297,15 +463,25 @@ export async function createSystemCalendarEvent(params: {
         type,
         location,
         participants: params.participants == null ? null : Number(params.participants),
-        reminders: params.reminders ?? null,
-        postMeeting: params.postMeeting ?? null,
+        reminders:
+          params.reminders === undefined
+            ? undefined
+            : params.reminders === null
+              ? Prisma.DbNull
+              : params.reminders,
+        postMeeting:
+          params.postMeeting === undefined
+            ? undefined
+            : params.postMeeting === null
+              ? Prisma.DbNull
+              : params.postMeeting,
       },
     });
 
     return { ok: true, event: toCalendarEventDto(created) };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[system-leads] createSystemCalendarEvent failed', e);
-    return { ok: false, message: e?.message || 'שגיאה ביצירת אירוע' };
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת אירוע' };
   }
 }
 
@@ -332,7 +508,7 @@ export async function updateSystemLeadFollowUp(params: {
 
     const updated = await prisma.systemLead.updateMany({
       where: { id: leadId, organizationId: workspace.id },
-      data: { nextActionDate, nextActionNote } as any,
+      data: { nextActionDate, nextActionNote, nextActionDateSuggestion: null, nextActionDateRationale: null },
     });
 
     if (!updated.count) {
@@ -342,9 +518,9 @@ export async function updateSystemLeadFollowUp(params: {
     const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
     if (!hydrated) return { ok: false, message: 'Lead not found' };
     return { ok: true, lead: hydrated };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[system-leads] updateSystemLeadFollowUp failed', e);
-    return { ok: false, message: e?.message || 'שגיאה בעדכון follow-up' };
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון follow-up' };
   }
 }
 
@@ -362,6 +538,7 @@ export async function createSystemLead(
   }
 ): Promise<SystemLeadDTO> {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  requireOrganizationId('createSystemLead', workspace?.id);
 
   const name = String(input.name || '').trim();
   const phone = String(input.phone || '').trim();
@@ -410,7 +587,7 @@ export type SystemLeadActivityDTO = {
   content: string;
   timestamp: string;
   direction: string | null;
-  metadata: any;
+  metadata: Prisma.JsonValue | null;
 };
 
 export type SystemCallHistoryDTO = {
@@ -423,13 +600,25 @@ export type SystemCallHistoryDTO = {
   direction: string | null;
 };
 
-function toActivityDto(row: any): SystemLeadActivityDTO {
+type SystemCallHistoryRow = Prisma.SystemLeadActivityGetPayload<{
+  include: {
+    lead: {
+      select: {
+        id: true;
+        name: true;
+        phone: true;
+      };
+    };
+  };
+}>;
+
+function toActivityDto(row: SystemLeadActivity): SystemLeadActivityDTO {
   return {
     id: String(row.id),
     lead_id: String(row.leadId),
     type: String(row.type),
     content: String(row.content || ''),
-    timestamp: new Date(row.timestamp).toISOString(),
+    timestamp: new Date(row.timestamp ?? row.createdAt ?? new Date()).toISOString(),
     direction: row.direction ? String(row.direction) : null,
     metadata: row.metadata ?? null,
   };
@@ -483,7 +672,7 @@ export async function getSystemCallHistory(params: {
   take?: number;
 }): Promise<SystemCallHistoryDTO[]> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const rows = await prisma.systemLeadActivity.findMany({
+  const rows: SystemCallHistoryRow[] = await prisma.systemLeadActivity.findMany({
     where: {
       type: 'call',
       lead: { organizationId: workspace.id },
@@ -495,13 +684,13 @@ export async function getSystemCallHistory(params: {
     take: Math.max(1, Math.min(500, Math.floor(params.take ?? 100))),
   });
 
-  return rows.map((r: any) => ({
+  return rows.map((r) => ({
     id: String(r.id),
     lead_id: String(r.leadId),
     lead_name: String(r.lead?.name || ''),
     lead_phone: String(r.lead?.phone || ''),
     content: String(r.content || ''),
-    timestamp: new Date(r.timestamp || r.createdAt || new Date()).toISOString(),
+    timestamp: new Date(r.timestamp ?? r.createdAt ?? new Date()).toISOString(),
     direction: r.direction != null ? String(r.direction) : null,
   }));
 }
@@ -543,7 +732,7 @@ export async function updateSystemLead(params: {
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-    const data: any = {};
+    const data: Prisma.SystemLeadUpdateManyMutationInput = {};
 
     if (params.name !== undefined) {
       const name = String(params.name || '').trim();
@@ -573,6 +762,8 @@ export async function updateSystemLead(params: {
         return { ok: false, message: 'תאריך follow-up לא תקין' };
       }
       data.nextActionDate = nextActionDate;
+      data.nextActionDateSuggestion = null;
+      data.nextActionDateRationale = null;
     }
 
     if (params.nextActionNote !== undefined) {
@@ -580,12 +771,16 @@ export async function updateSystemLead(params: {
     }
 
     if (Object.keys(data).length === 0) {
-      return { ok: true, lead: (await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 })) as any };
+      const existingLead = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
+      if (!existingLead) return { ok: false, message: 'Lead not found' };
+      return { ok: true, lead: existingLead };
     }
+
+    data.lastContact = new Date();
 
     const updated = await prisma.systemLead.updateMany({
       where: { id: leadId, organizationId: workspace.id },
-      data: { ...data, lastContact: new Date() } as any,
+      data,
     });
 
     if (!updated.count) {
@@ -595,9 +790,9 @@ export async function updateSystemLead(params: {
     const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
     if (!hydrated) return { ok: false, message: 'Lead not found' };
     return { ok: true, lead: hydrated };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[system-leads] updateSystemLead failed', e);
-    return { ok: false, message: e?.message || 'שגיאה בעדכון ליד' };
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון ליד' };
   }
 }
 
@@ -634,7 +829,7 @@ export async function recomputeSystemLeadAiScore(params: {
     }
 
     const activities = await prisma.systemLeadActivity.findMany({
-      where: { leadId },
+      where: { leadId, lead: { organizationId: workspace.id } },
       orderBy: { timestamp: 'desc' },
       take: 30,
       select: { type: true, content: true, timestamp: true, direction: true },
@@ -642,9 +837,9 @@ export async function recomputeSystemLeadAiScore(params: {
 
     const history = activities
       .slice(0, 20)
-      .map((a: any) => {
-        const when = a?.timestamp ? new Date(a.timestamp).toISOString() : '';
-        const dir = a?.direction ? `(${String(a.direction)})` : '';
+      .map((a) => {
+        const when = a.timestamp ? new Date(a.timestamp).toISOString() : '';
+        const dir = a.direction ? `(${String(a.direction)})` : '';
         return `${when} ${String(a.type || '')}${dir}: ${String(a.content || '')}`;
       })
       .join('\n');
@@ -692,15 +887,15 @@ ${history || 'אין אינטראקציות עדיין'}
       },
     });
 
-    const nextScoreRaw = (out?.result as any)?.score;
+    const nextScoreRaw = out?.result?.score;
     const nextScore = Math.max(0, Math.min(100, Math.round(Number(nextScoreRaw ?? 0))));
-    const nextIsHot = Boolean((out?.result as any)?.isHot);
-    const nextTags = Array.isArray((out?.result as any)?.tags)
-      ? (out.result.tags as any[]).map((t) => String(t || '').trim()).filter(Boolean).slice(0, 12)
+    const nextIsHot = Boolean(out?.result?.isHot);
+    const nextTags = Array.isArray(out?.result?.tags)
+      ? out.result.tags.map((t) => String(t || '').trim()).filter(Boolean).slice(0, 12)
       : [];
 
-    await prisma.systemLead.update({
-      where: { id: leadId },
+    const updated = await prisma.systemLead.updateMany({
+      where: { id: leadId, organizationId: workspace.id },
       data: {
         score: nextScore,
         isHot: nextIsHot,
@@ -708,15 +903,19 @@ ${history || 'אין אינטראקציות עדיין'}
       },
     });
 
+    if (!updated.count) {
+      return { ok: false, message: 'Lead not found' };
+    }
+
     const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
     if (!hydrated) {
       return { ok: false, message: 'Lead not found' };
     }
 
     return { ok: true, lead: hydrated };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[system-leads] recomputeSystemLeadAiScore failed', e);
-    return { ok: false, message: e?.message || 'שגיאה בחישוב AI Score' };
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בחישוב AI Score' };
   }
 }
 
@@ -726,7 +925,7 @@ export async function createSystemLeadActivity(params: {
   type: string;
   content: string;
   direction?: string | null;
-  metadata?: any;
+  metadata?: Prisma.InputJsonValue | null;
   recomputeScore?: boolean;
 }): Promise<{ ok: true; activity: SystemLeadActivityDTO; lead?: SystemLeadDTO } | { ok: false; message: string }> {
   try {
@@ -741,9 +940,10 @@ export async function createSystemLeadActivity(params: {
     if (!content) throw new Error('content is required');
 
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    requireOrganizationId('createSystemLeadActivity', workspace?.id);
     const existing = await prisma.systemLead.findFirst({
       where: { id: leadId, organizationId: workspace.id },
-      select: { id: true, nextActionDate: true, nextActionNote: true } as any,
+      select: { id: true, nextActionDate: true, nextActionNote: true, nextActionDateSuggestion: true },
     });
     if (!existing) throw new Error('Lead not found');
 
@@ -753,24 +953,33 @@ export async function createSystemLeadActivity(params: {
         type,
         content,
         direction: params.direction ? String(params.direction) : null,
-        metadata: params.metadata ?? null,
+        metadata:
+          params.metadata === undefined
+            ? undefined
+            : params.metadata === null
+              ? Prisma.DbNull
+              : params.metadata,
       },
     });
 
-    await prisma.systemLead.update({
-      where: { id: leadId },
+    const touched = await prisma.systemLead.updateMany({
+      where: { id: leadId, organizationId: workspace.id },
       data: { lastContact: new Date() },
     });
 
+    if (!touched.count) {
+      throw new Error('Lead not found');
+    }
+
     const now = new Date();
     const maybeFollowUp = type === 'call' ? parseFollowUpDateFromHebrew(content, now) : null;
-    if (maybeFollowUp && !(existing as any).nextActionDate) {
-      await prisma.systemLead.update({
-        where: { id: leadId },
+    if (maybeFollowUp && !existing.nextActionDate && !existing.nextActionDateSuggestion) {
+      await prisma.systemLead.updateMany({
+        where: { id: leadId, organizationId: workspace.id },
         data: {
-          nextActionDate: maybeFollowUp,
-          nextActionNote: (existing as any).nextActionNote ?? 'נקבע מתוך שיחה (אוטומטי)',
-        } as any,
+          nextActionDateSuggestion: maybeFollowUp.date,
+          nextActionDateRationale: maybeFollowUp.rationale,
+        },
       });
     }
 
@@ -783,15 +992,15 @@ export async function createSystemLeadActivity(params: {
 
     if (params.recomputeScore !== false) {
       const scored = await recomputeSystemLeadAiScore({ orgSlug, leadId }).catch(() => null);
-      if (scored && (scored as any).ok) {
-        leadDto = (scored as any).lead;
+      if (scored && scored.ok) {
+        leadDto = scored.lead;
       }
     }
 
     return { ok: true, activity: toActivityDto(row), lead: leadDto };
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[system-leads] createSystemLeadActivity failed', e);
-    return { ok: false, message: e?.message || 'שגיאה ביצירת פעילות' };
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת פעילות' };
   }
 }
 
@@ -800,74 +1009,52 @@ async function upsertClientClientByEmail(params: {
   fullName: string;
   email: string;
   phone?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Prisma.InputJsonValue;
 }): Promise<{ clientId: string | null }> {
-  const supabase = createClient();
   const organizationId = params.organizationId;
   const email = String(params.email || '').trim();
 
-  const { data: existing, error: findError } = await supabase
-    .from('client_clients')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .ilike('email', email)
-    .limit(1)
-    .maybeSingle();
-
-  if (findError) {
-    console.error('[system-leads] failed to find existing client_clients', {
-      message: findError.message,
-      code: (findError as any).code,
-      details: (findError as any).details,
-    });
-    throw new Error('Failed to sync client (lookup failed)');
-  }
+  const existing = await prisma.clientClient.findFirst({
+    where: {
+      organizationId,
+      email: {
+        equals: email,
+        mode: 'insensitive',
+      },
+    },
+    select: { id: true },
+  });
 
   if (existing?.id) {
-    const { error: updateError } = await supabase
-      .from('client_clients')
-      .update({
-        full_name: params.fullName,
+    const updated = await prisma.clientClient.updateMany({
+      where: { id: existing.id, organizationId },
+      data: {
+        fullName: params.fullName,
         phone: params.phone ?? null,
         email,
         metadata: params.metadata ?? {},
-      })
-      .eq('id', existing.id);
+      },
+    });
 
-    if (updateError) {
-      console.error('[system-leads] failed to update client_clients', {
-        message: updateError.message,
-        code: (updateError as any).code,
-        details: (updateError as any).details,
-      });
+    if (!updated.count) {
       throw new Error('Failed to sync client (update failed)');
     }
 
     return { clientId: existing.id };
   }
 
-  const { data: inserted, error: insertError } = await supabase
-    .from('client_clients')
-    .insert({
-      organization_id: organizationId,
-      full_name: params.fullName,
+  const created = await prisma.clientClient.create({
+    data: {
+      organizationId,
+      fullName: params.fullName,
       phone: params.phone ?? null,
       email,
       metadata: params.metadata ?? {},
-    })
-    .select('id')
-    .single();
+    },
+    select: { id: true },
+  });
 
-  if (insertError) {
-    console.error('[system-leads] failed to insert client_clients', {
-      message: insertError.message,
-      code: (insertError as any).code,
-      details: (insertError as any).details,
-    });
-    throw new Error('Failed to sync client (insert failed)');
-  }
-
-  return { clientId: inserted?.id ?? null };
+  return { clientId: created?.id ?? null };
 }
 
 export async function updateSystemLeadStatus(params: {
@@ -900,13 +1087,24 @@ export async function updateSystemLeadStatus(params: {
   }
 
   if (status !== 'won') {
-    const row = await prisma.systemLead.update({
-      where: { id: leadId },
+    const updated = await prisma.systemLead.updateMany({
+      where: { id: leadId, organizationId: workspace.id },
       data: {
         status,
         lastContact: new Date(),
       },
     });
+
+    if (!updated.count) {
+      throw new Error('Lead not found');
+    }
+
+    const row = await prisma.systemLead.findFirst({
+      where: { id: leadId, organizationId: workspace.id },
+    });
+    if (!row) {
+      throw new Error('Lead not found');
+    }
 
     return { ok: true, lead: toDto(row), syncedClientId: null };
   }
@@ -931,14 +1129,25 @@ export async function updateSystemLeadStatus(params: {
     };
   }
 
-  const row = await prisma.systemLead.update({
-    where: { id: leadId },
+  const updated = await prisma.systemLead.updateMany({
+    where: { id: leadId, organizationId: workspace.id },
     data: {
       status,
       lastContact: new Date(),
       installationAddress: nextInstallationAddress,
     },
   });
+
+  if (!updated.count) {
+    throw new Error('Lead not found');
+  }
+
+  const row = await prisma.systemLead.findFirst({
+    where: { id: leadId, organizationId: workspace.id },
+  });
+  if (!row) {
+    throw new Error('Lead not found');
+  }
 
   const lead = toDto(row);
 
@@ -992,7 +1201,7 @@ export async function updateSystemLeadStatus(params: {
           select: { id: true },
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[system-leads] failed to auto-create operations project', e);
     }
   }
@@ -1000,23 +1209,24 @@ export async function updateSystemLeadStatus(params: {
   if (workspace.entitlements?.finance) {
     try {
       const existingInvoice = await prisma.systemInvoice.findFirst({
-        where: { leadId: lead.id },
+        where: { leadId: lead.id, organizationId: workspace.id },
         select: { id: true },
       });
 
       if (!existingInvoice?.id) {
         await prisma.systemInvoice.create({
           data: {
+            organizationId: workspace.id,
             leadId: lead.id,
             client: lead.company?.trim() ? lead.company.trim() : lead.name,
-            amount: Number(lead.value || 0),
+            amount: new Prisma.Decimal(Number(lead.value || 0)),
             status: 'pending',
             item: 'מכירה (System)',
           },
           select: { id: true },
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[system-leads] failed to auto-create system invoice', e);
     }
   }

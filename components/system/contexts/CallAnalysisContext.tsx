@@ -75,6 +75,37 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   };
 
+  const normalizeTasks = (rawTasks: any): any[] => {
+    if (!Array.isArray(rawTasks)) return [];
+    return rawTasks
+      .map((t) => {
+        if (typeof t === 'string') {
+          const s = String(t).trim();
+          return s ? s : null;
+        }
+        if (t && typeof t === 'object') {
+          const title = String((t as any).title || '').trim();
+          if (!title) return null;
+          const dueAtSuggestionRaw = (t as any).dueAtSuggestion;
+          const dueAtSuggestion = dueAtSuggestionRaw == null ? null : String(dueAtSuggestionRaw);
+          const dueAtConfidence = Number.isFinite(Number((t as any).dueAtConfidence)) ? Number((t as any).dueAtConfidence) : 0;
+          const dueAtRationale = String((t as any).dueAtRationale || '');
+          return {
+            ...t,
+            title,
+            dueAtSuggestion,
+            dueAtConfidence,
+            dueAtRationale,
+            confirmedDueAt: (t as any).confirmedDueAt == null ? null : String((t as any).confirmedDueAt),
+            systemTaskId: (t as any).systemTaskId == null ? null : String((t as any).systemTaskId),
+            dismissed: Boolean((t as any).dismissed),
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
   const startAnalysis = async (file: File) => {
     const audioUrl = URL.createObjectURL(file);
     abortControllerRef.current = new AbortController();
@@ -152,6 +183,17 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const aiResult = (suggestJson as any)?.result || {};
 
+      const topicsRaw = (aiResult as any)?.topics || {};
+      const normalizedTopics = {
+        promises: Array.isArray(topicsRaw.promises) ? topicsRaw.promises : [],
+        painPoints: Array.isArray(topicsRaw.painPoints) ? topicsRaw.painPoints : [],
+        likes: Array.isArray(topicsRaw.likes) ? topicsRaw.likes : [],
+        slang: Array.isArray(topicsRaw.slang) ? topicsRaw.slang : [],
+        stories: Array.isArray(topicsRaw.stories) ? topicsRaw.stories : [],
+        decisions: Array.isArray(topicsRaw.decisions) ? topicsRaw.decisions : [],
+        tasks: normalizeTasks(topicsRaw.tasks),
+      };
+
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
         fileName: file.name,
@@ -165,7 +207,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         intent: (aiResult.intent as any) || 'window_shopping',
         objections: Array.isArray(aiResult.objections) ? aiResult.objections : [],
         transcript: Array.isArray(aiResult.transcript) ? aiResult.transcript : [],
-        topics: aiResult.topics || { promises: [], painPoints: [], likes: [], slang: [], stories: [], decisions: [], tasks: [] },
+        topics: normalizedTopics as any,
         feedback: aiResult.feedback || { positive: [], improvements: [] },
       } as any;
 

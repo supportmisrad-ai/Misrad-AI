@@ -9,25 +9,39 @@
  *   - service: Optional - 'calendar' | 'drive' to filter
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
-import { getUsers } from '@/lib/db';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function GETHandler(request: NextRequest) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
-            return NextResponse.json({ error: 'Missing organization context (x-org-id)' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const clerkUser = await getAuthenticatedUser();
         if (!clerkUser.email) {
-            return NextResponse.json({
+            return apiSuccess({
                 status: {
                     calendar: { connected: false },
                     drive: { connected: false },
@@ -35,33 +49,22 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
-
-        const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
-        if (allowUnscoped && !isDev && !isE2E) {
-            console.error('[Security Risk] allowUnscoped attempted in Production');
-            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
-        }
-        
-        // Convert Clerk ID to Supabase UUID
-        let dbUsers: any[] = [];
+        let sb: any;
         try {
-            dbUsers = await getUsers({
-                email: clerkUser.email,
-                tenantId: workspace.id,
-                allowUnscoped: Boolean((clerkUser as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-            });
+            sb = createClient();
         } catch {
-            dbUsers = [];
+            return apiSuccess({
+                status: {
+                    calendar: { connected: false },
+                    drive: { connected: false }
+                }
+            });
         }
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-        
-        if (!dbUser) {
-            return NextResponse.json({
+
+        // Convert Clerk email to Supabase user id
+        const dbUserId = await selectDbUserId({ supabase: sb, workspaceId: workspace.id, email: clerkUser.email });
+        if (!dbUserId) {
+            return apiSuccess({
                 status: {
                     calendar: { connected: false },
                     drive: { connected: false }
@@ -72,23 +75,12 @@ async function GETHandler(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
 
-        // If Supabase not configured, return empty status (integrations not available)
-        if (!supabase) {
-            return NextResponse.json({
-                status: {
-                    calendar: { connected: false },
-                    drive: { connected: false }
-                }
-            });
-        }
-
-        const sb = supabase;
-
         const buildBaseQuery = () => {
             let q = sb
                 .from('misrad_integrations')
                 .select('*')
-                .eq('user_id', dbUser.id)
+                .eq('user_id', dbUserId)
+                .eq('organization_id', workspace.id)
                 .eq('is_active', true);
 
             if (service === 'calendar') {
@@ -105,40 +97,24 @@ async function GETHandler(request: NextRequest) {
         let integrations: any[] | null = null;
         let error: any = null;
 
-        ({ data: integrations, error } = await buildBaseQuery().eq('tenant_id', workspace.id));
+        ({ data: integrations, error } = await buildBaseQuery());
 
-        if (error?.code === '42703') {
-            ({ data: integrations, error } = await buildBaseQuery().eq('organization_id', workspace.id));
-            if (error?.code === '42703') {
-                return NextResponse.json({
-                    status: {
-                        calendar: { connected: false },
-                        drive: { connected: false },
-                    },
-                });
-            }
-        }
-
-        // If table doesn't exist or error, return empty status (not an error - just not configured yet)
+        // If table doesn't exist, return empty status
         if (error) {
             // Check if it's a "table doesn't exist" error
             if (error.message?.includes('does not exist') || error.code === '42P01') {
                 console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
-                return NextResponse.json({
+                return apiSuccess({
                     status: {
                         calendar: { connected: false },
                         drive: { connected: false }
                     }
                 });
             }
-            // For other errors, log but still return empty status
-            console.warn('[API] Error fetching integrations (non-critical):', error.message);
-            return NextResponse.json({
-                status: {
-                    calendar: { connected: false },
-                    drive: { connected: false }
-                }
-            });
+            if (error.code === '42703') {
+                return apiError('[SchemaMismatch] misrad_integrations is missing organization_id', { status: 500 });
+            }
+            throw error;
         }
 
         // Return status without sensitive tokens
@@ -155,16 +131,18 @@ async function GETHandler(request: NextRequest) {
             } : { connected: false }
         };
 
-        return NextResponse.json({ status });
+        return apiSuccess({ status });
 
     } catch (error: any) {
-        // Always return valid response, even on error
-        console.warn('[API] Error getting integration status (non-critical):', error.message);
-        return NextResponse.json({
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        console.warn('[API] Error getting Google integration status (non-critical):', error.message);
+        return apiSuccess({
             status: {
                 calendar: { connected: false },
-                drive: { connected: false }
-            }
+                drive: { connected: false },
+            },
         });
     }
 }

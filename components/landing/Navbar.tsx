@@ -1,15 +1,39 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import Image from 'next/image';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 export const Navbar = () => {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const logoText = 'MISRAD CRM';
+    const [logoSrc, setLogoSrc] = useState<string | null>(null);
+    const [logoText, setLogoText] = useState('MISRAD AI');
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const data = await res.json().catch(() => null);
+                if (cancelled) return;
+                const nextLogo = typeof data?.logo === 'string' ? data.logo : null;
+                const nextText = typeof data?.logoText === 'string' ? data.logoText : null;
+                if (nextLogo) setLogoSrc(nextLogo);
+                if (nextText) setLogoText(nextText || 'MISRAD AI');
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const handleNavClick = (id: string) => {
         setIsMenuOpen(false);
@@ -34,12 +58,15 @@ export const Navbar = () => {
         >
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
-                    <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-white/70 border border-slate-200/70 shadow-lg shadow-slate-200/60">
-                        <Image src="/icons/misrad-icon.svg" alt="MISRAD" width={36} height={36} className="w-full h-full object-contain p-1.5" priority />
+                    <div className="w-10 h-10 overflow-hidden flex items-center justify-center">
+                        {logoSrc ? (
+                            <img src={logoSrc} alt="MISRAD" className="w-full h-full object-contain" />
+                        ) : (
+                            <Image src={getSystemIconUrl('misrad')} alt="MISRAD" width={40} height={40} className="w-full h-full object-contain" priority />
+                        )}
                     </div>
                     <div className="flex flex-col items-start">
-                        <span className="text-xl font-black text-slate-900 tracking-tight">{logoText || 'Misrad'}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">מבית MISRAD</span>
+                        <span className="text-xl font-black text-slate-900 tracking-tight">{logoText || 'MISRAD AI'}</span>
                     </div>
                 </div>
 
@@ -52,10 +79,10 @@ export const Navbar = () => {
 
                 <div className="hidden md:flex items-center gap-4">
                     <button onClick={() => router.push('/login')} className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors">
-                        התחברות
+                        כניסה
                     </button>
                     <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
-                        התחל חינם
+                        נסה חינם
                     </button>
                 </div>
 
@@ -82,7 +109,8 @@ export const Navbar = () => {
                             <button onClick={() => { setIsMenuOpen(false); window.open('/login?redirect=/app', '_blank', 'noopener,noreferrer'); }} className="text-lg font-medium text-slate-900 text-right">ניהול, משימות וצוות</button>
                             <button onClick={() => { setIsMenuOpen(false); handleNavClick('pricing'); }} className="text-lg font-medium text-slate-700 text-right">מחירים</button>
                             <div className="h-px bg-slate-200 my-2"></div>
-                            <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-xl font-bold shadow-xl shadow-slate-900/10">התחל חינם</button>
+                            <button onClick={() => router.push('/login')} className="w-full rounded-xl border border-slate-200 bg-white py-3 font-black text-slate-900 shadow-sm">כניסה</button>
+                            <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-xl font-bold shadow-xl shadow-slate-900/10">נסה חינם</button>
                         </div>
                     </motion.div>
                 ) : null}

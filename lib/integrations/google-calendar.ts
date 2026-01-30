@@ -28,18 +28,20 @@ export async function getCalendarClient(
         return null;
     }
 
+    if (!tenantId) {
+        console.error('[Calendar] Missing tenantId/organizationId (Tenant Isolation lockdown)');
+        return null;
+    }
+
     // Find integration
     let query = (supabase as any)
         .from('misrad_integrations')
         .select('*')
         .eq('user_id', userId)
+        .eq('organization_id', tenantId)
         .eq('service_type', 'google_calendar')
         .eq('is_active', true)
         .single();
-
-    if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-    }
 
     const { data: integration, error } = await query;
 
@@ -66,7 +68,8 @@ export async function getCalendarClient(
                     refresh_token: refreshed.refreshToken || integration.refresh_token,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', integration.id);
+                .eq('id', integration.id)
+                .eq('organization_id', tenantId);
         } catch (error) {
             console.error('[Calendar] Failed to refresh token:', error);
             return null;
@@ -159,13 +162,22 @@ export async function syncTaskToCalendar(
 
         // Log sync
         if (supabase) {
+            const { data: integrationRow } = await (supabase as any)
+                .from('misrad_integrations')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('organization_id', tenantId)
+                .eq('service_type', 'google_calendar')
+                .eq('is_active', true)
+                .maybeSingle();
+
             await (supabase as any).from('misrad_calendar_sync_log').insert({
-                integration_id: (await (supabase as any).from('misrad_integrations').select('id').eq('user_id', userId).eq('service_type', 'google_calendar').single()).data?.id,
+                integration_id: integrationRow?.id ?? null,
                 event_id: eventId,
                 action: existingEventId ? 'updated' : 'created',
                 direction: 'to_google',
                 status: 'success',
-                metadata: { taskId: task.id }
+                metadata: { taskId: task.id, organizationId: tenantId }
             });
         }
 
@@ -224,6 +236,7 @@ export async function syncCalendarToTasks(
                 .from('misrad_integrations')
                 .update({ last_synced_at: new Date().toISOString() })
                 .eq('user_id', userId)
+                .eq('organization_id', tenantId)
                 .eq('service_type', 'google_calendar')
                 .eq('is_active', true);
         }

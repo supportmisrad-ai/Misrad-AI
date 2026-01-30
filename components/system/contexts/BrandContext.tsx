@@ -36,30 +36,12 @@ export const BrandProvider: React.FC<{
     }
   }, [initialBrandName]);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const storedName = localStorage.getItem('system_brand_name');
-        const storedLogo = localStorage.getItem('system_brand_logo');
-        if (storedName && !isProbablyTokenOrId(storedName)) setBrandName(storedName);
-        if (storedLogo) setBrandLogo(storedLogo);
-    }
-  }, []);
-
   const updateBrandName = (name: string) => {
     setBrandName(name);
-    if (typeof window !== 'undefined') {
-        if (!isProbablyTokenOrId(name)) {
-          localStorage.setItem('system_brand_name', name);
-        }
-    }
   };
 
   const updateBrandLogo = (logo: string | null) => {
     setBrandLogo(logo);
-    if (typeof window !== 'undefined') {
-        if (logo) localStorage.setItem('system_brand_logo', logo);
-        else localStorage.removeItem('system_brand_logo');
-    }
   };
 
   return (

@@ -21,9 +21,15 @@ const GREEN_INVOICE_API_URL = 'https://api.greeninvoice.co.il/api/v1';
  * @param userId - User ID
  * @returns API key or null if not configured
  */
-export async function getGreenInvoiceApiKey(userId: string): Promise<string | null> {
+export async function getGreenInvoiceApiKey(userId: string, organizationId: string): Promise<string | null> {
     if (!supabase) {
         console.error('[Green Invoice] Supabase not configured');
+        return null;
+    }
+
+    const orgId = String(organizationId || '').trim();
+    if (!orgId) {
+        console.error('[Green Invoice] Missing organizationId (Tenant Isolation lockdown)');
         return null;
     }
 
@@ -32,6 +38,7 @@ export async function getGreenInvoiceApiKey(userId: string): Promise<string | nu
             .from('misrad_integrations')
             .select('access_token, is_active')
             .eq('user_id', userId)
+            .eq('organization_id', orgId)
             .eq('service_type', 'green_invoice')
             .eq('is_active', true)
             .single();
@@ -82,13 +89,15 @@ export async function createInvoice(
             footerText?: string;
         };
     }
+    ,
+    organizationId: string
 ): Promise<{
     invoiceId: string;
     invoiceNumber: string;
     invoiceUrl: string;
     pdfUrl?: string;
 } | null> {
-    const apiKey = await getGreenInvoiceApiKey(userId);
+    const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
     
     if (!apiKey) {
         throw new Error('Green Invoice API key not configured. Please connect your account first.');
@@ -166,6 +175,7 @@ export async function createInvoice(
                 .from('misrad_integrations')
                 .select('metadata')
                 .eq('user_id', userId)
+                .eq('organization_id', String(organizationId || '').trim())
                 .eq('service_type', 'green_invoice')
                 .single();
             
@@ -180,6 +190,7 @@ export async function createInvoice(
                     }
                 })
                 .eq('user_id', userId)
+                .eq('organization_id', String(organizationId || '').trim())
                 .eq('service_type', 'green_invoice')
                 .eq('is_active', true);
         }
@@ -206,9 +217,10 @@ export async function createInvoice(
  */
 export async function getInvoice(
     userId: string,
-    invoiceId: string
+    invoiceId: string,
+    organizationId: string
 ): Promise<any> {
-    const apiKey = await getGreenInvoiceApiKey(userId);
+    const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
     
     if (!apiKey) {
         throw new Error('Green Invoice API key not configured');
@@ -241,6 +253,7 @@ export async function getInvoice(
  */
 export async function listInvoices(
     userId: string,
+    organizationId: string,
     filters?: {
         fromDate?: string;
         toDate?: string;
@@ -248,7 +261,7 @@ export async function listInvoices(
         limit?: number;
     }
 ): Promise<any[]> {
-    const apiKey = await getGreenInvoiceApiKey(userId);
+    const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
     
     if (!apiKey) {
         throw new Error('Green Invoice API key not configured');

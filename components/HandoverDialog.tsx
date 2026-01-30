@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lead, HandoverData } from '../types';
+import { Lead, HandoverData } from './system/types';
 import { X, Server, CheckCircle, ArrowRight, Database, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, Activity, Send, AlertOctagon, Lock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -252,9 +252,9 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                    </div>
                    <div className="bg-slate-900 rounded-xl p-4 font-mono text-[10px] text-emerald-400 h-40 overflow-y-auto custom-scrollbar shadow-inner border border-slate-800">
                        {logs.map((log, i) => (
-                           <div key={i} className="mb-1 opacity-80">> {log}</div>
+                           <div key={i} className="mb-1 opacity-80">{'>'} {log}</div>
                        ))}
-                       <div className="animate-pulse text-white">> _</div>
+                       <div className="animate-pulse text-white">{'>'} _</div>
                    </div>
                </div>
             </div>

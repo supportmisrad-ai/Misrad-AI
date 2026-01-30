@@ -20,8 +20,8 @@ async function GETHandler(
     const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     return NextResponse.json({ entitlements: workspace.entitlements ?? {} }, { status: 200 });
   } catch (e: any) {
-    console.error('[API] Error in /api/workspaces/[orgSlug]/entitlements GET:', e);
-    return NextResponse.json({ entitlements: {} }, { status: 200 });
+    const status = typeof e?.status === 'number' ? e.status : 403;
+    return NextResponse.json({ entitlements: {} }, { status });
   }
 }
 

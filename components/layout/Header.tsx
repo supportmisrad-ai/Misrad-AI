@@ -9,9 +9,7 @@ import { WorkspaceSwitcher } from '../os/WorkspaceSwitcher';
 import { NAV_ITEMS } from './layout.types';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { SharedHeader } from '@/components/shared/SharedHeader';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface HeaderProps {
   location: { pathname: string };
@@ -50,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
     setIsHydrated(true);
   }, []);
 
-  const { roomIconName, room } = useRoomBranding();
+  const { room } = useRoomBranding();
   const isWorkspaceRoute = Boolean(location?.pathname?.startsWith('/w/'));
 
   const title =
@@ -58,15 +56,10 @@ export const Header: React.FC<HeaderProps> = ({
       ? 'Nexus AI'
       : NAV_ITEMS.find((i) => i.path === location.pathname)?.label || 'לוח בקרה';
 
-  const mobileFallbackIcon = organization.logo ? null : room === 'nexus' ? (
-    <img src="/icons/nexus-icon.svg" alt="Nexus" className="w-full h-full object-cover" />
-  ) : roomIconName ? (
-    <DynamicIcon name={roomIconName} size={18} className="text-gray-900" />
-  ) : null;
+  const mobileFallbackIcon = organization.logo ? null : room ? <OSModuleSquircleIcon moduleKey={room} boxSize={32} iconSize={16} className="shadow-none" /> : null;
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
+    <>
       <button
         id="notification-trigger"
         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
@@ -75,12 +68,10 @@ export const Header: React.FC<HeaderProps> = ({
         type="button"
       >
         <Bell size={18} />
-        {isHydrated && hasUnread ? (
-          <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        ) : null}
+        {isHydrated && hasUnread ? <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span> : null}
       </button>
       <NotificationsPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
-    </div>
+    </>
   );
 
   const switcherSlot = isWorkspaceRoute ? (
@@ -100,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
         name: organization.name,
         logoUrl: organization.logo || null,
         fallbackIcon: mobileFallbackIcon,
-        badgeIcon: <OSModuleIcon moduleKey={room} size={10} className="text-slate-900" />,
+        badgeModuleKey: room,
       }}
       onOpenCommandPaletteAction={() => setCommandPaletteOpen(true)}
       onOpenSupportAction={openSupport}

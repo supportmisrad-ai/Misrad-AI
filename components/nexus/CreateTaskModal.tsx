@@ -4,13 +4,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, Activity, AlertTriangle, AlignLeft, Timer, Sparkles } from 'lucide-react';
 import { useData } from '../../context/DataContext';
-import { useSecureAPI } from '../../hooks/useSecureAPI';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePathname } from 'next/navigation';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { createNexusTask } from '@/app/actions/nexus';
 import { Priority, Status, Task, User, Client, WorkflowStage } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
 import { CustomDatePicker } from '../CustomDatePicker';
 import { CustomTimePicker } from '../CustomTimePicker';
 import { Skeleton } from '@/components/ui/skeletons';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 interface CreateTaskModalProps {
     onClose: () => void;
@@ -87,7 +91,16 @@ function TagSuggestionsPortal({
 
 export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => {
     const { addTask, users, clients, createTaskDefaults, tasks, workflowStages, currentUser, hasPermission } = useData();
-    const { createTask: createTaskAPI, isLoading: isCreatingTask } = useSecureAPI();
+    const queryClient = useQueryClient();
+    const pathname = usePathname();
+    const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+    const createTaskMutation = useMutation({
+        mutationFn: async (input: Omit<Task, 'id'>) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return createNexusTask({ orgId: orgSlug, input });
+        },
+    });
+    const isCreatingTask = createTaskMutation.isPending;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     
     // Form State
@@ -136,7 +149,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     // Super Admin: system admin, sees everyone across all tenants
     const isSuperAdmin = currentUser.isSuperAdmin === true;
     // Tenant Admin: CEO/Admin within their tenant, sees everyone within their tenant
-    const isTenantAdmin = !isSuperAdmin && (currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין');
+    const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
     const isManager = hasPermission('manage_team');
 
     const usersWithCurrent = (() => {
@@ -386,9 +399,12 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
 
         setIsSubmitting(true);
         try {
-            const createdTask = await createTaskAPI(taskData);
+            const createdTask = await createTaskMutation.mutateAsync(taskData);
             // Also add to local state for immediate UI update
             addTask(createdTask);
+            if (orgSlug) {
+                queryClient.invalidateQueries({ queryKey: ['nexus', 'tasks', orgSlug] });
+            }
             onClose();
         } catch (error) {
             // Error already handled by useSecureAPI
@@ -451,7 +467,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors shrink-0">
+                    <button onClick={onClose} className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-colors shrink-0">
                         <X size={20} />
                     </button>
                 </div>

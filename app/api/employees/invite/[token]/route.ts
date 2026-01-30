@@ -5,9 +5,10 @@
  * Returns invitation details for the signup form
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../../lib/supabase';
+import { NextRequest } from 'next/server';
+import { createServiceRoleClient } from '../../../../../lib/supabase';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(
@@ -18,10 +19,7 @@ async function GETHandler(
         const { token } = await params;
 
         if (!token) {
-            return NextResponse.json(
-                { error: 'Token is required' },
-                { status: 400 }
-            );
+            return apiError('Token is required', { status: 400 });
         }
 
         const ip = getClientIpFromRequest(request);
@@ -32,82 +30,60 @@ async function GETHandler(
             windowMs: 10 * 60 * 1000,
         });
         if (!rl.ok) {
-            return NextResponse.json(
-                { error: 'Too many requests' },
-                {
-                    status: 429,
-                    headers: {
-                        'Retry-After': String(rl.retryAfterSeconds),
-                    },
-                }
-            );
+            return apiError('Too many requests', {
+                status: 429,
+                headers: {
+                    'Retry-After': String(rl.retryAfterSeconds),
+                },
+            });
         }
 
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
+        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'employee_invite_token_lookup' });
 
         // Get invitation
         const { data: invitation, error } = await supabase
             .from('nexus_employee_invitation_links')
-            .select('*')
+            .select(
+                'id, token, employee_email, employee_name, employee_phone, department, role, payment_type, hourly_rate, monthly_salary, commission_pct, start_date, notes, created_at, expires_at, used_at, is_used, is_active, metadata'
+            )
             .eq('token', token)
             .limit(1)
             .maybeSingle();
 
         if (error) {
             console.error('[API] Error fetching invitation:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בטעינת הקישור' },
-                { status: 500 }
-            );
+            return apiError('שגיאה בטעינת הקישור', { status: 500 });
         }
 
         if (!invitation) {
-            return NextResponse.json(
-                { error: 'קישור הזמנה לא נמצא' },
-                { status: 404 }
-            );
+            return apiError('קישור הזמנה לא נמצא', { status: 404 });
         }
 
         // Check if link is used
         if (invitation.is_used) {
-            return NextResponse.json(
-                { 
-                    error: 'קישור זה כבר שימש',
-                    invitation: {
-                        isUsed: true,
-                        usedAt: invitation.used_at
-                    }
+            return apiSuccess({
+                invitation: {
+                    isUsed: true,
+                    usedAt: invitation.used_at,
                 },
-                { status: 410 } // Gone
-            );
+            });
         }
 
         // Check if link is active
         if (!invitation.is_active) {
-            return NextResponse.json(
-                { error: 'קישור זה לא פעיל' },
-                { status: 403 }
-            );
+            return apiError('קישור זה לא פעיל', { status: 403 });
         }
 
         // Check if link is expired
         if (invitation.expires_at) {
             const expiresAt = new Date(invitation.expires_at);
             if (expiresAt < new Date()) {
-                return NextResponse.json(
-                    { error: 'קישור זה פג תוקף' },
-                    { status: 410 }
-                );
+                return apiError('קישור זה פג תוקף', { status: 410 });
             }
         }
 
         // Return invitation data
-        return NextResponse.json({
+        return apiSuccess({
             invitation: {
                 id: invitation.id,
                 token: invitation.token,
@@ -129,10 +105,7 @@ async function GETHandler(
 
     } catch (error: any) {
         console.error('[API] Error in /api/employees/invite/[token] GET:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בטעינת הקישור' },
-            { status: 500 }
-        );
+        return apiError(error, { status: 500, message: error.message || 'שגיאה בטעינת הקישור' });
     }
 }
 

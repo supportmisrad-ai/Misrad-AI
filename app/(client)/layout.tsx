@@ -4,22 +4,11 @@ import { getSystemMetadata } from '@/lib/metadata';
 import React from 'react';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = {
-  ...getSystemMetadata('client'),
-  icons: {
-    icon: [{ url: '/icons/client-icon.svg', type: 'image/svg+xml' }],
-    apple: '/icons/client-icon.svg',
-    shortcut: '/icons/client-icon.svg',
-  },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'theme-color': '#0F172A',
-  },
-};
+export const metadata: Metadata = getSystemMetadata('client');
 
 export default async function ClientLayout({
   children,
@@ -55,8 +44,14 @@ export default async function ClientLayout({
     redirect('/sign-in');
   }
 
+  const def = getModuleDefinition('client');
+  const style = {
+    '--os-accent': def.theme.accent,
+    '--os-bg': def.theme.background,
+  } as React.CSSProperties;
+
   return (
-    <div className="min-h-screen bg-transparent font-sans" dir="rtl">
+    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900 font-sans" dir="rtl">
       {children}
     </div>
   );

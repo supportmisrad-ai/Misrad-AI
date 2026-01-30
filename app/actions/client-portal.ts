@@ -1,29 +1,285 @@
 'use server';
 
+import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { getAuthenticatedUser } from '@/lib/auth';
-import type {
-  Client,
-  ClientAction,
-  ClientAgreement,
-  ClientAsset,
-  ClientDeliverable,
-  ClientTransformation,
-  Email,
-  EngagementMetrics,
-  HealthBreakdown,
-  Invoice,
-  JourneyStage,
-  Opportunity,
-  ROIRecord,
+import {
+  ClientStatus,
+  ClientType,
+  HealthStatus,
+  type AssignedForm,
+  type Client,
+  type ClientAction,
+  type ClientAgreement,
+  type ClientAsset,
+  type ClientDeliverable,
+  type ClientTransformation,
+  type Email,
+  type EngagementMetrics,
+  type HealthBreakdown,
+  type Invoice,
+  type JourneyStage,
+  type Opportunity,
+  type ROIRecord,
   Sentiment,
-  Stakeholder,
-  SuccessGoal,
+  type Stakeholder,
+  type SuccessGoal,
 } from '@/components/client-os-full/types';
 import { analyzeMeetingTranscriptAction } from '@/app/actions/ai';
 import { AIService } from '@/lib/services/ai/AIService';
 
-const db = prisma as any;
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function toPrismaJsonValue(value: unknown): Prisma.InputJsonValue | null {
+  if (value === null || value === undefined) return null;
+
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((v) => toPrismaJsonValue(v));
+  }
+
+  const obj = asObject(value);
+  if (obj) {
+    const out: Record<string, Prisma.InputJsonValue | null> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[k] = toPrismaJsonValue(v);
+    }
+    return out;
+  }
+
+  return String(value);
+}
+
+function toPrismaJsonObject(value: unknown): Prisma.InputJsonObject {
+  const v = toPrismaJsonValue(value);
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Prisma.InputJsonObject) : {};
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((v) => String(v)) : [];
+}
+
+function asString(value: unknown, fallback = ''): string {
+  return value == null ? fallback : String(value);
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeHealthStatus(value: unknown): HealthStatus {
+  const v = String(value || '').toUpperCase();
+  if (v === 'CRITICAL') return HealthStatus.CRITICAL;
+  if (v === 'AT_RISK') return HealthStatus.AT_RISK;
+  if (v === 'STABLE') return HealthStatus.STABLE;
+  return HealthStatus.THRIVING;
+}
+
+function normalizeClientStatus(value: unknown): ClientStatus {
+  const v = String(value || '').toUpperCase();
+  if (v === 'ACTIVE') return ClientStatus.ACTIVE;
+  if (v === 'LEAD') return ClientStatus.LEAD;
+  if (v === 'ARCHIVED') return ClientStatus.ARCHIVED;
+  if (v === 'LOST') return ClientStatus.LOST;
+  return ClientStatus.CHURNED;
+}
+
+function normalizeClientType(value: unknown): ClientType {
+  const v = String(value || '').toUpperCase();
+  if (v === 'RETAINER') return ClientType.RETAINER;
+  if (v === 'PROJECT') return ClientType.PROJECT;
+  return ClientType.HOURLY;
+}
+
+function normalizeReferralStatus(value: unknown): Client['referralStatus'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'UNLOCKED') return 'UNLOCKED';
+  if (v === 'REDEEMED') return 'REDEEMED';
+  return 'LOCKED';
+}
+
+function normalizeSentiment(value: unknown): Sentiment {
+  const v = String(value || '').toUpperCase();
+  if (v === 'POSITIVE') return Sentiment.POSITIVE;
+  if (v === 'NEUTRAL') return Sentiment.NEUTRAL;
+  if (v === 'NEGATIVE') return Sentiment.NEGATIVE;
+  return Sentiment.ANXIOUS;
+}
+
+function normalizeClientActionType(value: unknown): ClientAction['type'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'APPROVAL') return 'APPROVAL';
+  if (v === 'UPLOAD') return 'UPLOAD';
+  if (v === 'SIGNATURE') return 'SIGNATURE';
+  if (v === 'FORM') return 'FORM';
+  return 'FEEDBACK';
+}
+
+function normalizeClientActionStatus(value: unknown): ClientAction['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'COMPLETED') return 'COMPLETED';
+  if (v === 'OVERDUE') return 'OVERDUE';
+  return 'PENDING';
+}
+
+function normalizeDeliverableType(value: unknown): ClientDeliverable['type'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'CAMPAIGN') return 'CAMPAIGN';
+  if (v === 'REPORT') return 'REPORT';
+  if (v === 'DESIGN') return 'DESIGN';
+  if (v === 'STRATEGY') return 'STRATEGY';
+  return 'DEV';
+}
+
+function normalizeDeliverableStatus(value: unknown): ClientDeliverable['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'IN_REVIEW') return 'IN_REVIEW';
+  if (v === 'APPROVED') return 'APPROVED';
+  if (v === 'PUBLISHED') return 'PUBLISHED';
+  return 'DRAFT';
+}
+
+function normalizeAssetType(value: unknown): ClientAsset['type'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'PDF') return 'PDF';
+  if (v === 'IMAGE') return 'IMAGE';
+  if (v === 'LINK') return 'LINK';
+  if (v === 'FIGMA') return 'FIGMA';
+  return 'DOC';
+}
+
+function normalizeAssetCategory(value: unknown): ClientAsset['category'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'BRANDING') return 'BRANDING';
+  if (v === 'LEGAL') return 'LEGAL';
+  if (v === 'INPUT') return 'INPUT';
+  return 'STRATEGY';
+}
+
+function normalizeUploadedBy(value: unknown): ClientAsset['uploadedBy'] {
+  const v = String(value || '').toUpperCase();
+  return v === 'AGENCY' ? 'AGENCY' : 'CLIENT';
+}
+
+function normalizeJourneyStatus(value: unknown): JourneyStage['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'COMPLETED') return 'COMPLETED';
+  if (v === 'ACTIVE') return 'ACTIVE';
+  return 'PENDING';
+}
+
+function normalizeOpportunityStatus(value: unknown): Opportunity['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'PROPOSED') return 'PROPOSED';
+  if (v === 'CLOSED') return 'CLOSED';
+  return 'NEW';
+}
+
+function normalizeSuccessGoalStatus(value: unknown): SuccessGoal['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'ACHIEVED') return 'ACHIEVED';
+  if (v === 'AT_RISK') return 'AT_RISK';
+  return 'IN_PROGRESS';
+}
+
+function normalizeRoiCategory(value: unknown): ROIRecord['category'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'REVENUE_LIFT') return 'REVENUE_LIFT';
+  if (v === 'COST_SAVING') return 'COST_SAVING';
+  if (v === 'EFFICIENCY') return 'EFFICIENCY';
+  return 'REFUND';
+}
+
+function normalizeAgreementType(value: unknown): ClientAgreement['type'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'MSA') return 'MSA';
+  if (v === 'SOW') return 'SOW';
+  if (v === 'NDA') return 'NDA';
+  return 'ADDENDUM';
+}
+
+function normalizeAgreementStatus(value: unknown): ClientAgreement['status'] {
+  const v = String(value || '').toUpperCase();
+  return v === 'EXPIRED' ? 'EXPIRED' : 'ACTIVE';
+}
+
+function normalizeInvoiceStatus(value: unknown): Invoice['status'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'PAID') return 'PAID';
+  if (v === 'OVERDUE') return 'OVERDUE';
+  return 'PENDING';
+}
+
+function normalizeStakeholderRole(value: unknown): Stakeholder['nexusRole'] {
+  const v = String(value || '').toUpperCase();
+  if (v === 'CHAMPION') return 'CHAMPION';
+  if (v === 'DECISION_MAKER') return 'DECISION_MAKER';
+  if (v === 'INFLUENCER') return 'INFLUENCER';
+  if (v === 'BLOCKER') return 'BLOCKER';
+  if (v === 'GATEKEEPER') return 'GATEKEEPER';
+  return 'USER';
+}
+
+function normalizeHealthBreakdown(value: unknown): HealthBreakdown {
+  const obj = asObject(value) ?? {};
+  return {
+    financial: asNumber(obj.financial, 0),
+    engagement: asNumber(obj.engagement, 0),
+    sentiment: asNumber(obj.sentiment, 0),
+  };
+}
+
+function normalizeEngagementMetrics(value: unknown): EngagementMetrics {
+  const obj = asObject(value) ?? {};
+  return {
+    daysSinceLastLogin: asNumber(obj.daysSinceLastLogin, 0),
+    unopenedEmails: asNumber(obj.unopenedEmails, 0),
+    lastReportDownloadDate: obj.lastReportDownloadDate == null ? null : String(obj.lastReportDownloadDate),
+    silentChurnDetected: Boolean(obj.silentChurnDetected),
+  };
+}
+
+function normalizeAssignedForm(row: unknown): AssignedForm {
+  const obj = asObject(row) ?? {};
+  const statusRaw = String(obj.status || '').toUpperCase();
+  const status: AssignedForm['status'] =
+    statusRaw === 'SENT' || statusRaw === 'OPENED' || statusRaw === 'IN_PROGRESS' || statusRaw === 'COMPLETED'
+      ? (statusRaw as AssignedForm['status'])
+      : 'SENT';
+  return {
+    id: asString(obj.id),
+    templateId: asString(obj.templateId ?? obj.template_id),
+    title: asString(obj.title),
+    status,
+    progress: asNumber(obj.progress, 0),
+    dateSent: asString(obj.dateSent ?? obj.date_sent),
+    lastActivity: obj.lastActivity == null ? undefined : String(obj.lastActivity),
+  };
+}
+
+function normalizeTransformationState(value: unknown): ClientTransformation['before'] {
+  const obj = asObject(value) ?? {};
+  const mediaTypeRaw = String(obj.mediaType || '').toUpperCase();
+  const mediaType: ClientTransformation['before']['mediaType'] =
+    mediaTypeRaw === 'VIDEO' ? 'VIDEO' : mediaTypeRaw === 'IMAGE' ? 'IMAGE' : 'TEXT';
+  return {
+    date: asString(obj.date),
+    mediaType,
+    mediaUrl: obj.mediaUrl == null ? undefined : String(obj.mediaUrl),
+    description: asString(obj.description),
+    emotionalState: asString(obj.emotionalState),
+    quote: obj.quote == null ? undefined : String(obj.quote),
+  };
+}
 
 async function resolveClientIdByClerkEmailOrThrow(params: { orgId: string }): Promise<{ clientId: string; email: string }> {
   const { orgId } = params;
@@ -31,17 +287,18 @@ async function resolveClientIdByClerkEmailOrThrow(params: { orgId: string }): Pr
   const email = String(user.email || '').trim();
   if (!email) throw new Error('Client profile not found');
 
-  const client = await db.misradClient.findFirst({
+  const portalUser = await prisma.clientPortalUser.findFirst({
     where: {
-      organization_id: orgId,
+      organizationId: orgId,
       email: { equals: email, mode: 'insensitive' },
+      status: 'ACTIVE',
     },
-    select: { id: true },
+    select: { clientId: true },
   });
 
-  if (!client?.id) throw new Error('Client profile not found');
+  if (!portalUser?.clientId) throw new Error('Client profile not found');
 
-  return { clientId: client.id, email };
+  return { clientId: portalUser.clientId, email };
 }
 
 export async function getClientIdByClerkEmail(params: { orgId: string }): Promise<{ clientId: string }> {
@@ -68,24 +325,24 @@ export type ClientDashboardData = {
 export async function getClientDashboardData(orgId: string): Promise<ClientDashboardData> {
   if (!orgId) throw new Error('orgId is required');
 
-  const clients = (await db.misradClient.findMany({
-    where: { organization_id: orgId },
+  const clients = await prisma.misradClient.findMany({
+    where: { organizationId: orgId },
     select: {
       id: true,
       status: true,
       monthlyRetainer: true,
       healthStatus: true,
     },
-  })) as Array<{ id: string; status: string; monthlyRetainer: number | null; healthStatus: string }>;
+  });
 
   const clientsCount = clients.length;
-  const activeClients = clients.filter((c: { status: string }) => c.status === 'ACTIVE');
+  const activeClients = clients.filter((c) => String(c.status) === 'ACTIVE');
   const activeClientsCount = activeClients.length;
 
-  const totalMRR = activeClients.reduce((acc: number, c: { monthlyRetainer: number | null }) => acc + (c.monthlyRetainer ?? 0), 0);
+  const totalMRR = activeClients.reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
   const revenueAtRisk = activeClients
-    .filter((c: { healthStatus: string }) => c.healthStatus === 'AT_RISK' || c.healthStatus === 'CRITICAL')
-    .reduce((acc: number, c: { monthlyRetainer: number | null }) => acc + (c.monthlyRetainer ?? 0), 0);
+    .filter((c) => String(c.healthStatus) === 'AT_RISK' || String(c.healthStatus) === 'CRITICAL')
+    .reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
 
   const [
     invoicesCount,
@@ -95,18 +352,18 @@ export async function getClientDashboardData(orgId: string): Promise<ClientDashb
     openAgencyTasksCount,
     groupEventsUpcomingCount,
   ] = await Promise.all([
-    db.misradInvoice.count({ where: { organization_id: orgId } }),
-    db.misradInvoice.count({ where: { organization_id: orgId, status: 'OVERDUE' } }),
-    db.misradClientDeliverable.count({ where: { organization_id: orgId } }),
-    db.misradClientAction.count({
+    prisma.misradInvoice.count({ where: { organization_id: orgId } }),
+    prisma.misradInvoice.count({ where: { organization_id: orgId, status: 'OVERDUE' } }),
+    prisma.misradClientDeliverable.count({ where: { organization_id: orgId } }),
+    prisma.misradClientAction.count({
       where: {
         organization_id: orgId,
         status: 'PENDING',
         type: { in: ['APPROVAL', 'UPLOAD', 'SIGNATURE', 'FORM', 'FEEDBACK'] },
       },
     }),
-    db.misradAiTask.count({ where: { organization_id: orgId, status: 'PENDING', bucket: 'agency' } }),
-    db.misradGroupEvent.count({ where: { organization_id: orgId, status: 'UPCOMING' } }),
+    prisma.misradAiTask.count({ where: { organization_id: orgId, status: 'PENDING', bucket: 'agency' } }),
+    prisma.misradGroupEvent.count({ where: { organization_id: orgId, status: 'UPCOMING' } }),
   ]);
 
   return {
@@ -129,8 +386,8 @@ const toHeDate = (d: Date) => d.toLocaleDateString('he-IL');
 export async function getClientOSClients(orgId: string): Promise<Client[]> {
   if (!orgId) throw new Error('orgId is required');
 
-  const rows = await db.misradClient.findMany({
-    where: { organization_id: orgId },
+  const rows = await prisma.misradClient.findMany({
+    where: { organizationId: orgId },
     orderBy: { created_at: 'desc' },
     include: {
       deliverables: true,
@@ -148,71 +405,62 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
     },
   });
 
-  return (rows as any[]).map((c: any): Client => {
-    const healthBreakdown: HealthBreakdown = (c.healthBreakdown as any) ?? {
-      financial: 0,
-      engagement: 0,
-      sentiment: 0,
-    };
-    const engagementMetrics: EngagementMetrics = (c.engagementMetrics as any) ?? {
-      daysSinceLastLogin: 0,
-      unopenedEmails: 0,
-      lastReportDownloadDate: null,
-      silentChurnDetected: false,
-    };
+  return rows.map((c): Client => {
+    const healthBreakdown: HealthBreakdown = normalizeHealthBreakdown(c.healthBreakdown);
+    const engagementMetrics: EngagementMetrics = normalizeEngagementMetrics(c.engagementMetrics);
 
-    const deliverables: ClientDeliverable[] = (c.deliverables || []).map((d: any) => ({
+    const deliverables: ClientDeliverable[] = (c.deliverables || []).map((d) => ({
       id: d.id,
       title: d.title,
       description: d.description,
-      type: d.type as any,
+      type: normalizeDeliverableType(d.type),
       thumbnailUrl: d.thumbnailUrl ?? undefined,
-      status: d.status as any,
-      date: d.date ?? toHeDate(d.created_at),
-      tags: (d.tags as any) ?? [],
+      status: normalizeDeliverableStatus(d.status),
+      date: d.date || toHeDate(d.created_at),
+      tags: Array.isArray(d.tags) ? d.tags : [],
     }));
 
-    const assets: ClientAsset[] = (c.assets || []).map((a: any) => ({
+    const assets: ClientAsset[] = (c.assets || []).map((a) => ({
       id: a.id,
       name: a.name,
-      type: a.type as any,
+      type: normalizeAssetType(a.type),
       url: a.url,
-      category: a.category as any,
-      uploadedBy: a.uploadedBy as any,
-      date: a.date ?? toHeDate(a.created_at),
+      category: normalizeAssetCategory(a.category),
+      uploadedBy: normalizeUploadedBy(a.uploadedBy),
+      date: a.date || toHeDate(a.created_at),
     }));
 
-    const pendingActions: ClientAction[] = (c.actions || []).map((a: any) => ({
+    const pendingActions: ClientAction[] = (c.actions || []).map((a) => ({
       id: a.id,
       title: a.title,
       description: a.description,
-      type: a.type as any,
-      status: a.status as any,
+      type: normalizeClientActionType(a.type),
+      status: normalizeClientActionStatus(a.status),
       dueDate: a.dueDate,
       isBlocking: a.isBlocking,
       lastReminderSent: a.lastReminderSent ?? undefined,
     }));
 
-    const successGoals: SuccessGoal[] = (c.successGoals || []).map((g: any) => ({
+    const successGoals: SuccessGoal[] = (c.successGoals || []).map((g) => ({
       id: g.id,
       title: g.title,
       metricCurrent: g.metricCurrent,
       metricTarget: g.metricTarget,
       unit: g.unit,
       deadline: g.deadline,
-      status: g.status as any,
+      status: normalizeSuccessGoalStatus(g.status),
       lastUpdated: g.lastUpdated,
       aiForecast: g.aiForecast ?? undefined,
-      history: (g.history || []).map((h: any) => ({ date: h.date, value: h.value })),
+      history: (g.history || []).map((h) => ({ date: h.date, value: h.value })),
     }));
 
-    const journey: JourneyStage[] = (c.journeyStages || []).map((s: any) => ({
+    const journey: JourneyStage[] = (c.journeyStages || []).map((s) => ({
       id: s.id,
       name: s.name,
-      status: s.status as any,
+      status: normalizeJourneyStatus(s.status),
       date: s.date ?? undefined,
       completionPercentage: s.completionPercentage ?? undefined,
-      milestones: (s.milestones || []).map((m: any) => ({
+      milestones: (s.milestones || []).map((m) => ({
         id: m.id,
         label: m.label,
         isCompleted: m.isCompleted,
@@ -220,36 +468,36 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       })),
     }));
 
-    const opportunities: Opportunity[] = (c.opportunities || []).map((o: any) => ({
+    const opportunities: Opportunity[] = (c.opportunities || []).map((o) => ({
       id: o.id,
       title: o.title,
       value: o.value,
       matchScore: o.matchScore,
-      status: o.status as any,
+      status: normalizeOpportunityStatus(o.status),
     }));
 
-    const roiHistory: ROIRecord[] = (c.roiRecords || []).map((r: any) => ({
+    const roiHistory: ROIRecord[] = (c.roiRecords || []).map((r) => ({
       id: r.id,
       date: r.date,
       value: r.value,
       description: r.description,
-      category: r.category as any,
+      category: normalizeRoiCategory(r.category),
     }));
 
-    const transformations: ClientTransformation[] = (c.transformations || []).map((t: any) => ({
+    const transformations: ClientTransformation[] = (c.transformations || []).map((t) => ({
       id: t.id,
       title: t.title,
-      before: (t.before as any) ?? { date: '', mediaType: 'TEXT', description: '', emotionalState: '' },
-      after: (t.after as any) ?? { date: '', mediaType: 'TEXT', description: '', emotionalState: '' },
+      before: normalizeTransformationState(t.before),
+      after: normalizeTransformationState(t.after),
       metrics: t.metrics ?? undefined,
       isPublished: t.isPublished,
     }));
 
-    const stakeholders: Stakeholder[] = (c.stakeholders || []).map((s: any) => ({
+    const stakeholders: Stakeholder[] = (c.stakeholders || []).map((s) => ({
       id: s.id,
       name: s.name,
       jobTitle: s.jobTitle,
-      nexusRole: s.nexusRole as any,
+      nexusRole: normalizeStakeholderRole(s.nexusRole),
       influence: s.influence,
       sentiment: s.sentiment,
       lastContact: s.lastContact,
@@ -258,23 +506,23 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       notes: s.notes,
     }));
 
-    const invoices: Invoice[] = (c.invoices || []).map((inv: any) => ({
+    const invoices: Invoice[] = (c.invoices || []).map((inv) => ({
       id: inv.id,
       number: inv.number,
       amount: inv.amount,
       date: inv.date,
       dueDate: inv.dueDate,
-      status: inv.status as any,
+      status: normalizeInvoiceStatus(inv.status),
       downloadUrl: inv.downloadUrl,
     }));
 
-    const agreements: ClientAgreement[] = (c.agreements || []).map((ag: any) => ({
+    const agreements: ClientAgreement[] = (c.agreements || []).map((ag) => ({
       id: ag.id,
       title: ag.title,
-      type: ag.type as any,
+      type: normalizeAgreementType(ag.type),
       signedDate: ag.signedDate,
       expiryDate: ag.expiryDate ?? undefined,
-      status: ag.status as any,
+      status: normalizeAgreementStatus(ag.status),
       fileUrl: ag.fileUrl,
     }));
 
@@ -287,12 +535,14 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       healthScore: c.healthScore,
       healthBreakdown,
       engagementMetrics,
-      healthStatus: c.healthStatus as any,
-      status: c.status as any,
-      type: c.type as any,
-      tags: (c.tags as any) ?? [],
+      healthStatus: normalizeHealthStatus(c.healthStatus),
+      status: normalizeClientStatus(c.status),
+      type: normalizeClientType(c.type),
+      tags: Array.isArray(c.tags) ? c.tags : [],
       pendingActions,
-      assignedForms: (c.assignedForms as any) ?? [],
+      assignedForms: (Array.isArray((c as unknown as { assignedForms?: unknown[] }).assignedForms)
+        ? ((c as unknown as { assignedForms?: unknown[] }).assignedForms || []).map(normalizeAssignedForm)
+        : []),
       successGoals,
       monthlyRetainer: c.monthlyRetainer,
       profitMargin: c.profitMargin,
@@ -305,23 +555,23 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       nextRenewal: c.nextRenewal,
       mainContact: c.mainContact,
       mainContactRole: c.mainContactRole,
-      strengths: (c.strengths as any) ?? [],
-      weaknesses: (c.weaknesses as any) ?? [],
-      sentimentTrend: ((c.sentimentTrend as any) ?? []) as Sentiment[],
+      strengths: Array.isArray(c.strengths) ? c.strengths : [],
+      weaknesses: Array.isArray(c.weaknesses) ? c.weaknesses : [],
+      sentimentTrend: (Array.isArray(c.sentimentTrend) ? c.sentimentTrend : []).map(normalizeSentiment),
       journey,
       opportunities,
       handoffData: c.handoff
         ? {
             salesRep: c.handoff.salesRep,
             handoffDate: c.handoff.handoffDate,
-            keyPromises: (c.handoff.keyPromises as any) ?? [],
+            keyPromises: Array.isArray(c.handoff.keyPromises) ? c.handoff.keyPromises : [],
             mainPainPoint: c.handoff.mainPainPoint,
             successDefinition30Days: c.handoff.successDefinition30Days,
             notes: c.handoff.notes,
           }
         : undefined,
       roiHistory,
-      referralStatus: c.referralStatus as any,
+      referralStatus: normalizeReferralStatus(c.referralStatus),
       assets,
       deliverables,
       transformations,
@@ -350,7 +600,7 @@ export async function createDeliverable(params: {
   if (!clientId) throw new Error('clientId is required');
   if (!title) throw new Error('title is required');
 
-  const deliverable = await db.misradClientDeliverable.create({
+  const deliverable = await prisma.misradClientDeliverable.create({
     data: {
       organization_id: orgId,
       client_id: clientId,
@@ -375,17 +625,19 @@ export async function updateTaskStatus(params:
   if (!params.orgId) throw new Error('orgId is required');
 
   if (params.scope === 'client_action') {
-    await db.misradClientAction.update({
-      where: { id: params.taskId },
+    const updated = await prisma.misradClientAction.updateMany({
+      where: { id: params.taskId, organization_id: params.orgId },
       data: { status: params.status },
     });
+    if (!updated?.count) throw new Error('Task not found');
     return { ok: true };
   }
 
-  await db.misradCycleTask.update({
-    where: { id: params.taskId },
+  const updated = await prisma.misradCycleTask.updateMany({
+    where: { id: params.taskId, organization_id: params.orgId },
     data: { status: params.status },
   });
+  if (!updated?.count) throw new Error('Task not found');
 
   return { ok: true };
 }
@@ -396,10 +648,6 @@ export async function getInbox(params: {
 }): Promise<Email[]> {
   const { orgId, scope = 'org' } = params;
   if (!orgId) throw new Error('orgId is required');
-
-  if (!db?.misradMessage?.findMany) {
-    return [];
-  }
 
   const resolvedClientId = scope === 'client_by_clerk_email'
     ? (await resolveClientIdByClerkEmailOrThrow({ orgId })).clientId
@@ -416,14 +664,14 @@ export async function getInbox(params: {
   }> = [];
 
   try {
-    rows = (await db.misradMessage.findMany({
+    rows = await prisma.misradMessage.findMany({
       where: {
         organization_id: orgId,
         ...(resolvedClientId
           ? {
               OR: [{ sender_id: resolvedClientId }, { recipient_id: resolvedClientId }],
             }
-          : null),
+          : undefined),
       },
       orderBy: { created_at: 'desc' },
       select: {
@@ -435,7 +683,7 @@ export async function getInbox(params: {
         read_status: true,
         created_at: true,
       },
-    })) as any;
+    });
   } catch {
     return [];
   }
@@ -449,10 +697,10 @@ export async function getInbox(params: {
   );
 
   const clients = clientIds.length
-    ? ((await db.misradClient.findMany({
-        where: { organization_id: orgId, id: { in: clientIds } },
+    ? await prisma.misradClient.findMany({
+        where: { organizationId: orgId, id: { in: clientIds } },
         select: { id: true, name: true },
-      })) as Array<{ id: string; name: string }> )
+      })
     : [];
 
   const clientNameById = new Map(clients.map((c) => [c.id, c.name]));
@@ -497,7 +745,7 @@ export async function sendMessage(params: {
   if (!subject) throw new Error('subject is required');
   if (!body?.trim()) throw new Error('body is required');
 
-  const msg = await db.misradMessage.create({
+  const msg = await prisma.misradMessage.create({
     data: {
       organization_id: orgId,
       sender_id: senderId,
@@ -528,10 +776,11 @@ export async function markAsRead(params: { orgId: string; messageId: string; rea
   if (!orgId) throw new Error('orgId is required');
   if (!messageId) throw new Error('messageId is required');
 
-  await db.misradMessage.update({
-    where: { id: messageId },
+  const updated = await prisma.misradMessage.updateMany({
+    where: { id: messageId, organization_id: orgId },
     data: { read_status: read },
   });
+  if (!updated?.count) throw new Error('Message not found');
 
   return { ok: true };
 }
@@ -551,50 +800,88 @@ export async function analyzeAndStoreMeeting(params: {
   if (!title) throw new Error('title is required');
   if (!transcript?.trim()) throw new Error('transcript is required');
 
-  const meeting = await db.misradMeeting.create({
-    data: {
-      organization_id: orgId,
-      client_id: clientId,
-      date: new Date().toLocaleDateString('he-IL'),
-      title,
-      location: location as any,
-      attendees: attendees ?? [],
-      transcript,
-      summary: null,
-      recordingUrl: recordingUrl ?? null,
-      manualNotes: null,
-    },
-    select: { id: true },
-  });
+  const now = new Date();
+  const meetingDateLabel = now.toLocaleDateString('he-IL');
 
-  const analysis = await analyzeMeetingTranscriptAction(transcript);
+  let meeting: { id: string };
+  try {
+    meeting = await prisma.misradMeeting.create({
+      data: {
+        organization_id: orgId,
+        client_id: clientId,
+        date: meetingDateLabel,
+        meetingAt: now,
+        title,
+        location,
+        attendees: attendees ?? [],
+        transcript,
+        summary: null,
+        recordingUrl: recordingUrl ?? null,
+        manualNotes: null,
+      },
+      select: { id: true },
+    });
+  } catch {
+    // Backwards-compatible fallback for DBs that don't have meeting_at yet.
+    meeting = await prisma.misradMeeting.create({
+      data: {
+        organization_id: orgId,
+        client_id: clientId,
+        date: meetingDateLabel,
+        title,
+        location,
+        attendees: attendees ?? [],
+        transcript,
+        summary: null,
+        recordingUrl: recordingUrl ?? null,
+        manualNotes: null,
+      },
+      select: { id: true },
+    });
+  }
 
-  const warmthRaw = (analysis as any).relationshipWarmth;
+  const analysis: unknown = await analyzeMeetingTranscriptAction(transcript);
+  const analysisObj = asObject(analysis) ?? {};
+
+  const warmthRaw = analysisObj.relationshipWarmth;
   const warmthNum = typeof warmthRaw === 'number' ? warmthRaw : Number(warmthRaw);
   const warmth = Number.isFinite(warmthNum) ? warmthNum : null;
 
-  const ratingWithRelationship = {
-    ...((analysis as any).rating ?? {}),
-    relationshipWarmth: warmth,
-    relationshipNote: (analysis as any).relationshipNote ?? null,
-    commitments: Array.isArray((analysis as any).commitments) ? (analysis as any).commitments : [],
-  };
+  const ratingObj = asObject(analysisObj.rating) ?? {};
+  const commitments = Array.isArray(analysisObj.commitments) ? analysisObj.commitments : [];
 
-  const analysisRow = await db.misradMeetingAnalysisResult.create({
+  const ratingWithRelationship: Prisma.InputJsonObject = toPrismaJsonObject({
+    ...ratingObj,
+    relationshipWarmth: warmth,
+    relationshipNote: analysisObj.relationshipNote ?? null,
+    commitments,
+  });
+
+  const summary = asString(analysisObj.summary);
+  const sentimentScore = Math.round(asNumber(analysisObj.sentimentScore, 0));
+  const frictionKeywords = asStringArray(analysisObj.frictionKeywords);
+  const objections = asStringArray(analysisObj.objections);
+  const compliments = asStringArray(analysisObj.compliments);
+  const decisions = asStringArray(analysisObj.decisions);
+  const intents = asStringArray(analysisObj.intents);
+  const stories = asStringArray(analysisObj.stories);
+  const slang = asStringArray(analysisObj.slang);
+
+  const analysisRow = await prisma.misradMeetingAnalysisResult.create({
     data: {
       organization_id: orgId,
       client_id: clientId,
       meeting_id: meeting.id,
-      summary: analysis.summary,
-      sentimentScore: Math.round(Number(analysis.sentimentScore) || 0),
-      frictionKeywords: analysis.frictionKeywords ?? [],
-      objections: analysis.objections ?? [],
-      compliments: analysis.compliments ?? [],
-      decisions: analysis.decisions ?? [],
-      intents: (analysis as any).intents ?? [],
-      stories: (analysis as any).stories ?? [],
-      slang: (analysis as any).slang ?? [],
-      rating: ratingWithRelationship,
+      summary,
+      sentimentScore,
+      frictionKeywords,
+      objections,
+      compliments,
+      decisions,
+      intents,
+      stories,
+      slang,
+      rating: ratingWithRelationship as unknown as Prisma.InputJsonValue,
     },
     select: { id: true },
   });
@@ -609,14 +896,14 @@ export async function analyzeAndStoreMeeting(params: {
       docKey: `client:meeting:${meeting.id}`,
       text: `פגישת לקוח\nכותרת: ${title}\nמיקום: ${location}\n\nתמלול:\n${transcript}\n\nסיכום ותובנות:\n${JSON.stringify(
         {
-          summary: (analysis as any).summary,
-          sentimentScore: (analysis as any).sentimentScore,
-          relationshipWarmth: (analysis as any).relationshipWarmth,
-          relationshipNote: (analysis as any).relationshipNote,
-          decisions: (analysis as any).decisions,
-          objections: (analysis as any).objections,
-          compliments: (analysis as any).compliments,
-          commitments: (analysis as any).commitments,
+          summary,
+          sentimentScore,
+          relationshipWarmth: warmth,
+          relationshipNote: analysisObj.relationshipNote ?? null,
+          decisions,
+          objections,
+          compliments,
+          commitments,
         },
         null,
         2
@@ -637,44 +924,77 @@ export async function analyzeAndStoreMeeting(params: {
     console.warn('[analyzeAndStoreMeeting] memory ingest skipped', e);
   }
 
-  const agencyTasks = (analysis.agencyTasks ?? []).map((t: any) => ({
+  function normalizeTaskPriority(value: unknown): 'HIGH' | 'NORMAL' | 'LOW' {
+    const v = String(value || '').toUpperCase();
+    if (v === 'HIGH') return 'HIGH';
+    if (v === 'LOW') return 'LOW';
+    return 'NORMAL';
+  }
+
+  function normalizeTaskStatus(value: unknown): 'PENDING' | 'COMPLETED' {
+    const v = String(value || '').toUpperCase();
+    return v === 'COMPLETED' ? 'COMPLETED' : 'PENDING';
+  }
+
+  function normalizeRiskLevel(value: unknown): 'HIGH' | 'MEDIUM' | 'LOW' {
+    const v = String(value || '').toUpperCase();
+    if (v === 'HIGH') return 'HIGH';
+    if (v === 'LOW') return 'LOW';
+    return 'MEDIUM';
+  }
+
+  const agencyTasksRaw = Array.isArray(analysisObj.agencyTasks) ? analysisObj.agencyTasks : [];
+  const clientTasksRaw = Array.isArray(analysisObj.clientTasks) ? analysisObj.clientTasks : [];
+  const risksRaw = Array.isArray(analysisObj.liabilityRisks) ? analysisObj.liabilityRisks : [];
+
+  const agencyTasks = agencyTasksRaw.map((t) => {
+    const obj = asObject(t) ?? {};
+    return {
     organization_id: orgId,
     client_id: clientId,
     analysis_id: analysisRow.id,
     bucket: 'agency',
-    task: t.task,
-    deadline: t.deadline,
-    priority: (t.priority as any) ?? 'NORMAL',
-    status: (t.status as any) ?? 'PENDING',
-  }));
-  const clientTasks = (analysis.clientTasks ?? []).map((t: any) => ({
+    task: asString(obj.task),
+    deadline: asString(obj.deadline),
+    priority: normalizeTaskPriority(obj.priority),
+    status: normalizeTaskStatus(obj.status),
+    };
+  });
+
+  const clientTasks = clientTasksRaw.map((t) => {
+    const obj = asObject(t) ?? {};
+    return {
     organization_id: orgId,
     client_id: clientId,
     analysis_id: analysisRow.id,
     bucket: 'client',
-    task: t.task,
-    deadline: t.deadline,
-    priority: (t.priority as any) ?? 'NORMAL',
-    status: (t.status as any) ?? 'PENDING',
-  }));
+    task: asString(obj.task),
+    deadline: asString(obj.deadline),
+    priority: normalizeTaskPriority(obj.priority),
+    status: normalizeTaskStatus(obj.status),
+    };
+  });
 
-  const risks = (analysis.liabilityRisks ?? []).map((r: any) => ({
+  const risks = risksRaw.map((r) => {
+    const obj = asObject(r) ?? {};
+    return {
     organization_id: orgId,
     client_id: clientId,
     analysis_id: analysisRow.id,
-    quote: r.quote,
-    context: r.context,
-    riskLevel: (r.riskLevel as any) ?? 'MEDIUM',
-  }));
+    quote: asString(obj.quote),
+    context: asString(obj.context),
+    riskLevel: normalizeRiskLevel(obj.riskLevel),
+    };
+  });
 
   if (agencyTasks.length + clientTasks.length > 0) {
-    await db.misradAiTask.createMany({
+    await prisma.misradAiTask.createMany({
       data: [...agencyTasks, ...clientTasks],
     });
   }
 
   if (risks.length > 0) {
-    await db.misradAiLiabilityRisk.createMany({
+    await prisma.misradAiLiabilityRisk.createMany({
       data: risks,
     });
   }

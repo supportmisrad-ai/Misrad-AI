@@ -4,7 +4,6 @@
  * Trial & Subscription Management Server Actions
  */
 
-import { createClient } from '@/lib/supabase';
 import { requireAuth, createSuccessResponse, createErrorResponse } from '@/lib/errorHandler';
 import { 
   getTrialInfo, 
@@ -12,6 +11,8 @@ import {
   DEFAULT_TRIAL_DAYS,
   type SubscriptionStatus 
 } from '@/lib/trial';
+
+import prisma from '@/lib/prisma';
 
 /**
  * Get trial information for current user
@@ -32,20 +33,26 @@ export async function getCurrentUserTrialInfo(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createClient();
+    const userId = authCheck.userId || authCheck.data?.userId;
+    if (!userId) {
+      return { success: false, error: 'נדרשת התחברות' };
+    }
 
-    // Get user's team member record
-    const { data: member, error } = await supabase
-      .from('social_team_members')
-      .select('trial_start_date, trial_days, subscription_status, subscription_start_date')
-      .eq('user_id', authCheck.userId)
-      .single();
+    const member = await prisma.social_team_members.findUnique({
+      where: { user_id: String(userId) },
+      select: {
+        trial_start_date: true,
+        trial_days: true,
+        subscription_status: true,
+        subscription_start_date: true,
+      },
+    });
 
-    if (error || !member) {
-      return createErrorResponse(error, 'שגיאה בטעינת פרטי טריאל');
+    if (!member) {
+      return createErrorResponse('Not found', 'שגיאה בטעינת פרטי טריאל');
     }
 
     const trialInfo = getTrialInfo(
@@ -64,7 +71,7 @@ export async function getCurrentUserTrialInfo(): Promise<{
       isExpired: trialInfo.isExpired,
       isActive: trialInfo.isActive,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[getCurrentUserTrialInfo] Error:', error);
     return createErrorResponse(error, 'שגיאה בטעינת פרטי טריאל');
   }
@@ -82,24 +89,19 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     // Only admins can trigger this check
     // TODO: Add admin check here if needed
 
-    const supabase = createClient();
     const now = new Date();
 
     // Get all users in trial status
-    const { data: trialUsers, error: fetchError } = await supabase
-      .from('social_team_members')
-      .select('id, user_id, trial_start_date, trial_days, subscription_status')
-      .eq('subscription_status', 'trial');
-
-    if (fetchError) {
-      return createErrorResponse(fetchError, 'שגיאה בטעינת משתמשי טריאל');
-    }
+    const trialUsers = await prisma.social_team_members.findMany({
+      where: { subscription_status: 'trial' },
+      select: { id: true, user_id: true, trial_start_date: true, trial_days: true, subscription_status: true },
+    });
 
     if (!trialUsers || trialUsers.length === 0) {
       return createSuccessResponse({ updated: 0 });
@@ -117,25 +119,23 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
 
       // Check if trial expired
       if (now > trialEndDate) {
-        // Update status to expired
-        const { error: updateError } = await supabase
-          .from('social_team_members')
-          .update({ 
-            subscription_status: 'expired',
-            updated_at: now.toISOString()
-          })
-          .eq('id', user.id);
-
-        if (!updateError) {
+        try {
+          await prisma.social_team_members.update({
+            where: { id: String(user.id) },
+            data: {
+              subscription_status: 'expired',
+              updated_at: now,
+            },
+          });
           updatedCount++;
-        } else {
-          console.error(`[checkAndUpdateExpiredTrials] Error updating user ${user.id}:`, updateError);
+        } catch (updateError: unknown) {
+          console.error(`[checkAndUpdateExpiredTrials] Error updating user ${String(user.id)}:`, updateError);
         }
       }
     }
 
     return createSuccessResponse({ updated: updatedCount });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[checkAndUpdateExpiredTrials] Error:', error);
     return createErrorResponse(error, 'שגיאה בעדכון טריאלים פגי תוקף');
   }
@@ -151,28 +151,23 @@ export async function startSubscription(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return authCheck;
     }
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { error } = await supabase
-      .from('social_team_members')
-      .update({
+    await prisma.social_team_members.updateMany({
+      where: { user_id: String(authCheck.userId) },
+      data: {
         subscription_status: 'active',
         subscription_start_date: now,
-        plan: 'pro', // Upgrade to pro when subscription starts
+        plan: 'pro',
         updated_at: now,
-      })
-      .eq('user_id', authCheck.userId);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בהפעלת מנוי');
-    }
+      },
+    });
 
     return createSuccessResponse(true);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[startSubscription] Error:', error);
     return createErrorResponse(error, 'שגיאה בהפעלת מנוי');
   }
@@ -188,27 +183,22 @@ export async function cancelSubscription(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return authCheck;
     }
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { error } = await supabase
-      .from('social_team_members')
-      .update({
+    await prisma.social_team_members.updateMany({
+      where: { user_id: String(authCheck.userId) },
+      data: {
         subscription_status: 'cancelled',
-        plan: 'free', // Downgrade to free
+        plan: 'free',
         updated_at: now,
-      })
-      .eq('user_id', authCheck.userId);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בביטול מנוי');
-    }
+      },
+    });
 
     return createSuccessResponse(true);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[cancelSubscription] Error:', error);
     return createErrorResponse(error, 'שגיאה בביטול מנוי');
   }

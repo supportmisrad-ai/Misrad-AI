@@ -5,6 +5,7 @@ import { deepClickAllInPage } from './deep-click';
 
 type DeepCoverageOptions = {
   maxElements?: number;
+  timeBudgetMs?: number;
 };
 
 export async function runPageDeepCoverage(page: Page, url: string, options?: DeepCoverageOptions) {
@@ -24,5 +25,8 @@ export async function runPageDeepCoverage(page: Page, url: string, options?: Dee
     );
   }
 
-  await deepClickAllInPage(page, { maxElements: options?.maxElements });
+  await deepClickAllInPage(page, {
+    maxElements: options?.maxElements,
+    timeBudgetMs: options?.timeBudgetMs ?? 12_000,
+  });
 }

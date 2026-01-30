@@ -7,12 +7,20 @@
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { PermissionId, Tenant } from '../types';
-import { getUserPermissions, getRoleByName, getTenants } from './db';
+import { createClient } from '@/lib/supabase';
+import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
+
+ function parseEnvCsv(value: string | undefined | null): string[] {
+     return String(value || '')
+         .split(',')
+         .map((v) => v.trim())
+         .filter(Boolean);
+ }
 
 // Fallback role definitions (used if database is not available)
 const FALLBACK_ROLE_PERMISSIONS: Record<string, PermissionId[]> = {
-    'מנכ״ל': ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
-    'אדמין': ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
+    [ROLE_CEO]: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
+    [ROLE_ADMIN]: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
     'סמנכ״ל מכירות': ['view_financials', 'view_intelligence', 'view_crm', 'view_assets', 'manage_team'],
     'מנהלת שיווק': ['manage_team', 'view_intelligence', 'view_assets', 'view_crm'],
     'איש מכירות': ['view_crm', 'view_intelligence'],
@@ -25,15 +33,69 @@ const FALLBACK_ROLE_PERMISSIONS: Record<string, PermissionId[]> = {
     'פרילנסר': []
 };
 
+async function selectRolePermissionsByName(roleName: string): Promise<PermissionId[] | null> {
+    const name = String(roleName || '').trim();
+    if (!name) return null;
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('misrad_roles')
+        .select('permissions')
+        .eq('name', name)
+        .limit(1)
+        .maybeSingle();
+
+    if (error || !data) return null;
+
+    const perms = (data as any)?.permissions;
+    return Array.isArray(perms) ? (perms as PermissionId[]) : null;
+}
+
+async function selectTenants(filters?: {
+    tenantId?: string;
+    status?: string;
+    ownerEmail?: string;
+    subdomain?: string;
+}): Promise<Tenant[]> {
+    const supabase = createClient();
+
+    let query = supabase.from('nexus_tenants').select('*');
+    if (filters?.tenantId) query = query.eq('id', filters.tenantId);
+    if (filters?.status) query = query.eq('status', filters.status);
+    if (filters?.ownerEmail) query = query.eq('owner_email', filters.ownerEmail);
+    if (filters?.subdomain) query = query.eq('subdomain', filters.subdomain);
+
+    const { data, error } = await query;
+    if (error) return [];
+
+    return (Array.isArray(data) ? data : []).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        ownerEmail: row.owner_email,
+        subdomain: row.subdomain,
+        plan: row.plan,
+        status: row.status,
+        joinedAt: row.joined_at,
+        mrr: row.mrr || 0,
+        usersCount: row.users_count || 0,
+        logo: row.logo,
+        modules: row.modules || [],
+        region: row.region,
+        version: row.version,
+        allowedEmails: row.allowed_emails || [],
+        requireApproval: row.require_approval || false,
+    })) as Tenant[];
+}
+
 /**
  * Get permissions for a role (from database or fallback)
  */
 async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
     try {
         // Try to get from database first
-        const role = await getRoleByName(roleName);
-        if (role && role.permissions) {
-            return role.permissions;
+        const perms = await selectRolePermissionsByName(roleName);
+        if (perms && perms.length >= 0) {
+            return perms;
         }
     } catch (error) {
         console.warn('[Auth] Could not fetch role from database, using fallback:', {
@@ -153,6 +215,35 @@ export async function requireSuperAdmin(): Promise<void> {
     }
 }
 
+ function isAuditServiceRole(role: string | null | undefined): boolean {
+     const normalized = String(role || '').trim().toLowerCase();
+     return normalized === 'audit_service' || normalized === 'audit-service' || normalized === 'audit service';
+ }
+
+ export async function hasAuditLogAccess(): Promise<boolean> {
+     const user = await getAuthenticatedUser();
+     if (user.isSuperAdmin) return true;
+
+     if (!isAuditServiceRole(user.role)) return false;
+
+     const email = String(user.email || '').trim().toLowerCase();
+     if (!email) return false;
+
+     const allowed = new Set(
+         parseEnvCsv(process.env.AUDIT_SERVICE_ALLOWLIST_EMAILS)
+             .map((e) => e.toLowerCase())
+     );
+     if (allowed.size === 0) return false;
+     return allowed.has(email);
+ }
+
+ export async function requireAuditLogAccess(): Promise<void> {
+     const ok = await hasAuditLogAccess();
+     if (!ok) {
+         throw new Error('Forbidden - Audit log access required');
+     }
+ }
+
 /**
  * Check if user is a tenant owner (owns a tenant)
  * This is the ONLY way to verify tenant ownership
@@ -177,7 +268,7 @@ export async function isTenantOwner(userEmail?: string, tenantId?: string): Prom
             filters.tenantId = tenantId;
         }
         
-        const tenants = await getTenants(filters);
+        const tenants = await selectTenants(filters);
         return tenants.length > 0;
     } catch (error) {
         console.error('[Auth] Error checking tenant ownership:', error);
@@ -196,7 +287,7 @@ export async function getOwnedTenant(): Promise<Tenant | null> {
             return null;
         }
         
-        const tenants = await getTenants({ ownerEmail: user.email });
+        const tenants = await selectTenants({ ownerEmail: user.email });
         return tenants.length > 0 ? tenants[0] : null;
     } catch (error) {
         console.error('[Auth] Error getting owned tenant:', error);
@@ -225,8 +316,7 @@ export async function isTenantAdmin(tenantId?: string): Promise<boolean> {
         
         // Check if user has admin role within tenant (מנכ״ל, אדמין)
         // Tenant owners automatically have admin permissions
-        const adminRoles = ['מנכ״ל', 'אדמין'];
-        return adminRoles.includes(user.role);
+        return isTenantAdminRole(user.role);
     } catch (error) {
         console.error('[Auth] Error checking tenant admin status:', error);
         return false;
@@ -239,7 +329,8 @@ export async function isTenantAdmin(tenantId?: string): Promise<boolean> {
 export async function canAccessResource(
     resourceType: 'user' | 'client' | 'task' | 'asset',
     resourceId: string,
-    action: 'read' | 'write' | 'delete'
+    action: 'read' | 'write' | 'delete',
+    scope: { organizationId: string }
 ): Promise<boolean> {
     const user = await getAuthenticatedUser();
     
@@ -247,14 +338,36 @@ export async function canAccessResource(
     if (user.isSuperAdmin) {
         return true;
     }
+
+    const organizationId = String(scope?.organizationId || '').trim();
+    if (!organizationId) {
+        throw new Error('Forbidden - Missing organization scope');
+    }
+
+    const supabase = createClient();
+
+    const ensureExistsInOrg = async (table: string): Promise<boolean> => {
+        const res = await supabase
+            .from(table)
+            .select('id')
+            .eq('id', resourceId)
+            .eq('organization_id', organizationId)
+            .limit(1)
+            .maybeSingle();
+
+        const error = (res as any)?.error;
+        if ((error as any)?.code === '42703') {
+            return false;
+        }
+        if (error) {
+            return false;
+        }
+        return Boolean((res as any)?.data?.id);
+    };
     
     // Tenant owners have admin permissions within their tenant
     const tenantAdmin = await isTenantAdmin();
-    if (tenantAdmin && action !== 'delete') {
-        // Tenant admins can read/write most resources, but not delete system-critical data
-        return true;
-    }
-    
+
     // Implement resource-specific checks here
     // For example: users can only see their own tasks unless they're managers
     switch (resourceType) {
@@ -262,20 +375,53 @@ export async function canAccessResource(
             // Logic: users can read their own tasks, managers can read all
             if (action === 'read') {
                 const hasCrmAccess = await hasPermission('view_crm');
-                return hasCrmAccess; // Simplified - should check task ownership
+                if (!hasCrmAccess) return false;
+                if (tenantAdmin) {
+                    return await ensureExistsInOrg('nexus_tasks');
+                }
+                return await ensureExistsInOrg('nexus_tasks');
+            }
+            if (action === 'write') {
+                const hasCrmAccess = await hasPermission('view_crm');
+                if (!hasCrmAccess) return false;
+                if (tenantAdmin) {
+                    return await ensureExistsInOrg('nexus_tasks');
+                }
+                return await ensureExistsInOrg('nexus_tasks');
             }
             break;
         case 'user':
             // Logic: users can read their own profile, managers can read all
             if (action === 'read') {
                 if (resourceId === user.id) return true;
-                return await hasPermission('manage_team');
+                const canManage = await hasPermission('manage_team');
+                if (!canManage) return false;
+                if (tenantAdmin) {
+                    return await ensureExistsInOrg('nexus_users');
+                }
+                return await ensureExistsInOrg('nexus_users');
             }
             break;
         case 'client':
-            return await hasPermission('view_crm');
+            {
+                const canView = await hasPermission('view_crm');
+                if (!canView) return false;
+                if (tenantAdmin) {
+                    return await ensureExistsInOrg('nexus_clients');
+                }
+                return await ensureExistsInOrg('nexus_clients');
+            }
         case 'asset':
-            return await hasPermission('view_assets');
+            {
+                const canView = await hasPermission('view_assets');
+                if (!canView) return false;
+                const candidateTables = ['nexus_assets', 'misrad_client_assets'];
+                for (const table of candidateTables) {
+                    const ok = await ensureExistsInOrg(table);
+                    if (ok) return true;
+                }
+                return false;
+            }
     }
     
     return false;

@@ -1,23 +1,64 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Clock, Video, MapPin, Plus, ChevronLeft, ChevronRight, RefreshCw, Phone, ExternalLink, Check, Users, Zap } from 'lucide-react';
 import { Lead, CalendarEvent } from '../types';
 
 interface CalendarViewProps {
-  leads: Lead[];
-  events: CalendarEvent[];
-  onAddEvent: (event: CalendarEvent) => void;
-  onNewMeetingClick: () => void;
+  leads?: Lead[];
+  events?: CalendarEvent[];
+  onAddEvent?: (event: CalendarEvent) => void;
+  onNewMeetingClick?: () => void;
+  focusDate?: Date;
+  onFocusDateChange?: (d: Date) => void;
+  onRangeChange?: (range: { from: Date; to: Date }) => void;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, onNewMeetingClick }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({
+  leads = [],
+  events = [],
+  onAddEvent = () => {},
+  onNewMeetingClick = () => {},
+  focusDate: controlledFocusDate,
+  onFocusDateChange,
+  onRangeChange,
+}) => {
   const [view, setView] = useState<'week' | 'month'>('week');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
 
+  const [internalFocusDate, setInternalFocusDate] = useState<Date>(() => controlledFocusDate ?? new Date());
+
+  const focusDate = controlledFocusDate ?? internalFocusDate;
+
+  const setFocusDate = (d: Date) => {
+    const next = new Date(d);
+    if (Number.isNaN(next.getTime())) return;
+    if (!controlledFocusDate) setInternalFocusDate(next);
+    if (onFocusDateChange) onFocusDateChange(next);
+  };
+
+  const visibleRange = useMemo(() => {
+    if (view === 'month') {
+      const from = new Date(focusDate.getFullYear(), focusDate.getMonth(), 1);
+      const to = new Date(focusDate.getFullYear(), focusDate.getMonth() + 1, 1);
+      return { from, to };
+    }
+    const d = new Date(focusDate.getFullYear(), focusDate.getMonth(), focusDate.getDate());
+    const day = d.getDay();
+    const from = new Date(d);
+    from.setDate(from.getDate() - day);
+    const to = new Date(from);
+    to.setDate(to.getDate() + 7);
+    return { from, to };
+  }, [focusDate, view]);
+
+  useEffect(() => {
+    if (!onRangeChange) return;
+    onRangeChange(visibleRange);
+  }, [onRangeChange, visibleRange]);
+
   const startOfWeek = () => {
-    const now = new Date();
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const d = new Date(focusDate.getFullYear(), focusDate.getMonth(), focusDate.getDate());
     const day = d.getDay();
     d.setDate(d.getDate() - day);
     return d;
@@ -46,6 +87,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
 
   const upcomingMeetings = [...displayEvents].sort((a, b) => a.dayName.localeCompare(b.dayName));
 
+  const handlePrev = () => {
+    if (view === 'month') {
+      setFocusDate(new Date(focusDate.getFullYear(), focusDate.getMonth() - 1, 1));
+      return;
+    }
+    const d = new Date(focusDate);
+    d.setDate(d.getDate() - 7);
+    setFocusDate(d);
+  };
+
+  const handleNext = () => {
+    if (view === 'month') {
+      setFocusDate(new Date(focusDate.getFullYear(), focusDate.getMonth() + 1, 1));
+      return;
+    }
+    const d = new Date(focusDate);
+    d.setDate(d.getDate() + 7);
+    setFocusDate(d);
+  };
+
+  const handleToday = () => {
+    setFocusDate(new Date());
+  };
+
   const handleSyncGCal = () => {
       setIsSyncing(true);
       setSyncSuccess(false);
@@ -66,9 +131,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
 
   const renderMonthView = () => {
     const weekDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+    const monthStart = new Date(focusDate.getFullYear(), focusDate.getMonth(), 1);
+    const daysInMonthCount = new Date(focusDate.getFullYear(), focusDate.getMonth() + 1, 0).getDate();
     const daysInMonth = Array.from({ length: 35 }, (_, i) => {
-        const day = i + 1;
-        return day <= 31 ? day : null;
+      const day = i + 1;
+      return day <= daysInMonthCount ? day : null;
     });
 
     return (
@@ -87,7 +154,6 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
                 {daysInMonth.map((day, i) => {
                     if (!day) return <div key={i} className="bg-white"></div>;
                     
-                    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
                     const dateObj = new Date(monthStart.getFullYear(), monthStart.getMonth(), day);
                     const dateStr = toISODate(dateObj);
                     const dayEvents = displayEvents.filter(e => e.date === dateStr);
@@ -183,12 +249,30 @@ const CalendarView: React.FC<CalendarViewProps> = ({ leads, events, onAddEvent, 
             {/* Calendar Header Navigation */}
             <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-xl">
-                    <span>{new Date().toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</span>
+                    <span>{focusDate.toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</span>
                 </div>
                 <div className="flex gap-2">
-                    <button className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronRight size={18} /></button>
-                    <button className="px-4 py-1 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-600 hover:border-slate-300 transition-colors">היום</button>
-                    <button className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"><ChevronLeft size={18} /></button>
+                    <button
+                      type="button"
+                      onClick={handlePrev}
+                      className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleToday}
+                      className="px-4 py-1 text-xs font-bold bg-white border border-slate-200 rounded-xl text-slate-600 hover:border-slate-300 transition-colors"
+                    >
+                      היום
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all text-slate-500 hover:text-slate-900"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
                 </div>
             </div>
 

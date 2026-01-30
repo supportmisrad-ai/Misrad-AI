@@ -1,18 +1,54 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { useSecureAPI } from '../../hooks/useSecureAPI';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, Edit2, Trash2, Lock, Shield, DollarSign, TrendingUp, Users, Building2, Crown } from 'lucide-react';
+import { UserPlus, Edit2, Trash2, Lock, Shield, DollarSign, TrendingUp, Users, Building2, Crown, Smartphone } from 'lucide-react';
 import { User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 import { CustomSelect } from '../CustomSelect';
+import DevicePairingModal from '@/components/admin/DevicePairingModal';
+import DevicePairingGeneratorModal from '@/components/admin/DevicePairingGeneratorModal';
+import { isAdminRole, isCeoRole } from '@/lib/constants/roles';
+import { usePathname } from 'next/navigation';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { createNexusUser, deleteNexusUser, sendNexusUserInvitation, updateNexusUser } from '@/app/actions/nexus';
 
 export const TeamTab: React.FC = () => {
     const { users, roleDefinitions, currentUser, addUser, updateUser, removeUser, hasPermission, addToast, departments } = useData();
-    const { setUserManagerAPI, updateUserAPI } = useSecureAPI();
+    const { approveKioskPairing, createKioskQrPairingToken } = useSecureAPI();
+    const queryClient = useQueryClient();
+    const pathname = usePathname();
+    const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname), [pathname]);
+    const updateUserMutation = useMutation({
+        mutationFn: async (params: { userId: string; updates: Partial<User> }) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return updateNexusUser({ orgId: orgSlug, userId: params.userId, updates: params.updates });
+        },
+    });
+    const createUserMutation = useMutation({
+        mutationFn: async (input: Omit<User, 'id'>) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return createNexusUser({ orgId: orgSlug, input });
+        },
+    });
+    const deleteUserMutation = useMutation({
+        mutationFn: async (userId: string) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return deleteNexusUser({ orgId: orgSlug, userId });
+        },
+    });
+    const inviteUserMutation = useMutation({
+        mutationFn: async (params: { email: string; userId?: string | null; userName?: string | null; department?: string | null; role?: string | null }) => {
+            if (!orgSlug) throw new Error('Missing orgSlug');
+            return sendNexusUserInvitation({ orgId: orgSlug, ...params });
+        },
+    });
     const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [isPairDeviceModalOpen, setIsPairDeviceModalOpen] = useState(false);
+    const [isPairDeviceQrModalOpen, setIsPairDeviceQrModalOpen] = useState(false);
     const [memberForm, setMemberForm] = useState<{ 
         name: string;
         email: string;
@@ -55,11 +91,9 @@ export const TeamTab: React.FC = () => {
         setIsShaking(false);
         if (user) {
             // Check if user can edit this user (only Admin can edit CEO, only Super Admin can edit Admin)
-            const ceoRoles = ['מנכ״ל', 'מנכ"ל', 'מנכל'];
-            const adminRoles = ['אדמין'];
-            const isTargetCEO = ceoRoles.includes(user.role);
-            const isTargetAdmin = adminRoles.includes(user.role);
-            const isCurrentUserAdmin = currentUser.role === 'אדמין' || currentUser.isSuperAdmin;
+            const isTargetCEO = isCeoRole(user.role);
+            const isTargetAdmin = isAdminRole(user.role);
+            const isCurrentUserAdmin = isAdminRole(currentUser.role) || currentUser.isSuperAdmin;
             const isCurrentUserSuperAdmin = currentUser.isSuperAdmin;
             
             if (isTargetCEO && !isCurrentUserAdmin) {
@@ -128,27 +162,9 @@ export const TeamTab: React.FC = () => {
         try {
             if (editingUser) {
                 // Update user via API
-                await updateUserAPI(editingUser.id, {
-                    name: memberForm.name,
-                    email: memberForm.email,
-                    role: memberForm.role,
-                    department: memberForm.department || undefined,
-                    capacity: Number(memberForm.capacity),
-                    targets,
-                    paymentType: memberForm.paymentType,
-                    hourlyRate: Number(memberForm.hourlyRate),
-                    monthlySalary: Number(memberForm.monthlySalary),
-                    commissionPct: Number(memberForm.commissionPct),
-                    bonusPerTask: Number(memberForm.bonusPerTask)
-                });
-                
-                // Update manager separately if changed
-                if (memberForm.managerId !== editingUser.managerId) {
-                    await setUserManagerAPI(editingUser.id, memberForm.managerId || null);
-                }
-                
-                // Update local state
-                updateUser(editingUser.id, {
+                const updated = await updateUserMutation.mutateAsync({
+                    userId: editingUser.id,
+                    updates: {
                     name: memberForm.name,
                     email: memberForm.email,
                     role: memberForm.role,
@@ -160,77 +176,45 @@ export const TeamTab: React.FC = () => {
                     monthlySalary: Number(memberForm.monthlySalary),
                     commissionPct: Number(memberForm.commissionPct),
                     bonusPerTask: Number(memberForm.bonusPerTask),
-                    managerId: memberForm.managerId
+                    managerId: memberForm.managerId,
+                    }
                 });
+                
+                // Update local state
+                updateUser(editingUser.id, updated as any);
+                if (orgSlug) {
+                    queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+                }
             } else {
                 // Create new user via API
-                const response = await fetch('/api/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: memberForm.name,
-                        email: memberForm.email,
-                        role: memberForm.role,
-                        department: memberForm.department || undefined,
-                        capacity: Number(memberForm.capacity),
-                        targets,
-                        paymentType: memberForm.paymentType,
-                        hourlyRate: Number(memberForm.hourlyRate),
-                        monthlySalary: Number(memberForm.monthlySalary),
-                        commissionPct: Number(memberForm.commissionPct),
-                        bonusPerTask: Number(memberForm.bonusPerTask),
-                        managerId: memberForm.managerId || null
-                    })
-                });
-
-                if (!response.ok) {
-                    let error;
-                    try {
-                        const errorText = await response.text();
-                        error = errorText ? JSON.parse(errorText) : { error: 'Unknown error' };
-                    } catch {
-                        error = { error: 'Unknown error' };
-                    }
-                    throw new Error(error.error || 'שגיאה ביצירת משתמש');
-                }
-
-                let result;
-                try {
-                    const resultText = await response.text();
-                    result = resultText ? JSON.parse(resultText) : {};
-                } catch (e) {
-                    console.error('Error parsing response:', e);
-                    throw new Error('שגיאה בקריאת תגובת השרת');
-                }
+                const createdUser = await createUserMutation.mutateAsync({
+                    name: memberForm.name,
+                    email: memberForm.email,
+                    role: memberForm.role,
+                    department: memberForm.department || undefined,
+                    avatar: '',
+                    online: false,
+                    capacity: Number(memberForm.capacity),
+                    targets,
+                    paymentType: memberForm.paymentType,
+                    hourlyRate: Number(memberForm.hourlyRate),
+                    monthlySalary: Number(memberForm.monthlySalary),
+                    commissionPct: Number(memberForm.commissionPct),
+                    bonusPerTask: Number(memberForm.bonusPerTask),
+                    managerId: memberForm.managerId || null,
+                } as any);
                 
                 // Send invitation email
                 try {
-                    const inviteResponse = await fetch('/api/users/invite', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            email: memberForm.email,
-                            userId: result.user.id,
-                            userName: memberForm.name,
-                            department: memberForm.department || result.user.department || departments[0] || 'כללי',
-                            role: memberForm.role
-                        })
+                    const inviteData = await inviteUserMutation.mutateAsync({
+                        email: memberForm.email,
+                        userId: createdUser.id,
+                        userName: memberForm.name,
+                        department: memberForm.department || createdUser.department || departments[0] || 'כללי',
+                        role: memberForm.role,
                     });
-
-                    if (inviteResponse.ok) {
-                        let inviteData;
-                        try {
-                            const inviteText = await inviteResponse.text();
-                            inviteData = inviteText ? JSON.parse(inviteText) : { emailSent: false };
-                        } catch (e) {
-                            console.error('Error parsing invite response:', e);
-                            inviteData = { emailSent: false };
-                        }
-                        if (inviteData.emailSent) {
-                            addToast(`הזמנה נשלחה למייל ${memberForm.email}`, 'success');
-                        } else {
-                            addToast('המשתמש נוצר, אך שליחת ההזמנה נכשלה', 'warning');
-                        }
+                    if (inviteData.emailSent) {
+                        addToast(`הזמנה נשלחה למייל ${memberForm.email}`, 'success');
                     } else {
                         addToast('המשתמש נוצר, אך שליחת ההזמנה נכשלה', 'warning');
                     }
@@ -240,7 +224,10 @@ export const TeamTab: React.FC = () => {
                 }
 
                 // Add to local state
-                addUser(result.user);
+                addUser(createdUser as any);
+                if (orgSlug) {
+                    queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+                }
             }
             setIsTeamModalOpen(false);
         } catch (error: any) {
@@ -255,11 +242,27 @@ export const TeamTab: React.FC = () => {
         setUserToDelete({ id, name });
     };
 
-    const confirmDelete = () => {
-        if (userToDelete) {
+    const confirmDelete = async () => {
+        if (!userToDelete) return;
+        try {
+            await deleteUserMutation.mutateAsync(userToDelete.id);
             removeUser(userToDelete.id);
+            if (orgSlug) {
+                queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
+            }
+        } catch (error: any) {
+            addToast(error?.message || 'שגיאה במחיקת המשתמש', 'error');
+        } finally {
             setUserToDelete(null);
         }
+    };
+
+    const openPairDeviceModal = () => {
+        if (!hasPermission('manage_team')) {
+            addToast('אין לך הרשאה לצמד מכשיר', 'error');
+            return;
+        }
+        setIsPairDeviceQrModalOpen(true);
     };
 
     return (
@@ -280,9 +283,14 @@ export const TeamTab: React.FC = () => {
                     <h2 className="text-xl md:text-2xl font-black text-gray-900">ניהול משתמשים</h2>
                     <p className="text-xs md:text-sm text-gray-500 mt-1">הוספה, עריכה והסרה של חברי צוות במערכת.</p>
                 </div>
-                <button onClick={() => openTeamModal()} className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all w-full md:w-auto">
-                    <UserPlus size={16} /> הוסף משתמש
-                </button>
+                <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto">
+                    <button onClick={() => openPairDeviceModal()} className="bg-white text-gray-900 border border-gray-200 px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-95 transition-all w-full md:w-auto">
+                        <Smartphone size={16} /> צמד מכשיר
+                    </button>
+                    <button onClick={() => openTeamModal()} className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all w-full md:w-auto">
+                        <UserPlus size={16} /> הוסף משתמש
+                    </button>
+                </div>
             </div>
 
             {/* Desktop Table View */}
@@ -358,11 +366,9 @@ export const TeamTab: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4 flex gap-2">
                                         {(() => {
-                                            const ceoRoles = ['מנכ״ל', 'מנכ"ל', 'מנכל'];
-                                            const adminRoles = ['אדמין'];
-                                            const isTargetCEO = ceoRoles.includes(user.role);
-                                            const isTargetAdmin = adminRoles.includes(user.role);
-                                            const isCurrentUserAdmin = currentUser.role === 'אדמין' || currentUser.isSuperAdmin;
+                                            const isTargetCEO = isCeoRole(user.role);
+                                            const isTargetAdmin = isAdminRole(user.role);
+                                            const isCurrentUserAdmin = isAdminRole(currentUser.role) || currentUser.isSuperAdmin;
                                             const isCurrentUserSuperAdmin = currentUser.isSuperAdmin;
                                             
                                             let canEdit = true;
@@ -450,11 +456,9 @@ export const TeamTab: React.FC = () => {
                                     </div>
                                     <div className="flex gap-2 shrink-0">
                                         {(() => {
-                                            const ceoRoles = ['מנכ״ל', 'מנכ"ל', 'מנכל'];
-                                            const adminRoles = ['אדמין'];
-                                            const isTargetCEO = ceoRoles.includes(user.role);
-                                            const isTargetAdmin = adminRoles.includes(user.role);
-                                            const isCurrentUserAdmin = currentUser.role === 'אדמין' || currentUser.isSuperAdmin;
+                                            const isTargetCEO = isCeoRole(user.role);
+                                            const isTargetAdmin = isAdminRole(user.role);
+                                            const isCurrentUserAdmin = isAdminRole(currentUser.role) || currentUser.isSuperAdmin;
                                             const isCurrentUserSuperAdmin = currentUser.isSuperAdmin;
                                             
                                             let canEdit = true;
@@ -550,6 +554,19 @@ export const TeamTab: React.FC = () => {
             </div>
 
             <AnimatePresence>
+                <DevicePairingGeneratorModal
+                    open={isPairDeviceQrModalOpen}
+                    onCloseAction={() => setIsPairDeviceQrModalOpen(false)}
+                    createTokenAction={createKioskQrPairingToken}
+                    addToastAction={addToast as any}
+                />
+                <DevicePairingModal
+                    open={isPairDeviceModalOpen}
+                    onClose={() => setIsPairDeviceModalOpen(false)}
+                    users={users.map((u: User) => ({ id: u.id, name: u.name, role: u.role }))}
+                    approvePairing={approveKioskPairing}
+                    addToast={addToast as any}
+                />
                 {isTeamModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsTeamModalOpen(false)} />

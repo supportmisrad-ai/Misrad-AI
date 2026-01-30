@@ -1,0 +1,55 @@
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+
+import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { requireOrganizationId } from '@/lib/tenant-isolation';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request) {
+  try {
+    const expected = process.env.E2E_API_KEY;
+    const provided = req.headers.get('x-e2e-key');
+
+    if (!expected || !provided || provided !== expected) {
+      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ ok: false, error: 'NoAuthSession' }, { status: 401 });
+    }
+
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(String(orgKey));
+    const organizationId = requireOrganizationId('e2e_x_org_id_spoof_system_leads', workspaceId);
+
+    const leads = await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        source: 'e2e_x_org_id_spoof_system_leads',
+      },
+      async () =>
+        prisma.systemLead.findMany({
+          where: { organizationId },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: { id: true, organizationId: true, name: true },
+        })
+    );
+
+    return NextResponse.json({ ok: true, organizationId, leads }, { status: 200 });
+  } catch (e: any) {
+    const status = typeof e?.status === 'number' ? e.status : 500;
+    return NextResponse.json(
+      {
+        ok: false,
+        blocked: true,
+        error: e?.message || 'Unknown error',
+      },
+      { status }
+    );
+  }
+}

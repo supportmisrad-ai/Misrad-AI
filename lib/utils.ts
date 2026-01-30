@@ -5,6 +5,8 @@
 import { supabase } from './supabase';
 import { NextRequest } from 'next/server';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function normalizeBaseUrl(input: string): string {
     const raw = (input || '').trim();
     if (!raw) return raw;
@@ -47,7 +49,7 @@ export function getBaseUrl(request?: NextRequest): string {
     }
 
     // 3. Fallback to localhost (development only)
-    console.warn('[getBaseUrl] NEXT_PUBLIC_APP_URL is not set; falling back to localhost.');
+    if (!IS_PROD) console.warn('[getBaseUrl] Falling back to localhost.');
     return 'http://localhost:4000';
 }
 
@@ -90,7 +92,8 @@ export async function generateInvitationToken(): Promise<string> {
             isUnique = true;
         } else if (error && error.code !== 'PGRST116') {
             // Other error - log but continue
-            console.error('[Utils] Error checking token uniqueness:', error);
+            if (!IS_PROD) console.error('[Utils] Error checking token uniqueness:', error);
+            else console.error('[Utils] Error checking token uniqueness');
             // If table doesn't exist, assume token is unique
             if (error.message?.includes('does not exist') || error.code === '42P01') {
                 isUnique = true;

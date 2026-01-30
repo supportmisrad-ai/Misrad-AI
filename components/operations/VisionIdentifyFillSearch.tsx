@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Camera } from 'lucide-react';
+import PaywallModal from '@/components/shared/PaywallModal';
 
 export default function VisionIdentifyFillSearch({
   formId,
@@ -18,6 +19,11 @@ export default function VisionIdentifyFillSearch({
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const [paywallTitle, setPaywallTitle] = useState('');
+  const [paywallMessage, setPaywallMessage] = useState('');
+  const [recommendedPackageType, setRecommendedPackageType] = useState<any>(undefined);
 
   async function onPickFile(file: File) {
     if (busy) return;
@@ -48,11 +54,27 @@ export default function VisionIdentifyFillSearch({
       });
 
       const json = (await res.json().catch(() => ({}))) as any;
+      const payload = json?.data && typeof json.data === 'object' ? json.data : json;
       if (!res.ok) {
-        throw new Error(String(json?.error || 'שגיאה בזיהוי תמונה'));
+        if (res.status === 402) {
+          const pw = json?.paywall;
+          setPaywallTitle(String(pw?.title || 'שדרוג נדרש'));
+          setPaywallMessage(
+            String(
+              pw?.message ||
+                json?.error ||
+                payload?.error ||
+                'הגעת למכסת סריקות ה-AI בחבילת הניסיון. שדרג לחבילת תפעול כדי להמשיך.'
+            )
+          );
+          setRecommendedPackageType(pw?.recommendedPackageType || 'the_operator');
+          setIsPaywallOpen(true);
+          return;
+        }
+        throw new Error(String(json?.error || payload?.error || 'שגיאה בזיהוי תמונה'));
       }
 
-      const name = json?.name ? String(json.name).trim() : '';
+      const name = payload?.name ? String(payload.name).trim() : '';
       if (!name) {
         throw new Error('זיהוי נכשל (שם חלק ריק)');
       }
@@ -76,6 +98,15 @@ export default function VisionIdentifyFillSearch({
 
   return (
     <>
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onCloseAction={() => setIsPaywallOpen(false)}
+        title={paywallTitle}
+        message={paywallMessage}
+        reason="generic"
+        recommendedPackageType={recommendedPackageType}
+      />
+
       <input
         ref={fileInputRef}
         type="file"

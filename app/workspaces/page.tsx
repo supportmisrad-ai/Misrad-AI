@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { createClient } from '@/lib/supabase';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,54 +19,65 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     redirect('/sign-in');
   }
 
-  const supabase = createClient();
-
-  const { data: socialUser } = await supabase
-    .from('social_users')
-    .select('id, organization_id')
-    .eq('clerk_user_id', clerkUserId)
-    .single();
+  let socialUser: { id: string; organization_id: string | null } | null = null;
+  try {
+    socialUser = await prisma.social_users.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { id: true, organization_id: true },
+    });
+  } catch {
+    socialUser = null;
+  }
 
   if (!socialUser?.id) {
     return [];
   }
 
   const orgIds = new Set<string>();
-  if (socialUser.organization_id) {
-    orgIds.add(String(socialUser.organization_id));
+
+  const addIfAccessible = async (orgId: string | null | undefined) => {
+    if (!orgId) return;
+    try {
+      await getWorkspaceByOrgKeyOrThrow(String(orgId));
+      orgIds.add(String(orgId));
+    } catch {
+      // Fail-closed: do not include inaccessible orgs
+    }
+  };
+
+  await addIfAccessible(socialUser.organization_id);
+
+  const ownedOrgs = await prisma.social_organizations.findMany({
+    where: { owner_id: socialUser.id },
+    select: { id: true },
+  });
+  for (const org of ownedOrgs) {
+    await addIfAccessible(org?.id);
   }
 
-  const { data: ownedOrgs } = await supabase
-    .from('organizations')
-    .select('id')
-    .eq('owner_id', socialUser.id);
-
-  for (const org of ownedOrgs || []) {
-    if (org?.id) orgIds.add(String(org.id));
+  const membershipRows = await prisma.social_team_members.findMany({
+    where: { user_id: socialUser.id },
+    select: { organization_id: true },
+  });
+  for (const row of membershipRows) {
+    await addIfAccessible(row?.organization_id ? String(row.organization_id) : null);
   }
 
-  const { data: memberships } = await supabase
-    .from('social_team_members')
-    .select('organization_id')
-    .eq('user_id', socialUser.id);
-
-  for (const row of memberships || []) {
-    const orgId = (row as any)?.organization_id;
-    if (orgId) orgIds.add(String(orgId));
-  }
-
-  const ids = Array.from(orgIds);
-  if (ids.length === 0) {
+  if (orgIds.size === 0) {
     return [];
   }
 
-  const withSlug = await supabase
-    .from('organizations')
-    .select('id, slug, name, logo')
-    .in('id', ids);
+  const orgs = await prisma.social_organizations.findMany({
+    where: { id: { in: Array.from(orgIds) } },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      logo: true,
+    },
+  });
 
-  const orgs = withSlug.data as any[] | null;
-  return (orgs || []).map((o: any) => ({
+  return orgs.map((o) => ({
     id: String(o.id),
     slug: String(o.slug || o.id),
     name: String(o.name || 'Workspace'),

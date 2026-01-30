@@ -6,6 +6,9 @@ import { motion } from 'framer-motion';
 import { Trash2, DollarSign, CheckCircle2, AlertTriangle, Download, Upload, ShieldCheck, CheckSquare, Lightbulb, RotateCcw, BarChart3, FileClock, Database, Archive, Building, History, X, UserCheck, Crown, ChevronDown } from 'lucide-react';
 import { Notification, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { updateNexusUser } from '@/app/actions/nexus';
 
 interface DepartmentHistory {
     id: string;
@@ -23,19 +26,107 @@ export const DepartmentsTab: React.FC = () => {
     const [isShaking, setIsShaking] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const [deptToDelete, setDeptToDelete] = useState<string | null>(null);
-    const [history, setHistory] = useState<DepartmentHistory[]>(() => {
-        // Load from localStorage
-        const stored = localStorage.getItem('department_history');
-        return stored ? JSON.parse(stored) : [];
-    });
+    const [history, setHistory] = useState<DepartmentHistory[]>([]);
     const [showHistory, setShowHistory] = useState(false);
 
-    const saveHistory = (newHistory: DepartmentHistory[]) => {
-        setHistory(newHistory);
-        localStorage.setItem('department_history', JSON.stringify(newHistory));
+    const persistDepartmentsAndHistory = (nextDepartments: string[], nextHistory: DepartmentHistory[]) => {
+        setHistory(nextHistory);
+        try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) return;
+            fetch('/api/system/departments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
+                body: JSON.stringify({ departments: nextDepartments, history: nextHistory }),
+            }).catch(() => null);
+        } catch {
+            // ignore
+        }
     };
 
-    const addHistoryEntry = (action: 'added' | 'removed' | 'renamed', department: string, oldValue?: string, newValue?: string) => {
+    useEffect(() => {
+        let cancelled = false;
+
+        const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+        if (!orgSlug) return;
+
+        const migrateAndLoad = async () => {
+            try {
+                const res = await fetch('/api/system/departments', {
+                    headers: { 'x-org-id': orgSlug },
+                    cache: 'no-store',
+                });
+                const data = await res.json().catch(() => null);
+                const serverDepartments = Array.isArray(data?.departments) ? data.departments : null;
+                const serverHistory = Array.isArray(data?.history) ? data.history : null;
+
+                if (!cancelled) {
+                    if (serverHistory) setHistory(serverHistory);
+                    if (serverDepartments) updateSettings('departments', serverDepartments);
+                }
+
+                // One-time migration: if legacy localStorage exists and server history is empty, persist it.
+                let legacy: DepartmentHistory[] | null = null;
+                try {
+                    const stored = localStorage.getItem('department_history');
+                    if (stored) {
+                        const parsed = JSON.parse(stored);
+                        legacy = Array.isArray(parsed) ? parsed : null;
+                    }
+                } catch {
+                    legacy = null;
+                }
+
+                try {
+                    localStorage.removeItem('department_history');
+                } catch {
+                    // ignore
+                }
+
+                const shouldMigrate = legacy && legacy.length > 0 && (!serverHistory || serverHistory.length === 0);
+                if (shouldMigrate) {
+                    const legacyHistory = legacy as DepartmentHistory[];
+                    await fetch('/api/system/departments', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
+                        body: JSON.stringify({
+                            departments: serverDepartments || departments,
+                            history: legacyHistory,
+                        }),
+                    }).catch(() => null);
+
+                    if (!cancelled) {
+                        setHistory(legacyHistory);
+                    }
+                }
+            } catch {
+                // ignore
+                try {
+                    localStorage.removeItem('department_history');
+                } catch {
+                    // ignore
+                }
+            }
+        };
+
+        migrateAndLoad();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [updateSettings]);
+
+    const saveHistory = (newHistory: DepartmentHistory[]) => {
+        persistDepartmentsAndHistory(departments, newHistory);
+    };
+
+    const addHistoryEntry = (
+        action: 'added' | 'removed' | 'renamed',
+        department: string,
+        oldValue?: string,
+        newValue?: string,
+        departmentsOverride?: string[]
+    ) => {
         const entry: DepartmentHistory = {
             id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             timestamp: Date.now(),
@@ -46,7 +137,7 @@ export const DepartmentsTab: React.FC = () => {
             changedBy: currentUser.name
         };
         const newHistory = [entry, ...history].slice(0, 100); // Keep last 100 entries
-        saveHistory(newHistory);
+        persistDepartmentsAndHistory(departmentsOverride || departments, newHistory);
     };
 
     const addDepartment = (e: React.FormEvent) => {
@@ -60,7 +151,7 @@ export const DepartmentsTab: React.FC = () => {
         if (!departments.includes(newDept.trim())) {
             const newDepartments = [...departments, newDept.trim()];
             updateSettings('departments', newDepartments);
-            addHistoryEntry('added', newDept.trim());
+            addHistoryEntry('added', newDept.trim(), undefined, undefined, newDepartments);
             addToast(`מחלקה "${newDept.trim()}" נוספה בהצלחה`, 'success');
             setNewDept('');
         } else {
@@ -74,8 +165,9 @@ export const DepartmentsTab: React.FC = () => {
 
     const confirmRemoveDepartment = () => {
         if (deptToDelete) {
-            updateSettings('departments', departments.filter((d: string) => d !== deptToDelete));
-            addHistoryEntry('removed', deptToDelete);
+            const nextDepartments = departments.filter((d: string) => d !== deptToDelete);
+            updateSettings('departments', nextDepartments);
+            addHistoryEntry('removed', deptToDelete, undefined, undefined, nextDepartments);
             addToast('המחלקה הוסרה', 'info');
             setDeptToDelete(null);
         }
@@ -214,14 +306,14 @@ export const DepartmentsTab: React.FC = () => {
                                                 currentManager={deptManager}
                                                 users={users}
                                                 onSelect={async (userId: string | null) => {
+                                                    const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                                                    if (!orgSlug) {
+                                                        addToast('לא ניתן לזהות סביבת עבודה (org). נסה לרענן.', 'error');
+                                                        return;
+                                                    }
                                                     if (userId) {
                                                         try {
-                                                            const response = await fetch(`/api/users/${userId}`, {
-                                                                method: 'PATCH',
-                                                                headers: { 'Content-Type': 'application/json' },
-                                                                body: JSON.stringify({ managedDepartment: dept })
-                                                            });
-                                                            if (!response.ok) throw new Error('שגיאה בעדכון מנהל מחלקה');
+                                                            await updateNexusUser({ orgId: orgSlug, userId, updates: { managedDepartment: dept } as any });
                                                             addToast('מנהל מחלקה עודכן בהצלחה', 'success');
                                                             // Reload page or update state
                                                             window.location.reload();
@@ -232,12 +324,7 @@ export const DepartmentsTab: React.FC = () => {
                                                         // Remove manager
                                                         if (deptManager) {
                                                             try {
-                                                                const response = await fetch(`/api/users/${deptManager.id}`, {
-                                                                    method: 'PATCH',
-                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                    body: JSON.stringify({ managedDepartment: null })
-                                                                });
-                                                                if (!response.ok) throw new Error('שגיאה בהסרת מנהל מחלקה');
+                                                                await updateNexusUser({ orgId: orgSlug, userId: deptManager.id, updates: { managedDepartment: null } as any });
                                                                 addToast('מנהל מחלקה הוסר', 'success');
                                                                 window.location.reload();
                                                             } catch (err: any) {
@@ -275,7 +362,7 @@ const DepartmentManagerSelect: React.FC<DepartmentManagerSelectProps> = ({ depar
         // Can't select yourself if you're already manager
         if (currentManager && u.id === currentManager.id) return false;
         // Filter users in this department or users with manage_team permission
-        return u.department === department || u.isSuperAdmin || u.role === 'מנכ״ל' || u.role === 'מנכ"ל' || u.role === 'אדמין';
+        return u.department === department || u.isSuperAdmin || isTenantAdminRole(u.role);
     });
     
     return (

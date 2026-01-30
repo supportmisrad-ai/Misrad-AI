@@ -11,6 +11,17 @@ export async function debugSupabaseConnection(): Promise<{
   details: any;
 }> {
   try {
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      return {
+        success: false,
+        details: {
+          step: 'blocked',
+          error: 'debugSupabaseConnection is blocked in production',
+        },
+      };
+    }
+
     console.log('[debugSupabaseConnection] Starting...');
     
     // Check environment variables
@@ -18,11 +29,6 @@ export async function debugSupabaseConnection(): Promise<{
       hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      urlLength: process.env.NEXT_PUBLIC_SUPABASE_URL?.length || 0,
-      anonKeyLength: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.length || 0,
-      serviceKeyLength: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0,
-      urlPreview: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) || 'MISSING',
-      anonKeyPreview: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20) || 'MISSING',
     };
     
     console.log('[debugSupabaseConnection] Environment check:', envCheck);

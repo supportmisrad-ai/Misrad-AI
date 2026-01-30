@@ -47,6 +47,9 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
     // Form state
     const [formData, setFormData] = useState({
         employeeEmail: '',
@@ -70,10 +73,12 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             const response = await fetch('/api/employees/invitations');
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || `Failed to load invitations (${response.status})`);
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || `Failed to load invitations (${response.status})`);
             }
-            const data = await response.json();
-            setInvitations(data.invitations || []);
+            const data = await response.json().catch(() => ({}));
+            const payload = unwrap(data);
+            setInvitations((payload as any).invitations || []);
         } catch (error: any) {
             console.error('[EmployeeInvitations] Error loading invitations:', error);
             addToast(error.message || 'שגיאה בטעינת קישורים', 'error');
@@ -118,11 +123,12 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Failed to create invitation');
+                const errorData = await response.json().catch(() => ({}));
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to create invitation');
             }
 
-            const data = await response.json();
+            await response.json().catch(() => ({}));
             addToast('קישור הזמנה נוצר בהצלחה', 'success');
             
             // Reset form
@@ -173,7 +179,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || 'Failed to deactivate invitation');
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to deactivate invitation');
             }
 
             addToast('קישור הזמנה בוטל', 'success');

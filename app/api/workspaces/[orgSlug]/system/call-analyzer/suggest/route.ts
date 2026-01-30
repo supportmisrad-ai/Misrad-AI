@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { logAuditEvent } from '@/lib/audit';
 
@@ -18,21 +18,21 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const { orgSlug } = await params;
     if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
+      return apiError('orgSlug is required', { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
 
     const body = (await req.json().catch(() => ({}))) as SuggestRequestBody;
     const transcriptText = String(body.transcriptText || '').trim();
 
     if (!transcriptText) {
-      return NextResponse.json({ error: 'transcriptText is required' }, { status: 400 });
+      return apiError('transcriptText is required', { status: 400 });
     }
 
     await logAuditEvent('ai.query', 'system.calls.objection_suggestions', {
@@ -56,6 +56,9 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
 5) הפק רשימת משימות אופרטיביות.
 6) אם אפשר - החזר גם פירוק בסיסי לקטעי תמלול (speaker,timestamp,text,sentiment).
 
+חשוב: לגבי תזכורות ומועדים - אתה רשאי רק להציע מועד (dueAtSuggestion). אל תקבע מועד מחייב. המשתמש יאשר במערכת.
+אם אין מספיק מידע לשעה/תאריך - החזר null ב-dueAtSuggestion.
+
 תמלול:
 ${transcriptText.slice(0, 24000)}
 
@@ -65,7 +68,7 @@ ${transcriptText.slice(0, 24000)}
   "score": 0,
   "intent": "buying"|"window_shopping"|"angry"|"churn_risk",
   "objections": [{"objection":"...","reply":"...","next_question":"..."}],
-  "topics": {"promises":[],"painPoints":[],"likes":[],"slang":[],"stories":[],"decisions":[],"tasks":[]},
+  "topics": {"promises":[],"painPoints":[],"likes":[],"slang":[],"stories":[],"decisions":[],"tasks":[{"title":"...","dueAtSuggestion":null,"dueAtConfidence":0,"dueAtRationale":"..."}]},
   "feedback": {"positive":[],"improvements":[]},
   "transcript": [{"speaker":"Agent"|"Customer","timestamp":0,"text":"...","sentiment":"positive"|"negative"|"neutral"}]
 }`;
@@ -83,15 +86,17 @@ ${transcriptText.slice(0, 24000)}
       },
     });
 
-    return NextResponse.json({
+    return apiSuccess({
       result: out.result,
       provider: out.provider,
       model: out.model,
       chargedCents: out.chargedCents,
     });
   } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : e?.name === 'UpgradeRequiredError' ? 402 : 500;
-    return NextResponse.json({ error: e?.message ?? 'Failed to suggest replies' }, { status });
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
+    return apiError(e, { message: 'Failed to suggest replies' });
   }
 }
 

@@ -64,7 +64,7 @@ export function Avatar({
     if (!effectiveSrc || effectiveSrc.trim() === '') {
         return (
             <div 
-                className={`${sizeClass} ${roundedClass} bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className}`}
+                className={`${sizeClass} bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold ${className} ${roundedClass}`}
                 aria-label={alt || name || 'User avatar'}
                 suppressHydrationWarning
             >
@@ -77,7 +77,7 @@ export function Avatar({
         <img 
             src={effectiveSrc} 
             alt={alt || name || 'User avatar'} 
-            className={`${sizeClass} ${roundedClass} object-cover ${className}`}
+            className={`${sizeClass} object-cover ${className} ${roundedClass}`}
         />
     );
 };

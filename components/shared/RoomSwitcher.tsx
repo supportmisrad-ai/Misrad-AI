@@ -5,7 +5,7 @@ import { LayoutGrid, Lock, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { OS_MODULES, type OSModule } from '@/types/os-modules';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 type OSRoomId = OSModule;
 
@@ -37,8 +37,9 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
         const response = await fetch('/api/os/rooms', { cache: 'no-store' });
         if (!response.ok) return;
         const data = await response.json();
-        if (data?.rooms) {
-          setRooms((prev) => ({ ...prev, ...data.rooms }));
+        const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+        if ((payload as any)?.rooms) {
+          setRooms((prev) => ({ ...prev, ...(payload as any).rooms }));
         }
       } catch {
         // ignore
@@ -95,11 +96,17 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
         <button
           ref={buttonRef}
           onClick={() => setIsOpen((v) => !v)}
-          className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white/60 backdrop-blur-2xl border border-white/40 text-slate-700 hover:bg-white/80 hover:text-slate-900 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+          className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
           aria-label="מעבר בין חדרים"
           title="מעבר בין חדרים"
         >
-          <LayoutGrid size={20} />
+          {currentRoom ? (
+            <OSModuleSquircleIcon moduleKey={currentRoom} boxSize={40} iconSize={18} className="shadow-none" />
+          ) : (
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/60 backdrop-blur-2xl border border-white/40 text-slate-700 hover:bg-white/80 hover:text-slate-900 transition-all shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+              <LayoutGrid size={20} />
+            </div>
+          )}
         </button>
 
         <AnimatePresence>
@@ -164,9 +171,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
                           title={room.title}
                         >
                           <span className="relative z-10 flex flex-col items-center justify-center gap-1">
-                            <span className="w-7 h-7 rounded-xl bg-white/15 border border-white/15 flex items-center justify-center">
-                              <OSModuleIcon moduleKey={room.id} size={16} className="text-white" />
-                            </span>
+                            <OSModuleSquircleIcon moduleKey={room.id} boxSize={28} iconSize={16} disabled={!enabled} />
                             <span className="text-[10px] font-black leading-none">{room.title}</span>
                           </span>
                           {!enabled && (

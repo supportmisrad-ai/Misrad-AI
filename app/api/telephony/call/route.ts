@@ -7,42 +7,25 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { getTenants } from '../../../../lib/db';
 import { TelephonyService } from '../../../../lib/services/telephony';
+import { createClient } from '@/lib/supabase';
+import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
 /**
  * Helper function to get tenantId from request/user
  */
-async function getTenantId(request: NextRequest, userEmail: string | null): Promise<string | null> {
+async function getTenantId(request: NextRequest, userEmail: string | null, workspaceId: string): Promise<string | null> {
+    void userEmail;
     const searchParams = request.nextUrl.searchParams;
     const providedTenantId = searchParams.get('tenantId');
-    
-    if (providedTenantId) {
-        return providedTenantId;
+
+    if (providedTenantId && String(providedTenantId) !== String(workspaceId)) {
+        return null;
     }
-    
-    // Try to get from subdomain
-    const hostname = request.headers.get('host') || '';
-    const subdomainMatch = hostname.match(/^([^.]+)\.nexus-os\.co$/);
-    const subdomain = subdomainMatch ? subdomainMatch[1] : null;
-    
-    if (subdomain) {
-        const tenants = await getTenants({ subdomain });
-        if (tenants.length > 0) {
-            return tenants[0].id;
-        }
-    }
-    
-    // Try to find by user's email (owner_email)
-    if (userEmail) {
-        const tenants = await getTenants({ ownerEmail: userEmail });
-        if (tenants.length > 0) {
-            return tenants[0].id;
-        }
-    }
-    
-    return null;
+
+    return String(workspaceId);
 }
 
 /**
@@ -60,13 +43,15 @@ async function POSTHandler(request: NextRequest) {
 
         // 2. Authorization: only admins can initiate calls
         await requirePermission('manage_system');
+
+        const { workspace } = await getWorkspaceOrThrow(request);
         
         // 3. Get tenant ID
-        const tenantId = await getTenantId(request, user.email);
+        const tenantId = await getTenantId(request, user.email, String(workspace.id));
         if (!tenantId) {
             return NextResponse.json(
-                { error: 'Tenant not found' },
-                { status: 404 }
+                { error: 'Forbidden - Invalid tenant context' },
+                { status: 403 }
             );
         }
         

@@ -49,7 +49,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
              {/* Small Tag */}
              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-gray-200 shadow-sm mb-6 animate-fade-in">
                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Misrad v5.0 Live</span>
+                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">MISRAD AI v5.0 Live</span>
              </div>
 
              {/* Big Central Title */}
@@ -129,7 +129,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
       {/* FOOTER */}
       <footer className="py-10 text-center text-gray-400 text-xs">
-          <p>© {new Date().getFullYear()} Misrad. כל הזכויות שמורות.</p>
+          <p>© {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.</p>
       </footer>
 
 

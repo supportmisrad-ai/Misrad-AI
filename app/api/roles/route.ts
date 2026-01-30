@@ -7,11 +7,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { getRoles, createRole } from '../../../lib/db';
 import { RoleDefinition } from '../../../types';
 import { logAuditEvent } from '../../../lib/audit';
+import { createClient } from '@/lib/supabase';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function mapRoleRow(row: any): RoleDefinition {
+    return {
+        id: row?.id,
+        name: row?.name,
+        permissions: (row?.permissions || []) as any,
+        isSystem: row?.is_system || false,
+        description: row?.description,
+    } as any;
+}
 async function GETHandler(request: NextRequest) {
     try {
         // Try to get authenticated user
@@ -26,9 +36,20 @@ async function GETHandler(request: NextRequest) {
             );
         }
         
+        const supabase = createClient();
+
         // All authenticated users can view roles (needed for selecting roles when editing users)
         // Only creating/editing roles requires manage_system permission
-        const roles = await getRoles();
+        const { data, error } = await supabase
+            .from('misrad_roles')
+            .select('*')
+            .order('name');
+
+        if (error) {
+            throw error;
+        }
+
+        const roles = (Array.isArray(data) ? data : []).map(mapRoleRow);
         
         return NextResponse.json({ roles });
         
@@ -80,8 +101,25 @@ async function POSTHandler(request: NextRequest) {
             isSystem: isSystem || false,
             ...(description && { description })
         } as any;
-        
-        const createdRole = await createRole(newRole);
+
+        const supabase = createClient();
+
+        const { data, error } = await supabase
+            .from('misrad_roles')
+            .insert({
+                name: (newRole as any).name,
+                permissions: (newRole as any).permissions,
+                is_system: (newRole as any).isSystem || false,
+                description: (newRole as any).description || null,
+            })
+            .select('*')
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        const createdRole = mapRoleRow(data);
         
         await logAuditEvent('role.create', 'role', {
             resourceId: createdRole.id,

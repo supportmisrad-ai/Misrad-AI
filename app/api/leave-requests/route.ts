@@ -4,58 +4,388 @@
  * Handles CRUD operations for employee leave requests (vacations, sick days, etc.)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../lib/auth';
-import { createClient } from '../../../lib/supabase';
-import { getUsers, createRecord } from '../../../lib/db';
 import { LeaveRequest, User } from '../../../types';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-async function resolveOrganizationIdFromHeader(orgHeaderValue: string): Promise<string> {
-    // We accept either a workspace id (UUID) or an orgSlug.
-    const key = String(orgHeaderValue || '').trim();
-    if (!key) {
-        throw new Error('Missing organization context');
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
+    const v = obj[key];
+    return typeof v === 'string' ? v : v == null ? fallback : String(v);
+}
+
+function getNullableString(obj: Record<string, unknown>, key: string): string | null {
+    const v = obj[key];
+    if (v == null) return null;
+    return typeof v === 'string' ? v : String(v);
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj ? obj['message'] : undefined;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function toIsoString(value: Date | string | null | undefined): string {
+    if (!value) return '';
+    if (value instanceof Date) return value.toISOString();
+    const d = new Date(String(value));
+    return Number.isNaN(d.getTime()) ? String(value) : d.toISOString();
+}
+
+function normalizeMetadata(value: unknown): Record<string, unknown> {
+    if (!value) return {};
+    if (typeof value === 'string') {
+        try {
+            const parsed = JSON.parse(value) as unknown;
+            return asObject(parsed) ?? {};
+        } catch {
+            return {};
+        }
     }
-    // Always validate against the current user context (zero trust).
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(key);
-    return workspace.id;
+    return asObject(value) ?? {};
+}
+
+function isLeaveRequestType(value: string): value is LeaveRequest['leaveType'] {
+    return value === 'vacation' || value === 'sick' || value === 'personal' || value === 'unpaid' || value === 'other';
+}
+
+function isLeaveRequestStatus(value: string): value is LeaveRequest['status'] {
+    return value === 'pending' || value === 'approved' || value === 'rejected' || value === 'cancelled';
+}
+
+type NotificationInsert = {
+    organization_id: string;
+    recipient_id: string;
+    type: string;
+    text: string;
+    actor_id?: string | null;
+    actor_name?: string | null;
+    related_id?: string | null;
+    is_read?: boolean;
+    metadata?: unknown;
+    created_at?: string;
+};
+
+type NexusLeaveRequestRow = {
+    id: string;
+    organizationId?: string;
+    organization_id?: string;
+    employee_id: string;
+    leave_type: string;
+    start_date: Date;
+    end_date: Date;
+    days_requested: string;
+    reason: string | null;
+    status: string;
+    requested_by: string | null;
+    approved_by: string | null;
+    approved_at: Date | null;
+    rejection_reason: string | null;
+    notification_sent: boolean | null;
+    employee_notified: boolean | null;
+    metadata: unknown;
+    created_at: Date;
+    updated_at: Date;
+};
+
+type NexusLeaveRequestsDelegate = {
+    findMany: (args: {
+        where: Record<string, unknown>;
+        orderBy: unknown;
+        skip: number;
+        take: number;
+    }) => Promise<NexusLeaveRequestRow[]>;
+    create: (args: { data: Record<string, unknown> }) => Promise<NexusLeaveRequestRow>;
+};
+
+function mapNexusUserRow(row: unknown): User {
+    const obj = asObject(row);
+    return {
+        id: obj ? getString(obj, 'id') : '',
+        name: obj ? getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))) : '',
+        role: obj ? getString(obj, 'role', 'עובד') : 'עובד',
+        department: obj ? (getNullableString(obj, 'department') ?? undefined) : undefined,
+        avatar: obj ? getString(obj, 'avatar', getString(obj, 'avatar_url')) : '',
+        online: Boolean(obj ? (obj['online'] ?? true) : true),
+        capacity: Number(obj ? (obj['capacity'] ?? 0) : 0),
+        email: obj ? (getNullableString(obj, 'email') ?? undefined) : undefined,
+        phone: obj ? (getNullableString(obj, 'phone') ?? undefined) : undefined,
+        location: obj ? (getNullableString(obj, 'location') ?? undefined) : undefined,
+        bio: obj ? (getNullableString(obj, 'bio') ?? undefined) : undefined,
+        isSuperAdmin: Boolean(obj ? (obj['is_super_admin'] ?? obj['isSuperAdmin'] ?? false) : false),
+        managerId: obj ? (getNullableString(obj, 'manager_id') ?? undefined) : undefined,
+        managedDepartment: obj ? (getNullableString(obj, 'managed_department') ?? undefined) : undefined,
+        tenantId: obj ? (getNullableString(obj, 'organization_id') ?? undefined) : undefined,
+    } as User;
+}
+
+async function selectUserByIdInOrganization(params: { organizationId: string; userId: string }): Promise<User | null> {
+    const userId = String(params.userId || '').trim();
+    if (!userId) return null;
+
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_user_lookup_id',
+        query: `
+            select
+                id::text as id,
+                name,
+                email,
+                role,
+                department,
+                avatar,
+                online,
+                capacity,
+                phone,
+                location,
+                bio,
+                is_super_admin,
+                manager_id::text as manager_id,
+                managed_department,
+                organization_id::text as organization_id
+            from nexus_users
+            where organization_id = $1::uuid
+              and id = $2::uuid
+            limit 1
+        `,
+        values: [params.organizationId, userId],
+    });
+
+    const row = Array.isArray(rows) ? rows[0] : null;
+    return row ? mapNexusUserRow(row) : null;
+}
+
+async function selectDepartmentManagerIdInOrganization(params: {
+    organizationId: string;
+    department: string;
+    excludeUserId?: string;
+}): Promise<string | null> {
+    const department = String(params.department || '').trim();
+    if (!department) return null;
+
+    const excludeUserId = params.excludeUserId ? String(params.excludeUserId).trim() : '';
+
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_department_manager_lookup',
+        query: `
+            select id::text as id
+            from nexus_users
+            where organization_id = $1::uuid
+              and managed_department = $2::text
+              and ($3::text = '' or id::text <> $3::text)
+            limit 1
+        `,
+        values: [params.organizationId, department, excludeUserId],
+    });
+
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const obj = asObject(row);
+    const id = obj ? getString(obj, 'id') : '';
+    return id ? String(id) : null;
+}
+
+async function selectTenantAdminIdsInOrganization(params: { organizationId: string; excludeUserId?: string }): Promise<string[]> {
+    const roles = ['מנכ״ל', 'מנכ"ל', 'מנכל', 'אדמין'];
+    const excludeUserId = params.excludeUserId ? String(params.excludeUserId).trim() : '';
+
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_admin_list',
+        query: `
+            select id::text as id
+            from nexus_users
+            where organization_id = $1::uuid
+              and (
+                is_super_admin = true
+                or role = any($2::text[])
+              )
+              and ($3::text = '' or id::text <> $3::text)
+        `,
+        values: [params.organizationId, roles, excludeUserId],
+    });
+
+    return (Array.isArray(rows) ? rows : [])
+        .map((r) => {
+            const obj = asObject(r);
+            return obj ? getString(obj, 'id') : '';
+        })
+        .filter(Boolean);
+}
+
+async function ensureUserByEmailInWorkspace(params: { organizationId: string; email: string; authUser: unknown }): Promise<User | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const existing = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_user_ensure_find',
+        query: `
+            select
+                id::text as id,
+                name,
+                email,
+                role,
+                department,
+                avatar,
+                online,
+                capacity,
+                phone,
+                location,
+                bio,
+                is_super_admin,
+                manager_id::text as manager_id,
+                managed_department,
+                organization_id::text as organization_id
+            from nexus_users
+            where organization_id = $1::uuid
+              and lower(email) = $2::text
+            order by updated_at desc nulls last, created_at desc nulls last
+            limit 1
+        `,
+        values: [params.organizationId, email],
+    });
+
+    if (Array.isArray(existing) && existing[0]) {
+        return mapNexusUserRow(existing[0]);
+    }
+
+    const nowIso = new Date().toISOString();
+    const authObj = asObject(params.authUser);
+    const firstName = authObj ? getNullableString(authObj, 'firstName') : null;
+    const lastName = authObj ? getNullableString(authObj, 'lastName') : null;
+    const imageUrl = authObj ? getNullableString(authObj, 'imageUrl') : null;
+    const role = authObj ? getNullableString(authObj, 'role') : null;
+    const isSuperAdmin = Boolean(authObj ? authObj['isSuperAdmin'] : false);
+    const name =
+        firstName && lastName
+            ? `${firstName} ${lastName}`.trim()
+            : firstName || lastName || email;
+
+    const inserted = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_user_ensure_insert',
+        query: `
+            insert into nexus_users (
+                organization_id,
+                name,
+                role,
+                avatar,
+                online,
+                capacity,
+                email,
+                is_super_admin,
+                created_at,
+                updated_at
+            ) values (
+                $1::uuid,
+                $2::text,
+                $3::text,
+                $4::text,
+                true,
+                0,
+                $5::text,
+                $6::boolean,
+                $7::timestamptz,
+                $7::timestamptz
+            )
+            returning
+                id::text as id,
+                name,
+                email,
+                role,
+                department,
+                avatar,
+                online,
+                capacity,
+                phone,
+                location,
+                bio,
+                is_super_admin,
+                manager_id::text as manager_id,
+                managed_department,
+                organization_id::text as organization_id
+        `,
+        values: [params.organizationId, name, role || 'עובד', imageUrl || null, email, isSuperAdmin, nowIso],
+    });
+
+    if (Array.isArray(inserted) && inserted[0]) {
+        return mapNexusUserRow(inserted[0]);
+    }
+
+    return null;
+}
+
+function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate {
+    const prismaObj = asObject(prisma as unknown);
+    const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
+    if (!delegate) {
+        throw new Error('Prisma Client is missing nexus_leave_requests. Run prisma:generate and restart TS server.');
+    }
+    return delegate as unknown as NexusLeaveRequestsDelegate;
+}
+
+async function insertNotifications(params: { workspaceId: string; notifications: NotificationInsert[] }) {
+    const list = Array.isArray(params.notifications) ? params.notifications : [];
+    if (list.length === 0) return;
+
+    const columns =
+        '(organization_id, recipient_id, type, text, actor_id, actor_name, related_id, is_read, metadata, created_at, updated_at)';
+
+    const values: unknown[] = [];
+    const tuples: string[] = [];
+    let i = 1;
+
+    for (const n of list) {
+        const obj = asObject(n) ?? {};
+        const metadata = normalizeMetadata(obj['metadata']);
+        const createdAt = obj['created_at'] ? String(obj['created_at']) : new Date().toISOString();
+        tuples.push(
+            `($${i++}::uuid,$${i++}::uuid,$${i++}::text,$${i++}::text,$${i++}::uuid,$${i++}::text,$${i++}::uuid,$${i++}::boolean,$${i++}::jsonb,$${i++}::timestamptz,$${i++}::timestamptz)`
+        );
+        values.push(
+            getString(obj, 'organization_id'),
+            getString(obj, 'recipient_id'),
+            getString(obj, 'type'),
+            getString(obj, 'text'),
+            getNullableString(obj, 'actor_id'),
+            getNullableString(obj, 'actor_name'),
+            getNullableString(obj, 'related_id'),
+            Boolean(obj['is_read']),
+            metadata,
+            createdAt,
+            createdAt
+        );
+    }
+
+    await executeRawOrgScoped(prisma, {
+        organizationId: params.workspaceId,
+        reason: 'leave_requests_notifications_insert',
+        query: `insert into misrad_notifications ${columns} values ${tuples.join(',')}`,
+        values,
+    });
 }
 
 async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch (e: any) {
-            console.error('[API] Supabase client init failed in /api/leave-requests GET:', e);
-            return NextResponse.json(
-                { error: e?.message || 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const orgHeader = request.headers.get('x-org-id');
-        if (!orgHeader) {
-            return NextResponse.json(
-                { error: 'Missing organization context (x-org-id)' },
-                { status: 400 }
-            );
-        }
-
-        let organizationId: string;
-        try {
-            organizationId = await resolveOrganizationIdFromHeader(orgHeader);
-        } catch (e: any) {
-            console.error('[API] Invalid org context in /api/leave-requests GET:', e);
-            return NextResponse.json(
-                { error: 'Invalid organization context' },
-                { status: 400 }
-            );
-        }
+        const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
 
         const bypassTenantIsolationE2e =
             String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
@@ -66,34 +396,19 @@ async function GETHandler(request: NextRequest) {
         const allowUnscoped = bypassTenantIsolationE2e;
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
-            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+            return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
         // Get user from database by email
         if (!user.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        let dbUsers: User[] = [];
-        try {
-            dbUsers = await getUsers({
-                email: user.email,
-                tenantId: organizationId,
-                allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-            });
-        } catch (dbError: any) {
-            console.error('[API] Error fetching users from database:', dbError);
-            dbUsers = [];
-        }
-
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUser = await ensureUserByEmailInWorkspace({ organizationId, email: user.email, authUser: user });
 
         if (!dbUser) {
             // Return empty array instead of error - user might not be synced yet
-            return NextResponse.json({ requests: [] }, { status: 200 });
+            return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -101,86 +416,89 @@ async function GETHandler(request: NextRequest) {
         const status = searchParams.get('status');
         const startDate = searchParams.get('start_date');
         const endDate = searchParams.get('end_date');
+        const pageParam = searchParams.get('page');
+        const pageSizeParam = searchParams.get('page_size');
 
-        let query = supabase
-            .from('nexus_leave_requests')
-            .select('*')
-            .eq('organization_id', organizationId);
+        const leaveRequests = getLeaveRequestsDelegate();
 
-        // Filter by employee (if not admin, only show own requests)
-        if (!dbUser.isSuperAdmin && dbUser.role !== 'מנכ״ל' && dbUser.role !== 'מנכ"ל' && dbUser.role !== 'אדמין') {
-            query = query.eq('employee_id', dbUser.id);
+        const where: Record<string, unknown> = { organizationId };
+
+        if (!dbUser.isSuperAdmin && !isTenantAdminRole(dbUser.role)) {
+            where.employee_id = String(dbUser.id);
         } else if (employeeId) {
-            query = query.eq('employee_id', employeeId);
+            where.employee_id = String(employeeId);
         }
 
         if (status) {
-            query = query.eq('status', status);
+            where.status = String(status);
         }
+
         if (startDate) {
-            query = query.gte('start_date', startDate);
+            const d = new Date(String(startDate));
+            if (!Number.isNaN(d.getTime())) {
+                where.start_date = { gte: d };
+            }
         }
+
         if (endDate) {
-            query = query.lte('end_date', endDate);
+            const d = new Date(String(endDate));
+            if (!Number.isNaN(d.getTime())) {
+                where.end_date = { lte: d };
+            }
         }
 
-        // Order and limit for performance (limit to 500 most recent requests)
-        query = query.order('created_at', { ascending: false }).limit(500);
+        const page = Math.max(1, Math.floor(Number(pageParam || 1)));
+        const pageSize = Math.min(200, Math.max(1, Math.floor(Number(pageSizeParam || 50))));
+        const skip = (page - 1) * pageSize;
 
-        const { data: requests, error } = await query;
+        const requests = await leaveRequests.findMany({
+            where,
+            orderBy: [{ created_at: 'desc' }],
+            skip,
+            take: pageSize + 1,
+        });
 
-        if (error) {
-            console.error('[API] Error fetching leave requests:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בטעינת בקשות חופש' },
-                { status: 500 }
-            );
-        }
+        const hasMore = Array.isArray(requests) && requests.length > pageSize;
+        const trimmed = hasMore ? (requests || []).slice(0, pageSize) : (requests || []);
 
         // Transform database records to LeaveRequest interface format
-        const transformedRequests: LeaveRequest[] = (requests || []).map((req: any) => ({
-            id: req.id,
-            tenantId: req.organization_id,
-            employeeId: req.employee_id,
-            leaveType: req.leave_type,
-            startDate: req.start_date,
-            endDate: req.end_date,
-            daysRequested: parseFloat(req.days_requested) || 0,
-            reason: req.reason,
-            status: req.status,
-            requestedBy: req.requested_by,
-            approvedBy: req.approved_by,
-            approvedAt: req.approved_at,
-            rejectionReason: req.rejection_reason,
-            notificationSent: req.notification_sent || false,
-            employeeNotified: req.employee_notified || false,
-            metadata: (() => {
-                try {
-                    if (req.metadata) {
-                        return typeof req.metadata === 'string' ? JSON.parse(req.metadata) : req.metadata;
-                    }
-                    return {};
-                } catch (e) {
-                    console.warn('[API] Failed to parse metadata:', e);
-                    return {};
-                }
-            })(),
-            createdAt: req.created_at,
-            updatedAt: req.updated_at
-        }));
+        const transformedRequests: LeaveRequest[] = trimmed.map((req) => {
+            const leaveTypeRaw = String(req.leave_type);
+            const statusRaw = String(req.status);
+            return {
+                id: req.id,
+                tenantId: String(req.organizationId ?? req.organization_id ?? '') || undefined,
+                employeeId: String(req.employee_id),
+                leaveType: (isLeaveRequestType(leaveTypeRaw) ? leaveTypeRaw : 'other') as LeaveRequest['leaveType'],
+                startDate: toIsoString(req.start_date),
+                endDate: toIsoString(req.end_date),
+                daysRequested: parseFloat(req.days_requested) || 0,
+                reason: req.reason ?? undefined,
+                status: (isLeaveRequestStatus(statusRaw) ? statusRaw : 'pending') as LeaveRequest['status'],
+                requestedBy: req.requested_by ?? undefined,
+                approvedBy: req.approved_by ?? undefined,
+                approvedAt: req.approved_at ? toIsoString(req.approved_at) : undefined,
+                rejectionReason: req.rejection_reason ?? undefined,
+                notificationSent: req.notification_sent || false,
+                employeeNotified: req.employee_notified || false,
+                metadata: normalizeMetadata(req.metadata),
+                createdAt: toIsoString(req.created_at),
+                updatedAt: toIsoString(req.updated_at),
+            };
+        });
 
-        return NextResponse.json({ requests: transformedRequests }, { status: 200 });
+        return apiSuccessCompat({ requests: transformedRequests, page, pageSize, hasMore }, { status: 200 });
 
-    } catch (error: any) {
-        const msg = String(error?.message || '');
+    } catch (error: unknown) {
+        const msg = getErrorMessage(error);
         console.error('[API] Error in /api/leave-requests GET:', error);
-        if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
-            return NextResponse.json({ requests: [] }, { status: 200 });
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: msg || 'Forbidden' });
         }
-        return NextResponse.json(
-            { error: msg || 'שגיאה בטעינת בקשות חופש' },
-            { status: msg.includes('Unauthorized') ? 401 : 500 }
-        );
+        if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
+            return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
+        }
+        return apiError(error, { status: msg.includes('Unauthorized') ? 401 : 500, message: msg || 'שגיאה בטעינת בקשות חופש' });
     }
 }
 
@@ -188,235 +506,111 @@ async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch (e: any) {
-            console.error('[API] Supabase client init failed in /api/leave-requests POST:', e);
-            return NextResponse.json(
-                { error: e?.message || 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
-        const orgHeader = request.headers.get('x-org-id');
-        if (!orgHeader) {
-            return NextResponse.json(
-                { error: 'Missing organization id' },
-                { status: 400 }
-            );
-        }
-
-        let organizationId: string;
-        try {
-            organizationId = await resolveOrganizationIdFromHeader(orgHeader);
-        } catch (e: any) {
-            console.error('[API] Invalid org context in /api/leave-requests POST:', e);
-            return NextResponse.json(
-                { error: 'Invalid organization context' },
-                { status: 400 }
-            );
-        }
+        const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
 
         // Get user from database by email
         if (!user.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        let dbUsers: User[] = [];
-        try {
-            dbUsers = await getUsers({ email: user.email, tenantId: organizationId });
-        } catch {
-            dbUsers = [];
-        }
-        let dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUser = await ensureUserByEmailInWorkspace({ organizationId, email: user.email, authUser: user });
 
-        // Auto-sync: If user not found, try to create them automatically
         if (!dbUser) {
-            try {
-                // Try to auto-sync the user (same logic as /api/users/sync)
-                const role = user.role || 'עובד';
-                const isSuperAdmin = user.isSuperAdmin || false;
-                
-                const newUserData: Omit<User, 'id'> = {
-                    name: user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`.trim()
-                        : user.firstName || user.lastName || 'User',
-                    role: role,
-                    department: undefined,
-                    avatar: user.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email)}&background=6366f1&color=fff`,
-                    online: true,
-                    capacity: 0,
-                    email: user.email,
-                    phone: undefined,
-                    location: undefined,
-                    bio: undefined,
-                    paymentType: undefined,
-                    hourlyRate: undefined,
-                    monthlySalary: undefined,
-                    commissionPct: undefined,
-                    bonusPerTask: undefined,
-                    accumulatedBonus: 0,
-                    streakDays: 0,
-                    weeklyScore: undefined,
-                    pendingReward: undefined,
-                    targets: undefined,
-                    notificationPreferences: {
-                        emailNewTask: true,
-                        browserPush: true,
-                        morningBrief: true,
-                        soundEffects: false,
-                        marketing: true
-                    },
-                    twoFactorEnabled: false,
-                    isSuperAdmin: isSuperAdmin,
-                    billingInfo: undefined
-                };
-
-                const newUser = await createRecord('users', newUserData, { organizationId }) as User;
-                dbUser = newUser;
-                console.log('[API] Auto-synced user to database', {
-                    userId: user.id,
-                    tenantId: organizationId,
-                });
-                
-                // Re-fetch to ensure we have the latest user data (including tenantId if set)
-                dbUsers = await getUsers({ email: user.email, tenantId: organizationId });
-                dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-                
-                if (!dbUser) {
-                    throw new Error('User created but not found after creation');
-                }
-            } catch (syncError: any) {
-                console.error('[API] Auto-sync failed:', syncError);
-            return NextResponse.json(
-                    { error: 'User not found in database. Please sync your account first by calling POST /api/users/sync' },
-                { status: 404 }
-            );
-            }
+            return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
-        const body = await request.json();
-        const {
-            employeeId = dbUser.id, // Default to current user
-            leaveType,
-            startDate,
-            endDate,
-            daysRequested,
-            reason,
-            metadata = {}
-        } = body;
+        const body = (await request.json()) as unknown;
+        const bodyObj = asObject(body) ?? {};
+        const employeeId = bodyObj['employeeId'] ? String(bodyObj['employeeId']) : String(dbUser.id);
+        const leaveType = bodyObj['leaveType'];
+        const startDate = bodyObj['startDate'];
+        const endDate = bodyObj['endDate'];
+        const daysRequested = bodyObj['daysRequested'];
+        const reason = bodyObj['reason'];
+        const metadata = bodyObj['metadata'];
 
         // Validation
         if (!leaveType || !startDate || !endDate || daysRequested === undefined) {
-            return NextResponse.json(
-                { error: 'סוג חופש, תאריכים ומספר ימים נדרשים' },
-                { status: 400 }
-            );
+            return apiError('סוג חופש, תאריכים ומספר ימים נדרשים', { status: 400 });
         }
 
         // Check if user can request for this employee (must be self or admin)
         if (employeeId !== dbUser.id) {
-            const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ״ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
+            const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
             if (!isAdmin) {
-                return NextResponse.json(
-                    { error: 'אין הרשאה ליצור בקשה עבור עובד אחר' },
-                    { status: 403 }
-                );
+                return apiError('אין הרשאה ליצור בקשה עבור עובד אחר', { status: 403 });
             }
         }
 
         // Calculate days if not provided
-        let calculatedDays = daysRequested;
+        let calculatedDays = daysRequested as unknown;
         if (!calculatedDays) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
+            const start = new Date(String(startDate));
+            const end = new Date(String(endDate));
             const diffTime = Math.abs(end.getTime() - start.getTime());
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end
             calculatedDays = diffDays;
         }
 
         // Merge metadata - ensure isUrgent is preserved if provided
+        const metadataObj = asObject(metadata) ?? {};
         const finalMetadata = {
-            ...(typeof metadata === 'object' && metadata !== null ? metadata : {}),
-            ...(metadata?.isUrgent !== undefined ? { isUrgent: metadata.isUrgent } : {})
+            ...metadataObj,
+            ...(metadataObj['isUrgent'] !== undefined ? { isUrgent: metadataObj['isUrgent'] } : {})
         };
 
         // Create leave request
-        const { data: leaveRequest, error } = await supabase
-            .from('nexus_leave_requests')
-            .insert({
-                organization_id: organizationId,
-                employee_id: employeeId,
-                leave_type: leaveType,
-                start_date: startDate,
-                end_date: endDate,
-                days_requested: calculatedDays,
-                reason,
+        const leaveRequests = getLeaveRequestsDelegate();
+
+        const start = new Date(String(startDate));
+        const end = new Date(String(endDate));
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+            return apiError('תאריכים לא תקינים', { status: 400 });
+        }
+
+        const leaveRequest = await leaveRequests.create({
+            data: {
+                organizationId,
+                employee_id: String(employeeId),
+                leave_type: String(leaveType),
+                start_date: start,
+                end_date: end,
+                days_requested: new Prisma.Decimal(String(calculatedDays)),
+                reason: reason ?? null,
                 status: 'pending',
-                requested_by: dbUser.id,
-                metadata: finalMetadata
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('[API] Error creating leave request:', error);
-            console.error('[API] Error details:', JSON.stringify(error, null, 2));
-            return NextResponse.json(
-                { error: error.message || 'שגיאה ביצירת בקשת חופש' },
-                { status: 500 }
-            );
-        }
-
-        if (!leaveRequest) {
-            console.error('[API] Leave request created but not returned');
-            return NextResponse.json(
-                { error: 'בקשת החופש נוצרה אך לא ניתן לאחזר אותה' },
-                { status: 500 }
-            );
-        }
+                requested_by: String(dbUser.id),
+                metadata: finalMetadata,
+            },
+        });
 
         // Transform to LeaveRequest interface format
+        const leaveTypeRaw = String(leaveRequest.leave_type);
+        const statusRaw = String(leaveRequest.status);
         const transformedRequest: LeaveRequest = {
             id: leaveRequest.id,
-            tenantId: leaveRequest.organization_id,
+            tenantId: String(leaveRequest.organizationId ?? leaveRequest.organization_id ?? '') || undefined,
             employeeId: leaveRequest.employee_id,
-            leaveType: leaveRequest.leave_type,
-            startDate: leaveRequest.start_date,
-            endDate: leaveRequest.end_date,
+            leaveType: (isLeaveRequestType(leaveTypeRaw) ? leaveTypeRaw : 'other') as LeaveRequest['leaveType'],
+            startDate: toIsoString(leaveRequest.start_date),
+            endDate: toIsoString(leaveRequest.end_date),
             daysRequested: parseFloat(leaveRequest.days_requested) || 0,
-            reason: leaveRequest.reason,
-            status: leaveRequest.status,
-            requestedBy: leaveRequest.requested_by,
-            approvedBy: leaveRequest.approved_by,
-            approvedAt: leaveRequest.approved_at,
-            rejectionReason: leaveRequest.rejection_reason,
+            reason: leaveRequest.reason ?? undefined,
+            status: (isLeaveRequestStatus(statusRaw) ? statusRaw : 'pending') as LeaveRequest['status'],
+            requestedBy: leaveRequest.requested_by ?? undefined,
+            approvedBy: leaveRequest.approved_by ?? undefined,
+            approvedAt: leaveRequest.approved_at ? toIsoString(leaveRequest.approved_at) : undefined,
+            rejectionReason: leaveRequest.rejection_reason ?? undefined,
             notificationSent: leaveRequest.notification_sent || false,
             employeeNotified: leaveRequest.employee_notified || false,
-            metadata: (() => {
-                try {
-                    if (leaveRequest.metadata) {
-                        return typeof leaveRequest.metadata === 'string' ? JSON.parse(leaveRequest.metadata) : leaveRequest.metadata;
-                    }
-                    return {};
-                } catch (e) {
-                    console.warn('[API] Failed to parse metadata:', e);
-                    return {};
-                }
-            })(),
-            createdAt: leaveRequest.created_at,
-            updatedAt: leaveRequest.updated_at
+            metadata: normalizeMetadata(leaveRequest.metadata),
+            createdAt: toIsoString(leaveRequest.created_at),
+            updatedAt: toIsoString(leaveRequest.updated_at)
         };
 
         // Send notification to manager/department head
         try {
             // Get the employee who requested leave
-            const allUsers = await getUsers({ tenantId: organizationId });
-            const employee = allUsers.find(u => u.id === employeeId);
+            const employee = await selectUserByIdInOrganization({ organizationId, userId: employeeId });
             
             if (employee) {
                 // Find managers to notify
@@ -429,24 +623,24 @@ async function POSTHandler(request: NextRequest) {
                 
                 // 2. Department manager (if employee has a department)
                 if (employee.department) {
-                    const allUsers = await getUsers({ tenantId: organizationId });
-                    const deptManager = allUsers.find(u => 
-                        u.managedDepartment === employee.department
-                    );
-                    if (deptManager && !managersToNotify.includes(deptManager.id)) {
-                        managersToNotify.push(deptManager.id);
+                    const deptManagerId = await selectDepartmentManagerIdInOrganization({
+                        organizationId,
+                        department: employee.department,
+                        excludeUserId: employeeId,
+                    });
+                    if (deptManagerId && !managersToNotify.includes(deptManagerId)) {
+                        managersToNotify.push(deptManagerId);
                     }
                 }
                 
                 // 3. Super admins (if no specific manager found)
                 // But exclude the employee themselves if they are a super admin/CEO
                 if (managersToNotify.length === 0) {
-                    const allUsers = await getUsers({ tenantId: organizationId });
-                    const superAdmins = allUsers.filter(u => 
-                        (u.isSuperAdmin || u.role === 'מנכ״ל' || u.role === 'מנכ"ל' || u.role === 'אדמין') &&
-                        u.id !== employeeId // Don't notify the employee themselves
-                    );
-                    managersToNotify.push(...superAdmins.map(u => u.id));
+                    const adminIds = await selectTenantAdminIdsInOrganization({
+                        organizationId,
+                        excludeUserId: employeeId,
+                    });
+                    managersToNotify.push(...adminIds);
                 } else {
                     // Even if we have managers, filter out the employee themselves
                     managersToNotify = managersToNotify.filter(id => id !== employeeId);
@@ -460,11 +654,12 @@ async function POSTHandler(request: NextRequest) {
                     'unpaid': 'חופשה ללא תשלום',
                     'other': 'אחר'
                 };
-                const leaveTypeLabel = leaveTypeLabels[leaveType] || leaveType;
+                const leaveTypeStr = String(leaveType);
+                const leaveTypeLabel = leaveTypeLabels[leaveTypeStr] || leaveTypeStr;
                 
                 // Create notifications
                 if (managersToNotify.length > 0) {
-                    const isUrgent = finalMetadata.isUrgent || false;
+                    const isUrgent = Boolean((finalMetadata as Record<string, unknown>)['isUrgent'] || false);
                     const urgentLabel = isUrgent ? ' [דחוף!]' : '';
                     
                     const notifications = managersToNotify.map(managerId => ({
@@ -480,7 +675,7 @@ async function POSTHandler(request: NextRequest) {
                             leaveRequestId: leaveRequest.id,
                             employeeId: employeeId,
                             employeeName: employee.name,
-                            leaveType: leaveType,
+                            leaveType: leaveTypeStr,
                             startDate: startDate,
                             endDate: endDate,
                             daysRequested: calculatedDays,
@@ -490,32 +685,33 @@ async function POSTHandler(request: NextRequest) {
                         created_at: new Date().toISOString()
                     }));
                     
-                    const { error: notifError } = await supabase
-                        .from('misrad_notifications')
-                        .insert(notifications);
-                    
-                    if (notifError) {
-                        console.warn('[API] Could not create notifications:', notifError);
-                        // Don't fail the request if notification fails
+                    try {
+                        await insertNotifications({ workspaceId: organizationId, notifications });
+                    } catch (e: unknown) {
+                        console.warn('[API] Could not create notifications:', e);
                     }
                 }
             }
-        } catch (notifError) {
+        } catch (notifError: unknown) {
+            if (getErrorMessage(notifError).includes('[SchemaMismatch]')) {
+                throw notifError;
+            }
             console.warn('[API] Error sending notifications for leave request:', notifError);
             // Don't fail the request if notification fails
         }
 
-        return NextResponse.json(
+        return apiSuccessCompat(
             { request: transformedRequest, message: 'בקשת חופש נוצרה בהצלחה' },
             { status: 201 }
         );
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/leave-requests POST:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה ביצירת בקשת חופש' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        const msg = getErrorMessage(error);
+        return apiError(error, { status: msg.includes('Unauthorized') ? 401 : 500, message: msg || 'שגיאה ביצירת בקשת חופש' });
     }
 }
 

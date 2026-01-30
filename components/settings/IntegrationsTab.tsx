@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, BrainCircuit, AlertTriangle } from 'lucide-react';
+import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, AlertTriangle } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -347,7 +347,7 @@ export const IntegrationsTab: React.FC = () => {
 
                 {/* AI Configuration */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-                    <h3 className="font-bold text-gray-900 flex items-center gap-2"><BrainCircuit size={18} className="text-indigo-600" /> מפתח AI (Google Gemini)</h3>
+                    <h3 className="font-bold text-gray-900 flex items-center gap-2"><Zap size={18} className="text-indigo-600" /> מפתח AI (Google Gemini)</h3>
                     <p className="text-xs text-gray-500">
                         מפתח ה-API של Google Gemini מוגדר כמשתנה סביבה (environment variable) - זה הפתרון המאובטח ביותר.
                     </p>

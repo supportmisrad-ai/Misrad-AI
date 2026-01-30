@@ -6,19 +6,26 @@ import ContactsView from '@/components/system/ContactsView';
 import LeadModal from '@/components/system/LeadModal';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
-import { createSystemLeadActivity, updateSystemLead, updateSystemLeadStatus } from '@/app/actions/system-leads';
+import { createSystemLeadActivity, getSystemLeadsPage, updateSystemLead, updateSystemLeadStatus } from '@/app/actions/system-leads';
 import { useToast } from '@/components/system/contexts/ToastContext';
 
 export default function SystemSalesLeadsClient({
   orgSlug,
   initialLeads,
+  initialNextCursor,
+  initialHasMore,
 }: {
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
+  initialNextCursor: string | null;
+  initialHasMore: boolean;
 }) {
   const { addToast } = useToast();
 
   const [leadsDto, setLeadsDto] = useState<SystemLeadDTO[]>(() => initialLeads || []);
+  const [nextCursor, setNextCursor] = useState<string | null>(initialNextCursor);
+  const [hasMore, setHasMore] = useState<boolean>(Boolean(initialHasMore));
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const leads = useMemo<Lead[]>(() => leadsDto.map(mapDtoToLead), [leadsDto]);
@@ -36,6 +43,35 @@ export default function SystemSalesLeadsClient({
     }
 
     setLeadsDto((prev) => prev.map((l) => (String(l.id) === String(res.lead.id) ? res.lead : l)));
+  };
+
+  const handleLoadMore = async () => {
+    if (isLoadingMore) return;
+    if (!hasMore) return;
+    try {
+      setIsLoadingMore(true);
+      const res = await getSystemLeadsPage({ orgSlug, cursor: nextCursor, pageSize: 200 });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בטעינת לידים', 'error');
+        return;
+      }
+
+      setLeadsDto((prev) => {
+        const base = Array.isArray(prev) ? prev : [];
+        const incoming = Array.isArray(res.data.leads) ? res.data.leads : [];
+        const byId = new Map<string, SystemLeadDTO>();
+        for (const l of base) byId.set(String(l.id), l);
+        for (const l of incoming) byId.set(String(l.id), l);
+        return Array.from(byId.values());
+      });
+
+      setNextCursor(res.data.nextCursor);
+      setHasMore(Boolean(res.data.hasMore));
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה בטעינת לידים', 'error');
+    } finally {
+      setIsLoadingMore(false);
+    }
   };
 
   const handleAddActivity = async (leadId: string, activity: any) => {
@@ -96,6 +132,19 @@ export default function SystemSalesLeadsClient({
         <div className="flex-1 overflow-hidden relative">
           <ContactsView leads={leads} viewMode="all" onLeadClick={(l) => setSelectedLeadId(String(l.id))} />
         </div>
+
+        {hasMore ? (
+          <div className="p-4 flex justify-center">
+            <button
+              type="button"
+              onClick={() => void handleLoadMore()}
+              disabled={isLoadingMore}
+              className="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-2xl font-black text-sm shadow-sm hover:bg-slate-50 disabled:opacity-60"
+            >
+              {isLoadingMore ? 'טוען...' : 'טען עוד'}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {selectedLead ? (

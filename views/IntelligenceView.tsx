@@ -2,12 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { useSecureAPI } from '../hooks/useSecureAPI';
-import { BrainCircuit, Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
+import { Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnalysisReport, Priority } from '../types';
 import { useSearchParams } from 'next/navigation';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
 
 export const IntelligenceView: React.FC = () => {
     const { tasks, leads, clients, assets, monthlyGoals, timeEntries, analysisHistory, saveAnalysis, deleteAnalysis, addToast, currentUser, updateMonthlyGoals, updateUser, hasPermission, addFeedback } = useData();
@@ -83,39 +89,70 @@ export const IntelligenceView: React.FC = () => {
             };
 
             // Call secure API - server will filter data based on permissions
-            const data = await analyzeWithAI(activeQuery, rawData);
+            const data: unknown = await analyzeWithAI(activeQuery, rawData);
             
             // Validate response structure
-            if (!data || typeof data !== 'object') {
+            const dataObj = asObject(data);
+            if (!dataObj) {
                 throw new Error('תגובה לא תקינה מהשרת');
             }
             
-            if (!data.summary || typeof data.summary !== 'string') {
+            const summaryRaw = dataObj.summary;
+            if (!summaryRaw || typeof summaryRaw !== 'string') {
                 throw new Error('תגובת השרת חסרה סיכום');
             }
-            
+
+            const scoreRaw = dataObj.score;
+
+            const actionableStepsRaw = dataObj.actionableSteps;
+            const actionableSteps = Array.isArray(actionableStepsRaw)
+                ? actionableStepsRaw.filter((x): x is string => typeof x === 'string')
+                : [];
+
+            const suggestedLinksRaw = dataObj.suggestedLinks;
+            const suggestedLinks = Array.isArray(suggestedLinksRaw)
+                ? suggestedLinksRaw
+                      .map((x) => {
+                          const obj = asObject(x);
+                          const label = obj?.label;
+                          const path = obj?.path;
+                          if (typeof label !== 'string' || typeof path !== 'string') return null;
+                          return { label, path };
+                      })
+                      .filter((x): x is { label: string; path: string } => Boolean(x))
+                : [];
+
             // Create report from API response
             const newReport: AnalysisReport = {
                 id: `REP-${Date.now()}`,
                 date: new Date().toISOString(),
                 query: activeQuery || (isManager ? "ניתוח מערכת כללי" : "ניתוח ביצועים אישי"),
                 mode: isManager ? 'manager' : 'employee',
-                summary: data.summary || 'לא התקבל סיכום',
-                score: typeof data.score === 'number' ? data.score : 0,
-                actionableSteps: Array.isArray(data.actionableSteps) ? data.actionableSteps : [],
-                suggestedLinks: Array.isArray(data.suggestedLinks) ? data.suggestedLinks : [],
-                employees: Array.isArray(data.employees) ? data.employees : undefined,
-                revenueInsight: data.revenueInsight || undefined,
-                personalTasksAnalysis: data.personalTasksAnalysis || undefined
+                summary: summaryRaw || 'לא התקבל סיכום',
+                score: typeof scoreRaw === 'number' ? scoreRaw : 0,
+                actionableSteps,
+                suggestedLinks,
+                employees: Array.isArray(dataObj.employees)
+                    ? (dataObj.employees as unknown as AnalysisReport['employees'])
+                    : undefined,
+                revenueInsight: typeof dataObj.revenueInsight === 'string' ? dataObj.revenueInsight : undefined,
+                personalTasksAnalysis: asObject(dataObj.personalTasksAnalysis)
+                    ? (dataObj.personalTasksAnalysis as unknown as AnalysisReport['personalTasksAnalysis'])
+                    : undefined
             };
             
             setReport(newReport);
             saveAnalysis(newReport);
             addToast('ניתוח הושלם בהצלחה', 'success');
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Analysis error:', error);
-            const errorMessage = error?.message || 'הניתוח נכשל. נסה שנית.';
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : typeof error === 'string'
+                      ? error
+                      : 'הניתוח נכשל. נסה שנית.';
             addToast(errorMessage, 'error');
             // Reset report on error
             setReport(null);
@@ -341,7 +378,7 @@ export const IntelligenceView: React.FC = () => {
                             <div className="w-24 h-24 relative mb-8">
                                 <Skeleton className="absolute inset-0 rounded-full" />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <BrainCircuit size={32} className="text-indigo-400" />
+                                    <Sparkles size={32} className="text-indigo-400" />
                                 </div>
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Nexus סורק את המערכת...</h3>

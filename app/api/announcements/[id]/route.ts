@@ -4,10 +4,11 @@
  * Handles updating and deleting individual announcements
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createClient } from '../../../../lib/supabase';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -21,13 +22,7 @@ async function updateAnnouncementInWorkspace(params: { supabaseClient: any; anno
         .single();
 
     if ((byOrg as any)?.error?.code === '42703') {
-        return await params.supabaseClient
-            .from('announcements')
-            .update(params.patch)
-            .eq('id', params.announcementId)
-            .eq('tenant_id', params.workspaceId)
-            .select()
-            .single();
+        throw new Error('[SchemaMismatch] announcements is missing organization_id');
     }
 
     return byOrg;
@@ -42,28 +37,17 @@ async function DELETEHandler(
         
         // Only Super Admins can delete announcements
         if (!user.isSuperAdmin) {
-            return NextResponse.json(
-                { error: 'Forbidden - Only Super Admins can delete announcements' },
-                { status: 403 }
-            );
+            return apiError('Forbidden - Only Super Admins can delete announcements', { status: 403 });
         }
 
         let supabase: any;
         try {
             supabase = createClient();
         } catch (e: any) {
-            return NextResponse.json(
-                { error: e?.message || 'Database not configured' },
-                { status: 500 }
-            );
+            return apiError(e?.message || 'Database not configured', { status: 500 });
         }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const { id } = await params;
 
@@ -79,26 +63,20 @@ async function DELETEHandler(
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
             if (msg.includes('could not find the table') || msg.includes('schema cache')) {
-                return NextResponse.json(
-                    { error: 'Announcements table is not configured in the database' },
-                    { status: 501 }
-                );
+                return apiError('Announcements table is not configured in the database', { status: 501 });
             }
             console.error('[API] Error deleting announcement:', error);
-            return NextResponse.json(
-                { error: 'שגיאה במחיקת הודעה' },
-                { status: 500 }
-            );
+            return apiError('שגיאה במחיקת הודעה', { status: 500 });
         }
 
-        return NextResponse.json({ success: true }, { status: 200 });
+        return apiSuccess({ ok: true }, { status: 200 });
 
     } catch (error: any) {
         console.error('[API] Error in DELETE /api/announcements/[id]:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה במחיקת הודעה' },
-            { status: 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'שגיאה במחיקת הודעה' });
     }
 }
 
@@ -111,28 +89,17 @@ async function PATCHHandler(
         
         // Only Super Admins can update announcements
         if (!user.isSuperAdmin) {
-            return NextResponse.json(
-                { error: 'Forbidden - Only Super Admins can update announcements' },
-                { status: 403 }
-            );
+            return apiError('Forbidden - Only Super Admins can update announcements', { status: 403 });
         }
 
         let supabase: any;
         try {
             supabase = createClient();
         } catch (e: any) {
-            return NextResponse.json(
-                { error: e?.message || 'Database not configured' },
-                { status: 500 }
-            );
+            return apiError(e?.message || 'Database not configured', { status: 500 });
         }
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const { id } = await params;
         const body = await request.json();
@@ -155,26 +122,20 @@ async function PATCHHandler(
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
             if (msg.includes('could not find the table') || msg.includes('schema cache')) {
-                return NextResponse.json(
-                    { error: 'Announcements table is not configured in the database' },
-                    { status: 501 }
-                );
+                return apiError('Announcements table is not configured in the database', { status: 501 });
             }
             console.error('[API] Error updating announcement:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בעדכון הודעה' },
-                { status: 500 }
-            );
+            return apiError('שגיאה בעדכון הודעה', { status: 500 });
         }
 
-        return NextResponse.json({ announcement }, { status: 200 });
+        return apiSuccess({ announcement }, { status: 200 });
 
     } catch (error: any) {
         console.error('[API] Error in PATCH /api/announcements/[id]:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בעדכון הודעה' },
-            { status: 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, { status: 500, message: error.message || 'שגיאה בעדכון הודעה' });
     }
 }
 

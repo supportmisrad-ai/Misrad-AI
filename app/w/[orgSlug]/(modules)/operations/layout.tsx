@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import {
@@ -8,8 +9,11 @@ import {
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import OperationsShell from '@/components/operations/OperationsShell';
 import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('operations');
 
 export default async function OperationsModuleLayout({
   children,

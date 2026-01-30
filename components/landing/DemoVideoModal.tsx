@@ -49,9 +49,9 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
             </button>
 
             <div className="text-center mb-6">
-              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">צפה בדמו</h3>
+              <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">איך זה עובד</h3>
               <p className="text-slate-600 text-sm sm:text-base">
-                {demoVideoUrl ? 'סרטון הסבר על Misrad' : 'דמו אינטראקטיבי של המערכת'}
+                {demoVideoUrl ? 'סרטון הסבר על Misrad' : 'סיור קצר במערכת'}
               </p>
             </div>
 
@@ -77,16 +77,16 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
                 <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
                   <h4 className="text-slate-900 font-bold mb-4 flex items-center gap-2">
                     <Sparkles size={18} className="text-indigo-400" />
-                    או צפה בדמו אינטראקטיבי
+                    או הצצה מהירה לפיצ׳רים
                   </h4>
                   <p className="text-slate-600 text-sm mb-4">
-                    גלול למטה לסקשן "פיצ'רים" כדי לראות דמואים חיים של המערכת בפעולה.
+                    גלול למטה לסקשן "פיצ'רים" כדי לראות את המערכת בפעולה.
                   </p>
                   <button
                     onClick={handleWatchDemo}
                     className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
                   >
-                    <Zap size={18} /> צפה בדמו אינטראקטיבי
+                    <Zap size={18} /> הצצה לפיצ׳רים
                   </button>
                 </div>
               </div>
@@ -104,7 +104,7 @@ export const DemoVideoModal = ({ isOpen, onClose }: DemoVideoModalProps) => {
                   onClick={handleWatchDemo}
                   className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold transition-all"
                 >
-                  צפה בדמו אינטראקטיבי
+                  הצצה לפיצ׳רים
                 </button>
               )}
             </div>

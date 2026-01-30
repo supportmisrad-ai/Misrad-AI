@@ -77,7 +77,7 @@ interface PricingSectionProps {
 }
 
 export default function PricingSection({ 
-  isAuthenticated: _isAuthenticated, 
+  isAuthenticated,
   billingCycle: _billingCycle, 
   onBillingCycleChange: _onBillingCycleChange,
   onSelectPlan 
@@ -182,6 +182,17 @@ export default function PricingSection({
     }
   })();
 
+  const kioskPremiumLine = (() => {
+    const pkg = recommendedPackageType;
+    if (pkg === 'the_operator' || pkg === 'the_empire') {
+      return 'פרימיום: מסוף שטח (Kiosk) — שעון נוכחות חכם, משימות ומלאי מטאבלט.';
+    }
+    if (pkg === 'the_closer' || pkg === 'the_authority') {
+      return 'אופציונלי: מסוף שטח (Kiosk) — זמין בחבילות שטח/הכל כלול.';
+    }
+    return null;
+  })();
+
   const soloPricing = (() => {
     try {
       return calculateOrderAmount({
@@ -195,18 +206,13 @@ export default function PricingSection({
     }
   })();
 
-  const goToCheckout = (params: { packageType: keyof typeof BILLING_PACKAGES; soloModuleKey?: OSModuleKey; seats?: number }) => {
-    const qs = new URLSearchParams({
-      billing: checkoutBillingCycle,
-      package: String(params.packageType),
-    });
-    if (params.packageType === 'solo' && params.soloModuleKey) {
-      qs.set('module', String(params.soloModuleKey));
+  const goToTrial = () => {
+    const destination = '/workspaces/onboarding';
+    if (isAuthenticated) {
+      router.push(destination);
+      return;
     }
-    if (params.seats && Number.isFinite(params.seats) && params.seats > 0) {
-      qs.set('seats', String(params.seats));
-    }
-    router.push(`/subscribe/checkout?${qs.toString()}`);
+    router.push(`/sign-up?redirect_url=${encodeURIComponent(destination)}`);
   };
 
   return (
@@ -254,6 +260,7 @@ export default function PricingSection({
             features={[
               personaToPackage[persona].blurb,
               `כולל: ${(recommendedModules || []).map((m) => getModuleLabelHe(m)).join(' · ')}`,
+              ...(kioskPremiumLine ? [kioskPremiumLine] : []),
               `משתמשים: ${recommendedPricing.includedSeats} כלולים` + (recommendedPricing.extraSeats > 0 ? ` · +${recommendedPricing.extraSeats} בתוספת` : ''),
               'תוספת משתמשים: 39 ₪ (מחייב Nexus)',
               `למי זה מתאים? ${packageMarketingCopy[recommendedPackageType].who}`,
@@ -294,16 +301,16 @@ export default function PricingSection({
             }
             onSelect={() => {
               onSelectPlan('starter');
-              goToCheckout({ packageType: recommendedPackageType, seats: users });
+              goToTrial();
             }}
             billingCycle={checkoutBillingCycle}
-            buttonLabel="המשך לתשלום"
+            buttonLabel="התחל ניסיון חינם (בלי כרטיס)"
           />
 
           <div className="md:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
             <div className="text-sm text-slate-500">רוצה רק משהו ספציפי?</div>
             <h3 className="text-xl font-black text-slate-900 mt-2">מודול בודד (149 ₪)</h3>
-            <div className="text-sm text-slate-600 mt-2">בחר מודול והמשך לתשלום.</div>
+            <div className="text-sm text-slate-600 mt-2">בחר מודול והתחל ניסיון חינם (בלי כרטיס).</div>
 
             <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
               <div className="text-xs font-black text-slate-600 mb-1">למי זה מתאים?</div>
@@ -344,11 +351,11 @@ export default function PricingSection({
               <button
                 onClick={() => {
                   onSelectPlan('starter');
-                  goToCheckout({ packageType: 'solo', soloModuleKey: selectedSoloModule, seats: users });
+                  goToTrial();
                 }}
                 className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 shadow-sm"
               >
-                המשך לתשלום <ArrowRight size={16} className="inline rotate-180 mr-2" />
+                התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={16} className="inline rotate-180 mr-2" />
               </button>
               <div className="text-xs text-slate-400 mt-2">
                 תוספת משתמשים מעל 1 תתאפשר רק אם בחרת Nexus.

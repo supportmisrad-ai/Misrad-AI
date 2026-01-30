@@ -6,30 +6,46 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
-import { supabase } from '../../../../../../lib/supabase';
-import { getUsers } from '../../../../../../lib/db';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '../../../../../../lib/supabase';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+async function loadUserInWorkspaceByEmail(params: { supabase: any; workspaceId: string; email: string }) {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id, role, is_super_admin')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data
+        ? { id: String(byOrg.data.id), role: String(byOrg.data.role || 'עובד'), isSuperAdmin: Boolean((byOrg.data as any).is_super_admin) }
+        : null;
+}
+
 async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const byTenant = await params.supabaseClient
+    const res = await params.supabaseClient
         .from('nexus_team_events')
         .select('*')
         .eq('id', params.eventId)
-        .eq('tenant_id', params.workspaceId)
+        .eq('organization_id', params.workspaceId)
         .single();
 
-    if ((byTenant as any)?.error?.code === '42703') {
-        return await params.supabaseClient
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', params.eventId)
-            .eq('organization_id', params.workspaceId)
-            .single();
+    if ((res as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
     }
 
-    return byTenant;
+    return res;
 }
 
 async function PATCHHandler(
@@ -39,21 +55,17 @@ async function PATCHHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        if (!supabase) {
+        let supabaseClient: any;
+        try {
+            supabaseClient = createClient();
+        } catch {
             return NextResponse.json(
                 { error: 'Database not configured' },
                 { status: 500 }
             );
         }
 
-        const supabaseClient = supabase;
-
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const { id: eventId, userId } = await params;
 
@@ -72,8 +84,7 @@ async function PATCHHandler(
             );
         }
 
-        const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUser = await loadUserInWorkspaceByEmail({ supabase: supabaseClient, workspaceId: workspace.id, email: user.email });
 
         if (!dbUser) {
             return NextResponse.json(
@@ -96,7 +107,7 @@ async function PATCHHandler(
 
         // Check permissions: only organizer or admin can update attendance
         const isOrganizer = event.organizer_id === dbUser.id;
-        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ"ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
+        const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
 
         if (!isOrganizer && !isAdmin) {
             return NextResponse.json(
@@ -130,6 +141,7 @@ async function PATCHHandler(
             .update(updateData)
             .eq('event_id', eventId)
             .eq('user_id', userId)
+            .eq('organization_id', workspace.id)
             .select()
             .single();
 
@@ -139,6 +151,7 @@ async function PATCHHandler(
                 const { data: newAttendance, error: createError } = await supabaseClient
                     .from('nexus_event_attendance')
                     .insert({
+                        organization_id: workspace.id,
                         event_id: eventId,
                         user_id: userId,
                         status,
@@ -176,6 +189,9 @@ async function PATCHHandler(
 
     } catch (error: any) {
         console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH:', error);
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
         return NextResponse.json(
             { error: error.message || 'שגיאה בעדכון נוכחות' },
             { status: error.message?.includes('Unauthorized') ? 401 : 500 }

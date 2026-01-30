@@ -8,7 +8,7 @@ import { useClerk } from '@clerk/nextjs';
 import { HoldButton } from '../components/HoldButton';
 import { LeadStatus, Status } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getNexusBasePath, getWorkspaceOrgIdFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
+import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import NexusCard from '@/components/shared/NexusCard';
 
@@ -156,12 +156,14 @@ export const MeView: React.FC<{
   const getOrgHeaderValue = () => {
       if (typeof window === 'undefined') return null;
       return (
-          getWorkspaceOrgIdFromPathname(window.location.pathname) ||
+          getWorkspaceOrgSlugFromPathname(window.location.pathname) ||
           (currentUser as any)?.tenantId ||
-          localStorage.getItem('currentTenantId') ||
           null
       );
   };
+
+  const unwrap = (data: any) =>
+      (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
   // Handle RSVP for events
   const handleEventRSVP = async (eventId: string, status: 'attending' | 'not_attending') => {
@@ -174,8 +176,9 @@ export const MeView: React.FC<{
           });
 
           if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'שגיאה בשמירת אישור הגעה');
+              const errorData = await response.json().catch(() => ({}));
+              const errPayload = unwrap(errorData);
+              throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אישור הגעה');
           }
 
           setEventRSVPStatus(prev => ({ ...prev, [eventId]: status }));
@@ -189,9 +192,10 @@ export const MeView: React.FC<{
                       headers: orgId ? { 'x-org-id': orgId } : undefined
                   });
                   if (response.ok) {
-                      const data = await response.json();
+                      const data = await response.json().catch(() => ({}));
+                      const payload = unwrap(data);
                       const now = new Date();
-                      const upcoming = (data.events || []).filter((e: any) => {
+                      const upcoming = ((payload as any).events || []).filter((e: any) => {
                           const eventDate = new Date(e.start_date);
                           return eventDate >= now;
                       }).slice(0, 3);
@@ -297,8 +301,9 @@ export const MeView: React.FC<{
                   headers: orgId ? { 'x-org-id': orgId } : undefined
               });
               if (response.ok) {
-                  const data = await response.json();
-                  const newRequests = data.requests || [];
+                  const data = await response.json().catch(() => ({}));
+                  const payload = unwrap(data);
+                  const newRequests = (payload as any).requests || [];
                   setMyLeaveRequests(newRequests);
                   setCachedLeaveRequests(newRequests);
               }
@@ -320,9 +325,10 @@ export const MeView: React.FC<{
                   headers: orgId ? { 'x-org-id': orgId } : undefined
               });
               if (response.ok) {
-                  const data = await response.json();
+                  const data = await response.json().catch(() => ({}));
+                  const payload = unwrap(data);
                   const now = new Date();
-                  const upcoming = (data.events || []).filter((e: any) => {
+                  const upcoming = ((payload as any).events || []).filter((e: any) => {
                       const eventDate = new Date(e.start_date);
                       return eventDate >= now;
                   }).slice(0, 3); // Show only next 3
@@ -341,8 +347,9 @@ export const MeView: React.FC<{
                                       headers: orgId ? { 'x-org-id': orgId } : undefined
                                   });
                               if (rsvpResponse.ok) {
-                                  const rsvpData = await rsvpResponse.json();
-                                  const myAttendance = rsvpData.attendance?.find((a: any) => 
+                                  const rsvpData = await rsvpResponse.json().catch(() => ({}));
+                                  const rsvpPayload = unwrap(rsvpData);
+                                  const myAttendance = (rsvpPayload as any).attendance?.find((a: any) => 
                                       (a.user_id === currentUser.id) || (a.userId === currentUser.id)
                                   );
                                   if (myAttendance && (myAttendance.status === 'attending' || myAttendance.status === 'not_attending')) {
@@ -493,13 +500,13 @@ export const MeView: React.FC<{
                               {currentUser.isSuperAdmin && (
                                   <button
                                       onClick={() => {
-                                        const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+                                        const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
                                         if (orgSlug) {
                                           const returnTo = `${window.location.pathname}${window.location.search || ''}`;
                                           router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
                                         }
                                       }}
-                                      className="absolute bottom-2 left-2 w-8 h-8 bg-indigo-600/90 hover:bg-indigo-700 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg border border-indigo-500/50 z-20"
+                                      className="absolute bottom-2 left-2 w-10 h-10 bg-indigo-600/90 hover:bg-indigo-700 rounded-lg flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 shadow-lg border border-indigo-500/50 z-20"
                                       title="גישה למנהל-על"
                                   >
                                       <Lock size={14} className="text-white" />
@@ -939,7 +946,7 @@ export const MeView: React.FC<{
               {currentUser.isSuperAdmin && (
                   <button 
                     onClick={() => {
-                      const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+                      const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
                       if (orgSlug) {
                         const returnTo = `${window.location.pathname}${window.location.search || ''}`;
                         router.push(`/app/admin?returnTo=${encodeURIComponent(returnTo)}`);
@@ -1004,13 +1011,14 @@ export const MeView: React.FC<{
                       setShowLeaveRequestModal(false);
                       // Reload data
                       const loadData = async () => {
-                          const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                          const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                           const response = await fetch('/api/leave-requests?employee_id=' + encodeURIComponent(String(currentUser.id)), {
-                              headers: orgId ? { 'x-org-id': orgId } : undefined
+                              headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                           });
                           if (response.ok) {
-                              const data = await response.json();
-                              setMyLeaveRequests(data.requests || []);
+                              const data = await response.json().catch(() => ({}));
+                              const payload = unwrap(data);
+                              setMyLeaveRequests((payload as any).requests || []);
                           }
                       };
                       loadData();
@@ -1033,14 +1041,15 @@ export const MeView: React.FC<{
                       setShowEventModal(false);
                       // Reload events
                       const loadEvents = async () => {
-                          const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                          const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                           const response = await fetch('/api/team-events?status=scheduled', {
-                              headers: orgId ? { 'x-org-id': orgId } : undefined
+                              headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                           });
                           if (response.ok) {
-                              const data = await response.json();
+                              const data = await response.json().catch(() => ({}));
+                              const payload = unwrap(data);
                               const now = new Date();
-                              const upcoming = (data.events || []).filter((e: any) => {
+                              const upcoming = ((payload as any).events || []).filter((e: any) => {
                                   const eventDate = new Date(e.start_date);
                                   return eventDate >= now;
                               }).slice(0, 3);

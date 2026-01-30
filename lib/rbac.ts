@@ -10,6 +10,9 @@ export interface Permission {
   action: 'read' | 'write' | 'delete' | 'admin';
 }
 
+ const roleCache = new Map<string, { role: UserRole; timestamp: number }>();
+ const ROLE_CACHE_DURATION_MS = 5 * 60 * 1000;
+
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   super_admin: [
     { resource: '*', action: 'admin' }, // Full access to everything - system management
@@ -88,23 +91,11 @@ export async function getUserRole(
   fullName?: string,
   imageUrl?: string
 ): Promise<UserRole> {
-  // Try to get from cache first (only in browser)
-  if (typeof window !== 'undefined') {
-    const cacheKey = `user_role_${clerkUserId}`;
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData) {
-      try {
-        const { role, timestamp } = JSON.parse(cachedData);
-        // Cache is valid for 5 minutes
-        const CACHE_DURATION = 5 * 60 * 1000;
-        if (Date.now() - timestamp < CACHE_DURATION) {
-          console.log('[getUserRole] Using cached role:', role);
-          return role as UserRole;
-        }
-      } catch (e) {
-        // Invalid cache, continue to fetch fresh data
-        console.warn('[getUserRole] Invalid cache data, fetching fresh');
-      }
+  const cacheKey = String(clerkUserId || '').trim();
+  if (cacheKey) {
+    const cached = roleCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < ROLE_CACHE_DURATION_MS) {
+      return cached.role;
     }
   }
 
@@ -147,14 +138,8 @@ export async function getUserRole(
       }
       
       const role = roleResult.role as UserRole;
-      
-      // Cache the role (only in browser)
-      if (typeof window !== 'undefined') {
-        const cacheKey = `user_role_${clerkUserId}`;
-        localStorage.setItem(cacheKey, JSON.stringify({
-          role,
-          timestamp: Date.now(),
-        }));
+      if (cacheKey) {
+        roleCache.set(cacheKey, { role, timestamp: Date.now() });
       }
       
       return role;
@@ -190,14 +175,8 @@ export async function getUserRole(
       }
       
       const role = roleResult.role as UserRole;
-      
-      // Cache the role (only in browser)
-      if (typeof window !== 'undefined') {
-        const cacheKey = `user_role_${clerkUserId}`;
-        localStorage.setItem(cacheKey, JSON.stringify({
-          role,
-          timestamp: Date.now(),
-        }));
+      if (cacheKey) {
+        roleCache.set(cacheKey, { role, timestamp: Date.now() });
       }
       
       return role;

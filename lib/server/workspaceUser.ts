@@ -1,13 +1,68 @@
 import 'server-only';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
+import { findUserGlobalByEmail } from '@/lib/db';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-function normalizeRoleFromClerk(clerk: any): string {
-  const roleFromClerk =
-    clerk?.publicMetadata?.role ?? clerk?.privateMetadata?.role ?? clerk?.unsafeMetadata?.role ?? null;
-  return typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? 'עובד';
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  const v = obj?.[key];
+  return typeof v === 'string' ? v : null;
+}
+
+function normalizeRoleFromClerk(clerk: unknown): string {
+  const clerkObj = asObject(clerk);
+  const publicMetadata = asObject(clerkObj?.publicMetadata);
+  const privateMetadata = asObject(clerkObj?.privateMetadata);
+  const unsafeMetadata = asObject(clerkObj?.unsafeMetadata);
+
+  const roleFromClerk = publicMetadata?.role ?? privateMetadata?.role ?? unsafeMetadata?.role ?? null;
+  if (typeof roleFromClerk === 'string') return roleFromClerk;
+  const roleObj = asObject(roleFromClerk);
+  return getStringProp(roleObj, 'role') ?? 'עובד';
+}
+
+function isPrismaMissingRelationError(err: unknown): boolean {
+  const obj = asObject(err);
+  const code = String(getStringProp(obj, 'code') || '');
+  const msg = String(getStringProp(obj, 'message') || '').toLowerCase();
+  return code === 'P2021' || msg.includes('does not exist') || msg.includes('relation');
+}
+
+function throwMissingProfilesTableDevError(params: { phase: string; error: unknown }) {
+  const errorObj = asObject(params.error);
+  const code = String(getStringProp(errorObj, 'code') || '');
+  const raw = String(getStringProp(errorObj, 'message') || '');
+  const hint =
+    "טבלת public.profiles לא קיימת (או שלא נטענה ל-schema cache של Supabase/PostgREST).\n" +
+    "כדי לתקן: הרץ ב-Supabase SQL Editor את scripts/db-setup/create-profiles-table.sql (או scripts/db-setup/supabase-complete-schema.sql),\n" +
+    "וודא ש-NEXT_PUBLIC_SUPABASE_URL מצביע לפרויקט הנכון. לאחר מכן רענן את ה-API (לעיתים מספיק להמתין דקה/Restart ל-dev server).";
+  throw new Error(`[DB][profiles][${params.phase}] ${hint} (code=${code || 'n/a'} message=${raw})`);
+}
+
+function throwMissingNexusUsersTableDevError(params: { phase: string; error: unknown }) {
+  const errorObj = asObject(params.error);
+  const code = String(getStringProp(errorObj, 'code') || '');
+  const raw = String(getStringProp(errorObj, 'message') || '');
+  const hint =
+    "טבלת public.nexus_users לא קיימת (או שלא נטענה ל-schema cache של Supabase/PostgREST).\n" +
+    "כדי לתקן: ודא שהמיגרציות רצות על אותו פרויקט Supabase (prisma/migrations/* או scripts/db-setup/*),\n" +
+    "ואז רענן את ה-API (לעיתים מספיק להמתין דקה/Restart ל-dev server).";
+  throw new Error(`[DB][nexus_users][${params.phase}] ${hint} (code=${code || 'n/a'} message=${raw})`);
 }
 
 async function ensureProfileRow(params: {
@@ -17,197 +72,120 @@ async function ensureProfileRow(params: {
   fullName: string | null;
   avatarUrl: string | null;
   role: string | null;
+  isSuperAdmin: boolean;
 }) {
-  const supabase = createClient();
+  const isNonProd = process.env.NODE_ENV !== 'production';
 
-  const { data: existing, error: existingError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('organization_id', params.organizationId)
-    .eq('clerk_user_id', params.clerkUserId)
-    .maybeSingle();
+  type ProfileRow = NonNullable<Awaited<ReturnType<typeof prisma.profile.findFirst>>>;
+  type ProfileCreateData = Parameters<typeof prisma.profile.create>[0]['data'];
 
-  if (existingError) {
-    throw new Error(existingError.message);
+  let existing: ProfileRow | null = null;
+  try {
+    existing = await prisma.profile.findFirst({
+      where: { organizationId: params.organizationId, clerkUserId: params.clerkUserId },
+    });
+  } catch (error: unknown) {
+    if (isNonProd && isPrismaMissingRelationError(error)) {
+      throwMissingProfilesTableDevError({ phase: 'select', error });
+    }
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load profile');
   }
 
   if (existing?.id) {
     // Best-effort: backfill role if missing.
-    if (params.role && !(existing as any)?.role) {
+    if (params.role && !existing.role) {
       try {
-        const updateRow: any = {
-          updated_at: new Date().toISOString(),
-          role: params.role,
-        };
-
-        let updateError: any = null;
-        const res = await supabase
-          .from('profiles')
-          .update(updateRow)
-          .eq('id', (existing as any).id)
-          .eq('organization_id', params.organizationId)
-          .eq('clerk_user_id', params.clerkUserId);
-        updateError = (res as any).error;
-
-        // Backwards compatible: if role column doesn't exist yet, ignore.
-        if (updateError?.message) {
-          const msg = String(updateError.message).toLowerCase();
-          if (msg.includes('column') && msg.includes('role')) {
-            // ignore
-          }
+        await prisma.profile.updateMany({
+          where: { id: existing.id, organizationId: params.organizationId, clerkUserId: params.clerkUserId },
+          data: { role: params.role, updatedAt: new Date() },
+        });
+      } catch (error: unknown) {
+        if (isNonProd && isPrismaMissingRelationError(error)) {
+          throwMissingProfilesTableDevError({ phase: 'update', error });
         }
-      } catch {
-        // ignore
+        throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to update profile');
       }
     }
     return existing;
   }
 
-  const insertRow: any = {
-    organization_id: params.organizationId,
-    clerk_user_id: params.clerkUserId,
+  const insertRow: ProfileCreateData = {
+    organizationId: params.organizationId,
+    clerkUserId: params.clerkUserId,
     email: params.email,
-    full_name: params.fullName,
+    fullName: params.fullName,
     role: params.role,
-    avatar_url: params.avatarUrl,
-    notification_preferences: {},
-    two_factor_enabled: false,
-    ui_preferences: { profileCompleted: false },
-    social_profile: {},
-    billing_info: {},
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    avatarUrl: params.avatarUrl,
+    notificationPreferences: {},
+    twoFactorEnabled: false,
+    uiPreferences: { profileCompleted: false },
+    socialProfile: {},
+    billingInfo: {},
+    updatedAt: new Date(),
   };
 
-  let created: any = null;
-  let createError: any = null;
-
-  const attemptInsert = async (row: any) => {
-    const res = await supabase.from('profiles').insert(row).select('*').single();
-    created = res.data as any;
-    createError = res.error as any;
-  };
-
-  await attemptInsert(insertRow);
-
-  // Backwards compatible: if role column doesn't exist yet, retry without it.
-  if (createError?.message) {
-    const msg = String(createError.message).toLowerCase();
-    if (msg.includes('column') && msg.includes('role')) {
-      const { role: _ignored, ...withoutRole } = insertRow;
-      await attemptInsert(withoutRole);
+  try {
+    return await prisma.profile.create({ data: insertRow });
+  } catch (error: unknown) {
+    if (isNonProd && isPrismaMissingRelationError(error)) {
+      throwMissingProfilesTableDevError({ phase: 'insert', error });
     }
-  }
 
-  // Concurrency-safe: if another request created the profile row first, re-fetch and return it.
-  if (createError) {
-    const msg = String((createError as any)?.message || '').toLowerCase();
-    const code = String((createError as any)?.code || '');
-    if (code === '23505' || msg.includes('duplicate key')) {
-      const { data: existingAfter, error: existingAfterError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('organization_id', params.organizationId)
-        .eq('clerk_user_id', params.clerkUserId)
-        .maybeSingle();
-
-      if (existingAfterError) {
-        throw new Error(existingAfterError.message);
-      }
-      if (existingAfter?.id) {
-        return existingAfter;
-      }
+    // Concurrency-safe: if another request created the profile row first, re-fetch and return it.
+    const errorObj = asObject(error);
+    const code = String(getStringProp(errorObj, 'code') || '');
+    if (code === 'P2002') {
+      const existingAfter = await prisma.profile.findFirst({
+        where: { organizationId: params.organizationId, clerkUserId: params.clerkUserId },
+      });
+      if (existingAfter?.id) return existingAfter;
     }
-  }
 
-  if (createError) {
-    throw new Error(createError.message);
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to create profile');
   }
-
-  return created;
 }
 
-async function findNexusUserByEmail(params: { email: string; organizationId?: string | null }) {
-  const supabase = createClient();
+type NexusUserRow = NonNullable<Awaited<ReturnType<typeof prisma.nexusUser.findFirst>>>;
 
-  const queryFirst = async (queryFactory: (opts: { withOrder: boolean }) => any) => {
-    const attempt = async (withOrder: boolean) => {
-      const res = await queryFactory({ withOrder });
-      const error = (res as any)?.error;
-      const data = (res as any)?.data as any[] | null;
-
-      if ((error as any)?.code === '42703') {
-        return { data: null as any, error: null as any, missingColumn: true };
-      }
-
-      if (error) {
-        return { data: null as any, error, missingColumn: false };
-      }
-
-      const rows = Array.isArray(data) ? data : [];
-      if (rows.length > 1) {
-        console.warn('[nexus_users] duplicate rows for email', {
-          organizationId: params.organizationId ?? null,
-          ids: rows.map((r) => r?.id).filter(Boolean),
-        });
-      }
-
-      return { data: rows[0] ?? null, error: null as any, missingColumn: false };
+async function findNexusUserByEmail(params: {
+  email: string;
+  organizationId?: string | null;
+}): Promise<NexusUserRow | { id: string; email: string; organization_id: string | null } | null> {
+  if (!params.organizationId) {
+    const global = await findUserGlobalByEmail(params.email);
+    if (!global) return null;
+    return {
+      id: global.id,
+      email: global.email,
+      organization_id: global.organizationId,
     };
+  }
 
-    const withOrder = await attempt(true);
-    if (withOrder.missingColumn) {
-      return attempt(false);
-    }
-    return withOrder;
-  };
-
-  const tryScoped = async (columnName: 'tenant_id' | 'organization_id') => {
-    const { data, error, missingColumn } = await queryFirst(({ withOrder }) => {
-      let q = supabase
-        .from('nexus_users')
-        .select('*')
-        .eq('email', params.email)
-        .eq(columnName, params.organizationId)
-        .limit(2);
-
-      if (withOrder) {
-        q = q.order('updated_at', { ascending: false }).order('created_at', { ascending: false });
-      }
-
-      return q;
+  const isNonProd = process.env.NODE_ENV !== 'production';
+  try {
+    const rows = await prisma.nexusUser.findMany({
+      where: {
+        email: params.email,
+        organizationId: params.organizationId,
+      },
+      take: 2,
+      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
     });
 
-    if (missingColumn) {
-      return null;
+    if (rows.length > 1) {
+      console.warn('[nexus_users] duplicate rows for email', {
+        organizationId: params.organizationId ?? null,
+        ids: rows.map((r) => r?.id).filter(Boolean),
+      });
     }
-    if (error) {
-      throw new Error(error.message);
+
+    return rows[0] ?? null;
+  } catch (error: unknown) {
+    if (isNonProd && isPrismaMissingRelationError(error)) {
+      throwMissingNexusUsersTableDevError({ phase: 'select', error });
     }
-    return data;
-  };
-
-  if (params.organizationId) {
-    const byTenant = await tryScoped('tenant_id');
-    if (byTenant?.id) return byTenant;
-
-    const byOrg = await tryScoped('organization_id');
-    if (byOrg?.id) return byOrg;
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load nexus user');
   }
-
-  const { data, error } = await queryFirst(({ withOrder }) => {
-    let q = supabase.from('nexus_users').select('*').eq('email', params.email).limit(2);
-    if (withOrder) {
-      q = q.order('updated_at', { ascending: false }).order('created_at', { ascending: false });
-    }
-    return q;
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data;
 }
 
 async function ensureNexusUserRow(params: {
@@ -218,36 +196,42 @@ async function ensureNexusUserRow(params: {
   avatarUrl: string | null;
   isSuperAdmin: boolean;
 }) {
-  const supabase = createClient();
-
   const existing = await findNexusUserByEmail({ email: params.email, organizationId: params.organizationId });
   if (existing?.id) {
     return existing;
   }
 
-  const insertRow: any = {
+  const isNonProd = process.env.NODE_ENV !== 'production';
+
+  type NexusUserCreateData = Parameters<typeof prisma.nexusUser.create>[0]['data'];
+
+  const insertRow: NexusUserCreateData = {
     name: params.name,
     role: params.role || 'עובד',
     avatar: params.avatarUrl || null,
     online: true,
     capacity: 0,
     email: params.email,
-    is_super_admin: params.isSuperAdmin,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    isSuperAdmin: params.isSuperAdmin,
+    ...(params.organizationId ? { organizationId: params.organizationId } : {}),
   };
 
-  const { data: created, error: createError } = await supabase
-    .from('nexus_users')
-    .insert(insertRow)
-    .select('*')
-    .single();
+  try {
+    return await prisma.nexusUser.create({ data: insertRow });
+  } catch (error: unknown) {
+    if (isNonProd && isPrismaMissingRelationError(error)) {
+      throwMissingNexusUsersTableDevError({ phase: 'insert', error });
+    }
 
-  if (createError) {
-    throw new Error(createError.message);
+    const errorObj = asObject(error);
+    const code = String(getStringProp(errorObj, 'code') || '');
+    if (code === 'P2002') {
+      const existingAfter = await findNexusUserByEmail({ email: params.email, organizationId: params.organizationId });
+      if (existingAfter?.id) return existingAfter;
+    }
+
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to create nexus user');
   }
-
-  return created;
 }
 
 export async function resolveWorkspaceCurrentUserForUi(orgSlug: string) {
@@ -270,7 +254,8 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const role = normalizeRoleFromClerk(clerk);
   const name = clerk?.fullName ?? clerk?.username ?? email.split('@')[0] ?? 'User';
   const avatarUrl = clerk?.imageUrl ?? null;
-  const isSuperAdmin = Boolean((clerk as any)?.publicMetadata?.isSuperAdmin);
+  const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
+  const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
 
   const profileRow = await ensureProfileRow({
     organizationId: workspaceId,
@@ -279,6 +264,7 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
     fullName: clerk?.fullName ?? null,
     avatarUrl,
     role,
+    isSuperAdmin,
   });
 
   const nexusUser = await ensureNexusUserRow({
@@ -290,17 +276,28 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
     isSuperAdmin,
   });
 
+  const profileObj = asObject(profileRow) ?? {};
+  const nexusObj = asObject(nexusUser) ?? {};
+  const phoneValue = profileObj['phone'];
+  const resolvedPhone = phoneValue != null ? String(phoneValue) : null;
+  const avatarValue = nexusObj['avatar'];
+  const resolvedAvatar = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
+  const capacityValue = nexusObj['capacity'];
+  const capacity = Number(capacityValue ?? 0) || 0;
+  const nexusEmail = typeof nexusObj['email'] === 'string' ? String(nexusObj['email']) : String(email);
+  const nexusIsSuperAdmin = Boolean(nexusObj['is_super_admin'] ?? nexusObj['isSuperAdmin'] ?? isSuperAdmin);
+
   return {
-    id: String(nexusUser.id),
-    profileId: String((profileRow as any)?.id || ''),
-    name: String(nexusUser.name || name),
-    role: String(nexusUser.role || role || 'עובד'),
-    avatar: String((nexusUser as any).avatar || avatarUrl || ''),
+    id: String((nexusObj['id'] ?? '') || (nexusUser as unknown as { id?: unknown }).id || ''),
+    profileId: String((profileObj['id'] ?? '') || (profileRow as unknown as { id?: unknown }).id || ''),
+    name: String((nexusObj['name'] ?? '') || (nexusUser as unknown as { name?: unknown }).name || name),
+    role: String((nexusObj['role'] ?? '') || (nexusUser as unknown as { role?: unknown }).role || role || 'עובד'),
+    avatar: resolvedAvatar,
     online: true,
-    capacity: Number((nexusUser as any).capacity || 0),
-    email: String((nexusUser as any).email || email),
-    phone: (profileRow as any)?.phone != null ? String((profileRow as any).phone) : null,
-    isSuperAdmin: Boolean((nexusUser as any).is_super_admin ?? (nexusUser as any).isSuperAdmin ?? isSuperAdmin),
+    capacity,
+    email: nexusEmail,
+    phone: resolvedPhone,
+    isSuperAdmin: nexusIsSuperAdmin,
     tenantId: workspaceId,
   };
 }
@@ -322,7 +319,8 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
   const role = normalizeRoleFromClerk(clerk);
   const name = clerk?.fullName ?? clerk?.username ?? email.split('@')[0] ?? 'User';
   const avatarUrl = clerk?.imageUrl ?? null;
-  const isSuperAdmin = Boolean((clerk as any)?.publicMetadata?.isSuperAdmin);
+  const publicMetadataObj = asObject(asObject(clerk)?.publicMetadata);
+  const isSuperAdmin = Boolean(publicMetadataObj?.isSuperAdmin);
 
   await ensureProfileRow({
     organizationId: workspace.id,
@@ -331,6 +329,7 @@ export async function resolveWorkspaceCurrentUserForApi(orgHeaderValue: string) 
     fullName: clerk?.fullName ?? null,
     avatarUrl,
     role,
+    isSuperAdmin,
   });
 
   const nexusUser = await ensureNexusUserRow({

@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Bell, ChevronRight, Cog, ExternalLink, Shield, Sparkles, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { getModuleLabel as getOSModuleLabel, isOSModuleKey } from '@/lib/os/modules/registry';
 import { getMyProfile, upsertMyProfile } from '@/app/actions/profiles';
 import PremiumFrame from './PremiumFrame';
 
@@ -69,20 +70,8 @@ function HubTile({
 }
 
 function getModuleLabel(moduleKey: string | null | undefined) {
-  switch (moduleKey) {
-    case 'social':
-      return 'סושיאל';
-    case 'system':
-      return 'מערכת';
-    case 'finance':
-      return 'פיננסים';
-    case 'client':
-      return 'לקוחות';
-    case 'nexus':
-      return 'נקסוס';
-    default:
-      return null;
-  }
+  if (!moduleKey) return null;
+  return isOSModuleKey(moduleKey) ? getOSModuleLabel(moduleKey) : null;
 }
 
 function getSectionDescription(id: string) {

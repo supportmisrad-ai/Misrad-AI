@@ -1,51 +1,102 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { Idea } from '@/types/social';
 import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
+import prisma from '@/lib/prisma';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string {
+  if (!error) return '';
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    const socialUser = await prisma.social_users.findUnique({
+      where: { clerk_user_id: String(userId) },
+      select: { organization_id: true },
+    });
+    const orgId = (socialUser as any)?.organization_id;
+    return orgId ? String(orgId) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
+  const row = await prisma.clients.findFirst({
+    where: { id: String(params.clientId), organization_id: String(params.organizationId) } as any,
+    select: { id: true },
+  });
+
+  if (!row?.id) {
+    throw new Error('Forbidden');
+  }
+}
+
+async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }>
+{
+  const idea = await prisma.social_ideas.findFirst({
+    where: { id: String(params.ideaId), organizationId: String(params.organizationId) } as any,
+    select: { id: true, client_id: true },
+  });
+
+  if (!idea?.id) {
+    throw new Error('Forbidden');
+  }
+
+  return { clientId: String((idea as any).client_id ?? '') };
+}
 
 /**
  * Server Action: Get all ideas
  */
 export async function getIdeas(clientId?: string): Promise<{ success: boolean; data?: Idea[]; error?: string }> {
   try {
-    const supabase = createClient();
-
-    let query = supabase
-      .from('social_ideas')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (clientId) {
-      query = query.eq('client_id', clientId);
+    const organizationId = await resolveOrganizationIdForCurrentUser();
+    if (!organizationId) {
+      return { success: true, data: [] };
     }
 
-    const { data, error } = await query;
+    const ideasRows = await prisma.social_ideas.findMany({
+      where: {
+        organizationId,
+        ...(clientId ? { client_id: String(clientId) } : {}),
+      } as any,
+      orderBy: { created_at: 'desc' },
+    });
 
-    if (error) {
-      console.error('Error fetching ideas:', error);
+    const list: unknown[] = Array.isArray(ideasRows) ? (ideasRows as unknown[]) : [];
+    const ideas: Idea[] = list.map((idea) => {
+      const obj = asObject(idea) ?? {};
+      const createdAt = obj.created_at instanceof Date ? obj.created_at.toISOString() : String(obj.created_at ?? '');
       return {
-        success: false,
-        error: translateError(error.message || 'שגיאה בטעינת רעיונות'),
+        id: String(obj.id ?? ''),
+        clientId: String(obj.client_id ?? ''),
+        text: obj.text == null ? undefined : String(obj.text),
+        createdAt,
       };
-    }
-
-    const ideas: Idea[] = (data || []).map((idea: any) => ({
-      id: idea.id,
-      clientId: idea.client_id,
-      text: idea.text,
-      createdAt: idea.created_at,
-    }));
+    });
 
     return { success: true, data: ideas };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in getIdeas:', error);
     return {
       success: false,
-      error: translateError(error.message || 'שגיאה בטעינת רעיונות'),
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה בטעינת רעיונות'),
     };
   }
 }
@@ -69,13 +120,12 @@ export async function createIdea(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
-    if (!userResult.success || !userResult.userId) {
-      return { success: false, error: userResult.error || 'שגיאה בקבלת משתמש' };
+    const organizationId = await resolveOrganizationIdForCurrentUser();
+    if (!organizationId) {
+      return { success: false, error: 'Forbidden' };
     }
-    const supabaseUserId = userResult.userId;
 
-    const supabase = createClient();
+    await assertClientInOrganization({ clientId: ideaData.clientId, organizationId });
 
     // Upload media file if provided
     let mediaUrl = ideaData.mediaUrl;
@@ -94,36 +144,39 @@ export async function createIdea(
     }
 
     // Insert idea
-    const { data: idea, error: ideaError } = await supabase
-      .from('social_ideas')
-      .insert({
-        client_id: ideaData.clientId,
-        text: `${ideaData.title}\n\n${ideaData.description}`.trim(),
-      })
-      .select()
-      .single();
-
-    if (ideaError) {
+    let idea: any = null;
+    try {
+      idea = await prisma.social_ideas.create({
+        data: {
+          organizationId,
+          client_id: String(ideaData.clientId),
+          text: `${ideaData.title}\n\n${ideaData.description}`.trim(),
+        } as any,
+      });
+    } catch (ideaError: unknown) {
       console.error('Error creating idea:', ideaError);
       return {
         success: false,
-        error: translateError(ideaError.message || 'שגיאה ביצירת רעיון'),
+        error: translateError(getUnknownErrorMessage(ideaError) || 'שגיאה ביצירת רעיון'),
       };
     }
 
     const formattedIdea: Idea = {
-      id: idea.id,
-      clientId: idea.client_id,
-      text: idea.text,
-      createdAt: idea.created_at,
+      id: String((asObject(idea) ?? {}).id ?? ''),
+      clientId: String((asObject(idea) ?? {}).client_id ?? ''),
+      text: (asObject(idea) ?? {}).text == null ? undefined : String((asObject(idea) ?? {}).text),
+      createdAt:
+        (asObject(idea) ?? {}).created_at instanceof Date
+          ? ((asObject(idea) ?? {}).created_at as Date).toISOString()
+          : String((asObject(idea) ?? {}).created_at ?? ''),
     };
 
     return { success: true, data: formattedIdea };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in createIdea:', error);
     return {
       success: false,
-      error: translateError(error.message || 'שגיאה ביצירת רעיון'),
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה ביצירת רעיון'),
     };
   }
 }
@@ -148,7 +201,12 @@ export async function updateIdea(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const supabase = createClient();
+    const organizationId = await resolveOrganizationIdForCurrentUser();
+    if (!organizationId) {
+      return { success: false, error: 'Forbidden' };
+    }
+
+    const scoped = await assertIdeaInOrganization({ ideaId, organizationId });
 
     // Upload new media file if provided
     let mediaUrl = updates.mediaUrl;
@@ -167,7 +225,7 @@ export async function updateIdea(
     }
 
     // Update idea
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     // social_ideas schema supports only `text` + timestamps.
     // We keep backward-compat: merge title/description into a single text field.
     if (updates.title !== undefined || updates.description !== undefined) {
@@ -176,16 +234,20 @@ export async function updateIdea(
       updateData.text = `${title}\n\n${description}`.trim();
     }
 
-    const { error: updateError } = await supabase
-      .from('social_ideas')
-      .update(updateData)
-      .eq('id', ideaId);
+    try {
+      const res = await prisma.social_ideas.updateMany({
+        where: { id: String(ideaId), organizationId: String(organizationId), client_id: String(scoped.clientId) } as any,
+        data: updateData as any,
+      });
 
-    if (updateError) {
+      if (!res?.count) {
+        throw new Error('Forbidden');
+      }
+    } catch (updateError: unknown) {
       console.error('Error updating idea:', updateError);
       return {
         success: false,
-        error: translateError(updateError.message || 'שגיאה בעדכון רעיון'),
+        error: translateError(getUnknownErrorMessage(updateError) || 'שגיאה בעדכון רעיון'),
       };
     }
 
@@ -199,11 +261,11 @@ export async function updateIdea(
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in updateIdea:', error);
     return {
       success: false,
-      error: translateError(error.message || 'שגיאה בעדכון רעיון'),
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה בעדכון רעיון'),
     };
   }
 }
@@ -218,27 +280,35 @@ export async function deleteIdea(ideaId: string): Promise<{ success: boolean; er
       return { success: false, error: 'לא מחובר' };
     }
 
-    const supabase = createClient();
+    const organizationId = await resolveOrganizationIdForCurrentUser();
+    if (!organizationId) {
+      return { success: false, error: 'Forbidden' };
+    }
 
-    const { error } = await supabase
-      .from('social_ideas')
-      .delete()
-      .eq('id', ideaId);
+    const scoped = await assertIdeaInOrganization({ ideaId, organizationId });
 
-    if (error) {
+    try {
+      const res = await prisma.social_ideas.deleteMany({
+        where: { id: String(ideaId), organizationId: String(organizationId), client_id: String(scoped.clientId) } as any,
+      });
+
+      if (!res?.count) {
+        throw new Error('Forbidden');
+      }
+    } catch (error: unknown) {
       console.error('Error deleting idea:', error);
       return {
         success: false,
-        error: translateError(error.message || 'שגיאה במחיקת רעיון'),
+        error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת רעיון'),
       };
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error in deleteIdea:', error);
     return {
       success: false,
-      error: translateError(error.message || 'שגיאה במחיקת רעיון'),
+      error: translateError(getUnknownErrorMessage(error) || 'שגיאה במחיקת רעיון'),
     };
   }
 }

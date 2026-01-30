@@ -13,11 +13,112 @@ import { LeaveRequest, LeaveRequestType, LeaveRequestStatus } from '../../../typ
 import { LeaveRequestModal } from './LeaveRequestModal';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { CustomSelect } from '../../CustomSelect';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 let leaveRequestsCache: LeaveRequest[] = [];
 let showHebrewDatesPreference = false;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
+    const v = obj[key];
+    return typeof v === 'string' ? v : String(v ?? fallback);
+}
+
+function getNullableString(obj: Record<string, unknown>, key: string): string | null {
+    const v = obj[key];
+    if (v == null) return null;
+    return typeof v === 'string' ? v : String(v);
+}
+
+function getNumber(obj: Record<string, unknown>, key: string, fallback = 0): number {
+    const v = obj[key];
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function isLeaveRequestType(value: string): value is LeaveRequestType {
+    return value === 'vacation' || value === 'sick' || value === 'personal' || value === 'unpaid' || value === 'other';
+}
+
+function isLeaveRequestStatus(value: string): value is LeaveRequestStatus {
+    return value === 'pending' || value === 'approved' || value === 'rejected' || value === 'cancelled';
+}
+
+function parseLeaveRequest(value: unknown): LeaveRequest | null {
+    const obj = asObject(value);
+    if (!obj) return null;
+
+    const leaveTypeStr = getString(obj, 'leaveType', getString(obj, 'leave_type'));
+    const statusStr = getString(obj, 'status');
+    if (!isLeaveRequestType(leaveTypeStr) || !isLeaveRequestStatus(statusStr)) return null;
+
+    const id = getString(obj, 'id');
+    const employeeId = getString(obj, 'employeeId', getString(obj, 'employee_id'));
+    if (!id || !employeeId) return null;
+
+    const startDate = getString(obj, 'startDate', getString(obj, 'start_date'));
+    const endDate = getString(obj, 'endDate', getString(obj, 'end_date'));
+
+    const request: LeaveRequest = {
+        id,
+        employeeId,
+        leaveType: leaveTypeStr,
+        startDate,
+        endDate,
+        daysRequested: getNumber(obj, 'daysRequested', getNumber(obj, 'days_requested', 0)),
+        status: statusStr,
+        reason: getNullableString(obj, 'reason') ?? undefined,
+        requestedBy: getNullableString(obj, 'requestedBy') ?? undefined,
+        approvedBy: getNullableString(obj, 'approvedBy') ?? undefined,
+        approvedAt: getNullableString(obj, 'approvedAt') ?? undefined,
+        rejectionReason: getNullableString(obj, 'rejectionReason') ?? undefined,
+        createdAt: getString(obj, 'createdAt', getString(obj, 'created_at')),
+        updatedAt: getString(obj, 'updatedAt', getString(obj, 'updated_at')),
+        metadata: asObject(obj['metadata']) ?? undefined,
+    };
+
+    return request;
+}
+
+function isLeaveRequest(value: LeaveRequest | null): value is LeaveRequest {
+    return Boolean(value);
+}
+
+function unwrap(data: unknown): unknown {
+    const obj = asObject(data);
+    const inner = obj ? asObject(obj.data) : null;
+    if (inner) return inner;
+    return data;
+}
+
+function getApiErrorMessage(payload: unknown, raw: unknown, fallback: string): string {
+    const payloadObj = asObject(payload);
+    const rawObj = asObject(raw);
+    const fromPayload = payloadObj && typeof payloadObj.error === 'string' ? payloadObj.error : '';
+    const fromRaw = rawObj && typeof rawObj.error === 'string' ? rawObj.error : '';
+    return String(fromPayload || fromRaw || fallback);
+}
+
+function getMetadata(request: LeaveRequest): Record<string, unknown> {
+    const obj = asObject(request);
+    const meta = obj ? asObject(obj.metadata) : null;
+    return meta ?? {};
+}
 
 interface LeaveRequestsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -56,20 +157,31 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
             if (filterEmployee !== 'all') params.append('employee_id', String(filterEmployee));
             
             const startTime = performance.now();
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/leave-requests?${params.toString()}`, {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             const loadTime = performance.now() - startTime;
             console.log(`[LeaveRequests] Load time: ${loadTime.toFixed(2)}ms`);
-            
+
+            const raw: unknown = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                throw new Error(errorData.error || `Failed to load requests (${response.status})`);
+                throw new Error(getApiErrorMessage(payload, raw, `Failed to load requests (${response.status})`));
             }
-            const data = await response.json();
-            const newRequests = data.requests || [];
-            console.log('[LeaveRequests] Loaded requests:', newRequests.length, 'Urgent:', newRequests.filter((r: any) => r.metadata?.isUrgent).length);
+
+            const payloadObj = asObject(payload) ?? {};
+            const requestsRaw = payloadObj.requests;
+            const newRequests: LeaveRequest[] = Array.isArray(requestsRaw)
+                ? requestsRaw.map(parseLeaveRequest).filter(isLeaveRequest)
+                : [];
+            console.log(
+                '[LeaveRequests] Loaded requests:',
+                newRequests.length,
+                'Urgent:',
+                newRequests.filter((r) => Boolean(getMetadata(r)['isUrgent'])).length
+            );
             setRequests(newRequests);
             
             // Update cache only if no filters (full list)
@@ -77,13 +189,13 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                 setCachedRequests(newRequests);
                 leaveRequestsCache = newRequests;
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[LeaveRequests] Error loading requests:', error);
             // Keep cached data on error
             if (requests.length === 0 && cachedRequests.length > 0) {
                 setRequests(cachedRequests);
             }
-            addToast(error.message || 'שגיאה בטעינת בקשות חופש', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה בטעינת בקשות חופש', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -107,42 +219,44 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
         if (!confirm('האם אתה בטוח שברצונך למחוק את בקשת החופש?')) return;
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/leave-requests/${requestId}`, {
                 method: 'DELETE',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה במחיקת בקשת חופש');
+                const raw: unknown = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה במחיקת בקשת חופש'));
             }
 
             addToast('בקשת חופש נמחקה בהצלחה', 'success');
             loadRequests(true);
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה במחיקת בקשת חופש', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה במחיקת בקשת חופש', 'error');
         }
     };
 
     const handleApprove = async (requestId: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/leave-requests/${requestId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ status: 'approved' }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה באישור בקשת חופש');
+                const raw: unknown = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה באישור בקשת חופש'));
             }
 
             addToast('בקשת חופש אושרה בהצלחה', 'success');
             loadRequests(true);
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה באישור בקשת חופש', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה באישור בקשת חופש', 'error');
         }
     };
 
@@ -151,22 +265,23 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
         if (!rejectionReason) return;
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/leave-requests/${requestId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ status: 'rejected', rejectionReason }),
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בדחיית בקשת חופש');
+                const raw: unknown = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה בדחיית בקשת חופש'));
             }
 
             addToast('בקשת חופש נדחתה', 'info');
             loadRequests(true);
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בדחיית בקשת חופש', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בדחיית בקשת חופש', 'error');
         }
     };
 
@@ -175,10 +290,10 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
         if (!moreInfoRequest) return;
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/leave-requests/${requestId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ 
                     requestMoreInfo: true,
                     moreInfoRequest: moreInfoRequest
@@ -186,14 +301,15 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בבקשת מידע נוסף');
+                const raw: unknown = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה בבקשת מידע נוסף'));
             }
 
             addToast('הבקשה נשלחה לעובד', 'success');
             loadRequests(true);
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בבקשת מידע נוסף', 'error');
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בבקשת מידע נוסף', 'error');
         }
     };
 
@@ -251,7 +367,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
         rejected: requests.filter(r => r.status === 'rejected').length
     };
 
-    const isAdmin = currentUser?.isSuperAdmin || currentUser?.role === 'מנכ״ל' || currentUser?.role === 'מנכ"ל' || currentUser?.role === 'אדמין';
+    const isAdmin = currentUser?.isSuperAdmin || isTenantAdminRole(currentUser?.role);
     const canCreateForOthers = isAdmin;
 
     return (
@@ -396,6 +512,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                 <div className="space-y-4">
                     {requests.map((request) => {
                         const employee = users.find(u => u.id === request.employeeId);
+                        const metadata = getMetadata(request);
                         return (
                             <motion.div
                                 key={request.id}
@@ -409,7 +526,7 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                                             <span className={`text-xs px-2 py-1 rounded-full font-bold ${getStatusColor(request.status)}`}>
                                                 {getStatusLabel(request.status)}
                                             </span>
-                                            {Boolean((request as any)?.metadata?.isUrgent) && (
+                                            {Boolean(metadata['isUrgent']) && (
                                                 <span className="text-xs px-2 py-1 rounded-full font-bold bg-amber-100 text-amber-700 flex items-center gap-1">
                                                     <AlertCircle size={12} />
                                                     דחוף
@@ -436,10 +553,10 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
                                             {request.reason && (
                                                 <p className="text-sm text-gray-600 mt-2">{request.reason}</p>
                                             )}
-                                            {Boolean((request as any)?.metadata?.needsMoreInfo) && (
+                                            {Boolean(metadata['needsMoreInfo']) && (
                                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
                                                     <p className="text-sm font-bold text-amber-900 mb-1">נדרש מידע נוסף:</p>
-                                                    <p className="text-sm text-amber-800">{String((request as any)?.metadata?.moreInfoRequest || 'נא לספק סיבה מפורטת יותר')}</p>
+                                                    <p className="text-sm text-amber-800">{String(metadata['moreInfoRequest'] || 'נא לספק סיבה מפורטת יותר')}</p>
                                                 </div>
                                             )}
                                             {request.rejectionReason && (

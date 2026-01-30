@@ -2,28 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Notification, User } from '../types';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const useNotifications = (currentUser: User, users: User[], addToast: (msg: string, type?: any) => void) => {
-    // Initialize notifications from localStorage if available
-    const [notifications, setNotifications] = useState<Notification[]>(() => {
-        try {
-            if (typeof window !== 'undefined') {
-                const saved = localStorage.getItem('NEXUS_NOTIFICATIONS');
-                return saved ? JSON.parse(saved) : [];
-            }
-        } catch (e) { console.error('Failed to load notifications', e); }
-        return [];
-    });
-
-    // Sync notifications to localStorage
-    useEffect(() => {
-        try {
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('NEXUS_NOTIFICATIONS', JSON.stringify(notifications));
-            }
-        } catch (e) { console.error('Failed to save notifications', e); }
-    }, [notifications]);
+    const [notifications, setNotifications] = useState<Notification[]>([]);
 
     const mergeServerNotifications = (serverRows: any[]) => {
         const mapped: Notification[] = (Array.isArray(serverRows) ? serverRows : []).map((row: any) => {
@@ -74,12 +56,12 @@ export const useNotifications = (currentUser: User, users: User[], addToast: (ms
 
     const fetchServerNotifications = async () => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            if (!orgId) return;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) return;
 
             const res = await fetch('/api/notifications', {
                 headers: {
-                    'x-org-id': orgId,
+                    'x-org-id': orgSlug,
                 },
             });
             if (!res.ok) return;

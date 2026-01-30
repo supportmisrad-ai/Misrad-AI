@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Plus, X, Edit2, Trash2, Users, Shield, AlertCircle } from 'lucide-react';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Button } from '@/components/ui/button';
 
 interface Announcement {
@@ -40,15 +40,16 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
     const loadAnnouncements = async () => {
         setIsLoading(true);
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/announcements', {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (!response.ok) {
                 throw new Error('Failed to load announcements');
             }
-            const data = await response.json();
-            setAnnouncements(data.announcements || []);
+            const data = await response.json().catch(() => ({}));
+            const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+            setAnnouncements((payload as any).announcements || []);
         } catch (error: any) {
             console.error('Error loading announcements:', error);
             addToast('שגיאה בטעינת הודעות', 'error');
@@ -84,11 +85,11 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
 
         try {
             if (editingAnnouncement) {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 // Update existing
                 const response = await fetch(`/api/announcements/${editingAnnouncement.id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                    headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                     body: JSON.stringify({
                         title: formData.title,
                         message: formData.message,
@@ -102,11 +103,11 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
 
                 addToast('הודעה עודכנה בהצלחה', 'success');
             } else {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 // Create new
                 const response = await fetch('/api/announcements', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                    headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                     body: JSON.stringify({
                         title: formData.title,
                         message: formData.message,
@@ -116,7 +117,8 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || 'Failed to create announcement');
+                    const errPayload = (errorData as any)?.data && typeof (errorData as any).data === 'object' ? (errorData as any).data : errorData;
+                    throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to create announcement');
                 }
 
                 addToast('הודעה נוצרה ונשלחה בהצלחה', 'success');
@@ -136,10 +138,10 @@ export const AnnouncementsPanel: React.FC<AnnouncementsPanelProps> = ({ currentU
         }
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/announcements/${id}`, {
                 method: 'DELETE',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
 
             if (!response.ok) {

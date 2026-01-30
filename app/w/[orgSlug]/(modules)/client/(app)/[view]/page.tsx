@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import CyclesManager from '@/components/client-os-full/components/CyclesManager';
 import { EmailCenter } from '@/components/client-os-full/components/EmailCenter';
@@ -10,19 +8,20 @@ import MeetingAnalyzer from '@/components/client-os-full/components/MeetingAnaly
 
 export const dynamic = 'force-dynamic';
 
-export default function ClientViewPage({
+export default async function ClientViewPage({
   params,
 }: {
-  params: { view: string };
+  params: Promise<{ view: string }>;
 }) {
-  const view = String(params.view || '').trim();
+  const { view } = await params;
+  const viewKey = String(view || '').trim();
 
-  if (view === 'cycles') return <CyclesManager />;
-  if (view === 'email') return <EmailCenter />;
-  if (view === 'forms') return <FormsManager />;
-  if (view === 'feedback') return <FeedbackLoop />;
-  if (view === 'intelligence') return <MeetingIntelligence />;
-  if (view === 'analyzer') return <MeetingAnalyzer />;
+  if (viewKey === 'cycles') return <CyclesManager />;
+  if (viewKey === 'email') return <EmailCenter />;
+  if (viewKey === 'forms') return <FormsManager />;
+  if (viewKey === 'feedback') return <FeedbackLoop />;
+  if (viewKey === 'intelligence') return <MeetingIntelligence />;
+  if (viewKey === 'analyzer') return <MeetingAnalyzer />;
 
   return null;
 }

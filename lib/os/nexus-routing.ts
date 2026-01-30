@@ -18,9 +18,13 @@ export function toNexusPath(basePath: string, subPath: string): string {
   return joinPath(basePath, subPath);
 }
 
-export function getWorkspaceOrgIdFromPathname(pathname: string | null | undefined): string | null {
+export function getWorkspaceOrgSlugFromPathname(pathname: string | null | undefined): string | null {
   const info = parseWorkspaceRoute(pathname);
   return info.orgSlug || null;
+}
+
+export function getWorkspaceOrgIdFromPathname(pathname: string | null | undefined): string | null {
+  return getWorkspaceOrgSlugFromPathname(pathname);
 }
 
 export function useNexusNavigation() {

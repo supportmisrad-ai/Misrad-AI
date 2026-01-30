@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState } from 'react';
-import { Search, Plus, BrainCircuit, Trash2, Globe } from 'lucide-react';
+import { Search, Plus, Zap, Trash2, Globe } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '@/contexts/AppContext';
 import { Idea } from '@/types/social';
@@ -109,7 +109,7 @@ export default function Vault() {
         {activeTab === 'dna' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in">
             <div className="bg-white p-8 rounded-3xl border shadow-sm">
-              <h4 className="text-lg font-extrabold mb-6 flex items-center gap-2"><BrainCircuit size={20}/> DNA</h4>
+              <h4 className="text-lg font-extrabold mb-6 flex items-center gap-2"><Zap size={20}/> DNA</h4>
               {Object.entries(selectedClient.dna.voice).map(([key, val]) => (
                 <div key={key} className="mb-6">
                   <p className="text-sm font-bold mb-2 uppercase">{key}</p>

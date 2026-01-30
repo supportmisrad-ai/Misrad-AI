@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
-import { Lead, FieldAgent } from '../types';
-import { INITIAL_AGENTS } from '../constants';
+import { Lead, FieldAgent } from './system/types';
+import { INITIAL_AGENTS } from './system/constants';
 import { MapPin, Phone, Search, Filter, Navigation, User, Clock, CheckCircle, AlertCircle, Layers, LocateFixed } from 'lucide-react';
-import { useToast } from '../contexts/ToastContext';
+import { useToast } from './system/contexts/ToastContext';
 
 interface FieldManagementViewProps {
   leads: Lead[];

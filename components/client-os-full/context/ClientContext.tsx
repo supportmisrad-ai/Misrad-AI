@@ -1,3 +1,4 @@
+ 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { Client, Meeting, Email, Notification, ClientStatus, SuccessGoal, ClientAction, ClientAsset } from '../types';

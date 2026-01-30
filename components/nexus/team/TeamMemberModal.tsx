@@ -5,6 +5,7 @@ import { X, Check, DollarSign, TrendingUp, Lock, LayoutGrid } from 'lucide-react
 import { User, RoleDefinition } from '../../../types';
 import { CustomSelect } from '../../CustomSelect';
 import { OS_MODULES } from '../../../types/os-modules';
+import { OSModuleIcon } from '../../shared/OSModuleIcon';
 
 interface TeamMemberModalProps {
     isOpen: boolean;
@@ -181,7 +182,6 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                         <div className="grid grid-cols-2 gap-2">
                             {OS_MODULES.map(module => {
                                 const isSelected = form.allowed_modules.includes(module.id);
-                                const Icon = module.icon;
                                 return (
                                     <button
                                         key={module.id}
@@ -194,7 +194,7 @@ export const TeamMemberModal: React.FC<TeamMemberModalProps> = ({
                                         }`}
                                     >
                                         <div className={`p-2 rounded-lg ${isSelected ? 'bg-white/20' : 'bg-gray-200'}`}>
-                                            <Icon size={16} />
+                                            <OSModuleIcon moduleKey={module.id} size={16} className={isSelected ? 'text-white' : 'text-gray-600'} />
                                         </div>
                                         <div className="flex-1">
                                             <div className="text-[10px] font-black leading-none mb-1">{module.nameHebrew}</div>

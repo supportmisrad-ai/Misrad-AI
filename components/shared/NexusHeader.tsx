@@ -6,7 +6,7 @@ import { Search, Bell } from 'lucide-react';
 import { Avatar } from '../Avatar';
 import { RoomSwitcher } from './RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 type Organization = {
   name: string;
@@ -39,7 +39,7 @@ export default function NexusHeader({
   profileHref?: string;
   onOpenCommandPaletteAction?: () => void;
 }) {
-  const { roomIconName, room } = useRoomBranding();
+  const { room } = useRoomBranding();
 
   const openCommandPalette = onOpenCommandPaletteAction;
 
@@ -64,11 +64,7 @@ export default function NexusHeader({
           {organization.logo ? (
             <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" />
           ) : (
-            room === 'nexus' ? (
-              <img src="/icons/nexus-icon.svg" alt="Nexus" className="w-full h-full object-cover" />
-            ) : roomIconName ? (
-              <DynamicIcon name={roomIconName} size={18} className="text-gray-900" />
-            ) : null
+            room ? <OSModuleSquircleIcon moduleKey={room} boxSize={32} iconSize={16} className="shadow-none" /> : null
           )}
         </div>
         <span className="font-bold text-lg text-gray-900 truncate">{safeOrgName}</span>

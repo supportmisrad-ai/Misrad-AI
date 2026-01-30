@@ -155,18 +155,30 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     setError('');
     setIsLoading(true);
 
-    if (!signInLoaded || !signIn) {
-      setError('מערכת ההתחברות עדיין לא מוכנה');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      await signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: '/',
-        redirectUrlComplete: '/',
-      });
+      if (mode === 'sign-up') {
+        if (!signUpLoaded || !signUp) {
+          setError('מערכת ההרשמה עדיין לא מוכנה');
+          setIsLoading(false);
+          return;
+        }
+        await signUp.authenticateWithRedirect({
+          strategy,
+          redirectUrl: '/sso-callback',
+          redirectUrlComplete: '/',
+        });
+      } else {
+        if (!signInLoaded || !signIn) {
+          setError('מערכת ההתחברות עדיין לא מוכנה');
+          setIsLoading(false);
+          return;
+        }
+        await signIn.authenticateWithRedirect({
+          strategy,
+          redirectUrl: '/sso-callback',
+          redirectUrlComplete: '/',
+        });
+      }
     } catch (err: any) {
       console.error('OAuth sign in error:', err);
       const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות עם ' + (strategy === 'oauth_google' ? 'גוגל' : 'רשת חברתית');
@@ -254,7 +266,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          התחבר עם Google
+          {isSignIn ? 'התחבר עם Google' : 'הירשם עם Google'}
         </button>
 
         {isSignIn && isPasskeySupported && (

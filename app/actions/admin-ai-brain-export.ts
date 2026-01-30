@@ -3,6 +3,26 @@
 import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+type AiBrainExportSnapshot = {
+  kind: 'ai_brain_export';
+  generated_at: string;
+  organization: {
+    id: string;
+    name: string;
+    slug: string | null;
+  };
+  organization_settings: {
+    ai_dna: Record<string, unknown>;
+  };
+  ai_feature_settings: unknown[];
+};
+
 function formatTimestampForFilename(iso: string): string {
   return iso
     .replace(/[:.]/g, '-')
@@ -13,7 +33,7 @@ function formatTimestampForFilename(iso: string): string {
 export async function buildAiBrainExport(params: {
   organizationId: string;
 }): Promise<{
-  snapshot: any;
+  snapshot: AiBrainExportSnapshot;
   filename: string;
 }> {
   await requireSuperAdmin();
@@ -51,6 +71,9 @@ export async function buildAiBrainExport(params: {
   const nowIso = new Date().toISOString();
   const safeSlug = String(org.slug || '').trim() || String(org.name || '').trim().toLowerCase().replace(/[^a-z0-9\u0590-\u05FF]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || org.id;
 
+  const settingsObj = asObject(settingsRow);
+  const aiDnaObj = asObject(settingsObj?.ai_dna) ?? {};
+
   const snapshot = {
     kind: 'ai_brain_export',
     generated_at: nowIso,
@@ -60,10 +83,10 @@ export async function buildAiBrainExport(params: {
       slug: org.slug ?? null,
     },
     organization_settings: {
-      ai_dna: (settingsRow as any)?.ai_dna ?? {},
+      ai_dna: aiDnaObj,
     },
     ai_feature_settings: featureRows || [],
-  };
+  } satisfies AiBrainExportSnapshot;
 
   const filename = `ai-brain-export_${safeSlug}_${formatTimestampForFilename(nowIso)}.json`;
 

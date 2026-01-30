@@ -1,6 +1,6 @@
-import { getSystemLeads, getSystemCalendarEvents } from '@/app/actions/system-leads';
+import { getSystemLeadsPage, getSystemCalendarEventsRange } from '@/app/actions/system-leads';
 import { getCampaigns } from '@/app/actions/campaigns';
-import { getSystemTasks } from '@/app/actions/system-tasks';
+import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import { getSystemNotifications } from '@/app/actions/system-notifications';
 import SystemWorkspaceClient from './SystemWorkspaceClient';
 
@@ -13,11 +13,18 @@ export default async function SystemModuleHome({
 }) {
   const { orgSlug } = await params;
 
-  const initialLeads = await getSystemLeads(orgSlug).catch(() => []);
-  const initialEvents = await getSystemCalendarEvents({ orgSlug, take: 200 }).catch(() => []);
-  const initialTasks = await getSystemTasks({ orgSlug, take: 200 }).catch(() => []);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const leadsRes = await getSystemLeadsPage({ orgSlug, pageSize: 200 }).catch(() => ({ success: false } as any));
+  const initialLeads = leadsRes?.success ? leadsRes.data.leads : [];
+  const initialEvents = await getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 500 }).catch(() => []);
+  const tasksRes = await listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 200 }).catch(() => ({ tasks: [] as any[] } as any));
   const campaignsRes = await getCampaigns(undefined, orgSlug).catch(() => ({ success: false, data: [] } as any));
   const initialNotifications = await getSystemNotifications({ orgSlug, limit: 20 }).catch(() => []);
+
+  const initialTasks = Array.isArray((tasksRes as any)?.tasks) ? (tasksRes as any).tasks : [];
 
   const initialCampaigns = campaignsRes?.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
 

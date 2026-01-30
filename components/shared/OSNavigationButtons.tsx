@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { OS_MODULES, type OSModule } from '@/types/os-modules';
 import { useOSModule } from '@/contexts/OSModuleContext';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 interface OSNavigationButtonsProps {
   currentModule?: OSModule;
@@ -81,7 +81,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
               `}
               title={module.nameHebrew}
             >
-              <DynamicIcon name={module.iconName} size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+              <OSModuleIcon moduleKey={module.id} size={16} strokeWidth={isCurrent ? 2.5 : 2} />
             </motion.button>
           );
         })}
@@ -133,7 +133,7 @@ export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
                 : `bg-gradient-to-br ${module.gradient} text-white shadow-sm`
               }
             `}>
-              <DynamicIcon name={module.iconName} size={20} strokeWidth={isCurrent ? 2.5 : 2} />
+              <OSModuleIcon moduleKey={module.id} size={20} strokeWidth={isCurrent ? 2.5 : 2} className={isCurrent ? 'text-white' : 'text-white'} />
             </div>
             
             {/* Text */}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WebhookLog, Lead, FieldAgent } from '../types';
-import { Settings, Webhook, BrainCircuit } from 'lucide-react';
+import { Settings, Webhook, Sparkles } from 'lucide-react';
 import IntegrationsView from './IntegrationsView';
 import AIAnalyticsView from './AIAnalyticsView';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,7 +18,7 @@ const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents }) => {
   const [activeTab, setActiveTab] = useState('analytics');
 
   const TABS = [
-      { id: 'analytics', label: 'ניתוח נתונים חכם', icon: BrainCircuit, allowed: true },
+      { id: 'analytics', label: 'ניתוח נתונים חכם', icon: Sparkles, allowed: true },
       { id: 'integrations', label: 'חיבורים ו-API', icon: Webhook, allowed: canAccess('integrations_config') },
       { id: 'settings', label: 'הגדרות מערכת', icon: Settings, allowed: true },
   ].filter(t => t.allowed);

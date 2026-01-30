@@ -1,10 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 export const Footer = () => {
     const router = useRouter();
+    const [logoSrc, setLogoSrc] = useState<string | null>(null);
+    const [logoText, setLogoText] = useState('MISRAD AI');
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
+                const data = await res.json().catch(() => null);
+                if (cancelled) return;
+                const nextLogo = typeof data?.logo === 'string' ? data.logo : null;
+                const nextText = typeof data?.logoText === 'string' ? data.logoText : null;
+                if (nextLogo) setLogoSrc(nextLogo);
+                if (nextText) setLogoText(nextText || 'MISRAD AI');
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const scrollToSection = (id: string) => {
         const element = document.getElementById(id);
         if (element) {
@@ -26,10 +53,20 @@ export const Footer = () => {
             <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
                 <div className="col-span-1 sm:col-span-2 md:col-span-1">
                     <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
-                            <div className="w-3 h-3 bg-white rounded-full"></div>
+                        <div className="w-8 h-8 overflow-hidden flex items-center justify-center shrink-0">
+                            {logoSrc ? (
+                                <img src={logoSrc} alt="MISRAD" className="w-full h-full object-contain" />
+                            ) : (
+                                <Image
+                                    src={getSystemIconUrl('misrad')}
+                                    alt="MISRAD"
+                                    width={32}
+                                    height={32}
+                                    className="w-full h-full object-contain"
+                                />
+                            )}
                         </div>
-                        <span className="text-lg font-bold text-slate-900">MISRAD CRM</span>
+                        <span className="text-lg font-bold text-slate-900">{logoText || 'MISRAD AI'}</span>
                     </div>
                     <p className="text-slate-600 text-sm">
                         מערכת מודרנית לעסקים בצמיחה.
@@ -69,7 +106,7 @@ export const Footer = () => {
             </div>
 
             <div className="max-w-7xl mx-auto border-t border-slate-200 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-                <p className="text-center sm:text-right text-slate-600">&copy; {new Date().getFullYear()} MISRAD CRM. כל הזכויות שמורות.</p>
+                <p className="text-center sm:text-right text-slate-600">&copy; {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.</p>
                 <div className="flex gap-3 sm:gap-4 flex-wrap justify-center sm:justify-start">
                     <span className="text-slate-600 hover:text-slate-900 cursor-pointer transition-colors whitespace-nowrap">טוויטר</span>
                     <span className="text-slate-600 hover:text-slate-900 cursor-pointer transition-colors whitespace-nowrap">לינקדאין</span>

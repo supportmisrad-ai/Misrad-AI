@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
 
@@ -47,13 +47,13 @@ async function GETHandler(req: Request) {
     }
 
     const { data, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiError(error, { status: 500 });
 
-    return NextResponse.json({ success: true, rows: (data || []) as FeatureSettingsRow[] });
+    return apiSuccess({ rows: (data || []) as FeatureSettingsRow[] });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 
@@ -67,7 +67,7 @@ async function POSTHandler(req: Request) {
     };
 
     const featureKey = String(body.feature_key || '').trim();
-    if (!featureKey) return NextResponse.json({ error: 'feature_key is required' }, { status: 400 });
+    if (!featureKey) return apiError('feature_key is required', { status: 400 });
 
     const organizationId = body.organization_id === null ? null : body.organization_id ? String(body.organization_id) : null;
 
@@ -92,13 +92,13 @@ async function POSTHandler(req: Request) {
       .select('*')
       .maybeSingle();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiError(error, { status: 500 });
 
-    return NextResponse.json({ success: true, row: data as any });
+    return apiSuccess({ row: data as any });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 
@@ -110,7 +110,7 @@ async function DELETEHandler(req: Request) {
     const featureKey = (url.searchParams.get('featureKey') || '').trim();
     const organizationIdRaw = url.searchParams.get('organizationId');
 
-    if (!featureKey) return NextResponse.json({ error: 'featureKey is required' }, { status: 400 });
+    if (!featureKey) return apiError('featureKey is required', { status: 400 });
 
     const supabase = createClient();
     let q = supabase.from('ai_feature_settings').delete().eq('feature_key', featureKey);
@@ -124,13 +124,13 @@ async function DELETEHandler(req: Request) {
     }
 
     const { error } = await q;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return apiError(error, { status: 500 });
 
-    return NextResponse.json({ success: true });
+    return apiSuccess({ ok: true });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 

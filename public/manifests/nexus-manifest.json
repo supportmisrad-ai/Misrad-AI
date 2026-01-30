@@ -3,6 +3,7 @@
   "short_name": "Nexus",
   "description": "מערכת ניהול צוותים ומשימות מתקדמת",
   "start_url": "/nexus-os",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3730A3",

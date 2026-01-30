@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -19,7 +19,15 @@ async function GETHandler(
     return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
   }
 
-  const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+  let workspace;
+  try {
+    ({ workspace } = await getWorkspaceContextOrThrow(_req, { params: { orgSlug } }));
+  } catch (e: any) {
+    if (e instanceof APIError) {
+      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+    }
+    return NextResponse.json({ error: e?.message || 'Internal server error' }, { status: 500 });
+  }
   const supabase = createClient();
 
   const { data: socialUser } = await supabase

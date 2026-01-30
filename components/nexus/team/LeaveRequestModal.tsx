@@ -13,7 +13,14 @@ import { LeaveRequest, LeaveRequestType } from '../../../types';
 import { CustomDatePicker } from '../../CustomDatePicker';
 import { CustomSelect } from '../../CustomSelect';
 import { SearchableEmployeeSelect } from '../SearchableEmployeeSelect';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+
+const unwrap = (data: any) => {
+    if (data && typeof data === 'object' && data.data && typeof data.data === 'object') {
+        return data.data;
+    }
+    return data;
+};
 
 interface LeaveRequestModalProps {
     request?: LeaveRequest | null;
@@ -116,8 +123,8 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
             const url = request ? `/api/leave-requests/${request.id}` : '/api/leave-requests';
             const method = request ? 'PATCH' : 'POST';
 
-            const orgId = typeof window !== 'undefined'
-                ? (getWorkspaceOrgIdFromPathname(window.location.pathname) || null)
+            const orgSlug = typeof window !== 'undefined'
+                ? (getWorkspaceOrgSlugFromPathname(window.location.pathname) || null)
                 : null;
 
             // Prepare request body - only include employeeId if canCreateForOthers is true
@@ -141,17 +148,19 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify(requestBody)
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בשמירת בקשת חופש');
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בשמירת בקשת חופש');
             }
 
-            const result = await response.json();
+            const raw = await response.json().catch(() => ({}));
+            unwrap(raw);
             // Don't show toast here - let the parent component handle it via onSuccess
             onSuccess();
             onClose();

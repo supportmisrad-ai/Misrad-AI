@@ -7,7 +7,7 @@ import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
 import { OS_MODULES } from '@/types/os-modules';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 export default function LobbyModulesGrid({
   orgSlug,
@@ -55,28 +55,12 @@ export default function LobbyModulesGrid({
 
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div
-                    className={`w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center overflow-hidden ${
-                      enabled ? 'bg-white/80 border border-white/70' : ''
-                    } ${!enabled ? 'bg-slate-200/60 shadow-inner' : ''}`}
-                    style={
-                      enabled
-                        ? { background: `linear-gradient(135deg, ${def.theme.accent} 0%, rgba(0,0,0,0.75) 120%)` }
-                        : undefined
-                    }
-                  >
-                    <OSModuleIcon
-                      moduleKey={key}
-                      size={24}
-                      className={enabled ? 'text-white' : 'text-slate-500'}
-                    />
-                  </div>
+                  <OSModuleSquircleIcon moduleKey={key} boxSize={48} iconSize={20} disabled={!enabled} />
                   <div>
                     <div className={`font-black text-lg flex items-center gap-2 ${enabled ? 'text-slate-900' : 'text-slate-500'}`}>
                       {def.label}
                       {!enabled ? <Lock size={14} className="text-slate-400" /> : null}
                     </div>
-                    <div className={`text-xs font-bold ${enabled ? 'text-slate-600' : 'text-slate-500'}`}>{def.labelHe}</div>
                   </div>
                 </div>
                 <div className={`transition text-sm font-black ${enabled ? 'text-slate-500 group-hover:text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>

@@ -74,25 +74,20 @@ export default function InvitePage() {
         const loadInvitation = async () => {
             try {
                 const response = await fetch(`/api/invitations/token/${token}`);
-                
+
+                const raw = await response.json().catch(() => ({}));
+                const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+
                 if (!response.ok) {
-                    let errorData;
-                    try {
-                        errorData = await response.json();
-                    } catch (parseError) {
-                        // If JSON parsing fails, use status text
-                        throw new Error(`שגיאה ${response.status}: ${response.statusText || 'שגיאה בטעינת הקישור'}`);
-                    }
-                    
-                    // Check if form was already completed
-                    if (response.status === 410 && errorData.completed) {
+                    // Backward compatibility: old API used 410 with completed payload
+                    if (response.status === 410 && payload?.completed) {
                         setInvitation({
                             token,
                             isUsed: true,
                             completed: true,
-                            usedAt: errorData.usedAt,
-                            companyName: errorData.companyName,
-                            ceoName: errorData.ceoName,
+                            usedAt: payload.usedAt,
+                            companyName: payload.companyName,
+                            ceoName: payload.ceoName,
                             prefill: {
                                 ceoName: '',
                                 ceoEmail: '',
@@ -108,32 +103,30 @@ export default function InvitePage() {
                         setIsLoading(false);
                         return;
                     }
-                    throw new Error(errorData.error || 'שגיאה בטעינת הקישור');
+
+                    if (!raw || typeof raw !== 'object') {
+                        throw new Error(`שגיאה ${response.status}: ${response.statusText || 'שגיאה בטעינת הקישור'}`);
+                    }
+
+                    throw new Error(raw?.error || payload?.error || 'שגיאה בטעינת הקישור');
                 }
 
-                let data;
-                try {
-                    data = await response.json();
-                } catch (parseError) {
-                    throw new Error('שגיאה בפענוח התשובה מהשרת');
-                }
-                
-                if (!data || !data.invitation) {
+                if (!payload || !payload.invitation) {
                     throw new Error('נתונים לא תקינים מהשרת');
                 }
-                
-                setInvitation(data.invitation);
+
+                setInvitation(payload.invitation);
 
                 // Pre-fill form with existing data
-                if (data.invitation.prefill) {
+                if (payload.invitation.prefill) {
                     // Split ceoName into first and last name if exists
-                    const fullName = data.invitation.prefill.ceoName || '';
+                    const fullName = payload.invitation.prefill.ceoName || '';
                     const nameParts = fullName.split(' ');
                     const firstName = nameParts[0] || '';
                     const lastName = nameParts.slice(1).join(' ') || '';
                     
                     // Extract country code from phone if exists
-                    const phone = data.invitation.prefill.ceoPhone || '';
+                    const phone = payload.invitation.prefill.ceoPhone || '';
                     const phoneMatch = phone.match(/^(\+\d{1,4})/);
                     const countryCode = phoneMatch ? phoneMatch[1] : '+972';
                     const phoneNumber = phone.replace(/^\+\d{1,4}\s*/, '');
@@ -141,15 +134,15 @@ export default function InvitePage() {
                     setFormData({
                         ceoFirstName: firstName,
                         ceoLastName: lastName,
-                        ceoEmail: data.invitation.prefill.ceoEmail || '',
+                        ceoEmail: payload.invitation.prefill.ceoEmail || '',
                         ceoPhone: phoneNumber,
                         ceoPhoneCountry: countryCode,
-                        companyName: data.invitation.prefill.companyName || '',
-                        companyId: data.invitation.prefill.companyId || '',
-                        companyLogo: data.invitation.prefill.companyLogo || '',
-                        companyAddress: data.invitation.prefill.companyAddress || '',
-                        companyWebsite: data.invitation.prefill.companyWebsite || '',
-                        additionalNotes: data.invitation.prefill.additionalNotes || ''
+                        companyName: payload.invitation.prefill.companyName || '',
+                        companyId: payload.invitation.prefill.companyId || '',
+                        companyLogo: payload.invitation.prefill.companyLogo || '',
+                        companyAddress: payload.invitation.prefill.companyAddress || '',
+                        companyWebsite: payload.invitation.prefill.companyWebsite || '',
+                        additionalNotes: payload.invitation.prefill.additionalNotes || ''
                     });
                 }
             } catch (err: any) {
@@ -265,11 +258,12 @@ export default function InvitePage() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'שגיאה בשליחת הטופס');
+                const raw = await response.json().catch(() => ({}));
+                const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+                throw new Error(raw?.error || payload?.error || 'שגיאה בשליחת הטופס');
             }
 
-            const result = await response.json();
+            await response.json().catch(() => ({}));
             setSuccess(true);
             setError(null);
         } catch (err: any) {

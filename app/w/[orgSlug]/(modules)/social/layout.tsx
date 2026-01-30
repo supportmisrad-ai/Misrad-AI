@@ -1,4 +1,5 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation, requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
@@ -7,8 +8,11 @@ import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/servi
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('social');
 
 export default async function SocialModuleLayout({
   children,
@@ -50,7 +54,7 @@ export default async function SocialModuleLayout({
 
   return (
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]">
-      <div className="min-h-screen bg-slate-50" suppressHydrationWarning>
+      <div className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
         <SocialShell
           orgSlug={orgSlug}
           isTeamEnabled={caps.isTeamManagementEnabled}

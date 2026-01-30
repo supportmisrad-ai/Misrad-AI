@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, X, MessageSquareText } from 'lucide-react';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface LockedModulesUpsellGridProps {
   lockedModules: OSModuleKey[];
@@ -80,13 +81,12 @@ export default function LockedModulesUpsellGrid({ lockedModules }: LockedModules
               <div className="absolute inset-0 opacity-100" style={{ background: 'radial-gradient(600px circle at 30% 10%, rgba(148,163,184,0.22), transparent 45%)' }} />
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-200/60 shadow-inner" />
+                  <OSModuleSquircleIcon moduleKey={key} boxSize={48} iconSize={20} disabled={true} className="opacity-70" />
                   <div>
                     <div className="font-black text-slate-500 text-lg flex items-center gap-2">
                       {def.label}
                       <Lock size={14} className="text-slate-400" />
                     </div>
-                    <div className="text-xs text-slate-500 font-bold">{def.labelHe}</div>
                   </div>
                 </div>
                 <div className="text-slate-400 group-hover:text-slate-600 transition text-sm font-black">שדרוג</div>

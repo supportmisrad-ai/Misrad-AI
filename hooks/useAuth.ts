@@ -1,19 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { User, TimeEntry, RoleDefinition, PermissionId, ChangeRequest } from '../types';
 import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { isCeoRole } from '@/lib/constants/roles';
+import { getNexusMe, listNexusUsers } from '@/app/actions/nexus';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-const isNetworkError = (err: any): boolean => {
-    return err?.name === 'TypeError' &&
-        (String(err?.message || '').includes('Failed to fetch') ||
-            String(err?.message || '').includes('NetworkError') ||
-            String(err?.message || '').toLowerCase().includes('network'));
-};
 
 export const useAuth = (
     addToast: (msg: string, type?: any) => void,
@@ -87,8 +84,11 @@ export const useAuth = (
     const [currentUser, setCurrentUser] = useState<User>(getInitialUser());
     const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initialCurrentUser?.id));
     const [isLoadingCurrentUser, setIsLoadingCurrentUser] = useState(false);
-    const loadCurrentUserInFlightRef = useRef(false);
-    const hasLoggedNetworkErrorRef = useRef(false);
+
+    const pathname = usePathname();
+    const orgSlug = useMemo(() => {
+        return getWorkspaceOrgSlugFromPathname(pathname);
+    }, [pathname]);
 
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
     const [trashUsers, setTrashUsers] = useState<User[]>([]);
@@ -97,255 +97,94 @@ export const useAuth = (
 
     const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
 
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
-        if (!orgSlug) return;
+    const meQuery = useQuery({
+        queryKey: ['nexus', 'me', orgSlug],
+        queryFn: async () => {
+            return getNexusMe({ orgId: orgSlug as string });
+        },
+        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug && !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id)))),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
 
-        const key = `NEXUS_ACTIVE_SHIFT_V1:${orgSlug}`;
-        try {
-            if (activeShift?.startTime) {
-                localStorage.setItem(
-                    key,
-                    JSON.stringify({ entryId: activeShift.id, startTime: activeShift.startTime, userId: currentUser.id })
-                );
-            } else {
-                localStorage.removeItem(key);
-            }
-        } catch {
-            // ignore
+    const usersQuery = useQuery({
+        queryKey: ['nexus', 'users', orgSlug],
+        queryFn: async () => {
+            return listNexusUsers({ orgId: orgSlug as string });
+        },
+        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    useEffect(() => {
+        if (!isClerkLoaded) return;
+
+        if (!clerkUser) {
+            setIsAuthenticated(false);
+            setIsLoadingCurrentUser(false);
+            return;
         }
-    }, [activeShift?.startTime, currentUser.id]);
 
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        if (currentUser?.tenantId) {
-            localStorage.setItem('currentTenantId', String(currentUser.tenantId));
+        if (!orgSlug) {
+            setIsAuthenticated(Boolean(clerkUser));
+            setIsLoadingCurrentUser(false);
+            return;
         }
-    }, [currentUser?.tenantId]);
 
-    // Update user immediately when Clerk loads (to show correct role before API call)
-    useEffect(() => {
-        if (isClerkLoaded && clerkUser?.publicMetadata) {
-            const roleFromClerk = (clerkUser.publicMetadata?.role as string) || 'עובד';
-            const isSuperAdminFromClerk = (clerkUser.publicMetadata?.isSuperAdmin as boolean) || false;
-            const nameFromClerk = clerkUser.firstName && clerkUser.lastName
-                ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
-                : clerkUser.firstName || clerkUser.lastName || '';
-            
-            // Update immediately if role is different (to avoid showing "עובד" first)
-            setCurrentUser(prev => {
-                if (prev.role === 'עובד' && roleFromClerk !== 'עובד') {
-                    return {
-                        ...prev,
-                        name: nameFromClerk || prev.name,
-                        email: clerkUser.primaryEmailAddress?.emailAddress || prev.email,
-                        role: roleFromClerk,
-                        avatar: clerkUser.imageUrl || prev.avatar,
-                        isSuperAdmin: isSuperAdminFromClerk,
-                        isTenantAdmin: prev.isTenantAdmin || false, // Preserve existing value until API call
-                        tenantId: prev.tenantId || null // Preserve existing value until API call
-                    };
-                }
-                return prev;
-            });
+        if (initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) {
+            setIsAuthenticated(true);
+            setIsLoadingCurrentUser(false);
+            return;
         }
-    }, [isClerkLoaded, clerkUser?.publicMetadata, clerkUser?.id]);
 
-    // Load current user from API when Clerk user is loaded
+        setIsLoadingCurrentUser(Boolean(meQuery.isFetching));
+    }, [isClerkLoaded, clerkUser?.id, orgSlug, meQuery.isFetching, initialCurrentUser?.id]);
+
     useEffect(() => {
-        const loadCurrentUser = async () => {
-            if (!isClerkLoaded) return;
+        if (!meQuery.data?.user) return;
+        const data = meQuery.data;
 
-            // If the server provided an initial user, we still need to hydrate
-            // the canonical DB user (UUID) + profile fields (uiPreferences, phone, etc.).
-            // Otherwise, the UI will behave like a demo after refresh.
-            if (initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) {
-                setIsLoadingCurrentUser(false);
-                setIsAuthenticated(true);
-                return;
-            }
-            
-            if (!clerkUser) {
-                // Not signed in - reset to default
-                setIsAuthenticated(false);
-                setIsLoadingCurrentUser(false);
-                return;
-            }
-
-            // Prevent multiple simultaneous loads
-            if (loadCurrentUserInFlightRef.current) return;
-            
-            // If user is already loaded and matches current Clerk user, skip
-            if (currentUser.id && isUUID(String(currentUser.id)) && isAuthenticated) {
-                return; // Already loaded (DB UUID)
-            }
-
-            try {
-                loadCurrentUserInFlightRef.current = true;
-                setIsLoadingCurrentUser(true);
-                
-                let response: Response;
-                let data: any;
-                
-                try {
-                    const orgId =
-                        typeof window !== 'undefined'
-                            ? (getWorkspaceOrgIdFromPathname(window.location.pathname) || localStorage.getItem('currentTenantId'))
-                            : null;
-                    response = await fetch('/api/users/me', {
-                        headers: orgId ? { 'x-org-id': orgId } : undefined
-                    });
-                    
-                    // Check if response is ok before parsing JSON
-                    if (!response.ok) {
-                        // If 401 or 500, don't crash - just use Clerk user
-                        if (response.status === 401 || response.status === 500) {
-                            console.warn('[Auth] API returned error, using Clerk user directly');
-                            setIsLoadingCurrentUser(false);
-                            setIsAuthenticated(true); // Still authenticated via Clerk
-                            return;
-                        }
-                        throw new Error(`API returned ${response.status}`);
-                    }
-                    
-                    data = await response.json();
-                } catch (fetchError: any) {
-                    // Network error or JSON parse error
-                    if (!isNetworkError(fetchError)) {
-                        console.warn('[Auth] Failed to fetch user from API:', fetchError.message);
-                    } else if (!hasLoggedNetworkErrorRef.current) {
-                        // Avoid console spam on unstable networks
-                        console.warn('[Auth] Network error fetching user from API (silencing repeats)');
-                        hasLoggedNetworkErrorRef.current = true;
-                    }
-                    // Use Clerk user as fallback
-                    if (clerkUser) {
-                        const clerkUserAsDbUser: User = {
-                            id: '',
-                            name: clerkUser.firstName && clerkUser.lastName
-                                ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
-                                : clerkUser.firstName || clerkUser.lastName || 'User',
-                            role: (clerkUser.publicMetadata?.role as string) || 'עובד',
-                            department: undefined,
-                            avatar: clerkUser.imageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(clerkUser.primaryEmailAddress?.emailAddress || 'User')}&background=6366f1&color=fff`,
-                            online: true,
-                            capacity: 0,
-                            email: clerkUser.primaryEmailAddress?.emailAddress || '',
-                            phone: undefined,
-                            location: undefined,
-                            bio: undefined,
-                            paymentType: undefined,
-                            hourlyRate: undefined,
-                            monthlySalary: undefined,
-                            commissionPct: undefined,
-                            bonusPerTask: undefined,
-                            accumulatedBonus: 0,
-                            streakDays: 0,
-                            weeklyScore: undefined,
-                            pendingReward: undefined,
-                            targets: undefined,
-                            notificationPreferences: {
-                                emailNewTask: true,
-                                browserPush: true,
-                                morningBrief: true,
-                                soundEffects: false,
-                                marketing: true
-                            },
-                            twoFactorEnabled: false,
-                            isSuperAdmin: (clerkUser.publicMetadata?.isSuperAdmin as boolean) || false,
-                            isTenantAdmin: false, // Will be updated when API call completes
-                            tenantId: null, // Will be updated when API call completes
-                            billingInfo: undefined
-                        };
-                        setCurrentUser(clerkUserAsDbUser);
-                        setIsAuthenticated(true);
-                    }
-                    setIsLoadingCurrentUser(false);
-                    return;
-                }
-                
-                if (data.user) {
-                    // Found matching user in database
-                    const userWithDefaults = {
-                        ...data.user,
-                        isSuperAdmin: Boolean(
-                            (data.user as any)?.isSuperAdmin ??
-                            (clerkUser?.publicMetadata?.isSuperAdmin as boolean) ??
-                            ((clerkUser as any)?.unsafeMetadata as any)?.isSuperAdmin ??
-                            currentUser?.isSuperAdmin
-                        ),
-                        isTenantAdmin: data.isTenantAdmin || false,
-                        tenantId: data.tenant?.id || null,
-                        billingInfo: data.user.billingInfo || undefined,
-                        notificationPreferences: data.user.notificationPreferences || {
-                            emailNewTask: true,
-                            browserPush: true,
-                            morningBrief: true,
-                            soundEffects: false,
-                            marketing: true
-                        }
-                    };
-                    setCurrentUser(userWithDefaults);
-                    setIsAuthenticated(true);
-                    
-                    // Update user in users list
-                    setUsers(prev => {
-                        const existingIndex = prev.findIndex(u => u.id === data.user.id);
-                        if (existingIndex >= 0) {
-                            return prev.map((u, i) => i === existingIndex ? { ...userWithDefaults, online: true } : u);
-                        } else {
-                            return [...prev, { ...userWithDefaults, online: true }];
-                        }
-                    });
-                } else {
-                    setIsAuthenticated(false);
-                }
-            } catch (error: any) {
-                // Avoid spamming console on transient network errors
-                if (!isNetworkError(error)) {
-                    console.error('[Auth] Failed to load current user:', error);
-                }
-                // Fallback to default user in development
-                if (process.env.NODE_ENV === 'development') {
-                    console.warn('[Auth] Using default user in development mode');
-                    setIsAuthenticated(true);
-                } else {
-                    setIsAuthenticated(false);
-                }
-            } finally {
-                loadCurrentUserInFlightRef.current = false;
-                setIsLoadingCurrentUser(false);
+        const userWithDefaults = {
+            ...data.user,
+            isSuperAdmin: Boolean(
+                (data.user as any)?.isSuperAdmin ??
+                (clerkUser?.publicMetadata?.isSuperAdmin as boolean) ??
+                ((clerkUser as any)?.unsafeMetadata as any)?.isSuperAdmin ??
+                currentUser?.isSuperAdmin
+            ),
+            isTenantAdmin: Boolean(data.isTenantAdmin),
+            tenantId: data.tenant?.id || (orgSlug as any) || null,
+            billingInfo: (data.user as any).billingInfo || undefined,
+            notificationPreferences: (data.user as any).notificationPreferences || {
+                emailNewTask: true,
+                browserPush: true,
+                morningBrief: true,
+                soundEffects: false,
+                marketing: true
             }
         };
 
-        loadCurrentUser();
-    }, [clerkUser?.id, isClerkLoaded]);
+        setCurrentUser(userWithDefaults as any);
+        setIsAuthenticated(true);
 
-    // Load users list from DB so assignee pickers / avatars can resolve UUID-based users
-    useEffect(() => {
-        const loadUsers = async () => {
-            if (!isClerkLoaded) return;
-            if (typeof window === 'undefined') return;
-            const orgId = getWorkspaceOrgIdFromPathname(window.location.pathname) || localStorage.getItem('currentTenantId');
-            if (!orgId) return;
-
-            try {
-                const res = await fetch('/api/users', {
-                    headers: { 'x-org-id': orgId }
-                });
-                if (!res.ok) return;
-                const data = await res.json();
-                if (Array.isArray(data?.users)) {
-                    setUsers(data.users);
-                }
-            } catch {
-                // non-blocking
+        setUsers(prev => {
+            const existingIndex = prev.findIndex(u => u.id === (data.user as any).id);
+            if (existingIndex >= 0) {
+                return prev.map((u, i) => i === existingIndex ? { ...(userWithDefaults as any), online: true } : u);
             }
-        };
+            return [...prev, { ...(userWithDefaults as any), online: true }];
+        });
+    }, [meQuery.data, clerkUser?.id]);
 
-        loadUsers();
-    }, [isClerkLoaded, clerkUser?.id]);
+    useEffect(() => {
+        const nextUsers = (usersQuery.data as any)?.users;
+        if (Array.isArray(nextUsers)) {
+            setUsers(nextUsers);
+        }
+    }, [usersQuery.data]);
 
     const login = (userId: string) => {
         const user = users.find(u => u.id === userId);
@@ -399,8 +238,7 @@ export const useAuth = (
         }
         
         // Special case: CEO (מנכ״ל) has all permissions - handle both Unicode variants
-        const ceoRoles = ['מנכ״ל', 'מנכ"ל', 'מנכל'];
-        if (ceoRoles.includes(currentUser.role)) {
+        if (isCeoRole(currentUser.role)) {
             return true;
         }
         

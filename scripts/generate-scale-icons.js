@@ -6,7 +6,7 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 
-const sizes = [192, 512];
+const sizes = [192];
 const inputSvg = path.join(__dirname, '../public/icons/scale-icon.svg');
 const outputDir = path.join(__dirname, '../public/icons');
 

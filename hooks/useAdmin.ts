@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { OrganizationProfile, MonthlyGoals, AnalysisReport, SystemUpdate, FeatureRequest, ModuleId, SystemScreenStatus, UserApprovalRequest, Tenant, RoleDefinition } from '../types';
 import { SYSTEM_SCREENS, DEFAULT_ROLE_DEFINITIONS } from '../constants';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const useAdmin = (
     currentUser: any,
@@ -22,16 +22,8 @@ export const useAdmin = (
     const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals>({ revenue: 100000, tasksCompletion: 90 });
     const [departments, setDepartments] = useState<string[]>(['הנהלה', 'מכירות', 'תפעול', 'כספים', 'שיווק', 'חיצוני']);
     
-    // Initialize history from local storage if needed, otherwise empty
-    const [analysisHistory, setAnalysisHistory] = useState<AnalysisReport[]>(() => {
-        try {
-            if (typeof window !== 'undefined') {
-                const saved = localStorage.getItem('NEXUS_AI_HISTORY');
-                return saved ? JSON.parse(saved) : [];
-            }
-        } catch (e) { console.error(e); }
-        return [];
-    });
+    const [analysisHistory, setAnalysisHistory] = useState<AnalysisReport[]>([]);
+    const hasLoadedAiHistoryRef = useRef(false);
 
     const [systemUpdates, setSystemUpdates] = useState<SystemUpdate[]>([]);
     const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
@@ -57,7 +49,7 @@ export const useAdmin = (
         const loadEnabledModules = async () => {
             try {
                 if (typeof window === 'undefined') return;
-                const orgSlug = getWorkspaceOrgIdFromPathname(window.location.pathname);
+                const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
                 if (!orgSlug) return;
 
                 const res = await fetch('/api/workspaces');
@@ -95,9 +87,9 @@ export const useAdmin = (
         const loadRoles = async () => {
             setIsLoadingRoles(true);
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/roles', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -125,9 +117,9 @@ export const useAdmin = (
             }
             
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/system/flags', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -154,28 +146,65 @@ export const useAdmin = (
         return () => clearInterval(interval);
     }, [currentUser?.id]); // Reload when user changes
 
-    // Auto-save history to local storage and prune old items
+    // Load AI history from DB (and perform one-time migration from legacy localStorage)
     useEffect(() => {
-        const cleanHistory = () => {
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            
-            setAnalysisHistory(prev => {
-                const filtered = prev.filter(item => new Date(item.date) > thirtyDaysAgo);
-                try {
-                    localStorage.setItem('NEXUS_AI_HISTORY', JSON.stringify(filtered));
-                } catch (e) { console.error('Failed to save history', e); }
-                return filtered;
-            });
-        };
-        cleanHistory();
-    }, []); // Run once on mount
+        let cancelled = false;
 
-    // Save whenever history changes
+        const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+        if (!orgSlug) return;
+
+        const load = async () => {
+            try {
+                const res = await fetch('/api/system/ai-history', {
+                    headers: { 'x-org-id': orgSlug },
+                    cache: 'no-store',
+                });
+                const data = await res.json().catch(() => null);
+                const serverHistory = Array.isArray(data?.history) ? (data.history as AnalysisReport[]) : [];
+
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const filteredServer = serverHistory.filter(item => {
+                    const d = new Date((item as any)?.date);
+                    return !isNaN(d.getTime()) && d > thirtyDaysAgo;
+                });
+
+                if (!cancelled) {
+                    setAnalysisHistory(filteredServer);
+                    hasLoadedAiHistoryRef.current = true;
+                }
+            } catch {
+                if (!cancelled) {
+                    hasLoadedAiHistoryRef.current = true;
+                }
+            }
+        };
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentUser?.id]);
+
+    // Persist AI history to DB whenever it changes (after initial load)
     useEffect(() => {
-        try {
-            localStorage.setItem('NEXUS_AI_HISTORY', JSON.stringify(analysisHistory));
-        } catch (e) { console.error('Failed to save history', e); }
+        const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+        if (!orgSlug) return;
+        if (!hasLoadedAiHistoryRef.current) return;
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const filtered = (analysisHistory || []).filter((item: any) => {
+            const d = new Date(item?.date);
+            return !isNaN(d.getTime()) && d > thirtyDaysAgo;
+        });
+
+        fetch('/api/system/ai-history', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
+            body: JSON.stringify({ history: filtered }),
+        }).catch(() => null);
     }, [analysisHistory]);
 
     const updateOrganization = (updates: Partial<OrganizationProfile>) => {
@@ -211,10 +240,10 @@ export const useAdmin = (
     // Role management functions (now using API)
     const createRole = async (role: Omit<RoleDefinition, 'id'>) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/roles', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify(role)
             });
             
@@ -235,10 +264,10 @@ export const useAdmin = (
 
     const updateRole = async (roleId: string, updates: Partial<RoleDefinition>) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/roles/${roleId}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify(updates)
             });
             
@@ -266,10 +295,10 @@ export const useAdmin = (
             }
             
             const roleId = (role as any).id;
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/roles/${roleId}`, {
                 method: 'DELETE',
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             
             if (!response.ok) {
@@ -372,10 +401,10 @@ export const useAdmin = (
             }));
             
             // Save to database via API
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch('/api/system/flags', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...(orgId ? { 'x-org-id': orgId } : {}) },
+                headers: { 'Content-Type': 'application/json', ...(orgSlug ? { 'x-org-id': orgSlug } : {}) },
                 body: JSON.stringify({ screenId, status })
             });
 
@@ -389,8 +418,9 @@ export const useAdmin = (
             // Reload system flags from API to ensure consistency
             // This ensures all users see the updated state
             try {
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const flagsResponse = await fetch('/api/system/flags', {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (flagsResponse.ok) {
                     const flagsData = await flagsResponse.json();

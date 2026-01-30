@@ -17,13 +17,13 @@ export default function AboutPage() {
               <span>אודות</span>
             </div>
             <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
-              MISRAD CRM
+              MISRAD AI
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900">
                 מערכת שנבנתה לעבודה אמיתית
               </span>
             </h1>
             <p className="mt-6 text-lg text-slate-600 max-w-2xl leading-relaxed">
-              דף זה הוא placeholder זמני. כאן יופיע הסיפור שלנו, העקרונות שמנחים אותנו, והדרך שבה אנחנו בונים מוצר שמכבד את הזמן של העסק.
+              אנחנו בונים את Misrad AI כדי לתת לעסקים בישראל מערכת אחת שמרכזת הכל: ניהול, תהליכים, צוות, לקוחות ותובנות — בלי רעש ובלי מערכות מפוזרות.
             </p>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">

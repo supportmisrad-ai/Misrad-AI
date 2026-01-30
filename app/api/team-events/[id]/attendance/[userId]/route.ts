@@ -4,32 +4,58 @@
  * For organizers to mark attendance (attended/absent) after event
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
-import { supabase } from '../../../../../../lib/supabase';
-import { getUsers } from '../../../../../../lib/db';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '../../../../../../lib/supabase';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+function mapNexusUserRow(row: any) {
+    return {
+        id: String(row?.id ?? ''),
+        name: String(row?.name ?? row?.full_name ?? row?.email ?? ''),
+        role: String(row?.role ?? 'עובד'),
+        isSuperAdmin: Boolean(row?.is_super_admin ?? false),
+        tenantId: row?.organization_id ?? undefined,
+    };
+}
+
+async function selectUserByEmailAndWorkspace(params: { supabase: any; email: string; workspaceId: string }) {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('*')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    if (byOrg.error || !byOrg.data) return null;
+    return mapNexusUserRow(byOrg.data);
+}
+
 async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const byTenant = await params.supabaseClient
+    const res = await params.supabaseClient
         .from('nexus_team_events')
         .select('*')
         .eq('id', params.eventId)
-        .eq('tenant_id', params.workspaceId)
+        .eq('organization_id', params.workspaceId)
         .single();
 
-    if ((byTenant as any)?.error?.code === '42703') {
-        return await params.supabaseClient
-            .from('nexus_team_events')
-            .select('*')
-            .eq('id', params.eventId)
-            .eq('organization_id', params.workspaceId)
-            .single();
+    if ((res as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
     }
 
-    return byTenant;
+    return res;
 }
 async function PATCHHandler(
     request: NextRequest,
@@ -37,22 +63,10 @@ async function PATCHHandler(
 ) {
     try {
         const user = await getAuthenticatedUser();
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
 
-        const supabaseClient = supabase;
+        const supabaseClient = createClient();
 
-        const orgHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgHeader) {
-            return NextResponse.json({ error: 'Missing x-org-id header' }, { status: 400 });
-        }
-
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgHeader);
+        const { workspace } = await getWorkspaceOrThrow(request);
 
         const bypassTenantIsolationE2e =
             String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
@@ -63,38 +77,24 @@ async function PATCHHandler(
         const allowUnscoped = bypassTenantIsolationE2e;
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
-            return new NextResponse('Unscoped access forbidden in production', { status: 403 });
+            return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
         const { id: eventId, userId } = await params;
 
         if (!eventId || !userId) {
-            return NextResponse.json(
-                { error: 'Event ID and User ID are required' },
-                { status: 400 }
-            );
+            return apiError('Event ID and User ID are required', { status: 400 });
         }
 
         // Get user from database
         if (!user.email) {
-            return NextResponse.json(
-                { error: 'User email not found' },
-                { status: 400 }
-            );
+            return apiError('User email not found', { status: 400 });
         }
 
-        const dbUsers = await getUsers({
-            email: user.email,
-            tenantId: workspace.id,
-            allowUnscoped: Boolean((user as any)?.isSuperAdmin) || bypassTenantIsolationE2e,
-        });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
+        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
-            return NextResponse.json(
-                { error: 'User not found in database' },
-                { status: 404 }
-            );
+            return apiError('User not found in database', { status: 404 });
         }
 
         // Get event to check if user is organizer
@@ -103,31 +103,22 @@ async function PATCHHandler(
         const eventError = (eventRes as any).error;
 
         if (eventError || !event) {
-            return NextResponse.json(
-                { error: 'אירוע לא נמצא' },
-                { status: 404 }
-            );
+            return apiError('אירוע לא נמצא', { status: 404 });
         }
 
         // Check permissions: only organizer or admin can update attendance
         const isOrganizer = event.organizer_id === dbUser.id;
-        const isAdmin = dbUser.isSuperAdmin || dbUser.role === 'מנכ״ל' || dbUser.role === 'מנכ"ל' || dbUser.role === 'אדמין';
+        const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
 
         if (!isOrganizer && !isAdmin) {
-            return NextResponse.json(
-                { error: 'רק מארגן האירוע יכול לעדכן נוכחות' },
-                { status: 403 }
-            );
+            return apiError('רק מארגן האירוע יכול לעדכן נוכחות', { status: 403 });
         }
 
         const body = await request.json();
         const { status, notes } = body;
 
         if (!status || !['attended', 'absent'].includes(status)) {
-            return NextResponse.json(
-                { error: 'סטטוס לא תקין. צריך להיות attended או absent' },
-                { status: 400 }
-            );
+            return apiError('סטטוס לא תקין. צריך להיות attended או absent', { status: 400 });
         }
 
         // Update attendance record
@@ -145,6 +136,7 @@ async function PATCHHandler(
             .update(updateData)
             .eq('event_id', eventId)
             .eq('user_id', userId)
+            .eq('organization_id', workspace.id)
             .select()
             .single();
 
@@ -154,6 +146,7 @@ async function PATCHHandler(
                 const { data: newAttendance, error: createError } = await supabaseClient
                     .from('nexus_event_attendance')
                     .insert({
+                        organization_id: workspace.id,
                         event_id: eventId,
                         user_id: userId,
                         status,
@@ -165,36 +158,27 @@ async function PATCHHandler(
 
                 if (createError) {
                     console.error('[API] Error creating attendance:', createError);
-                    return NextResponse.json(
-                        { error: 'שגיאה בעדכון נוכחות' },
-                        { status: 500 }
-                    );
+                    return apiError('שגיאה בעדכון נוכחות', { status: 500 });
                 }
 
-                return NextResponse.json(
-                    { attendance: newAttendance, message: 'נוכחות עודכנה בהצלחה' },
-                    { status: 200 }
-                );
+                return apiSuccess({ attendance: newAttendance, message: 'נוכחות עודכנה בהצלחה' }, { status: 200 });
             }
 
             console.error('[API] Error updating attendance:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בעדכון נוכחות' },
-                { status: 500 }
-            );
+            return apiError('שגיאה בעדכון נוכחות', { status: 500 });
         }
 
-        return NextResponse.json(
-            { attendance, message: 'נוכחות עודכנה בהצלחה' },
-            { status: 200 }
-        );
+        return apiSuccess({ attendance, message: 'נוכחות עודכנה בהצלחה' }, { status: 200 });
 
     } catch (error: any) {
         console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH:', error);
-        return NextResponse.json(
-            { error: error.message || 'שגיאה בעדכון נוכחות' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
-        );
+        if (error instanceof APIError) {
+            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+        }
+        return apiError(error, {
+            status: error.message?.includes('Unauthorized') ? 401 : 500,
+            message: error.message || 'שגיאה בעדכון נוכחות',
+        });
     }
 }
 

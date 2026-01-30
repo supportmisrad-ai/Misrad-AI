@@ -4,8 +4,18 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UserPlus, Mail, User, Shield } from 'lucide-react';
 import { Tenant } from '../../types';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { createNexusUser, sendNexusUserInvitation } from '@/app/actions/nexus';
 import { Button } from '@/components/ui/button';
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object') {
+        const msg = (error as Record<string, unknown>)['message'];
+        if (typeof msg === 'string') return msg;
+    }
+    return '';
+}
 
 interface AddUserToTenantModalProps {
     tenant: Tenant;
@@ -29,36 +39,54 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
         setIsSubmitting(true);
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch('/api/users', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    tenantId: tenant.id, // Associate user with the selected tenant
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה ביצירת המשתמש');
+            const orgId = String(tenant.subdomain || '').trim();
+            if (!orgId) {
+                throw new Error('לא ניתן לזהות סביבת עבודה (org)');
             }
 
-            const data = await response.json();
+            const createdUser = await createNexusUser({
+                orgId,
+                input: {
+                    name: formData.name,
+                    email: formData.email,
+                    role: formData.role,
+                    phone: formData.phone,
+                    avatar: '',
+                    department: undefined,
+                    online: false,
+                    capacity: 0,
+                    location: undefined,
+                    bio: undefined,
+                    paymentType: undefined,
+                    hourlyRate: undefined,
+                    monthlySalary: undefined,
+                    commissionPct: undefined,
+                    bonusPerTask: undefined,
+                    accumulatedBonus: 0,
+                    streakDays: 0,
+                    weeklyScore: undefined,
+                    pendingReward: undefined,
+                    targets: undefined,
+                    notificationPreferences: undefined,
+                    uiPreferences: undefined,
+                    twoFactorEnabled: false,
+                    isSuperAdmin: false,
+                    managerId: undefined,
+                    managedDepartment: undefined,
+                    tenantId: tenant.id,
+                    billingInfo: undefined,
+                },
+            });
             
             // Add user email to tenant's allowedEmails list (if not already present)
             try {
                 const currentAllowedEmails = tenant.allowedEmails || [];
                 if (!currentAllowedEmails.includes(formData.email)) {
-                    const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                    const tenantResponse = await fetch(`/api/tenants/${tenant.id}`, {
+                    const tenantResponse = await fetch(`/api/admin/tenants/${tenant.id}`, {
                         method: 'PATCH',
                         headers: {
                             'Content-Type': 'application/json',
-                            ...(orgId ? { 'x-org-id': orgId } : {}),
+                            'x-org-id': orgId,
                         },
                         body: JSON.stringify({
                             allowedEmails: [...currentAllowedEmails, formData.email],
@@ -75,23 +103,14 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
             
             // Send invitation email to the user
             try {
-                const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-                const inviteResponse = await fetch('/api/employees/invite', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(orgId ? { 'x-org-id': orgId } : {}),
-                    },
-                    body: JSON.stringify({
-                        email: formData.email,
-                        name: formData.name,
-                        role: formData.role,
-                    }),
+                await sendNexusUserInvitation({
+                    orgId,
+                    email: formData.email,
+                    userId: createdUser.id,
+                    userName: formData.name,
+                    role: formData.role,
+                    department: null,
                 });
-
-                if (!inviteResponse.ok) {
-                    console.warn('Failed to send invitation email, but user was created');
-                }
             } catch (inviteError) {
                 console.warn('Error sending invitation:', inviteError);
             }
@@ -100,8 +119,8 @@ export const AddUserToTenantModal: React.FC<AddUserToTenantModalProps> = ({ tena
                 onSuccess();
             }
             onClose();
-        } catch (err: any) {
-            setError(err.message || 'שגיאה ביצירת המשתמש');
+        } catch (err: unknown) {
+            setError(getErrorMessage(err) || 'שגיאה ביצירת המשתמש');
         } finally {
             setIsSubmitting(false);
         }

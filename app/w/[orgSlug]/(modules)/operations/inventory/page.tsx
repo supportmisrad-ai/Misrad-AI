@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic';
 
-import { getOperationsInventoryData } from '@/app/actions/operations';
+import { createOperationsItem, getOperationsInventoryData } from '@/app/actions/operations';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
+import { redirect } from 'next/navigation';
 
 function isLowStock(onHand: number, minLevel: number): boolean {
   if (minLevel <= 0) return false;
@@ -20,6 +21,30 @@ export default async function OperationsInventoryPage({
   const qRaw = sp.q;
   const q = qRaw ? String(Array.isArray(qRaw) ? qRaw[0] : qRaw).trim() : '';
 
+  const flashRaw = sp.flash;
+  const flash = flashRaw ? String(Array.isArray(flashRaw) ? flashRaw[0] : flashRaw) : null;
+
+  const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
+
+  async function createItemAction(formData: FormData) {
+    'use server';
+    const name = String(formData.get('name') || '').trim();
+    const sku = String(formData.get('sku') || '').trim();
+    const unit = String(formData.get('unit') || '').trim();
+
+    const res = await createOperationsItem({
+      orgSlug,
+      name,
+      sku: sku ? sku : null,
+      unit: unit ? unit : null,
+    });
+
+    if (!res.success) {
+      redirect(`${base}/inventory?flash=${encodeURIComponent(res.error || 'שגיאה ביצירת פריט')}`);
+    }
+    redirect(`${base}/inventory?flash=${encodeURIComponent('נוצר פריט חדש')}`);
+  }
+
   const res = await getOperationsInventoryData({ orgSlug });
   const items = res.success ? res.data?.items ?? [] : [];
   const qLower = q.toLowerCase();
@@ -33,6 +58,53 @@ export default async function OperationsInventoryPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl">
+      {flash ? (
+        <div className="mb-4 rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 text-sm font-black text-slate-900">
+          {flash}
+        </div>
+      ) : null}
+
+      <section className="mb-6 bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100">
+          <div className="text-sm font-black text-slate-900">הוספת פריט חדש</div>
+          <div className="text-xs text-slate-500 mt-1">לאחר יצירה הפריט יופיע ברשימת המלאי ובבחירות של קליטת מלאי.</div>
+        </div>
+        <div className="p-5">
+          <form action={createItemAction} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2">
+              <input
+                name="name"
+                required
+                placeholder={'שם פריט'}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+            <div>
+              <input
+                name="sku"
+                placeholder={'מק"ט (אופציונלי)'}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+            <div>
+              <input
+                name="unit"
+                placeholder={'יחידה (אופציונלי)'}
+                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+              />
+            </div>
+            <div className="md:col-span-4">
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+              >
+                צור פריט
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section className="bg-white/80 backdrop-blur rounded-[1.5rem] border border-slate-200 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100">
             <div className="flex items-center justify-between">

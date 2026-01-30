@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
+import { queryRawOrgScoped } from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -33,15 +34,15 @@ async function GETHandler(
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const { orgSlug } = await params;
     if (!orgSlug) {
-      return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
+      return apiError('orgSlug is required', { status: 400 });
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
     const url = new URL(req.url);
     const moduleId = String(url.searchParams.get('module') || '').trim().toLowerCase();
 
@@ -101,8 +102,7 @@ async function GETHandler(
         inMemory: embeddedKeySet.has(`system:system_leads:${l.id}`),
       }));
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         moduleId: 'system',
         organizationId: workspace.id,
         hottestLead: hottest
@@ -210,8 +210,7 @@ async function GETHandler(
         .eq('module_id', 'client')
         .like('doc_key', 'client:meeting:%');
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         moduleId: 'client',
         organizationId: workspace.id,
         lastCommitment,
@@ -240,59 +239,89 @@ async function GETHandler(
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-      const openLeads = await prisma.systemLead.findMany({
-        where: { organizationId: workspace.id },
-        select: { value: true, status: true, score: true },
-        take: 5000,
+      const toNumberSafe = (v: any): number => {
+        if (v == null) return 0;
+        if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+        if (typeof v === 'bigint') return Number(v);
+        if (typeof v === 'string') {
+          const n = Number(v);
+          return Number.isFinite(n) ? n : 0;
+        }
+        if (typeof (v as any)?.toNumber === 'function') {
+          const n = (v as any).toNumber();
+          return Number.isFinite(n) ? n : 0;
+        }
+        const n = Number(v);
+        return Number.isFinite(n) ? n : 0;
+      };
+
+      const [weightedPipelineRow] = await queryRawOrgScoped<Array<{ weighted_pipeline: any }>>(prisma, {
+        organizationId: workspace.id,
+        reason: 'me_insights_finance_weighted_pipeline',
+        query: `
+          SELECT COALESCE(
+            SUM(
+              COALESCE(value, 0) * GREATEST(0, LEAST(1, (COALESCE(score, 0)::float / 100.0)))
+            ),
+            0
+          ) AS weighted_pipeline
+          FROM system_leads
+          WHERE organization_id = $1::uuid
+            AND LOWER(COALESCE(status, '')) NOT IN ('won', 'lost')
+        `,
+        values: [workspace.id],
       });
 
-      const weightedPipeline = openLeads
-        .filter((l) => {
-          const s = String((l as any).status || '').toLowerCase();
-          return s !== 'won' && s !== 'lost';
-        })
-        .reduce((sum, l: any) => {
-          const score = Number(l.score || 0);
-          const prob = Math.max(0, Math.min(1, score / 100));
-          const value = Number(l.value || 0);
-          return sum + value * prob;
-        }, 0);
+      const weightedPipeline = toNumberSafe(weightedPipelineRow?.weighted_pipeline);
 
-      const systemInvoices = await prisma.systemInvoice.findMany({
-        where: {
-          lead: { is: { organizationId: workspace.id } },
-          date: { gte: startOfMonth, lt: startOfNextMonth },
-        },
-        select: { amount: true, status: true },
-        take: 5000,
+      const [systemInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: any }>>(prisma, {
+        organizationId: workspace.id,
+        reason: 'me_insights_finance_system_invoices_open',
+        query: `
+          SELECT COALESCE(SUM(si.amount), 0) AS open_sum
+          FROM system_invoices si
+          JOIN system_leads sl ON sl.id = si.lead_id
+          WHERE sl.organization_id = $1::uuid
+            AND si.date >= $2::timestamptz
+            AND si.date < $3::timestamptz
+            AND (
+              LOWER(COALESCE(si.status, '')) NOT LIKE '%paid%'
+              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%settled%'
+              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%complete%'
+              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%void%'
+              AND LOWER(COALESCE(si.status, '')) NOT LIKE '%cancel%'
+            )
+        `,
+        values: [workspace.id, startOfMonth, startOfNextMonth],
       });
 
-      const systemInvoicesOpen = systemInvoices
-        .filter((inv: any) => {
-          const s = String(inv.status || '').toLowerCase();
-          if (!s) return true;
-          if (s.includes('paid') || s.includes('settled') || s.includes('complete')) return false;
-          if (s.includes('void') || s.includes('cancel')) return false;
-          return true;
-        })
-        .reduce((sum, inv: any) => sum + Number(inv.amount || 0), 0);
+      const systemInvoicesOpen = toNumberSafe(systemInvoicesOpenRow?.open_sum);
 
-      const misradInvoices = await prisma.misradInvoice.findMany({
-        where: { organization_id: workspace.id },
-        select: { amount: true, dueDate: true, status: true, created_at: true },
-        take: 500,
-        orderBy: { created_at: 'desc' },
+      const [misradInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: any }>>(prisma, {
+        organizationId: workspace.id,
+        reason: 'me_insights_finance_misrad_invoices_open',
+        query: `
+          SELECT COALESCE(SUM(mi.amount), 0) AS open_sum
+          FROM misrad_invoices mi
+          WHERE mi.organization_id = $1::uuid
+            AND mi.status <> 'PAID'
+            AND (
+              CASE
+                WHEN mi.due_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN mi.due_date::date
+                ELSE NULL
+              END
+            ) >= $2::date
+            AND (
+              CASE
+                WHEN mi.due_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN mi.due_date::date
+                ELSE NULL
+              END
+            ) < $3::date
+        `,
+        values: [workspace.id, startOfMonth, startOfNextMonth],
       });
 
-      const misradInvoicesOpenThisMonth = (misradInvoices || [])
-        .filter((inv: any) => {
-          const status = String(inv.status || '').toUpperCase();
-          if (status === 'PAID') return false;
-          const due = new Date(String(inv.dueDate || ''));
-          if (!Number.isFinite(due.getTime())) return false;
-          return due >= startOfMonth && due < startOfNextMonth;
-        })
-        .reduce((sum, inv: any) => sum + Number(inv.amount || 0), 0);
+      const misradInvoicesOpenThisMonth = toNumberSafe(misradInvoicesOpenRow?.open_sum);
 
       let recurringMonthly = 0;
       const billing = await supabase.from('nexus_billing_items').select('cadence,amount').eq('organization_id', workspace.id).limit(500);
@@ -308,8 +337,7 @@ async function GETHandler(
 
       const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;
 
-      return NextResponse.json({
-        success: true,
+      return apiSuccess({
         moduleId: 'finance',
         organizationId: workspace.id,
         expectedMonthlyRevenue,
@@ -322,11 +350,14 @@ async function GETHandler(
       });
     }
 
-    return NextResponse.json({ success: true, moduleId: moduleId || null, organizationId: workspace.id });
+    return apiSuccess({ moduleId: moduleId || null, organizationId: workspace.id });
   } catch (e: any) {
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 

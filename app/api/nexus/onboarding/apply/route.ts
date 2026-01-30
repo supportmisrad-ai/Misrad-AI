@@ -3,15 +3,9 @@ import { auth } from '@clerk/nextjs/server';
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-import { getUsers } from '@/lib/db';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-function getOrgSlugFromRequest(request: NextRequest): string | null {
-  const headerOrgId = request.headers.get('x-org-id');
-  const queryOrgId = request.nextUrl.searchParams.get('orgId');
-  return headerOrgId || queryOrgId;
-}
 
 function isUUID(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
@@ -42,12 +36,9 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orgSlug = getOrgSlugFromRequest(request);
-    if (!orgSlug) {
-      return NextResponse.json({ error: 'Missing orgId' }, { status: 400 });
-    }
+    const { workspace } = await getWorkspaceOrThrow(request);
 
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const supabase = createClient();
 
     const body = await request.json();
     const templateKey = String(body?.templateKey || '').trim();
@@ -60,17 +51,28 @@ async function POSTHandler(request: NextRequest) {
 
     let dbUserId: string | null = null;
     if (user?.email) {
-      const dbUsers = await getUsers({ email: user.email, tenantId: workspace.id });
-      if (dbUsers.length > 0 && isUUID(String(dbUsers[0].id))) {
-        dbUserId = String(dbUsers[0].id);
+      const email = String(user.email).trim().toLowerCase();
+      const byOrg = await supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', workspace.id)
+        .limit(1)
+        .maybeSingle();
+
+      let idCandidate = byOrg.data?.id ? String(byOrg.data.id) : null;
+      if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+      }
+
+      if (idCandidate && isUUID(idCandidate)) {
+        dbUserId = idCandidate;
       }
     }
 
     if (!dbUserId) {
       return NextResponse.json({ error: 'User not found in database. Please sync your account first.' }, { status: 400 });
     }
-
-    const supabase = createClient();
 
     const now = new Date().toISOString();
     const rows = templateTasks(templateKey).map((t) => ({
@@ -110,6 +112,9 @@ async function POSTHandler(request: NextRequest) {
 
     return NextResponse.json({ ok: true, createdTaskIds: (data || []).map((r: any) => r.id) });
   } catch (error: any) {
+    if (error instanceof APIError) {
+      return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+    }
     return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
   }
 }

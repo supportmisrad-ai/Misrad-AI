@@ -1,11 +1,15 @@
 import React from 'react';
+import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getSystemBootstrap } from '@/lib/services/system-service';
 import SystemShellGateClient from './SystemShellGateClient';
 import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('system');
 
 
 export default async function SystemModuleLayout({

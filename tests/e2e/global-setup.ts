@@ -5,26 +5,142 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function getJwtExp(jwt: string): number | null {
+  try {
+    const parts = String(jwt || '').split('.');
+    if (parts.length < 2) return null;
+    const payloadRaw = parts[1]
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    const payloadJson = Buffer.from(payloadRaw, 'base64').toString('utf-8');
+    const payload = JSON.parse(payloadJson || '{}') as Record<string, unknown>;
+    const exp = payload?.exp;
+    const expNum = typeof exp === 'number' ? exp : Number(exp);
+    return Number.isFinite(expNum) ? expNum : null;
+  } catch {
+    return null;
+  }
+}
+
 async function globalSetup(config: FullConfig) {
+  const isAuthSetupRun =
+    String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === '1' ||
+    String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === 'true';
+  if (isAuthSetupRun) {
+    return;
+  }
+
   const baseURL = process.env.E2E_BASE_URL || 'http://localhost:4000';
   const appHost = new URL(baseURL).hostname;
+  const e2eKey = process.env.E2E_API_KEY;
   const email = process.env.E2E_EMAIL;
   const password = process.env.E2E_PASSWORD;
   const orgSlug = process.env.E2E_ORG_SLUG;
   const skipLogin = String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === '1' || String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === 'true';
+  let refreshStorageState =
+    String(process.env.E2E_REFRESH_STORAGE_STATE || '').toLowerCase() === '1' ||
+    String(process.env.E2E_REFRESH_STORAGE_STATE || '').toLowerCase() === 'true';
   const manualLogin =
     String(process.env.E2E_MANUAL_LOGIN || '').toLowerCase() === '1' ||
     String(process.env.E2E_MANUAL_LOGIN || '').toLowerCase() === 'true';
-
-  if (!skipLogin && !manualLogin && (!email || !password)) {
-    throw new Error('Missing E2E_EMAIL or E2E_PASSWORD env vars');
-  }
 
   const firstProject = config.projects[0];
   const storageStatePath =
     typeof firstProject?.use?.storageState === 'string'
       ? firstProject.use.storageState
-      : 'test-results/storageState.json';
+      : 'tests/e2e/.auth/storageState.json';
+
+  const storageStateExists = fs.existsSync(storageStatePath);
+  if (!refreshStorageState && storageStateExists) {
+    try {
+      const raw = fs.readFileSync(storageStatePath, 'utf-8');
+      const parsed: unknown = JSON.parse(raw || '{}');
+      const cookiesValue = isRecord(parsed) ? parsed.cookies : undefined;
+      const cookies = Array.isArray(cookiesValue) ? cookiesValue : [];
+      const hasClerkAuthCookie = cookies.some((c: unknown) => {
+        if (!isRecord(c)) return false;
+        const domain = String(c.domain || '').replace(/^\./, '');
+        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+        if (!isAppCookie) return false;
+        const value = String(c.value || '');
+        if (!value) return false;
+        const name = String(c.name || '');
+        return name === '__session' || name === '__clerk_db_jwt' || name.startsWith('__clerk_db_jwt_');
+      });
+
+      const nowSec = Math.floor(Date.now() / 1000);
+      const hasRefreshCookie = cookies.some((c: unknown) => {
+        if (!isRecord(c)) return false;
+        const domain = String(c.domain || '').replace(/^\./, '');
+        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+        if (!isAppCookie) return false;
+        const name = String(c.name || '');
+        const value = String(c.value || '');
+        return name.startsWith('__refresh_') && Boolean(value);
+      });
+
+      const sessionCookie = cookies.find((c: unknown) => {
+        if (!isRecord(c)) return false;
+        const domain = String(c.domain || '').replace(/^\./, '');
+        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+        if (!isAppCookie) return false;
+        return String(c.name || '') === '__session' && Boolean(String(c.value || ''));
+      }) as Record<string, unknown> | undefined;
+
+      const sessionJwt = sessionCookie ? String(sessionCookie.value || '') : '';
+      const exp = sessionJwt ? getJwtExp(sessionJwt) : null;
+      const hasValidSession = Boolean((exp && exp > nowSec + 60) || hasRefreshCookie);
+
+      if (hasClerkAuthCookie && hasValidSession) {
+        const key = String(e2eKey || '').trim();
+        if (!key) {
+          return;
+        }
+
+        const cookieHeader = cookies
+          .filter((c: unknown) => {
+            if (!isRecord(c)) return false;
+            const domain = String(c.domain || '').replace(/^\./, '');
+            const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+            if (!isAppCookie) return false;
+            return Boolean(String(c.name || '')) && Boolean(String(c.value || ''));
+          })
+          .map((c: unknown) => {
+            const rc = c as Record<string, unknown>;
+            return `${String(rc.name)}=${String(rc.value)}`;
+          })
+          .join('; ');
+
+        try {
+          const res = await fetch(`${baseURL}/api/e2e/whoami`, {
+            headers: {
+              'x-e2e-key': key,
+              ...(cookieHeader ? { cookie: cookieHeader } : {}),
+            },
+          });
+          if (res.status === 200) {
+            return;
+          }
+        } catch {
+          // fall through
+        }
+
+        refreshStorageState = true;
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  if (!refreshStorageState) {
+    // If storageState is missing/expired, prefer self-healing login rather than failing before tests run.
+    // This avoids Playwright reporting "1 error was not a part of any test".
+    refreshStorageState = true;
+  }
+
+  if (!manualLogin && (!email || !password)) {
+    throw new Error('Missing E2E_EMAIL or E2E_PASSWORD env vars');
+  }
 
   const headedLogin =
     String(process.env.E2E_LOGIN_HEADED || '').toLowerCase() === '1' ||
@@ -165,14 +281,14 @@ async function globalSetup(config: FullConfig) {
 
         const after = page.url();
         const afterPath = new URL(after).pathname;
-        if (after.includes('/login') || after.includes('/sign-in') || afterPath === '/') {
+        if (after.includes('/login') || after.includes('/sign-in') || afterPath === '/' || afterPath.startsWith('/workspaces')) {
           const cookies = await page.context().cookies().catch(() => []);
           const appCookies = cookies
             .filter((c) => String(c.domain || '').replace(/^\./, '') === appHost)
             .map((c) => `${c.name}@${c.domain}`)
             .join(', ');
           throw new Error(
-            `Authenticated, but could not access '${afterLoginPath}'. Got '${after}'. This usually means forbidden workspace access for org '${String(orgSlug || '')}' or that the server still does not recognize the session. App cookies: ${appCookies || '(none)'}`
+            `Authenticated, but could not access '${afterLoginPath}'. Got '${after}'. This usually means the E2E user has no access to org '${String(orgSlug || '')}' (redirect to /workspaces), or that the server still does not recognize the session. App cookies: ${appCookies || '(none)'}`
           );
         }
       }
@@ -180,8 +296,12 @@ async function globalSetup(config: FullConfig) {
       const emailValue = String(email || '').trim();
       const passwordValue = String(password || '').trim();
 
+      const afterLoginPath =
+        process.env.E2E_AFTER_LOGIN_PATH || (orgSlug ? `/w/${encodeURIComponent(String(orgSlug))}/system` : '/');
+      const signInTarget = `${baseURL}/sign-in?redirect_url=${encodeURIComponent(afterLoginPath)}`;
+
       const attemptLogin = async () => {
-        await page.goto(`${baseURL}/login`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
+        await page.goto(signInTarget, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 
         const googleBtn = page.getByRole('button', { name: 'המשך עם Google' });
         await googleBtn.waitFor({ state: 'visible', timeout: 120_000 });

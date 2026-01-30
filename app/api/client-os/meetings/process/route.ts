@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
 import { createClinicSession } from '@/app/actions/client-clinic';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -90,29 +90,29 @@ async function POSTHandler(req: Request) {
     const mimeType = String(body.mimeType || '');
     const fileName = String(body.fileName || 'recording');
 
-    if (!orgIdInput) return NextResponse.json({ error: 'orgId is required' }, { status: 400 });
-    if (!clientId) return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
-    if (!storagePath) return NextResponse.json({ error: 'path is required' }, { status: 400 });
+    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!clientId) return apiError('clientId is required', { status: 400 });
+    if (!storagePath) return apiError('path is required', { status: 400 });
 
     let orgId: string;
     try {
-      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
-      return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+      return apiError(e, { status, message: e?.message || 'Forbidden' });
     }
 
     const expectedPrefix = `${orgId}/`;
     if (!storagePath.startsWith(expectedPrefix) || !storagePath.includes(`/${clientId}/`)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', { status: 403 });
     }
 
     const supabase = createClient();
 
     const { data: downloadData, error: downloadError } = await supabase.storage.from(bucket).download(storagePath);
     if (downloadError || !downloadData) {
-      return NextResponse.json({ error: downloadError?.message || 'Failed to download from storage' }, { status: 500 });
+      return apiError(downloadError?.message || 'Failed to download from storage', { status: 500 });
     }
 
     const arrayBuffer = await downloadData.arrayBuffer();
@@ -121,15 +121,13 @@ async function POSTHandler(req: Request) {
     const isAudio = mimeType.startsWith('audio/');
     const isVideo = mimeType.startsWith('video/');
     if (!isAudio && !isVideo) {
-      return NextResponse.json({ error: 'Only audio/video files are supported' }, { status: 400 });
+      return apiError('Only audio/video files are supported', { status: 400 });
     }
 
     if (isVideo) {
       const ffmpegOk = await isFfmpegAvailable();
       if (!ffmpegOk) {
-        return NextResponse.json({
-          error: 'Video processing unavailable on server',
-        }, { status: 503 });
+        return apiError('Video processing unavailable on server', { status: 503 });
       }
     }
 
@@ -190,9 +188,9 @@ async function POSTHandler(req: Request) {
       // ignore
     }
 
-    return NextResponse.json({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
+    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Processing failed' }, { status: 500 });
+    return apiError(e, { status: 500, message: 'Processing failed' });
   } finally {
     try {
       await fs.rm(tmpDir, { recursive: true, force: true });

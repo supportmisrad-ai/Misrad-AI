@@ -18,113 +18,143 @@ end
 $$;
 
 -- 2) Helper: get current org id from JWT app_metadata
-create or replace function public.current_organization_id()
-returns uuid
-language sql
-stable
-set search_path = public
-as $$
-  select nullif((auth.jwt() -> 'app_metadata' ->> 'organization_id'), '')::uuid;
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'current_organization_id'
+      and pg_get_function_identity_arguments(p.oid) = ''
+  ) then
+    execute $sql$
+      create function public.current_organization_id()
+      returns uuid
+      language sql
+      stable
+      set search_path = public
+      as $fn$
+        select nullif((auth.jwt() -> 'app_metadata' ->> 'organization_id'), '')::uuid;
+      $fn$;
+    $sql$;
+  end if;
+end
 $$;
 
 -- 3) Helper: apply org-scoped RLS to a given table (supports organization_id / tenant_id / client_id)
-create or replace function public.apply_org_rls(p_table text)
-returns void
-language plpgsql
-set search_path = public
-as $$
-declare
-  tbl regclass;
-  policy_name text := 'org_isolation_all';
-  schema_name text;
-  table_name_only text;
-  has_org_id boolean;
-  has_tenant_id boolean;
-  has_client_id boolean;
-  clients_has_org_id boolean;
-  sql text;
+do $$
 begin
-  tbl := to_regclass(p_table);
-  if tbl is null then
-    return;
+  if not exists (
+    select 1
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public'
+      and p.proname = 'apply_org_rls'
+      and pg_get_function_identity_arguments(p.oid) = 'p_table text'
+  ) then
+    execute $sql$
+      create function public.apply_org_rls(p_table text)
+      returns void
+      language plpgsql
+      set search_path = public
+      as $fn$
+      declare
+        tbl regclass;
+        policy_name text := 'org_isolation_all';
+        schema_name text;
+        table_name_only text;
+        has_org_id boolean;
+        has_tenant_id boolean;
+        has_client_id boolean;
+        clients_has_org_id boolean;
+        sql text;
+      begin
+        tbl := to_regclass(p_table);
+        if tbl is null then
+          return;
+        end if;
+
+        schema_name := split_part(p_table, '.', 1);
+        table_name_only := split_part(p_table, '.', 2);
+
+        select exists(
+          select 1
+          from information_schema.columns
+          where table_schema = schema_name
+            and table_name = table_name_only
+            and column_name = 'organization_id'
+        ) into has_org_id;
+
+        select exists(
+          select 1
+          from information_schema.columns
+          where table_schema = schema_name
+            and table_name = table_name_only
+            and column_name = 'tenant_id'
+        ) into has_tenant_id;
+
+        select exists(
+          select 1
+          from information_schema.columns
+          where table_schema = schema_name
+            and table_name = table_name_only
+            and column_name = 'client_id'
+        ) into has_client_id;
+
+        select exists(
+          select 1
+          from information_schema.columns
+          where table_schema = 'public'
+            and table_name = 'clients'
+            and column_name = 'organization_id'
+        ) into clients_has_org_id;
+
+        -- Always enable + force RLS first.
+        execute format('alter table %s enable row level security', p_table);
+        execute format('alter table %s force row level security', p_table);
+
+        -- Recreate policy
+        execute format('drop policy if exists %I on %s', policy_name, p_table);
+
+        if has_org_id then
+          sql := format(
+            'create policy %I on %s for all to authenticated using (organization_id = public.current_organization_id()) with check (organization_id = public.current_organization_id())',
+            policy_name,
+            p_table
+          );
+          execute sql;
+
+        elsif has_tenant_id then
+          sql := format(
+            'create policy %I on %s for all to authenticated using (tenant_id = public.current_organization_id()) with check (tenant_id = public.current_organization_id())',
+            policy_name,
+            p_table
+          );
+          execute sql;
+
+        elsif has_client_id and clients_has_org_id then
+          -- Scope via clients.organization_id
+          sql := format(
+            'create policy %I on %s for all to authenticated using (exists (select 1 from public.clients c where c.id = client_id and c.organization_id = public.current_organization_id())) with check (exists (select 1 from public.clients c where c.id = client_id and c.organization_id = public.current_organization_id()))',
+            policy_name,
+            p_table
+          );
+          execute sql;
+
+        else
+          -- No tenant scoping column found. Deny all access explicitly.
+          execute format(
+            'create policy %I on %s for all to authenticated using (false) with check (false)',
+            policy_name,
+            p_table
+          );
+        end if;
+      end;
+      $fn$;
+    $sql$;
   end if;
-
-  schema_name := split_part(p_table, '.', 1);
-  table_name_only := split_part(p_table, '.', 2);
-
-  select exists(
-    select 1
-    from information_schema.columns
-    where table_schema = schema_name
-      and table_name = table_name_only
-      and column_name = 'organization_id'
-  ) into has_org_id;
-
-  select exists(
-    select 1
-    from information_schema.columns
-    where table_schema = schema_name
-      and table_name = table_name_only
-      and column_name = 'tenant_id'
-  ) into has_tenant_id;
-
-  select exists(
-    select 1
-    from information_schema.columns
-    where table_schema = schema_name
-      and table_name = table_name_only
-      and column_name = 'client_id'
-  ) into has_client_id;
-
-  select exists(
-    select 1
-    from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'clients'
-      and column_name = 'organization_id'
-  ) into clients_has_org_id;
-
-  -- Always enable + force RLS first.
-  execute format('alter table %s enable row level security', p_table);
-  execute format('alter table %s force row level security', p_table);
-
-  -- Recreate policy
-  execute format('drop policy if exists %I on %s', policy_name, p_table);
-
-  if has_org_id then
-    sql := format(
-      'create policy %I on %s for all using (organization_id = public.current_organization_id()) with check (organization_id = public.current_organization_id())',
-      policy_name,
-      p_table
-    );
-    execute sql;
-
-  elsif has_tenant_id then
-    sql := format(
-      'create policy %I on %s for all using (tenant_id = public.current_organization_id()) with check (tenant_id = public.current_organization_id())',
-      policy_name,
-      p_table
-    );
-    execute sql;
-
-  elsif has_client_id and clients_has_org_id then
-    -- Scope via clients.organization_id
-    sql := format(
-      'create policy %I on %s for all using (exists (select 1 from public.clients c where c.id = client_id and c.organization_id = public.current_organization_id())) with check (exists (select 1 from public.clients c where c.id = client_id and c.organization_id = public.current_organization_id()))',
-      policy_name,
-      p_table
-    );
-    execute sql;
-
-  else
-    -- No tenant scoping column found. Deny all access explicitly.
-    execute format(
-      'create policy %I on %s for all using (false) with check (false)',
-      policy_name,
-      p_table
-    );
-  end if;
-end;
+end
 $$;
 
 -- 4) Apply to tables flagged by Supabase linter + critical tables
@@ -156,8 +186,14 @@ begin
   execute 'alter table public.ai_provider_keys enable row level security';
   execute 'alter table public.ai_provider_keys force row level security';
 
+  -- Ensure no other policies are left on this sensitive table.
+  execute 'drop policy if exists org_isolation_all on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_select_all on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_write_requires_org on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_write_all on public.ai_provider_keys';
+
   execute 'drop policy if exists deny_all on public.ai_provider_keys';
-  execute 'create policy deny_all on public.ai_provider_keys for all using (false) with check (false)';
+  execute 'create policy deny_all on public.ai_provider_keys for all to authenticated using (false) with check (false)';
 
   execute 'revoke all on table public.ai_provider_keys from anon, authenticated';
   execute 'revoke all on table public.ai_provider_keys from public';

@@ -1,6 +1,6 @@
-import { getSystemLeads } from '@/app/actions/system-leads';
+import { getSystemLeadsPage } from '@/app/actions/system-leads';
 import { getCampaigns } from '@/app/actions/campaigns';
-import { getSystemTasks } from '@/app/actions/system-reports';
+import { listNexusTasksByOrgSlug } from '@/app/actions/nexus';
 import SystemReportsClient from './SystemReportsClient';
 
 export const dynamic = 'force-dynamic';
@@ -12,11 +12,13 @@ export default async function SystemReportsPage({
 }) {
   const { orgSlug } = await params;
 
-  const [initialLeads, campaignsRes, initialTasks] = await Promise.all([
-    getSystemLeads(orgSlug),
+  const [leadsRes, campaignsRes, initialTasks] = await Promise.all([
+    getSystemLeadsPage({ orgSlug, pageSize: 200 }),
     getCampaigns(undefined, orgSlug),
-    getSystemTasks({ orgSlug, take: 200 }),
+    listNexusTasksByOrgSlug({ orgSlug, pageSize: 200 }).then((r) => r.tasks),
   ]);
+
+  const initialLeads = leadsRes.success ? leadsRes.data.leads : [];
 
   const initialCampaigns = campaignsRes.success && Array.isArray(campaignsRes.data) ? campaignsRes.data : [];
 

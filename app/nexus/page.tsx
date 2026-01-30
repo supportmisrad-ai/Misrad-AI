@@ -24,7 +24,7 @@ export default function NexusMarketingPage() {
               </span>
             </h1>
             <p className="mt-6 text-lg text-slate-600 max-w-2xl leading-relaxed">
-              דף זה הוא placeholder זמני. כאן נציג את היכולות של Nexus: צוות, משימות, הרשאות, ותמונה רחבה לכל העסק.
+              Nexus הוא מרכז השליטה של Misrad AI: תמונת מצב אחת לצוות, משימות, הרשאות ותהליכים — כדי שתוכל לנהל את העסק מהר ובביטחון.
             </p>
 
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">

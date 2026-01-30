@@ -44,6 +44,9 @@ export const PersonalSettings: React.FC<PersonalSettingsProps> = ({ onClose }) =
                 formData.append('file', file);
                 formData.append('bucket', 'attachments');
                 formData.append('folder', 'avatars');
+                if (orgSlug) {
+                    formData.append('orgSlug', String(orgSlug));
+                }
 
                 const response = await fetch('/api/storage/upload', {
                     method: 'POST',

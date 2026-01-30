@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, CalendarDays, CheckSquare, LayoutDashboard, Menu, Users } from 'lucide-react';
+import { Bell, CalendarDays, CheckSquare, LayoutDashboard, Menu, Mic, Users } from 'lucide-react';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { CallAnalysisProvider } from '@/components/system/contexts/CallAnalysisContext';
@@ -12,12 +12,11 @@ import { SharedHeader } from '@/components/shared/SharedHeader';
 import { SharedSidebar } from '@/components/shared/SharedSidebar';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
-import AttendanceMiniStatus from '@/components/shared/AttendanceMiniStatus';
 import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 const SHELL_TABS = new Set([
@@ -96,7 +95,13 @@ function SystemShellGateClientCore({
   if (!shouldWrapWithShell) {
     return (
       <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser }}>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <AuthProvider initialCurrentUser={initialCurrentUser}>
+            <CallAnalysisProvider>
+              <BrandProvider>{children}</BrandProvider>
+            </CallAnalysisProvider>
+          </AuthProvider>
+        </ToastProvider>
       </SystemShellContext.Provider>
     );
   }
@@ -104,7 +109,7 @@ function SystemShellGateClientCore({
   const contentOverflowClass = activeTab === 'sales_pipeline' ? 'overflow-hidden' : 'overflow-y-auto';
 
   const screenTitle = NAV_ITEMS.find((n) => n.id === activeTab)?.label || 'System';
-  const moduleTitle = 'מכירות';
+  const moduleTitle = 'System';
   const currentDate = new Date().toLocaleDateString('he-IL', {
     weekday: 'long',
     day: 'numeric',
@@ -158,6 +163,15 @@ function SystemShellGateClientCore({
     window.dispatchEvent(new CustomEvent(type));
   };
 
+  const dispatchVoiceCommandEvent = () => {
+    try {
+      if (typeof window === 'undefined') return;
+      window.dispatchEvent(new CustomEvent('nexus:open-voice-command'));
+    } catch {
+      // ignore
+    }
+  };
+
   const handlePlusClick = () => {
     const tab = String(activeTab || '');
 
@@ -200,23 +214,20 @@ function SystemShellGateClientCore({
   };
 
   const notificationsSlot = (
-    <div className="flex items-center gap-2">
-      <AttendanceMiniStatus />
-      <button
-        onClick={() => router.push(`${basePath}/notifications`)}
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
-        aria-label="התראות"
-        type="button"
-      >
-        <Bell size={18} />
-      </button>
-    </div>
+    <button
+      onClick={() => router.push(`${basePath}/notifications`)}
+      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      aria-label="התראות"
+      type="button"
+    >
+      <Bell size={18} />
+    </button>
   );
 
   return (
     <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser }}>
       <ToastProvider>
-        <AuthProvider>
+        <AuthProvider initialCurrentUser={initialCurrentUser}>
           <CallAnalysisProvider>
             <BrandProvider>
               <div className="flex h-screen w-full bg-[var(--os-bg)] text-gray-900 font-sans overflow-hidden relative" dir="rtl">
@@ -226,8 +237,8 @@ function SystemShellGateClientCore({
                   brand={{
                     name: String(initialOrganization?.name || moduleTitle),
                     logoUrl: initialOrganization?.logo || null,
-                    fallbackIcon: <OSModuleIcon moduleKey="system" size={20} className="text-slate-900" />,
-                    badgeIcon: <OSModuleIcon moduleKey="system" size={12} className="text-slate-900" />,
+                    fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={40} iconSize={18} className="shadow-none" />,
+                    badgeModuleKey: 'system',
                   }}
                   brandSubtitle={moduleTitle}
                   onBrandClickAction={() => router.push('/workspaces')}
@@ -261,7 +272,8 @@ function SystemShellGateClientCore({
                     mobileBrand={{
                       name: moduleTitle,
                       logoUrl: initialOrganization?.logo || null,
-                      badgeIcon: <OSModuleIcon moduleKey="system" size={10} className="text-slate-900" />,
+                      fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={32} iconSize={16} className="shadow-none" />,
+                      badgeModuleKey: 'system',
                     }}
                     mobileLeadingSlot={
                       <button
@@ -276,7 +288,7 @@ function SystemShellGateClientCore({
                     onOpenCommandPaletteAction={undefined}
                     onOpenSupportAction={undefined}
                     actionsSlot={<ModuleHelpVideos moduleKey="system" />}
-                    switcherSlot={null}
+                    switcherSlot={<WorkspaceSwitcher />}
                     notificationsSlot={notificationsSlot}
                     user={{ name: resolvedUser.name, role: resolvedUser.role }}
                     onProfileClickAction={undefined}
@@ -307,8 +319,8 @@ function SystemShellGateClientCore({
                       brand={{
                         name: String(initialOrganization?.name || moduleTitle),
                         logoUrl: initialOrganization?.logo || null,
-                        fallbackIcon: <OSModuleIcon moduleKey="system" size={20} className="text-slate-900" />,
-                        badgeIcon: <OSModuleIcon moduleKey="system" size={12} className="text-slate-900" />,
+                        fallbackIcon: <OSModuleSquircleIcon moduleKey="system" boxSize={40} iconSize={18} className="shadow-none" />,
+                        badgeModuleKey: 'system',
                       }}
                       brandSubtitle={moduleTitle}
                       onBrandClickAction={() => {
@@ -340,7 +352,7 @@ function SystemShellGateClientCore({
                     />
                     <div className="md:hidden fixed left-4 right-4 bottom-[92px] z-[95]">
                       <div className="bg-white/95 backdrop-blur-2xl rounded-[2.25rem] border border-white/60 shadow-[0_-12px_40px_rgba(15,23,42,0.12)] p-4">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 gap-3">
                           <button
                             type="button"
                             onClick={() => {
@@ -361,6 +373,9 @@ function SystemShellGateClientCore({
                           >
                             משימה חדשה
                           </button>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-3">
                           <button
                             type="button"
                             onClick={() => {
@@ -370,6 +385,17 @@ function SystemShellGateClientCore({
                             className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black"
                           >
                             פגישה חדשה
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsPlusFanOpen(false);
+                              dispatchVoiceCommandEvent();
+                            }}
+                            className="bg-white border border-slate-200 text-slate-900 rounded-2xl py-4 text-sm font-black inline-flex items-center justify-center gap-2"
+                          >
+                            <Mic size={18} />
+                            פקודה קולית
                           </button>
                         </div>
                       </div>

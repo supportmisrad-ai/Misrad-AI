@@ -14,26 +14,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { listDriveFiles, searchDriveFiles } from '../../../../../lib/integrations/google-drive';
-import { getUsers } from '../../../../../lib/db';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createClient } from '@/lib/supabase';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string | null | undefined }): Promise<string | null> {
+    const email = String(params.email || '').trim().toLowerCase();
+    if (!email) return null;
+
+    const byOrg = await params.supabase
+        .from('nexus_users')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', params.workspaceId)
+        .limit(1)
+        .maybeSingle();
+
+    if ((byOrg as any)?.error?.code === '42703') {
+        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    }
+
+    return byOrg.data?.id ? String(byOrg.data.id) : null;
+}
 async function GETHandler(request: NextRequest) {
     try {
-        const orgIdFromHeader = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-        if (!orgIdFromHeader) {
+        const { workspace } = await getWorkspaceOrThrow(request);
+
+        const clerkUser = await getAuthenticatedUser();
+
+        let supabase: any;
+        try {
+            supabase = createClient();
+        } catch {
             return NextResponse.json({ files: [], nextPageToken: undefined });
         }
 
-        const workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-
-        const clerkUser = await getAuthenticatedUser();
+        const dbUserId = await selectDbUserId({ supabase, workspaceId: workspace.id, email: clerkUser.email });
         
-        // Convert Clerk ID to Supabase UUID
-        const dbUsers = await getUsers({ email: clerkUser.email, tenantId: workspace.id });
-        const dbUser = dbUsers.length > 0 ? dbUsers[0] : null;
-        
-        if (!dbUser) {
+        if (!dbUserId) {
             return NextResponse.json({ files: [], nextPageToken: undefined });
         }
         
@@ -44,16 +63,21 @@ async function GETHandler(request: NextRequest) {
 
         if (search) {
             // Search files
-            const files = await searchDriveFiles(dbUser.id, search);
+            const files = await searchDriveFiles(dbUserId, search, workspace.id);
             return NextResponse.json({ files: files || [] });
         } else {
             // List files
-            const result = await listDriveFiles(dbUser.id, undefined, pageSize, pageToken);
+            const result = await listDriveFiles(dbUserId, workspace.id, pageSize, pageToken);
             return NextResponse.json({ files: result.files || [], nextPageToken: result.nextPageToken });
         }
 
     } catch (error: any) {
-        // Return empty result instead of error to prevent UI blocking
+        if (error instanceof APIError) {
+            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+        }
+        if (String(error?.message || '').includes('[SchemaMismatch]')) {
+            return NextResponse.json({ error: String(error.message) }, { status: 500 });
+        }
         console.warn('[API] Error fetching drive files (non-critical):', error.message);
         return NextResponse.json({ files: [], nextPageToken: undefined });
     }

@@ -2,6 +2,25 @@
 
 import { createClient } from '@/lib/supabase';
 import { Conversation } from '@/types/social';
+import { auth } from '@clerk/nextjs/server';
+
+async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
+  const { userId } = await auth();
+  if (!userId) return null;
+
+  try {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('social_users')
+      .select('organization_id')
+      .eq('clerk_user_id', String(userId))
+      .maybeSingle();
+    const orgId = (data as any)?.organization_id;
+    return orgId ? String(orgId) : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Server Action: Get all conversations
@@ -19,12 +38,18 @@ export async function getConversations(clientId?: string): Promise<{ success: bo
       };
     }
 
+    const organizationId = await resolveOrganizationIdForCurrentUser();
+    if (!organizationId) {
+      return { success: true, data: [] };
+    }
+
     let query = supabase
       .from('social_conversations')
       .select(`
         *,
         social_messages (*)
       `)
+      .eq('organization_id', organizationId)
       .order('updated_at', { ascending: false });
 
     if (clientId) {

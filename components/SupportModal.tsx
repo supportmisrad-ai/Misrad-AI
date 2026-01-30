@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getContentByKey } from '@/app/actions/site-content';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -14,6 +14,9 @@ export const SupportModal: React.FC = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
+
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
     const setCategory = (category: any) => setSupportDraft((prev: any) => ({ ...prev, category }));
     const setSubject = (subject: string) => setSupportDraft((prev: any) => ({ ...prev, subject }));
@@ -42,13 +45,13 @@ export const SupportModal: React.FC = () => {
         setError(null);
 
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
 
             const response = await fetch('/api/support', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({
                     category: supportDraft.category,
@@ -60,17 +63,19 @@ export const SupportModal: React.FC = () => {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה ביצירת קריאת תמיכה');
+                const errPayload = unwrap(errorData);
+                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
             }
 
-            const data = await response.json();
-            setTicketId(data.ticket.ticket_number);
+            const data = await response.json().catch(() => ({}));
+            const payload = unwrap(data);
+            setTicketId(String((payload as any)?.ticket?.ticket_number || ''));
 
             // Notify admins
         addNotification({
                 recipientId: 'all',
             type: 'system',
-                text: `פניית תמיכה חדשה (${data.ticket.ticket_number}) מאת ${currentUser.name}: ${supportDraft.subject}`,
+                text: `פניית תמיכה חדשה (${String((payload as any)?.ticket?.ticket_number || '')}) מאת ${currentUser.name}: ${supportDraft.subject}`,
             actorName: 'System Support',
         });
 

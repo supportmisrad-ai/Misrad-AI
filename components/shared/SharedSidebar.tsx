@@ -3,6 +3,8 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import type { OSModuleKey } from '@/lib/os/modules/types';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 export type SharedNavItem = {
   label: string;
@@ -32,6 +34,7 @@ export function SharedSidebar({
     logoUrl?: string | null;
     fallbackIcon?: React.ReactNode;
     badgeIcon?: React.ReactNode;
+    badgeModuleKey?: OSModuleKey | null;
   };
   brandSubtitle?: string | null;
   onBrandClickAction?: () => void;
@@ -66,14 +69,20 @@ export function SharedSidebar({
                 aria-label="מעבר בין עסקים"
                 title="מעבר בין עסקים"
               >
-                <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
-                  {brand.logoUrl ? (
-                    <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
-                  ) : (
-                    brand.fallbackIcon || null
-                  )}
-                  {brand.badgeIcon ? (
-                    <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+                <div className="relative w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-400/20 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
+                  <div className="absolute inset-0 overflow-hidden rounded-xl">
+                    {brand.logoUrl ? (
+                      <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
+                    ) : (
+                      brand.fallbackIcon || null
+                    )}
+                  </div>
+                  {brand.badgeModuleKey ? (
+                    <div className="absolute -bottom-2 -left-2 z-20">
+                      <OSModuleSquircleIcon moduleKey={brand.badgeModuleKey} boxSize={26} iconSize={14} />
+                    </div>
+                  ) : brand.badgeIcon ? (
+                    <div className="absolute -bottom-2 -left-2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
                       {brand.badgeIcon}
                     </div>
                   ) : null}
@@ -100,20 +109,25 @@ export function SharedSidebar({
               {topSlot ? <div className="w-full">{topSlot}</div> : null}
             </div>
           ) : (
-            <div className="relative w-10 h-10 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] rounded-xl flex items-center justify-center shadow-md overflow-hidden border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
-              {brand.logoUrl ? (
-                <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
-              ) : (
-                brand.fallbackIcon || null
-              )}
-              {brand.badgeIcon ? (
-                <div className="absolute -bottom-1 -left-1 w-5 h-5 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+            <div className="relative w-10 h-10 bg-[color:var(--os-sidebar-logo-surface,#ffffff)] rounded-xl flex items-center justify-center shadow-md border border-[color:var(--os-sidebar-logo-border,#f3f4f6)]">
+              <div className="absolute inset-0 overflow-hidden rounded-xl">
+                {brand.logoUrl ? (
+                  <img src={brand.logoUrl} alt="Logo" className="w-full h-full object-cover" suppressHydrationWarning />
+                ) : (
+                  brand.fallbackIcon || null
+                )}
+              </div>
+              {brand.badgeModuleKey ? (
+                <div className="absolute -bottom-2 -left-2 z-20">
+                  <OSModuleSquircleIcon moduleKey={brand.badgeModuleKey} boxSize={26} iconSize={14} />
+                </div>
+              ) : brand.badgeIcon ? (
+                <div className="absolute -bottom-2 -left-2 z-20 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
                   {brand.badgeIcon}
                 </div>
               ) : null}
             </div>
           )}
-
           {showCollapseControls ? (
             isOpen ? (
               <button

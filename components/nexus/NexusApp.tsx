@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { BrainCircuit, CheckSquare, Calendar, Users, Home, Settings, FolderOpen, Trash2, PieChart, Briefcase, Search } from 'lucide-react';
+import { CheckSquare, Calendar, Users, Home, Settings, FolderOpen, Trash2, PieChart, Briefcase, Search } from 'lucide-react';
 import type { Task as SystemTask } from '@/components/system/types';
 import { CalendarEvent } from '../../types';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 // Import Nexus OS components
 import TasksView from './TasksView';
@@ -33,9 +34,7 @@ const NexusBootScreen = ({ onComplete }: { onComplete: () => void }) => {
     return (
         <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center z-50">
             <div className="relative z-10 flex flex-col items-center px-6 text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[40px] flex items-center justify-center text-white mb-8 shadow-2xl shadow-indigo-500/30 animate-bounce">
-                    <BrainCircuit size={48} strokeWidth={1.5} />
-                </div>
+                <OSModuleSquircleIcon moduleKey="nexus" boxSize={96} iconSize={48} className="mb-8 shadow-2xl shadow-indigo-500/30 animate-bounce" />
                 <div className="w-64 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-1000 ease-out" style={{ width: `${progress}%` }}></div>
                 </div>
@@ -111,9 +110,7 @@ const NexusOSApp = () => {
         <div className="flex flex-col w-full h-full">
           <div className="px-6 py-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
-                <BrainCircuit size={18} />
-              </div>
+              <OSModuleSquircleIcon moduleKey="nexus" boxSize={40} iconSize={18} className="shadow-none" />
               <div>
                 <div className="text-lg font-black text-slate-900">Nexus</div>
                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Misrad OS</div>
@@ -146,9 +143,7 @@ const NexusOSApp = () => {
         {/* Header */}
         <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white">
-              <BrainCircuit size={20} />
-            </div>
+            <OSModuleSquircleIcon moduleKey="nexus" boxSize={40} iconSize={20} className="shadow-none" />
             <div>
               <h1 className="text-xl font-bold text-slate-900">Nexus</h1>
               <p className="text-xs text-slate-500">ניהול עסק מרכזי</p>

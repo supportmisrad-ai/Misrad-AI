@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Users,
-  BrainCircuit,
   Settings,
   Sparkles,
   MessageSquareQuote,
@@ -16,6 +15,7 @@ import {
   X,
   Mail,
   Layers,
+  Cpu,
 } from 'lucide-react';
 import NotificationsPanel from '../NotificationsPanel';
 import { Notification } from '@/components/client-portal/types';
@@ -23,7 +23,7 @@ import { MOCK_NOTIFICATIONS } from '@/components/client-portal/constants';
 import { useNexus } from '@/components/client-portal/context/ClientContext';
 import { RoomSwitcher } from '@/components/shared/RoomSwitcher';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
-import { DynamicIcon } from '@/components/shared/DynamicIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -36,7 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
   const { modules } = useNexus();
-  const { title, roomName, roomNameHebrew, roomIconName, gradient } = useRoomBranding();
+  const { title, roomName, gradient } = useRoomBranding();
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -69,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     { id: 'workflows', icon: GitMerge, label: 'תהליכים', module: 'workflows' },
     { id: 'forms', icon: ClipboardList, label: 'טפסים', module: 'portals' },
     { id: 'feedback', icon: MessageSquareQuote, label: 'משובים', module: 'feedback' },
-    { id: 'intelligence', icon: BrainCircuit, label: 'פענוח', module: 'intelligence' },
+    { id: 'intelligence', icon: Cpu, label: 'פענוח', module: 'intelligence' },
     { id: 'analyzer', icon: Sparkles, label: 'ניתוח', module: 'intelligence' },
   ];
 
@@ -89,7 +89,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
     { id: 'dashboard', icon: LayoutDashboard, label: 'בית' },
     { id: 'clients', icon: Users, label: 'לקוחות' },
     { id: 'ADD_ACTION', icon: Plus, label: 'פעולה' },
-    { id: 'intelligence', icon: BrainCircuit, label: 'AI', module: 'intelligence' },
+    { id: 'intelligence', icon: Cpu, label: 'AI', module: 'intelligence' },
     { id: 'MENU', icon: Menu, label: 'תפריט' },
   ].filter((item) => !item.module || modules[item.module as keyof typeof modules]);
 
@@ -127,12 +127,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
 
         <div className="relative z-10 flex flex-col h-full">
           <div className="px-8 mb-10 flex items-center gap-4 flex-shrink-0">
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient || 'from-nexus-accent to-[#A38650]'} flex items-center justify-center text-white font-display font-bold text-xl shadow-glow-gold border border-white/10`}>
-              {roomIconName ? <DynamicIcon name={roomIconName} size={20} className="text-white" /> : 'C'}
-            </div>
+            <OSModuleSquircleIcon moduleKey="client" boxSize={40} iconSize={20} className="shadow-glow-gold border border-white/10" />
             <div className="flex flex-col">
-              <span className="font-display font-semibold text-2xl tracking-tight text-white leading-none">{roomNameHebrew || roomName || 'מעקב לקוחות ומתאמנים'}</span>
-              <span className="text-[10px] text-gray-400 font-medium tracking-widest uppercase mt-1">{roomName || 'Misrad OS - מערכת צמיחה'}</span>
+              <span className="font-display font-semibold text-2xl tracking-tight text-white leading-none">{roomName || 'Client'}</span>
+              <span className="text-[10px] text-gray-400 font-medium tracking-widest uppercase mt-1">{roomName || 'Client'}</span>
             </div>
           </div>
 
@@ -180,7 +178,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         <header className="flex-shrink-0 h-16 lg:h-20 flex items-center justify-between px-6 lg:px-10 relative z-20 bg-nexus-bg/50 backdrop-blur-sm lg:bg-transparent pt-safe">
           <div className="lg:hidden flex items-center gap-2">
             <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient || 'from-nexus-primary to-nexus-primary'} flex items-center justify-center text-white font-display font-bold shadow-md`}>
-              {roomIconName ? <DynamicIcon name={roomIconName} size={18} className="text-white" /> : 'C'}
+              <OSModuleSquircleIcon moduleKey="client" boxSize={32} iconSize={16} className="shadow-none" />
             </div>
             <span className="font-bold text-nexus-primary">{roomName || 'Client'}</span>
           </div>

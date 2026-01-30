@@ -4,7 +4,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.resolve(__dirname),
-  cleanDistDir: false,
+  cleanDistDir: true,
   productionBrowserSourceMaps: false,
   images: {
     remotePatterns: [
@@ -73,7 +73,7 @@ const nextConfig: NextConfig = {
   experimental: {
     forceSwcTransforms: true,
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com', 'www.misrad-ai.com', '*.vercel.app', '*.netlify.app', '*.railway.app']
+      allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com']
     }
   },
   // Optimize for Netlify
@@ -83,7 +83,7 @@ const nextConfig: NextConfig = {
   // your project has type errors.
   // !! WARN !!
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   // Use webpack instead of Turbopack to avoid issues with Hebrew paths
   webpack: (config, { isServer }) => {

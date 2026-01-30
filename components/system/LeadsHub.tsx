@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Lead, PipelineStage } from './types';
+import { STAGES } from './constants';
 import PipelineBoard from './PipelineBoard';
 import ContactsView from './ContactsView';
 import SystemTargetsView from './SystemTargetsView';
@@ -22,6 +23,7 @@ const LeadsHub: React.FC<LeadsHubProps> = ({ leads, onLeadClick, onStatusChange,
                 <div className="h-full p-4 md:p-8 animate-fade-in">
                     <PipelineBoard 
                         leads={leads} 
+                        stages={STAGES}
                         onLeadClick={onLeadClick} 
                         onStatusChange={onStatusChange} 
                     />

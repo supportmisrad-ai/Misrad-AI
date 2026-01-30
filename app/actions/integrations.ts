@@ -1,7 +1,8 @@
 'use server';
 
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
 import { getGoogleAuthUrl, GOOGLE_SCOPES, getAuthenticatedGoogleClient } from '@/lib/googleAuth';
 import { google } from 'googleapis';
@@ -9,38 +10,36 @@ import { translateError } from '@/lib/errorTranslations';
 import { encryptObject, decryptObject } from '@/lib/encryption';
 import crypto from 'crypto';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireOrganizationId } from '@/lib/tenant-isolation';
 
-function isMissingTableError(error: any): boolean {
-  const msg = String(error?.message || '').toLowerCase();
-  return (
-    msg.includes('could not find the table') ||
-    msg.includes('does not exist') ||
-    msg.includes('public.integration_credentials') ||
-    error?.code === '42P01' ||
-    error?.code === 'PGRST205'
-  );
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
 }
 
 async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: string }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const organizationId = workspace?.id ? String(workspace.id) : '';
-  if (!organizationId) {
-    throw new Error('ארגון לא נמצא');
-  }
+  const organizationId = requireOrganizationId('requireOrganizationOwner', workspace.id);
 
   const userResult = await getOrCreateSupabaseUserAction(params.clerkUserId);
   if (!userResult.success || !userResult.userId) {
     throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
   }
 
-  const supabase = createClient();
-  const { data: org, error } = await supabase
-    .from('organizations')
-    .select('owner_id')
-    .eq('id', organizationId)
-    .maybeSingle();
+  const org = await prisma.social_organizations.findFirst({
+    where: { id: organizationId },
+    select: { owner_id: true },
+  });
 
-  if (error || !org?.owner_id) {
+  if (!org?.owner_id) {
     throw new Error('שגיאה בקבלת בעלות על הארגון');
   }
 
@@ -49,13 +48,6 @@ async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: 
   }
 
   return { workspace, organizationId, socialUserId: String(userResult.userId) };
-}
-
-async function resolveCredentialsTable(supabase: ReturnType<typeof createClient>): Promise<string> {
-  const probe = await supabase.from('integration_credentials').select('id').limit(1);
-  if (!probe.error) return 'integration_credentials';
-  if (isMissingTableError(probe.error)) return 'social_integration_credentials';
-  return 'integration_credentials';
 }
 
 export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey: string) {
@@ -72,38 +64,47 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
 
     const { organizationId, socialUserId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
 
-    const supabase = createClient();
-    const table = await resolveCredentialsTable(supabase);
-
     const encryptedApiKey = await encryptObject({ api_key: apiKey });
+    const encrypted_data: Prisma.InputJsonValue = { encrypted: encryptedApiKey };
+    const metadata: Prisma.InputJsonValue = {
+      scope: 'organization',
+      organizationId,
+      savedBy: socialUserId,
+    };
 
-    const { error } = await supabase
-      .from(table)
-      .upsert(
-        {
+    const existing = await prisma.social_integration_credentials.findFirst({
+      where: { user_id: organizationId, integration_name: 'morning' },
+      select: { id: true },
+    });
+
+    if (existing?.id) {
+      await prisma.social_integration_credentials.updateMany({
+        where: { id: existing.id },
+        data: {
+          credential_type: 'api_key',
+          encrypted_data,
+          metadata,
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      await prisma.social_integration_credentials.create({
+        data: {
           user_id: organizationId,
           integration_name: 'morning',
           credential_type: 'api_key',
-          encrypted_data: { encrypted: encryptedApiKey },
-          metadata: {
-            scope: 'organization',
-            organizationId,
-            savedBy: socialUserId,
-          },
+          encrypted_data,
+          metadata,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
-        {
-          onConflict: 'user_id,integration_name',
-        }
-      );
-
-    if (error) {
-      return { success: false, error: translateError(error.message || 'שגיאה בשמירת פרטי Morning') };
+      });
     }
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving Morning credentials for workspace:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בשמירת פרטי Morning') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת פרטי Morning') };
   }
 }
 
@@ -118,24 +119,19 @@ export async function hasMorningCredentialsForWorkspace(
     if (!resolvedOrgSlug) return { success: true, connected: false };
 
     const workspace = await requireWorkspaceAccessByOrgSlug(resolvedOrgSlug);
-    const organizationId = workspace?.id ? String(workspace.id) : '';
-    if (!organizationId) return { success: true, connected: false };
-
-    const supabase = createClient();
-    const table = await resolveCredentialsTable(supabase);
-
-    const { data, error } = await supabase
-      .from(table)
-      .select('id')
-      .eq('user_id', organizationId)
-      .eq('integration_name', 'morning')
-      .maybeSingle();
-
-    if (error) {
+    let organizationId: string;
+    try {
+      organizationId = requireOrganizationId('hasMorningCredentialsForWorkspace', workspace.id);
+    } catch {
       return { success: true, connected: false };
     }
 
-    return { success: true, connected: !!data?.id };
+    const row = await prisma.social_integration_credentials.findFirst({
+      where: { user_id: organizationId, integration_name: 'morning' },
+      select: { id: true },
+    });
+
+    return { success: true, connected: Boolean(row?.id) };
   } catch {
     return { success: true, connected: false };
   }
@@ -157,41 +153,42 @@ export async function getMorningApiKeyForWorkspace(
 
     const { organizationId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
 
-    const supabase = createClient();
-    const table = await resolveCredentialsTable(supabase);
+    const data = await prisma.social_integration_credentials.findFirst({
+      where: { user_id: organizationId, integration_name: 'morning' },
+      select: { encrypted_data: true },
+    });
 
-    const { data, error } = await supabase
-      .from(table)
-      .select('encrypted_data')
-      .eq('user_id', organizationId)
-      .eq('integration_name', 'morning')
-      .maybeSingle();
-
-    if (error || !data?.encrypted_data) {
+    if (!data?.encrypted_data) {
       return { success: true, apiKey: null };
     }
 
-    const encryptedValue = (data as any).encrypted_data?.encrypted;
-    if (!encryptedValue) {
+    const encryptedData = asObject(asObject(data)?.encrypted_data);
+    const encryptedValue = encryptedData?.encrypted;
+    const encryptedValueStr = typeof encryptedValue === 'string' ? encryptedValue : '';
+    if (!encryptedValueStr) {
       return { success: true, apiKey: null };
     }
 
-    const decrypted = await decryptObject(encryptedValue);
+    const decrypted = await decryptObject(encryptedValueStr);
     return { success: true, apiKey: decrypted.api_key || null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting Morning API key for workspace:', error);
-    return { success: false, apiKey: null, error: translateError(error.message || 'שגיאה בקבלת מפתח Morning') };
+    return { success: false, apiKey: null, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת מפתח Morning') };
   }
 }
 
 export async function getAllIntegrationsStatusForWorkspace(orgSlug: string) {
   try {
     const base = await getAllIntegrationsStatus();
-    const list = base.success && base.data ? [...base.data] : [];
+    const list: Array<Record<string, unknown>> =
+      base.success && base.data ? (base.data as unknown[]).map((x) => asObject(x) ?? {}) : [];
 
     const morning = await hasMorningCredentialsForWorkspace(orgSlug);
     if (morning.success) {
-      const idx = list.findIndex((x: any) => x?.name === 'morning');
+      const idx = list.findIndex((x: unknown) => {
+        const obj = asObject(x);
+        return String(obj?.name || '') === 'morning';
+      });
       if (idx >= 0) {
         list[idx] = {
           ...list[idx],
@@ -203,9 +200,9 @@ export async function getAllIntegrationsStatusForWorkspace(orgSlug: string) {
     }
 
     return { success: true, data: list };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting integrations status for workspace:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בקבלת סטטוס אינטגרציות') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציות') };
   }
 }
 
@@ -224,21 +221,14 @@ export async function getIntegrationStatus(integrationName: string) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('integration_status')
-      .select('*')
-      .eq('name', integrationName)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
+    const data = await prisma.social_integration_status.findUnique({
+      where: { name: integrationName },
+    });
 
     return { success: true, data: data || null };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting integration status:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בקבלת סטטוס אינטגרציה') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציה') };
   }
 }
 
@@ -249,9 +239,9 @@ export async function getGoogleCalendarAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.calendar);
     return { success: true, authUrl };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Google Calendar auth URL:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה ביצירת קישור הרשאה') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
 
@@ -262,9 +252,9 @@ export async function getGoogleDriveAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.drive);
     return { success: true, authUrl };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Google Drive auth URL:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה ביצירת קישור הרשאה') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
 
@@ -275,9 +265,9 @@ export async function getGoogleSheetsAuthUrl() {
   try {
     const authUrl = getGoogleAuthUrl(GOOGLE_SCOPES.sheets);
     return { success: true, authUrl };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error generating Google Sheets auth URL:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה ביצירת קישור הרשאה') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה ביצירת קישור הרשאה') };
   }
 }
 
@@ -302,41 +292,48 @@ export async function saveGoogleTokens(
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
-    // Save tokens
-    const { error: tokenError } = await supabase
-      .from('oauth_tokens')
-      .upsert({
-        user_id: supabaseUserId,
-        integration_name: integrationName,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAt.toISOString(),
-        scope: scope || '',
-      }, {
-        onConflict: 'user_id,integration_name',
+    const tokenRow = await prisma.social_oauth_tokens.findFirst({
+      where: { user_id: supabaseUserId, integration_name: integrationName },
+      select: { id: true },
+    });
+
+    if (tokenRow?.id) {
+      await prisma.social_oauth_tokens.updateMany({
+        where: { id: tokenRow.id },
+        data: {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: expiresAt,
+          scope: scope || '',
+          updated_at: new Date(),
+        },
       });
-
-    if (tokenError) throw tokenError;
-
-    // Update integration status
-    const { error: statusError } = await supabase
-      .from('integration_status')
-      .upsert({
-        name: integrationName,
-        is_connected: true,
-        last_sync: new Date().toISOString(),
-      }, {
-        onConflict: 'name',
+    } else {
+      await prisma.social_oauth_tokens.create({
+        data: {
+          user_id: supabaseUserId,
+          integration_name: integrationName,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: expiresAt,
+          scope: scope || '',
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
       });
+    }
 
-    if (statusError) throw statusError;
+    await prisma.social_integration_status.upsert({
+      where: { name: integrationName },
+      create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
+      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
+    });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving Google tokens:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בשמירת טוקנים') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת טוקנים') };
   }
 }
 
@@ -355,17 +352,12 @@ export async function syncGoogleCalendar() {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
-    // Get stored tokens
-    const { data: tokens, error: tokenError } = await supabase
-      .from('oauth_tokens')
-      .select('*')
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', 'google_calendar')
-      .single();
+    const tokens = await prisma.social_oauth_tokens.findFirst({
+      where: { user_id: supabaseUserId, integration_name: 'google_calendar' },
+    });
 
-    if (tokenError || !tokens) {
+    if (!tokens) {
       throw new Error('Google Calendar לא מחובר');
     }
 
@@ -376,11 +368,11 @@ export async function syncGoogleCalendar() {
     );
 
     // Update token if refreshed
-    if (newAccessToken !== tokens.access_token) {
-      await supabase
-        .from('oauth_tokens')
-        .update({ access_token: newAccessToken })
-        .eq('id', tokens.id);
+    if (typeof newAccessToken === 'string' && newAccessToken && newAccessToken !== tokens.access_token) {
+      await prisma.social_oauth_tokens.updateMany({
+        where: { id: tokens.id },
+        data: { access_token: newAccessToken, updated_at: new Date() },
+      });
     }
 
     const calendar = google.calendar({ version: 'v3', auth: client });
@@ -400,26 +392,26 @@ export async function syncGoogleCalendar() {
       orderBy: 'startTime',
     });
 
-    // Log sync
-    await supabase.from('sync_logs').insert({
-      user_id: supabaseUserId,
-      integration_name: 'google_calendar',
-      sync_type: 'calendar',
-      status: 'success',
-      items_synced: events.items?.length || 0,
-      completed_at: new Date().toISOString(),
+    await prisma.social_sync_logs.create({
+      data: {
+        user_id: supabaseUserId,
+        integration_name: 'google_calendar',
+        sync_type: 'calendar',
+        status: 'success',
+        items_synced: events.items?.length || 0,
+        completed_at: new Date(),
+      },
     });
 
-    // Update last sync
-    await supabase
-      .from('integration_status')
-      .update({ last_sync: new Date().toISOString() })
-      .eq('name', 'google_calendar');
+    await prisma.social_integration_status.updateMany({
+      where: { name: 'google_calendar' },
+      data: { last_sync: new Date(), updated_at: new Date() },
+    });
 
     return { success: true, events: events.items || [] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error syncing Google Calendar:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בסנכרון Google Calendar') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסנכרון Google Calendar') };
   }
 }
 
@@ -438,17 +430,12 @@ export async function syncGoogleDrive(clientId?: string) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
-    // Get stored tokens
-    const { data: tokens, error: tokenError } = await supabase
-      .from('oauth_tokens')
-      .select('*')
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', 'google_drive')
-      .single();
+    const tokens = await prisma.social_oauth_tokens.findFirst({
+      where: { user_id: supabaseUserId, integration_name: 'google_drive' },
+    });
 
-    if (tokenError || !tokens) {
+    if (!tokens) {
       throw new Error('Google Drive לא מחובר');
     }
 
@@ -459,11 +446,11 @@ export async function syncGoogleDrive(clientId?: string) {
     );
 
     // Update token if refreshed
-    if (newAccessToken !== tokens.access_token) {
-      await supabase
-        .from('oauth_tokens')
-        .update({ access_token: newAccessToken })
-        .eq('id', tokens.id);
+    if (typeof newAccessToken === 'string' && newAccessToken && newAccessToken !== tokens.access_token) {
+      await prisma.social_oauth_tokens.updateMany({
+        where: { id: tokens.id },
+        data: { access_token: newAccessToken, updated_at: new Date() },
+      });
     }
 
     const drive = google.drive({ version: 'v3', auth: client });
@@ -476,26 +463,26 @@ export async function syncGoogleDrive(clientId?: string) {
       orderBy: 'modifiedTime desc',
     });
 
-    // Log sync
-    await supabase.from('sync_logs').insert({
-      user_id: supabaseUserId,
-      integration_name: 'google_drive',
-      sync_type: 'drive',
-      status: 'success',
-      items_synced: files.files?.length || 0,
-      completed_at: new Date().toISOString(),
+    await prisma.social_sync_logs.create({
+      data: {
+        user_id: supabaseUserId,
+        integration_name: 'google_drive',
+        sync_type: 'drive',
+        status: 'success',
+        items_synced: files.files?.length || 0,
+        completed_at: new Date(),
+      },
     });
 
-    // Update last sync
-    await supabase
-      .from('integration_status')
-      .update({ last_sync: new Date().toISOString() })
-      .eq('name', 'google_drive');
+    await prisma.social_integration_status.updateMany({
+      where: { name: 'google_drive' },
+      data: { last_sync: new Date(), updated_at: new Date() },
+    });
 
     return { success: true, files: files.files || [] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error syncing Google Drive:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בסנכרון Google Drive') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסנכרון Google Drive') };
   }
 }
 
@@ -514,45 +501,34 @@ export async function disconnectIntegration(integrationName: string) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
-    // Delete tokens
-    await supabase
-      .from('oauth_tokens')
-      .delete()
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', integrationName);
+    await prisma.social_oauth_tokens.deleteMany({
+      where: { user_id: supabaseUserId, integration_name: integrationName },
+    });
 
-    // Delete credentials
-    await supabase
-      .from('integration_credentials')
-      .delete()
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', integrationName);
+    await prisma.social_integration_credentials.deleteMany({
+      where: { user_id: supabaseUserId, integration_name: integrationName },
+    });
 
-    // Delete webhooks
-    await supabase
-      .from('webhook_configs')
-      .delete()
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', integrationName);
+    await prisma.social_webhook_configs.deleteMany({
+      where: { user_id: supabaseUserId, integration_name: integrationName },
+    });
 
-    // Update status
-    await supabase
-      .from('integration_status')
-      .update({ is_connected: false, last_sync: null })
-      .eq('name', integrationName);
+    await prisma.social_integration_status.updateMany({
+      where: { name: integrationName },
+      data: { is_connected: false, last_sync: null, updated_at: new Date() },
+    });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error disconnecting integration:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בהתנתקות') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בהתנתקות') };
   }
 }
 
 export async function triggerWebhookEvent(params: {
   eventType: string;
-  payload: any;
+  payload: unknown;
   integrationName?: 'make' | 'zapier';
 }): Promise<{ success: boolean; delivered?: number; error?: string }> {
   try {
@@ -566,25 +542,19 @@ export async function triggerWebhookEvent(params: {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
+    const where: Prisma.social_webhook_configsWhereInput = {
+      user_id: supabaseUserId,
+      is_active: true,
+      ...(params.integrationName
+        ? { integration_name: params.integrationName }
+        : { integration_name: { in: ['make', 'zapier'] } }),
+    };
+    const configs = await prisma.social_webhook_configs.findMany({ where });
 
-    let query = supabase
-      .from('webhook_configs')
-      .select('*')
-      .eq('user_id', supabaseUserId)
-      .eq('is_active', true);
-
-    if (params.integrationName) {
-      query = query.eq('integration_name', params.integrationName);
-    } else {
-      query = query.in('integration_name', ['make', 'zapier']);
-    }
-
-    const { data: configs, error } = await query;
-    if (error) throw error;
-
-    const activeConfigs = (configs || []).filter((cfg: any) => {
-      const events = Array.isArray(cfg.events) ? cfg.events : [];
+    const configsList: unknown[] = Array.isArray(configs) ? (configs as unknown[]) : [];
+    const activeConfigs = configsList.filter((cfg: unknown) => {
+      const obj = asObject(cfg) ?? {};
+      const events = Array.isArray(obj.events) ? obj.events.map((e) => String(e)) : [];
       return events.includes(params.eventType);
     });
 
@@ -602,18 +572,19 @@ export async function triggerWebhookEvent(params: {
 
     let delivered = 0;
     for (const cfg of activeConfigs) {
-      const secret = String(cfg.secret_key || '');
+      const obj = asObject(cfg) ?? {};
+      const secret = String(obj.secret_key || '');
       const signature = secret
         ? crypto.createHmac('sha256', secret).update(rawBody).digest('hex')
         : '';
 
-      const res = await fetch(String(cfg.webhook_url), {
+      const res = await fetch(String(obj.webhook_url), {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           ...(signature ? { 'x-social-signature': signature } : {}),
           'x-social-event': String(params.eventType),
-          'x-social-integration': String(cfg.integration_name),
+          'x-social-integration': String(obj.integration_name),
         },
         body: rawBody,
       });
@@ -625,16 +596,16 @@ export async function triggerWebhookEvent(params: {
 
       delivered += 1;
 
-      await supabase
-        .from('webhook_configs')
-        .update({ last_triggered_at: new Date().toISOString() })
-        .eq('id', cfg.id);
+      await prisma.social_webhook_configs.updateMany({
+        where: { id: String(obj.id || '') },
+        data: { last_triggered_at: new Date(), updated_at: new Date() },
+      });
     }
 
     return { success: true, delivered };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error triggering webhook event:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בשליחת webhook') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשליחת webhook') };
   }
 }
 
@@ -657,41 +628,51 @@ export async function saveWebhookConfig(
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
     // Generate secret key
     const secretKey = crypto.randomUUID();
 
-    const { error } = await supabase
-      .from('webhook_configs')
-      .upsert({
-        user_id: supabaseUserId,
-        integration_name: integrationName,
-        webhook_url: webhookUrl,
-        secret_key: secretKey,
-        events: events,
-        is_active: true,
-      }, {
-        onConflict: 'user_id,integration_name',
-      });
+    const existing = await prisma.social_webhook_configs.findFirst({
+      where: { user_id: supabaseUserId, integration_name: integrationName },
+      select: { id: true },
+    });
 
-    if (error) throw error;
-
-    // Update integration status
-    await supabase
-      .from('integration_status')
-      .upsert({
-        name: integrationName,
-        is_connected: true,
-        last_sync: new Date().toISOString(),
-      }, {
-        onConflict: 'name',
+    if (existing?.id) {
+      await prisma.social_webhook_configs.updateMany({
+        where: { id: existing.id },
+        data: {
+          webhook_url: webhookUrl,
+          secret_key: secretKey,
+          events,
+          is_active: true,
+          updated_at: new Date(),
+        },
       });
+    } else {
+      await prisma.social_webhook_configs.create({
+        data: {
+          user_id: supabaseUserId,
+          integration_name: integrationName,
+          webhook_url: webhookUrl,
+          secret_key: secretKey,
+          events,
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+    }
+
+    await prisma.social_integration_status.upsert({
+      where: { name: integrationName },
+      create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
+      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
+    });
 
     return { success: true, secretKey };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving webhook config:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בשמירת הגדרות webhook') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת הגדרות webhook') };
   }
 }
 
@@ -710,44 +691,50 @@ export async function saveMorningCredentials(apiKey: string) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
     // Encrypt API key before storing
     const encryptedApiKey = await encryptObject({
       api_key: apiKey,
     });
+    const encrypted_data: Prisma.InputJsonValue = { encrypted: encryptedApiKey };
 
-    const { error } = await supabase
-      .from('integration_credentials')
-      .upsert(
-        {
+    const existing = await prisma.social_integration_credentials.findFirst({
+      where: { user_id: supabaseUserId, integration_name: 'morning' },
+      select: { id: true },
+    });
+
+    if (existing?.id) {
+      await prisma.social_integration_credentials.updateMany({
+        where: { id: existing.id },
+        data: {
+          credential_type: 'api_key',
+          encrypted_data,
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      await prisma.social_integration_credentials.create({
+        data: {
           user_id: supabaseUserId,
           integration_name: 'morning',
           credential_type: 'api_key',
-          encrypted_data: { encrypted: encryptedApiKey }, // Store encrypted string
+          encrypted_data,
+          created_at: new Date(),
+          updated_at: new Date(),
         },
-        {
-          onConflict: 'user_id,integration_name',
-        }
-      );
-
-    if (error) throw error;
-
-    // Update integration status
-    await supabase
-      .from('integration_status')
-      .upsert({
-        name: 'morning',
-        is_connected: true,
-        last_sync: new Date().toISOString(),
-      }, {
-        onConflict: 'name',
       });
+    }
+
+    await prisma.social_integration_status.upsert({
+      where: { name: 'morning' },
+      create: { name: 'morning', is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
+      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
+    });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error saving Morning credentials:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בשמירת פרטי Morning') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בשמירת פרטי Morning') };
   }
 }
 
@@ -766,28 +753,27 @@ export async function getMorningApiKey(): Promise<string | null> {
       return null;
     }
     const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('integration_credentials')
-      .select('encrypted_data')
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', 'morning')
-      .single();
+    const data = await prisma.social_integration_credentials.findFirst({
+      where: { user_id: supabaseUserId, integration_name: 'morning' },
+      select: { encrypted_data: true },
+    });
 
-    if (error || !data?.encrypted_data) {
+    if (!data?.encrypted_data) {
       return null;
     }
 
     // Decrypt the API key
-    const encryptedValue = data.encrypted_data.encrypted;
-    if (!encryptedValue) {
+    const encryptedData = asObject(asObject(data)?.encrypted_data);
+    const encryptedValue = encryptedData?.encrypted;
+    const encryptedValueStr = typeof encryptedValue === 'string' ? encryptedValue : '';
+    if (!encryptedValueStr) {
       return null;
     }
 
-    const decrypted = await decryptObject(encryptedValue);
+    const decrypted = await decryptObject(encryptedValueStr);
     return decrypted.api_key || null;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error getting Morning API key:', error);
     return null;
   }
@@ -803,19 +789,14 @@ export async function getAllIntegrationsStatus() {
       throw new Error('לא מחובר');
     }
 
-    const supabase = createClient();
-
-    const { data, error } = await supabase
-      .from('integration_status')
-      .select('*')
-      .order('name');
-
-    if (error) throw error;
+    const data = await prisma.social_integration_status.findMany({
+      orderBy: { name: 'asc' },
+    });
 
     return { success: true, data: data || [] };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error getting integrations status:', error);
-    return { success: false, error: translateError(error.message || 'שגיאה בקבלת סטטוס אינטגרציות') };
+    return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בקבלת סטטוס אינטגרציות') };
   }
 }
 

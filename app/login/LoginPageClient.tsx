@@ -15,7 +15,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
       const res = await fetch('/api/workspaces', { cache: 'no-store' });
       if (!res.ok) return null;
       const data = await res.json();
-      const first = Array.isArray(data?.workspaces) ? data.workspaces[0] : null;
+      const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+      const first = Array.isArray((payload as any)?.workspaces) ? (payload as any).workspaces[0] : null;
       const orgSlug = first?.slug || first?.id;
       return orgSlug ? String(orgSlug) : null;
     } catch {
@@ -65,18 +66,19 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
           try {
             const orgSlug = await resolveFirstOrgSlug();
             if (!orgSlug) {
-              router.push('/');
+              router.push('/workspaces');
               return;
             }
 
             const res = await fetch('/api/os/rooms', { cache: 'no-store' });
             if (!res.ok) {
-              router.push('/');
+              router.push('/workspaces');
               return;
             }
 
             const data = await res.json();
-            const rooms = data?.rooms || {};
+            const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+            const rooms = (payload as any)?.rooms || {};
 
             const priority: Array<{ key: string; route: string }> = [
               { key: 'nexus', route: `/w/${encodeURIComponent(String(orgSlug))}/nexus` },
@@ -87,9 +89,9 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             ];
 
             const first = priority.find(p => Boolean((rooms as any)?.[p.key]));
-            router.push(first?.route || '/');
+            router.push(first?.route || '/workspaces');
           } catch {
-            router.push('/');
+            router.push('/workspaces');
           }
         })();
       }

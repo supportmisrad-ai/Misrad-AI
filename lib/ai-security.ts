@@ -80,7 +80,7 @@ export async function prepareAIContext(
     };
     
     // Fetch and filter users data from secure API
-    // Note: In production, this should fetch from /api/users
+    // Note: In production, this should fetch from the secure users data source
     // For now, we'll use rawData.users if provided, but filter it
     if (rawData.users && rawData.users.length > 0) {
         const canViewFinancials = await hasPermission('view_financials');

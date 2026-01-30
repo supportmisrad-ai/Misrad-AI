@@ -64,35 +64,42 @@ export default function EmployeeInvitePage() {
             setIsLoading(true);
             try {
                 const response = await fetch(`/api/employees/invite/${token}`);
-                
-                if (response.status === 404) {
-                    setError('קישור הזמנה לא נמצא');
-                    setIsLoading(false);
-                    return;
-                }
 
-                if (response.status === 410) {
-                    const data = await response.json();
-                    setError(data.error || 'קישור זה כבר שימש או פג תוקף');
-                    setIsLoading(false);
-                    return;
-                }
+                const raw = await response.json().catch(() => ({}));
+                const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
 
                 if (!response.ok) {
-                    const data = await response.json();
-                    throw new Error(data.error || 'שגיאה בטעינת הקישור');
+                    if (response.status === 404) {
+                        setError('קישור הזמנה לא נמצא');
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    if (response.status === 410) {
+                        setError(raw?.error || payload?.error || 'קישור זה כבר שימש או פג תוקף');
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    throw new Error(raw?.error || payload?.error || 'שגיאה בטעינת הקישור');
                 }
 
-                const data = await response.json();
-                setInvitation(data.invitation);
+                if (payload?.invitation?.isUsed) {
+                    setError('קישור זה כבר שימש');
+                    setInvitation(null);
+                    setIsLoading(false);
+                    return;
+                }
+
+                setInvitation(payload.invitation);
 
                 // Pre-fill form with invitation data
-                if (data.invitation) {
+                if (payload.invitation) {
                     setFormData(prev => ({
                         ...prev,
-                        name: data.invitation.employeeName || '',
-                        email: data.invitation.employeeEmail || '',
-                        phone: data.invitation.employeePhone || ''
+                        name: payload.invitation.employeeName || '',
+                        email: payload.invitation.employeeEmail || '',
+                        phone: payload.invitation.employeePhone || ''
                     }));
                 }
             } catch (err: any) {
@@ -151,17 +158,19 @@ export default function EmployeeInvitePage() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בהשלמת ההרשמה');
+                const raw = await response.json().catch(() => ({}));
+                const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
+                throw new Error(raw?.error || payload?.error || 'שגיאה בהשלמת ההרשמה');
             }
 
-            const data = await response.json();
+            const raw = await response.json().catch(() => ({}));
+            const payload = raw?.data && typeof raw.data === 'object' ? raw.data : raw;
             setSuccess(true);
 
             // Redirect to signup page after 2 seconds
             setTimeout(() => {
-                if (data.signupUrl) {
-                    window.location.href = data.signupUrl;
+                if (payload?.signupUrl) {
+                    window.location.href = payload.signupUrl;
                 } else {
                     router.push('/sign-up?email=' + encodeURIComponent(formData.email) + '&invited=true&employee=true');
                 }

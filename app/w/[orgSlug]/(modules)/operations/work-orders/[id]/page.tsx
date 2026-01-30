@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import {
   consumeOperationsInventoryForWorkOrder,
   getOperationsInventoryOptions,
+  getOperationsInventoryOptionsForHolder,
   getOperationsMaterialsForWorkOrder,
   getOperationsWorkOrderAttachments,
   getOperationsWorkOrderCheckins,
@@ -13,13 +14,16 @@ import {
   addOperationsWorkOrderCheckin,
   getOperationsWorkOrderById,
   getOperationsTechnicianOptions,
+  getOperationsStockSourceOptions,
   setOperationsWorkOrderAssignedTechnician,
   setOperationsWorkOrderCompletionSignature,
+  setOperationsWorkOrderStockSourceToMyActiveVehicle,
+  setOperationsWorkOrderStockSource,
   setOperationsWorkOrderStatus,
 } from '@/app/actions/operations';
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
-import { createServiceRoleClient } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
 function formatStatus(status: string): { label: string; className: string } {
@@ -60,17 +64,12 @@ export default async function OperationsWorkOrderDetailsPage({
   const sp = (await searchParams) ?? {};
   const tabRaw = sp.tab;
   const tab = (Array.isArray(tabRaw) ? tabRaw[0] : tabRaw) === 'materials' ? 'materials' : 'details';
+  const errorRaw = sp.error;
+  const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 
   const emptyListRes = { success: true, data: [] as any[], error: undefined as string | undefined };
 
-  const [res, technicianOptionsRes, inventoryOptionsRes, materialsRes, attachmentsRes, checkinsRes] = await Promise.all([
-    getOperationsWorkOrderById({ orgSlug, id }),
-    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve({ success: true, data: [] as any[] }),
-    tab === 'materials' ? getOperationsInventoryOptions({ orgSlug }) : Promise.resolve(emptyListRes),
-    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-  ]);
+  const res = await getOperationsWorkOrderById({ orgSlug, id });
   if (!res.success || !res.data) {
     return (
       <div className="mx-auto w-full max-w-3xl">
@@ -93,12 +92,28 @@ export default async function OperationsWorkOrderDetailsPage({
   }
 
   const w = res.data;
+
+  const [technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, inventoryOptionsRes] = await Promise.all([
+    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve({ success: true, data: [] as any[] }),
+    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
+    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
+    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
+    tab === 'materials' ? getOperationsStockSourceOptions({ orgSlug }) : Promise.resolve({ success: true, data: [] as any[] }),
+    tab === 'materials'
+      ? w.stockSourceHolderId
+        ? getOperationsInventoryOptionsForHolder({ orgSlug, holderId: w.stockSourceHolderId })
+        : getOperationsInventoryOptions({ orgSlug })
+      : Promise.resolve(emptyListRes),
+  ]);
+
   const statusBadge = formatStatus(w.status);
   const inventoryOptions = inventoryOptionsRes.success ? (inventoryOptionsRes.data ?? []) : [];
   const materials = materialsRes.success ? (materialsRes.data ?? []) : [];
   const attachments = attachmentsRes.success ? (attachmentsRes.data ?? []) : [];
   const checkins = checkinsRes.success ? (checkinsRes.data ?? []) : [];
   const technicianOptions = technicianOptionsRes && (technicianOptionsRes as any).success ? ((technicianOptionsRes as any).data ?? []) : [];
+  const stockSourceOptions = stockSourcesRes && (stockSourcesRes as any).success ? ((stockSourcesRes as any).data ?? []) : [];
+  const stockAvailable = inventoryOptions.filter((o: any) => Number(o.onHand) > 0);
 
   async function startAction() {
     'use server';
@@ -130,6 +145,27 @@ export default async function OperationsWorkOrderDetailsPage({
     redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials&error=${message}`);
   }
 
+  async function setStockSourceAction(formData: FormData) {
+    'use server';
+    const holderId = String(formData.get('holderId') || '').trim();
+    const result = await setOperationsWorkOrderStockSource({ orgSlug, workOrderId: w.id, holderId });
+    if (result.success) {
+      redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials`);
+    }
+    const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בשמירת מקור מלאי');
+    redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials&error=${message}`);
+  }
+
+  async function useMyActiveVehicleSourceAction() {
+    'use server';
+    const result = await setOperationsWorkOrderStockSourceToMyActiveVehicle({ orgSlug, workOrderId: w.id });
+    if (result.success) {
+      redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials`);
+    }
+    const message = result.error ? encodeURIComponent(result.error) : encodeURIComponent('שגיאה בקביעת מקור מלאי');
+    redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?tab=materials&error=${message}`);
+  }
+
   async function doneAction() {
     'use server';
     const result = await setOperationsWorkOrderStatus({ orgSlug, id: w.id, status: 'DONE' });
@@ -147,11 +183,14 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('חובה לצרף חתימה')}`);
     }
 
-    const supabase = createServiceRoleClient();
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    const organizationId = String(workspace.id);
+
+    const supabase = createClient();
     const bucket = 'operations-files';
     const timestamp = Date.now();
     const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = `ops/internal/${safeOrg}/work-orders/${w.id}/signature-${timestamp}.png`;
+    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/signature-${timestamp}.png`;
 
     const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
     if (!base64) {
@@ -226,7 +265,7 @@ export default async function OperationsWorkOrderDetailsPage({
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = String(workspace.id);
 
-    const supabase = createServiceRoleClient();
+    const supabase = createClient();
     const bucket = 'operations-files';
     const timestamp = Date.now();
     const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
@@ -315,6 +354,10 @@ export default async function OperationsWorkOrderDetailsPage({
             </Link>
           </div>
         </div>
+
+        {error ? (
+          <div className="p-4 border-b border-rose-100 bg-rose-50 text-rose-800 text-sm font-bold">{error}</div>
+        ) : null}
 
         <div className="p-5 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -559,7 +602,93 @@ export default async function OperationsWorkOrderDetailsPage({
           ) : (
             <>
               <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+                <div className="text-xs font-black text-slate-700">מקור מלאי לקריאה</div>
+                <div className="mt-2 text-sm text-slate-700">
+                  {w.stockSourceLabel ? w.stockSourceLabel : <span className="text-slate-400">—</span>}
+                </div>
+
+                <form action={setStockSourceAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2">
+                    <select
+                      name="holderId"
+                      required
+                      defaultValue={w.stockSourceHolderId ? String(w.stockSourceHolderId) : ''}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
+                    >
+                      <option value="" disabled>
+                        {stockSourceOptions.length ? 'בחר מקור מלאי…' : 'אין מקורות מלאי זמינים'}
+                      </option>
+                      <optgroup label="מחסן">
+                        {stockSourceOptions
+                          .filter((o: any) => String(o.group) === 'WAREHOUSE')
+                          .map((o: any) => (
+                            <option key={String(o.holderId)} value={String(o.holderId)}>
+                              {String(o.label)}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="רכבים">
+                        {stockSourceOptions
+                          .filter((o: any) => String(o.group) === 'VEHICLE')
+                          .map((o: any) => (
+                            <option key={String(o.holderId)} value={String(o.holderId)}>
+                              {String(o.label)}
+                            </option>
+                          ))}
+                      </optgroup>
+                      <optgroup label="אצל טכנאי אחר">
+                        {stockSourceOptions
+                          .filter((o: any) => String(o.group) === 'TECHNICIAN')
+                          .map((o: any) => (
+                            <option key={String(o.holderId)} value={String(o.holderId)}>
+                              {String(o.label)}
+                            </option>
+                          ))}
+                      </optgroup>
+                    </select>
+                    {stockSourcesRes && !(stockSourcesRes as any).success ? (
+                      <div className="mt-2 text-xs font-bold text-rose-700">{(stockSourcesRes as any).error}</div>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <button
+                      type="submit"
+                      className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-white border border-slate-200 text-slate-800 hover:bg-slate-100 transition-colors"
+                    >
+                      שמור מקור
+                    </button>
+                  </div>
+                </form>
+
+                <form action={useMyActiveVehicleSourceAction} className="mt-3">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-black bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                  >
+                    השתמש ברכב הפעיל שלי
+                  </button>
+                </form>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
                 <div className="text-xs font-black text-slate-700">הוספת חומר לקריאה</div>
+
+                <div className="mt-2 text-xs text-slate-600">
+                  מקור מלאי: {w.stockSourceLabel ? w.stockSourceLabel : '—'}
+                </div>
+
+                <div className="mt-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                  <div className="text-xs font-black text-slate-700">מלאי זמין במקור</div>
+                  <div className="mt-2 text-xs text-slate-600">
+                    {stockAvailable.length
+                      ? stockAvailable
+                          .slice(0, 8)
+                          .map((o: any) => `${String(o.label)}: ${String(o.onHand)}${o.unit ? ` ${String(o.unit)}` : ''}`)
+                          .join(' · ')
+                      : 'אין כרגע מלאי זמין במקור הזה'}
+                  </div>
+                </div>
 
                 <form action={addMaterialAction} className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="md:col-span-2">

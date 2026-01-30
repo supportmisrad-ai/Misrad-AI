@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BrainCircuit, Download, Play, RefreshCw, Save } from 'lucide-react';
+import { Zap, Download, Play, RefreshCw, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -211,7 +211,7 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
 
       <div className="bg-white/70 backdrop-blur-2xl border border-slate-200/70 p-6 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3 mb-4">
-          <BrainCircuit size={18} className="text-emerald-600" />
+          <Zap size={18} className="text-emerald-600" />
           <h2 className="text-slate-900 font-bold">בחירת ארגון</h2>
         </div>
 

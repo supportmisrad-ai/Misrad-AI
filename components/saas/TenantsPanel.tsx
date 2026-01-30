@@ -6,9 +6,12 @@ import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Sear
 import { Tenant } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
+
+const unwrap = (data: any) =>
+    (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
 interface TenantsPanelProps {
     tenants: Tenant[];
@@ -59,22 +62,24 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
         setSendingInvitation(tenant.id);
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
-            const response = await fetch(`/api/tenants/${tenant.id}/send-invitation`, {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch(`/api/admin/tenants/${tenant.id}/send-invitation`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 }
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בשליחת ההזמנה');
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בשליחת ההזמנה');
             }
 
-            const data = await response.json();
-            alert(`הזמנה נשלחה בהצלחה ל-${tenant.ownerEmail}\n\nקישור: ${data.signupUrl}`);
+            const raw = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+            alert(`הזמנה נשלחה בהצלחה ל-${tenant.ownerEmail}\n\nקישור: ${(payload as any)?.signupUrl}`);
         } catch (error: any) {
             console.error('[TenantsPanel] Error sending invitation:', error);
             alert(error.message || 'שגיאה בשליחת ההזמנה');
@@ -327,7 +332,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                     )}
                 </div>
 
-                <div className="hidden md:block">
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-right text-sm">
                         <thead className="bg-slate-50/80 backdrop-blur-sm text-slate-600 font-bold border-b border-slate-200/70">
                             <tr>

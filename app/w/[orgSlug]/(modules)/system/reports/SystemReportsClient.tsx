@@ -6,7 +6,7 @@ import type { Campaign, Lead, Task, TaskPriority, TaskStatus } from '@/component
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import type { SystemTaskDTO } from '@/app/actions/system-reports';
+import type { Task as NexusTask } from '@/types';
 
 function normalizeTaskPriority(value: string): TaskPriority {
   const v = String(value || '').toLowerCase();
@@ -42,18 +42,18 @@ function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
   };
 }
 
-function mapTaskDto(dto: SystemTaskDTO): Task {
-  const due = new Date(String(dto.due_date || ''));
+function mapTaskDto(dto: NexusTask): Task {
+  const due = dto.dueDate ? new Date(String(dto.dueDate)) : new Date();
   const dueDate = Number.isNaN(due.getTime()) ? new Date() : due;
 
   return {
     id: String(dto.id),
     title: String(dto.title || ''),
     description: dto.description == null ? undefined : String(dto.description),
-    assigneeId: String(dto.assignee_id || ''),
+    assigneeId: String(dto.assigneeId || (Array.isArray(dto.assigneeIds) ? dto.assigneeIds[0] : '') || ''),
     dueDate,
-    priority: normalizeTaskPriority(String(dto.priority || '')),
-    status: normalizeTaskStatus(String(dto.status || '')),
+    priority: normalizeTaskPriority(String(dto.priority || 'medium')),
+    status: normalizeTaskStatus(String(dto.status || 'todo')),
     tags: Array.isArray(dto.tags) ? dto.tags.map((t) => String(t)).filter(Boolean) : [],
   };
 }
@@ -67,7 +67,7 @@ export default function SystemReportsClient({
   orgSlug: string;
   initialLeads: SystemLeadDTO[];
   initialCampaigns: WorkspaceCampaignDTO[];
-  initialTasks: SystemTaskDTO[];
+  initialTasks: NexusTask[];
 }) {
   const leads: Lead[] = useMemo(() => (initialLeads || []).map(mapDtoToLead), [initialLeads]);
   const campaigns: Campaign[] = useMemo(() => (initialCampaigns || []).map(mapCampaignDto), [initialCampaigns]);

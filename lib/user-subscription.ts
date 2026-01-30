@@ -8,6 +8,26 @@
 import { DEFAULT_OS_MODULE_PRIORITY, isOSModuleKey } from '@/lib/os/modules/registry';
 import { OSModule, OS_MODULES } from '../types/os-modules';
 
+function resolveOrgSlug(orgSlug?: string | null): string | null {
+  if (orgSlug) return String(orgSlug);
+  if (typeof window === 'undefined') return null;
+
+  const pathname = window.location?.pathname || '';
+  const marker = '/w/';
+  const idx = pathname.indexOf(marker);
+  if (idx === -1) return null;
+
+  const rest = pathname.slice(idx + marker.length);
+  const raw = rest.split('/')[0] || '';
+  if (!raw) return null;
+
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 /**
  * Get purchased modules for a user
  * 
@@ -15,15 +35,26 @@ import { OSModule, OS_MODULES } from '../types/os-modules';
  * The API checks the user's tenant subscription and returns available modules.
  * 
  * @param userId - Clerk user ID (used for authentication, not directly in query)
+ * @param orgSlug - Optional org slug to use for resolving organization context
  * @returns Array of purchased OS modules
  */
-export async function getUserPurchasedModules(userId: string): Promise<OSModule[]> {
+export async function getUserPurchasedModules(userId: string, orgSlug?: string | null): Promise<OSModule[]> {
   try {
+    const resolvedOrgSlug = resolveOrgSlug(orgSlug);
+    if (!resolvedOrgSlug) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Subscription] Development mode: Missing org context, returning all modules as fallback');
+        return DEFAULT_OS_MODULE_PRIORITY;
+      }
+      return [];
+    }
+
     // Call API to get modules from database (based on user's tenant)
     const response = await fetch('/api/subscription/modules', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'x-org-id': resolvedOrgSlug,
       },
       // Credentials are automatically included via Clerk session
       // Add cache control to prevent stale data
@@ -33,7 +64,13 @@ export async function getUserPurchasedModules(userId: string): Promise<OSModule[
     if (!response.ok) {
       // Only log non-network errors (network errors are common in dev)
       if (response.status !== 0 && response.status !== 500) {
-        console.error('[Subscription] Failed to fetch modules:', response.status, response.statusText);
+        let body = '';
+        try {
+          body = await response.text();
+        } catch {
+          body = '';
+        }
+        console.error('[Subscription] Failed to fetch modules:', response.status, response.statusText, body);
       }
       // Fallback to empty array on error (user won't see any modules)
       // In development, return all modules for testing

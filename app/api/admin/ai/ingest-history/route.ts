@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { AIService } from '@/lib/services/ai/AIService';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -15,7 +16,20 @@ type IngestHistoryRequest = {
   limitPerType?: number;
 };
 
-function safeJson(obj: any): string {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : String(error ?? '');
+}
+
+function safeJson(obj: unknown): string {
   try {
     return JSON.stringify(obj ?? {});
   } catch {
@@ -27,24 +41,32 @@ async function POSTHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
-    const body = (await req.json().catch(() => ({}))) as IngestHistoryRequest;
-    const organizationId = String(body.organizationId || '').trim();
+    const rawBody: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(rawBody) ?? {};
+    const organizationId = String(bodyObj.organizationId || '').trim();
     if (!organizationId) {
-      return NextResponse.json({ error: 'organizationId is required' }, { status: 400 });
+      return apiError('organizationId is required', { status: 400 });
     }
 
-    const includeSystemLeads = body.include?.systemLeads !== false;
-    const includeNexusClients = body.include?.nexusClients !== false;
-    const batchSize = Math.max(1, Math.min(500, Math.floor(body.limitPerType ?? 200)));
+    const includeObj = asObject(bodyObj.include) ?? {};
+    const includeSystemLeads = includeObj.systemLeads !== false;
+    const includeNexusClients = includeObj.nexusClients !== false;
+    const batchSize = Math.max(1, Math.min(500, Math.floor(Number(bodyObj.limitPerType ?? 200))));
 
     const ai = AIService.getInstance();
 
     const orgIds: string[] =
       organizationId.toLowerCase() === 'all'
-        ? (await prisma.social_organizations.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o: any) => String(o.id))
+        ? (await prisma.social_organizations.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
         : [organizationId];
 
-    const results: any = {
+    const results: {
+      organizationId: string;
+      organizationsProcessed: number;
+      systemLeads: { attempted: number; succeeded: number; failed: number };
+      nexusClients: { attempted: number; succeeded: number; failed: number };
+      errors: Array<{ source_type: string; source_id: string; message: string }>;
+    } = {
       organizationId,
       organizationsProcessed: orgIds.length,
       systemLeads: { attempted: 0, succeeded: 0, failed: 0 },
@@ -56,7 +78,7 @@ async function POSTHandler(req: Request) {
       if (includeSystemLeads) {
         let cursorId: string | null = null;
         while (true) {
-          const leadArgs: any = {
+          const leadArgs: Prisma.SystemLeadFindManyArgs = {
             where: { organizationId: orgId },
             orderBy: { id: 'asc' },
             take: batchSize,
@@ -66,30 +88,30 @@ async function POSTHandler(req: Request) {
             leadArgs.skip = 1;
           }
 
-          const leads: any[] = await prisma.systemLead.findMany(leadArgs);
+          const leads = await prisma.systemLead.findMany(leadArgs);
 
           if (!leads || leads.length === 0) break;
 
           for (const lead of leads) {
             results.systemLeads.attempted++;
-            const sourceId = String((lead as any).id);
+            const sourceId = String(lead.id);
 
             const doc = {
               id: sourceId,
-              name: (lead as any).name,
-              company: (lead as any).company ?? null,
-              email: (lead as any).email ?? null,
-              phone: (lead as any).phone ?? null,
-              status: (lead as any).status,
-              source: (lead as any).source,
-              value: (lead as any).value ?? null,
-              isHot: (lead as any).isHot ?? null,
-              score: (lead as any).score ?? null,
-              productInterest: (lead as any).productInterest ?? null,
-              playbookStep: (lead as any).playbookStep ?? null,
-              lastContact: (lead as any).lastContact ? new Date((lead as any).lastContact).toISOString() : null,
-              createdAt: (lead as any).createdAt ? new Date((lead as any).createdAt).toISOString() : null,
-              updatedAt: (lead as any).updatedAt ? new Date((lead as any).updatedAt).toISOString() : null,
+              name: lead.name,
+              company: lead.company ?? null,
+              email: lead.email ?? null,
+              phone: lead.phone ?? null,
+              status: lead.status,
+              source: lead.source,
+              value: lead.value ?? null,
+              isHot: lead.isHot ?? null,
+              score: lead.score ?? null,
+              productInterest: lead.productInterest ?? null,
+              playbookStep: lead.playbookStep ?? null,
+              lastContact: lead.lastContact ? new Date(lead.lastContact).toISOString() : null,
+              createdAt: lead.createdAt ? new Date(lead.createdAt).toISOString() : null,
+              updatedAt: lead.updatedAt ? new Date(lead.updatedAt).toISOString() : null,
             };
 
             try {
@@ -109,13 +131,13 @@ async function POSTHandler(req: Request) {
                 },
               });
               results.systemLeads.succeeded++;
-            } catch (e: any) {
+            } catch (e: unknown) {
               results.systemLeads.failed++;
-              results.errors.push({ source_type: 'system_leads', source_id: sourceId, message: String(e?.message || e) });
+              results.errors.push({ source_type: 'system_leads', source_id: sourceId, message: getErrorMessage(e) });
             }
           }
 
-          cursorId = String((leads[leads.length - 1] as any).id);
+          cursorId = String(leads[leads.length - 1].id);
           if (leads.length < batchSize) break;
         }
       }
@@ -123,7 +145,7 @@ async function POSTHandler(req: Request) {
       if (includeNexusClients) {
         let cursorId: string | null = null;
         while (true) {
-          const clientArgs: any = {
+          const clientArgs: Prisma.NexusClientFindManyArgs = {
             where: { organizationId: orgId },
             orderBy: { id: 'asc' },
             take: batchSize,
@@ -133,27 +155,27 @@ async function POSTHandler(req: Request) {
             clientArgs.skip = 1;
           }
 
-          const clients: any[] = await prisma.nexusClient.findMany(clientArgs);
+          const clients = await prisma.nexusClient.findMany(clientArgs);
 
           if (!clients || clients.length === 0) break;
 
           for (const client of clients) {
             results.nexusClients.attempted++;
-            const sourceId = String((client as any).id);
+            const sourceId = String(client.id);
 
             const doc = {
               id: sourceId,
-              name: (client as any).name,
-              companyName: (client as any).companyName,
-              contactPerson: (client as any).contactPerson,
-              email: (client as any).email,
-              phone: (client as any).phone,
-              status: (client as any).status,
-              package: (client as any).package ?? null,
-              source: (client as any).source ?? null,
-              joinedAt: (client as any).joinedAt ? new Date((client as any).joinedAt).toISOString() : null,
-              createdAt: (client as any).createdAt ? new Date((client as any).createdAt).toISOString() : null,
-              updatedAt: (client as any).updatedAt ? new Date((client as any).updatedAt).toISOString() : null,
+              name: client.name,
+              companyName: client.companyName,
+              contactPerson: client.contactPerson,
+              email: client.email,
+              phone: client.phone,
+              status: client.status,
+              package: client.package ?? null,
+              source: client.source ?? null,
+              joinedAt: client.joinedAt ? new Date(client.joinedAt).toISOString() : null,
+              createdAt: client.createdAt ? new Date(client.createdAt).toISOString() : null,
+              updatedAt: client.updatedAt ? new Date(client.updatedAt).toISOString() : null,
             };
 
             try {
@@ -173,23 +195,23 @@ async function POSTHandler(req: Request) {
                 },
               });
               results.nexusClients.succeeded++;
-            } catch (e: any) {
+            } catch (e: unknown) {
               results.nexusClients.failed++;
-              results.errors.push({ source_type: 'nexus_clients', source_id: sourceId, message: String(e?.message || e) });
+              results.errors.push({ source_type: 'nexus_clients', source_id: sourceId, message: getErrorMessage(e) });
             }
           }
 
-          cursorId = String((clients[clients.length - 1] as any).id);
+          cursorId = String(clients[clients.length - 1].id);
           if (clients.length < batchSize) break;
         }
       }
     }
 
-    return NextResponse.json({ success: true, ...results });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
+    return apiSuccess(results);
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    return apiError(e, { status });
   }
 }
 

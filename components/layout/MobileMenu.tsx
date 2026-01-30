@@ -79,7 +79,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                   <Mic size={24} className="sm:w-7 sm:h-7 relative z-10" strokeWidth={2.5} />
                 </button>
-                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">הקלטה</span>
+                <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">פקודה קולית</span>
               </motion.div>
 
               <motion.div

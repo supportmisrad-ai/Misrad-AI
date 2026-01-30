@@ -1,10 +1,50 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object') {
+    return value as Record<string, unknown>;
+  }
+  return null;
+}
+
+function getUnknownErrorMessage(error: unknown): string | null {
+  if (!error) return null;
+  if (error instanceof Error) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : null;
+}
+
+function isOSModuleKey(value: unknown): value is OSModuleKey {
+  return (
+    value === 'nexus' ||
+    value === 'system' ||
+    value === 'social' ||
+    value === 'finance' ||
+    value === 'client' ||
+    value === 'operations'
+  );
+}
+
+function getClerkUserCreatedAtIso(clerkUser: unknown): string | null {
+  const obj = asObject(clerkUser);
+  const raw = obj?.createdAt;
+  if (typeof raw === 'number') {
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  if (typeof raw === 'string') {
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return null;
+}
 
 /**
  * Get live KPIs for Overview & Pulse screen
@@ -17,20 +57,18 @@ export async function getLiveKPIs(): Promise<{
     activeClientsOnline: number;
     totalMRR: number;
     dailyAICost: number;
-    criticalErrors: any[];
-    securityAlerts: any[];
+    criticalErrors: unknown[];
+    securityAlerts: unknown[];
   };
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
-
-    const supabase = createClient();
 
     // Get users registered today and this week
     const today = new Date();
@@ -38,71 +76,73 @@ export async function getLiveKPIs(): Promise<{
     const weekAgo = new Date(today);
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    // Get users from Clerk (we'll need to query via API or store in DB)
-    // For now, we'll get from activity_logs or a users table if exists
-    const { data: todayUsers } = await supabase
-      .from('activity_logs')
-      .select('user_id')
-      .gte('created_at', today.toISOString())
-      .eq('action', 'הרשמה');
+    // Prisma-first: activity_logs table is not modeled in Prisma.
+    // Use Clerk as the source of truth for registration metrics.
+    let usersRegisteredToday = 0;
+    let usersRegisteredThisWeek = 0;
+    try {
+      const client = await clerkClient();
+      const clerkUsersResponse = await client.users.getUserList({ limit: 500 });
+      const users = Array.isArray(clerkUsersResponse.data) ? (clerkUsersResponse.data as unknown[]) : [];
+      for (const u of users) {
+        const createdAtIso = getClerkUserCreatedAtIso(u);
+        if (!createdAtIso) continue;
+        const createdAt = new Date(createdAtIso);
+        if (createdAt >= today) usersRegisteredToday++;
+        if (createdAt >= weekAgo) usersRegisteredThisWeek++;
+      }
+    } catch {
+      // keep 0s
+    }
 
-    const { data: weekUsers } = await supabase
-      .from('activity_logs')
-      .select('user_id')
-      .gte('created_at', weekAgo.toISOString())
-      .eq('action', 'הרשמה');
+    // Get active clients + MRR via DB aggregation (avoid loading all clients into memory)
+    const aggRows = await queryRawAllowlisted<
+      Array<{
+        active_clients_online: unknown;
+        total_mrr: unknown;
+      }>
+    >(prisma, {
+      reason: 'admin_cockpit_client_clients_agg',
+      query: `
+      SELECT
+        COUNT(*) FILTER (WHERE COALESCE(metadata->>'status', '') = 'Active') AS active_clients_online,
+        COALESCE(
+          SUM(COALESCE(NULLIF((metadata->>'monthlyFee'), '')::numeric, 0)),
+          0
+        ) AS total_mrr
+      FROM client_clients;
+    `,
+      values: [],
+    });
 
-    // Get active clients (online = last activity in last 5 minutes)
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const { data: activeClients } = await supabase
-      .from('client_clients')
-      .select('id, metadata');
+    const agg = Array.isArray(aggRows) && aggRows.length > 0 ? aggRows[0] : null;
+    const activeClientsOnline = agg?.active_clients_online == null ? 0 : Number(agg.active_clients_online);
+    const totalMRR = agg?.total_mrr == null ? 0 : Number(agg.total_mrr);
 
-    const activeClientsOnline = (activeClients || []).filter((c: any) => (c?.metadata?.status ?? '') === 'Active').length;
+    const metricsRow = await prisma.social_global_system_metrics.findFirst({
+      select: { gemini_token_usage: true },
+      orderBy: { created_at: 'desc' },
+    });
 
-    // Get MRR
-    const { data: clientsData } = await supabase
-      .from('client_clients')
-      .select('metadata');
-    const totalMRR = (clientsData || []).reduce((sum: number, c: any) => sum + (Number(c?.metadata?.monthlyFee) || 0), 0);
-
-    // Get daily AI cost (from gemini_token_usage or similar)
-    const { data: metricsData } = await supabase
-      .from('global_system_metrics')
-      .select('gemini_token_usage')
-      .order('created_at', { ascending: false })
-      .limit(1);
-    
     // Estimate daily cost (rough calculation: ~$0.00001 per token)
-    const dailyAICost = (metricsData?.[0]?.gemini_token_usage || 0) * 0.00001;
+    const geminiTokens = metricsRow?.gemini_token_usage == null ? 0 : Number(metricsRow.gemini_token_usage);
+    const dailyAICost = geminiTokens * 0.00001;
 
-    // Get critical errors (from logs)
-    const { data: errors } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .or('action.ilike.%שגיאה%,action.ilike.%error%')
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    // Get security alerts (rate limiting, suspicious activity)
-    const { data: securityAlerts } = await supabase
-      .from('activity_logs')
-      .select('*')
-      .or('action.ilike.%פריצה%,action.ilike.%hack%,action.ilike.%suspicious%')
-      .order('created_at', { ascending: false })
-      .limit(10);
+    // Prisma-first: activity_logs is not available via Prisma.
+    const errors: unknown[] = [];
+    const securityAlerts: unknown[] = [];
 
     return createSuccessResponse({
-      usersRegisteredToday: todayUsers?.length || 0,
-      usersRegisteredThisWeek: weekUsers?.length || 0,
+      usersRegisteredToday,
+      usersRegisteredThisWeek,
       activeClientsOnline,
       totalMRR,
       dailyAICost,
       criticalErrors: errors || [],
       securityAlerts: securityAlerts || [],
     });
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בקבלת KPIs חיים');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בקבלת KPIs חיים');
   }
 }
 
@@ -111,13 +151,22 @@ export async function getLiveKPIs(): Promise<{
  */
 export async function getAllUsers(): Promise<{
   success: boolean;
-  data?: any[];
+  data?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    plan: string;
+    registeredAt: string;
+    lastActivity: string;
+    isBanned: boolean;
+  }>;
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -129,26 +178,29 @@ export async function getAllUsers(): Promise<{
 
     // Get all users from Clerk
     const client = await clerkClient();
-    let clerkUsers: any[] = [];
+    let clerkUsers: unknown[] = [];
     try {
       const clerkUsersResponse = await client.users.getUserList({ limit: 500 });
-      clerkUsers = clerkUsersResponse.data || [];
+      clerkUsers = Array.isArray(clerkUsersResponse.data) ? (clerkUsersResponse.data as unknown[]) : [];
       console.log('[getAllUsers] Found', clerkUsers.length, 'users in Clerk');
-    } catch (clerkError: any) {
+    } catch (clerkError: unknown) {
       console.error('[getAllUsers] Error fetching users from Clerk:', clerkError);
       // Continue with Supabase users only
     }
 
-    const supabase = createClient();
-    
-    // Get users from Supabase nexus_users
-    const { data: teamMembers } = await supabase
-      .from('nexus_users')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const teamMembers = await prisma.nexusUser.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
 
     // Build a map of existing users by email for quick lookup
-    const existingEmails = new Set((teamMembers || []).map(m => m.email?.toLowerCase()).filter(Boolean));
+    const existingEmails = new Set(
+      (Array.isArray(teamMembers) ? teamMembers : [])
+        .map((m) => {
+          const email = asObject(m)?.email;
+          return typeof email === 'string' ? email.toLowerCase() : null;
+        })
+        .filter((v): v is string => Boolean(v))
+    );
     console.log('[getAllUsers] Existing emails in Supabase:', Array.from(existingEmails));
     
     // Sync Clerk users with Supabase - create missing entries
@@ -156,9 +208,12 @@ export async function getAllUsers(): Promise<{
     let syncedCount = 0;
     
     for (const clerkUser of clerkUsers) {
-      const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+      const clerkObj = asObject(clerkUser) ?? {};
+      const emailAddresses = clerkObj.emailAddresses;
+      const firstEmail = Array.isArray(emailAddresses) && emailAddresses.length > 0 ? asObject(emailAddresses[0])?.emailAddress : null;
+      const email = typeof firstEmail === 'string' ? firstEmail : null;
       if (!email) {
-        console.log('[getAllUsers] Skipping user without email:', clerkUser.id);
+        console.log('[getAllUsers] Skipping user without email:', String(clerkObj.id ?? ''));
         continue;
       }
       
@@ -167,25 +222,26 @@ export async function getAllUsers(): Promise<{
       
       console.log('[getAllUsers] Checking user:', {
         email,
-        clerkId: clerkUser.id,
+        clerkId: String(clerkObj.id ?? ''),
         existsInSupabase,
-        firstName: clerkUser.firstName,
-        lastName: clerkUser.lastName,
+        firstName: clerkObj.firstName,
+        lastName: clerkObj.lastName,
       });
       
       if (!existsInSupabase) {
         // User exists in Clerk but not in Supabase - create it
         try {
           console.log('[getAllUsers] 🔄 Syncing user from Clerk to Supabase:', email);
-          const fullName = clerkUser.firstName && clerkUser.lastName 
-            ? `${clerkUser.firstName} ${clerkUser.lastName}`
-            : clerkUser.firstName || clerkUser.lastName || 'User';
+          const firstName = clerkObj.firstName ? String(clerkObj.firstName) : '';
+          const lastName = clerkObj.lastName ? String(clerkObj.lastName) : '';
+          const fullName = firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || 'User';
+          const clerkUserId = String(clerkObj.id ?? '');
           
           const supabaseResult = await getOrCreateSupabaseUserAction(
-            clerkUser.id,
+            clerkUserId,
             email,
             fullName,
-            clerkUser.imageUrl || undefined
+            typeof clerkObj.imageUrl === 'string' ? clerkObj.imageUrl : undefined
           );
           
           console.log('[getAllUsers] getOrCreateSupabaseUserAction result:', {
@@ -195,51 +251,60 @@ export async function getAllUsers(): Promise<{
           });
           
           if (supabaseResult.success && supabaseResult.userId) {
-            // Check if user already exists in nexus_users
-            const { data: existingMember } = await supabase
-              .from('nexus_users')
-              .select('created_at')
-              .eq('id', supabaseResult.userId)
-              .single();
+            const socialRow = await prisma.social_users.findFirst({
+              where: { clerk_user_id: clerkUserId },
+              select: { organization_id: true },
+            });
 
-            // Initialize trial only for new users (not existing ones)
-            const isNewUser = !existingMember;
-            const now = new Date().toISOString();
+            const organizationId = socialRow?.organization_id ? String(socialRow.organization_id) : '';
+            if (!organizationId) {
+              console.warn('[getAllUsers] Skipping sync: missing organization_id for clerk user', {
+                clerkUserId,
+                email,
+              });
+              continue;
+            }
+
+            // Check if user already exists in nexus_users
+            const existingMember = await prisma.nexusUser.findUnique({
+              where: { id: supabaseResult.userId },
+              select: { id: true },
+            });
+
+            if (existingMember?.id) {
+              console.log('[getAllUsers] ✓ User already exists in nexus_users:', email);
+              continue;
+            }
+
+            const now = new Date();
             
             // Prepare user data
-            const teamMemberData: any = {
-              id: supabaseResult.userId,
-              name: fullName,
-              email: email,
-              role: 'account_manager', // Default role
-              avatar: clerkUser.imageUrl || `https://i.pravatar.cc/150?u=${email}`,
-              created_at: clerkUser.createdAt ? new Date(clerkUser.createdAt).toISOString() : now,
-            };
+            const createdAtIso = getClerkUserCreatedAtIso(clerkUser);
+            const createdAt = createdAtIso ? new Date(createdAtIso) : now;
 
-            // Note: nexus_users does not store subscription fields; trial logic is handled elsewhere.
-            // For existing users, preserve their trial/subscription status
+            await prisma.nexusUser.create({
+              data: {
+                id: supabaseResult.userId,
+                organizationId,
+                name: fullName,
+                email,
+                role: 'account_manager',
+                avatar: typeof clerkObj.imageUrl === 'string' && clerkObj.imageUrl ? clerkObj.imageUrl : `https://i.pravatar.cc/150?u=${email}`,
+                createdAt,
+              } as any,
+            });
 
-            // Insert into nexus_users (id already set)
-            const { error: insertError } = await supabase
-              .from('nexus_users')
-              .insert(teamMemberData);
-            
-            if (insertError) {
-              console.error('[getAllUsers] ❌ Error inserting to nexus_users:', insertError);
-            } else {
-              console.log('[getAllUsers] ✅ Synced user to Supabase:', email);
-              syncedCount++;
-              // Add to set so we don't try to sync again in this run
-              existingEmails.add(emailLower);
-            }
+            console.log('[getAllUsers] ✅ Synced user to nexus_users:', email);
+            syncedCount++;
+            existingEmails.add(emailLower);
           } else {
             console.error('[getAllUsers] ❌ Failed to create user in Supabase:', supabaseResult.error);
           }
-        } catch (syncError: any) {
+        } catch (syncError: unknown) {
           console.error('[getAllUsers] ❌ Error syncing user:', email, syncError);
           console.error('[getAllUsers] Error details:', {
-            message: syncError.message,
-            stack: syncError.stack,
+            message: getUnknownErrorMessage(syncError),
+            stack: asObject(syncError)?.stack,
           });
           // Continue with other users
         }
@@ -251,38 +316,34 @@ export async function getAllUsers(): Promise<{
     console.log('[getAllUsers] Synced', syncedCount, 'users from Clerk to Supabase');
     
     // Get updated team members after sync
-    const { data: updatedTeamMembers } = await supabase
-      .from('nexus_users')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const updatedTeamMembers = await prisma.nexusUser.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
 
     // Get last activity for each user
     const usersWithActivity = await Promise.all(
-      (updatedTeamMembers || []).map(async (member) => {
-        const { data: lastActivity } = await supabase
-          .from('activity_logs')
-          .select('created_at')
-          .eq('user_id', member.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+      (Array.isArray(updatedTeamMembers) ? updatedTeamMembers : []).map(async (member) => {
+        const memberObj = asObject(member) ?? {};
+        const memberId = String(memberObj.id ?? '');
+        const createdAt = memberObj.createdAt ? String(memberObj.createdAt) : new Date().toISOString();
+        const lastActivityAt = null;
 
         return {
-          id: member.id,
-          name: member.name,
-          email: member.email || 'אין דוא"ל',
-          role: member.role || 'user',
+          id: memberId,
+          name: String(memberObj.name ?? ''),
+          email: memberObj.email ? String(memberObj.email) : 'אין דוא"ל',
+          role: memberObj.role ? String(memberObj.role) : 'user',
           plan: 'free',
-          registeredAt: member.created_at,
-          lastActivity: lastActivity?.created_at || member.created_at,
+          registeredAt: createdAt,
+          lastActivity: lastActivityAt || createdAt,
           isBanned: false,
         };
       })
     );
 
     return createSuccessResponse(usersWithActivity);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בקבלת משתמשים');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בקבלת משתמשים');
   }
 }
 
@@ -296,23 +357,14 @@ export async function banUser(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `חסימת משתמש: ${userId} - ${reason}`,
-      created_at: new Date().toISOString(),
-    });
-
     return createErrorResponse(null, 'פעולה לא נתמכת: אין שדה חסימה ב-nexus_users');
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בחסימת משתמש');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בחסימת משתמש');
   }
 }
 
@@ -325,23 +377,14 @@ export async function grantProAccess(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `שדרוג משתמש ל-PRO: ${userId}`,
-      created_at: new Date().toISOString(),
-    });
-
     return createErrorResponse(null, 'פעולה לא נתמכת: אין שדה plan ב-nexus_users');
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בשדרוג משתמש');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בשדרוג משתמש');
   }
 }
 
@@ -350,56 +393,69 @@ export async function grantProAccess(
  */
 export async function getDeletedItems(): Promise<{
   success: boolean;
-  data?: any[];
+  data?: Array<{
+    id: string;
+    type: 'post' | 'client';
+    name: string;
+    clientName: string;
+    deletedAt: string;
+    deletedBy: string;
+  }>;
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const posts = await prisma.socialPost.findMany({
+      where: { deleted_at: { not: null } },
+      select: {
+        id: true,
+        content: true,
+        deleted_at: true,
+        deleted_by: true,
+        clientId: true,
+      },
+      orderBy: { deleted_at: 'desc' },
+      take: 200,
+    });
 
-    const supabase = createClient();
+    const clientIds = Array.from(new Set((posts || []).map((p: any) => String(p.clientId || '')).filter(Boolean)));
+    const clientNamesById = new Map<string, string>();
+    if (clientIds.length > 0) {
+      const clientRows = await prisma.clients.findMany({
+        where: { id: { in: clientIds } },
+        select: { id: true, company_name: true },
+      });
+      for (const c of clientRows || []) {
+        clientNamesById.set(String((c as any).id), String((c as any).company_name || ''));
+      }
+    }
 
-    // Get deleted posts
-    const { data: deletedPosts } = await supabase
-      .from('posts')
-      .select('*, clients(company_name)')
-      .not('deleted_at', 'is', null)
-      .order('deleted_at', { ascending: false });
-
-    // Get deleted clients
-    const { data: deletedClients } = await supabase
-      .from('client_clients')
-      .select('id, full_name, metadata, deleted_at, deleted_by')
-      .not('deleted_at', 'is', null)
-      .order('deleted_at', { ascending: false });
-
-    // Combine and format
     const deletedItems = [
-      ...(deletedPosts || []).map((p: any) => ({
-        id: p.id,
-        type: 'post',
-        name: p.content?.substring(0, 50) || 'פוסט',
-        clientName: p.clients?.company_name || 'לא ידוע',
-        deletedAt: p.deleted_at,
-        deletedBy: p.deleted_by || 'מערכת',
-      })),
-      ...(deletedClients || []).map((c: any) => ({
-        id: c.id,
-        type: 'client',
-        name: c?.metadata?.companyName || c?.metadata?.name || c.full_name,
-        clientName: c?.metadata?.companyName || c?.metadata?.name || c.full_name,
-        deletedAt: c.deleted_at,
-        deletedBy: c.deleted_by || 'מערכת',
-      })),
+      ...posts.map((p) => {
+        const obj = asObject(p) ?? {};
+        const content = obj.content == null ? '' : String(obj.content);
+        const deletedAt = obj.deleted_at == null ? new Date().toISOString() : String(obj.deleted_at);
+        const deletedBy = obj.deleted_by == null ? 'מערכת' : String(obj.deleted_by);
+        const clientName = clientNamesById.get(String((obj as any).clientId || '')) || 'לא ידוע';
+        return {
+          id: String(obj.id ?? ''),
+          type: 'post' as const,
+          name: (content.substring(0, 50) || 'פוסט').trim() || 'פוסט',
+          clientName,
+          deletedAt,
+          deletedBy,
+        };
+      }),
     ].sort((a, b) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime());
 
     return createSuccessResponse(deletedItems);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בקבלת פריטים שנמחקו');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בקבלת פריטים שנמחקו');
   }
 }
 
@@ -413,34 +469,32 @@ export async function restoreDeletedItem(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-    const tableName = itemType === 'post' ? 'posts' : 'client_clients';
-
-    // Restore by setting deleted_at to null
-    const { error } = await supabase
-      .from(tableName)
-      .update({ deleted_at: null })
-      .eq('id', itemId);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בהחזרת פריט');
+    if (itemType === 'client') {
+      return createErrorResponse(null, 'Restore client לא נתמך כרגע (Prisma schema חסר deleted_at/deleted_by עבור client_clients)');
     }
 
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `החזרת ${itemType === 'post' ? 'פוסט' : 'לקוח'}: ${itemId}`,
-      created_at: new Date().toISOString(),
-    });
+    const post = await prisma.socialPost.findUnique({ where: { id: itemId }, select: { id: true, clientId: true } });
+    const clientIdForPost = post?.clientId ? String(post.clientId) : '';
+    if (!clientIdForPost) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: post ללא client_id לא ניתן לשחזור');
+    }
+
+    const legacyClient = await prisma.clients.findUnique({ where: { id: clientIdForPost }, select: { organization_id: true } });
+    const organizationId = legacyClient?.organization_id ? String(legacyClient.organization_id) : '';
+    if (!organizationId) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: post ללא organization_id (דרך client) לא ניתן לשחזור');
+    }
+
+    await prisma.socialPost.updateMany({ where: { id: itemId, clientId: clientIdForPost }, data: { deleted_at: null, deleted_by: null } as any });
 
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בהחזרת פריט');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בהחזרת פריט');
   }
 }
 
@@ -454,34 +508,38 @@ export async function hardDeleteItem(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
-    const supabase = createClient();
-    const tableName = itemType === 'post' ? 'posts' : 'client_clients';
-
-    // Permanently delete
-    const { error } = await supabase
-      .from(tableName)
-      .delete()
-      .eq('id', itemId);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה במחיקה קבועה');
+    if (itemType === 'client') {
+      const existing = await prisma.clientClient.findUnique({ where: { id: itemId }, select: { id: true, organizationId: true } });
+      const organizationId = existing?.organizationId ? String(existing.organizationId) : '';
+      if (!organizationId) {
+        return createErrorResponse(null, 'Tenant Isolation lockdown: client ללא organization_id לא ניתן למחיקה');
+      }
+      await prisma.clientClient.deleteMany({ where: { id: itemId, organizationId } });
+      return createSuccessResponse(true);
     }
 
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `מחיקה קבועה של ${itemType === 'post' ? 'פוסט' : 'לקוח'}: ${itemId}`,
-      created_at: new Date().toISOString(),
-    });
+    const post = await prisma.socialPost.findUnique({ where: { id: itemId }, select: { id: true, clientId: true } });
+    const clientIdForPost = post?.clientId ? String(post.clientId) : '';
+    if (!clientIdForPost) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: post ללא client_id לא ניתן למחיקה');
+    }
+
+    const legacyClient = await prisma.clients.findUnique({ where: { id: clientIdForPost }, select: { organization_id: true } });
+    const organizationId = legacyClient?.organization_id ? String(legacyClient.organization_id) : '';
+    if (!organizationId) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: post ללא organization_id (דרך client) לא ניתן למחיקה');
+    }
+
+    await prisma.socialPost.deleteMany({ where: { id: itemId, clientId: clientIdForPost } });
 
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה במחיקה קבועה');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה במחיקה קבועה');
   }
 }
 
@@ -491,78 +549,59 @@ export async function hardDeleteItem(
 export async function getFeatureUsageAnalytics(): Promise<{
   success: boolean;
   data?: {
-    buttonClicks: any[];
+    buttonClicks: unknown[];
     aiSatisfaction: {
       copied: number;
       retried: number;
       satisfactionRate: number;
     };
-    feedback: any[];
-    churnedUsers: any[];
+    feedback: unknown[];
+    churnedUsers: Array<{
+      id: string;
+      name: string;
+      email: string;
+      lastActive: string;
+      daysSinceActive: number;
+    }>;
   };
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
-
-    const supabase = createClient();
-
-    // Get button clicks from activity_logs
-    const { data: buttonClicks } = await supabase
-      .from('activity_logs')
-      .select('action, created_at')
-      .or('action.ilike.%לחץ%,action.ilike.%click%')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    // Count AI actions (copied vs retried)
-    const { data: aiActions } = await supabase
-      .from('activity_logs')
-      .select('action')
-      .or('action.ilike.%AI%,action.ilike.%בינה%');
-
-    const copied = aiActions?.filter(a => a.action.includes('העתק') || a.action.includes('copied')).length || 0;
-    const retried = aiActions?.filter(a => a.action.includes('נסה שוב') || a.action.includes('retry')).length || 0;
+    // Prisma-first: activity_logs is not modeled in Prisma.
+    const buttonClicks: unknown[] = [];
+    const copied = 0;
+    const retried = 0;
     const total = copied + retried;
     const satisfactionRate = total > 0 ? (copied / total) * 100 : 0;
 
-    // Get feedback (from contact form or feedback table)
-    const { data: feedback } = await supabase
-      .from('feedback')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const feedback = await prisma.social_feedback.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 50,
+    });
 
     // Get churned users (no activity for 7 days)
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const { data: allUsers } = await supabase
-      .from('nexus_users')
-      .select('id, name, email, created_at');
-
+    const users = await prisma.nexusUser.findMany({
+      select: { id: true, name: true, email: true, createdAt: true },
+    });
     const churnedUsers = await Promise.all(
-      (allUsers || []).map(async (user) => {
-        const { data: lastActivity } = await supabase
-          .from('activity_logs')
-          .select('created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        const lastActive = lastActivity?.created_at 
-          ? new Date(lastActivity.created_at)
-          : new Date(user.created_at);
+      users.map(async (user) => {
+        const userObj = asObject(user) ?? {};
+        const userId = String(userObj.id ?? '');
+        const createdAtStr = userObj.createdAt == null ? new Date().toISOString() : String(userObj.createdAt);
+        const lastActive = new Date(createdAtStr);
 
         if (lastActive < weekAgo) {
           return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
+            id: userId,
+            name: String(userObj.name ?? ''),
+            email: String(userObj.email ?? ''),
             lastActive: lastActive.toISOString(),
             daysSinceActive: Math.floor((Date.now() - lastActive.getTime()) / (24 * 60 * 60 * 1000)),
           };
@@ -579,10 +618,10 @@ export async function getFeatureUsageAnalytics(): Promise<{
         satisfactionRate,
       },
       feedback: feedback || [],
-      churnedUsers: churnedUsers.filter(u => u !== null),
+      churnedUsers: churnedUsers.filter((u): u is NonNullable<typeof u> => u !== null),
     });
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בקבלת ניתוח שימוש');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בקבלת ניתוח שימוש');
   }
 }
 
@@ -605,35 +644,32 @@ export async function getFeatureFlags(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const flags = await prisma.social_system_settings
+      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-
-    // Get from feature_flags table or system_settings
-    const { data: flags } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'feature_flags')
-      .single();
-
-    const rawValue = (flags as any)?.value;
-    let parsedValue: any = null;
-    if (rawValue && typeof rawValue === 'string') {
+    const flagsObj = asObject(flags) ?? {};
+    const rawValue = flagsObj.value;
+    let parsedValue: unknown = null;
+    if (typeof rawValue === 'string' && rawValue) {
       parsedValue = JSON.parse(rawValue);
     } else if (rawValue && typeof rawValue === 'object') {
       parsedValue = rawValue;
     }
 
+    const parsedObj = asObject(parsedValue) ?? {};
+
     return createSuccessResponse({
-      maintenanceMode: Boolean(parsedValue?.maintenanceMode ?? flags?.maintenance_mode ?? false),
-      aiEnabled: Boolean(parsedValue?.aiEnabled ?? (flags?.ai_enabled !== false)),
-      bannerMessage: (parsedValue?.bannerMessage ?? flags?.banner_message ?? null) as any,
-      fullOfficeRequiresFinance: Boolean(parsedValue?.fullOfficeRequiresFinance ?? false),
-      enable_payment_manual: Boolean(parsedValue?.enable_payment_manual ?? parsedValue?.enablePaymentManual ?? true),
-      enable_payment_credit_card: Boolean(parsedValue?.enable_payment_credit_card ?? parsedValue?.enablePaymentCreditCard ?? false),
+      maintenanceMode: Boolean(parsedObj.maintenanceMode ?? flagsObj.maintenance_mode ?? false),
+      aiEnabled: Boolean(parsedObj.aiEnabled ?? (flagsObj.ai_enabled !== false)),
+      bannerMessage: parsedObj.bannerMessage == null ? (flagsObj.banner_message == null ? null : String(flagsObj.banner_message)) : String(parsedObj.bannerMessage),
+      fullOfficeRequiresFinance: Boolean(parsedObj.fullOfficeRequiresFinance ?? false),
+      enable_payment_manual: Boolean(parsedObj.enable_payment_manual ?? parsedObj.enablePaymentManual ?? true),
+      enable_payment_credit_card: Boolean(parsedObj.enable_payment_credit_card ?? parsedObj.enablePaymentCreditCard ?? false),
       launch_scope_modules: (() => {
         const defaults: Record<OSModuleKey, boolean> = {
           nexus: true,
@@ -643,15 +679,16 @@ export async function getFeatureFlags(): Promise<{
           client: true,
           operations: true,
         };
-        const raw = parsedValue?.launch_scope_modules ?? parsedValue?.launchScopeModules;
-        if (!raw || typeof raw !== 'object') return defaults;
+        const raw = parsedObj.launch_scope_modules ?? parsedObj.launchScopeModules;
+        const rawObj = asObject(raw);
+        if (!rawObj) return defaults;
         return {
-          nexus: Boolean((raw as any).nexus ?? defaults.nexus),
-          system: Boolean((raw as any).system ?? defaults.system),
-          social: Boolean((raw as any).social ?? defaults.social),
-          finance: Boolean((raw as any).finance ?? defaults.finance),
-          client: Boolean((raw as any).client ?? defaults.client),
-          operations: Boolean((raw as any).operations ?? defaults.operations),
+          nexus: Boolean(rawObj.nexus ?? defaults.nexus),
+          system: Boolean(rawObj.system ?? defaults.system),
+          social: Boolean(rawObj.social ?? defaults.social),
+          finance: Boolean(rawObj.finance ?? defaults.finance),
+          client: Boolean(rawObj.client ?? defaults.client),
+          operations: Boolean(rawObj.operations ?? defaults.operations),
         };
       })(),
     });
@@ -693,26 +730,23 @@ export async function updateFeatureFlags(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const existing = await prisma.social_system_settings
+      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-
-    const { data: existing } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'feature_flags')
-      .maybeSingle();
-
-    const existingRaw = (existing as any)?.value;
-    let existingValue: any = null;
-    if (existingRaw && typeof existingRaw === 'string') {
+    const existingObj = asObject(existing) ?? {};
+    const existingRaw = existingObj.value;
+    let existingValue: unknown = null;
+    if (typeof existingRaw === 'string' && existingRaw) {
       existingValue = JSON.parse(existingRaw);
     } else if (existingRaw && typeof existingRaw === 'object') {
       existingValue = existingRaw;
     }
+    const existingValueObj = asObject(existingValue) ?? {};
 
     const defaultScope: Record<OSModuleKey, boolean> = {
       nexus: true,
@@ -723,64 +757,64 @@ export async function updateFeatureFlags(
       operations: true,
     };
 
-    const existingScopeRaw = existingValue?.launch_scope_modules ?? existingValue?.launchScopeModules;
-    const existingScope = !existingScopeRaw || typeof existingScopeRaw !== 'object'
+    const existingScopeRaw = existingValueObj.launch_scope_modules ?? existingValueObj.launchScopeModules;
+    const existingScopeObj = asObject(existingScopeRaw);
+    const existingScope = !existingScopeObj
       ? defaultScope
       : {
-          nexus: Boolean((existingScopeRaw as any).nexus ?? defaultScope.nexus),
-          system: Boolean((existingScopeRaw as any).system ?? defaultScope.system),
-          social: Boolean((existingScopeRaw as any).social ?? defaultScope.social),
-          finance: Boolean((existingScopeRaw as any).finance ?? defaultScope.finance),
-          client: Boolean((existingScopeRaw as any).client ?? defaultScope.client),
-          operations: Boolean((existingScopeRaw as any).operations ?? defaultScope.operations),
+          nexus: Boolean(existingScopeObj.nexus ?? defaultScope.nexus),
+          system: Boolean(existingScopeObj.system ?? defaultScope.system),
+          social: Boolean(existingScopeObj.social ?? defaultScope.social),
+          finance: Boolean(existingScopeObj.finance ?? defaultScope.finance),
+          client: Boolean(existingScopeObj.client ?? defaultScope.client),
+          operations: Boolean(existingScopeObj.operations ?? defaultScope.operations),
         };
 
     const requestedScopeRaw = flags.launch_scope_modules;
-    const requestedScope = !requestedScopeRaw || typeof requestedScopeRaw !== 'object'
+    const requestedScopeObj = asObject(requestedScopeRaw);
+    const requestedScope = !requestedScopeObj
       ? null
       : {
-          nexus: Boolean((requestedScopeRaw as any).nexus ?? existingScope.nexus),
-          system: Boolean((requestedScopeRaw as any).system ?? existingScope.system),
-          social: Boolean((requestedScopeRaw as any).social ?? existingScope.social),
-          finance: Boolean((requestedScopeRaw as any).finance ?? existingScope.finance),
-          client: Boolean((requestedScopeRaw as any).client ?? existingScope.client),
-          operations: Boolean((requestedScopeRaw as any).operations ?? existingScope.operations),
+          nexus: Boolean(requestedScopeObj.nexus ?? existingScope.nexus),
+          system: Boolean(requestedScopeObj.system ?? existingScope.system),
+          social: Boolean(requestedScopeObj.social ?? existingScope.social),
+          finance: Boolean(requestedScopeObj.finance ?? existingScope.finance),
+          client: Boolean(requestedScopeObj.client ?? existingScope.client),
+          operations: Boolean(requestedScopeObj.operations ?? existingScope.operations),
         };
 
     const nextFlags = {
-      maintenanceMode: Boolean(flags.maintenanceMode ?? existingValue?.maintenanceMode ?? (existing as any)?.maintenance_mode ?? false),
-      aiEnabled: Boolean(flags.aiEnabled ?? existingValue?.aiEnabled ?? ((existing as any)?.ai_enabled !== false)),
-      bannerMessage: (flags.bannerMessage ?? existingValue?.bannerMessage ?? (existing as any)?.banner_message ?? null) as string | null,
-      fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance ?? existingValue?.fullOfficeRequiresFinance ?? false),
-      enable_payment_manual: Boolean(flags.enable_payment_manual ?? existingValue?.enable_payment_manual ?? existingValue?.enablePaymentManual ?? true),
-      enable_payment_credit_card: Boolean(flags.enable_payment_credit_card ?? existingValue?.enable_payment_credit_card ?? existingValue?.enablePaymentCreditCard ?? false),
+      maintenanceMode: Boolean(flags.maintenanceMode ?? existingValueObj.maintenanceMode ?? existingObj.maintenance_mode ?? false),
+      aiEnabled: Boolean(flags.aiEnabled ?? existingValueObj.aiEnabled ?? (existingObj.ai_enabled !== false)),
+      bannerMessage: (flags.bannerMessage ?? existingValueObj.bannerMessage ?? existingObj.banner_message ?? null) as string | null,
+      fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance ?? existingValueObj.fullOfficeRequiresFinance ?? false),
+      enable_payment_manual: Boolean(flags.enable_payment_manual ?? existingValueObj.enable_payment_manual ?? existingValueObj.enablePaymentManual ?? true),
+      enable_payment_credit_card: Boolean(flags.enable_payment_credit_card ?? existingValueObj.enable_payment_credit_card ?? existingValueObj.enablePaymentCreditCard ?? false),
       launch_scope_modules: requestedScope ?? existingScope,
     };
 
-    // Upsert system settings
-    await supabase
-      .from('social_system_settings')
-      .upsert({
+    await prisma.social_system_settings.upsert({
+      where: { key: 'feature_flags' },
+      create: {
         key: 'feature_flags',
         maintenance_mode: nextFlags.maintenanceMode,
         ai_enabled: nextFlags.aiEnabled,
         banner_message: nextFlags.bannerMessage,
         value: nextFlags as any,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'key',
-      });
-
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `עדכון הגדרות מערכת: ${JSON.stringify(nextFlags)}`,
-      created_at: new Date().toISOString(),
+        updated_at: new Date(),
+      } as any,
+      update: {
+        maintenance_mode: nextFlags.maintenanceMode,
+        ai_enabled: nextFlags.aiEnabled,
+        banner_message: nextFlags.bannerMessage,
+        value: nextFlags as any,
+        updated_at: new Date(),
+      } as any,
     });
 
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בעדכון הגדרות');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בעדכון הגדרות');
   }
 }
 
@@ -795,31 +829,29 @@ export async function getSystemEmailSettings(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const row = await prisma.social_system_settings
+      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-    const { data: row } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'system_email_settings')
-      .maybeSingle();
-
-    const rawValue = (row as any)?.value;
-    let parsedValue: any = null;
-    if (rawValue && typeof rawValue === 'string') {
+    const rowObj = asObject(row) ?? {};
+    const rawValue = rowObj.value;
+    let parsedValue: unknown = null;
+    if (typeof rawValue === 'string' && rawValue) {
       parsedValue = JSON.parse(rawValue);
     } else if (rawValue && typeof rawValue === 'object') {
       parsedValue = rawValue;
     }
+    const parsedObj = asObject(parsedValue) ?? {};
 
-    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@social-os.com').trim();
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
 
-    const supportEmailRaw = (parsedValue?.supportEmail ?? supportEmailFallback);
-    const migrationEmailRaw = (parsedValue?.migrationEmail ?? migrationEmailFallback);
+    const supportEmailRaw = (parsedObj.supportEmail ?? supportEmailFallback);
+    const migrationEmailRaw = (parsedObj.migrationEmail ?? migrationEmailFallback);
 
     const supportEmail = String(supportEmailRaw ?? '').trim() || null;
     const migrationEmail = String(migrationEmailRaw ?? '').trim() || null;
@@ -829,7 +861,7 @@ export async function getSystemEmailSettings(): Promise<{
       migrationEmail,
     });
   } catch (error) {
-    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@social-os.com').trim();
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
     return createSuccessResponse({
       supportEmail: supportEmailFallback || null,
@@ -845,55 +877,42 @@ export async function updateSystemEmailSettings(input: {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const existing = await prisma.social_system_settings
+      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-
-    const { data: existing } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'system_email_settings')
-      .maybeSingle();
-
-    const existingRaw = (existing as any)?.value;
-    let existingValue: any = null;
-    if (existingRaw && typeof existingRaw === 'string') {
+    const existingObj = asObject(existing) ?? {};
+    const existingRaw = existingObj.value;
+    let existingValue: unknown = null;
+    if (typeof existingRaw === 'string' && existingRaw) {
       existingValue = JSON.parse(existingRaw);
     } else if (existingRaw && typeof existingRaw === 'object') {
       existingValue = existingRaw;
     }
 
-    const supportEmail = input.supportEmail === undefined ? existingValue?.supportEmail : input.supportEmail;
-    const migrationEmail = input.migrationEmail === undefined ? existingValue?.migrationEmail : input.migrationEmail;
+    const existingValueObj = asObject(existingValue) ?? {};
+
+    const supportEmail = input.supportEmail === undefined ? existingValueObj.supportEmail : input.supportEmail;
+    const migrationEmail = input.migrationEmail === undefined ? existingValueObj.migrationEmail : input.migrationEmail;
 
     const nextValue = {
       supportEmail: supportEmail ? String(supportEmail).trim() : null,
       migrationEmail: migrationEmail ? String(migrationEmail).trim() : null,
     };
 
-    await supabase
-      .from('social_system_settings')
-      .upsert(
-        {
-          key: 'system_email_settings',
-          value: nextValue as any,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key' }
-      );
-
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `עדכון אימיילים מערכתיים: ${JSON.stringify(nextValue)}`,
-      created_at: new Date().toISOString(),
+    await prisma.social_system_settings.upsert({
+      where: { key: 'system_email_settings' },
+      create: { key: 'system_email_settings', value: nextValue as any, updated_at: new Date() } as any,
+      update: { value: nextValue as any, updated_at: new Date() } as any,
     });
 
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בעדכון אימיילים מערכתיים');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בעדכון אימיילים מערכתיים');
   }
 }
 
@@ -905,28 +924,31 @@ export async function getModuleIcons(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const row = await prisma.social_system_settings
+      .findUnique({ where: { key: 'module_icons' }, select: { value: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-    const { data: row } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'module_icons')
-      .maybeSingle();
-
-    const rawValue = (row as any)?.value;
-    let parsedValue: any = null;
-    if (rawValue && typeof rawValue === 'string') {
+    const rowObj = asObject(row) ?? {};
+    const rawValue = rowObj.value;
+    let parsedValue: unknown = null;
+    if (typeof rawValue === 'string' && rawValue) {
       parsedValue = JSON.parse(rawValue);
     } else if (rawValue && typeof rawValue === 'object') {
       parsedValue = rawValue;
     }
 
-    const moduleIcons = parsedValue && typeof parsedValue === 'object' ? (parsedValue as any) : {};
-    return createSuccessResponse(moduleIcons);
+    const parsedObj = asObject(parsedValue) ?? {};
+    const out: Partial<Record<OSModuleKey, string>> = {};
+    for (const [k, v] of Object.entries(parsedObj)) {
+      if (isOSModuleKey(k) && typeof v === 'string') {
+        out[k] = v;
+      }
+    }
+    return createSuccessResponse(out);
   } catch (error) {
     return createSuccessResponse({});
   }
@@ -938,52 +960,45 @@ export async function updateModuleIcons(params: {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
+    const existing = await prisma.social_system_settings
+      .findUnique({ where: { key: 'module_icons' }, select: { value: true } as any })
+      .catch(() => null);
 
-    const supabase = createClient();
-
-    const { data: existing } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'module_icons')
-      .maybeSingle();
-
-    const existingRaw = (existing as any)?.value;
-    let existingValue: any = null;
-    if (existingRaw && typeof existingRaw === 'string') {
+    const existingObj = asObject(existing) ?? {};
+    const existingRaw = existingObj.value;
+    let existingValue: unknown = null;
+    if (typeof existingRaw === 'string' && existingRaw) {
       existingValue = JSON.parse(existingRaw);
     } else if (existingRaw && typeof existingRaw === 'object') {
       existingValue = existingRaw;
     }
 
-    const nextValue: Record<string, string> = {
-      ...(existingValue && typeof existingValue === 'object' ? (existingValue as any) : {}),
-      ...(params.moduleIcons as any),
-    };
+    const existingValueObj = asObject(existingValue) ?? {};
+    const existingStrings: Record<string, string> = {};
+    for (const [k, v] of Object.entries(existingValueObj)) {
+      if (typeof v === 'string') existingStrings[k] = v;
+    }
 
-    await supabase
-      .from('social_system_settings')
-      .upsert(
-        {
-          key: 'module_icons',
-          value: nextValue as any,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'key' }
-      );
+    const nextValue: Record<string, string> = { ...existingStrings };
+    for (const [k, v] of Object.entries(params.moduleIcons)) {
+      if (v != null) {
+        nextValue[k] = String(v);
+      }
+    }
 
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `עדכון אייקוני מודולים: ${JSON.stringify(nextValue)}`,
-      created_at: new Date().toISOString(),
+    await prisma.social_system_settings.upsert({
+      where: { key: 'module_icons' },
+      create: { key: 'module_icons', value: nextValue as any, updated_at: new Date() } as any,
+      update: { value: nextValue as any, updated_at: new Date() } as any,
     });
 
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בעדכון אייקוני מודולים');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בעדכון אייקוני מודולים');
   }
 }
 
@@ -996,23 +1011,14 @@ export async function sendChurnEmail(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
-    // In production, integrate with email service (Resend, SendGrid, etc.)
-    // For now, just log the action
-    const supabase = createClient();
-    await supabase.from('activity_logs').insert({
-      user_id: authCheck.userId,
-      action: `שליחת מייל "מתגעגעים" ל-${userIds.length} משתמשים`,
-      created_at: new Date().toISOString(),
-    });
-
     return createSuccessResponse(true);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בשליחת מיילים');
+  } catch (error: unknown) {
+    return createErrorResponse(error, getUnknownErrorMessage(error) || 'שגיאה בשליחת מיילים');
   }
 }
 

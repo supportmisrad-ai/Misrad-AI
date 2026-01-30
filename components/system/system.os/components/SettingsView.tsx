@@ -81,6 +81,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
       { id: 'notifications', label: 'התראות', icon: Bell, desc: 'מתי להציק לך', allowed: true },
   ].filter(tab => tab.allowed);
 
+  const userRole = user?.role;
+
   return (
     <div className="p-4 md:p-8 max-w-[1920px] mx-auto animate-fade-in pb-20 h-full flex flex-col">
       
@@ -92,10 +94,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                 הגדרות מערכת
             </h2>
         </div>
-        {user.role !== 'admin' && (
+        {userRole && userRole !== 'admin' && (
              <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
                  <Shield size={16} />
-                 גישה מוגבלת ({user.role === 'agent' ? 'סוכן' : 'צופה'})
+                 גישה מוגבלת ({userRole === 'agent' ? 'סוכן' : 'צופה'})
              </div>
         )}
       </div>

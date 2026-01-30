@@ -16,6 +16,9 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     currentTenantId,
     currentTenantName 
 }) => {
+    const unwrap = (data: any) =>
+        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+
     const [isOpen, setIsOpen] = useState(false);
     const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
     const [businesses, setBusinesses] = useState<Tenant[]>([]);
@@ -34,13 +37,17 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         const fetchBusinesses = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch('/api/tenants');
-                if (response.ok) {
-                    const data = await response.json();
-                    setBusinesses(data.tenants || []);
+                const response = await fetch('/api/admin/tenants');
+                if (!response.ok) {
+                    setBusinesses([]);
+                    return;
                 }
+                const raw = await response.json().catch(() => ({}));
+                const payload = unwrap(raw);
+                setBusinesses((payload as any).tenants || []);
             } catch (error) {
                 console.error('Error fetching businesses:', error);
+                setBusinesses([]);
             } finally {
                 setIsLoading(false);
             }
@@ -91,10 +98,8 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             const urlParams = new URLSearchParams(window.location.search);
             const subdomainFromUrl = urlParams.get('tenant');
             if (subdomainFromUrl) return subdomainFromUrl;
-            
-            // Try localStorage as fallback
-            const storedSubdomain = localStorage.getItem('current_tenant_subdomain');
-            return storedSubdomain;
+
+            return null;
         }
         
         return null;
@@ -113,7 +118,6 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 // For localhost, use query parameter or localStorage
                 const url = new URL(window.location.href);
                 url.searchParams.set('tenant', tenant.subdomain);
-                localStorage.setItem('current_tenant_subdomain', tenant.subdomain);
                 window.location.href = url.toString();
             } else {
                 // For production, redirect to subdomain

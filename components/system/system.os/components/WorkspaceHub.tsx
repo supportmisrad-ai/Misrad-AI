@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Lead, CalendarEvent, Task, Activity, Campaign, Student, ContentItem } from '../types';
-import SystemCommandCenter from './SystemCommandCenter';
+import SystemCommandCenter from '../../SystemCommandCenter';
 import MorningBriefingView from './MorningBriefingView';
 
 interface WorkspaceHubProps {

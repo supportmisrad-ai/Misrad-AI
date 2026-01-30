@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Bug, Wrench, Zap, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Calendar, ThumbsUp, RefreshCw, Eye, Edit2, Tag } from 'lucide-react';
 import { FeatureRequest } from '../../types';
-import { getWorkspaceOrgIdFromPathname } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
@@ -35,9 +35,9 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
             if (typeFilter !== 'all') params.append('type', String(typeFilter));
             if (params.toString()) url += '?' + params.toString();
 
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(url, {
-                headers: orgId ? { 'x-org-id': orgId } : undefined
+                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
             });
             if (!response.ok) {
                 throw new Error('שגיאה בטעינת בקשות פיצ\'רים');
@@ -59,13 +59,13 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
             if (adminNotes) body.admin_notes = adminNotes;
             if (rejectionReason) body.rejection_reason = rejectionReason;
 
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
 
             const response = await fetch(`/api/features/${requestId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify(body)
             });
@@ -80,7 +80,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
             
             if (selectedRequest?.id === requestId) {
                 const updated = await fetch(`/api/features?id=${requestId}`, {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 }).then(r => r.json());
                 setSelectedRequest(updated);
             }
@@ -94,12 +94,12 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
 
     const handleAddNotes = async (requestId: string, notes: string) => {
         try {
-            const orgId = typeof window !== 'undefined' ? getWorkspaceOrgIdFromPathname(window.location.pathname) : null;
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const res = await fetch(`/api/features/${requestId}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgId ? { 'x-org-id': orgId } : {}),
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
                 },
                 body: JSON.stringify({ admin_notes: notes })
             });
@@ -113,7 +113,7 @@ export const FeatureRequestsPanel: React.FC<FeatureRequestsPanelProps> = ({ addT
             
             if (selectedRequest?.id === requestId) {
                 const updated = await fetch(`/api/features?id=${requestId}`, {
-                    headers: orgId ? { 'x-org-id': orgId } : undefined
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 }).then(r => r.json());
                 setSelectedRequest(updated);
             }

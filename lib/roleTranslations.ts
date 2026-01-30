@@ -3,7 +3,7 @@
  * Provides Hebrew translations and display names for user roles
  */
 
-import { UserRole, TeamMemberRole } from '@/types';
+import { UserRole, TeamMemberRole } from '@/types/social';
 
 /**
  * Hebrew translations for user roles

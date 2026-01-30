@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  BrainCircuit, Sparkles, TrendingUp, AlertTriangle, 
+  Sparkles, TrendingUp, AlertTriangle, 
   CheckCircle, RefreshCw, Download, Save, History, 
   Users, Target, ShieldAlert, Cpu, X, Lightbulb, ArrowRight, RotateCcw
 } from 'lucide-react';
@@ -25,12 +25,14 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
   const [history, setHistory] = useState<AIReport[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  const isAdminUser = user?.role === 'admin';
+
   const generateReport = () => {
     setIsGenerating(true);
     setReport(null);
 
     setTimeout(() => {
-        const isAdmin = user.role === 'admin';
+        const isAdmin = isAdminUser;
         const churnedCount = leads.filter(l => l.status === 'churned').length;
         
         const newReport: AIReport = {
@@ -87,8 +89,8 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({ leads, agents }) => {
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-50/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none group-hover:bg-indigo-100/50 transition-colors duration-700"></div>
           <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
               <div>
-                  <div className="flex items-center gap-2 text-indigo-600 font-mono text-xs font-bold uppercase tracking-widest mb-3"><BrainCircuit size={16} /> ניתוח נתונים ומשוב</div>
-                  <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">{user.role === 'admin' ? 'ניתוח נתונים מתקדם' : 'מדדי הצלחה אישיים'}</h2>
+                  <div className="flex items-center gap-2 text-indigo-600 font-mono text-xs font-bold uppercase tracking-widest mb-3"><Cpu size={16} /> ניתוח נתונים ומשוב</div>
+                  <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-2">{isAdminUser ? 'ניתוח נתונים מתקדם' : 'מדדי הצלחה אישיים'}</h2>
                   <p className="text-slate-500 max-w-2xl text-lg leading-relaxed font-medium">המערכת מנתחת הצלחות, כשלונות, החזרים וביטולים כדי לייצר עבורך תובנות אופרטיביות לשיפור הרווח הנקי.</p>
               </div>
               <div className="flex gap-4">

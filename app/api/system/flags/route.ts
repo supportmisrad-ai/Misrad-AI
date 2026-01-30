@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
-import { getTenants } from '../../../../lib/db';
-import { initDatabase } from '../../../../lib/db';
+import prisma from '@/lib/prisma';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function getOrgKeyFromHeader(request: NextRequest): string | null {
+  const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
+  return orgKey ? String(orgKey) : null;
+}
+
 /**
  * GET /api/system/flags
  * Get system flags for current tenant
@@ -43,32 +49,33 @@ async function GETHandler(request: NextRequest) {
         // Note: All authenticated users can READ system flags (needed for ScreenGuard)
         // But only admins can UPDATE them (in PATCH method below)
 
-        // Get tenant from multiple sources
         const searchParams = request.nextUrl.searchParams;
-        const providedTenantId = searchParams.get('tenantId');
-        
-        let tenantId: string | null = providedTenantId || null;
+        const tenantIdFromQuery = searchParams.get('tenantId');
+        const headerOrgKey = getOrgKeyFromHeader(request);
 
-        // Method 1: If tenantId was provided in query params (for super admin)
-        if (!tenantId) {
-            // Method 2: Try to get from subdomain
-            const hostname = request.headers.get('host') || '';
-            const subdomainMatch = hostname.match(/^([^.]+)\.nexus-os\.co$/);
-            const subdomain = subdomainMatch ? subdomainMatch[1] : null;
+        if (!headerOrgKey && tenantIdFromQuery && user?.isSuperAdmin) {
+            await requireSuperAdmin();
+        }
 
-            if (subdomain) {
-                const tenants = await getTenants({ subdomain });
-                if (tenants.length > 0) {
-                    tenantId = tenants[0].id;
-                }
-            }
+        if (!headerOrgKey && !tenantIdFromQuery) {
+            return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
+        }
 
-            // Method 3: If still no tenant, try to find by user's email (owner_email)
-            if (!tenantId && user.email) {
-                const tenants = await getTenants({ ownerEmail: user.email });
-                if (tenants.length > 0) {
-                    tenantId = tenants[0].id;
-                }
+        if (!headerOrgKey && tenantIdFromQuery && !user?.isSuperAdmin) {
+            return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
+        }
+
+        const primaryOrgKey = headerOrgKey || (tenantIdFromQuery ? String(tenantIdFromQuery) : null);
+        if (!primaryOrgKey) {
+            return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
+        }
+
+        const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
+
+        if (headerOrgKey && tenantIdFromQuery && String(headerOrgKey) !== String(tenantIdFromQuery)) {
+            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(tenantIdFromQuery));
+            if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
+                return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
             }
         }
 
@@ -86,30 +93,17 @@ async function GETHandler(request: NextRequest) {
             brain: 'active'
         };
 
-        // If no tenant, return defaults (for super admin global view)
-        if (!tenantId) {
-            return NextResponse.json({ systemFlags: defaultFlags });
-        }
+        const settings = await prisma.system_settings.findFirst({
+            where: { tenant_id: String(workspacePrimary.id) },
+            select: { system_flags: true },
+        });
 
-        // Try to load from database
-        const { supabase } = await import('../../../../lib/supabase');
-        await initDatabase();
-        
-        if (supabase) {
-            const { data, error } = await supabase
-                .from('system_settings')
-                .select('system_flags')
-                .eq('tenant_id', tenantId)
-                .limit(1)
-                .maybeSingle();
-
-            if (!error && data && data.system_flags) {
-                // Merge defaults with saved flags
-                const savedFlags = data.system_flags as Record<string, 'active' | 'maintenance' | 'hidden'>;
-                return NextResponse.json({ 
-                    systemFlags: { ...defaultFlags, ...savedFlags }
-                });
-            }
+        if (settings?.system_flags) {
+            // Merge defaults with saved flags
+            const savedFlags = settings.system_flags as Record<string, 'active' | 'maintenance' | 'hidden'>;
+            return NextResponse.json({
+                systemFlags: { ...defaultFlags, ...savedFlags }
+            });
         }
 
         // Return defaults if no settings found
@@ -159,90 +153,54 @@ async function PATCHHandler(request: NextRequest) {
             );
         }
 
-        // Get tenant - try multiple methods
-        let tenantId: string | null = providedTenantId || null;
+        const headerOrgKey = getOrgKeyFromHeader(request);
+        const tenantIdFromBody = providedTenantId ? String(providedTenantId) : null;
 
-        // Method 1: If tenantId was provided in request body (for super admin)
-        if (!tenantId) {
-            // Method 2: Try to get from subdomain
-            const hostname = request.headers.get('host') || '';
-            const subdomainMatch = hostname.match(/^([^.]+)\.nexus-os\.co$/);
-            const subdomain = subdomainMatch ? subdomainMatch[1] : null;
-
-            if (subdomain) {
-                const tenants = await getTenants({ subdomain });
-                if (tenants.length > 0) {
-                    tenantId = tenants[0].id;
-                }
-            }
-
-            // Method 3: If still no tenant, try to find by user's email (owner_email)
-            if (!tenantId && user.email) {
-                const tenants = await getTenants({ ownerEmail: user.email });
-                if (tenants.length > 0) {
-                    tenantId = tenants[0].id;
-                }
-            }
-        }
-
-        // If no tenant found and user is super admin, they can provide tenantId
-        // Otherwise, return error
-        if (!tenantId) {
-            if (user.isSuperAdmin) {
-                return NextResponse.json(
-                    { error: 'Tenant not found. Please provide tenantId in request body when working without subdomain.' },
-                    { status: 400 }
-                );
-            }
+        if (!headerOrgKey && !tenantIdFromBody) {
             return NextResponse.json(
-                { error: 'Tenant not found. Cannot update system flags without tenant context.' },
+                { error: 'Missing workspace context. Provide x-org-id header or tenantId in body.' },
                 { status: 400 }
             );
         }
 
-        // Load or create system settings
-        const { supabase } = await import('../../../../lib/supabase');
-        await initDatabase();
-        
-        if (!supabase) {
-            return NextResponse.json(
-                { error: 'Database connection failed' },
-                { status: 500 }
-            );
+        const primaryOrgKey = headerOrgKey || tenantIdFromBody;
+        if (!primaryOrgKey) {
+            return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
-        // Get current settings
-        const { data: existingSettings } = await supabase
-            .from('system_settings')
-            .select('system_flags')
-            .eq('tenant_id', tenantId)
-            .limit(1)
-            .maybeSingle();
+        const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
+
+        if (headerOrgKey && tenantIdFromBody && String(headerOrgKey) !== String(tenantIdFromBody)) {
+            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(tenantIdFromBody));
+            if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
+                return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
+            }
+        }
+
+        const existingSettings = await prisma.system_settings.findFirst({
+            where: { tenant_id: String(workspacePrimary.id) },
+            select: { system_flags: true },
+        });
 
         const currentFlags = (existingSettings?.system_flags || {}) as Record<string, 'active' | 'maintenance' | 'hidden'>;
         const updatedFlags = { ...currentFlags, [screenId]: status };
 
-        // Upsert settings
-        const { error: upsertError } = await supabase
-            .from('system_settings')
-            .upsert({
-                tenant_id: tenantId,
+        await prisma.system_settings.upsert({
+            where: { tenant_id: String(workspacePrimary.id) },
+            create: {
+                tenant_id: String(workspacePrimary.id),
                 system_flags: updatedFlags,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'tenant_id'
-            });
-
-        if (upsertError) {
-            console.error('[API] Error saving system flags:', upsertError);
-            return NextResponse.json(
-                { error: 'שגיאה בשמירת הגדרות מערכת' },
-                { status: 500 }
-            );
-        }
+            },
+            update: {
+                // Prisma Tenant Guard requires tenant key in update payload for upsert.
+                tenant_id: String(workspacePrimary.id),
+                system_flags: updatedFlags,
+                updated_at: new Date(),
+            },
+        });
 
         // Log the change
-        console.log(`[System Flag] ${screenId} → ${status} by userId=${user.id} for tenant ${tenantId}`);
+        console.log(`[System Flag] ${screenId} → ${status} by userId=${user.id} for tenant ${workspacePrimary.id}`);
 
         return NextResponse.json({
             success: true,

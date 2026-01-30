@@ -1,6 +1,7 @@
+'use client';
 
 import React, { useState } from 'react';
-import { Student, FieldAgent, Lead } from '../types';
+import { Student, FieldAgent, Lead } from './system/types';
 import { GraduationCap, Map, List } from 'lucide-react';
 import DeliveryView from './DeliveryView';
 import FieldManagementView from './FieldManagementView';

@@ -1,11 +1,72 @@
 'use server';
 
-import { createClient as createSupabaseClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { PaymentOrder } from '@/types/social';
 import type { Invoice as FinanceInvoice } from '@/types/finance';
+import type { InvoiceStatus } from '@/types/finance';
 import { randomUUID } from 'crypto';
 import { updateClinicClient } from '@/app/actions/client-clinic';
+import prisma, { queryRawOrgScoped, executeRawOrgScoped } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return asObject(value);
+}
+
+function isInvoiceStatus(value: unknown): value is InvoiceStatus {
+  return (
+    value === 'draft' ||
+    value === 'sent' ||
+    value === 'paid' ||
+    value === 'overdue' ||
+    value === 'cancelled' ||
+    value === 'refunded'
+  );
+}
+
+async function requireCurrentOrganizationId(clerkUserId: string): Promise<string> {
+  const resolvedClerkUserId = String(clerkUserId || '').trim();
+  if (!resolvedClerkUserId) {
+    throw new Error('Not authenticated');
+  }
+
+  const profile = await prisma.profile.findFirst({
+    where: { clerkUserId: resolvedClerkUserId },
+    select: { organizationId: true },
+  });
+
+  const organizationId = String(profile?.organizationId || '').trim();
+  if (!organizationId) {
+    throw new Error('Missing organizationId');
+  }
+
+  return organizationId;
+}
+
+async function assertClientInOrganization(params: { organizationId: string; clientId: string }): Promise<void> {
+  const organizationId = String(params.organizationId || '').trim();
+  const clientId = String(params.clientId || '').trim();
+  if (!organizationId || !clientId) throw new Error('Missing clientId');
+
+  const exists = await prisma.clients.findFirst({
+    where: {
+      id: clientId,
+      organization_id: organizationId,
+      deleted_at: null,
+    } as any,
+    select: { id: true },
+  });
+
+  if (!exists?.id) {
+    throw new Error('אין הרשאה ללקוח המבוקש');
+  }
+}
 
 /**
  * Create a payment order
@@ -19,13 +80,11 @@ export async function createPaymentOrder(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createSupabaseClient();
-    if (!supabase) {
-      return createErrorResponse(null, 'Supabase לא מוגדר');
-    }
+    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    await assertClientInOrganization({ organizationId, clientId });
 
     const paymentOrder: PaymentOrder = {
       id: randomUUID(),
@@ -38,25 +97,22 @@ export async function createPaymentOrder(
     };
 
     // Save payment order to database
-    const { error } = await supabase
-      .from('payment_orders')
-      .insert({
+    await prisma.social_payment_orders.create({
+      data: {
         id: paymentOrder.id,
         client_id: clientId,
-        amount: amount,
+        amount: new Prisma.Decimal(amount),
         description: description,
         status: 'pending',
         installments_allowed: installmentsAllowed,
-        created_at: paymentOrder.createdAt,
-      });
-
-    if (error) {
-      console.error('[createPaymentOrder] Database error:', error);
-      return createErrorResponse(error, 'שגיאה ביצירת הזמנת תשלום');
-    }
+        created_at: new Date(paymentOrder.createdAt),
+        updated_at: new Date(paymentOrder.createdAt),
+      },
+      select: { id: true },
+    });
 
     return createSuccessResponse(paymentOrder);
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה ביצירת הזמנת תשלום');
   }
 }
@@ -75,24 +131,29 @@ export async function processPayment(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createSupabaseClient();
-    if (!supabase) {
-      return createErrorResponse(null, 'Supabase לא מוגדר');
-    }
+    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
 
     // Get payment order
-    const { data: order, error: orderError } = await supabase
-      .from('payment_orders')
-      .select('*')
-      .eq('id', paymentOrderId)
-      .single();
+    const order = await prisma.social_payment_orders.findUnique({
+      where: { id: String(paymentOrderId) },
+      select: {
+        id: true,
+        client_id: true,
+        amount: true,
+        description: true,
+        installments_allowed: true,
+        status: true,
+      },
+    });
 
-    if (orderError || !order) {
-      return createErrorResponse(orderError, 'הזמנת תשלום לא נמצאה');
+    if (!order?.id) {
+      return createErrorResponse(null, 'הזמנת תשלום לא נמצאה');
     }
+
+    await assertClientInOrganization({ organizationId, clientId: String(order.client_id) });
 
     // Validate card (basic validation)
     if (!cardNumber || cardNumber.length < 13 || cardNumber.length > 19) {
@@ -111,68 +172,110 @@ export async function processPayment(
     const transactionId = `TXN-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Calculate installment amount
-    const installmentAmount = order.amount / installments;
+    const totalAmount = Number((order as any).amount) || 0;
+    const installmentAmount = totalAmount / installments;
+
+    if (!Number.isFinite(installmentAmount) || installmentAmount <= 0) {
+      return createErrorResponse(null, 'סכום תשלום לא תקין');
+    }
 
     // Create payment record
-    const { error: paymentError } = await supabase
-      .from('payments')
-      .insert({
-        id: randomUUID(),
-        payment_order_id: paymentOrderId,
-        client_id: order.client_id,
-        amount: installmentAmount,
-        total_amount: order.amount,
-        installments: installments,
-        transaction_id: transactionId,
-        status: 'completed',
-        payment_method: 'credit_card',
-        created_at: new Date().toISOString(),
-      });
+    const paymentId = randomUUID();
+    const paymentCreatedAt = new Date().toISOString();
+    const insertedPayments = await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'payments_insert_payment',
+      query: `
+        insert into payments (
+          id,
+          payment_order_id,
+          client_id,
+          amount,
+          total_amount,
+          installments,
+          transaction_id,
+          status,
+          payment_method,
+          created_at
+        )
+        select
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10
+        where exists (
+          select 1
+          from clients c
+          where c.id = $3
+            and c.organization_id = $11
+        )
+      `,
+      values: [
+        paymentId,
+        String(paymentOrderId),
+        String(order.client_id),
+        installmentAmount,
+        totalAmount,
+        installments,
+        transactionId,
+        'completed',
+        'credit_card',
+        paymentCreatedAt,
+        organizationId,
+      ],
+    });
 
-    if (paymentError) {
-      console.error('[processPayment] Database error:', paymentError);
-      return createErrorResponse(paymentError, 'שגיאה בעיבוד התשלום');
+    if (!insertedPayments) {
+      return createErrorResponse(null, 'שגיאה בעיבוד התשלום');
     }
 
     // Update payment order status
-    const { error: updateError } = await supabase
-      .from('payment_orders')
-      .update({ status: 'paid' })
-      .eq('id', paymentOrderId);
-
-    if (updateError) {
-      console.error('[processPayment] Update error:', updateError);
+    try {
+      await prisma.social_payment_orders.update({
+        where: { id: String(paymentOrderId) },
+        data: { status: 'paid', updated_at: new Date() },
+      });
+    } catch (e: unknown) {
+      console.error('[processPayment] Update error:', e);
     }
 
     // Update client payment status
     try {
-      const { data: clientRow } = await supabase
-        .from('client_clients')
-        .select('id, organization_id, metadata')
-        .eq('id', order.client_id)
-        .maybeSingle();
+      const clientRow = await prisma.clientClient.findFirst({
+        where: { id: String(order.client_id) },
+        select: { id: true, organizationId: true, metadata: true },
+      });
 
-      if (clientRow?.id) {
+      const clientIdVal = String((clientRow as any)?.id ?? '').trim();
+      const orgIdVal = String((clientRow as any)?.organizationId ?? '').trim();
+      if (clientIdVal && orgIdVal) {
+        const existingMeta = asRecord((clientRow as any)?.metadata) ?? {};
         const nextMetadata = {
-          ...(clientRow as any).metadata,
+          ...existingMeta,
           paymentStatus: 'paid',
           lastPaymentDate: new Date().toISOString(),
         };
         await updateClinicClient({
-          orgId: String((clientRow as any).organization_id),
-          clientId: String((clientRow as any).id),
+          orgId: orgIdVal,
+          clientId: clientIdVal,
           updates: { metadata: nextMetadata },
         });
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('[processPayment] Client update error:', e);
     }
 
     // Create invoice
-    await createInvoice(order.client_id, order.amount, order.description, transactionId);
+    await createInvoice(String(order.client_id), totalAmount, String(order.description || ''), transactionId, organizationId);
 
     return createSuccessResponse({ transactionId });
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בעיבוד התשלום');
   }
 }
@@ -184,31 +287,65 @@ async function createInvoice(
   clientId: string,
   amount: number,
   description: string,
-  transactionId: string
+  transactionId: string,
+  organizationId: string
 ): Promise<void> {
   try {
-    const supabase = createSupabaseClient();
-    if (!supabase) return;
-
     const invoiceId = randomUUID();
     const invoiceNumber = `INV-${Date.now()}`;
 
-    await supabase
-      .from('invoices')
-      .insert({
-        id: invoiceId,
-        client_id: clientId,
-        invoice_number: invoiceNumber,
-        amount: amount,
-        description: description,
-        status: 'paid',
-        transaction_id: transactionId,
-        issue_date: new Date().toISOString(),
-        due_date: new Date().toISOString(),
-        paid_date: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      });
-  } catch (error) {
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'payments_create_invoice',
+      query: `
+        insert into invoices (
+          id,
+          client_id,
+          invoice_number,
+          amount,
+          description,
+          status,
+          transaction_id,
+          issue_date,
+          due_date,
+          paid_date,
+          created_at
+        )
+        select
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6,
+          $7,
+          $8,
+          $9,
+          $10,
+          $11
+        where exists (
+          select 1
+          from clients c
+          where c.id = $2
+            and c.organization_id = $12
+        )
+      `,
+      values: [
+        invoiceId,
+        String(clientId),
+        invoiceNumber,
+        amount,
+        description,
+        'paid',
+        transactionId,
+        new Date().toISOString(),
+        new Date().toISOString(),
+        new Date().toISOString(),
+        new Date().toISOString(),
+        organizationId,
+      ],
+    });
+  } catch (error: unknown) {
     console.error('[createInvoice] Error:', error);
   }
 }
@@ -220,41 +357,51 @@ export async function getInvoices(clientId: string): Promise<{ success: boolean;
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createSupabaseClient();
-    if (!supabase) {
-      return createErrorResponse(null, 'Supabase לא מוגדר');
-    }
+    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    await assertClientInOrganization({ organizationId, clientId });
 
-    const { data, error } = await supabase
-      .from('invoices')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+    const data = await queryRawOrgScoped<unknown[]>(prisma, {
+      organizationId,
+      reason: 'payments_get_invoices',
+      query: `
+        select i.*
+        from invoices i
+        join clients c on c.id = i.client_id
+        where i.client_id = $1
+          and c.organization_id = $2
+        order by i.created_at desc
+      `,
+      values: [String(clientId), organizationId],
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת חשבוניות');
-    }
+    const list: unknown[] = Array.isArray(data) ? data : [];
+    const invoices: FinanceInvoice[] = list.map((inv) => {
+      const obj = asObject(inv) ?? {};
+      const id = String(obj.id ?? '');
+      const number = String(obj.invoice_number ?? obj.number ?? id.slice(0, 8));
+      const status = isInvoiceStatus(obj.status) ? obj.status : 'paid';
 
-    const invoices: FinanceInvoice[] = (data || []).map((inv: any) => ({
-      id: inv.id,
-      number: inv.invoice_number ?? inv.number ?? String(inv.id).slice(0, 8),
-      clientName: inv.client_name ?? '',
-      clientEmail: inv.client_email ?? undefined,
-      amount: Number(inv.amount) || 0,
-      currency: inv.currency ?? 'ILS',
-      status: (inv.status as any) ?? 'paid',
-      issueDate: inv.issue_date ? new Date(inv.issue_date) : new Date(),
-      dueDate: inv.due_date ? new Date(inv.due_date) : new Date(),
-      paidDate: inv.paid_date ? new Date(inv.paid_date) : undefined,
-      description: inv.description ?? undefined,
-      url: `/api/invoices/${inv.id}/download`,
-    }));
+      return {
+        id,
+        number,
+        clientName: String(obj.client_name ?? ''),
+        clientEmail: obj.client_email == null ? undefined : String(obj.client_email),
+        amount: Number(obj.amount) || 0,
+        currency: String(obj.currency ?? 'ILS'),
+        status,
+        issueDate: obj.issue_date ? new Date(String(obj.issue_date)) : new Date(),
+        dueDate: obj.due_date ? new Date(String(obj.due_date)) : new Date(),
+        paidDate: obj.paid_date ? new Date(String(obj.paid_date)) : undefined,
+        description: obj.description == null ? undefined : String(obj.description),
+        url: `/api/invoices/${id}/download`,
+      };
+    });
 
     return createSuccessResponse(invoices);
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בטעינת חשבוניות');
   }
 }
@@ -262,31 +409,34 @@ export async function getInvoices(clientId: string): Promise<{ success: boolean;
 /**
  * Get payment history for a client
  */
-export async function getPaymentHistory(clientId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+export async function getPaymentHistory(clientId: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createSupabaseClient();
-    if (!supabase) {
-      return createErrorResponse(null, 'Supabase לא מוגדר');
-    }
+    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    await assertClientInOrganization({ organizationId, clientId });
 
-    const { data, error } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false })
-      .limit(50);
+    const data = await queryRawOrgScoped<unknown[]>(prisma, {
+      organizationId,
+      reason: 'payments_get_history',
+      query: `
+        select p.*
+        from payments p
+        join clients c on c.id = p.client_id
+        where p.client_id = $1
+          and c.organization_id = $2
+        order by p.created_at desc
+        limit 50
+      `,
+      values: [String(clientId), organizationId],
+    });
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת היסטוריית תשלומים');
-    }
-
-    return createSuccessResponse(data || []);
-  } catch (error) {
+    const list: unknown[] = Array.isArray(data) ? data : [];
+    return createSuccessResponse(list);
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בטעינת היסטוריית תשלומים');
   }
 }

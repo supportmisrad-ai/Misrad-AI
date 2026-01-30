@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useMemo, useCallback } from 'react';
 import { 
-  BrainCircuit, HeartPulse, Sparkles, TrendingDown, TrendingUp, CircleDollarSign, 
+  HeartPulse, Sparkles, TrendingDown, TrendingUp, CircleDollarSign, 
   Lightbulb, BarChart, AlertTriangle, Target, Users, Zap, Calendar, 
   ArrowUpRight, ArrowDownRight, Filter, Download, RefreshCw, Activity
 } from 'lucide-react';
@@ -288,10 +288,10 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       }
     }
 
-    // Pipeline health
+    // Identify stuck leads (no contact for 7+ days)
     const stuckLeads = filteredLeads.filter(l => {
       const daysSinceLastContact = (new Date().getTime() - l.lastContact.getTime()) / (1000 * 60 * 60 * 24);
-      return daysSinceLastContact > 14 && l.status !== 'won' && l.status !== 'lost';
+      return daysSinceLastContact > 7 && l.status !== 'won' && l.status !== 'lost';
     });
 
     if (stuckLeads.length > 0) {
@@ -299,7 +299,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
         type: 'warning',
         icon: Activity,
         title: `${stuckLeads.length} לידים תקועים`,
-        message: `${stuckLeads.length} לידים לא טופלו יותר מ-14 ימים.`,
+        message: `${stuckLeads.length} לידים לא טופלו יותר מ-7 ימים.`,
         action: 'עדכן את הסטטוס או צור קשר מחדש'
       });
     }
@@ -324,7 +324,7 @@ const AIAnalyticsView: React.FC<AIAnalyticsViewProps> = ({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="text-right">
           <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-800 flex items-center gap-3">
-            <BrainCircuit size={32} className="text-indigo-600" />
+            <Sparkles size={32} className="text-indigo-600" />
             ניתוח נתונים חכם
           </h2>
           <p className="text-slate-500 font-medium mt-2 text-lg">

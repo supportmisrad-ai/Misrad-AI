@@ -1,12 +1,22 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { translateError } from '@/lib/errorTranslations';
+import prisma from '@/lib/prisma';
 import type { UserRole } from '@/types/social';
 import { clerkClient, currentUser } from '@clerk/nextjs/server';
-import { getOrCreateSupabaseUserAction } from './users';
 import { z } from 'zod';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+const DEBUG_ADMIN_USERS = process.env.DEBUG_ADMIN_USERS === 'true' && !IS_PROD;
+
+function debugLog(...args: any[]) {
+  if (DEBUG_ADMIN_USERS) console.log(...args);
+}
+
+function safeErrorLog(message: string, error?: any) {
+  if (DEBUG_ADMIN_USERS && error !== undefined) console.error(message, error);
+  else console.error(message);
+}
 
 async function requireSuperAdminOrFail() {
   const authCheck = await requireAuth();
@@ -43,44 +53,98 @@ export async function getAdminUsersPage(params?: {
     const offset = parsed.success ? parsed.data.offset : 0;
     const search = parsed.success ? parsed.data.search : undefined;
 
-    const supabase = createClient();
-    let query = supabase
-      .from('nexus_users')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const s = search && search.trim() ? search.trim() : '';
+    const where = s
+      ? {
+          OR: [
+            { name: { contains: s, mode: 'insensitive' as const } },
+            { email: { contains: s, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
 
-    if (search && search.trim()) {
-      const s = search.trim();
-      query = query.or(`name.ilike.%${s}%,email.ilike.%${s}%`);
-    }
+    const [total, rows] = await prisma.$transaction([
+      prisma.nexusUser.count({ where: where as any }),
+      prisma.nexusUser.findMany({
+        where: where as any,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+      }),
+    ]);
 
-    const { data, error, count } = await query;
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
-    }
-
-    const items = (data || []).map((m: any) => ({
+    const items = (rows || []).map((m: any) => ({
       id: m.id,
       name: m.name,
       email: m.email || 'אין דוא"ל',
       role: m.role || 'user',
       plan: 'free',
-      registeredAt: m.created_at,
-      lastActivity: m.updated_at || m.created_at,
+      registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
+      lastActivity: (m.updatedAt || m.createdAt) ? new Date(m.updatedAt || m.createdAt).toISOString() : null,
       isBanned: false,
       avatar: m.avatar || null,
     }));
 
-    return createSuccessResponse({ items, total: count || 0 }) as any;
+    return createSuccessResponse({ items, total: total || 0 }) as any;
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
   }
 }
 
-/**
- * Update user profile (admin only)
- */
+export async function deleteAdminUser(userId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const adminCheck = await requireSuperAdminOrFail();
+    if (!adminCheck.success) return adminCheck as any;
+
+    const resolvedUserId = String(userId || '').trim();
+    if (!resolvedUserId) {
+      return createErrorResponse(null, 'חסר מזהה משתמש');
+    }
+
+    const existing = await prisma.nexusUser.findUnique({
+      where: { id: resolvedUserId },
+      select: { id: true, organizationId: true },
+    });
+
+    if (!existing?.id) {
+      return createErrorResponse(new Error('User not found'), 'משתמש לא נמצא');
+    }
+
+    const organizationId = existing.organizationId ? String(existing.organizationId) : '';
+    if (!organizationId) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: משתמש ללא organization_id לא ניתן למחיקה דרך Admin');
+    }
+
+    await prisma.nexusUser.deleteMany({
+      where: { id: resolvedUserId, organizationId },
+    });
+
+    try {
+      await prisma.social_sync_logs.create({
+        data: {
+          user_id: adminCheck.userId ? String(adminCheck.userId) : null,
+          integration_name: 'admin_users',
+          sync_type: 'admin_delete_user',
+          status: 'success',
+          items_synced: 1,
+          started_at: new Date(),
+          completed_at: new Date(),
+          metadata: {
+            action: 'delete_user',
+            targetUserId: resolvedUserId,
+            organizationId,
+          } as any,
+        },
+      });
+    } catch {
+    }
+
+    return createSuccessResponse(true) as any;
+  } catch (error) {
+    return createErrorResponse(error, 'שגיאה במחיקת משתמש');
+  }
+}
+
 export async function updateUserProfile(
   userId: string,
   updates: {
@@ -95,32 +159,63 @@ export async function updateUserProfile(
     const adminCheck = await requireSuperAdminOrFail();
     if (!adminCheck.success) return adminCheck as any;
 
-    const supabase = createClient();
+    const resolvedUserId = String(userId || '').trim();
+    if (!resolvedUserId) {
+      return createErrorResponse(null, 'חסר מזהה משתמש');
+    }
 
-    // Update nexus_users table
+    const existing = await prisma.nexusUser.findUnique({
+      where: { id: resolvedUserId },
+      select: { id: true, organizationId: true },
+    });
+
+    if (!existing?.id) {
+      return createErrorResponse(new Error('User not found'), 'משתמש לא נמצא');
+    }
+
+    const organizationId = existing.organizationId ? String(existing.organizationId) : '';
+    if (!organizationId) {
+      return createErrorResponse(null, 'Tenant Isolation lockdown: משתמש ללא organization_id לא ניתן לעדכון דרך Admin');
+    }
+
     const updateData: any = {};
     if (updates.name) updateData.name = updates.name;
     if (updates.email) updateData.email = updates.email;
     if (updates.role) updateData.role = updates.role;
     if (updates.avatar) updateData.avatar = updates.avatar;
-    
-    updateData.updated_at = new Date().toISOString();
 
-    const { error } = await supabase
-      .from('nexus_users')
-      .update(updateData)
-      .eq('id', userId);
+    updateData.updatedAt = new Date();
 
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בעדכון פרופיל משתמש');
-    }
-
-    // Log the action
-    await supabase.from('activity_logs').insert({
-      user_id: adminCheck.userId,
-      action: `עדכון פרופיל משתמש: ${userId}`,
-      created_at: new Date().toISOString(),
+    await prisma.nexusUser.updateMany({
+      where: { id: resolvedUserId, organizationId },
+      data: updateData,
     });
+
+    try {
+      await prisma.social_sync_logs.create({
+        data: {
+          user_id: adminCheck.userId ? String(adminCheck.userId) : null,
+          integration_name: 'admin_users',
+          sync_type: 'admin_update_user',
+          status: 'success',
+          items_synced: 1,
+          started_at: new Date(),
+          completed_at: new Date(),
+          metadata: {
+            action: 'update_user',
+            targetUserId: resolvedUserId,
+            organizationId,
+            updates: {
+              name: updates.name ?? null,
+              email: updates.email ?? null,
+              role: updates.role ?? null,
+              avatar: updates.avatar ?? null,
+            },
+          } as any,
+        },
+      });
+    } catch {
+    }
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -128,9 +223,6 @@ export async function updateUserProfile(
   }
 }
 
-/**
- * Get user details for editing
- */
 export async function getUserDetails(
   userId: string
 ): Promise<{
@@ -151,26 +243,24 @@ export async function getUserDetails(
     const adminCheck = await requireSuperAdminOrFail();
     if (!adminCheck.success) return adminCheck as any;
 
-    const supabase = createClient();
+    const member = await prisma.nexusUser.findUnique({
+      where: { id: String(userId) },
+    });
 
-    const { data: member, error } = await supabase
-      .from('nexus_users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error || !member) {
-      return createErrorResponse(error, 'משתמש לא נמצא');
+    if (!member?.id) {
+      return createErrorResponse(new Error('User not found'), 'משתמש לא נמצא');
     }
 
-    // Get last activity
-    const { data: lastActivity } = await supabase
-      .from('activity_logs')
-      .select('created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    let lastActivityIso: string | null = null;
+    try {
+      const last = await prisma.social_sync_logs.findFirst({
+        where: { user_id: String(userId) },
+        orderBy: { started_at: 'desc' },
+        select: { started_at: true },
+      });
+      lastActivityIso = last?.started_at ? new Date(last.started_at).toISOString() : null;
+    } catch {
+    }
 
     return createSuccessResponse({
       id: member.id,
@@ -179,8 +269,8 @@ export async function getUserDetails(
       role: member.role as UserRole,
       plan: 'free',
       avatar: member.avatar || null,
-      registeredAt: member.created_at,
-      lastActivity: lastActivity?.created_at || null,
+      registeredAt: member.createdAt ? new Date(member.createdAt).toISOString() : '',
+      lastActivity: lastActivityIso || (member.updatedAt ? new Date(member.updatedAt).toISOString() : (member.createdAt ? new Date(member.createdAt).toISOString() : null)),
     });
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת פרטי משתמש');
@@ -213,111 +303,93 @@ export async function createUser(
     const adminCheck = await requireSuperAdminOrFail();
     if (!adminCheck.success) return adminCheck as any;
 
-    // Validate input - trim and check
     const trimmedEmail = userData.email?.trim();
     const trimmedFirstName = userData.firstName?.trim();
     const trimmedLastName = userData.lastName?.trim();
-    
-    // Debug logging
-    console.log('[createUser] Input validation - Raw email:', JSON.stringify(userData.email));
-    console.log('[createUser] Input validation - Trimmed email:', JSON.stringify(trimmedEmail));
-    console.log('[createUser] Input validation - Email type:', typeof trimmedEmail);
-    console.log('[createUser] Input validation - Email length:', trimmedEmail?.length);
-    
+
+    debugLog('[createUser] Input validation - Raw email:', JSON.stringify(userData.email));
+    debugLog('[createUser] Input validation - Trimmed email:', JSON.stringify(trimmedEmail));
+    debugLog('[createUser] Input validation - Email type:', typeof trimmedEmail);
+    debugLog('[createUser] Input validation - Email length:', trimmedEmail?.length);
+
     if (!trimmedEmail || !trimmedFirstName) {
-      console.log('[createUser] Validation failed - missing email or firstName');
+      debugLog('[createUser] Validation failed - missing email or firstName');
       return createErrorResponse(null, 'נא למלא אימייל ושם פרטי');
     }
 
-    // Validate email format using Zod (more reliable than regex)
     const emailSchema = z.string().email('כתובת אימייל לא תקינה');
     const emailValidation = emailSchema.safeParse(trimmedEmail);
-    
-    console.log('[createUser] Email Zod validation result:', emailValidation.success);
-    console.log('[createUser] Email Zod validation for:', trimmedEmail);
-    
+
+    debugLog('[createUser] Email Zod validation result:', emailValidation.success);
+    debugLog('[createUser] Email Zod validation for:', trimmedEmail);
+
     if (!emailValidation.success) {
-      console.log('[createUser] Email validation failed:', emailValidation.error.issues);
+      debugLog('[createUser] Email validation failed:', emailValidation.error.issues);
       const errorMessage = emailValidation.error.issues[0]?.message || 'כתובת אימייל לא תקינה';
       return createErrorResponse(null, errorMessage);
     }
-    
-    // Validate email length (Clerk has limits)
+
     if (trimmedEmail.length > 255) {
       return createErrorResponse(null, 'כתובת אימייל ארוכה מדי');
     }
-    
-    // Validate firstName length (Clerk requires at least 1 character, max 256)
+
     if (trimmedFirstName.length === 0) {
       return createErrorResponse(null, 'שם פרטי לא יכול להיות ריק');
     }
     if (trimmedFirstName.length > 256) {
       return createErrorResponse(null, 'שם פרטי ארוך מדי (מקסימום 256 תווים)');
     }
-    // Validate firstName doesn't contain only special characters or numbers
     if (/^[\d\s\-_]+$/.test(trimmedFirstName)) {
       return createErrorResponse(null, 'שם פרטי חייב להכיל אותיות');
     }
-    
-    // Validate lastName length if provided
+
     if (trimmedLastName && trimmedLastName.length > 256) {
       return createErrorResponse(null, 'שם משפחה ארוך מדי (מקסימום 256 תווים)');
     }
 
-      // Verify Clerk is configured
-      const clerkSecretKey = process.env.CLERK_SECRET_KEY;
-      if (!clerkSecretKey) {
-        console.error('[createUser] ❌ CLERK_SECRET_KEY is missing!');
-        return createErrorResponse(null, 'Clerk לא מוגדר. נא לבדוק את CLERK_SECRET_KEY ב-.env.local');
-      }
-      if (!clerkSecretKey.startsWith('sk_test_') && !clerkSecretKey.startsWith('sk_live_')) {
-        console.error('[createUser] ❌ CLERK_SECRET_KEY format is invalid!');
-        return createErrorResponse(null, 'CLERK_SECRET_KEY לא תקין. נא לבדוק את המפתח ב-Clerk Dashboard');
-      }
-      
-      const fullName = userData.lastName 
-        ? `${userData.firstName} ${userData.lastName}` 
-        : userData.firstName;
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+    if (!clerkSecretKey) {
+      safeErrorLog('[createUser] Clerk secret key is missing');
+      return createErrorResponse(null, IS_PROD ? 'Clerk לא מוגדר' : 'Clerk לא מוגדר. נא לבדוק את CLERK_SECRET_KEY ב-.env.local');
+    }
+    if (!clerkSecretKey.startsWith('sk_test_') && !clerkSecretKey.startsWith('sk_live_')) {
+      safeErrorLog('[createUser] Clerk secret key format is invalid');
+      return createErrorResponse(null, IS_PROD ? 'Clerk לא מוגדר' : 'CLERK_SECRET_KEY לא תקין. נא לבדוק את המפתח ב-Clerk Dashboard');
+    }
 
-      // Create user in Clerk
-      const client = await clerkClient();
-      
-      // Verify client was created successfully
-      if (!client) {
-        console.error('[createUser] ❌ clerkClient() returned null/undefined!');
-        return createErrorResponse(null, 'שגיאה ביצירת Clerk client. נא לבדוק את CLERK_SECRET_KEY');
-      }
-      
-    // Check if user already exists with this email BEFORE creating invitation
+    const fullName = userData.lastName
+      ? `${userData.firstName} ${userData.lastName}`
+      : userData.firstName;
+
+    const client = await clerkClient();
+
+    if (!client) {
+      safeErrorLog('[createUser] clerkClient() returned null/undefined');
+      return createErrorResponse(null, IS_PROD ? 'שגיאה ביצירת משתמש' : 'שגיאה ביצירת Clerk client. נא לבדוק את CLERK_SECRET_KEY');
+    }
+
     try {
-      console.log('[createUser] Checking if user already exists with email:', trimmedEmail);
-      const existingUsers = await client.users.getUserList({ 
+      debugLog('[createUser] Checking if user already exists with email:', trimmedEmail);
+      const existingUsers = await client.users.getUserList({
         emailAddress: [trimmedEmail],
-        limit: 1 
+        limit: 1
       });
-      
+
       if (existingUsers.data && existingUsers.data.length > 0) {
         const existingUser = existingUsers.data[0];
-        console.log('[createUser] User already exists:', existingUser.id);
+        debugLog('[createUser] User already exists:', existingUser.id);
         return createErrorResponse(null, 'האימייל כבר קיים במערכת');
-         }
-      console.log('[createUser] No existing user found, proceeding with invitation...');
+      }
+      debugLog('[createUser] No existing user found, proceeding with invitation...');
     } catch (checkError: any) {
-      // If check fails, continue anyway - maybe API doesn't support this query
-      console.log('[createUser] Could not check for existing user, continuing anyway:', checkError.message);
+      debugLog('[createUser] Could not check for existing user, continuing anyway:', checkError.message);
     }
-    
-    // Use Invitations API - it's more reliable and works better with "Verify at sign-up"
-    // This sends an invitation email to the user, and they create their own account
-    console.log('[createUser] Using Invitations API to invite user:', trimmedEmail);
+
     try {
-      // Clerk Invitations API - minimal data needed
       const invitationData: any = {
         emailAddress: trimmedEmail,
       };
-      
-      // Only add publicMetadata if it's supported (some Clerk instances may not support it)
-      // Try with publicMetadata first, if it fails we'll try without it
+
       try {
         const invitation = await client.invitations.createInvitation({
           emailAddress: trimmedEmail,
@@ -326,46 +398,64 @@ export async function createUser(
             plan: userData.plan || 'free',
           },
         });
-        
-        console.log('[createUser] ✅ Invitation created successfully with metadata!', invitation.id);
-      
-        // Log the action
+
+        debugLog('[createUser] Invitation created successfully with metadata!', invitation.id);
+
         try {
-          const supabase = createClient();
-          await supabase.from('activity_logs').insert({
-            user_id: adminCheck.userId,
-            action: `שליחת הזמנה למשתמש חדש: ${trimmedEmail}`,
-            created_at: new Date().toISOString(),
+          await prisma.social_sync_logs.create({
+            data: {
+              user_id: adminCheck.userId ? String(adminCheck.userId) : null,
+              integration_name: 'admin_users',
+              sync_type: 'admin_invite_user',
+              status: 'success',
+              items_synced: 1,
+              started_at: new Date(),
+              completed_at: new Date(),
+              metadata: {
+                action: 'invite_user',
+                email: trimmedEmail,
+                invitationId: invitation.id,
+                withMetadata: true,
+              } as any,
+            },
           });
         } catch (logError) {
-          console.error('Error logging invitation action:', logError);
+          safeErrorLog('Error logging invitation action', logError);
         }
-        
+
         return createSuccessResponse({
           clerkUserId: invitation.id,
           supabaseUserId: '',
           email: trimmedEmail,
         });
       } catch (metadataError: any) {
-        // If publicMetadata fails, try without it
-        console.log('[createUser] Creating invitation with metadata failed, trying without metadata...', metadataError.message);
-        
+        debugLog('[createUser] Creating invitation with metadata failed, trying without metadata...', metadataError.message);
+
         const invitation = await client.invitations.createInvitation({
           emailAddress: trimmedEmail,
         });
-        
-        console.log('[createUser] ✅ Invitation created successfully without metadata!', invitation.id);
-        
-        // Log the action
+
+        debugLog('[createUser] Invitation created successfully without metadata!', invitation.id);
+
         try {
-          const supabase = createClient();
-          await supabase.from('activity_logs').insert({
-            user_id: adminCheck.userId,
-            action: `שליחת הזמנה למשתמש חדש: ${trimmedEmail}`,
-            created_at: new Date().toISOString(),
+          await prisma.social_sync_logs.create({
+            data: {
+              user_id: adminCheck.userId ? String(adminCheck.userId) : null,
+              integration_name: 'admin_users',
+              sync_type: 'admin_invite_user',
+              status: 'success',
+              items_synced: 1,
+              started_at: new Date(),
+              completed_at: new Date(),
+              metadata: {
+                action: 'invite_user',
+                email: trimmedEmail,
+                invitationId: invitation.id,
+              } as any,
+            },
           });
         } catch (logError) {
-          console.error('Error logging invitation action:', logError);
+          safeErrorLog('Error logging invitation action', logError);
         }
         
         return createSuccessResponse({
@@ -375,10 +465,14 @@ export async function createUser(
         });
       }
     } catch (invitationError: any) {
-      console.error('[createUser] ❌ Invitation creation failed:', invitationError);
-      console.error('[createUser] Invitation error type:', typeof invitationError);
-      console.error('[createUser] Invitation error keys:', Object.keys(invitationError || {}));
-      console.error('[createUser] Invitation error details:', JSON.stringify(invitationError, Object.getOwnPropertyNames(invitationError), 2));
+      if (DEBUG_ADMIN_USERS) {
+        console.error('[createUser] ❌ Invitation creation failed:', invitationError);
+        console.error('[createUser] Invitation error type:', typeof invitationError);
+        console.error('[createUser] Invitation error keys:', Object.keys(invitationError || {}));
+        console.error('[createUser] Invitation error details:', JSON.stringify(invitationError, Object.getOwnPropertyNames(invitationError), 2));
+      } else {
+        console.error('[createUser] Invitation creation failed');
+      }
       
       // Extract error message - prioritize detailed error messages
       let errorMessage = 'שגיאה ביצירת הזמנה';
@@ -386,7 +480,7 @@ export async function createUser(
       // Check for errors array first (Clerk's standard format)
       if (invitationError?.errors && Array.isArray(invitationError.errors) && invitationError.errors.length > 0) {
         const firstError = invitationError.errors[0];
-        console.error('[createUser] First error from array:', JSON.stringify(firstError, null, 2));
+        if (DEBUG_ADMIN_USERS) console.error('[createUser] First error from array:', JSON.stringify(firstError, null, 2));
         
         if (firstError?.longMessage) {
           errorMessage = firstError.longMessage;
@@ -407,7 +501,7 @@ export async function createUser(
         errorMessage = `HTTP ${invitationError.status}: ${errorMessage}`;
       }
       
-      console.error('[createUser] Extracted error message:', errorMessage);
+      if (DEBUG_ADMIN_USERS) console.error('[createUser] Extracted error message:', errorMessage);
       
       // Translate common errors to Hebrew
       const errorLower = errorMessage.toLowerCase();
@@ -429,7 +523,7 @@ export async function createUser(
       return createErrorResponse(invitationError, errorMessage);
     }
   } catch (error: any) {
-    console.error('Error in createUser:', error);
+    safeErrorLog('Error in createUser', error);
     return createErrorResponse(error, 'שגיאה ביצירת משתמש');
   }
 }

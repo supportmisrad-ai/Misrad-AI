@@ -1,10 +1,12 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { Task, User } from '../../types';
 import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { isAdminRole } from '@/lib/constants/roles';
 
 interface TaskDetailChatProps {
     task: Task;
@@ -28,6 +30,8 @@ const getAvatarColor = (name: string) => {
 
 export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab }) => {
     const { currentUser, users, addMessage, updateMessage, deleteMessage } = useData();
+    const pathname = usePathname();
+    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [messageText, setMessageText] = useState('');
     const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
     const [editText, setEditText] = useState('');
@@ -42,7 +46,8 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const audioChunksRef = useRef<Blob[]>([]);
     const recordingInterval = useRef<number | null>(null);
 
-    const isManager = currentUser.role.includes('מנכ') || currentUser.role.includes('סמנכ') || currentUser.role === 'אדמין';
+    const roleStr = String(currentUser.role || '');
+    const isManager = roleStr.includes('מנכ') || roleStr.includes('סמנכ') || isAdminRole(roleStr);
 
     // Ensure messages is always an array
     const messages = Array.isArray(task.messages) ? task.messages : [];
@@ -73,6 +78,9 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             formData.append('file', file);
             formData.append('bucket', 'attachments');
             formData.append('folder', 'tasks');
+            if (orgSlug) {
+                formData.append('orgSlug', String(orgSlug));
+            }
             if ((currentUser as any)?.id) {
                 formData.append('userId', String((currentUser as any).id));
             }

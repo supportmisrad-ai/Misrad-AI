@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Lead, Activity, Task } from '../types';
 import { 
-    X, Phone, Mail, FileText, ArrowRight, Building, BrainCircuit, Play, Thermometer,
+    X, Phone, Mail, FileText, ArrowRight, Building, Play, Thermometer,
     Crown, Users, Activity as ActivityIcon, CheckSquare, Layers, Mic, MessageSquare,
     Briefcase, User, CalendarClock, Zap, PackageOpen, Rocket, CreditCard, Star, LifeBuoy
 } from 'lucide-react';

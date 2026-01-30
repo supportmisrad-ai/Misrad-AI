@@ -21,7 +21,8 @@ function SupportPageInner() {
         const res = await fetch('/api/workspaces', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
-        const first = Array.isArray(data?.workspaces) ? data.workspaces[0] : null;
+        const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+        const first = Array.isArray((payload as any)?.workspaces) ? (payload as any).workspaces[0] : null;
         const nextOrgId = first?.slug || first?.id;
         if (!nextOrgId) return;
         const href = `/w/${encodeURIComponent(String(nextOrgId))}/client`;
@@ -103,11 +104,12 @@ function SupportPageInner() {
       });
 
       const data = await res.json().catch(() => ({}));
+      const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
       if (!res.ok) {
-        throw new Error(data?.error || 'שגיאה ביצירת קריאת תמיכה');
+        throw new Error((data as any)?.error || (payload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
       }
 
-      setSuccessId(data?.ticket?.id || data?.ticket?.ticket_number || 'success');
+      setSuccessId((payload as any)?.ticket?.id || (payload as any)?.ticket?.ticket_number || 'success');
     } catch (err: any) {
       setError(err?.message || 'שגיאה ביצירת קריאת תמיכה');
     } finally {

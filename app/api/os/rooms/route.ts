@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireSuperAdmin } from '@/lib/auth';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
+import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export type OSRoomId = 'social' | 'nexus' | 'system' | 'finance' | 'client';
@@ -14,7 +15,7 @@ async function GETHandler() {
   try {
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const supabase = createClient();
@@ -26,31 +27,15 @@ async function GETHandler() {
       .single();
 
     if (userError) {
-      return NextResponse.json({
-        rooms: {
-          nexus: true,
-          social: false,
-          system: false,
-          finance: false,
-          client: false,
-        } as Record<OSRoomId, boolean>,
-      });
+      return apiError('Forbidden', { status: 403 });
     }
 
     const organizationId = user?.organization_id;
     if (!organizationId) {
-      return NextResponse.json({
-        rooms: {
-          nexus: true,
-          social: false,
-          system: false,
-          finance: false,
-          client: false,
-        } as Record<OSRoomId, boolean>,
-      });
+      return apiError('Forbidden', { status: 403 });
     }
 
-    await requireWorkspaceAccessByOrgSlugApi(String(organizationId));
+    await getWorkspaceByOrgKeyOrThrow(String(organizationId));
 
     const { data: org, error: orgError } = await supabase
       .from('organizations')
@@ -63,7 +48,7 @@ async function GETHandler() {
         details: {
           organizationId,
           rooms: {
-            nexus: org.has_nexus ?? true,
+            nexus: org.has_nexus ?? false,
             social: org.has_social ?? false,
             system: org.has_system ?? false,
             finance: org.has_finance ?? false,
@@ -71,9 +56,9 @@ async function GETHandler() {
           },
         },
       });
-      return NextResponse.json({
+      return apiSuccess({
         rooms: {
-          nexus: org.has_nexus ?? true,
+          nexus: org.has_nexus ?? false,
           social: org.has_social ?? false,
           system: org.has_system ?? false,
           finance: org.has_finance ?? false,
@@ -82,15 +67,11 @@ async function GETHandler() {
       });
     }
 
-    return NextResponse.json({
-      rooms: {
-        nexus: true,
-        social: false,
-        system: false,
-        finance: false,
-        client: false,
-      } as Record<OSRoomId, boolean>,
-    });
+    if (orgError) {
+      return apiError(orgError.message || 'Failed to load organization rooms', { status: 500 });
+    }
+
+    return apiError('Organization not found', { status: 404 });
   } catch (error: any) {
     try {
       await logAuditEvent('data.read', 'os.rooms', {
@@ -100,19 +81,7 @@ async function GETHandler() {
     } catch {
       // ignore
     }
-    return NextResponse.json(
-      {
-        rooms: {
-          nexus: true,
-          social: false,
-          system: false,
-          finance: false,
-          client: false,
-        } as Record<OSRoomId, boolean>,
-        error: error?.message,
-      },
-      { status: 200 }
-    );
+    return apiError(error?.message || 'Failed to load rooms', { status: 500 });
   }
 }
 
@@ -121,12 +90,12 @@ async function POSTHandler(req: NextRequest) {
     try {
       await requireSuperAdmin();
     } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+      return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
     }
 
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -134,7 +103,8 @@ async function POSTHandler(req: NextRequest) {
       ? (Object.fromEntries((body.enable as string[]).map((k) => [k, true])) as RoomsPayload)
       : {});
 
-    const supabase = createClient();
+    let supabase: ReturnType<typeof createClient>;
+    supabase = createClient();
 
     const { data: user, error: userError } = await supabase
       .from('social_users')
@@ -143,7 +113,7 @@ async function POSTHandler(req: NextRequest) {
       .single();
 
     if (userError || !user?.id) {
-      return NextResponse.json({ error: userError?.message || 'User not found' }, { status: 400 });
+      return apiError(userError?.message || 'User not found', { status: 400 });
     }
 
     let organizationId: string | null = user.organization_id || null;
@@ -161,6 +131,11 @@ async function POSTHandler(req: NextRequest) {
           has_social: false,
           has_finance: false,
           has_client: false,
+          has_operations: false,
+          subscription_status: 'trial',
+          subscription_plan: null,
+          trial_start_date: new Date().toISOString(),
+          trial_days: 7,
         } as any)
         .select('id')
         .single();
@@ -176,15 +151,17 @@ async function POSTHandler(req: NextRequest) {
             has_social: false,
             has_finance: false,
             has_client: false,
+            has_operations: false,
+            subscription_status: 'trial',
+            subscription_plan: null,
+            trial_start_date: new Date().toISOString(),
+            trial_days: 7,
           } as any)
           .select('id')
           .single();
 
         if (createOrgFallbackError || !createdOrgFallback?.id) {
-          return NextResponse.json(
-            { error: createOrgError?.message || createOrgFallbackError?.message || 'Failed to create organization' },
-            { status: 500 }
-          );
+          return apiError(createOrgError?.message || createOrgFallbackError?.message || 'Failed to create organization', { status: 500 });
         }
 
         organizationId = createdOrgFallback.id;
@@ -198,11 +175,11 @@ async function POSTHandler(req: NextRequest) {
         .eq('id', user.id);
 
       if (linkError) {
-        return NextResponse.json({ error: linkError.message || 'Failed to link organization' }, { status: 500 });
+        return apiError(linkError.message || 'Failed to link organization', { status: 500 });
       }
     }
 
-    await requireWorkspaceAccessByOrgSlugApi(String(organizationId));
+    await getWorkspaceByOrgKeyOrThrow(String(organizationId));
 
     const update: Partial<Record<string, boolean>> = {};
     const allowed: OSRoomId[] = ['social', 'nexus', 'system', 'finance', 'client'];
@@ -219,7 +196,7 @@ async function POSTHandler(req: NextRequest) {
         .eq('id', organizationId);
 
       if (updateError) {
-        return NextResponse.json({ error: updateError.message || 'Failed to update organization rooms' }, { status: 500 });
+        return apiError(updateError.message || 'Failed to update organization rooms', { status: 500 });
       }
     }
 
@@ -230,7 +207,7 @@ async function POSTHandler(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, organizationId });
+    return apiSuccess({ organizationId });
   } catch (error: any) {
     try {
       await logAuditEvent('data.write', 'os.rooms', {
@@ -240,7 +217,7 @@ async function POSTHandler(req: NextRequest) {
     } catch {
       // ignore
     }
-    return NextResponse.json({ error: error?.message || 'Internal error' }, { status: 500 });
+    return apiError(error?.message || 'Internal error', { status: 500 });
   }
 }
 

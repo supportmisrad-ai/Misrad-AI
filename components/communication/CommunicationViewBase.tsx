@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   AlertCircle,
-  BrainCircuit,
   CalendarPlus,
   Check,
   CheckCheck,
@@ -1008,7 +1007,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
                   <div className="h-1/3 bg-gradient-to-br from-rose-50 to-white border border-rose-100 rounded-3xl p-6 shadow-sm overflow-y-auto min-h-[150px]">
                     <h3 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
-                      <BrainCircuit size={18} className="text-primary" /> המלצות טקטיות (Nexus AI)
+                      <Zap size={18} className="text-primary" /> המלצות טקטיות (Nexus AI)
                     </h3>
                     <div className="space-y-2">
                       {aiSuggestions.map((s, i) => (

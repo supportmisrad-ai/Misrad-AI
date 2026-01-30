@@ -31,11 +31,12 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
   const [loading, setLoading] = useState(false);
 
   const [isAdding, setIsAdding] = useState(false);
-  const [draft, setDraft] = useState<{ moduleKey: OSModuleKey; title: string; videoUrl: string; order: number }>({
+  const [draft, setDraft] = useState<{ moduleKey: OSModuleKey; title: string; videoUrl: string; order: number; duration: string }>({
     moduleKey: 'system',
     title: '',
     videoUrl: '',
     order: 0,
+    duration: '',
   });
 
   const load = async () => {
@@ -74,6 +75,7 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
     const title = String(draft.title || '').trim();
     const videoUrl = String(draft.videoUrl || '').trim();
     const order = Number(draft.order);
+    const duration = String(draft.duration || '').trim();
 
     if (!title || !videoUrl) {
       addToast('חסר כותרת או קישור לסרטון', 'error');
@@ -86,6 +88,7 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
         title,
         videoUrl,
         order: Number.isFinite(order) ? order : 0,
+        duration,
       });
 
       if (!res.success) {
@@ -95,14 +98,14 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
 
       addToast('סרטון נוסף בהצלחה', 'success');
       setIsAdding(false);
-      setDraft({ moduleKey: draft.moduleKey, title: '', videoUrl: '', order: 0 });
+      setDraft({ moduleKey: draft.moduleKey, title: '', videoUrl: '', order: 0, duration: '' });
       await load();
     } catch (e: any) {
       addToast(e?.message || 'שגיאה ביצירת סרטון', 'error');
     }
   };
 
-  const updateItem = async (id: string, patch: { title?: string; videoUrl?: string; order?: number }) => {
+  const updateItem = async (id: string, patch: { title?: string; videoUrl?: string; order?: number; duration?: string }) => {
     try {
       const res = await adminUpdateHelpVideo(id, patch);
       if (!res.success) {
@@ -188,7 +191,7 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
           sorted.map((item) => (
             <div key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4">
               <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-3">
                   <div>
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">מודול</div>
                     <div className="mt-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-700">
@@ -221,7 +224,21 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
                     />
                   </div>
 
-                  <div className="md:col-span-4">
+                  <div>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">משך זמן</div>
+                    <input
+                      defaultValue={item.duration || ''}
+                      onBlur={(e) => {
+                        const next = String(e.target.value || '').trim();
+                        const curr = String(item.duration || '').trim();
+                        if (next !== curr) updateItem(item.id, { duration: next });
+                      }}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold outline-none focus:ring-4 ring-slate-100"
+                      placeholder="01:30"
+                    />
+                  </div>
+
+                  <div className="md:col-span-5">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Video URL</div>
                     <input
                       defaultValue={item.videoUrl}
@@ -324,6 +341,16 @@ export function HelpVideosPanel({ hideHeader }: { hideHeader?: boolean }) {
                     value={String(draft.order)}
                     onChange={(e) => setDraft((p) => ({ ...p, order: Number(e.target.value) }))}
                     className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-4 ring-slate-100"
+                  />
+                </div>
+
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">משך זמן</div>
+                  <input
+                    value={draft.duration}
+                    onChange={(e) => setDraft((p) => ({ ...p, duration: e.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:ring-4 ring-slate-100"
+                    placeholder="01:30"
                   />
                 </div>
 

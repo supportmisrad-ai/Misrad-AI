@@ -3,12 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
-import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { translateClerkError } from '@/lib/errorTranslations';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 export const LoginView: React.FC = () => {
   const { organization } = useData();
@@ -104,7 +105,14 @@ export const LoginView: React.FC = () => {
       return;
     }
 
-    if (!email || !email.includes('@')) {
+    if (!signIn) {
+      setError('שגיאה בטעינת מערכת ההתחברות. נא לרענן את הדף.');
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
       setError('נא להזין כתובת אימייל תקינה');
       emailInputRef.current?.focus();
       return;
@@ -120,35 +128,99 @@ export const LoginView: React.FC = () => {
     setError('');
 
     try {
-      const result = await signIn.create({
-        identifier: email,
-        password: password,
+      const init = await signIn.create({
+        identifier: normalizedEmail,
       });
 
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        // After login, redirect to first available OS
-        // The root page (/) will handle the redirect based on purchased modules
+      if (init.status === 'complete') {
+        await setActive({ session: init.createdSessionId });
         router.push('/');
         router.refresh();
-      } else {
+        return;
+      }
+
+      if (init.status === 'needs_first_factor') {
+        const supported = (init as any)?.supportedFirstFactors;
+        const supportsPassword = Array.isArray(supported)
+          ? supported.some((f: any) => String(f?.strategy || '').toLowerCase() === 'password')
+          : true;
+
+        if (!supportsPassword) {
+          setError('למשתמש הזה אין סיסמה מוגדרת. נסה להתחבר עם Google או בצע "שכחתי סיסמה" כדי להגדיר סיסמה.');
+          return;
+        }
+
+        const result = await signIn.attemptFirstFactor({
+          strategy: 'password',
+          password,
+        });
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId });
+          router.push('/');
+          router.refresh();
+          return;
+        }
+
         const status = (result as any)?.status;
         const msg =
           status === 'needs_second_factor'
             ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
-            : status === 'needs_first_factor'
-              ? 'נדרש שלב אימות נוסף כדי להשלים התחברות. נסה שוב או השתמש בשיטה אחרת.'
-              : status === 'needs_identifier'
-                ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
-                : status === 'needs_new_password'
-                  ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
-                  : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+            : status === 'needs_new_password'
+              ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
         setError(msg);
+        return;
       }
+
+      const status = (init as any)?.status;
+      const msg =
+        status === 'needs_second_factor'
+          ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+          : status === 'needs_identifier'
+            ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
+            : status === 'needs_new_password'
+              ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+      setError(msg);
     } catch (err: any) {
-      console.error('Login error:', err);
-      const errorMsg = err.errors?.[0]?.message || 'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.';
-      setError(translateClerkError(errorMsg));
+      const clerkError = err?.errors?.[0];
+      const errType = typeof err;
+      const errString = errType === 'string' ? err : err instanceof Error ? err.message : String(err || '');
+      const errKeys = err && (errType === 'object' || errType === 'function') ? Object.keys(err) : [];
+
+      const details = {
+        errType: errType || null,
+        errString: errString || null,
+        errKeys,
+        hasErrorsArray: Array.isArray(err?.errors),
+        clerkErrorCode: clerkError?.code ?? null,
+        clerkErrorMessage: clerkError?.message ?? null,
+        clerkErrorLongMessage: clerkError?.longMessage ?? null,
+        clerkErrorMeta: clerkError?.meta ?? null,
+      };
+
+      const detailsJson = (() => {
+        try {
+          return JSON.stringify(details, (_key, value) => (value === undefined ? null : value));
+        } catch {
+          return String(details);
+        }
+      })();
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Login error raw:', err);
+        console.warn('Login error details:', details);
+        console.warn('Login error details (json):', detailsJson);
+      }
+
+      const errorKey = clerkError?.code || clerkError?.message || err?.message || errString || '';
+      const fallbackMessage =
+        clerkError?.message ||
+        err?.message ||
+        errString ||
+        'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.';
+      setError(translateClerkError(errorKey || fallbackMessage));
       passwordInputRef.current?.focus();
     } finally {
       setIsLoading(false);
@@ -224,9 +296,9 @@ export const LoginView: React.FC = () => {
               <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
                       {theme.moduleKey ? (
-                        <OSModuleIcon moduleKey={theme.moduleKey} size={26} className="text-slate-900" />
+                        <OSModuleSquircleIcon moduleKey={theme.moduleKey} boxSize={48} iconSize={22} className="shadow-none" />
                       ) : (
-                        <img src="/icons/misrad-icon.svg" alt="Logo" className="w-full h-full object-contain p-1.5" />
+                        <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-1.5" />
                       )}
                   </div>
                   <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>{organization.name}</span>
@@ -247,8 +319,8 @@ export const LoginView: React.FC = () => {
                   </div>
               </div>
               <p className="text-gray-500 text-xs flex items-center gap-2">
-                  <span>Powered by Misrad</span>
-                  <span>&copy; 2026 Misrad.</span>
+                  <span>Powered by MISRAD AI</span>
+                  <span>&copy; 2026 MISRAD AI.</span>
               </p>
           </div>
       </div>
@@ -268,9 +340,9 @@ export const LoginView: React.FC = () => {
                 <div className="lg:hidden flex justify-center mb-4">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
                         {theme.moduleKey ? (
-                          <OSModuleIcon moduleKey={theme.moduleKey} size={30} className="text-slate-900" />
+                          <OSModuleSquircleIcon moduleKey={theme.moduleKey} boxSize={64} iconSize={26} className="shadow-none" />
                         ) : (
-                          <img src="/icons/misrad-icon.svg" alt="Logo" className="w-full h-full object-contain p-2" />
+                          <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-2" />
                         )}
                     </div>
                 </div>
@@ -341,6 +413,23 @@ export const LoginView: React.FC = () => {
                                 >
                                     המשך <ArrowLeft size={18} />
                                 </button>
+
+                                <div className="mt-3 grid grid-cols-1 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/kiosk-scan')}
+                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                  >
+                                    כניסה למסופון (סריקת QR) <Smartphone size={18} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/kiosk-login')}
+                                    className="w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                  >
+                                    <Smartphone size={18} /> הצג קוד ידני
+                                  </button>
+                                </div>
                             </motion.div>
                         ) : (
                             <motion.div 
@@ -420,6 +509,22 @@ export const LoginView: React.FC = () => {
                                             </>
                                         )}
                                     </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => router.push('/kiosk-login')}
+                                      className="mt-3 w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                    >
+                                      <Smartphone size={18} /> כניסה למסופון (Kiosk)
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => router.push('/kiosk-scan')}
+                                      className="mt-2 w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                    >
+                                      כניסה למסופון (סריקת QR) <Smartphone size={18} />
+                                    </button>
                                 </form>
                             </motion.div>
                         )}
@@ -431,7 +536,7 @@ export const LoginView: React.FC = () => {
             <div className="mt-8 flex items-center justify-center gap-6 text-xs font-medium text-gray-600">
                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> מערכות תקינות</span>
                 <span className="flex items-center gap-1.5"><Globe size={12} /> אזור IL-TLV</span>
-                <span className="flex items-center gap-1.5"><Cpu size={12} /> Misrad v2.5.0</span>
+                <span className="flex items-center gap-1.5"><Cpu size={12} /> MISRAD AI v2.5.0</span>
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-gray-500">

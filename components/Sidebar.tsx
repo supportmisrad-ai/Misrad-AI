@@ -1,8 +1,9 @@
+'use client';
 
 import React from 'react';
 import { Target, X, LogOut, Layout, Building2, Cpu, Wallet, Map, Megaphone, BarChart3, Kanban, Users } from 'lucide-react';
 import { motion, LayoutGroup } from 'framer-motion';
-import { NAV_GROUPS } from '../constants';
+import { NAV_GROUPS } from './system/constants';
 import { useBrand } from '../contexts/BrandContext';
 
 interface SidebarProps {
