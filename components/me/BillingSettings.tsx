@@ -1,7 +1,9 @@
+'use client';
 
 import React from 'react';
 import { CreditCard, FileText, Download, ShieldCheck, Eye } from 'lucide-react';
 import { useData } from '../../context/DataContext';
+import { Invoice } from '../../types';
 
 export const BillingSettings: React.FC = () => {
     const { currentUser, invoices, hasPermission } = useData();
@@ -13,7 +15,7 @@ export const BillingSettings: React.FC = () => {
 
     const visibleInvoices = canViewAllBilling 
         ? invoices 
-        : invoices.filter(inv => inv.userId === currentUser.id);
+        : invoices.filter((inv: Invoice) => inv.userId === currentUser.id);
 
     // Should we show billing info card? 
     // Usually only the card owner sees the card details, but for this demo, 
@@ -65,7 +67,7 @@ export const BillingSettings: React.FC = () => {
 
                 {visibleInvoices.length > 0 ? (
                     <div className="space-y-2">
-                        {visibleInvoices.map(invoice => (
+                        {visibleInvoices.map((invoice: Invoice) => (
                             <div key={invoice.id} className="flex items-center justify-between p-3 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors rounded-lg">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-green-50 text-green-600 rounded-lg"><FileText size={16} /></div>

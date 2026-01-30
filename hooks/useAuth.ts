@@ -1,28 +1,95 @@
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useUser } from '@clerk/nextjs';
+import { usePathname } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { User, TimeEntry, RoleDefinition, PermissionId, ChangeRequest } from '../types';
-import { USERS, DEFAULT_ROLE_DEFINITIONS } from '../constants';
+import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { isCeoRole } from '@/lib/constants/roles';
+import { getNexusMe, listNexusUsers } from '@/app/actions/nexus';
 
-export const useAuth = (addToast: (msg: string, type?: any) => void) => {
-    const [users, setUsers] = useState<User[]>(USERS);
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+export const useAuth = (
+    addToast: (msg: string, type?: any) => void,
+    initialCurrentUser?: User
+) => {
+
+    let clerkUser: any = null;
+    let isClerkLoaded = false;
+    try {
+        const clerk = useUser();
+        clerkUser = clerk.user;
+        isClerkLoaded = clerk.isLoaded;
+    } catch {
+        clerkUser = null;
+        isClerkLoaded = true;
+    }
+    const [users, setUsers] = useState<User[]>([]);
     const [roleDefinitions, setRoleDefinitions] = useState<RoleDefinition[]>(DEFAULT_ROLE_DEFINITIONS);
-    const [currentUser, setCurrentUser] = useState<User>({
-        ...USERS[0],
-        billingInfo: {
-            last4Digits: '8888',
-            cardType: 'MasterCard',
-            nextBillingDate: '2023-12-01',
-            planName: 'Nexus Pro'
-        },
-        notificationPreferences: {
-            emailNewTask: true,
-            browserPush: true,
-            morningBrief: true,
-            soundEffects: false,
-            marketing: true
+    // Initialize with Clerk user data if available (to avoid showing "עובד" initially)
+    const getInitialUser = (): User => {
+        if (initialCurrentUser) {
+            return initialCurrentUser;
         }
-    });
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+        // If Clerk user is already loaded, use its metadata
+        if (clerkUser?.publicMetadata) {
+            return {
+                id: '',
+                name: clerkUser.firstName && clerkUser.lastName
+                    ? `${clerkUser.firstName} ${clerkUser.lastName}`.trim()
+                    : clerkUser.firstName || clerkUser.lastName || '',
+                email: clerkUser.primaryEmailAddress?.emailAddress || '',
+                role: (clerkUser.publicMetadata?.role as string) || 'עובד',
+                avatar: clerkUser.imageUrl || '',
+                online: false,
+                capacity: 0,
+                isSuperAdmin: (clerkUser.publicMetadata?.isSuperAdmin as boolean) || false,
+                isTenantAdmin: false, // Will be updated when API call completes
+                tenantId: null, // Will be updated when API call completes
+                billingInfo: undefined,
+                notificationPreferences: {
+                    emailNewTask: true,
+                    browserPush: true,
+                    morningBrief: true,
+                    soundEffects: false,
+                    marketing: true
+                }
+            };
+        }
+        // Default fallback
+        return {
+            id: '',
+            name: '',
+            email: '',
+            role: 'עובד',
+            avatar: '',
+            online: false,
+            capacity: 0,
+            isTenantAdmin: false,
+            tenantId: null,
+            billingInfo: undefined,
+            notificationPreferences: {
+                emailNewTask: true,
+                browserPush: true,
+                morningBrief: true,
+                soundEffects: false,
+                marketing: true
+            }
+        };
+    };
+    
+    const [currentUser, setCurrentUser] = useState<User>(getInitialUser());
+    const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initialCurrentUser?.id));
+    const [isLoadingCurrentUser, setIsLoadingCurrentUser] = useState(false);
+
+    const pathname = usePathname();
+    const orgSlug = useMemo(() => {
+        return getWorkspaceOrgSlugFromPathname(pathname);
+    }, [pathname]);
+
     const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
     const [trashUsers, setTrashUsers] = useState<User[]>([]);
     const [trashTimeEntries, setTrashTimeEntries] = useState<TimeEntry[]>([]);
@@ -30,17 +97,101 @@ export const useAuth = (addToast: (msg: string, type?: any) => void) => {
 
     const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
 
+    const meQuery = useQuery({
+        queryKey: ['nexus', 'me', orgSlug],
+        queryFn: async () => {
+            return getNexusMe({ orgId: orgSlug as string });
+        },
+        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug && !(initialCurrentUser?.id && isUUID(String(initialCurrentUser.id)))),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    const usersQuery = useQuery({
+        queryKey: ['nexus', 'users', orgSlug],
+        queryFn: async () => {
+            return listNexusUsers({ orgId: orgSlug as string });
+        },
+        enabled: Boolean(isClerkLoaded && clerkUser && orgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    useEffect(() => {
+        if (!isClerkLoaded) return;
+
+        if (!clerkUser) {
+            setIsAuthenticated(false);
+            setIsLoadingCurrentUser(false);
+            return;
+        }
+
+        if (!orgSlug) {
+            setIsAuthenticated(Boolean(clerkUser));
+            setIsLoadingCurrentUser(false);
+            return;
+        }
+
+        if (initialCurrentUser?.id && isUUID(String(initialCurrentUser.id))) {
+            setIsAuthenticated(true);
+            setIsLoadingCurrentUser(false);
+            return;
+        }
+
+        setIsLoadingCurrentUser(Boolean(meQuery.isFetching));
+    }, [isClerkLoaded, clerkUser?.id, orgSlug, meQuery.isFetching, initialCurrentUser?.id]);
+
+    useEffect(() => {
+        if (!meQuery.data?.user) return;
+        const data = meQuery.data;
+
+        const userWithDefaults = {
+            ...data.user,
+            isSuperAdmin: Boolean(
+                (data.user as any)?.isSuperAdmin ??
+                (clerkUser?.publicMetadata?.isSuperAdmin as boolean) ??
+                ((clerkUser as any)?.unsafeMetadata as any)?.isSuperAdmin ??
+                currentUser?.isSuperAdmin
+            ),
+            isTenantAdmin: Boolean(data.isTenantAdmin),
+            tenantId: data.tenant?.id || (orgSlug as any) || null,
+            billingInfo: (data.user as any).billingInfo || undefined,
+            notificationPreferences: (data.user as any).notificationPreferences || {
+                emailNewTask: true,
+                browserPush: true,
+                morningBrief: true,
+                soundEffects: false,
+                marketing: true
+            }
+        };
+
+        setCurrentUser(userWithDefaults as any);
+        setIsAuthenticated(true);
+
+        setUsers(prev => {
+            const existingIndex = prev.findIndex(u => u.id === (data.user as any).id);
+            if (existingIndex >= 0) {
+                return prev.map((u, i) => i === existingIndex ? { ...(userWithDefaults as any), online: true } : u);
+            }
+            return [...prev, { ...(userWithDefaults as any), online: true }];
+        });
+    }, [meQuery.data, clerkUser?.id]);
+
+    useEffect(() => {
+        const nextUsers = (usersQuery.data as any)?.users;
+        if (Array.isArray(nextUsers)) {
+            setUsers(nextUsers);
+        }
+    }, [usersQuery.data]);
+
     const login = (userId: string) => {
         const user = users.find(u => u.id === userId);
         if (user) {
             const userWithBilling = {
                 ...user,
-                billingInfo: user.billingInfo || (user.role.includes('מנכ') ? {
-                    last4Digits: '8888',
-                    cardType: 'MasterCard',
-                    nextBillingDate: '2023-12-01',
-                    planName: 'Nexus Enterprise'
-                } : undefined),
+                billingInfo: user.billingInfo || undefined,
                 notificationPreferences: user.notificationPreferences || {
                     emailNewTask: true,
                     browserPush: true,
@@ -81,9 +232,29 @@ export const useAuth = (addToast: (msg: string, type?: any) => void) => {
     };
 
     const hasPermission = (permission: PermissionId): boolean => {
-        if (currentUser.isSuperAdmin) return true;
-        const role = roleDefinitions.find(r => r.name === currentUser.role);
-        return role ? role.permissions.includes(permission) : false;
+        // Super admins have all permissions
+        if (currentUser.isSuperAdmin === true) {
+            return true;
+        }
+        
+        // Special case: CEO (מנכ״ל) has all permissions - handle both Unicode variants
+        if (isCeoRole(currentUser.role)) {
+            return true;
+        }
+        
+        // Check role permissions - normalize role name for comparison
+        // Normalize both role names to handle Unicode quote variations (" vs ״)
+        const normalizedRole = String((currentUser as any)?.role ?? '').replace(/["״]/g, '״');
+        const role = roleDefinitions.find(r => {
+            const normalizedDefRole = String((r as any)?.name ?? '').replace(/["״]/g, '״');
+            return normalizedDefRole === normalizedRole; // Only check normalized comparison
+        });
+        
+        if (role && role.permissions) {
+            return role.permissions.includes(permission);
+        }
+        
+        return false;
     };
 
     const addUser = (user: User) => {
@@ -248,7 +419,7 @@ export const useAuth = (addToast: (msg: string, type?: any) => void) => {
     };
 
     return {
-        users, roleDefinitions, currentUser, isAuthenticated, timeEntries, trashUsers, trashTimeEntries,
+        users, roleDefinitions, currentUser, isAuthenticated, isLoadingCurrentUser, timeEntries, trashUsers, trashTimeEntries,
         activeShift, changeRequests,
         login, logout, switchUser, hasPermission, addUser, updateUser, removeUser, restoreUser,
         permanentlyDeleteUser, clockIn, clockOut, 

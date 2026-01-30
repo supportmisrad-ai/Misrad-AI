@@ -1,0 +1,623 @@
+@import "tailwindcss";
+
+/* --- 1. המנוע של Tailwind 4 (חובה!) --- */
+@theme {
+  /* צבעי המותג */
+  --color-onyx-900: #09090B;
+  --color-onyx-800: #18181B;
+  --color-primary: #A21D3C;
+  --color-primary-glow: #881337;
+  --color-indigo-accent: #3730A3;
+  --color-nexus-primary: #0F172A;
+  --color-nexus-accent: #C5A572;
+  --color-nexus-bg: #F1F5F9;
+  --color-nexus-muted: #64748B;
+  --color-signal-danger: #DC2626;
+  --color-signal-warning: #F59E0B;
+  --color-signal-success: #16A34A;
+  
+  --color-bg-app: #F8FAFC;
+  --color-text-main: #0F172A;
+  --color-text-muted: #64748B;
+
+  /* גרדיאנט Nexus */
+  --background-image-nexus-gradient: linear-gradient(135deg, #A21D3C 0%, #3730A3 100%);
+
+  /* אנימציות */
+  --animate-blob: blob 7s infinite;
+  --animate-pulse-soft: pulseSoft 3s ease-in-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-shake: shake 0.5s ease-in-out;
+  --animate-scroll-rtl: scroll-rtl 20s linear infinite;
+  --animate-gradient-x: gradient-x 3s ease infinite;
+
+  /* פונטים */
+  --font-sans: 'Assistant', 'Heebo', sans-serif;
+
+  /* Shadows (Client OS Admin) */
+  --shadow-glow-gold: 0 0 20px rgba(197, 165, 114, 0.35);
+  --shadow-luxury: 0 25px 60px -15px rgba(15, 23, 42, 0.18);
+}
+
+/* --- 2. משתנים גלובליים (הצבעים החסרים) --- */
+:root {
+  /* צבעי רקע וטקסט */
+  --bg-app: #F8FAFC; 
+  --text-main: #0F172A; 
+  --text-muted: #64748B;
+  
+  /* פלטת מערכת */
+  --onyx-900: #09090B;
+  --primary: #A21D3C; /* Rose Deep */
+  --indigo-accent: #3730A3;
+  
+  /* גרדיאנט ה-Nexus המפורסם */
+  --nexus-gradient: linear-gradient(135deg, #A21D3C 0%, #3730A3 100%);
+  
+  /* צללים */
+  --shadow-glass: 0 8px 32px 0 rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 20px 40px -10px rgba(0,0,0,0.05);
+
+  --theme-accent: var(--os-accent, #A21D3C);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+[data-module="nexus"] {
+  --theme-accent: var(--os-accent, #3730A3);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+[data-module="system"] {
+  --theme-accent: var(--os-accent, #E11D48);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+[data-module="social"] {
+  --theme-accent: var(--os-accent, #2563EB);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+[data-module="finance"] {
+  --theme-accent: var(--os-accent, #059669);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+[data-module="client"] {
+  --theme-accent: var(--os-accent, #D97706);
+  --theme-accent-foreground: #FFFFFF;
+  --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+#main-scroll-container {
+  scrollbar-gutter: stable;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.nav-item-active {
+  background: var(--nexus-gradient);
+  color: white;
+  border-radius: 1rem; /* 2xl ב-Tailwind */
+  box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+}
+
+.hero-cockpit {
+  background-color: #09090B;
+  border-radius: 48px;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* בועות אור (Blobs) */
+.blob-rose {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: rgba(162, 29, 60, 0.3);
+  border-radius: 50%;
+  filter: blur(140px);
+  animation: pulseSoft 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.blob-indigo {
+  position: absolute;
+  bottom: -20%;
+  left: -10%;
+  width: 400px;
+  height: 400px;
+  background: rgba(55, 48, 163, 0.2);
+  border-radius: 50%;
+  filter: blur(100px);
+}
+
+/* מסך התחברות */
+.login-screen {
+  background: #09090B;
+  background-image: radial-gradient(at 0% 0%, rgba(55, 48, 163, 0.1) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(162, 29, 60, 0.1) 0px, transparent 50%);
+}
+
+/* תיבת לוגו (Squircle Logo) */
+.logo-box {
+  background: var(--nexus-gradient);
+  border-radius: 18px; /* מראה ה-Squircle */
+  box-shadow: 0 10px 25px color-mix(in srgb, var(--theme-accent) 24%, transparent);
+}
+
+/* גרדיאנט Nexus - גיבוי ל-Tailwind */
+.bg-nexus-gradient {
+  background: linear-gradient(135deg, #A21D3C 0%, #3730A3 100%);
+  background-image: var(--nexus-gradient);
+}
+
+/* --- 3. הגדרות בסיס --- */
+
+body {
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(55, 48, 163, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(162, 29, 60, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(55, 48, 163, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(162, 29, 60, 0.02) 0px, transparent 50%);
+  background-attachment: fixed;
+  background-size: cover;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;
+}
+
+/* Hide scrollbars but keep scroll functionality */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body {
+  -ms-overflow-style: none;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Avoid browser default black focus outlines; rely on component focus rings */
+*:focus-visible {
+  outline: none;
+}
+
+/* Client OS Admin utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.scroll-fade-v {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 24px, black calc(100% - 24px), transparent);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 30px -5px rgba(0, 0, 0, 0.02);
+}
+
+/* --- 4. רכיבי UI מיוחדים (System OS) --- */
+
+/* כרטיסי זכוכית */
+.ui-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--theme-border);
+  border-radius: 40px;
+  box-shadow:
+    0 4px 30px -5px rgba(0, 0, 0, 0.02),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ui-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 30px 60px -12px rgba(0, 0, 0, 0.04),
+    0 0 0 1px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+  border-color: var(--theme-border);
+}
+
+/* Hero Cockpit (הכרטיס הכהה הגדול) */
+.hero-cockpit {
+  background-color: #09090B;
+  border-radius: 48px;
+  position: relative;
+  overflow: hidden;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* בועות אור (Blobs) */
+.blob-rose {
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 600px;
+  height: 600px;
+  background: rgba(162, 29, 60, 0.3);
+  border-radius: 50%;
+  filter: blur(140px);
+  animation: pulseSoft 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.blob-indigo {
+  position: absolute;
+  bottom: -20%;
+  left: -10%;
+  width: 400px;
+  height: 400px;
+  background: rgba(55, 48, 163, 0.2);
+  border-radius: 50%;
+  filter: blur(100px);
+}
+
+/* תפריט צד זכוכית */
+.sidebar-glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.nav-item-active {
+  background: var(--nexus-gradient);
+  color: white;
+  border-radius: 1rem; /* 2xl ב-Tailwind */
+  box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+}
+
+.nav-item-inactive {
+  color: #64748B; /* text-slate-500 */
+  border-radius: 1rem; /* rounded-2xl */
+}
+
+.nav-item-inactive:hover {
+  background-color: rgba(241, 245, 249, 0.8); /* hover:bg-slate-100/80 */
+  color: #0F172A; /* hover:text-slate-900 */
+}
+
+/* --- 5. הגדרות Input מורכבות (תאריכים וטפסים) --- */
+
+/* הגדרות קלט וטפסים כלליות (מה-AI Studio) */
+input, select, textarea {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 1);
+  border-radius: 20px;
+  padding: 0.5rem 1rem; /* הוספתי לשיפור מראה */
+  color: #0F172A;
+  font-size: 0.95rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #94A3B8;
+}
+
+input:disabled, select:disabled, textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: #FB7185;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--theme-accent);
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--theme-accent) 12%, transparent);
+}
+
+/* Custom Date/DateTime Input Styling (מהקוד המקורי שלך - מלא!) */
+input[type="date"],
+input[type="datetime-local"] {
+  color-scheme: light;
+  position: relative;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit {
+  padding: 0;
+  color: #111827;
+  font-weight: 500;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="datetime-local"]::-webkit-datetime-edit-text {
+  color: #6b7280;
+  padding: 0 2px;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field {
+  color: #111827;
+  padding: 0 2px;
+}
+
+input[type="date"]::-webkit-datetime-edit-hour-field,
+input[type="date"]::-webkit-datetime-edit-minute-field,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field {
+  color: #111827;
+  padding: 0 2px;
+}
+
+input[type="date"]:focus::-webkit-datetime-edit,
+input[type="datetime-local"]:focus::-webkit-datetime-edit {
+  color: #4f46e5;
+}
+
+input[type="date"]:hover::-webkit-datetime-edit,
+input[type="datetime-local"]:hover::-webkit-datetime-edit {
+  color: #111827;
+}
+
+/* --- 6. כלי עזר (Utilities) --- */
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scrollbar for chat and other components */
+.custom-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 10px;
+  display: block !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.5);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.7);
+}
+
+.scrollable-with-fade {
+  position: relative;
+}
+.scrollable-with-fade::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(241, 245, 249, 0.8));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.scrollable-with-fade.scrollable-has-more::after {
+  opacity: 1;
+}
+
+.app-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: transparent;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  padding: 24px 40px;
+  height: 100%;
+  background: transparent;
+}
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px 16px 100px 16px;
+  }
+}
+
+.workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 40px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+}
+
+/* Custom Range Input */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  background: #f1f5f9;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 10px;
+  cursor: pointer;
+  background: #f1f5f9;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+input[type=range]::-webkit-slider-thumb {
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -10px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 4px solid white;
+  transition: all 0.2s ease;
+}
+input[type=range]::-moz-range-thumb {
+  height: 28px;
+  width: 28px;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: 4px solid white;
+  transition: all 0.2s ease;
+}
+input[type=range]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+  background: #000000;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* --- 7. אנימציות (Keyframes) --- */
+
+@keyframes blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+}
+
+@keyframes scroll-rtl {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-blob { animation: blob 7s infinite; }
+.animate-scroll-rtl { animation: scroll-rtl 20s linear infinite; }
+.animate-gradient-x { background-size: 200% 200%; animation: gradient-x 3s ease infinite; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-shake { animation: shake 0.5s ease-in-out; }
+
+/* 3D Utilities */
+.perspective-1000 { perspective: 1000px; }
+.rotate-y-6 { transform: rotateY(6deg); }

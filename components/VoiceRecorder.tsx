@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, Square, X, Check, BrainCircuit, Loader2, Save, AlertCircle } from 'lucide-react';
+import { Mic, Square, X, Check, Sparkles, Save, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
-import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, Priority } from '../types';
+import { Skeleton } from '@/components/ui/skeletons';
 
 interface VoiceRecorderProps {
   onClose: () => void;
@@ -85,7 +85,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
 
   const startSimulation = () => {
       setIsSimulation(true);
-      addToast('מיקרופון לא נמצא - עבר למצב סימולציה', 'warning');
+      addToast('מיקרופון לא נמצא - עבר למצב ללא מיקרופון', 'warning');
       try {
           const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
           const ctx = new AudioContextClass();
@@ -114,8 +114,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
 
           handleStreamSetup(dest.stream);
       } catch (e) {
-          console.error("Simulation setup failed", e);
-          alert("לא ניתן לגשת למיקרופון ולא ניתן להפעיל סימולציה.");
+          console.error("Fallback audio setup failed", e);
+          alert("לא ניתן לגשת למיקרופון.");
           onClose();
       }
   };
@@ -177,7 +177,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
       if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
       
       animationFrameRef.current = requestAnimationFrame(draw);
-      analyserRef.current!.getByteFrequencyData(dataArrayRef.current!);
+      analyserRef.current!.getByteFrequencyData(dataArrayRef.current as any);
 
       ctx.clearRect(0, 0, width, height);
 
@@ -226,52 +226,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
       try {
         let aiResult: AIAnalysisResult | undefined;
 
-        if (!isSimulation && process.env.API_KEY) {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const base64Audio = await blobToBase64(audioBlob);
-
-            const responseSchema = {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  priority: { type: Type.STRING, enum: ['Low', 'Medium', 'High', 'Urgent'] },
-                  tags: { type: Type.ARRAY, items: { type: Type.STRING } },
-                },
-                required: ['title', 'description', 'priority', 'tags'],
-            };
-
-            const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: {
-                parts: [
-                    { inlineData: { mimeType: 'audio/webm', data: base64Audio } },
-                    { text: "You are an assistant. Listen to the audio and extract a task. Output strictly in Hebrew." }
-                ]
-              },
-              config: {
-                responseMimeType: "application/json",
-                responseSchema: responseSchema,
-              },
-            });
-
-            try {
-                if (response.text) {
-                    aiResult = JSON.parse(response.text) as AIAnalysisResult;
-                }
-            } catch (e) {
-                console.error("Failed to parse AI response", e);
-            }
-        } else {
-            // Mock result for simulation or missing API key
-            await new Promise(resolve => setTimeout(resolve, 1500)); // Fake processing
-            aiResult = {
-                title: "משימה קולית חדשה (סימולציה)",
-                description: "הקלטה זו נוצרה במצב סימולציה עקב היעדר מיקרופון.",
-                priority: Priority.MEDIUM,
-                tags: ["Voice", "Simulation"]
-            };
-        }
+        // Marketing-safe: no client-side AI processing.
+        await new Promise(resolve => setTimeout(resolve, 600));
+        aiResult = {
+          title: isSimulation ? 'משימה קולית חדשה (ללא מיקרופון)' : 'משימה קולית חדשה',
+          description: 'נשמרה הקלטה. תמלול/AI ירוץ בצד שרת בגרסה הבאה.',
+          priority: Priority.MEDIUM,
+          tags: ['Voice'],
+        };
 
         addVoiceTask(audioBlob, aiResult);
         onClose();
@@ -298,6 +260,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
         onClick={onClose}
         disabled={isProcessing}
         className="absolute top-6 right-6 text-white/50 hover:text-white p-2 rounded-full hover:bg-white/10 disabled:opacity-50"
+        aria-label="סגור הקלטה"
       >
         <X size={32} />
       </button>
@@ -312,7 +275,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
         )}
         {isSimulation && (
             <div className="flex items-center gap-2 text-orange-400 text-xs font-bold bg-orange-500/10 px-3 py-1 rounded-full border border-orange-500/20">
-                <AlertCircle size={12} /> מצב סימולציה (ללא מיקרופון)
+                <AlertCircle size={12} /> מצב ללא מיקרופון
             </div>
         )}
       </div>
@@ -322,7 +285,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
              <div className="flex flex-col items-center gap-4">
                  <div className="relative">
                     <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>
-                    <BrainCircuit size={64} className="text-blue-400 animate-pulse relative z-10" />
+                    <Sparkles size={64} className="text-blue-400 animate-pulse relative z-10" />
                  </div>
                  <p className="text-blue-200 text-sm font-medium animate-pulse">מפענח ומייצר משימה...</p>
              </div>
@@ -351,7 +314,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({ onClose }) => {
            </div>
         ) : isProcessing ? (
             <div className="flex justify-center">
-                <Loader2 size={48} className="text-white animate-spin" />
+                <Skeleton className="w-12 h-12 rounded-full bg-white/20" />
             </div>
         ) : (
            <div className="flex gap-6 w-full justify-center">

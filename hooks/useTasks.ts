@@ -1,17 +1,39 @@
+'use client';
 
 import { useState, useEffect } from 'react';
-import { Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
-import { TASKS, DEFAULT_WORKFLOW, TEMPLATES } from '../constants';
+import { Notification, Task, WorkflowStage, Template, TaskCreationDefaults, TaskCompletionDetails, Attachment, AIAnalysisResult, Status, Priority, User } from '../types';
+import { DEFAULT_WORKFLOW } from '../constants';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { deleteNexusTask, updateNexusTask } from '@/app/actions/nexus';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type ToastKind = 'success' | 'error' | 'info' | 'warning';
+
+type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
 
 export const useTasks = (
     currentUser: User, 
-    addNotification: (n: any) => void, 
-    addToast: (m: string, t?: any) => void
+    addNotification: (n: NotificationInput) => void, 
+    addToast: (m: string, t?: ToastKind) => void
 ) => {
-    const [tasks, setTasks] = useState<Task[]>(TASKS);
+
+    const [tasks, setTasks] = useState<Task[]>([]);
     const [trashTasks, setTrashTasks] = useState<Task[]>([]);
     const [workflowStages, setWorkflowStages] = useState<WorkflowStage[]>(DEFAULT_WORKFLOW);
-    const [templates, setTemplates] = useState<Template[]>(TEMPLATES);
+    const [templates, setTemplates] = useState<Template[]>([]);
     
     // UI State for tasks
     const [openedTaskId, setOpenedTaskId] = useState<string | null>(null);
@@ -21,26 +43,65 @@ export const useTasks = (
     const [lastDeletedTask, setLastDeletedTask] = useState<Task | null>(null);
     
     // Calendar Events (kept with tasks as they are related to scheduling)
-    const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+    const [calendarEvents, setCalendarEvents] = useState<Record<string, unknown>[]>([]);
     const [isCalendarConnected, setIsCalendarConnected] = useState(false);
     const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
+
+    // Load calendar connection status on mount (only once)
+    useEffect(() => {
+        let mounted = true;
+        const checkCalendarStatus = async () => {
+            try {
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                const response = await fetch('/api/integrations/google/status?service=calendar', {
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                });
+                if (mounted && response.ok) {
+                    const data: unknown = await response.json();
+                    const dataObj = asObject(data);
+                    const payload = asObject(dataObj?.data) ?? dataObj ?? data;
+                    const payloadObj = asObject(payload) ?? {};
+                    const statusObj = asObject(payloadObj.status) ?? {};
+                    const calendarObj = asObject(statusObj.calendar) ?? {};
+                    setIsCalendarConnected(Boolean(calendarObj.connected));
+                }
+            } catch (error: unknown) {
+                // Silently fail - integration is optional
+                if (mounted) {
+                    setIsCalendarConnected(false);
+                }
+            }
+        };
+        checkCalendarStatus();
+        return () => { mounted = false; };
+    }, []);
 
     // Timer Interval
     useEffect(() => {
         const interval = setInterval(() => {
-            setTasks(prev => prev.map(t => {
-                if (t.isTimerRunning) {
-                    return { ...t, timeSpent: (t.timeSpent || 0) + 1 };
+            setTasks(prev => {
+                if (!prev.some(t => t.isTimerRunning)) {
+                    return prev;
                 }
-                return t;
-            }));
+                let changed = false;
+                const next = prev.map(t => {
+                    if (t.isTimerRunning) {
+                        changed = true;
+                        return { ...t, timeSpent: (t.timeSpent || 0) + 1 };
+                    }
+                    return t;
+                });
+                return changed ? next : prev;
+            });
         }, 1000);
         return () => clearInterval(interval);
     }, []);
 
-    const addTask = (task: Task) => {
+    const addTask = (task: Task, options?: { silent?: boolean }) => {
         setTasks(prev => [task, ...prev]);
-        addToast('משימה נוצרה בהצלחה', 'success');
+        if (!options?.silent) {
+            addToast('משימה נוצרה בהצלחה', 'success');
+        }
         
         if (task.assigneeIds && task.assigneeIds.length > 0) {
             const assigneesToNotify = task.assigneeIds.filter(id => id !== currentUser.id);
@@ -58,6 +119,9 @@ export const useTasks = (
     };
 
     const updateTask = (id: string, updates: Partial<Task>) => {
+        const prevTask = tasks.find(t => t.id === id);
+
+        // Optimistic update
         setTasks(prev => prev.map(t => {
             if (t.id === id) {
                 const updatedTask = { ...t, ...updates };
@@ -118,29 +182,87 @@ export const useTasks = (
             }
             return t;
         }));
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('nexusTaskUpdated', { detail: { taskId: id, updates } }));
+        }
+
+        // Persist to DB via API (fire-and-forget). This is required for assignee/default-assignee.
+        (async () => {
+            try {
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                if (!orgSlug) {
+                    throw new Error('לא ניתן לעדכן משימה: חסר מזהה ארגון (orgSlug).');
+                }
+                const updated = await updateNexusTask({ orgId: orgSlug, taskId: id, updates });
+                setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updated } : t)));
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(
+                        new CustomEvent('nexusTaskUpdated', { detail: { taskId: id, updates: updated } })
+                    );
+                    window.dispatchEvent(new CustomEvent('nexusNotificationsRefresh'));
+                }
+            } catch (error: unknown) {
+                // Rollback
+                if (prevTask) {
+                    setTasks(prev => prev.map(t => (t.id === id ? prevTask : t)));
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(
+                            new CustomEvent('nexusTaskUpdated', { detail: { taskId: id, updates: prevTask } })
+                        );
+                    }
+                }
+                addToast(getErrorMessage(error) || 'שגיאה בעדכון המשימה', 'error');
+            }
+        })();
     };
 
-    const deleteTask = (id: string) => {
+    const deleteTask = async (id: string) => {
         const taskToDelete = tasks.find(t => t.id === id);
-        if (taskToDelete) {
-            setLastDeletedTask(taskToDelete);
-            setTasks(prev => prev.filter(t => t.id !== id));
-            setTrashTasks(prev => [taskToDelete, ...prev]);
-            addToast('משימה הועברה לסל המיחזור', 'info');
-            setTimeout(() => setLastDeletedTask(null), 5000);
+        if (!taskToDelete) return;
 
-            if (taskToDelete.assigneeIds && taskToDelete.assigneeIds.length > 0) {
-                const assigneesToNotify = taskToDelete.assigneeIds.filter(id => id !== currentUser.id);
-                assigneesToNotify.forEach(uid => {
-                    addNotification({
-                        recipientId: uid,
-                        type: 'alert',
-                        text: `המשימה "${taskToDelete.title}" נמחקה והועברה לארכיון`,
-                        actorName: currentUser.name,
-                        actorAvatar: currentUser.avatar
-                    });
-                });
+        // Optimistic UI: remove immediately
+        setLastDeletedTask(taskToDelete);
+        setTasks(prev => prev.filter(t => t.id !== id));
+        setTrashTasks(prev => [taskToDelete, ...prev]);
+        addToast('משימה נמחקה', 'info');
+        setTimeout(() => setLastDeletedTask(null), 5000);
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('nexusTaskDeleted', { detail: { taskId: id } }));
+        }
+
+        // Persist deletion
+        try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) {
+                throw new Error('לא ניתן למחוק משימה: חסר מזהה ארגון (orgSlug).');
             }
+
+            await deleteNexusTask({ orgId: orgSlug, taskId: id });
+        } catch (error: unknown) {
+            // Rollback
+            setTrashTasks(prev => prev.filter(t => t.id !== id));
+            setTasks(prev => [taskToDelete, ...prev]);
+            addToast(getErrorMessage(error) || 'שגיאה במחיקת משימה', 'error');
+
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('nexusTaskRestored', { detail: { task: taskToDelete } }));
+            }
+            return;
+        }
+
+        if (taskToDelete.assigneeIds && taskToDelete.assigneeIds.length > 0) {
+            const assigneesToNotify = taskToDelete.assigneeIds.filter(uid => uid !== currentUser.id);
+            assigneesToNotify.forEach(uid => {
+                addNotification({
+                    recipientId: uid,
+                    type: 'alert',
+                    text: `המשימה "${taskToDelete.title}" נמחקה`,
+                    actorName: currentUser.name,
+                    actorAvatar: currentUser.avatar
+                });
+            });
         }
     };
 
@@ -181,67 +303,226 @@ export const useTasks = (
         addToast('משימה נמחקה לצמיתות', 'warning');
     };
 
-    const toggleTimer = (taskId: string) => {
+    const toggleTimer = async (taskId: string) => {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const newTimerState = !task.isTimerRunning;
+
+        // Optimistic update
         setTasks(prev => prev.map(t => {
             if (t.id === taskId) {
-                return { ...t, isTimerRunning: !t.isTimerRunning };
+                return { ...t, isTimerRunning: newTimerState };
             }
             return t;
         }));
+
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('nexusTaskUpdated', {
+                    detail: { taskId, updates: { isTimerRunning: newTimerState } },
+                })
+            );
+        }
+
+        // Save to database via API
+        try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            if (!orgSlug) {
+                throw new Error('לא ניתן לעדכן טיימר: חסר מזהה ארגון (orgSlug).');
+            }
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { isTimerRunning: newTimerState } });
+            setTasks(prev => prev.map(t =>
+                t.id === taskId ? { ...t, ...updated } : t
+            ));
+        } catch (error: unknown) {
+            // Revert on error
+            setTasks(prev => prev.map(t => {
+                if (t.id === taskId) {
+                    return { ...t, isTimerRunning: task.isTimerRunning };
+                }
+                return t;
+            }));
+            console.error('[Tasks] Failed to update timer', { message: getErrorMessage(error) });
+            addToast(getErrorMessage(error) || 'שגיאה בעדכון הטיימר', 'error');
+
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(
+                    new CustomEvent('nexusTaskUpdated', {
+                        detail: { taskId, updates: { isTimerRunning: task.isTimerRunning } },
+                    })
+                );
+            }
+        }
     };
 
-    const addMessage = (taskId: string, text: string, attachment?: Attachment, type: 'user' | 'system' | 'guest' = 'user') => {
+    const addMessage = async (taskId: string, text: string, attachment?: Attachment, type: 'user' | 'system' | 'guest' = 'user', taskOverride?: Task) => {
         const newMessage = {
-            id: `msg-${Date.now()}`,
+            id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             text,
             senderId: type === 'system' ? 'system' : currentUser.id,
             createdAt: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
             type,
             attachment
         };
-        setTasks(prev => prev.map(t => 
-            t.id === taskId ? { ...t, messages: [...t.messages, newMessage] } : t
-        ));
+        
+        // Use taskOverride if provided, otherwise find in tasks array
+        const updatedTask = taskOverride || tasks.find(t => t.id === taskId);
+        if (!updatedTask) {
+            console.error('[addMessage] Task not found:', taskId);
+            addToast('שגיאה: המשימה לא נמצאה', 'error');
+            return;
+        }
+        
+        const newMessages = [...updatedTask.messages, newMessage];
+        
+        // Update local state immediately (optimistic update)
+        setTasks(prev => {
+            const existingTask = prev.find(t => t.id === taskId);
+            if (existingTask) {
+                // Update existing task in array
+                return prev.map(t => 
+                    t.id === taskId ? { ...t, messages: newMessages } : t
+                );
+            } else {
+                // Add task to array if it doesn't exist (e.g., fetched from API)
+                return [...prev, { ...updatedTask, messages: newMessages }];
+            }
+        });
+
+        // Save to database
+        try {
+            await updateTask(taskId, { messages: newMessages });
+        } catch (error: unknown) {
+            console.error('[addMessage] Failed to save message to database:', error);
+            // Revert optimistic update on error
+            setTasks(prev => {
+                const existingTask = prev.find(t => t.id === taskId);
+                if (existingTask) {
+                    return prev.map(t => 
+                        t.id === taskId ? { ...t, messages: updatedTask.messages } : t
+                    );
+                } else {
+                    // Remove task if it was just added
+                    return prev.filter(t => t.id !== taskId);
+                }
+            });
+            addToast('שגיאה בשמירת ההודעה', 'error');
+            return;
+        }
 
         if (type === 'user') {
-            const task = tasks.find(t => t.id === taskId);
-            if (task) {
-                const recipients = new Set([...(task.assigneeIds || []), task.creatorId]);
-                recipients.delete(currentUser.id);
-                recipients.delete(undefined);
+            const recipients = new Set([...(updatedTask.assigneeIds || []), updatedTask.creatorId]);
+            recipients.delete(currentUser.id);
+            recipients.delete(undefined);
 
-                recipients.forEach(uid => {
-                    if (uid) {
-                        addNotification({
-                            recipientId: uid,
-                            type: 'mention',
-                            text: `תגובה חדשה במשימה: ${task.title}`,
-                            actorName: currentUser.name,
-                            actorAvatar: currentUser.avatar,
-                            taskId: taskId
-                        });
-                    }
-                });
-            }
+            recipients.forEach(uid => {
+                if (uid) {
+                    addNotification({
+                        recipientId: uid,
+                        type: 'mention',
+                        text: `תגובה חדשה במשימה: ${updatedTask.title}`,
+                        actorName: currentUser.name,
+                        actorAvatar: currentUser.avatar,
+                        taskId: taskId
+                    });
+                }
+            });
         }
     };
 
-    const updateMessage = (taskId: string, messageId: string, text: string) => {
-        setTasks(prev => prev.map(t => 
-            t.id === taskId ? { 
-                ...t, 
-                messages: t.messages.map(m => m.id === messageId ? { ...m, text } : m) 
-            } : t
-        ));
+    const updateMessage = async (taskId: string, messageId: string, text: string, taskOverride?: Task) => {
+        // Use taskOverride if provided, otherwise find in tasks array
+        const task = taskOverride || tasks.find(t => t.id === taskId);
+        if (!task) {
+            console.error('[updateMessage] Task not found:', taskId);
+            addToast('שגיאה: המשימה לא נמצאה', 'error');
+            return;
+        }
+        
+        const updatedMessages = task.messages.map(m => m.id === messageId ? { ...m, text } : m);
+        
+        // Update local state immediately (optimistic update)
+        setTasks(prev => {
+            const existingTask = prev.find(t => t.id === taskId);
+            if (existingTask) {
+                return prev.map(t => 
+                    t.id === taskId ? { 
+                        ...t, 
+                        messages: updatedMessages
+                    } : t
+                );
+            } else {
+                // Add task to array if it doesn't exist
+                return [...prev, { ...task, messages: updatedMessages }];
+            }
+        });
+        
+        // Save to database
+        try {
+            await updateTask(taskId, { messages: updatedMessages });
+        } catch (error: unknown) {
+            console.error('[updateMessage] Failed to save message update to database:', error);
+            // Revert optimistic update on error
+            setTasks(prev => {
+                const existingTask = prev.find(t => t.id === taskId);
+                if (existingTask) {
+                    return prev.map(t => 
+                        t.id === taskId ? { ...t, messages: task.messages } : t
+                    );
+                } else {
+                    return prev.filter(t => t.id !== taskId);
+                }
+            });
+            addToast('שגיאה בעדכון ההודעה', 'error');
+        }
     };
 
-    const deleteMessage = (taskId: string, messageId: string) => {
-        setTasks(prev => prev.map(t => 
-            t.id === taskId ? { 
-                ...t, 
-                messages: t.messages.filter(m => m.id !== messageId) 
-            } : t
-        ));
+    const deleteMessage = async (taskId: string, messageId: string, taskOverride?: Task) => {
+        // Use taskOverride if provided, otherwise find in tasks array
+        const task = taskOverride || tasks.find(t => t.id === taskId);
+        if (!task) {
+            console.error('[deleteMessage] Task not found:', taskId);
+            addToast('שגיאה: המשימה לא נמצאה', 'error');
+            return;
+        }
+        
+        const updatedMessages = task.messages.filter(m => m.id !== messageId);
+        
+        // Update local state immediately (optimistic update)
+        setTasks(prev => {
+            const existingTask = prev.find(t => t.id === taskId);
+            if (existingTask) {
+                return prev.map(t => 
+                    t.id === taskId ? { 
+                        ...t, 
+                        messages: updatedMessages
+                    } : t
+                );
+            } else {
+                // Add task to array if it doesn't exist
+                return [...prev, { ...task, messages: updatedMessages }];
+            }
+        });
+        
+        // Save to database
+        try {
+            await updateTask(taskId, { messages: updatedMessages });
+        } catch (error: unknown) {
+            console.error('[deleteMessage] Failed to delete message from database:', error);
+            // Revert optimistic update on error
+            setTasks(prev => {
+                const existingTask = prev.find(t => t.id === taskId);
+                if (existingTask) {
+                    return prev.map(t => 
+                        t.id === taskId ? { ...t, messages: task.messages } : t
+                    );
+                } else {
+                    return prev.filter(t => t.id !== taskId);
+                }
+            });
+            addToast('שגיאה במחיקת ההודעה', 'error');
+        }
     };
 
     const addGuestMessage = (taskId: string, text: string) => {
@@ -423,17 +704,16 @@ export const useTasks = (
         addToast('שלב בתהליך נמחק', 'info');
     };
 
-    const connectGoogleCalendar = () => {
+    const connectGoogleCalendar = async () => {
         setIsConnectingCalendar(true);
-        setTimeout(() => {
+        try {
+            // Redirect to OAuth authorization
+            window.location.href = '/api/integrations/google/authorize?service=calendar';
+        } catch (error: unknown) {
+            console.error('[Tasks] Error connecting Google Calendar', { message: getErrorMessage(error) });
+            addToast('שגיאה בחיבור ל-Google Calendar', 'error');
             setIsConnectingCalendar(false);
-            setIsCalendarConnected(true);
-            setCalendarEvents([
-                { id: 'cal-1', title: 'פגישת צוות', start: new Date(), end: new Date(new Date().getTime() + 3600000), color: '#3b82f6' },
-                { id: 'cal-2', title: 'שיחה עם לקוח', start: new Date(new Date().getTime() + 86400000), end: new Date(new Date().getTime() + 90000000), color: '#10b981' }
-            ]);
-            addToast('יומן Google מחובר בהצלחה', 'success');
-        }, 1500);
+        }
     };
 
     const openCreateTask = (defaults?: TaskCreationDefaults) => {
@@ -444,13 +724,20 @@ export const useTasks = (
         setIsCreateTaskOpen(false);
         setCreateTaskDefaults(null);
     };
-    const openTask = (taskId: string) => setOpenedTaskId(taskId);
+    const openTask = (taskId: string) => {
+        setOpenedTaskId(taskId);
+    };
     const closeTask = () => setOpenedTaskId(null);
+
+    const replaceTasks = (next: Task[]) => {
+        setTasks(Array.isArray(next) ? next : []);
+    };
 
     return {
         tasks, trashTasks, workflowStages, templates, 
         openedTaskId, isCreateTaskOpen, createTaskDefaults, taskToComplete, lastDeletedTask,
         calendarEvents, isCalendarConnected, isConnectingCalendar,
+        replaceTasks,
         addTask, updateTask, deleteTask, restoreTask, permanentlyDeleteTask, toggleTimer, snoozeTask,
         confirmCompleteTask, cancelCompleteTask, addMessage, updateMessage, deleteMessage, addGuestMessage, approveTaskByGuest,
         addVoiceTask, addTemplate, removeTemplate, applyTemplate, deleteWorkflowStage, connectGoogleCalendar,

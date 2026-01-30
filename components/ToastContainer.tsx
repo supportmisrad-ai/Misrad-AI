@@ -11,7 +11,7 @@ interface ToastContainerProps {
 
 export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeToast }) => {
     return (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-3 w-full max-w-md px-4 pointer-events-none" style={{ direction: 'rtl' }}>
+        <div className="fixed top-[calc(env(safe-area-inset-top)+1rem)] sm:top-6 left-1/2 -translate-x-1/2 z-[9999] flex flex-col items-center gap-3 w-full max-w-md px-4 pointer-events-none" style={{ direction: 'rtl' }}>
             <AnimatePresence mode='popLayout'>
                 {toasts.map(toast => (
                     <motion.div
@@ -21,7 +21,7 @@ export const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, removeTo
                         animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, y: -20, scale: 0.9, filter: 'blur(10px)' }}
                         transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
-                        className={`pointer-events-auto flex items-center gap-4 p-2 pl-3 pr-2 backdrop-blur-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-fit min-w-[320px] max-w-[90vw] rounded-[1.25rem] overflow-hidden relative group
+                        className={`pointer-events-auto flex items-center gap-4 p-2 pl-3 pr-2 backdrop-blur-2xl border shadow-[0_8px_30px_rgba(0,0,0,0.12)] w-full max-w-[90vw] sm:max-w-md rounded-[1.25rem] overflow-hidden relative group
                             ${toast.type === 'success' ? 'bg-white/90 border-emerald-100/50' :
                               toast.type === 'error' ? 'bg-white/90 border-rose-100/50' :
                               toast.type === 'warning' ? 'bg-white/90 border-amber-100/50' :

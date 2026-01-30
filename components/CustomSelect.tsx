@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
@@ -31,13 +30,15 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left: number; width: number; isMobile?: boolean } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find(opt => opt.value === value);
 
   useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    
     const handleClickOutside = (event: MouseEvent) => {
       if (
           containerRef.current && 
@@ -51,7 +52,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     
     const handleScroll = (event: Event) => {
         if (dropdownRef.current && dropdownRef.current.contains(event.target as Node)) return;
-        setIsOpen(false); // Close on scroll to avoid floating position issues
+        setIsOpen(false);
     };
 
     if (isOpen) {
@@ -61,25 +62,31 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     }
     
     return () => {
+        if (typeof document !== 'undefined') {
         document.removeEventListener('mousedown', handleClickOutside);
+        }
+        if (typeof window !== 'undefined') {
         window.removeEventListener('resize', () => setIsOpen(false));
         window.removeEventListener('scroll', handleScroll, true);
+        }
     };
   }, [isOpen]);
 
   const toggleOpen = () => {
       if (disabled) return;
       
-      if (!isOpen && containerRef.current) {
+      if (!isOpen && containerRef.current && typeof window !== 'undefined') {
           const rect = containerRef.current.getBoundingClientRect();
-          const dropdownHeight = Math.min(options.length * 40, 256) + 16; // Approx height
+          const dropdownHeight = Math.min(options.length * 40, 256) + 16;
           const spaceBelow = window.innerHeight - rect.bottom;
           const showAbove = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+          const isMobile = window.innerWidth < 768;
 
           setPosition({
-              top: showAbove ? rect.top - 8 : rect.bottom + 8,
+              top: isMobile ? (showAbove ? rect.top - 8 : rect.bottom + 8) : (showAbove ? rect.top - 8 : rect.bottom + 8),
               left: rect.left,
-              width: rect.width
+              width: isMobile ? Math.min(rect.width, window.innerWidth - 32) : rect.width,
+              isMobile
           });
       }
       setIsOpen(!isOpen);
@@ -92,14 +99,14 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           type="button"
           onClick={toggleOpen}
           disabled={disabled}
-          className={`w-full h-11 flex items-center justify-between px-3.5 bg-white border border-gray-200 hover:border-blue-300 rounded-xl text-sm font-medium transition-all outline-none duration-200 group ${
+          className={`w-full h-11 flex items-center justify-between px-3.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl text-sm font-medium transition-all outline-none duration-200 group ${
             isOpen 
-              ? 'border-blue-500 ring-2 ring-blue-100 shadow-sm z-20 relative' 
+              ? 'border-black ring-2 ring-gray-100 shadow-sm z-20 relative' 
               : 'shadow-sm hover:shadow'
           } ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : 'cursor-pointer'}`}
         >
           <div className="flex items-center gap-2.5 truncate">
-            {icon && <span className={`text-gray-400 group-hover:text-blue-500 transition-colors ${isOpen ? 'text-blue-600' : ''}`}>{icon}</span>}
+            {icon && <span className={`text-gray-400 group-hover:text-gray-600 transition-colors ${isOpen ? 'text-black' : ''}`}>{icon}</span>}
             
             {selectedOption ? (
               <span className="text-gray-900 font-bold flex items-center gap-2 truncate">
@@ -112,28 +119,46 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
           </div>
           <ChevronDown 
               size={16} 
-              className={`text-gray-400 transition-transform duration-300 ease-out ${isOpen ? 'rotate-180 text-blue-600' : 'group-hover:text-gray-600'}`} 
+              className={`text-gray-400 transition-transform duration-300 ease-out ${isOpen ? 'rotate-180 text-black' : 'group-hover:text-gray-600'}`} 
           />
         </button>
       </div>
 
       {isOpen && position && createPortal(
         <AnimatePresence>
+            {position.isMobile && (
+                <motion.div 
+                    key="backdrop"
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    className="fixed inset-0 bg-transparent z-[9998]"
+                    onClick={() => setIsOpen(false)}
+                />
+            )}
             <motion.div
+                key="dropdown"
                 ref={dropdownRef}
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                style={{ 
+                style={position.isMobile ? {
+                    position: 'fixed', 
+                    top: position.top + 8,
+                    left: position.left, 
+                    width: position.width, 
+                    zIndex: 9999,
+                    transformOrigin: typeof window !== 'undefined' && position.top > window.innerHeight / 2 ? 'bottom' : 'top'
+                } : {
                     position: 'fixed', 
                     top: position.top, 
                     left: position.left, 
                     width: position.width, 
                     zIndex: 9999,
-                    transformOrigin: position.top > window.innerHeight / 2 ? 'bottom' : 'top'
+                    transformOrigin: typeof window !== 'undefined' && position.top > window.innerHeight / 2 ? 'bottom' : 'top'
                 }}
-                className={`bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden max-h-64 overflow-y-auto custom-scrollbar p-1.5 ring-1 ring-black/5 ${position.top > window.innerHeight / 2 ? '-translate-y-full' : ''}`}
+                className={`bg-white rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden max-h-64 overflow-y-auto custom-scrollbar p-1.5 ring-1 ring-black/5 ${!position.isMobile && position.top > window.innerHeight / 2 ? '-translate-y-full' : ''}`}
             >
                 <div className="space-y-0.5">
                 {options.map((option) => {
@@ -145,13 +170,13 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                         onClick={() => { onChange(option.value); setIsOpen(false); }}
                         className={`w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-150 group ${
                             isSelected 
-                            ? 'bg-blue-600 text-white font-bold shadow-md' 
-                            : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 font-medium'
+                            ? 'bg-black text-white font-bold shadow-md' 
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-medium'
                         }`}
                         >
                         <div className="flex items-center gap-2.5 truncate">
                             {option.icon && (
-                                <span className={`scale-90 transition-transform group-hover:scale-100 ${isSelected ? 'opacity-100 text-white' : 'opacity-70 text-gray-400 group-hover:text-blue-500'}`}>
+                                <span className={`scale-90 transition-transform group-hover:scale-100 ${isSelected ? 'opacity-100 text-white' : 'opacity-70 text-gray-400 group-hover:text-gray-600'}`}>
                                     {option.icon}
                                 </span>
                             )}

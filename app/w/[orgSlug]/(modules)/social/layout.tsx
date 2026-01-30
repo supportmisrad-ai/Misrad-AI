@@ -1,0 +1,72 @@
+import React from 'react';
+import type { Metadata } from 'next';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
+import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation, requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
+import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
+import SocialShell from '@/components/social/SocialShell';
+import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/services/social-service';
+import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
+import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
+import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
+import { getSystemMetadata } from '@/lib/metadata';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = getSystemMetadata('social');
+
+export default async function SocialModuleLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ orgSlug: string }>;
+}) {
+  const { orgSlug } = await params;
+  await enforceModuleAccessOrRedirect({ orgSlug, module: 'social' });
+  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'social' }).catch(() => undefined);
+  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
+  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
+  const def = getModuleDefinition('social');
+  const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  const initialOrganization = {
+    name: workspace.name,
+    logo: workspace.logo || '',
+    primaryColor: '#000000',
+  };
+  const initialSocialData = await getSocialInitialDataCached({
+    orgSlug,
+    clerkUserId: null,
+  });
+
+  const initialNavigationMenu = await getSocialNavigationMenu();
+
+  const systemFlags = await getSystemFeatureFlags();
+  const caps = computeWorkspaceCapabilities({
+    entitlements: workspace?.entitlements,
+    fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
+    seatsAllowedOverride: workspace?.seatsAllowed ?? null,
+  });
+
+  const style = {
+    '--os-accent': def.theme.accent,
+    '--os-bg': def.theme.background,
+  } as React.CSSProperties;
+
+  return (
+    <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)]">
+      <div className="min-h-screen bg-[var(--os-bg)]" suppressHydrationWarning>
+        <SocialShell
+          orgSlug={orgSlug}
+          isTeamEnabled={caps.isTeamManagementEnabled}
+          initialSocialData={initialSocialData}
+          initialNavigationMenu={initialNavigationMenu}
+          initialCurrentUser={initialCurrentUser}
+          initialOrganization={initialOrganization}
+        >
+          {children}
+        </SocialShell>
+        <RouteVideoHelp />
+      </div>
+    </div>
+  );
+}

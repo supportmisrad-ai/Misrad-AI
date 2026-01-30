@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useData } from '../context/DataContext';
+import type { Lead } from '../types';
 import { LeadStatus } from '../types';
 import { motion } from 'framer-motion';
 import { User, Phone, Mail, MoreHorizontal, DollarSign } from 'lucide-react';
@@ -9,7 +10,7 @@ export const SalesPipeline: React.FC = () => {
     const { leads, updateLead } = useData();
 
     const KANBAN_COLUMNS = [
-        { id: LeadStatus.NEW, label: 'ליד חדש', color: 'border-blue-500/50' },
+        { id: LeadStatus.NEW, label: 'ליד נפתח', color: 'border-blue-500/50' },
         { id: LeadStatus.QUALIFIED, label: 'סונן בהצלחה', color: 'border-purple-500/50' },
         { id: LeadStatus.MEETING, label: 'פגישה', color: 'border-orange-500/50' },
         { id: LeadStatus.NEGOTIATION, label: 'משא ומתן', color: 'border-yellow-500/50' },
@@ -43,8 +44,8 @@ export const SalesPipeline: React.FC = () => {
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-2">
                 <div className="flex h-full min-w-max gap-4">
                     {KANBAN_COLUMNS.map(col => {
-                        const colLeads = leads.filter(l => l.status === col.id);
-                        const colValue = colLeads.reduce((acc, l) => acc + l.value, 0);
+                        const colLeads = (leads as Lead[]).filter((l: Lead) => l.status === col.id);
+                        const colValue = colLeads.reduce((acc: number, l: Lead) => acc + l.value, 0);
 
                         return (
                             <div 
@@ -64,7 +65,7 @@ export const SalesPipeline: React.FC = () => {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-                                    {colLeads.map(lead => (
+                                    {colLeads.map((lead: Lead) => (
                                         <motion.div
                                             key={lead.id}
                                             layoutId={lead.id}
@@ -91,11 +92,11 @@ export const SalesPipeline: React.FC = () => {
                                                         <User size={12} />
                                                     </div>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <button className="p-1.5 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors">
+                                                <div className="flex gap-1">
+                                                    <button className="w-10 h-10 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors flex items-center justify-center">
                                                         <Phone size={12} />
                                                     </button>
-                                                    <button className="p-1.5 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors">
+                                                    <button className="w-10 h-10 rounded-lg bg-slate-700 text-slate-400 hover:bg-slate-600 hover:text-white transition-colors flex items-center justify-center">
                                                         <Mail size={12} />
                                                     </button>
                                                 </div>

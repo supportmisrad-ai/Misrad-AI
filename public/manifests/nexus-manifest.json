@@ -1,0 +1,26 @@
+{
+  "name": "Nexus OS",
+  "short_name": "Nexus",
+  "description": "מערכת ניהול צוותים ומשימות מתקדמת",
+  "start_url": "/nexus-os",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3730A3",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/nexus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/nexus-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

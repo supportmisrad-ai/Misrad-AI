@@ -1,8 +1,9 @@
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { X, Youtube, Instagram, Linkedin, Facebook, Send, Calendar, Video, Image, FileText, Upload, Paperclip, BellRing, Share2, Globe, Twitter, Mic, CircleDashed, Users, Megaphone, Mail, Music2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { ContentItem, ContentType, Platform, ContentStatus } from '../types';
+import { ContentItem, ContentType, Platform, ContentStatus, PlatformDefinition } from '../types';
 import { useData } from '../context/DataContext';
 import { CustomDatePicker } from './CustomDatePicker';
 
@@ -23,6 +24,14 @@ export const ContentModal: React.FC<ContentModalProps> = ({ onClose, editItem })
     const [scheduledAt, setScheduledAt] = useState('');
     const [fileName, setFileName] = useState('');
     
+    // Scroll to top on mobile when modal opens
+    useEffect(() => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        if (isMobile) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, []);
+
     // Initialize if editing
     useEffect(() => {
         if (editItem) {
@@ -195,13 +204,14 @@ export const ContentModal: React.FC<ContentModalProps> = ({ onClose, editItem })
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase mb-3">הפצה לפלטפורמות</label>
                         <div className="flex flex-wrap gap-2">
-                             {availablePlatforms.map((p) => {
+                             {availablePlatforms.map((p: PlatformDefinition) => {
                                 const Icon = getIcon(p.icon);
-                                const isSelected = selectedPlatforms.includes(p.id);
+                                const platformId = p.id as Platform;
+                                const isSelected = selectedPlatforms.includes(platformId);
                                 return (
                                     <button
                                         key={p.id}
-                                        onClick={() => togglePlatform(p.id)}
+                                        onClick={() => togglePlatform(platformId)}
                                         className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-bold transition-all ${
                                             isSelected
                                             ? 'bg-black text-white border-black'
@@ -228,6 +238,7 @@ export const ContentModal: React.FC<ContentModalProps> = ({ onClose, editItem })
                                     value={scheduledAt}
                                     onChange={setScheduledAt}
                                     placeholder="בחר תאריך פרסום..."
+                                    showHebrewDate={true}
                                 />
                             </div>
                         </div>

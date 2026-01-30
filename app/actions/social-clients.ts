@@ -1,0 +1,21 @@
+'use server';
+
+import { Client } from '@/types';
+
+export async function createSocialClient(
+  clientData: Partial<Client>,
+  clerkUserId: string,
+): Promise<{ success: boolean; data?: Client; error?: string }> {
+  console.error(
+    '[DEPRECATED][createSocialClient] Attempted to write to legacy social_clients. Use createClientForWorkspace (canonical clients) instead.',
+    {
+      clerkUserId,
+      email: clientData?.email,
+    }
+  );
+
+  return {
+    success: false,
+    error: 'createSocialClient is deprecated. Use canonical clients actions (createClientForWorkspace).',
+  };
+}

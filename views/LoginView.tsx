@@ -1,72 +1,311 @@
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, ArrowRight, ShieldCheck, Zap, Globe, Cpu, ChevronRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSignIn } from '@clerk/nextjs';
+import type { OSModule } from '@/types/os-modules';
+import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { translateClerkError } from '@/lib/errorTranslations';
+import { getSystemIconUrl } from '@/lib/metadata';
 
 export const LoginView: React.FC = () => {
-  const { users, login, organization } = useData();
-  const navigate = useNavigate();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const { organization } = useData();
+  const router = useRouter();
+  const { isLoaded, signIn, setActive } = useSignIn();
+
+  const [targetModule, setTargetModule] = useState<OSModule | 'misrad'>('misrad');
+  
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordText, setShowPasswordText] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus when entering password view
   useEffect(() => {
-      if (selectedUserId) {
-          // Small timeout to allow animation to start/render
+      if (showPassword) {
           setTimeout(() => {
               passwordInputRef.current?.focus();
           }, 100);
+      } else {
+          emailInputRef.current?.focus();
       }
-  }, [selectedUserId]);
+  }, [showPassword]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectPath = searchParams.get('redirect') || '';
+    const p = String(redirectPath);
+
+    const resolved: OSModule | 'misrad' =
+      p.startsWith('/social') ? 'social' :
+      p.startsWith('/finance') ? 'finance' :
+      p.startsWith('/client') ? 'client' :
+      p.startsWith('/system') || p.startsWith('/pipeline') ? 'system' :
+      p.startsWith('/app') || p.startsWith('/nexus') ? 'nexus' :
+      'misrad';
+
+    setTargetModule(resolved);
+  }, []);
+
+  const theme = (() => {
+    if (targetModule === 'social') {
+      return {
+        topBar: 'from-indigo-600 via-purple-600 to-pink-600',
+        blobA: 'bg-[#7C3AED]',
+        blobB: 'bg-[#DB2777]',
+        accentTextGradient: 'from-indigo-300 via-purple-300 to-pink-300',
+        focusRing: 'focus:border-purple-500 focus:ring-purple-500/10',
+        moduleKey: 'social' as const,
+      };
+    }
+    if (targetModule === 'system') {
+      return {
+        topBar: 'from-rose-600 to-indigo-600',
+        blobA: 'bg-rose-600',
+        blobB: 'bg-indigo-600',
+        accentTextGradient: 'from-rose-300 to-indigo-300',
+        focusRing: 'focus:border-rose-500 focus:ring-rose-500/10',
+        moduleKey: 'system' as const,
+      };
+    }
+    if (targetModule === 'nexus') {
+      return {
+        topBar: 'from-indigo-600 to-purple-600',
+        blobA: 'bg-indigo-600',
+        blobB: 'bg-purple-600',
+        accentTextGradient: 'from-indigo-300 to-purple-300',
+        focusRing: 'focus:border-indigo-500 focus:ring-indigo-500/10',
+        moduleKey: 'nexus' as const,
+      };
+    }
+    return {
+      topBar: 'from-blue-600 to-purple-600',
+      blobA: 'bg-blue-600',
+      blobB: 'bg-purple-600',
+      accentTextGradient: 'from-blue-400 to-purple-400',
+      focusRing: 'focus:border-blue-500 focus:ring-blue-500/10',
+      moduleKey: null,
+    };
+  })();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUserId) return;
+    
+    if (!isLoaded) {
+      setError('המערכת עדיין נטענת, אנא נסה שוב');
+      return;
+    }
 
-    if (password.length > 0) {
-      setIsLoading(true);
-      // Fake loading delay for effect
-      setTimeout(() => {
-          login(selectedUserId);
-          navigate('/');
-      }, 800);
-    } else {
-        setError('נדרשת סיסמה לכניסה');
-        // Keep focus on input
-        passwordInputRef.current?.focus();
+    if (!signIn) {
+      setError('שגיאה בטעינת מערכת ההתחברות. נא לרענן את הדף.');
+      return;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      setError('נא להזין כתובת אימייל תקינה');
+      emailInputRef.current?.focus();
+      return;
+    }
+
+    if (!password || password.length === 0) {
+      setError('נדרשת סיסמה לכניסה');
+      passwordInputRef.current?.focus();
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const init = await signIn.create({
+        identifier: normalizedEmail,
+      });
+
+      if (init.status === 'complete') {
+        await setActive({ session: init.createdSessionId });
+        router.push('/');
+        router.refresh();
+        return;
+      }
+
+      if (init.status === 'needs_first_factor') {
+        const supported = (init as any)?.supportedFirstFactors;
+        const supportsPassword = Array.isArray(supported)
+          ? supported.some((f: any) => String(f?.strategy || '').toLowerCase() === 'password')
+          : true;
+
+        if (!supportsPassword) {
+          setError('למשתמש הזה אין סיסמה מוגדרת. נסה להתחבר עם Google או בצע "שכחתי סיסמה" כדי להגדיר סיסמה.');
+          return;
+        }
+
+        const result = await signIn.attemptFirstFactor({
+          strategy: 'password',
+          password,
+        });
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId });
+          router.push('/');
+          router.refresh();
+          return;
+        }
+
+        const status = (result as any)?.status;
+        const msg =
+          status === 'needs_second_factor'
+            ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+            : status === 'needs_new_password'
+              ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+        setError(msg);
+        return;
+      }
+
+      const status = (init as any)?.status;
+      const msg =
+        status === 'needs_second_factor'
+          ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+          : status === 'needs_identifier'
+            ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
+            : status === 'needs_new_password'
+              ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+      setError(msg);
+    } catch (err: any) {
+      const clerkError = err?.errors?.[0];
+      const errType = typeof err;
+      const errString = errType === 'string' ? err : err instanceof Error ? err.message : String(err || '');
+      const errKeys = err && (errType === 'object' || errType === 'function') ? Object.keys(err) : [];
+
+      const details = {
+        errType: errType || null,
+        errString: errString || null,
+        errKeys,
+        hasErrorsArray: Array.isArray(err?.errors),
+        clerkErrorCode: clerkError?.code ?? null,
+        clerkErrorMessage: clerkError?.message ?? null,
+        clerkErrorLongMessage: clerkError?.longMessage ?? null,
+        clerkErrorMeta: clerkError?.meta ?? null,
+      };
+
+      const detailsJson = (() => {
+        try {
+          return JSON.stringify(details, (_key, value) => (value === undefined ? null : value));
+        } catch {
+          return String(details);
+        }
+      })();
+
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Login error raw:', err);
+        console.warn('Login error details:', details);
+        console.warn('Login error details (json):', detailsJson);
+      }
+
+      const errorKey = clerkError?.code || clerkError?.message || err?.message || errString || '';
+      const fallbackMessage =
+        clerkError?.message ||
+        err?.message ||
+        errString ||
+        'שגיאה בהתחברות. נא לבדוק את הפרטים ולהנסות שוב.';
+      setError(translateClerkError(errorKey || fallbackMessage));
+      passwordInputRef.current?.focus();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (!isLoaded) {
+      setError('המערכת עדיין נטענת, אנא נסה שוב');
+      return;
+    }
+
+    if (!signIn) {
+      setError('שגיאה בטעינת מערכת ההתחברות. נא לרענן את הדף.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    const origin = window.location.origin;
+
+    try {
+      // ניסוי ראשון: Redirect (העדפה כי זה ה-flow המלא)
+      await signIn.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl: `${origin}/`,
+        redirectUrlComplete: `${origin}/app`,
+      });
+      // אם ה-redirect מצליח, לא נגיע לכאן כי הדפדפן ינותב.
+    } catch (errRedirect: any) {
+      console.warn('Redirect Google failed, trying popup', errRedirect);
+      try {
+        // ניסוי שני: Popup
+        const result = (await signIn.authenticateWithPopup({
+          strategy: 'oauth_google',
+          redirectUrl: `${origin}/login`,
+          redirectUrlComplete: `${origin}/`,
+          popup: window,
+        })) as any;
+        if (result?.createdSessionId) {
+          await setActive({ session: result.createdSessionId });
+          router.push('/app');
+          router.refresh();
+        } else {
+          setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');
+        }
+      } catch (errPopup: any) {
+        console.error('Google popup error:', errPopup);
+        setError(
+          errPopup?.errors?.[0]?.message ||
+            errRedirect?.errors?.[0]?.message ||
+            'שגיאה בהתחברות עם Google. נא לנסות שוב.'
+        );
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex flex-row overflow-hidden" dir="rtl">
-      
+      <main className="w-full flex flex-row">
       {/* Right Side - Brand / Visuals */}
       <div className="hidden lg:flex lg:w-1/2 bg-black relative flex-col justify-between p-12 text-white overflow-hidden">
           {/* Abstract Background Animation */}
           <div className="absolute inset-0 opacity-30">
-               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-pulse"></div>
-               <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-600 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2"></div>
+               <div className={`absolute top-0 right-0 w-[500px] h-[500px] ${theme.blobA} rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 animate-pulse`}></div>
+               <div className={`absolute bottom-0 left-0 w-[400px] h-[400px] ${theme.blobB} rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2`}></div>
           </div>
 
           <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden">
-                      {organization.logo ? (
-                          <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" />
+                      {theme.moduleKey ? (
+                        <OSModuleSquircleIcon moduleKey={theme.moduleKey} boxSize={48} iconSize={22} className="shadow-none" />
                       ) : (
-                          <div className="w-4 h-4 bg-black rounded-full" />
+                        <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-1.5" />
                       )}
                   </div>
-                  <span className="font-bold text-3xl tracking-tight">{organization.name}</span>
+                  <span className="font-bold text-3xl tracking-tight" suppressHydrationWarning>{organization.name}</span>
               </div>
               <h2 className="text-5xl font-bold leading-tight max-w-md">
                   ניהול העסק שלך,<br/> 
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">ברמה הבאה.</span>
+                  <span className={`text-transparent bg-clip-text bg-gradient-to-r ${theme.accentTextGradient}`}>ברמה הבאה.</span>
               </h2>
           </div>
 
@@ -80,8 +319,8 @@ export const LoginView: React.FC = () => {
                   </div>
               </div>
               <p className="text-gray-500 text-xs flex items-center gap-2">
-                  <span>Powered by Nexus OS</span>
-                  <span>&copy; 2024 Nexus Systems.</span>
+                  <span>Powered by MISRAD AI</span>
+                  <span>&copy; 2026 MISRAD AI.</span>
               </p>
           </div>
       </div>
@@ -89,7 +328,7 @@ export const LoginView: React.FC = () => {
       {/* Left Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-slate-50 relative">
         {/* Mobile Background Decoration */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-purple-600 lg:hidden"></div>
+        <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${theme.topBar} lg:hidden`}></div>
 
         <motion.div 
             initial={{ opacity: 0, x: -20 }}
@@ -100,47 +339,96 @@ export const LoginView: React.FC = () => {
             <div className="mb-10 text-center lg:text-right">
                 <div className="lg:hidden flex justify-center mb-4">
                     <div className="w-16 h-16 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex items-center justify-center">
-                        {organization.logo ? (
-                            <img src={organization.logo} alt="Logo" className="w-full h-full object-cover" />
+                        {theme.moduleKey ? (
+                          <OSModuleSquircleIcon moduleKey={theme.moduleKey} boxSize={64} iconSize={26} className="shadow-none" />
                         ) : (
-                            <div className="w-6 h-6 bg-black rounded-full" />
+                          <img src={getSystemIconUrl('misrad')} alt="Logo" className="w-full h-full object-contain p-2" />
                         )}
                     </div>
                 </div>
                 <h3 className="text-3xl font-bold text-gray-900 mb-2">ברוכים השבים</h3>
-                <p className="text-gray-500">נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black">{organization.name}</span>.</p>
+                <p className="text-gray-500">נא להזדהות כדי לגשת למרחב העבודה של <span className="font-bold text-black" suppressHydrationWarning>{organization.name}</span>.</p>
             </div>
 
             <div className="bg-white p-2 rounded-3xl shadow-xl shadow-gray-200/50 border border-white">
                 <div className="p-6">
                     <AnimatePresence mode="wait">
-                        {!selectedUserId ? (
+                        {!showPassword ? (
                             <motion.div 
-                                key="user-select"
+                                key="email-input"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-4"
                             >
-                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 block">בחר משתמש</label>
-                                <div className="space-y-3 max-h-[400px] overflow-y-auto no-scrollbar pr-1">
-                                    {users.map(user => (
-                                        <button
-                                            key={user.id}
-                                            onClick={() => { setSelectedUserId(user.id); setError(''); }}
-                                            className="w-full flex items-center gap-4 p-3 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all group text-right relative overflow-hidden"
-                                        >
-                                            <div className="absolute inset-0 bg-blue-50/0 group-hover:bg-blue-50/30 transition-colors"></div>
-                                            <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-white shadow-sm z-10 object-cover" />
-                                            <div className="z-10 flex-1">
-                                                <div className="font-bold text-gray-900 group-hover:text-blue-700 transition-colors">{user.name}</div>
-                                                <div className="text-xs text-gray-500">{user.role}</div>
-                                            </div>
-                                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 z-10 shadow-sm">
-                                                <ArrowLeft size={16} className="text-blue-600" />
-                                            </div>
-                                        </button>
-                                    ))}
+                                {/* Google Login - Moved to top */}
+                                <button
+                                  type="button"
+                                  onClick={handleGoogleLogin}
+                                  disabled={!isLoaded}
+                                  className="w-full bg-white text-gray-700 font-medium py-3.5 rounded-xl border border-gray-300 hover:border-gray-400 hover:shadow-md transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                  {/* Google Logo SVG */}
+                                  <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                                    <g fill="none" fillRule="evenodd">
+                                      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                                      <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+                                      <path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.951H.957C.348 6.174 0 7.55 0 9s.348 2.826.957 4.049l2.84-2.204.167-.138z" fill="#FBBC05"/>
+                                      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.951L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                                    </g>
+                                  </svg>
+                                  <span className="text-gray-700 font-medium">המשך עם Google</span>
+                                </button>
+
+                                {/* Divider */}
+                                <div className="flex items-center gap-3 my-2">
+                                  <div className="flex-1 h-px bg-gray-200" />
+                                  <span className="text-[11px] text-gray-600 font-bold">או</span>
+                                  <div className="flex-1 h-px bg-gray-200" />
+                                </div>
+
+                                <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4 block">הזן כתובת אימייל</label>
+                                <div className="relative group">
+                                    <input 
+                                        ref={emailInputRef}
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                                        className={`w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pr-4 pl-4 outline-none focus:ring-4 transition-all font-bold text-gray-900 placeholder:text-gray-400 ${theme.focusRing}`}
+                                        placeholder="your@email.com"
+                                        dir="ltr"
+                                        style={{ textAlign: 'left' }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (email && email.includes('@')) {
+                                            setShowPassword(true);
+                                            setError('');
+                                        } else {
+                                            setError('נא להזין כתובת אימייל תקינה');
+                                        }
+                                    }}
+                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                >
+                                    המשך <ArrowLeft size={18} />
+                                </button>
+
+                                <div className="mt-3 grid grid-cols-1 gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/kiosk-scan')}
+                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                  >
+                                    כניסה למסופון (סריקת QR) <Smartphone size={18} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push('/kiosk-login')}
+                                    className="w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                  >
+                                    <Smartphone size={18} /> הצג קוד ידני
+                                  </button>
                                 </div>
                             </motion.div>
                         ) : (
@@ -153,18 +441,20 @@ export const LoginView: React.FC = () => {
                             >
                                 <div className="flex items-center justify-between mb-8">
                                      <div className="flex items-center gap-3">
-                                         <img src={users.find(u => u.id === selectedUserId)?.avatar} className="w-12 h-12 rounded-full border-2 border-white shadow-md object-cover" />
+                                         <div className="w-12 h-12 rounded-full border-2 border-white shadow-md bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
+                                             {email.charAt(0).toUpperCase()}
+                                         </div>
                                          <div>
-                                             <div className="font-bold text-gray-900 text-lg">{users.find(u => u.id === selectedUserId)?.name}</div>
+                                             <div className="font-bold text-gray-900 text-lg">{email}</div>
                                              <div className="text-xs text-gray-500">נדרש אימות</div>
                                          </div>
                                      </div>
                                      <button 
                                         type="button"
-                                        onClick={() => setSelectedUserId(null)}
+                                        onClick={() => { setShowPassword(false); setPassword(''); setError(''); }}
                                         className="text-xs font-bold text-gray-400 hover:text-gray-600 underline"
                                      >
-                                         החלף משתמש
+                                         החלף אימייל
                                      </button>
                                 </div>
 
@@ -175,32 +465,65 @@ export const LoginView: React.FC = () => {
                                             <input 
                                                 ref={passwordInputRef}
                                                 autoFocus
-                                                type="password"
+                                                type={showPasswordText ? "text" : "password"}
                                                 value={password}
-                                                onChange={(e) => setPassword(e.target.value)}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pr-12 pl-4 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-bold text-gray-900 placeholder:text-gray-400"
+                                                onChange={(e) => { setPassword(e.target.value); setError(''); }}
+                                                className={`w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pr-12 pl-12 outline-none focus:ring-4 transition-all font-bold text-gray-900 placeholder:text-gray-400 ${theme.focusRing}`}
                                                 placeholder="הקלד סיסמה..."
                                             />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPasswordText(!showPasswordText)}
+                                                className="absolute top-1/2 -translate-y-1/2 left-4 text-gray-400 hover:text-gray-600 transition-colors"
+                                                tabIndex={-1}
+                                            >
+                                                {showPasswordText ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
                                         </div>
                                         {error && (
                                             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-500 mt-2 font-bold flex items-center gap-1">
                                                 <span className="w-1 h-1 bg-red-50 rounded-full"></span> {error}
                                             </motion.p>
                                         )}
+                                        <div className="mt-3 text-left">
+                                            <button
+                                                type="button"
+                                                onClick={() => router.push(`/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}`)}
+                                                className="text-xs font-bold text-blue-600 hover:text-blue-700 underline transition-colors"
+                                            >
+                                                שכחתי סיסמה?
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <button 
                                         type="submit"
-                                        disabled={isLoading}
+                                        disabled={isLoading || !isLoaded}
                                         className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
                                         {isLoading ? (
-                                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <>טוען...</>
                                         ) : (
                                             <>
                                                 כניסה למערכת <ArrowLeft size={18} />
                                             </>
                                         )}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => router.push('/kiosk-login')}
+                                      className="mt-3 w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                    >
+                                      <Smartphone size={18} /> כניסה למסופון (Kiosk)
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => router.push('/kiosk-scan')}
+                                      className="mt-2 w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                    >
+                                      כניסה למסופון (סריקת QR) <Smartphone size={18} />
                                     </button>
                                 </form>
                             </motion.div>
@@ -210,14 +533,31 @@ export const LoginView: React.FC = () => {
             </div>
             
             {/* Status Bar */}
-            <div className="mt-8 flex items-center justify-center gap-6 text-xs font-medium text-gray-400">
+            <div className="mt-8 flex items-center justify-center gap-6 text-xs font-medium text-gray-600">
                 <span className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> מערכות תקינות</span>
                 <span className="flex items-center gap-1.5"><Globe size={12} /> אזור IL-TLV</span>
-                <span className="flex items-center gap-1.5"><Cpu size={12} /> Nexus v2.5.0</span>
+                <span className="flex items-center gap-1.5"><Cpu size={12} /> MISRAD AI v2.5.0</span>
+            </div>
+
+            <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-gray-500">
+                <span className="font-semibold text-gray-500">הורדת אפליקציה:</span>
+                <a
+                    href="/api/download/windows"
+                    className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                    הורד ל-Windows
+                </a>
+                <a
+                    href="/api/download/android"
+                    className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 font-bold text-gray-700 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                    הורד ל-Android
+                </a>
             </div>
 
         </motion.div>
       </div>
+      </main>
     </div>
   );
 };

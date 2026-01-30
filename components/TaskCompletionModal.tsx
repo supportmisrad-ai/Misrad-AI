@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { Task, TaskCompletionDetails, TaskContributor } from '../types';
+import { Task, TaskCompletionDetails, TaskContributor, User } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Clock, AlertTriangle, Star, ThumbsUp, ThumbsDown, X, Save, Users } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -18,7 +18,7 @@ export const TaskCompletionModal: React.FC = () => {
     const [rating, setRating] = useState(0);
     const [reflection, setReflection] = useState('');
 
-    const assignees = taskToComplete?.assigneeIds || (taskToComplete?.assigneeId ? [taskToComplete.assigneeId] : []);
+    const assignees: string[] = taskToComplete?.assigneeIds || (taskToComplete?.assigneeId ? [taskToComplete.assigneeId] : []);
     const isMultiUser = assignees.length > 1;
 
     useEffect(() => {
@@ -29,7 +29,7 @@ export const TaskCompletionModal: React.FC = () => {
             if (isMultiUser) {
                 // Initialize contributors with 0 or split time? Let's init with 0 for manual entry
                 const initialContribs: { [userId: string]: { hours: number, minutes: number } } = {};
-                assignees.forEach(id => {
+                assignees.forEach((id: string) => {
                     initialContribs[id] = { hours: 0, minutes: 0 };
                 });
                 setContributors(initialContribs);
@@ -41,7 +41,7 @@ export const TaskCompletionModal: React.FC = () => {
             setRating(0);
             setReflection('');
         }
-    }, [taskToComplete]);
+    }, [taskToComplete, isMultiUser, assignees]);
 
     if (!taskToComplete) return null;
 
@@ -139,8 +139,8 @@ export const TaskCompletionModal: React.FC = () => {
 
                         {isMultiUser ? (
                             <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                {assignees.map(userId => {
-                                    const user = users.find(u => u.id === userId);
+                                {assignees.map((userId: string) => {
+                                    const user = users.find((u: User) => u.id === userId);
                                     const userTime = contributors[userId] || { hours: 0, minutes: 0 };
                                     
                                     return (

@@ -1,0 +1,26 @@
+{
+  "name": "System.OS",
+  "short_name": "System",
+  "description": "מערכת ניהול לידים ומכירות",
+  "start_url": "/system-os",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#A21D3C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/system-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/system-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

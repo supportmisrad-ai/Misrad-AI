@@ -1,0 +1,8 @@
+{
+  "name": "Client OS",
+  "description": "A high-end B2B client relationship operating system focused on farming, profitability, and AI-driven deep intelligence.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

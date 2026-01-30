@@ -1,18 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
-import { BrainCircuit, Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser } from 'lucide-react';
+import { useSecureAPI } from '../hooks/useSecureAPI';
+import { Send, Download, Save, History, Sparkles, TrendingUp, AlertTriangle, CheckCircle2, User, Zap, Activity, ThumbsDown, MessageSquare, ArrowRight, Target, Lock, Crown, BarChart3, Edit3, Clock, Briefcase, Search, FileText, Database, Compass, ExternalLink, Trash2, Copy, Eraser, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisReport, Priority } from '../types';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
+import { useNexusNavigation } from '@/lib/os/nexus-routing';
+import { Skeleton } from '@/components/ui/skeletons';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
 
 export const IntelligenceView: React.FC = () => {
-    const { tasks, users, leads, clients, assets, monthlyGoals, timeEntries, analysisHistory, saveAnalysis, deleteAnalysis, addToast, currentUser, updateMonthlyGoals, updateUser, hasPermission, addFeedback } = useData();
-    const location = useLocation();
-    const navigate = useNavigate();
+    const { tasks, leads, clients, assets, monthlyGoals, timeEntries, analysisHistory, saveAnalysis, deleteAnalysis, addToast, currentUser, updateMonthlyGoals, updateUser, hasPermission, addFeedback } = useData();
+    const { analyzeWithAI, isLoading: isAnalyzing } = useSecureAPI();
+    const searchParams = useSearchParams();
+    const { navigate } = useNexusNavigation();
     const [query, setQuery] = useState('');
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [report, setReport] = useState<AnalysisReport | null>(null);
     const [showHistory, setShowHistory] = useState(false);
     
@@ -22,215 +30,147 @@ export const IntelligenceView: React.FC = () => {
     const [tempPersonalGoal, setTempPersonalGoal] = useState(0);
 
     // Determine Mode via Permission: If user can manage team/financials, they get Manager view. Else, Employee view.
-    // SECURITY: This strictly controls what data is fed to the AI.
+    // SECURITY: Server-side will enforce this, but we check here for UI purposes
     const isManager = hasPermission('manage_team') || hasPermission('view_financials');
 
     // Auto-run from Command Palette
     useEffect(() => {
-        if (location.state?.initialQuery) {
-            const incomingQuery = location.state.initialQuery;
+        const incomingQuery = searchParams?.get('q');
+        if (incomingQuery) {
             setQuery(incomingQuery);
             
             // Trigger analysis with the incoming query immediately
             // We pass the query directly to avoid waiting for state update
             handleAnalyze(incomingQuery);
-            
-            // Clear state so it doesn't re-run on refresh
-            window.history.replaceState({}, document.title);
         }
-    }, [location.state]);
+    }, [searchParams]);
 
-    // AI Processing Logic
+    // AI Processing Logic - Now using secure API
     const handleAnalyze = async (overrideQuery?: string) => {
         const activeQuery = overrideQuery || query;
         
-        if (!process.env.API_KEY) {
-            addToast('חסר מפתח API', 'error');
+        if (!activeQuery.trim()) {
+            addToast('נא להזין שאילתה', 'error');
             return;
         }
-        setIsAnalyzing(true);
+        
         setReport(null);
 
         try {
-            // 1. Prepare Context Data based on Role (SECURITY ENFORCED HERE)
-            const contextData: any = {
-                userRole: currentUser.role,
-                isManager: isManager,
-                currentDate: new Date().toLocaleDateString('he-IL'),
-            };
-
-            // Knowledge Base Injection (For Search Capabilities)
-            // We map essential fields to save token space but give AI context
-            contextData.knowledgeBase = {
-                // Everyone sees assets metadata (assumed public in org, but URLs hidden if needed)
-                assets: assets.map(a => ({ title: a.title, type: a.type, tag: a.tags.join(', ') })),
-                // Only share client names if CRM permission exists
-                clients: hasPermission('view_crm') ? clients.map(c => ({ name: c.companyName, status: c.status })) : [],
-                // Users see their tasks, Managers see structure
-                tasksStructure: tasks.slice(0, 50).map(t => ({ 
-                    title: t.title, 
-                    status: t.status, 
-                    // Only reveal assignee name if manager or self
-                    assignee: isManager || t.assigneeIds?.includes(currentUser.id) ? (users.find(u => t.assigneeIds?.includes(u.id))?.name || 'Unassigned') : 'Hidden'
-                }))
-            };
-
-            if (isManager) {
-                // Manager Context: Full Vision (Financials, Team Loads)
-                contextData.goals = monthlyGoals;
-                contextData.team = users.map(u => ({ 
-                    id: u.id, name: u.name, role: u.role, capacity: u.capacity, targets: u.targets,
-                    activeTasks: tasks.filter(t => t.assigneeIds?.includes(u.id) && t.status !== 'Done').length
-                }));
-                contextData.tasksSummary = {
-                    total: tasks.length,
-                    completed: tasks.filter(t => t.status === 'Done').length,
-                    overdue: tasks.filter(t => t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'Done').length,
-                    urgent: tasks.filter(t => t.priority === Priority.URGENT).length
-                };
-                contextData.revenue = {
-                    current: leads.filter(l => l.status === 'Won').reduce((acc, l) => acc + l.value, 0),
+            // Prepare raw data for server-side filtering
+            // Server will filter based on actual permissions
+            const rawData = {
+                tasks: tasks.map((t: any) => ({
+                    id: t.id,
+                    title: t.title,
+                    status: t.status,
+                    priority: t.priority,
+                    assigneeIds: t.assigneeIds,
+                    dueDate: t.dueDate,
+                    tags: t.tags
+                })),
+                clients: clients.map((c: any) => ({
+                    id: c.id,
+                    companyName: c.companyName,
+                    status: c.status
+                })),
+                assets: assets.map((a: any) => ({
+                    id: a.id,
+                    title: a.title,
+                    type: a.type,
+                    tags: a.tags
+                })),
+                financials: isManager ? {
+                    monthlyGoals,
+                    revenue: leads.filter((l: any) => l.status === 'Won').reduce((acc: number, l: any) => acc + l.value, 0),
                     target: monthlyGoals.revenue
-                };
-            } else {
-                // Employee Context: Self Only (No financials, no other employees' data)
-                const myTasks = tasks.filter(t => t.assigneeIds?.includes(currentUser.id));
-                contextData.personalStats = {
-                    name: currentUser.name,
-                    completedTasks: myTasks.filter(t => t.status === 'Done').length,
-                    pendingTasks: myTasks.filter(t => t.status !== 'Done').length,
-                    targets: currentUser.targets,
-                    activeProjects: [...new Set(myTasks.map(t => t.tags[0]))].filter(Boolean)
-                };
-                contextData.myWorkHours = timeEntries.filter(t => t.userId === currentUser.id).slice(0, 5); // Last 5 shifts
-            }
-
-            contextData.userQuery = activeQuery || (isManager ? "תן לי תמונת מצב ניהולית מלאה" : "איך אני יכול להשתפר היום?");
-
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            
-            // Schema Definition
-            const responseSchema = {
-                type: Type.OBJECT,
-                properties: {
-                    summary: { type: Type.STRING, description: "סיכום ישיר ובוטה של המצב, או התשובה הישירה לחיפוש (אם נשאל)." },
-                    score: { type: Type.NUMBER, description: "ציון בריאות מערכת או יעילות אישית (0-100)" },
-                    actionableSteps: { 
-                        type: Type.ARRAY, 
-                        items: { type: Type.STRING },
-                        description: "רשימת פעולות לביצוע (3-5 נקודות)"
-                    },
-                    suggestedLinks: {
-                        type: Type.ARRAY,
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                label: { type: Type.STRING, description: "Button label" },
-                                path: { type: Type.STRING, description: "Internal app path (e.g., /assets, /tasks, /reports)" }
-                            }
-                        },
-                        description: "Optional: Suggest navigation paths based on the answer. E.g. if user asks for logo, link to /assets."
-                    }
-                },
-                required: ['summary', 'score', 'actionableSteps']
+                } : undefined,
+                timeEntries: timeEntries.filter((t: any) => t.userId === currentUser.id).slice(0, 5)
             };
 
-            // Extend Schema based on Role
-            if (isManager) {
-                // @ts-ignore
-                responseSchema.properties.employees = {
-                    type: Type.ARRAY,
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            id: { type: Type.STRING },
-                            name: { type: Type.STRING },
-                            efficiency: { type: Type.NUMBER },
-                            workload: { type: Type.STRING, enum: ['Low', 'Optimal', 'High', 'Overload'] },
-                            suggestion: { type: Type.STRING, description: "הצעה לשיפור בעברית" },
-                            outputTrend: { type: Type.STRING, enum: ['up', 'down', 'stable'] }
-                        }
-                    }
-                };
-                // @ts-ignore
-                responseSchema.properties.revenueInsight = { type: Type.STRING, description: "תובנה פיננסית בעברית" };
-            } else {
-                // @ts-ignore
-                responseSchema.properties.personalTasksAnalysis = {
-                    type: Type.OBJECT,
-                    properties: {
-                        completedCount: { type: Type.NUMBER },
-                        avgCompletionTime: { type: Type.STRING, description: "זמן ממוצע משוער" },
-                        focusArea: { type: Type.STRING, description: "איפה לשים דגש היום" }
-                    }
-                };
+            // Call secure API - server will filter data based on permissions
+            const data: unknown = await analyzeWithAI(activeQuery, rawData);
+            
+            // Validate response structure
+            const dataObj = asObject(data);
+            if (!dataObj) {
+                throw new Error('תגובה לא תקינה מהשרת');
+            }
+            
+            const summaryRaw = dataObj.summary;
+            if (!summaryRaw || typeof summaryRaw !== 'string') {
+                throw new Error('תגובת השרת חסרה סיכום');
             }
 
-            const prompt = `You are 'Nexus Brain', an advanced AI for business intelligence AND knowledge retrieval.
-                   
-                   DATA: You have access to 'knowledgeBase' (assets, clients, tasks) and 'stats'.
-                   
-                   MODE 1 - SEARCH/RETRIEVAL:
-                   If the user asks "Where is...", "Do we have...", "Find...", or "What is the status of...":
-                   - Search the 'knowledgeBase'.
-                   - Answer directly in the 'summary' field (e.g., "Found the logo in Assets.", "Client X is active.").
-                   - Set 'suggestedLinks' to the relevant page (e.g., /assets for files, /clients for clients, /tasks for tasks).
-                   - If found, set score to 100.
+            const scoreRaw = dataObj.score;
 
-                   MODE 2 - ANALYSIS:
-                   If the user asks about performance, advice, or general status:
-                   - Analyze the stats.
-                   - Be blunt, direct, and strategic.
-                   - Output strictly in HEBREW.
-                   
-                   CURRENT USER ROLE: ${currentUser.role}.
-                   Note: The user cannot access data outside their permissions. The provided data is already filtered. Do not hallucinate data not present.
-                   `;
+            const actionableStepsRaw = dataObj.actionableSteps;
+            const actionableSteps = Array.isArray(actionableStepsRaw)
+                ? actionableStepsRaw.filter((x): x is string => typeof x === 'string')
+                : [];
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: {
-                    parts: [
-                        { text: JSON.stringify(contextData) },
-                        { text: prompt }
-                    ]
-                },
-                config: {
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema
-                }
-            });
+            const suggestedLinksRaw = dataObj.suggestedLinks;
+            const suggestedLinks = Array.isArray(suggestedLinksRaw)
+                ? suggestedLinksRaw
+                      .map((x) => {
+                          const obj = asObject(x);
+                          const label = obj?.label;
+                          const path = obj?.path;
+                          if (typeof label !== 'string' || typeof path !== 'string') return null;
+                          return { label, path };
+                      })
+                      .filter((x): x is { label: string; path: string } => Boolean(x))
+                : [];
 
-            if (response.text) {
-                const data = JSON.parse(response.text);
-                const newReport: AnalysisReport = {
-                    id: `REP-${Date.now()}`,
-                    date: new Date().toISOString(),
-                    query: activeQuery || (isManager ? "ניתוח מערכת כללי" : "ניתוח ביצועים אישי"),
-                    mode: isManager ? 'manager' : 'employee',
-                    ...data
-                };
-                setReport(newReport);
-                saveAnalysis(newReport); 
-            }
+            // Create report from API response
+            const newReport: AnalysisReport = {
+                id: `REP-${Date.now()}`,
+                date: new Date().toISOString(),
+                query: activeQuery || (isManager ? "ניתוח מערכת כללי" : "ניתוח ביצועים אישי"),
+                mode: isManager ? 'manager' : 'employee',
+                summary: summaryRaw || 'לא התקבל סיכום',
+                score: typeof scoreRaw === 'number' ? scoreRaw : 0,
+                actionableSteps,
+                suggestedLinks,
+                employees: Array.isArray(dataObj.employees)
+                    ? (dataObj.employees as unknown as AnalysisReport['employees'])
+                    : undefined,
+                revenueInsight: typeof dataObj.revenueInsight === 'string' ? dataObj.revenueInsight : undefined,
+                personalTasksAnalysis: asObject(dataObj.personalTasksAnalysis)
+                    ? (dataObj.personalTasksAnalysis as unknown as AnalysisReport['personalTasksAnalysis'])
+                    : undefined
+            };
+            
+            setReport(newReport);
+            saveAnalysis(newReport);
+            addToast('ניתוח הושלם בהצלחה', 'success');
 
-        } catch (error) {
-            console.error(error);
-            addToast('הניתוח נכשל. נסה שנית.', 'error');
-        } finally {
-            setIsAnalyzing(false);
+        } catch (error: unknown) {
+            console.error('Analysis error:', error);
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : typeof error === 'string'
+                      ? error
+                      : 'הניתוח נכשל. נסה שנית.';
+            addToast(errorMessage, 'error');
+            // Reset report on error
+            setReport(null);
         }
     };
 
     const handleDownload = () => {
         if (!report) return;
+        if (typeof document === 'undefined') return; // SSR guard
+        
         const element = document.createElement("a");
         const file = new Blob([JSON.stringify(report, null, 2)], {type: 'text/plain'});
         element.href = URL.createObjectURL(file);
         element.download = `Nexus_Report_${new Date().toISOString()}.json`;
         document.body.appendChild(element);
         element.click();
-        document.body.removeChild(element);
+        element.remove();
+        URL.revokeObjectURL(element.href);
     };
 
     const handleCopySummary = () => {
@@ -275,11 +215,13 @@ export const IntelligenceView: React.FC = () => {
 
     const handleClearHistory = () => {
         if (window.confirm('האם למחוק את כל היסטוריית החיפושים?')) {
-            analysisHistory.forEach(item => deleteAnalysis(item.id));
+            analysisHistory.forEach((item: any) => deleteAnalysis(item.id));
             setReport(null);
             addToast('ההיסטוריה נוקתה בהצלחה', 'info');
         }
     };
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
     return (
         <div className="h-full flex flex-col md:flex-row bg-[#0f172a] text-slate-100 overflow-hidden rounded-3xl shadow-2xl border border-slate-800 relative font-sans" dir="rtl">
@@ -325,30 +267,53 @@ export const IntelligenceView: React.FC = () => {
 
             {/* Sidebar / History */}
             <div className={`w-full md:w-80 bg-slate-900/50 border-l border-slate-800 flex flex-col z-10 transition-all ${showHistory ? 'translate-x-0' : 'hidden md:flex'}`}>
-                <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                {/* Mobile Toggle Button */}
+                {isMobile && !showHistory && (
+                    <button
+                        onClick={() => setShowHistory(true)}
+                        className="md:hidden fixed bottom-4 left-4 z-50 bg-indigo-600 text-white p-3 rounded-full shadow-lg hover:bg-indigo-700 transition-colors"
+                        aria-label="פתח היסטוריה"
+                    >
+                        <History size={20} />
+                    </button>
+                )}
+                <div className="p-4 md:p-6 border-b border-slate-800 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-indigo-400" /> Nexus AI</h2>
+                        <h2 className="text-lg md:text-xl font-bold flex items-center gap-2"><Sparkles className="text-indigo-400" size={18} /> Nexus AI</h2>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                             {isManager ? <Crown size={10} className="text-yellow-500" /> : <User size={10} className="text-blue-400" />}
                             מנוע חיפוש וביצועים
                         </p>
                     </div>
-                    {analysisHistory.length > 0 && (
-                        <button 
-                            onClick={handleClearHistory}
-                            className="p-2 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800"
-                            title="נקה היסטוריה"
-                        >
-                            <Eraser size={16} />
-                        </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {analysisHistory.length > 0 && (
+                            <button 
+                                onClick={handleClearHistory}
+                                className="p-2 text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-800"
+                                title="נקה היסטוריה"
+                            >
+                                <Eraser size={16} />
+                            </button>
+                        )}
+                        {isMobile && (
+                            <button
+                                onClick={() => setShowHistory(false)}
+                                className="md:hidden p-2 text-slate-500 hover:text-white transition-colors rounded-lg"
+                                aria-label="סגור היסטוריה"
+                            >
+                                <X size={20} />
+                            </button>
+                        )}
+                    </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 pb-4 md:pb-4 space-y-3 custom-scrollbar">
                     <div className="flex justify-between items-center mb-2">
                         <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">היסטוריית שאילתות</span>
                         <span className="text-[9px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">30 יום</span>
                     </div>
-                    {analysisHistory.filter(r => r.mode === (isManager ? 'manager' : 'employee')).map((item) => (
+                    {analysisHistory
+                        .filter((r: any) => r.mode === (isManager ? 'manager' : 'employee'))
+                        .map((item: any) => (
                         <div 
                             key={item.id} 
                             onClick={() => setReport(item)}
@@ -374,47 +339,46 @@ export const IntelligenceView: React.FC = () => {
             <div className="flex-1 flex flex-col relative z-10 overflow-hidden">
                 
                 {/* Input Area */}
-                <div className="p-6 border-b border-slate-800 bg-slate-900/30 backdrop-blur-md">
+                <div className="p-4 md:p-6 border-b border-slate-800 bg-slate-900/30 backdrop-blur-md">
                     <div className="max-w-3xl mx-auto w-full relative">
                         <input 
                             type="text" 
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
-                            placeholder="חפש מידע (איפה הקובץ...) או נתח ביצועים..."
-                            className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 pr-6 pl-14 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-lg"
+                            placeholder="חפש מידע או נתח ביצועים..."
+                            className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-3 md:py-4 pr-4 md:pr-6 pl-12 md:pl-14 text-sm md:text-base text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-lg"
                             onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
                         />
                         <button 
                             onClick={() => handleAnalyze()}
                             disabled={isAnalyzing}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 md:p-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:brightness-110 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                         >
-                            {isAnalyzing ? <Sparkles className="animate-spin" size={20} /> : <Send size={20} className="rotate-180" />}
+                            {isAnalyzing ? <Skeleton className="w-4 h-4 rounded-full" /> : <Send size={18} className="rotate-180" />}
                         </button>
                     </div>
                     {/* Quick Prompts */}
-                    <div className="max-w-3xl mx-auto mt-3 flex gap-2 overflow-x-auto no-scrollbar">
+                    <div className="max-w-3xl mx-auto mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-2">
                         {(isManager ? 
                             ['איפה נמצא קובץ ה-Logo?', 'האם יש לנו ליד מגוגל?', 'ניתוח יעילות צוות', 'תחזית הכנסות'] : 
                             ['איפה נמצא נהלי העבודה?', 'מה המשימות הפתוחות שלי?', 'איך לשפר ביצועים?', 'תכנון שבועי']
                         ).map(p => (
-                            <button key={p} onClick={() => { setQuery(p); handleAnalyze(p); }} className="whitespace-nowrap px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1.5">
-                                {p.includes('?') || p.includes('איפה') || p.includes('יש לנו') ? <Search size={12} className="text-indigo-400" /> : <BarChart3 size={12} className="text-purple-400" />}
-                                {p}
+                            <button key={p} onClick={() => { setQuery(p); handleAnalyze(p); }} className="whitespace-nowrap px-2.5 md:px-3 py-1 md:py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-[10px] md:text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition-colors flex items-center gap-1 md:gap-1.5 shrink-0">
+                                {p.includes('?') || p.includes('איפה') || p.includes('יש לנו') ? <Search size={10} className="text-indigo-400 shrink-0" /> : <BarChart3 size={10} className="text-purple-400 shrink-0" />}
+                                <span className="truncate max-w-[120px] md:max-w-none">{p}</span>
                             </button>
                         ))}
                     </div>
                 </div>
 
                 {/* Report Area */}
-                <div className="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-10 pb-4 md:pb-6 lg:pb-10 scroll-smooth custom-scrollbar">
                     {isAnalyzing ? (
                         <div className="h-full flex flex-col items-center justify-center text-center opacity-70">
                             <div className="w-24 h-24 relative mb-8">
-                                <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full animate-ping"></div>
-                                <div className="absolute inset-2 border-4 border-purple-500/50 rounded-full animate-spin"></div>
+                                <Skeleton className="absolute inset-0 rounded-full" />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <BrainCircuit size={32} className="text-indigo-400" />
+                                    <Sparkles size={32} className="text-indigo-400" />
                                 </div>
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Nexus סורק את המערכת...</h3>
@@ -424,37 +388,37 @@ export const IntelligenceView: React.FC = () => {
                         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             
                             {/* Header & Score */}
-                            <div className="flex flex-col md:flex-row gap-6 items-start">
-                                <div className="flex-1">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 mb-3">
-                                        <Sparkles size={12} /> תשובת המערכת
+                            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-start">
+                                <div className="flex-1 min-w-0">
+                                    <div className="inline-flex items-center gap-2 px-2.5 md:px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] md:text-xs font-bold border border-indigo-500/30 mb-3">
+                                        <Sparkles size={10} /> תשובת המערכת
                                     </div>
-                                    <h1 className="text-3xl font-bold text-white mb-4">
+                                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">
                                         תוצאות הניתוח
                                     </h1>
-                                    <p className="text-lg text-slate-300 leading-relaxed border-r-4 border-indigo-500 pr-4">
+                                    <p className="text-base md:text-lg text-slate-300 leading-relaxed border-r-4 border-indigo-500 pr-3 md:pr-4">
                                         {report.summary}
                                     </p>
                                     
                                     {/* Smart Navigation Buttons */}
                                     {report.suggestedLinks && report.suggestedLinks.length > 0 && (
-                                        <div className="flex flex-wrap gap-3 mt-6">
+                                        <div className="flex flex-wrap gap-2 md:gap-3 mt-4 md:mt-6">
                                             {report.suggestedLinks.map((link, idx) => (
                                                 <button
                                                     key={idx}
                                                     onClick={() => navigate(link.path)}
-                                                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-900 to-indigo-900 hover:from-violet-800 hover:to-indigo-800 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-900/30 border border-white/10 group"
+                                                    className="flex items-center gap-1.5 md:gap-2 px-3 md:px-5 py-2 md:py-2.5 bg-gradient-to-r from-violet-900 to-indigo-900 hover:from-violet-800 hover:to-indigo-800 text-white rounded-xl text-xs md:text-sm font-bold transition-all shadow-lg shadow-indigo-900/30 border border-white/10 group"
                                                 >
-                                                    <ExternalLink size={16} className="text-indigo-300 group-hover:text-white transition-colors" />
-                                                    {link.label}
+                                                    <ExternalLink size={14} className="text-indigo-300 group-hover:text-white transition-colors shrink-0" />
+                                                    <span className="truncate">{link.label}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 text-center min-w-[150px]">
+                                <div className="bg-slate-800/50 p-4 md:p-6 rounded-2xl border border-slate-700 text-center w-full md:w-auto md:min-w-[150px]">
                                     <div className="text-xs font-bold text-slate-400 uppercase mb-2">רלוונטיות</div>
-                                    <div className={`text-5xl font-black ${report.score > 80 ? 'text-green-400' : report.score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                                    <div className={`text-4xl md:text-5xl font-black ${report.score > 80 ? 'text-green-400' : report.score > 50 ? 'text-yellow-400' : 'text-red-400'}`}>
                                         {report.score}
                                     </div>
                                     <div className="text-xs text-slate-500 mt-1">/ 100</div>
@@ -462,8 +426,8 @@ export const IntelligenceView: React.FC = () => {
                             </div>
 
                             {/* Actionable Steps */}
-                            <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-6">
-                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Zap size={20} className="text-yellow-400" /> המלצות לפעולה</h3>
+                            <div className="bg-slate-800/30 border border-slate-700 rounded-2xl p-4 md:p-6">
+                                <h3 className="text-base md:text-lg font-bold text-white mb-3 md:mb-4 flex items-center gap-2"><Zap size={18} className="text-yellow-400" /> המלצות לפעולה</h3>
                                 <ul className="space-y-3">
                                     {report.actionableSteps.map((step, idx) => (
                                         <li key={idx} className="flex items-start gap-3 text-slate-300">
@@ -555,21 +519,21 @@ export const IntelligenceView: React.FC = () => {
                             )}
 
                             {/* Actions Footer */}
-                            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                                <button onClick={handleDownload} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
-                                    <Download size={16} /> הורד דוח מלא
+                            <div className="flex flex-wrap justify-end gap-2 md:gap-3 pt-4 border-t border-slate-800">
+                                <button onClick={handleDownload} className="px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2 transition-colors">
+                                    <Download size={14} /> <span className="hidden sm:inline">הורד דוח מלא</span><span className="sm:hidden">הורד</span>
                                 </button>
                                 <button 
                                     onClick={handleCopySummary}
-                                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors"
+                                    className="px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2 transition-colors"
                                 >
-                                    <Copy size={16} /> העתק
+                                    <Copy size={14} /> העתק
                                 </button>
                                 <button 
                                     onClick={handleSaveFeedback}
-                                    className="px-4 py-2 bg-gradient-to-r from-violet-900 to-indigo-900 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-lg border border-white/10 hover:brightness-110"
+                                    className="px-3 md:px-4 py-2 bg-gradient-to-r from-violet-900 to-indigo-900 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 md:gap-2 transition-colors shadow-lg border border-white/10 hover:brightness-110"
                                 >
-                                    <MessageSquare size={16} /> שמור כמשוב
+                                    <MessageSquare size={14} /> <span className="hidden sm:inline">שמור כמשוב</span><span className="sm:hidden">שמור</span>
                                 </button>
                             </div>
 
@@ -581,7 +545,7 @@ export const IntelligenceView: React.FC = () => {
                                 {isManager ? "המוח והחיפוש של Nexus" : "אזור אישי וחיפוש"}
                             </h3>
                             <p className="text-sm mt-2 max-w-sm">
-                                שאל על נתונים, חפש קבצים וקבל תובנות אסטרטגיות במקום אחד.
+                                שאל על נתונים, חפש קבצים וקבל תובנות עסקיות במקום אחד.
                             </p>
                             <div className="flex gap-4 mt-6 text-slate-500 text-xs">
                                 <div className="flex flex-col items-center gap-1">

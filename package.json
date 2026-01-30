@@ -1,26 +1,163 @@
 {
-  "name": "nexus-os",
+  "name": "scale-crm",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev -p 4000 --webpack",
+    "dev:turbo": "next dev -p 5000",
+    "postinstall": "prisma generate --schema prisma/schema.prisma",
+    "prebuild": "npm run security:scan-api-guards",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "set \"NODE_OPTIONS=--max-old-space-size=8192\" && npm run security:scan-api-guards && prisma generate --schema prisma/schema.prisma && next build --webpack",
+    "start": "next start",
+    "lint": "eslint",
+    "security:scan-api-guards": "node scripts/security/scan-api-guards.js",
+    "e2e:auth": "node scripts/e2e-auth.cjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "prisma:validate": "dotenv -e .env -e .env.local -- prisma validate --schema prisma/schema.prisma",
+    "prisma:format": "dotenv -e .env -e .env.local -- prisma format --schema prisma/schema.prisma",
+    "prisma:generate": "dotenv -e .env -e .env.local -- prisma generate --schema prisma/schema.prisma",
+    "prisma:db:pull": "dotenv -e .env -e .env.local -- prisma db pull --schema prisma/schema.prisma",
+    "prisma:migrate:dev": "dotenv -e .env -e .env.local -- prisma migrate dev --schema prisma/schema.prisma",
+    "prisma:db:push": "dotenv -e .env -e .env.local -- prisma db push --schema prisma/schema.prisma",
+    "prisma:studio": "dotenv -e .env -e .env.local -- prisma studio --schema prisma/schema.prisma",
+    "generate-icons": "node scripts/generate-icons.js",
+    "generate-brand-assets": "node scripts/generate-brand-assets.js",
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:4000 && electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "build:windows": "electron-builder --win",
+    "build:android": "(npx cap add android || echo Android platform already exists) && npx cap sync android"
   },
   "dependencies": {
-    "framer-motion": "^12.23.25",
-    "react-router-dom": "^7.10.0",
-    "lucide-react": "^0.555.0",
-    "react": "^19.2.0",
-    "@google/genai": "latest",
-    "react-dom": "^19.2.1",
-    "canvas-confetti": "^1.9.4"
+    "@ai-sdk/google": "^3.0.1",
+    "@ai-sdk/react": "^3.0.3",
+    "@capacitor/core": "^7.0.0",
+    "@clerk/nextjs": "^6.36.2",
+    "@google/genai": "^1.33.0",
+    "@hebcal/core": "^6.0.6",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^5.22.0",
+    "@sentry/nextjs": "^10.36.0",
+    "@supabase/supabase-js": "^2.89.0",
+    "@tanstack/react-query": "^5.90.20",
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/recharts": "^1.8.29",
+    "@upstash/redis": "^1.35.0",
+    "@zxing/browser": "^0.1.5",
+    "ai": "^6.0.3",
+    "canvas-confetti": "^1.9.4",
+    "framer-motion": "^12.23.26",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^169.0.0",
+    "lucide-react": "^0.561.0",
+    "next": "16.0.10",
+    "prisma": "^5.22.0",
+    "qrcode": "^1.5.4",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "react-hook-form": "^7.69.0",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.10.1",
+    "recharts": "^3.6.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "resend": "^6.6.0",
+    "svix": "^1.82.0",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.9.19",
+    "concurrently": "^8.2.2",
+    "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.10",
+    "sharp": "^0.33.5",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  },
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.misrad.ai",
+    "productName": "MISRAD AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "app/favicon.ico",
+      "app/icon.ico",
+      "public/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "app/icon.ico"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "public/icon-512.png",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/icon-512.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "language": "1037",
+      "multiLanguageInstaller": true,
+      "displayLanguageSelector": true,
+      "installerIcon": "app/icon.ico",
+      "uninstallerIcon": "app/icon.ico",
+      "shortcutName": "MISRAD AI",
+      "uninstallDisplayName": "MISRAD AI",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   }
 }

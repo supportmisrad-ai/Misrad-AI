@@ -1,0 +1,194 @@
+/**
+ * AI Security & Data Filtering
+ * 
+ * Ensures sensitive data is never sent to AI services
+ */
+
+import { PermissionId } from '../types';
+import { hasPermission, filterSensitiveData } from './auth';
+import { logAuditEvent } from './audit';
+
+// Fields that should NEVER be sent to AI
+const SENSITIVE_FIELDS = [
+    'hourlyRate',
+    'monthlySalary',
+    'commissionPct',
+    'accumulatedBonus',
+    'billingInfo',
+    'email',
+    'phone',
+    'password',
+    'creditCard',
+    'ssn',
+    'idNumber'
+];
+
+/**
+ * Sanitize data before sending to AI
+ */
+export function sanitizeForAI<T extends Record<string, any>>(data: T): Partial<T> {
+    const sanitized: any = {};
+    
+    for (const [key, value] of Object.entries(data)) {
+        // Skip sensitive fields
+        if (SENSITIVE_FIELDS.includes(key)) {
+            continue;
+        }
+        
+        // Recursively sanitize nested objects
+        if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+            sanitized[key] = sanitizeForAI(value);
+        } else if (Array.isArray(value)) {
+            sanitized[key] = value.map(item => 
+                typeof item === 'object' ? sanitizeForAI(item) : item
+            );
+        } else {
+            sanitized[key] = value;
+        }
+    }
+    
+    return sanitized;
+}
+
+/**
+ * Prepare safe context for AI based on user permissions
+ */
+export async function prepareAIContext(
+    userRole: string,
+    isManager: boolean,
+    rawData: {
+        users?: any[];
+        tasks?: any[];
+        clients?: any[];
+        assets?: any[];
+        financials?: any;
+    }
+): Promise<any> {
+    // Log AI access
+    await logAuditEvent('ai.query', 'intelligence', {
+        details: {
+            userRole,
+            isManager,
+            dataTypes: Object.keys(rawData)
+        }
+    });
+    
+    const context: any = {
+        userRole,
+        isManager,
+        currentDate: new Date().toLocaleDateString('he-IL'),
+    };
+    
+    // Fetch and filter users data from secure API
+    // Note: In production, this should fetch from the secure users data source
+    // For now, we'll use rawData.users if provided, but filter it
+    if (rawData.users && rawData.users.length > 0) {
+        const canViewFinancials = await hasPermission('view_financials');
+        context.team = rawData.users.map((user: any) => {
+            const safeUser: any = {
+                id: user.id,
+                name: user.name,
+                role: user.role,
+                capacity: user.capacity,
+            };
+            
+            // Only include financial data if user has permission
+            if (canViewFinancials) {
+                safeUser.targets = user.targets;
+            } else {
+                // Remove all sensitive fields
+                const sanitized = sanitizeForAI(user);
+                Object.assign(safeUser, sanitized);
+            }
+            
+            return safeUser;
+        });
+    } else if (isManager) {
+        // If manager but no users in rawData, we'd fetch from API in production
+        // For now, leave empty - will be handled by API route
+        context.team = [];
+    }
+    
+    // Filter tasks - only include what user can see
+    if (rawData.tasks) {
+        const canViewCrm = await hasPermission('view_crm');
+        if (canViewCrm) {
+            context.tasksStructure = rawData.tasks.slice(0, 50).map(task => ({
+                title: task.title,
+                status: task.status,
+                priority: task.priority,
+                // Don't include assignee details unless manager
+                assignee: isManager ? task.assigneeIds?.[0] : 'Hidden'
+            }));
+        }
+    }
+    
+    // Filter clients - only if has CRM permission
+    if (rawData.clients) {
+        const canViewCrm = await hasPermission('view_crm');
+        if (canViewCrm) {
+            context.clients = rawData.clients.map(client => ({
+                name: client.companyName,
+                status: client.status,
+                // Don't include contact details
+            }));
+        } else {
+            context.clients = [];
+        }
+    }
+    
+    // Filter assets - sanitize URLs
+    if (rawData.assets) {
+        context.assets = rawData.assets.map(asset => ({
+            title: asset.title,
+            type: asset.type,
+            tags: asset.tags,
+            // Don't include actual URLs or credentials
+        }));
+    }
+    
+    // Financial data - only if manager
+    if (rawData.financials && isManager) {
+        const canViewFinancials = await hasPermission('view_financials');
+        if (canViewFinancials) {
+            context.financials = {
+                // Only include aggregated data, not individual salaries
+                totalRevenue: rawData.financials.totalRevenue,
+                target: rawData.financials.target,
+                // Don't include individual employee salaries
+            };
+        }
+    }
+    
+    // Final sanitization pass
+    return sanitizeForAI(context);
+}
+
+/**
+ * Validate AI response doesn't contain sensitive data
+ */
+export function validateAIResponse(response: any): boolean {
+    const responseStr = JSON.stringify(response).toLowerCase();
+    
+    // Check for sensitive patterns
+    const sensitivePatterns = [
+        'salary',
+        'hourly',
+        'rate',
+        'bonus',
+        'credit',
+        'card',
+        'ssn',
+        'password'
+    ];
+    
+    for (const pattern of sensitivePatterns) {
+        if (responseStr.includes(pattern)) {
+            console.warn(`[AI SECURITY] Potential sensitive data in AI response: ${pattern}`);
+            return false;
+        }
+    }
+    
+    return true;
+}
+

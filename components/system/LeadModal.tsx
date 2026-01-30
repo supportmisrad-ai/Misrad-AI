@@ -1,0 +1,1450 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { usePathname } from 'next/navigation';
+import { Lead, Activity, Task } from './types';
+import { STAGES } from './constants';
+import { 
+    X, Phone, Mail, ArrowRight, MessageSquare, CalendarClock, Paperclip, Share2, ArrowLeft, Copy
+} from 'lucide-react';
+import LogCallModal from './LogCallModal';
+import { useToast } from './contexts/ToastContext';
+import { useAuth } from './contexts/AuthContext';
+import { createSystemLeadActivity, getSystemLeadActivities } from '@/app/actions/system-leads';
+import { uploadCallRecordingFile } from '@/app/actions/files';
+import { Skeleton } from '@/components/ui/skeletons';
+import { approveConnectOfferDisclosure, createConnectMarketplaceListing, getConnectListingRequests } from '@/app/actions/connect-marketplace';
+import { createWorkListing } from '@/app/actions/work-listings';
+import { createNexusTaskByOrgSlug, listNexusTasksByOrgSlug } from '@/app/actions/nexus';
+import { Priority as NexusPriority } from '../../types';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+interface LeadModalProps {
+  lead: Lead;
+  onClose: () => void;
+  onAddActivity: (leadId: string, activity: Activity) => void;
+  onScheduleMeeting: (leadId: string) => void;
+  onStatusChange?: (id: string, status: Lead['status']) => void; 
+  onOpenClientPortal?: () => void;
+  onAddTask?: (task: Task) => void;
+  assignees?: Array<{ id: string; name: string; email: string | null; avatarUrl: string | null }>;
+  onUpdateLead?: (params: {
+    leadId: string;
+    name?: string;
+    phone?: string;
+    email?: string | null;
+    assignedAgentId?: string | null;
+    nextActionDate?: Date | null;
+    nextActionNote?: string | null;
+  }) => void;
+}
+
+const LeadModal: React.FC<LeadModalProps> = ({
+  lead,
+  onClose,
+  onAddActivity,
+  onScheduleMeeting,
+  onStatusChange,
+  onOpenClientPortal,
+  assignees,
+  onUpdateLead,
+}) => {
+  const { addToast } = useToast();
+  const { user } = useAuth();
+  const pathname = usePathname();
+  const [composerTab, setComposerTab] = useState<'note' | 'call' | 'task' | 'email'>('note');
+  const [noteContent, setNoteContent] = useState('');
+  const [isLogCallOpen, setIsLogCallOpen] = useState(false);
+  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const [activities, setActivities] = useState<Activity[]>(() => (Array.isArray(lead.activities) ? lead.activities : []));
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [draftPhone, setDraftPhone] = useState('');
+  const [draftEmail, setDraftEmail] = useState('');
+  const [draftAssignedAgentId, setDraftAssignedAgentId] = useState<string>('');
+
+  const [connectShareMode, setConnectShareMode] = useState<'lead' | 'share'>('lead');
+  const [sharePriceInput, setSharePriceInput] = useState('');
+  const [shareDescription, setShareDescription] = useState('');
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string>('');
+
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [shareRequests, setShareRequests] = useState<
+    Array<{ token: string; interestedName: string; interestedPhone: string; interestedAt: string; approvedAt: string | null }>
+  >([]);
+  const [approvingToken, setApprovingToken] = useState<string | null>(null);
+
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isCreatingTransfer, setIsCreatingTransfer] = useState(false);
+  const [transferUrl, setTransferUrl] = useState<string>('');
+
+  const isSameLocalDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  const formatDateTimeShort = (date: Date): string => {
+    return date.toLocaleString('he-IL', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const toLocalDateTimeInputValue = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const handleApproveDisclosure = async (token: string) => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) {
+      addToast('לא ניתן לאשר (orgSlug חסר)', 'error');
+      return;
+    }
+
+    if (approvingToken) return;
+    setApprovingToken(token);
+    try {
+      const res = await approveConnectOfferDisclosure({ orgSlug, token });
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה באישור חשיפה', 'error');
+        return;
+      }
+      addToast('אושר', 'success');
+      await loadShareRequests();
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה באישור חשיפה', 'error');
+    } finally {
+      setApprovingToken(null);
+    }
+  };
+
+  const getDefaultPublicDescription = (l: Lead) => {
+    const stage = STAGES.find((s) => s.id === l.status)?.label || String(l.status || '');
+    const company = String(l.company || '').trim();
+    const name = String(l.name || '').trim();
+    const lObj = asObject(l);
+    const address = String(lObj?.installationAddress || l.address || '').trim();
+    const parts = [company || 'לקוח פרטי', name || 'פנייה חדשה', stage ? `סטטוס: ${stage}` : null, address ? `כתובת: ${address}` : null].filter(Boolean);
+    return parts.join('\n');
+  };
+
+  const [followUpInput, setFollowUpInput] = useState<string>('');
+  const [followUpNote, setFollowUpNote] = useState<string>('');
+
+  const [nexusTasks, setNexusTasks] = useState<
+    Array<{ id: string; title: string; dueDate: Date | null; status: string; priority: string | null }>
+  >([]);
+  const [isLoadingNexusTasks, setIsLoadingNexusTasks] = useState(false);
+  const [creatingAiTaskKey, setCreatingAiTaskKey] = useState<string | null>(null);
+  const [createdAiTaskKeys, setCreatedAiTaskKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    setDraftName(String(lead.name || ''));
+    setDraftPhone(String(lead.phone || ''));
+    setDraftEmail(String(lead.email || ''));
+    setDraftAssignedAgentId(String(lead.assignedAgentId || ''));
+
+    setActivities(Array.isArray(lead.activities) ? lead.activities : []);
+
+    setConnectShareMode('lead');
+    setSharePriceInput('');
+    setShareDescription(getDefaultPublicDescription(lead));
+    setIsCreatingShare(false);
+    setShareUrl('');
+
+    setIsLoadingRequests(false);
+    setShareRequests([]);
+    setApprovingToken(null);
+
+    setIsTransferOpen(false);
+    setIsCreatingTransfer(false);
+    setTransferUrl('');
+
+    const d = lead.nextActionDate ? new Date(lead.nextActionDate) : null;
+    setFollowUpInput(d ? toLocalDateTimeInputValue(d) : '');
+    setFollowUpNote(lead.nextActionNote != null ? String(lead.nextActionNote) : '');
+  }, [lead.id]);
+
+  const loadActivities = async () => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) return;
+    if (isLoadingActivities) return;
+    setIsLoadingActivities(true);
+    try {
+      const rows = await getSystemLeadActivities({ orgSlug, leadId: String(lead.id), take: 80 });
+      const mapped: Activity[] = (Array.isArray(rows) ? rows : []).map((a: unknown) => {
+        const aObj = asObject(a) ?? {};
+        const directionRaw = aObj.direction ? String(aObj.direction) : '';
+        const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? directionRaw : undefined;
+        const ts = aObj.timestamp ? new Date(String(aObj.timestamp)) : new Date();
+        const timestamp = Number.isNaN(ts.getTime()) ? new Date() : ts;
+
+        const typeRaw = String(aObj.type || 'note');
+        const type: Activity['type'] =
+          typeRaw === 'call' ||
+          typeRaw === 'whatsapp' ||
+          typeRaw === 'email' ||
+          typeRaw === 'meeting' ||
+          typeRaw === 'note' ||
+          typeRaw === 'system' ||
+          typeRaw === 'financial' ||
+          typeRaw === 'sms' ||
+          typeRaw === 'feedback' ||
+          typeRaw === 'support'
+            ? typeRaw
+            : 'note';
+
+        return {
+          id: String(aObj.id || ''),
+          type,
+          content: String(aObj.content || ''),
+          timestamp,
+          direction,
+          metadata: aObj.metadata ?? null,
+        };
+      });
+      setActivities(mapped.filter((a) => a.id));
+    } catch {
+      // ignore
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadActivities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
+
+  const mapNexusTaskForLead = (t: unknown) => {
+    const obj = asObject(t) ?? {};
+    const due = obj.dueDate ? new Date(String(obj.dueDate)) : null;
+    const dueDate = due && !Number.isNaN(due.getTime()) ? due : null;
+    return {
+      id: String(obj.id || ''),
+      title: String(obj.title || ''),
+      dueDate,
+      status: String(obj.status || ''),
+      priority: obj.priority == null ? null : String(obj.priority),
+    };
+  };
+
+  const loadNexusTasksForLead = async () => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) return;
+    setIsLoadingNexusTasks(true);
+    try {
+      const res = await listNexusTasksByOrgSlug({ orgSlug, leadId: String(lead.id), page: 1, pageSize: 50 });
+      const rows = Array.isArray(res?.tasks) ? res.tasks : [];
+      setNexusTasks(rows.map(mapNexusTaskForLead).filter((t) => t.id));
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת משימות', 'error');
+    } finally {
+      setIsLoadingNexusTasks(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadNexusTasksForLead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
+
+  const handleCreateTransfer = async (mode: 'link' | 'marketplace') => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) {
+      addToast('לא ניתן ליצור קישור (orgSlug חסר)', 'error');
+      return;
+    }
+
+    if (isCreatingTransfer) return;
+    setIsCreatingTransfer(true);
+    try {
+      const title = String(lead.company || lead.name || '').trim() || 'עבודה חדשה';
+      const rawPrice = lead.value;
+      const price = Number.isFinite(Number(rawPrice)) ? Number(rawPrice) : null;
+
+      const res = await createWorkListing({
+        orgSlug,
+        leadId: String(lead.id),
+        mode,
+        title,
+        price: price && price > 0 ? price : null,
+      });
+
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה ביצירת קישור', 'error');
+        return;
+      }
+
+      const resObj = asObject(res);
+      setTransferUrl(typeof resObj?.publicUrl === 'string' ? String(resObj.publicUrl) : '');
+      addToast(mode === 'marketplace' ? 'פורסם לזירה (ממתין)' : 'הקישור נוצר', 'success');
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת קישור', 'error');
+    } finally {
+      setIsCreatingTransfer(false);
+    }
+  };
+
+  const handleCopyTransferUrl = async () => {
+    const url = String(transferUrl || '').trim();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast('הקישור הועתק', 'success');
+    } catch {
+      addToast('לא ניתן להעתיק קישור', 'error');
+    }
+  };
+
+  const handleWhatsappTransferUrl = () => {
+    const url = String(transferUrl || '').trim();
+    if (!url) return;
+    const text = `MISRAD - עבודה להעברה\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  };
+
+  const loadShareRequests = async () => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) {
+      addToast('לא ניתן לטעון בקשות (orgSlug חסר)', 'error');
+      return;
+    }
+
+    if (isLoadingRequests) return;
+    setIsLoadingRequests(true);
+    try {
+      const res = await getConnectListingRequests({ orgSlug, leadId: String(lead.id) });
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה בטעינת בקשות', 'error');
+        return;
+      }
+      const resObj = asObject(res);
+      const requests = resObj?.requests;
+      setShareRequests(Array.isArray(requests) ? (requests as Array<{ token: string; interestedName: string; interestedPhone: string; interestedAt: string; approvedAt: string | null }>) : []);
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת בקשות', 'error');
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (connectShareMode !== 'share') return;
+    void loadShareRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectShareMode, lead.id]);
+
+  const now = new Date();
+  const followUpDate = followUpInput ? new Date(followUpInput) : (lead.nextActionDate ? new Date(lead.nextActionDate) : null);
+  const followUpTone =
+    followUpDate == null || Number.isNaN(followUpDate.getTime())
+      ? 'none'
+      : isSameLocalDay(followUpDate, now)
+        ? 'today'
+        : followUpDate.getTime() < now.getTime()
+          ? 'overdue'
+          : 'future';
+
+  const suggestedFollowUpDate = lead.nextActionDateSuggestion ? new Date(lead.nextActionDateSuggestion) : null;
+  const hasSuggestedFollowUp = Boolean(suggestedFollowUpDate && !Number.isNaN(suggestedFollowUpDate.getTime()));
+
+  const handleSubmitActivity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteContent.trim()) return;
+    
+    const typeMap: Record<string, Activity['type']> = {
+        'note': 'note', 'call': 'call', 'email': 'email', 'task': 'system'
+    };
+
+    const newActivity: Activity = {
+      id: Date.now().toString(),
+      type: typeMap[composerTab],
+      content: noteContent,
+      timestamp: new Date()
+    };
+    onAddActivity(lead.id, newActivity);
+    setNoteContent('');
+  };
+
+  const stageLabel = STAGES.find((s) => s.id === lead.status)?.label || String(lead.status || '');
+
+  const canOpenPortal = !!String(lead.email || '').trim();
+
+  const handleSaveBasics = async (patch: {
+    name?: string;
+    phone?: string;
+    email?: string | null;
+    assignedAgentId?: string | null;
+  }) => {
+    if (!onUpdateLead) return;
+    onUpdateLead({ leadId: lead.id, ...patch });
+  };
+
+  const handleSaveFollowUp = () => {
+    if (!onUpdateLead) return;
+    const d = followUpInput ? new Date(followUpInput) : null;
+    onUpdateLead({
+      leadId: lead.id,
+      nextActionDate: d && !Number.isNaN(d.getTime()) ? d : null,
+      nextActionNote: followUpNote.trim() ? followUpNote : null,
+    });
+  };
+
+  const openTel = () => {
+    const phone = String(lead.phone || '').trim();
+    if (!phone) return;
+    window.location.href = `tel:${phone}`;
+    setIsLogCallOpen(true);
+  };
+
+  const openEmail = () => {
+    const email = String(lead.email || '').trim();
+    if (!email) return;
+    window.open(`mailto:${encodeURIComponent(email)}`);
+  };
+
+  const openWhatsapp = () => {
+    const phone = String(lead.phone || '').trim();
+    const digits = phone.replace(/[^0-9]/g, '');
+    if (!digits) return;
+    window.open(`https://wa.me/${digits}`);
+  };
+
+  const orgSlugFromPathname = () => {
+    const parts = String(pathname || '').split('/').filter(Boolean);
+    const wIndex = parts.indexOf('w');
+    if (wIndex === -1) return null;
+    return parts[wIndex + 1] || null;
+  };
+
+  const handleCreateShareLink = async () => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) {
+      addToast('לא ניתן ליצור קישור (orgSlug חסר)', 'error');
+      return;
+    }
+
+    if (isCreatingShare) return;
+    setIsCreatingShare(true);
+    try {
+      const askingPriceRaw = sharePriceInput.trim();
+      const askingPrice = askingPriceRaw ? Number(askingPriceRaw) : 0;
+      if (Number.isNaN(askingPrice) || askingPrice < 0) {
+        addToast('מחיר לא תקין', 'error');
+        return;
+      }
+
+      const res = await createConnectMarketplaceListing({
+        orgSlug,
+        leadId: String(lead.id),
+        askingPrice: askingPrice > 0 ? askingPrice : null,
+        description: shareDescription.trim() ? shareDescription.trim() : null,
+      });
+
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה ביצירת קישור שיתוף', 'error');
+        return;
+      }
+
+      const resObj = asObject(res);
+      const url = typeof resObj?.publicUrl === 'string' ? resObj.publicUrl : typeof resObj?.url === 'string' ? resObj.url : '';
+      setShareUrl(String(url || ''));
+      addToast('הקישור נוצר', 'success');
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת קישור שיתוף', 'error');
+    } finally {
+      setIsCreatingShare(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    const url = String(shareUrl || '').trim();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      addToast('הקישור הועתק', 'success');
+    } catch {
+      addToast('לא ניתן להעתיק קישור', 'error');
+    }
+  };
+
+  const handleWhatsappShareLink = () => {
+    const url = String(shareUrl || '').trim();
+    if (!url) return;
+    const text = `MISRAD Connect - עבודה להעברה\n${url}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`);
+  };
+
+  const handleUploadRecording = async (file: File) => {
+    const orgSlug = orgSlugFromPathname();
+    if (!orgSlug) {
+      addToast('לא ניתן להעלות הקלטה (orgSlug חסר)', 'error');
+      return;
+    }
+
+    setIsUploadingRecording(true);
+    try {
+      const uploadRes = await uploadCallRecordingFile(file, file.name, String(lead.id), orgSlug);
+      if (!uploadRes.success) {
+        addToast(uploadRes.error || 'שגיאה בהעלאת הקלטה', 'error');
+        return;
+      }
+
+      const audioUrl = String(uploadRes.url || '').trim();
+      const audioPath = String(uploadRes.path || '').trim();
+      const audioBucket = String(uploadRes.bucket || '').trim();
+      const audioSignedUrl = String(uploadRes.signedUrl || '').trim();
+
+      const fd = new FormData();
+      fd.append('file', file);
+
+      const transcribeRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`, {
+        method: 'POST',
+        body: fd,
+      });
+
+      if (transcribeRes.status === 402) {
+        addToast('אין מספיק נקודות AI לתמלול', 'warning');
+        return;
+      }
+
+      if (!transcribeRes.ok) {
+        const errData: unknown = await transcribeRes.json().catch(() => ({}));
+        const errObj = asObject(errData);
+        addToast(typeof errObj?.error === 'string' ? errObj.error : 'שגיאה בתמלול', 'error');
+        return;
+      }
+
+      const transcribeData: unknown = await transcribeRes.json().catch(() => ({}));
+      const transcribeJson = asObject(transcribeData) ?? {};
+      const transcriptText = String(transcribeJson.transcriptText || '').trim();
+      if (!transcriptText) {
+        addToast('תמלול ריק', 'error');
+        return;
+      }
+
+      const suggestRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/suggest`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ transcriptText }),
+      });
+
+      if (suggestRes.status === 402) {
+        addToast('אין מספיק נקודות AI לניתוח מתקדם', 'warning');
+        return;
+      }
+
+      if (!suggestRes.ok) {
+        const errData: unknown = await suggestRes.json().catch(() => ({}));
+        const errObj = asObject(errData);
+        addToast(typeof errObj?.error === 'string' ? errObj.error : 'שגיאה בניתוח', 'error');
+        return;
+      }
+
+      const suggestData: unknown = await suggestRes.json().catch(() => ({}));
+      const suggestJson = asObject(suggestData) ?? {};
+      const analysisResult = suggestJson.result;
+      const analysisObj = asObject(analysisResult) ?? {};
+      const summaryText = String(analysisObj.summary || '').trim();
+
+      const activityContent = summaryText ? `ניתוח שיחה (AI):\n${summaryText}` : 'ניתוח שיחה (AI)';
+      const res = await createSystemLeadActivity({
+        orgSlug,
+        leadId: String(lead.id),
+        type: 'call',
+        content: activityContent,
+        metadata: {
+          callAnalysis: {
+            kind: 'call_recording_ai',
+            audio: {
+              bucket: audioBucket || undefined,
+              path: audioPath || undefined,
+              url: audioUrl || undefined,
+              signedUrl: audioSignedUrl || undefined,
+              fileName: file.name,
+              mimeType: file.type || undefined,
+            },
+            transcriptText,
+            analysis: analysisResult ?? {},
+            ai: {
+              transcription: {
+                provider: typeof transcribeJson.provider === 'string' ? transcribeJson.provider : undefined,
+                model: typeof transcribeJson.model === 'string' ? transcribeJson.model : undefined,
+                chargedCents: typeof transcribeJson.chargedCents === 'number' ? transcribeJson.chargedCents : undefined,
+              },
+              suggestion: {
+                provider: typeof suggestJson.provider === 'string' ? suggestJson.provider : undefined,
+                model: typeof suggestJson.model === 'string' ? suggestJson.model : undefined,
+                chargedCents: typeof suggestJson.chargedCents === 'number' ? suggestJson.chargedCents : undefined,
+              },
+            },
+          },
+        },
+      });
+
+      if (!res.ok) {
+        addToast(res.message || 'שגיאה בשמירת פעילות ניתוח שיחה', 'error');
+        return;
+      }
+
+      addToast('הקלטה נותחה ונשמרה בליד', 'success');
+      const activityObj = asObject(asObject(res)?.activity) ?? {};
+      const ts = activityObj.timestamp ? new Date(String(activityObj.timestamp)) : new Date();
+      onAddActivity(lead.id, {
+        id: String(activityObj.id || Date.now().toString()),
+        type: 'call',
+        content: activityContent,
+        timestamp: Number.isNaN(ts.getTime()) ? new Date() : ts,
+        direction: activityObj.direction === 'inbound' || activityObj.direction === 'outbound' ? activityObj.direction : undefined,
+        metadata: activityObj.metadata ?? undefined,
+      });
+    } catch (e: unknown) {
+      console.error(e);
+      addToast(getErrorMessage(e) || 'שגיאה בהעלאה/ניתוח הקלטה', 'error');
+    } finally {
+      setIsUploadingRecording(false);
+    }
+  };
+
+  const renderCallAnalysisActivity = (act: Activity) => {
+    const ca = asObject(asObject(act.metadata)?.callAnalysis);
+    if (!ca) return null;
+
+    const audio = asObject(ca.audio) ?? {};
+    const audioSrc = String(audio.signedUrl || audio.url || '').trim();
+    const analysis = asObject(ca.analysis) ?? {};
+    const score = Number.isFinite(Number(analysis.score)) ? Number(analysis.score) : null;
+    const summary = String(analysis.summary || '').trim();
+
+    const topics = asObject(analysis.topics) ?? {};
+    const tasks = Array.isArray(topics.tasks) ? topics.tasks : [];
+    const promises = Array.isArray(topics.promises) ? topics.promises : [];
+    const objections = Array.isArray(analysis.objections) ? analysis.objections : [];
+    const transcript = Array.isArray(analysis.transcript) ? analysis.transcript : [];
+
+    return (
+      <div className="mt-3 space-y-3">
+        {audioSrc ? (
+          <audio controls className="w-full">
+            <source src={audioSrc} />
+          </audio>
+        ) : null}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">ציון</div>
+            <div className="text-lg font-black text-slate-900">{score == null ? '—' : score}</div>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 md:col-span-2">
+            <div className="text-[11px] font-black text-slate-500">סיכום</div>
+            <div className="text-sm font-bold text-slate-800 whitespace-pre-wrap">{summary || '—'}</div>
+          </div>
+        </div>
+
+        {(promises.length || tasks.length) ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="bg-white border border-slate-200 rounded-2xl p-3">
+              <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
+              <div className="mt-2 space-y-1">
+                {(promises.length ? promises : ['—']).slice(0, 8).map((p: unknown, idx: number) => (
+                  <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-2xl p-3">
+              <div className="text-[11px] font-black text-slate-500">משימות</div>
+              <div className="mt-2 space-y-1">
+                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => {
+                  const taskText = String(t);
+                  const key = `${String(act.id)}:${idx}:${taskText}`;
+                  const disabled = createdAiTaskKeys.includes(key) || creatingAiTaskKey === key;
+
+                  return (
+                    <div key={key} className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-bold text-slate-800 min-w-0 truncate">{taskText}</div>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={async () => {
+                          const orgSlug = orgSlugFromPathname();
+                          if (!orgSlug) {
+                            addToast('לא ניתן ליצור משימה (orgSlug חסר)', 'error');
+                            return;
+                          }
+
+                          const assigneeId = String(draftAssignedAgentId || lead.assignedAgentId || user?.id || '').trim();
+                          if (!assigneeId) {
+                            addToast('לא ניתן ליצור משימה ללא אחראי', 'error');
+                            return;
+                          }
+
+                          const now = new Date();
+                          const suggested = new Date(now);
+                          suggested.setDate(suggested.getDate() + 1);
+                          suggested.setHours(10, 0, 0, 0);
+
+                          setCreatingAiTaskKey(key);
+                          try {
+                            const dueDate = suggested.toISOString().slice(0, 10);
+                            const dueTime = suggested.toTimeString().slice(0, 8);
+
+                            await createNexusTaskByOrgSlug({
+                              orgSlug,
+                              input: {
+                                title: taskText,
+                                description: '',
+                                status: 'todo',
+                                priority: NexusPriority.HIGH,
+                                assigneeId,
+                                assigneeIds: [assigneeId],
+                                tags: ['Call', 'Follow Up'],
+                                dueDate,
+                                dueTime,
+                                timeSpent: 0,
+                                isTimerRunning: false,
+                                messages: [],
+                                createdAt: new Date().toISOString(),
+                                leadId: String(lead.id),
+                              },
+                            });
+
+                            setCreatedAiTaskKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+                            addToast('נוצרה משימה', 'success');
+                            await loadNexusTasksForLead();
+                          } catch (e: unknown) {
+                            console.error(e);
+                            addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
+                          } finally {
+                            setCreatingAiTaskKey(null);
+                          }
+                        }}
+                        className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black disabled:opacity-50"
+                      >
+                        קבע
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {objections.length ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
+            <div className="mt-2 space-y-2">
+              {objections.slice(0, 6).map((o: unknown, idx: number) => (
+                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                  <div className="text-xs font-black text-slate-900">{String((asObject(o)?.objection as unknown) || '')}</div>
+                  <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String((asObject(o)?.reply as unknown) || '')}</div>
+                  {asObject(o)?.next_question ? (
+                    <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(asObject(o)?.next_question)}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {transcript.length ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3">
+            <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
+            <div className="mt-2 space-y-2">
+              {transcript.slice(0, 10).map((t: unknown, idx: number) => (
+                <div key={idx} className="text-sm font-bold text-slate-800">
+                  <span className="text-slate-500">{String((asObject(t)?.speaker as unknown) || '')}:</span> {String((asObject(t)?.text as unknown) || '')}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const modal = (
+    <div className="fixed inset-0 bg-slate-100/80 backdrop-blur-sm z-[9999] flex items-end md:items-center justify-center p-0 md:p-4" onClick={onClose}>
+      <div
+        className="bg-white w-full h-[95dvh] md:max-w-[980px] md:h-[90vh] rounded-t-3xl md:rounded-3xl shadow-xl overflow-hidden flex flex-col ring-1 ring-slate-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+          <div className="min-w-0 flex items-center gap-2">
+            <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-black text-slate-700 shrink-0">
+              {String(lead.name || 'ל').trim().charAt(0) || 'ל'}
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="text-sm font-black text-slate-900 truncate">{lead.company || 'לקוח פרטי'}</div>
+                <div className="shrink-0 text-[11px] font-black px-2 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-600">
+                  מקור: {String(lead.source || '').trim() || '—'}
+                </div>
+              </div>
+              <div className="text-xs text-slate-500 font-bold truncate">{stageLabel}</div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {connectShareMode === 'share' ? (
+              <button
+                type="button"
+                onClick={() => setConnectShareMode('lead')}
+                className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+              >
+                <ArrowLeft size={18} />
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {connectShareMode === 'share' ? (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="h-full overflow-y-auto">
+              <div className="p-4 md:p-6 space-y-4">
+                <div className="bg-white border border-slate-200 rounded-3xl p-4">
+                  <div className="text-lg font-black text-slate-900">העבר עבודה / שתף</div>
+                  <div className="text-sm font-bold text-slate-500 mt-1">
+                    צור קישור ציבורי לקבלן אחר. אל תכתוב פרטים רגישים בתיאור.
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-3xl p-4 space-y-4">
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-black text-slate-500">דמי רצינות / מחיר המכירה (אופציונלי)</div>
+                    <input
+                      type="number"
+                      value={sharePriceInput}
+                      onChange={(e) => setSharePriceInput(e.target.value)}
+                      placeholder="0"
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                    />
+                    <div className="text-xs font-bold text-slate-400">ריק או 0 = חינם</div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-black text-slate-500">תיאור ציבורי</div>
+                    <textarea
+                      value={shareDescription}
+                      onChange={(e) => setShareDescription(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none h-32 resize-none"
+                      placeholder="כתוב תיאור קצר לעבודה..."
+                    />
+                  </div>
+
+                  {shareUrl ? (
+                    <div className="space-y-2">
+                      <div className="text-[11px] font-black text-slate-500">הקישור</div>
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 font-mono text-xs text-slate-800 break-all">{shareUrl}</div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleCopyShareLink()}
+                          className="px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black"
+                        >
+                          <Copy size={16} className="inline-block ml-2" /> העתק קישור
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleWhatsappShareLink}
+                          className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black"
+                        >
+                          <MessageSquare size={16} className="inline-block ml-2" /> שתף בוואטסאפ
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateShareLink()}
+                      disabled={isCreatingShare}
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black disabled:opacity-50"
+                    >
+                      {isCreatingShare ? 'יוצר קישור...' : 'צור קישור שיתוף'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-white border border-slate-200 rounded-3xl p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-black text-slate-900">בקשות שהתקבלו</div>
+                    <button
+                      type="button"
+                      onClick={() => void loadShareRequests()}
+                      disabled={isLoadingRequests}
+                      className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+                    >
+                      רענן
+                    </button>
+                  </div>
+
+                  {isLoadingRequests ? (
+                    <div className="mt-3 text-sm font-bold text-slate-500">טוען...</div>
+                  ) : shareRequests.length === 0 ? (
+                    <div className="mt-3 text-sm font-bold text-slate-500">עדיין לא התקבלו בקשות.</div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {shareRequests.map((r) => {
+                        const approved = Boolean(r.approvedAt);
+                        const dt = r.interestedAt ? new Date(r.interestedAt) : null;
+
+                        return (
+                          <div key={r.token} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-black text-slate-900 truncate">{String(r.interestedName || '—')}</div>
+                                <div className="mt-1 text-sm font-bold text-slate-700" dir="ltr">
+                                  {String(r.interestedPhone || '').trim() ? String(r.interestedPhone) : '—'}
+                                </div>
+                                <div className="mt-1 text-[11px] font-bold text-slate-500">
+                                  {dt && !Number.isNaN(dt.getTime()) ? dt.toLocaleString('he-IL') : '—'}
+                                </div>
+                              </div>
+
+                              <div className="shrink-0 text-right space-y-2">
+                                <div
+                                  className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black border ${
+                                    approved ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'
+                                  }`}
+                                >
+                                  {approved ? 'אושר' : 'ממתין'}
+                                </div>
+
+                                {!approved ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleApproveDisclosure(String(r.token))}
+                                    disabled={Boolean(approvingToken)}
+                                    className="w-full px-3 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black disabled:opacity-50"
+                                  >
+                                    {approvingToken === String(r.token) ? 'מאשר...' : 'אשר חשיפה'}
+                                  </button>
+                                ) : null}
+                              </div>
+                            </div>
+
+                            {String(r.interestedPhone || '').trim() ? (
+                              <div className="mt-3">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const p = String(r.interestedPhone || '').trim();
+                                    if (!p) return;
+                                    window.location.href = `tel:${p}`;
+                                  }}
+                                  className="w-full px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black"
+                                >
+                                  חייג למתעניין
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="h-full overflow-y-auto">
+              <div className="p-4 md:p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">שם</div>
+                  <input
+                    value={draftName}
+                    onChange={(e) => setDraftName(e.target.value)}
+                    onBlur={() => void handleSaveBasics({ name: draftName })}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">אחראי</div>
+                  <select
+                    value={draftAssignedAgentId}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraftAssignedAgentId(v);
+                      void handleSaveBasics({ assignedAgentId: v ? v : null });
+                    }}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                  >
+                    <option value="">לא משויך</option>
+                    {(assignees || []).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">טלפון</div>
+                  <input
+                    value={draftPhone}
+                    onChange={(e) => setDraftPhone(e.target.value)}
+                    onBlur={() => void handleSaveBasics({ phone: draftPhone })}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                    dir="ltr"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-black text-slate-500">אימייל</div>
+                  <input
+                    value={draftEmail}
+                    onChange={(e) => setDraftEmail(e.target.value)}
+                    onBlur={() => void handleSaveBasics({ email: draftEmail.trim() ? draftEmail.trim() : null })}
+                    className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-3xl p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="text-sm font-black text-slate-900">טיפול הבא</div>
+                  {followUpTone !== 'none' ? (
+                    <div
+                      className={`text-[11px] font-black px-2.5 py-1 rounded-full border ${
+                        followUpTone === 'overdue'
+                          ? 'border-red-200 bg-red-50 text-red-700'
+                          : followUpTone === 'today'
+                            ? 'border-orange-200 bg-orange-50 text-orange-700'
+                            : 'border-slate-200 bg-white text-slate-700'
+                      }`}
+                    >
+                      {followUpTone === 'today' ? 'לטיפול היום' : followUpTone === 'overdue' ? 'באיחור' : 'מתוזמן'}
+                    </div>
+                  ) : null}
+                </div>
+
+                {!lead.nextActionDate && hasSuggestedFollowUp ? (
+                  <div className="mb-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-black text-indigo-900">הצעת תזכורת</div>
+                        <div className="mt-1 text-sm font-black text-slate-900">
+                          {formatDateTimeShort(suggestedFollowUpDate as Date)}
+                        </div>
+                        {String(lead.nextActionDateRationale || '').trim() ? (
+                          <div className="mt-1 text-xs font-bold text-indigo-900/80">
+                            {String(lead.nextActionDateRationale)}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!onUpdateLead || !suggestedFollowUpDate) return;
+                          setFollowUpInput(toLocalDateTimeInputValue(suggestedFollowUpDate));
+                          onUpdateLead({
+                            leadId: lead.id,
+                            nextActionDate: suggestedFollowUpDate,
+                            nextActionNote: followUpNote.trim() ? followUpNote : null,
+                          });
+                        }}
+                        className="shrink-0 px-4 py-2 rounded-2xl bg-indigo-600 text-white text-xs font-black"
+                      >
+                        קבע
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-black text-slate-500">תאריך ושעה</div>
+                    <input
+                      type="datetime-local"
+                      value={followUpInput}
+                      onChange={(e) => setFollowUpInput(e.target.value)}
+                      onBlur={handleSaveFollowUp}
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-[11px] font-black text-slate-500">הערה (אופציונלי)</div>
+                    <input
+                      value={followUpNote}
+                      onChange={(e) => setFollowUpNote(e.target.value)}
+                      onBlur={handleSaveFollowUp}
+                      placeholder="מה צריך לעשות?"
+                      className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+                <div className="p-4 border-b border-slate-200 bg-slate-50">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-black text-slate-900">משימות (Nexus)</div>
+                    <button
+                      type="button"
+                      onClick={() => void loadNexusTasksForLead()}
+                      disabled={isLoadingNexusTasks}
+                      className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+                    >
+                      רענן
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-2">
+                  {isLoadingNexusTasks ? (
+                    <div className="text-sm font-bold text-slate-500">טוען...</div>
+                  ) : nexusTasks.length ? (
+                    nexusTasks.slice(0, 8).map((t) => (
+                      <div key={t.id} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-slate-900 truncate">{t.title}</div>
+                          <div className="text-[11px] font-bold text-slate-500 mt-1">
+                            {t.dueDate ? t.dueDate.toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'ללא תאריך'}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+                          {t.status || 'todo'}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm font-bold text-slate-500">אין עדיין משימות לליד הזה.</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+                <div className="p-4 border-b border-slate-200 bg-slate-50">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-black text-slate-900">תיעוד</div>
+                    {onStatusChange ? (
+                      <select
+                        value={lead.status}
+                        onChange={(e) => onStatusChange(lead.id, e.target.value as Lead['status'])}
+                        className="bg-white border border-slate-200 rounded-full px-3 py-2 text-xs font-black"
+                      >
+                        {STAGES.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : null}
+                  </div>
+
+                  <div className="flex gap-3 mt-3">
+                    {[{ id: 'note', label: 'פתק' }, { id: 'call', label: 'שיחה' }, { id: 'task', label: 'משימה' }, { id: 'email', label: 'מייל' }].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setComposerTab(tab.id as 'note' | 'call' | 'task' | 'email')}
+                        className={`px-3 py-1.5 rounded-full text-xs font-black border transition-colors ${
+                          composerTab === tab.id ? 'bg-white border-slate-300 text-slate-900' : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleSubmitActivity} className="mt-3">
+                    <div className="relative">
+                      <textarea
+                        className="w-full bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:outline-none h-24 resize-none"
+                        placeholder="כתוב פעילות..."
+                        value={noteContent}
+                        onChange={(e) => setNoteContent(e.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        className="absolute bottom-3 left-3 p-2 bg-slate-900 text-white rounded-xl shadow"
+                      >
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  {activities
+                    .slice()
+                    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                    .map((act) => (
+                      <div key={act.id} className="border border-slate-200 rounded-2xl p-3">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="text-xs font-black text-slate-700">{act.type}</div>
+                          <div className="text-[11px] font-bold text-slate-400">{new Date(act.timestamp).toLocaleString('he-IL')}</div>
+                        </div>
+                        <div className="text-sm text-slate-700 whitespace-pre-wrap">{act.content}</div>
+                        {renderCallAnalysisActivity(act)}
+                      </div>
+                    ))}
+
+                  {activities.length === 0 ? (
+                    <div className="text-sm font-bold text-slate-500">אין עדיין תיעוד לליד.</div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {connectShareMode === 'lead' ? (
+          <div className="sticky bottom-0 bg-white border-t border-slate-200 px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+              <label
+                className={`px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black cursor-pointer ${
+                  isUploadingRecording ? 'opacity-60 pointer-events-none' : ''
+                }`}
+              >
+                {isUploadingRecording ? (
+                  <>
+                    <span className="inline-flex items-center gap-2">
+                      <Skeleton className="w-4 h-4 rounded-full" />
+                      מעבד...
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Paperclip size={14} className="inline-block ml-1" /> העלה הקלטה
+                  </>
+                )}
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.currentTarget.value = '';
+                    if (!f) return;
+                    void handleUploadRecording(f);
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={openTel}
+                disabled={!String(lead.phone || '').trim()}
+                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+              >
+                <Phone size={14} className="inline-block ml-1" /> חייג
+              </button>
+              <button
+                type="button"
+                onClick={openWhatsapp}
+                disabled={!String(lead.phone || '').trim()}
+                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+              >
+                <MessageSquare size={14} className="inline-block ml-1" /> וואטסאפ
+              </button>
+              <button
+                type="button"
+                onClick={openEmail}
+                disabled={!String(lead.email || '').trim()}
+                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-800 text-xs font-black disabled:opacity-40"
+              >
+                <Mail size={14} className="inline-block ml-1" /> מייל
+              </button>
+              <button
+                type="button"
+                onClick={() => onScheduleMeeting(lead.id)}
+                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-800 text-xs font-black"
+              >
+                <CalendarClock size={14} className="inline-block ml-1" /> מעקב
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsTransferOpen(true)}
+                className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black"
+              >
+                <Share2 size={14} className="inline-block ml-1" /> העבר לקבלן
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onOpenClientPortal?.()}
+              disabled={!canOpenPortal || !onOpenClientPortal}
+              className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs font-black disabled:opacity-40"
+            >
+              פורטל
+            </button>
+          </div>
+        </div>
+        ) : null}
+
+        {connectShareMode === 'lead' ? (
+          <LogCallModal
+            open={isLogCallOpen}
+            leadName={String(lead.name || '')}
+            leadPhone={String(lead.phone || '')}
+            onCloseAction={() => setIsLogCallOpen(false)}
+            onUploadRecordingAction={async (file: File) => {
+              await handleUploadRecording(file);
+            }}
+            onSaveAction={async (content) => {
+              const text = String(content || '').trim();
+              if (!text) return;
+
+              const orgSlug = orgSlugFromPathname();
+              if (!orgSlug) {
+                addToast('לא ניתן לשמור סיכום שיחה (orgSlug חסר)', 'error');
+                return;
+              }
+
+              const res = await createSystemLeadActivity({
+                orgSlug,
+                leadId: String(lead.id),
+                type: 'call',
+                content: text,
+                direction: 'outbound',
+              });
+
+              if (!res.ok) {
+                addToast(res.message || 'שגיאה בשמירת סיכום שיחה', 'error');
+                return;
+              }
+
+              addToast('סיכום השיחה נשמר', 'success');
+              const activityObj = asObject(asObject(res)?.activity) ?? {};
+              const ts = activityObj.timestamp ? new Date(String(activityObj.timestamp)) : new Date();
+              onAddActivity(lead.id, {
+                id: String(activityObj.id || Date.now().toString()),
+                type: 'call',
+                content: text,
+                timestamp: Number.isNaN(ts.getTime()) ? new Date() : ts,
+                direction: 'outbound',
+                metadata: activityObj.metadata ?? undefined,
+              });
+            }}
+          />
+        ) : null}
+
+        {isTransferOpen ? (
+          <div
+            className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => (isCreatingTransfer ? null : setIsTransferOpen(false))}
+          >
+            <div
+              className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl p-5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-black text-slate-900">העבר לקבלן</div>
+                <button
+                  type="button"
+                  className="p-2 rounded-xl hover:bg-slate-100 text-slate-500"
+                  onClick={() => (isCreatingTransfer ? null : setIsTransferOpen(false))}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-2 text-sm font-bold text-slate-600">בחר איך לשתף את העבודה.</div>
+
+              {!transferUrl ? (
+                <div className="mt-4 grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    disabled={isCreatingTransfer}
+                    onClick={() => void handleCreateTransfer('link')}
+                    className="w-full px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black disabled:opacity-50"
+                  >
+                    {isCreatingTransfer ? 'יוצר...' : 'שתף באמצעות לינק'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isCreatingTransfer}
+                    onClick={() => void handleCreateTransfer('marketplace')}
+                    className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black disabled:opacity-50"
+                  >
+                    {isCreatingTransfer ? 'מפרסם...' : 'פרסם לזירה (ממתין)'}
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  <div className="text-[11px] font-black text-slate-500">הקישור</div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 font-mono text-xs text-slate-800 break-all">{transferUrl}</div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyTransferUrl()}
+                      className="px-4 py-3 rounded-2xl bg-slate-900 text-white text-sm font-black"
+                    >
+                      <Copy size={16} className="inline-block ml-2" /> העתק קישור
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWhatsappTransferUrl}
+                      className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-sm font-black"
+                    >
+                      <MessageSquare size={16} className="inline-block ml-2" /> שתף בוואטסאפ
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTransferUrl('');
+                    }}
+                    className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-700 text-sm font-black"
+                  >
+                    צור קישור חדש
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
+};
+
+export default LeadModal;

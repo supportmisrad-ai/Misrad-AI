@@ -1,7 +1,9 @@
+'use client';
 
 import { useState } from 'react';
 import { ContentItem, ContentStage, PlatformDefinition } from '../types';
-import { CONTENT_ITEMS, DEFAULT_CONTENT_STAGES, DEFAULT_PLATFORMS } from '../constants';
+import { DEFAULT_CONTENT_STAGES, DEFAULT_PLATFORMS } from '../constants';
+import { isCeoRole } from '@/lib/constants/roles';
 
 export const useContent = (
     currentUser: any,
@@ -9,7 +11,7 @@ export const useContent = (
     addToast: (m: string, t?: any) => void,
     users: any[]
 ) => {
-    const [contentItems, setContentItems] = useState<ContentItem[]>(CONTENT_ITEMS);
+    const [contentItems, setContentItems] = useState<ContentItem[]>([]);
     const [contentStages, setContentStages] = useState<ContentStage[]>(DEFAULT_CONTENT_STAGES);
     const [platforms, setPlatforms] = useState<PlatformDefinition[]>(DEFAULT_PLATFORMS);
     const [trashContent, setTrashContent] = useState<ContentItem[]>([]);
@@ -19,7 +21,7 @@ export const useContent = (
         addToast('תוכן נוסף לבנק', 'success');
         
         if (content.status === 'scheduled' && content.scheduledAt) {
-            const contentManagers = users.filter(u => u.role === 'מנהל אופרציה ותוכן' || u.role === 'מנכ״ל');
+            const contentManagers = users.filter(u => u.role === 'מנהל אופרציה ותוכן' || isCeoRole(u.role));
             contentManagers.forEach(u => {
                 addNotification({
                     recipientId: u.id,
@@ -36,7 +38,7 @@ export const useContent = (
         setContentItems(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
         
         if (updates.status === 'scheduled' && updates.scheduledAt) {
-             const contentManagers = users.filter(u => u.role === 'מנהל אופרציה ותוכן' || u.role === 'מנכ״ל');
+             const contentManagers = users.filter(u => u.role === 'מנהל אופרציה ותוכן' || isCeoRole(u.role));
              contentManagers.forEach(u => {
                  addNotification({
                     recipientId: u.id,

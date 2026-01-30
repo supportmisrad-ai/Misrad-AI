@@ -1,16 +1,16 @@
 
 import React, { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { FileText, Link, Lock, Search, ExternalLink, Copy, HardDrive, FileSpreadsheet, File as FileIcon, Image as ImageIcon, Folder, FileQuestion, Cloud, Loader2, Check, Trash2, Edit2, Plus, Eye, EyeOff, Shield, Key, X, Upload, Briefcase, ChevronDown } from 'lucide-react';
+import { FileText, Link, Lock, Search, ExternalLink, Copy, File as FileIcon, Check, Trash2, Edit2, Plus, Eye, EyeOff, Shield, Key, X, Upload, Briefcase, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset } from '../types';
 import { CustomSelect } from '../components/CustomSelect';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 
 export const AssetsView: React.FC = () => {
-  const { assets, isDriveConnected, driveFiles, isConnectingDrive, connectGoogleDrive, addAsset, deleteAsset, updateAsset, clients } = useData();
+  const { assets, addAsset, deleteAsset, updateAsset, clients } = useData();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'credentials' | 'files' | 'drive'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'credentials' | 'files'>('all');
   const [revealedPasswords, setRevealedPasswords] = useState<Set<string>>(new Set());
   
   // Modal State
@@ -29,8 +29,8 @@ export const AssetsView: React.FC = () => {
   const [isShaking, setIsShaking] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
-  const filteredAssets = assets.filter(a => {
-      const matchesSearch = a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.tags.some(t => t.includes(searchTerm));
+  const filteredAssets = assets.filter((a: Asset) => {
+      const matchesSearch = a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.tags.some((t: string) => t.includes(searchTerm));
       if (!matchesSearch) return false;
       
       if (activeTab === 'credentials') return a.type === 'credential';
@@ -80,7 +80,7 @@ export const AssetsView: React.FC = () => {
       setFormType(asset.type as any);
       
       // Try to find if a tag matches a client name or if clientId is set
-      const clientByTag = clients.find(c => asset.tags.includes(c.companyName));
+      const clientByTag = clients.find((c: any) => asset.tags.includes(c.companyName));
       setSelectedClientId(asset.clientId || (clientByTag ? clientByTag.id : ''));
       
       setIsShaking(false);
@@ -115,7 +115,7 @@ export const AssetsView: React.FC = () => {
       
       // Auto-add client name tag if selected
       if (selectedClientId) {
-          const client = clients.find(c => c.id === selectedClientId);
+          const client = clients.find((c: any) => c.id === selectedClientId);
           if (client && !tagsArray.includes(client.companyName)) {
               tagsArray.push(client.companyName);
           }
@@ -150,20 +150,8 @@ export const AssetsView: React.FC = () => {
       }
   };
 
-  const getDriveFileIcon = (mimeType: string) => {
-      switch(mimeType) {
-          case 'document': return <FileText className="text-blue-500" size={24} />;
-          case 'spreadsheet': return <FileSpreadsheet className="text-green-500" size={24} />;
-          case 'presentation': return <FileText className="text-orange-500" size={24} />;
-          case 'pdf': return <FileText className="text-red-500" size={24} />;
-          case 'image': return <ImageIcon className="text-purple-500" size={24} />;
-          case 'folder': return <Folder className="text-gray-400 fill-gray-100" size={24} />;
-          default: return <FileQuestion className="text-gray-400" size={24} />;
-      }
-  };
-
   return (
-    <div className="max-w-7xl mx-auto w-full pb-20 px-4 md:px-0">
+    <div className="max-w-7xl mx-auto w-full pb-16 md:pb-20 px-2 md:px-0">
       
       <DeleteConfirmationModal 
           isOpen={!!assetToDelete}
@@ -193,9 +181,9 @@ export const AssetsView: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                         {/* Type Selection */}
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3">
                             {[
                                 { id: 'link', label: 'קישור', icon: Link },
                                 { id: 'credential', label: 'סיסמה', icon: Key },
@@ -206,7 +194,7 @@ export const AssetsView: React.FC = () => {
                                     onClick={() => setFormType(t.id as any)}
                                     className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${
                                         formType === t.id 
-                                        ? 'border-black bg-gray-900 text-white shadow-md' 
+                                        ? 'border-gray-200 bg-gray-900 text-white shadow-md' 
                                         : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
                                     }`}
                                 >
@@ -223,7 +211,7 @@ export const AssetsView: React.FC = () => {
                                 ref={titleInputRef}
                                 value={formTitle}
                                 onChange={(e) => { setFormTitle(e.target.value); setIsShaking(false); }}
-                                className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all font-medium ${isShaking ? 'border-red-500 ring-2 ring-red-200 animate-shake' : 'border-gray-200 focus:border-black'}`}
+                                className={`w-full p-3 bg-gray-50 border rounded-xl outline-none transition-all font-medium ${isShaking ? 'border-red-500 ring-2 ring-red-200 animate-shake' : 'border-gray-200 focus:border-gray-400'}`}
                                 placeholder={formType === 'credential' ? 'לדוגמה: כהן טכנולוגיות' : 'לדוגמה: מצגת משקיעים'}
                                 autoFocus
                             />
@@ -258,7 +246,7 @@ export const AssetsView: React.FC = () => {
                                     <input 
                                         value={formValue}
                                         onChange={(e) => setFormValue(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-black font-mono text-sm"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 font-mono text-sm"
                                         placeholder="user: admin | pass: 123456"
                                     />
                                     <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -268,7 +256,7 @@ export const AssetsView: React.FC = () => {
                                     <input 
                                         value={formValue}
                                         onChange={(e) => setFormValue(e.target.value)}
-                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-black dir-ltr text-right"
+                                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 dir-ltr text-right"
                                         placeholder="https://example.com"
                                     />
                                     <Link size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -285,7 +273,7 @@ export const AssetsView: React.FC = () => {
                                     onChange={setSelectedClientId}
                                     options={[
                                         { value: '', label: '-- ללא שיוך --' },
-                                        ...clients.map(client => ({ value: client.id, label: client.companyName }))
+                                        ...clients.map((client: any) => ({ value: client.id, label: client.companyName }))
                                     ]}
                                     className="text-sm"
                                 />
@@ -298,7 +286,7 @@ export const AssetsView: React.FC = () => {
                             <input 
                                 value={formTags}
                                 onChange={(e) => setFormTags(e.target.value)}
-                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-black text-sm"
+                                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 text-sm"
                                 placeholder="שיווק, כספים, כללי..."
                             />
                         </div>
@@ -317,182 +305,130 @@ export const AssetsView: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-        <div>
-           <div className="flex items-center gap-2 text-amber-600 font-bold uppercase tracking-wider text-xs mb-1">
-                <Shield size={14} /> כספת ידע
-           </div>
-           <h1 className="text-3xl font-bold tracking-tight text-gray-900">נכסים דיגיטליים</h1>
-           <p className="text-gray-500 text-sm mt-1">ניהול מרכזי של קבצים, קישורים וסיסמאות ארגוניות.</p>
-        </div>
-        
-        <div className="flex gap-3">
-            <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+      {/* Header - Standardized */}
+      <div className="pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-100 shrink-0">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-4 md:gap-6 mb-3 md:mb-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">נכסים דיגיטליים</h1>
+            <p className="text-gray-500 text-xs md:text-sm mt-1">ניהול מרכזי של קבצים, קישורים וסיסמאות ארגוניות.</p>
+          </div>
+          
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap w-full md:w-auto">
+            <div className="relative flex-1 md:flex-none md:w-64">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5 md:w-4 md:h-4" />
                 <input 
                     type="text" 
                     placeholder="חיפוש בכספת..." 
-                    className="pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-black/5 shadow-sm text-sm"
+                    className="pl-3 md:pl-4 pr-9 md:pr-10 py-2 md:py-2.5 bg-white border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-900/5 shadow-sm text-xs md:text-sm"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
             <button 
                 onClick={openAddModal}
-                className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                className="bg-black text-white px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-1.5 md:gap-2 w-full md:w-auto justify-center"
             >
-                <Plus size={18} /> הוסף חדש
+                <Plus size={14} className="md:w-[18px] md:h-[18px]" /> <span>הוסף חדש</span>
             </button>
+          </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-200 mb-8 overflow-x-auto no-scrollbar">
-          {[
-              { id: 'all', label: 'כל הנכסים' },
-              { id: 'credentials', label: 'סיסמאות וגישות' },
-              { id: 'files', label: 'קבצים וקישורים' },
-              { id: 'drive', label: 'Google Drive' },
-          ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-                    activeTab === tab.id 
-                    ? 'border-black text-black' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                  {tab.label}
-              </button>
-          ))}
+      <div className="flex border-b border-gray-200 mb-4 md:mb-8 overflow-x-auto no-scrollbar -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="flex gap-1 min-w-max">
+              {[
+                  { id: 'all', label: 'כל הנכסים' },
+                  { id: 'credentials', label: 'סיסמאות וגישות' },
+                  { id: 'files', label: 'קבצים וקישורים' },
+              ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-3 md:px-6 py-2 md:py-2.5 md:py-3 text-[11px] md:text-sm font-bold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
+                        activeTab === tab.id 
+                        ? 'border-gray-300 text-black' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                      {tab.label}
+                  </button>
+              ))}
+          </div>
       </div>
 
       {/* Content Area */}
       <div className="min-h-[400px]">
-          
-          {/* DRIVE TAB */}
-          {activeTab === 'drive' ? (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {!isDriveConnected ? (
-                      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-12 text-center max-w-2xl mx-auto mt-8">
-                          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm">
-                              <HardDrive size={40} />
-                          </div>
-                          <h3 className="text-2xl font-bold text-gray-900 mb-2">חיבור ל-Google Drive</h3>
-                          <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm leading-relaxed">
-                              חבר את חשבון ה-Google Drive העסקי כדי לגשת לכל המסמכים, המצגות והקבצים ישירות מתוך המערכת.
-                          </p>
-                          <button 
-                            onClick={connectGoogleDrive}
-                            disabled={isConnectingDrive}
-                            className="bg-white border border-gray-300 text-gray-800 font-bold py-3.5 px-8 rounded-xl shadow-sm hover:bg-gray-50 hover:shadow-md transition-all flex items-center gap-3 mx-auto disabled:opacity-70 disabled:cursor-not-allowed"
-                          >
-                              {isConnectingDrive ? <Loader2 size={20} className="animate-spin" /> : <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Drive" className="w-5 h-5" />}
-                              {isConnectingDrive ? 'מתחבר...' : 'התחבר עם Google'}
-                          </button>
-                      </div>
-                  ) : (
-                       <div className="space-y-6">
-                            <div className="flex items-center justify-between bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-white rounded-lg shadow-sm border border-blue-50">
-                                        <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" className="w-5 h-5" />
-                                    </div>
-                                    <span className="text-sm font-bold text-blue-900">מחובר כ-Nexus Team</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-blue-700">
-                                    <Check size={14} /> סנכרון פעיל
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                {driveFiles.map(file => (
-                                    <motion.a 
-                                        key={file.id}
-                                        href={file.url}
-                                        whileHover={{ y: -4 }}
-                                        className="block bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all group relative"
-                                        onClick={(e) => e.preventDefault()}
-                                    >
-                                        <div className="flex justify-between items-start mb-4">
-                                            {getDriveFileIcon(file.mimeType)}
-                                            <ExternalLink size={14} className="text-gray-300 group-hover:text-gray-500" />
-                                        </div>
-                                        <h4 className="text-sm font-bold text-gray-900 truncate mb-1" title={file.name}>{file.name}</h4>
-                                        <div className="text-[10px] text-gray-400">{file.modifiedAt}</div>
-                                    </motion.a>
-                                ))}
-                            </div>
-                       </div>
-                  )}
-              </div>
-          ) : (
-              /* INTERNAL ASSETS GRID */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  {filteredAssets.map((asset) => (
-                      <div 
-                        key={asset.id}
-                        className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group flex flex-col"
-                      >
-                          <div className="flex justify-between items-start mb-4">
-                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {filteredAssets.map((asset: Asset) => (
+                  <div 
+                    key={asset.id}
+                    className="bg-white p-4 md:p-5 rounded-xl md:rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group flex flex-col"
+                  >
+                          <div className="flex justify-between items-start mb-3 md:mb-4">
+                              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center border ${
                                   asset.type === 'credential' ? 'bg-amber-50 border-amber-100' : 
                                   asset.type === 'link' ? 'bg-blue-50 border-blue-100' : 'bg-gray-50 border-gray-100'
-                              }`}>
+                              }`}> 
                                   {getIcon(asset.type)}
                               </div>
-                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => openEditModal(asset)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"><Edit2 size={16} /></button>
+                              <div className="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => openEditModal(asset)}
+                                    className="p-1.5 md:p-2 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"
+                                    aria-label={`ערוך נכס ${asset.title}`}
+                                  >
+                                    <Edit2 size={14} className="md:w-4 md:h-4" />
+                                  </button>
                                   <button 
                                     onClick={(e) => handleDeleteClick(e, asset.id, asset.title)} 
-                                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500"
+                                    className="p-1.5 md:p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500"
+                                    aria-label={`מחק נכס ${asset.title}`}
                                   >
-                                      <Trash2 size={16} />
+                                      <Trash2 size={14} className="md:w-4 md:h-4" />
                                   </button>
                               </div>
                           </div>
                           
-                          <h3 className="font-bold text-gray-900 mb-1">{asset.title}</h3>
-                          <div className="flex flex-wrap gap-2 mb-6">
-                              {asset.tags.map(tag => (
-                                  <span key={tag} className="text-[10px] px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-100 rounded-md font-medium">
+                          <h3 className="font-bold text-gray-900 text-sm md:text-base mb-1">{asset.title}</h3>
+                          <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-6">
+                              {asset.tags.map((tag: string) => (
+                                  <span key={tag} className="text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 bg-gray-50 text-gray-500 border border-gray-100 rounded-md font-medium">
                                       #{tag}
                                   </span>
                               ))}
                           </div>
 
-                          <div className="mt-auto pt-4 border-t border-gray-50">
+                          <div className="mt-auto pt-3 md:pt-4 border-t border-gray-50">
                               {asset.type === 'credential' ? (
-                                  <div className="bg-gray-50 rounded-xl p-3 flex items-center justify-between group/field">
-                                      <code className="text-xs text-gray-600 font-mono truncate max-w-[150px]">
+                                  <div className="bg-gray-50 rounded-lg md:rounded-xl p-2.5 md:p-3 flex items-center justify-between group/field">
+                                      <code className="text-[10px] md:text-xs text-gray-600 font-mono truncate max-w-[120px] md:max-w-[150px]">
                                           {revealedPasswords.has(asset.id) ? asset.value : '••••••••••••'}
                                       </code>
-                                      <div className="flex gap-2">
+                                      <div className="flex gap-1.5 md:gap-2">
                                           <button onClick={() => togglePasswordReveal(asset.id)} className="text-gray-400 hover:text-gray-600">
-                                              {revealedPasswords.has(asset.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                                              {revealedPasswords.has(asset.id) ? <EyeOff size={12} className="md:w-3.5 md:h-3.5" /> : <Eye size={12} className="md:w-3.5 md:h-3.5" />}
                                           </button>
                                           <button onClick={() => copyToClipboard(asset.value)} className="text-gray-400 hover:text-blue-600">
-                                              <Copy size={14} />
+                                              <Copy size={12} className="md:w-3.5 md:h-3.5" />
                                           </button>
                                       </div>
                                   </div>
                               ) : (
-                                  <div className="flex gap-3">
+                                  <div className="flex gap-2 md:gap-3">
                                       <button 
                                         onClick={() => copyToClipboard(asset.value)}
-                                        className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-600 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-600 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-colors flex items-center justify-center gap-1.5 md:gap-2"
                                       >
-                                          <Copy size={14} /> העתק
+                                          <Copy size={12} className="md:w-3.5 md:h-3.5" /> העתק
                                       </button>
                                       <a 
                                         href={asset.value} 
                                         target="_blank" 
                                         rel="noreferrer"
-                                        className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                                        className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold transition-colors flex items-center justify-center gap-1.5 md:gap-2"
                                       >
-                                          פתח <ExternalLink size={14} />
+                                          פתח <ExternalLink size={12} className="md:w-3.5 md:h-3.5" />
                                       </a>
                                   </div>
                               )}
@@ -503,16 +439,14 @@ export const AssetsView: React.FC = () => {
                   {/* Empty State / Add New */}
                   <button 
                     onClick={openAddModal}
-                    className="border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center p-6 text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50 transition-all min-h-[250px] group"
+                    className="border-2 border-dashed border-gray-200 rounded-xl md:rounded-2xl flex flex-col items-center justify-center p-4 md:p-6 text-gray-600 hover:text-gray-800 hover:border-gray-300 hover:bg-gray-50 transition-all min-h-[200px] md:min-h-[250px] group"
                   >
-                      <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                          <Plus size={24} />
-                      </div>
-                      <span className="text-sm font-bold">הוסף נכס חדש</span>
+                      <Plus size={26} className="text-gray-300 group-hover:text-gray-400 transition-colors mb-3" />
+                      <div className="font-bold text-sm">הוסף נכס</div>
+                      <div className="text-xs text-gray-400 mt-1">קישור / קובץ / סיסמה</div>
                   </button>
               </div>
-          )}
-      </div>
+          </div>
     </div>
   );
 };

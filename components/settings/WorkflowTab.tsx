@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion } from 'framer-motion';
 import { Kanban, Plus, GripVertical, Palette, ChevronDown, Trash2 } from 'lucide-react';
@@ -22,9 +22,21 @@ export const WorkflowTab: React.FC = () => {
     const { workflowStages, updateSettings, deleteWorkflowStage, addToast } = useData();
     const [draggedStageIndex, setDraggedStageIndex] = useState<number | null>(null);
     const [openColorPicker, setOpenColorPicker] = useState<string | null>(null);
+    const [isMobile, setIsMobile] = useState(false);
     
     // Delete Modal
     const [stageToDelete, setStageToDelete] = useState<{id: string, name: string} | null>(null);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768);
+        };
+        checkMobile();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', checkMobile);
+            return () => window.removeEventListener('resize', checkMobile);
+        }
+    }, []);
 
     const updateStage = (index: number, field: string, value: string) => {
         const newStages = [...workflowStages];
@@ -82,7 +94,7 @@ export const WorkflowTab: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
-            className="space-y-6 pb-20"
+            className="space-y-6 pb-16 md:pb-20"
         >
             
             <DeleteConfirmationModal 
@@ -95,66 +107,75 @@ export const WorkflowTab: React.FC = () => {
                 isHardDelete={true}
             />
 
-            <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900">ניהול תהליך משימות</h2>
                     <p className="text-sm text-gray-500">הגדרת השלבים בלוח המשימות (Kanban).</p>
                 </div>
                 
-                <button onClick={addNewStage} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-gray-800"><Plus size={18} /> שלב חדש</button>
+                <button onClick={addNewStage} className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 w-full md:w-auto"><Plus size={18} /> שלב חדש</button>
             </div>
 
             <div className="space-y-3">
-                {workflowStages.map((stage, idx) => (
+                {workflowStages.map((stage: WorkflowStage, idx: number) => (
                     <div 
                         key={stage.id} 
                         draggable
                         onDragStart={(e) => handleStageDragStart(e, idx)}
                         onDragOver={(e) => handleStageDragOver(e, idx)}
                         onDragEnd={handleStageDragEnd}
-                        className={`flex flex-col md:flex-row md:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm group ${draggedStageIndex === idx ? 'opacity-50 ring-2 ring-blue-500' : ''}`}
+                        className={`flex flex-col md:flex-row md:items-center gap-3 md:gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm group ${draggedStageIndex === idx ? 'opacity-50 ring-2 ring-blue-500' : ''}`}
                     >
-                        <div className="p-2 bg-gray-50 rounded-lg text-gray-400 cursor-grab active:cursor-grabbing hidden md:block"><GripVertical size={20} /></div>
-                        
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                            <div className="flex-1">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="p-2 bg-gray-50 rounded-lg text-gray-400 cursor-grab active:cursor-grabbing"><GripVertical size={18} className="md:w-5 md:h-5" /></div>
+                            <div className="flex-1 md:flex-none">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">שם השלב</label>
                                 <input 
                                     type="text" 
                                     value={stage.name} 
                                     onChange={(e) => updateStage(idx, 'name', e.target.value)} 
-                                    className="w-full font-bold text-gray-900 bg-transparent outline-none focus:underline"
+                                    className="w-full font-bold text-gray-900 bg-transparent outline-none focus:underline text-sm md:text-base"
                                 />
                             </div>
+                        </div>
 
-                            {/* Color Picker */}
-                            <div className="flex-1 relative">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 flex items-center gap-1"><Palette size={10} /> צבע</label>
-                                <button 
-                                    onClick={() => setOpenColorPicker(openColorPicker === stage.id ? null : stage.id)}
-                                    className={`w-full flex items-center justify-between p-2 rounded border text-xs font-bold ${stage.color} hover:opacity-80 transition-opacity`}
-                                >
-                                    <span>בחר צבע</span>
-                                    <ChevronDown size={14} />
-                                </button>
-                                
-                                {openColorPicker === stage.id && (
-                                    <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-2 z-50 grid grid-cols-4 gap-2 w-64">
+                        {/* Color Picker */}
+                        <div className="flex-1 md:flex-none md:w-48 relative">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1 flex items-center gap-1"><Palette size={10} /> צבע</label>
+                            <button 
+                                onClick={() => setOpenColorPicker(openColorPicker === stage.id ? null : stage.id)}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-lg border text-xs font-bold ${stage.color} hover:opacity-80 transition-opacity`}
+                                aria-label={`בחר צבע לשלב ${stage.name}`}
+                            >
+                                <span>בחר צבע</span>
+                                <ChevronDown size={14} />
+                            </button>
+                            
+                            {openColorPicker === stage.id && (
+                                <>
+                                    {isMobile && (
+                                        <div 
+                                            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998]"
+                                            onClick={() => setOpenColorPicker(null)}
+                                        />
+                                    )}
+                                    <div className={`${isMobile ? 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999]' : 'absolute top-full right-0 mt-2'} bg-white rounded-xl shadow-xl border border-gray-200 p-3 grid grid-cols-3 sm:grid-cols-4 gap-2 w-[280px] sm:w-64`}>
                                         {COLOR_PRESETS.map(preset => (
                                             <button
                                                 key={preset.label}
                                                 onClick={() => { updateStage(idx, 'color', preset.value); setOpenColorPicker(null); }}
-                                                className={`h-8 rounded-lg border flex items-center justify-center text-[10px] font-bold ${preset.value} hover:scale-105 transition-transform`}
+                                                className={`h-9 sm:h-8 rounded-lg border flex items-center justify-center text-[10px] font-bold ${preset.value} hover:scale-105 transition-transform`}
+                                                aria-label={`בחר צבע ${preset.label}`}
                                             >
                                                 {preset.label}
                                             </button>
                                         ))}
                                     </div>
-                                )}
-                            </div>
+                                </>
+                            )}
                         </div>
 
-                        <button onClick={(e) => handleDeleteClick(e, stage.id, stage.name)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors self-end md:self-center"><Trash2 size={18} /></button>
+                        <button onClick={(e) => handleDeleteClick(e, stage.id, stage.name)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors self-end md:self-center shrink-0" aria-label={`מחק שלב ${stage.name}`}><Trash2 size={18} /></button>
                     </div>
                 ))}
             </div>

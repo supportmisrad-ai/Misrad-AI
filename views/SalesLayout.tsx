@@ -1,20 +1,22 @@
 
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Kanban, Trophy, ArrowRight, Zap, Target, LogOut, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
+import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
 
 interface SalesLayoutProps {
   children?: React.ReactNode;
 }
 
 export const SalesLayout = ({ children }: SalesLayoutProps) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const basePath = getNexusBasePath(pathname);
   const { currentUser, notifications } = useData();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => (pathname || '/') === toNexusPath(basePath, path);
   
   const navItems = [
       { path: '/sales', label: 'לוח בקרה', icon: LayoutDashboard },
@@ -32,7 +34,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
                     <Zap className="text-black" size={20} fill="currentColor" />
                 </div>
                 <div>
-                    <h1 className="text-xl font-black text-white tracking-tight leading-none">Sales OS</h1>
+                    <h1 className="text-xl font-black text-white tracking-tight leading-none">System</h1>
                     <p className="text-[10px] font-bold text-emerald-500 tracking-widest uppercase mt-1">מרכז השליטה</p>
                 </div>
             </div>
@@ -42,17 +44,18 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
                 {navItems.map((item) => (
                     <button
                         key={item.path}
-                        onClick={() => navigate(item.path)}
-                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all group relative overflow-hidden ${
+                        onClick={() => router.push(toNexusPath(basePath, item.path))}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-150 group relative overflow-hidden ${
                             isActive(item.path) 
-                            ? 'text-white bg-white/5 border border-white/10 shadow-lg' 
+                            ? 'text-white bg-emerald-500/20 border border-emerald-500/30 shadow-lg shadow-emerald-500/10 font-bold' 
                             : 'text-slate-500 hover:text-white hover:bg-white/5'
                         }`}
                     >
                         {isActive(item.path) && (
                             <motion.div 
                                 layoutId="salesActiveTab"
-                                className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500"
+                                className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
+                                transition={{ type: "spring", stiffness: 500, damping: 40 }}
                             />
                         )}
                         <item.icon size={20} className={isActive(item.path) ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-400'} />
@@ -64,18 +67,18 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
             {/* User Profile */}
             <div className="mt-auto border-t border-slate-800 pt-4 px-2">
                 <div className="flex items-center gap-3 p-2 rounded-xl bg-slate-900/50 border border-slate-800">
-                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full border border-slate-700" />
+                    <img src={currentUser.avatar} className="w-8 h-8 rounded-full border border-slate-700" suppressHydrationWarning />
                     <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
+                        <p className="text-sm font-bold text-white truncate" suppressHydrationWarning>{currentUser.name}</p>
                         <p className="text-[10px] text-emerald-500 uppercase font-bold tracking-wider">ביצועי שיא</p>
                     </div>
                 </div>
                 
                 <button 
-                    onClick={() => navigate('/')}
+                    onClick={() => router.push(toNexusPath(basePath, '/'))}
                     className="w-full flex items-center justify-center gap-2 mt-4 text-xs font-bold text-slate-500 hover:text-white transition-colors py-2"
                 >
-                    <ArrowRight size={14} className="rotate-180" /> חזרה ל-Nexus OS
+                    <ArrowRight size={14} className="rotate-180" /> חזרה ל-Nexus
                 </button>
             </div>
         </aside>
@@ -98,7 +101,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
                     </div>
                     <button className="text-slate-400 hover:text-white relative">
                         <Bell size={20} />
-                        {notifications.some(n => !n.read) && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>}
+                        {notifications.some((n: any) => !n.read) && <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></div>}
                     </button>
                 </div>
             </header>

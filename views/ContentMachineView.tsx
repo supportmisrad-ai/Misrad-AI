@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
-import { ContentTaskCard } from '../components/ContentTaskCard';
-import { TaskDetailModal } from '../components/TaskDetailModal';
+import { ContentTaskCard } from '../components/nexus/ContentTaskCard';
+import { TaskDetailModal } from '../components/nexus/TaskDetailModal';
 import { Video, Layers, Plus, Image, FileText, Paperclip, CheckCircle2, Clock, Trash2, Edit2, Lightbulb, Zap, Repeat, Search, MonitorPlay, LayoutGrid, Calendar as CalendarIcon, BarChart3, Rocket, Target, List } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ContentItem, ContentType, Platform, Status, Priority } from '../types';
+import { ContentItem, ContentType, Platform, Status, Priority, Task, ContentStage } from '../types';
 import { ContentModal } from '../components/ContentModal';
 import { CustomSelect } from '../components/CustomSelect';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
@@ -28,15 +28,15 @@ export const ContentMachineView: React.FC = () => {
   // Delete Modal
   const [contentToDelete, setContentToDelete] = useState<{id: string, name: string} | null>(null);
 
-  const activeTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
+  const activeTask = selectedTaskId ? tasks.find((t: Task) => t.id === selectedTaskId) : null;
 
   // Stats for Header
   const totalProduced = contentItems.length;
-  const inProduction = tasks.filter(t => t.tags.includes('תוכן') && t.status !== Status.DONE).length;
-  const totalViews = contentItems.reduce((acc, item) => acc + (item.performance?.views || 0), 0);
+  const inProduction = tasks.filter((t: Task) => t.tags.includes('תוכן') && t.status !== Status.DONE).length;
+  const totalViews = contentItems.reduce((acc: number, item: ContentItem) => acc + (item.performance?.views || 0), 0);
 
   // Filter Bank Content
-  const filteredContent = contentItems.filter(item => {
+  const filteredContent = contentItems.filter((item: ContentItem) => {
       if (item.type === 'idea' && activeTab !== 'ideas') return false; // Hide ideas in bank
       if (activeTab === 'ideas' && item.type !== 'idea') return false; // Show only ideas in idea tab
 
@@ -94,7 +94,7 @@ export const ContentMachineView: React.FC = () => {
   // Helper to filter tasks for each dynamic stage
   const getTasksForStage = (triggerTag: string) => {
       if (!triggerTag) return [];
-      return tasks.filter(t => 
+      return tasks.filter((t: Task) => 
           t.status !== Status.DONE && 
           t.status !== Status.CANCELED &&
           t.tags.some(tag => tag.toLowerCase().includes(triggerTag.toLowerCase()))
@@ -204,13 +204,13 @@ export const ContentMachineView: React.FC = () => {
           {activeTab === 'pipeline' && (
               <div className="h-full overflow-x-auto overflow-y-hidden pb-2 custom-scrollbar">
                   <div className="flex h-full min-w-max gap-4 px-1">
-                      {contentStages.map((stage) => {
+                      {contentStages.map((stage: ContentStage) => {
                           const stageTasks = getTasksForStage(stage.tagTrigger);
                           return (
                             <div key={stage.id} className="w-[320px] flex flex-col h-full rounded-2xl bg-gray-50/50 border border-gray-200">
                                 <div className={`p-4 border-b border-gray-200/50 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-md rounded-t-2xl z-10`}>
                                     <div className="flex items-center gap-2">
-                                        <div className={`w-3 h-3 rounded-full ${stage.color.split(' ')[0].replace('bg-', 'bg-')}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${String((stage as any)?.color ?? '').split(' ')[0].replace('bg-', 'bg-')}`}></div>
                                         <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{stage.name}</h3>
                                     </div>
                                     <span className="text-xs font-bold bg-white px-2.5 py-1 rounded-lg border border-gray-200 text-gray-500">
@@ -219,7 +219,7 @@ export const ContentMachineView: React.FC = () => {
                                 </div>
 
                                 <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
-                                    {stageTasks.map(task => (
+                                    {stageTasks.map((task: Task) => (
                                         <ContentTaskCard 
                                             key={task.id}
                                             task={task}
@@ -265,7 +265,7 @@ export const ContentMachineView: React.FC = () => {
 
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                          {filteredContent.map(idea => (
+                          {filteredContent.map((idea: ContentItem) => (
                               <div key={idea.id} className="bg-yellow-50 border border-yellow-100 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all group relative flex flex-col justify-between min-h-[180px]">
                                   <div>
                                       <div className="flex justify-between items-start mb-3">
@@ -306,7 +306,7 @@ export const ContentMachineView: React.FC = () => {
                   {/* Reuse existing grid logic but filter out 'idea' type which is handled in separate tab */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {/* ... Existing Grid Cards Code ... */}
-                      {filteredContent.length > 0 ? filteredContent.map(item => (
+                      {filteredContent.length > 0 ? filteredContent.map((item: ContentItem) => (
                           <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden group hover:shadow-md transition-all flex flex-col h-full">
                               {/* Preview Area */}
                               <div className="h-40 bg-gray-100 relative flex items-center justify-center border-b border-gray-100 group-hover:bg-gray-50 transition-colors">
@@ -317,8 +317,8 @@ export const ContentMachineView: React.FC = () => {
                                   </div>
 
                                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-20">
-                                      <button onClick={(e) => { e.stopPropagation(); handleEditContent(item); }} className="p-2 bg-white rounded-full text-gray-700 hover:text-black hover:scale-110 transition-transform"><Edit2 size={16} /></button>
-                                      <button onClick={(e) => handleDeleteClick(e, item.id, item.title)} className="p-2 bg-white rounded-full text-red-500 hover:text-red-700 hover:scale-110 transition-transform"><Trash2 size={16} /></button>
+                                      <button onClick={(e) => { e.stopPropagation(); handleEditContent(item); }} className="p-2 bg-white rounded-full text-gray-700 hover:text-black hover:scale-110 transition-transform" aria-label={`ערוך תוכן ${item.title}`}><Edit2 size={16} /></button>
+                                      <button onClick={(e) => handleDeleteClick(e, item.id, item.title)} className="p-2 bg-white rounded-full text-red-500 hover:text-red-700 hover:scale-110 transition-transform" aria-label={`מחק תוכן ${item.title}`}><Trash2 size={16} /></button>
                                   </div>
                                   
                                   {/* Simple Mock Preview */}

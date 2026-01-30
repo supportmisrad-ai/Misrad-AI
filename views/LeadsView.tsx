@@ -11,12 +11,12 @@ export const LeadsView: React.FC = () => {
     const [isSyncing, setIsSyncing] = useState(false);
 
     // KPI Calculations
-    const totalRevenue = leads.reduce((sum, lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
-    const potentialRevenue = leads.reduce((sum, lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0);
-    const winRate = leads.filter(l => l.status === LeadStatus.WON).length / (leads.filter(l => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1) * 100;
+    const totalRevenue = leads.reduce((sum: number, lead: Lead) => lead.status === LeadStatus.WON ? sum + lead.value : sum, 0);
+    const potentialRevenue = leads.reduce((sum: number, lead: Lead) => (lead.status !== LeadStatus.WON && lead.status !== LeadStatus.LOST) ? sum + lead.value : sum, 0);
+    const winRate = leads.filter((l: Lead) => l.status === LeadStatus.WON).length / (leads.filter((l: Lead) => l.status === LeadStatus.WON || l.status === LeadStatus.LOST).length || 1) * 100;
     
     const KANBAN_COLUMNS = [
-        { id: LeadStatus.NEW, label: 'ליד חדש', color: 'bg-blue-50 text-blue-700' },
+        { id: LeadStatus.NEW, label: 'ליד נפתח', color: 'bg-blue-50 text-blue-700' },
         { id: LeadStatus.QUALIFIED, label: 'סונן/מתאים', color: 'bg-purple-50 text-purple-700' },
         { id: LeadStatus.MEETING, label: 'פגישה נקבעה', color: 'bg-orange-50 text-orange-700' },
         { id: LeadStatus.NEGOTIATION, label: 'משא ומתן', color: 'bg-yellow-50 text-yellow-700' },
@@ -66,11 +66,12 @@ export const LeadsView: React.FC = () => {
                     <div className="flex items-center gap-2">
                          <button 
                             onClick={handleSync}
-                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors"
+                            disabled={isSyncing}
+                            className="bg-white border border-gray-200 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                             title="סנכרן נתונים ממערכת CRM חיצונית"
                         >
-                            <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} /> 
-                            <span className="hidden sm:inline">סנכרן CRM</span>
+                            <RefreshCw size={16} className={isSyncing ? 'opacity-70' : ''} /> 
+                            <span className="hidden sm:inline">{isSyncing ? 'מסנכרן...' : 'סנכרן CRM'}</span>
                         </button>
                         <button 
                             onClick={() => {
@@ -88,7 +89,7 @@ export const LeadsView: React.FC = () => {
                                     });
                                 }
                             }}
-                            className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2"
+                            className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2"
                         >
                             <Plus size={18} /> הוסף ליד
                         </button>
@@ -118,7 +119,7 @@ export const LeadsView: React.FC = () => {
                          <div className="text-xs font-bold text-gray-500 uppercase flex items-center gap-2 mb-2">
                             <Users size={14} className="text-orange-600" /> לידים חדשים
                         </div>
-                        <div className="text-2xl font-bold text-gray-900">{leads.filter(l => l.status === LeadStatus.NEW).length}</div>
+                        <div className="text-2xl font-bold text-gray-900">{(leads as Lead[]).filter((l: Lead) => l.status === LeadStatus.NEW).length}</div>
                     </div>
                 </div>
             </div>
@@ -127,7 +128,7 @@ export const LeadsView: React.FC = () => {
             <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
                 <div className="flex h-full min-w-max gap-4 px-1">
                     {KANBAN_COLUMNS.map(col => {
-                        const colLeads = leads.filter(l => l.status === col.id);
+                        const colLeads = (leads as Lead[]).filter((l: Lead) => l.status === col.id);
                         return (
                             <div 
                                 key={col.id}
@@ -141,19 +142,19 @@ export const LeadsView: React.FC = () => {
                                         <span className="text-xs text-gray-400 font-mono">({colLeads.length})</span>
                                     </div>
                                     <div className="text-[10px] text-gray-400 font-medium">
-                                        {formatCurrency(colLeads.reduce((acc, curr) => acc + curr.value, 0))}
+                                        {formatCurrency(colLeads.reduce((acc: number, curr: Lead) => acc + curr.value, 0))}
                                     </div>
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto p-2 space-y-2 no-scrollbar">
-                                    {colLeads.map(lead => {
-                                        const product = products.find(p => p.name === lead.interestedIn);
+                                    {colLeads.map((lead: Lead) => {
+                                        const product = (products as any[]).find((p: any) => p.name === (lead as any).interestedIn);
                                         return (
                                             <motion.div
                                                 key={lead.id}
                                                 draggable
                                                 onDragStart={(e) => handleDragStart(e as any, lead.id)}
-                                                whileHover={{ y: -2 }}
+                                                {...(typeof window !== 'undefined' && window.innerWidth >= 768 && { whileHover: { y: -2 } })}
                                                 className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm cursor-grab active:cursor-grabbing hover:border-blue-300 transition-all group"
                                             >
                                                 <div className="flex justify-between items-start mb-2">
@@ -169,7 +170,7 @@ export const LeadsView: React.FC = () => {
 
                                                 {lead.interestedIn && (
                                                     <div className="flex items-center gap-1 mb-3">
-                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? product.color.replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1 ${product ? String((product as any)?.color ?? '').replace('text-white', 'bg-opacity-10 text-gray-800') : 'bg-gray-100 text-gray-600'}`}>
                                                             <ShoppingBag size={10} /> {lead.interestedIn}
                                                         </span>
                                                     </div>

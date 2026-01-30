@@ -1,5 +1,6 @@
+'use client';
 
-import React, { createContext, useContext, ReactNode, useState } from 'react';
+import React, { createContext, useContext, ReactNode, useMemo, useState } from 'react';
 import { useToasts } from '../hooks/useToasts';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
@@ -14,12 +15,22 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | null>(null);
 
-export const DataProvider = ({ children }: { children: ReactNode }) => {
+export const DataProvider = ({
+    children,
+    initialCurrentUser,
+    initialOrganization,
+    initialAdminKPIs,
+}: {
+    children: ReactNode;
+    initialCurrentUser?: any;
+    initialOrganization?: any;
+    initialAdminKPIs?: any;
+}) => {
     // 1. Base Utilities
     const { toasts, addToast, removeToast } = useToasts();
 
     // 2. Auth & Users (Needs Toast)
-    const auth = useAuth(addToast);
+    const auth = useAuth(addToast, initialCurrentUser);
 
     // 3. Notifications (Needs User)
     const notifications = useNotifications(auth.currentUser, auth.users, addToast);
@@ -31,7 +42,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const crm = useCRM(auth.currentUser, notifications.addNotification, addToast, taskManager.applyTemplate);
 
     // 6. Admin/System (Needs Notification)
-    const admin = useAdmin(auth.currentUser, notifications.addNotification, addToast);
+    const admin = useAdmin(auth.currentUser, notifications.addNotification, addToast, initialOrganization);
 
     // 7. Tutorial State
     const [isTutorialActive, setIsTutorialActive] = useState(false);
@@ -47,25 +58,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     };
     const closeSupport = () => setIsSupportModalOpen(false);
 
-    // 9. SaaS Admin Extras (Feedbacks & Reports) - Mock Data
+    // 9. SaaS Admin Extras (Feedbacks & Reports) - Loaded from database
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-    const [systemReports, setSystemReports] = useState<GeneratedReport[]>([
-        {
-            id: 'REP-OCT-23',
-            title: 'דוח חודשי - אוקטובר 2023',
-            period: 'monthly',
-            dateGenerated: '2023-11-01',
-            data: {
-                totalRevenue: 150000,
-                totalCost: 80000,
-                netProfit: 70000,
-                tasksCompleted: 145,
-                topPerformerId: '2',
-                efficiencyScore: 8.5
-            },
-            isRead: false
-        }
-    ]);
+    const [systemReports, setSystemReports] = useState<GeneratedReport[]>([]);
 
     const addFeedback = (fb: Omit<Feedback, 'id' | 'date' | 'status'>) => {
         const newFeedback: Feedback = {
@@ -82,18 +77,36 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     };
 
     // Combine all hooks and state
-    const value = {
-        toasts, addToast, removeToast,
-        ...auth,
-        ...notifications,
-        ...taskManager,
-        ...crm,
-        ...admin,
-        isTutorialActive, startTutorial, endTutorial,
-        isSupportModalOpen, openSupport, closeSupport, supportDraft, setSupportDraft,
-        feedbacks, addFeedback,
-        systemReports, markReportRead
-    };
+    const value = useMemo(() => {
+        return {
+            toasts, addToast, removeToast,
+            ...auth,
+            ...notifications,
+            ...taskManager,
+            ...crm,
+            ...admin,
+            initialAdminKPIs,
+            isTutorialActive, startTutorial, endTutorial,
+            isSupportModalOpen, openSupport, closeSupport, supportDraft, setSupportDraft,
+            feedbacks, addFeedback,
+            systemReports, markReportRead
+        };
+    }, [
+        toasts,
+        addToast,
+        removeToast,
+        auth,
+        notifications,
+        taskManager,
+        crm,
+        admin,
+        initialAdminKPIs,
+        isTutorialActive,
+        isSupportModalOpen,
+        supportDraft,
+        feedbacks,
+        systemReports,
+    ]);
 
     return (
         <DataContext.Provider value={value}>

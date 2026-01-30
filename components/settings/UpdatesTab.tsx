@@ -77,7 +77,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
     };
 
     return (
-        <motion.div key="updates" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-20">
+        <motion.div key="updates" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-16 md:pb-20">
             
             <DeleteConfirmationModal
                 isOpen={!!updateToDelete}
@@ -101,7 +101,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
                     </p>
                 </div>
                 {canEdit && (
-                    <button onClick={() => openModal()} className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800">
+                    <button onClick={() => openModal()} className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-gray-800">
                         <Rocket size={16} /> פרסם עדכון
                     </button>
                 )}
@@ -115,7 +115,7 @@ export const UpdatesTab: React.FC<UpdatesTabProps> = ({ readOnly = false }) => {
             )}
 
             <div className="space-y-6 relative border-l-2 border-gray-100 mr-4 pr-6">
-                {systemUpdates.map((update, idx) => (
+                {systemUpdates.map((update: SystemUpdate, idx: number) => (
                     <div key={update.id} className="relative group">
                         <div className={`absolute -right-[33px] top-0 w-3 h-3 rounded-full border-2 border-white ring-2 ${idx === 0 ? 'bg-green-500 ring-green-100' : 'bg-gray-300 ring-gray-100'}`}></div>
                         <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative transition-all hover:shadow-md">

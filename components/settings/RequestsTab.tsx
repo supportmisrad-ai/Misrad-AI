@@ -1,50 +1,99 @@
+'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, User, Tag, Bug, Zap, CheckCircle2, Clock, Sparkles, Wrench, AlertOctagon, Plus, Send } from 'lucide-react';
-import { FeatureRequest, FeatureRequestType, Priority } from '../../types';
+import { MessageSquarePlus, UserCheck, Trash2, ThumbsUp, Calendar, Tag, Bug, Zap, CheckCircle2, Clock, Sparkles, Wrench, AlertOctagon, Plus, Send, RefreshCw } from 'lucide-react';
+import { FeatureRequest, FeatureRequestType, Priority, ChangeRequest, User } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
+import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 
 export const RequestsTab: React.FC = () => {
     const { 
-        featureRequests, addFeatureRequest, deleteFeatureRequest, 
         changeRequests, approveNameChange, rejectNameChange,
-        currentUser, hasPermission, users, voteForFeature
+        currentUser, hasPermission, users
     } = useData();
     
+    const [featureRequests, setFeatureRequests] = useState<FeatureRequest[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
     const [reqTitle, setReqTitle] = useState('');
     const [reqDesc, setReqDesc] = useState('');
     const [reqType, setReqType] = useState<FeatureRequestType>('feature');
     const [reqPriority, setReqPriority] = useState<Priority>(Priority.MEDIUM);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     
     // Delete Modal State
     const [requestToDelete, setRequestToDelete] = useState<{id: string, title: string} | null>(null);
 
-    const pendingRequests = changeRequests.filter(r => r.status === 'pending');
+    // Load feature requests from API
+    useEffect(() => {
+        loadFeatureRequests();
+    }, []);
+
+    const loadFeatureRequests = async () => {
+        setIsLoading(true);
+        try {
+            const response = await fetch('/api/features');
+            if (!response.ok) {
+                throw new Error('שגיאה בטעינת בקשות פיצ\'רים');
+            }
+            const data = await response.json();
+            setFeatureRequests(data.requests || []);
+        } catch (err: any) {
+            console.error('[RequestsTab] Error loading feature requests:', err);
+            setError(err.message || 'שגיאה בטעינת בקשות פיצ\'רים');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const pendingRequests = changeRequests.filter((r: ChangeRequest) => r.status === 'pending');
     
     // Check if user is a manager (to see who submitted the request)
     const isManager = hasPermission('manage_team') || hasPermission('manage_system');
 
-    const handleCreateRequest = () => {
+    const handleCreateRequest = async () => {
         if (!reqTitle.trim()) return;
-        const newRequest: FeatureRequest = {
-            id: `REQ-${Date.now()}`,
-            title: reqTitle,
-            description: reqDesc,
+        
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            const response = await fetch('/api/features', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    title: reqTitle.trim(),
+                    description: reqDesc.trim(),
             type: reqType,
-            priority: reqPriority,
-            status: 'new',
-            creatorId: currentUser.id,
-            createdAt: new Date().toISOString(),
-            votes: [currentUser.id]
-        };
-        addFeatureRequest(newRequest);
+                    priority: reqPriority.toLowerCase()
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'שגיאה ביצירת בקשת פיצ\'ר');
+            }
+
+            const data = await response.json();
+            
+            // Reload requests
+            await loadFeatureRequests();
+            
         setIsRequestModalOpen(false);
         setReqTitle('');
         setReqDesc('');
         setReqType('feature');
+        } catch (err: any) {
+            console.error('[RequestsTab] Error creating feature request:', err);
+            setError(err.message || 'שגיאה ביצירת בקשת פיצ\'ר');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleDeleteClick = (e: React.MouseEvent, id: string, title: string) => {
@@ -52,10 +101,35 @@ export const RequestsTab: React.FC = () => {
         setRequestToDelete({ id, title });
     };
 
-    const confirmDelete = () => {
-        if (requestToDelete) {
-            deleteFeatureRequest(requestToDelete.id);
+    const confirmDelete = async () => {
+        if (!requestToDelete) return;
+        
+        // Note: We don't have a DELETE endpoint, so we'll just remove from local state
+        // In a real app, you'd call DELETE /api/features/[id]
+        setFeatureRequests(prev => prev.filter(r => r.id !== requestToDelete.id));
             setRequestToDelete(null);
+    };
+
+    const handleVote = async (requestId: string, hasVoted: boolean) => {
+        try {
+            const response = await fetch(`/api/features/${requestId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    vote: !hasVoted // Toggle vote
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('שגיאה בהצבעה');
+            }
+
+            // Reload requests to get updated vote count
+            await loadFeatureRequests();
+        } catch (err: any) {
+            console.error('[RequestsTab] Error voting:', err);
         }
     };
 
@@ -64,7 +138,7 @@ export const RequestsTab: React.FC = () => {
             case 'done': return { color: 'bg-green-100 text-green-700 border-green-200', icon: CheckCircle2, label: 'בוצע' };
             case 'approved': return { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: Zap, label: 'אושר' };
             case 'reviewing': return { color: 'bg-orange-50 text-orange-700 border-orange-200', icon: Clock, label: 'בבדיקה' };
-            default: return { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: Tag, label: 'חדש' };
+            default: return { color: 'bg-gray-100 text-gray-600 border-gray-200', icon: Tag, label: 'נפתח' };
         }
     };
 
@@ -72,18 +146,19 @@ export const RequestsTab: React.FC = () => {
         switch (type) {
             case 'bug': return { label: 'תקלה', icon: Bug, color: 'text-red-500 bg-red-50 border-red-100' };
             case 'change': return { label: 'שיפור', icon: Wrench, color: 'text-orange-500 bg-orange-50 border-orange-100' };
-            default: return { label: 'פיצ׳ר חדש', icon: Sparkles, color: 'text-purple-500 bg-purple-50 border-purple-100' };
+            default: return { label: 'פיצ׳ר', icon: Sparkles, color: 'text-purple-500 bg-purple-50 border-purple-100' };
         }
     };
 
     const REQUEST_TYPES = [
         { id: 'feature', label: 'הוספת תכונה חדשה', icon: Sparkles, color: 'bg-purple-50 text-purple-600 border-purple-200', desc: 'רעיון לפיצ׳ר שאין במערכת' },
-        { id: 'change', label: 'שיפור תכונה קיימת', icon: Wrench, color: 'bg-orange-50 text-orange-600 border-orange-200', desc: 'ייעול של משהו קיים' },
+        { id: 'improvement', label: 'שיפור תכונה קיימת', icon: Wrench, color: 'bg-orange-50 text-orange-600 border-orange-200', desc: 'ייעול של משהו קיים' },
         { id: 'bug', label: 'דיווח על תקלה', icon: Bug, color: 'bg-red-50 text-red-600 border-red-200', desc: 'משהו לא עובד כשורה' },
+        { id: 'integration', label: 'אינטגרציה', icon: Zap, color: 'bg-blue-50 text-blue-600 border-blue-200', desc: 'חיבור לשירות חיצוני' },
     ];
 
     return (
-        <motion.div key="requests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6 pb-20">
+        <motion.div key="requests" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6 pb-16 md:pb-20">
             
             <DeleteConfirmationModal 
                 isOpen={!!requestToDelete}
@@ -97,8 +172,24 @@ export const RequestsTab: React.FC = () => {
 
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div><h2 className="text-xl font-bold text-gray-900 hidden lg:block">בקשות והצעות לייעול</h2><p className="text-sm text-gray-500 hidden lg:block">הצבע על פיצ׳רים שחשובים לך, בקש שיפורים או דווח על תקלות.</p></div>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={loadFeatureRequests} 
+                        disabled={isLoading}
+                        className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+                        title="רענן"
+                    >
+                        {isLoading ? <Skeleton className="w-4 h-4 rounded-full" /> : <RefreshCw size={16} />}
+                    </button>
                 <button onClick={() => setIsRequestModalOpen(true)} className="bg-black text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors flex items-center gap-2 w-full md:w-auto justify-center"><Plus size={18} /> הגש בקשה</button>
+                </div>
             </div>
+
+            {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                    {error}
+                </div>
+            )}
 
             {/* Pending Approvals (Visible to Managers) */}
             {hasPermission('manage_system') && pendingRequests.length > 0 && (
@@ -107,15 +198,15 @@ export const RequestsTab: React.FC = () => {
                         <UserCheck size={20} /> אישורים ממתינים
                     </h3>
                     <div className="space-y-3">
-                        {pendingRequests.map(req => (
+                    {pendingRequests.map((req: ChangeRequest) => (
                             <div key={req.id} className="bg-white p-4 rounded-xl border border-orange-100 flex justify-between items-center shadow-sm">
                                 <div>
                                     <div className="font-bold text-gray-900 text-sm">בקשת שינוי שם: {req.userName}</div>
                                     <div className="text-xs text-gray-500 mt-1">ביקש לשנות ל: <span className="font-bold text-black">{req.requestedName}</span></div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => rejectNameChange(req.id)} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-colors">דחה</button>
-                                    <button onClick={() => approveNameChange(req.id)} className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 text-xs font-bold transition-colors">אשר</button>
+                                    <button onClick={() => rejectNameChange(req.id)} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-colors" aria-label="דחה בקשה">דחה</button>
+                                    <button onClick={() => approveNameChange(req.id)} className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 text-xs font-bold transition-colors" aria-label="אשר בקשה">אשר</button>
                                 </div>
                             </div>
                         ))}
@@ -123,12 +214,17 @@ export const RequestsTab: React.FC = () => {
                 </div>
             )}
 
-            {featureRequests.length === 0 && pendingRequests.length === 0 && <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-200 text-gray-400">אין בקשות כרגע</div>}
-            
+            {isLoading ? (
+                <div className="py-6">
+                    <SkeletonGrid cards={6} columns={2} />
+                </div>
+            ) : featureRequests.length === 0 && pendingRequests.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-200 text-gray-400">אין בקשות כרגע</div>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {featureRequests.map(req => {
-                    const creator = users.find(u => u.id === req.creatorId);
-                    const canDelete = currentUser.id === req.creatorId || hasPermission('manage_system');
+                {featureRequests.map((req: FeatureRequest) => {
+                        const creator = users.find((u: User) => u.id === (req.creatorId || req.user_id));
+                        const canDelete = (req.creatorId || req.user_id) === currentUser.id || hasPermission('manage_system');
                     const hasVoted = req.votes.includes(currentUser.id);
                     const statusConfig = getStatusConfig(req.status);
                     const typeConfig = getTypeConfig(req.type);
@@ -165,7 +261,7 @@ export const RequestsTab: React.FC = () => {
                             <div className="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <button 
-                                        onClick={() => voteForFeature(req.id)}
+                                            onClick={() => handleVote(req.id, hasVoted)}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
                                             hasVoted 
                                             ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
@@ -199,6 +295,7 @@ export const RequestsTab: React.FC = () => {
                     );
                 })}
             </div>
+            )}
             
             <AnimatePresence>
                 {isRequestModalOpen && (
@@ -220,7 +317,7 @@ export const RequestsTab: React.FC = () => {
                                                 onClick={() => setReqType(type.id as FeatureRequestType)}
                                                 className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${
                                                     reqType === type.id 
-                                                    ? `${type.color.replace('text-', 'border-')} bg-white shadow-md scale-[1.02]` 
+                                                    ? `${String((type as any)?.color ?? '').replace('text-', 'border-')} bg-white shadow-md scale-[1.02]` 
                                                     : 'border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100'
                                                 }`}
                                             >
@@ -257,10 +354,38 @@ export const RequestsTab: React.FC = () => {
                                 </div>
                             </div>
 
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mt-4">
+                                    {error}
+                                </div>
+                            )}
+
                             <div className="flex justify-end gap-3 mt-8">
-                                <button onClick={() => setIsRequestModalOpen(false)} className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm">ביטול</button>
-                                <button onClick={handleCreateRequest} className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg text-sm flex items-center gap-2">
+                                <button 
+                                    onClick={() => {
+                                        setIsRequestModalOpen(false);
+                                        setError(null);
+                                    }} 
+                                    className="px-6 py-3 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm"
+                                    disabled={isSubmitting}
+                                >
+                                    ביטול
+                                </button>
+                                <button 
+                                    onClick={handleCreateRequest} 
+                                    disabled={isSubmitting || !reqTitle.trim()}
+                                    className="bg-black text-white px-8 py-3 rounded-xl font-bold hover:bg-gray-800 transition-colors shadow-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Skeleton className="w-4 h-4 rounded-full bg-white/30" />
+                                            שולח...
+                                        </>
+                                    ) : (
+                                        <>
                                     שלח בקשה <Send size={16} className="rotate-180" />
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

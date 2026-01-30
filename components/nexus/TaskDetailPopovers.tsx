@@ -1,0 +1,358 @@
+
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Task, Priority } from '../../types';
+import { useData } from '../../context/DataContext';
+import { PRIORITY_COLORS, PRIORITY_LABELS } from '../../constants';
+import { Timer, Check, X, CheckCheck, Search } from 'lucide-react';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+
+interface TaskDetailPopoversProps {
+    task: Task;
+    activePopover: 'none' | 'assignee' | 'priority' | 'estimate';
+    popoverCoords: { top: number; left?: number; right?: number; width?: number } | null;
+    onClose: () => void;
+}
+
+export const TaskDetailPopovers: React.FC<TaskDetailPopoversProps> = ({ task, activePopover, popoverCoords, onClose }) => {
+    const { updateTask, users, currentUser, hasPermission } = useData();
+    const [manualHours, setManualHours] = useState(0);
+    const [manualMinutes, setManualMinutes] = useState(0);
+    const [assigneeSearch, setAssigneeSearch] = useState('');
+
+    // --- HIERARCHY LOGIC FOR ASSIGNEES ---
+    // Super Admin: system admin, sees everyone across all tenants
+    const isSuperAdmin = currentUser.isSuperAdmin === true;
+    // Tenant Admin: CEO/Admin within their tenant, sees everyone within their tenant
+    const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
+    const isManager = hasPermission('manage_team');
+    
+    const usersWithCurrent = (() => {
+        const list = Array.isArray(users) ? [...users] : [];
+        if (currentUser?.id && !list.some((u: any) => u?.id === currentUser.id)) {
+            list.unshift(currentUser as any);
+        }
+        return list;
+    })();
+
+    const availableUsers = usersWithCurrent.filter((u: any) => {
+        // Always include current user
+        if (u.id === currentUser.id) return true;
+        // Super Admin sees everyone (all tenants)
+        if (isSuperAdmin) return true;
+        // Tenant Admin sees everyone within their tenant
+        if (isTenantAdmin) return true;
+        // Manager sees users in their department
+        if (isManager) return u.department === currentUser.department;
+        // Regular users see only themselves
+        return false;
+    });
+
+    const isExplicitlyUnassigned = (task as any).assigneeId === null;
+    const effectiveAssigneeIds: string[] = (() => {
+        if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
+        if (task.assigneeId !== undefined && task.assigneeId !== null && String(task.assigneeId)) return [String(task.assigneeId)];
+        if (isExplicitlyUnassigned) return [];
+        const fallback = (task.creatorId || currentUser.id) as any;
+        return fallback ? [String(fallback)] : [];
+    })();
+
+    const assignedUsers = availableUsers.filter((u: any) => effectiveAssigneeIds.includes(String(u.id)));
+
+    const filteredUsers = availableUsers.filter((u: any) => 
+        u.name.toLowerCase().includes(assigneeSearch.toLowerCase())
+    );
+
+    useEffect(() => {
+        // Init time edit values
+        const estMinutes = task.estimatedTime || 0;
+        setManualHours(Math.floor(estMinutes / 60));
+        setManualMinutes(estMinutes % 60);
+        setAssigneeSearch('');
+    }, [task.estimatedTime, activePopover]);
+
+    const setExplicitUnassigned = () => {
+        updateTask(task.id, { assigneeIds: [], assigneeId: null as any });
+        onClose();
+    };
+
+    const toggleAssignee = (userId: string) => {
+        const currentIds = task.assigneeIds || (task.assigneeId ? [task.assigneeId] : []);
+        let newIds: string[];
+
+        if (currentIds.includes(userId)) {
+            newIds = currentIds.filter(id => id !== userId);
+        } else {
+            newIds = [...currentIds, userId];
+        }
+
+        // Never allow ending up with no assignee via toggling.
+        // If the user wants "no assignee" they must explicitly choose it.
+        if (newIds.length === 0) {
+            const fallback = (task.creatorId || currentUser.id) as string;
+            newIds = fallback ? [fallback] : [];
+        }
+
+        updateTask(task.id, {
+            assigneeIds: newIds,
+            assigneeId: newIds.length > 0 ? newIds[0] : undefined,
+        });
+    };
+
+    const saveManualTime = () => {
+        const totalMinutes = (Number(manualHours) * 60) + Number(manualMinutes);
+        updateTask(task.id, { estimatedTime: totalMinutes });
+        onClose();
+    };
+
+    // Helper for solid contrast dots
+    const getSolidColor = (p: Priority) => {
+        switch(p) {
+            case Priority.URGENT: return 'bg-red-600';
+            case Priority.HIGH: return 'bg-orange-600';
+            case Priority.MEDIUM: return 'bg-amber-500';
+            case Priority.LOW: return 'bg-slate-500';
+            default: return 'bg-gray-500';
+        }
+    };
+
+    if (!popoverCoords) return null;
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const safeMaxHeight = `calc(${viewportH}px - 32px)`;
+    const safeTop = Math.max(16, Math.min(popoverCoords.top || 0, viewportH - 420));
+
+    const estimateStyle = {
+        position: 'fixed' as const,
+        top: safeTop,
+        left: popoverCoords.left,
+        maxHeight: safeMaxHeight,
+        zIndex: 9999
+    };
+
+    return createPortal(
+        <AnimatePresence>
+            {/* Mobile Backdrop - Only for large popovers (assignee, estimate) */}
+            {isMobile && (activePopover === 'assignee' || activePopover === 'estimate') && (
+                <motion.div 
+                    key="mobile-backdrop-large"
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998]"
+                    onClick={onClose}
+                />
+            )}
+            {/* Transparent backdrop for small popovers (priority) */}
+            {isMobile && activePopover === 'priority' && (
+                <motion.div 
+                    key="mobile-backdrop-small"
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    className="fixed inset-0 bg-transparent z-[9998]"
+                    onClick={onClose}
+                />
+            )}
+            
+            {/* 1. Estimate Time Popover */}
+            {activePopover === 'estimate' && (
+                <div
+                    key="popover-estimate-wrap"
+                    className={isMobile ? 'fixed inset-0 flex items-center justify-center p-4 z-[9999]' : undefined}
+                    onClick={isMobile ? onClose : undefined}
+                >
+                <motion.div 
+                    key="popover-estimate"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    style={isMobile ? {
+                        width: '320px',
+                        maxWidth: 'calc(100vw - 32px)',
+                        maxHeight: 'calc(100vh - 32px)',
+                    } : estimateStyle}
+                    onClick={(e) => e.stopPropagation()}
+                    className="property-popover w-64 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 p-5 overflow-hidden"
+                >
+                    <div className="flex items-center gap-2 text-gray-900 mb-4 pb-2 border-b border-gray-50">
+                        <div className="p-1.5 bg-gray-50 rounded-lg"><Timer size={14} className="text-gray-500" /></div>
+                        <span className="font-bold text-xs">הערכת זמן</span>
+                    </div>
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="flex-1">
+                            <input 
+                                type="number" 
+                                value={manualHours}
+                                onChange={(e) => setManualHours(Number(e.target.value))}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full p-2.5 text-center bg-gray-50 border border-gray-200 rounded-xl outline-none text-2xl font-bold text-gray-900 focus:border-black focus:bg-white transition-all"
+                                min="0"
+                            />
+                            <span className="text-[10px] text-center block text-gray-400 mt-1 font-bold">שעות</span>
+                        </div>
+                        <span className="text-2xl font-black text-gray-200 -mt-4">:</span>
+                        <div className="flex-1">
+                            <input 
+                                type="number" 
+                                value={manualMinutes}
+                                onChange={(e) => setManualMinutes(Number(e.target.value))}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full p-2.5 text-center bg-gray-50 border border-gray-200 rounded-xl outline-none text-2xl font-bold text-gray-900 focus:border-black focus:bg-white transition-all"
+                                min="0"
+                                max="59"
+                            />
+                            <span className="text-[10px] text-center block text-gray-400 mt-1 font-bold">דקות</span>
+                        </div>
+                    </div>
+                    <button onClick={(e) => { e.stopPropagation(); saveManualTime(); }} className="w-full py-2.5 bg-black text-white rounded-xl font-bold text-xs hover:bg-gray-800 transition-colors shadow-lg active:scale-95 transform">שמור הערכה</button>
+                </motion.div>
+                </div>
+            )}
+
+            {/* 2. Assignee Popover */}
+            {activePopover === 'assignee' && (
+                <div
+                    key="popover-assignee-wrap"
+                    className={isMobile ? 'fixed inset-0 flex items-center justify-center p-4 z-[9999]' : undefined}
+                    onClick={isMobile ? onClose : undefined}
+                >
+                <motion.div 
+                    key="popover-assignee"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={isMobile ? {
+                        width: '360px',
+                        maxWidth: 'calc(100vw - 32px)',
+                        maxHeight: 'calc(100vh - 32px)',
+                    } : {
+                        position: 'fixed' as const,
+                        top: safeTop, 
+                        right: popoverCoords.right, 
+                        width: popoverCoords.width,
+                        maxHeight: safeMaxHeight,
+                        zIndex: 9999 
+                    }}
+                    className={`property-popover bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden min-w-[260px] flex flex-col`}
+                >
+                    <div className="p-3 border-b border-gray-50 sticky top-0 bg-white z-10">
+                        <div className="relative">
+                            <Search size={14} className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400" />
+                            <input 
+                                value={assigneeSearch}
+                                onChange={e => setAssigneeSearch(e.target.value)}
+                                className="w-full bg-gray-50 border border-transparent focus:border-gray-200 focus:bg-white rounded-xl pr-9 pl-3 py-2 text-xs outline-none transition-all font-medium" 
+                                placeholder="חפש עובד..." 
+                                autoFocus 
+                                onClick={(e) => e.stopPropagation()} 
+                            />
+                        </div>
+                    </div>
+                    <div className="p-1.5 space-y-0.5 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setExplicitUnassigned();
+                            }}
+                            className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all hover:bg-gray-50 text-gray-700 ${
+                                isExplicitlyUnassigned ? 'bg-blue-50 text-blue-700' : ''
+                            }`}
+                        >
+                            <div className="w-8 h-8 rounded-full border border-dashed border-gray-300 flex items-center justify-center text-gray-400 bg-gray-50">
+                                <X size={14} />
+                            </div>
+                            <div className="text-right flex-1 min-w-0">
+                                <div className="text-xs font-bold truncate">ללא שיוך</div>
+                                <div className="text-[10px] truncate text-gray-400">השאר את המשימה ללא אחראי</div>
+                            </div>
+                            {isExplicitlyUnassigned && (
+                                <div className="ml-1 text-blue-600">
+                                    <Check size={14} />
+                                </div>
+                            )}
+                        </button>
+
+                        {filteredUsers.map((u: any, index: number) => {
+                            const isAssigned = assignedUsers.some((au: any) => String(au.id) === String(u.id));
+                            return (
+                                <button 
+                                    key={u.id || u.email || `${u.name}-${index}`}
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        toggleAssignee(u.id); 
+                                    }}
+                                    className={`w-full flex items-center gap-3 p-2 rounded-xl transition-all group ${
+                                        isAssigned ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-700'
+                                    }`}
+                                >
+                                    <img src={u.avatar} className={`w-8 h-8 rounded-full border ${isAssigned ? 'border-white/20' : 'border-gray-100'}`} />
+                                    <div className="text-right flex-1 min-w-0">
+                                        <div className="text-xs font-bold truncate">{u.name}</div>
+                                        <div className={`text-[10px] truncate ${isAssigned ? 'text-gray-400' : 'text-gray-400'}`}>{u.role}</div>
+                                    </div>
+                                    {isAssigned && <Check size={14} className="text-white shrink-0" strokeWidth={3} />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+                </div>
+            )}
+
+            {/* 3. Priority Popover */}
+            {activePopover === 'priority' && (
+                <div
+                    key="popover-priority-wrap"
+                    className={isMobile ? 'fixed inset-0 flex items-start justify-center p-4 z-[9999]' : undefined}
+                    onClick={isMobile ? onClose : undefined}
+                >
+                <motion.div 
+                    key="popover-priority"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={isMobile ? {
+                        width: popoverCoords.width || 280,
+                        maxWidth: 'calc(100vw - 32px)',
+                        marginTop: '18vh',
+                    } : {
+                        position: 'fixed' as const,
+                        top: popoverCoords.top, 
+                        right: popoverCoords.right, 
+                        width: popoverCoords.width,
+                        zIndex: 9999 
+                    }}
+                    className="property-popover bg-white rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden p-1.5 min-w-[180px]"
+                >
+                    <div className="space-y-0.5">
+                        {Object.values(Priority).map(p => {
+                            const isSelected = task.priority === p;
+                            return (
+                                <button
+                                    key={p}
+                                    onClick={(e) => { e.stopPropagation(); updateTask(task.id, { priority: p }); onClose(); }}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                                        isSelected ? 'bg-gray-100 text-black' : 'hover:bg-gray-50 text-gray-600'
+                                    }`}
+                                >
+                                    {/* High Contrast Dot */}
+                                    <div className={`w-2.5 h-2.5 rounded-full ${getSolidColor(p)}`}></div>
+                                    {PRIORITY_LABELS[p]}
+                                    {isSelected && <Check size={14} className="mr-auto text-black" strokeWidth={3} />}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </motion.div>
+                </div>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+};

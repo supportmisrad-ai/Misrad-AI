@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -48,7 +49,7 @@ export const StudioTab: React.FC = () => {
         if (!newPlatform.label.trim()) return;
         
         // Generate ID from label if not manually set (though we don't expose manual ID set here)
-        const id = newPlatform.label.toLowerCase().replace(/\s+/g, '-');
+        const id = String((newPlatform as any)?.label ?? '').toLowerCase().replace(/\s+/g, '-');
         const platformToAdd = { ...newPlatform, id };
         
         updateSettings('platforms', [...platforms, platformToAdd]);
@@ -75,7 +76,7 @@ export const StudioTab: React.FC = () => {
     };
 
     return (
-        <motion.div key="studio" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-20">
+        <motion.div key="studio" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-16 md:pb-20">
             
             <DeleteConfirmationModal 
                 isOpen={!!platformToDelete}
@@ -94,7 +95,7 @@ export const StudioTab: React.FC = () => {
                 </div>
                 <button 
                     onClick={() => setIsAdding(true)}
-                    className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg hover:bg-gray-800 transition-colors"
+                    className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg hover:bg-gray-800 transition-colors"
                 >
                     <Plus size={18} /> הוסף פלטפורמה
                 </button>
@@ -193,7 +194,7 @@ export const StudioTab: React.FC = () => {
             </AnimatePresence>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {platforms.map(platform => {
+                {platforms.map((platform: PlatformDefinition) => {
                     const Icon = getIconComponent(platform.icon);
                     return (
                         <div key={platform.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between group hover:border-gray-300 hover:shadow-md transition-all">

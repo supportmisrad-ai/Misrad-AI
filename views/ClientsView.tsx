@@ -1,11 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '../context/DataContext';
+import { useSecureAPI } from '../hooks/useSecureAPI';
 import { Mail, Phone, ExternalLink, MoreHorizontal, Search, Crown, Users, Plus, LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown, X, Check, ChevronDown, ShoppingBag, PlayCircle, Layers, Globe } from 'lucide-react';
 import { Client } from '../types';
 import { ClientDetailModal } from '../components/ClientDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CustomSelect } from '../components/CustomSelect';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
 
 const SortIcon = ({ columnKey, sortConfig }: { columnKey: keyof Client, sortConfig: { key: keyof Client; direction: 'asc' | 'desc' } }) => {
     if (sortConfig.key !== columnKey) return <ArrowUpDown size={14} className="text-gray-300" />;
@@ -38,7 +45,11 @@ const getClientGradient = (pkg: string) => {
 };
 
 export const ClientsView: React.FC = () => {
-    const { clients, addClient, products, templates, applyTemplate, addToast } = useData();
+    const { products, templates, applyTemplate, addToast, clients: contextClients } = useData();
+    const { fetchClients, createClient: createClientAPI, isLoading: isLoadingClients } = useSecureAPI();
+    const [clients, setClients] = useState<Client[]>(contextClients || []);
+    const [cachedClients, setCachedClients] = useState<Client[]>(contextClients || []);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
@@ -56,7 +67,7 @@ export const ClientsView: React.FC = () => {
     const nameInputRef = useRef<HTMLInputElement>(null);
 
     // Filter only onboarding templates
-    const onboardingTemplates = templates.filter(t => t.category === 'onboarding');
+    const onboardingTemplates = templates.filter((t: any) => t.category === 'onboarding');
 
     // View Mode with Persistence (Safely)
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -76,6 +87,44 @@ export const ClientsView: React.FC = () => {
             }
         } catch (e) { }
     }, [viewMode]);
+
+    // Load clients from database on mount with cache
+    useEffect(() => {
+        // Show context clients immediately if available
+        if (contextClients && contextClients.length > 0) {
+            setClients(contextClients);
+            setCachedClients(contextClients);
+        }
+        
+        const loadClients = async () => {
+            setIsRefreshing(true);
+            try {
+                const fetchedClients: unknown = await fetchClients();
+                const obj = asObject(fetchedClients);
+                const list = Array.isArray(fetchedClients)
+                    ? fetchedClients
+                    : Array.isArray(obj?.clients)
+                      ? obj?.clients
+                      : [];
+                const newClients: Client[] = list as Client[];
+                setClients(newClients);
+                setCachedClients(newClients);
+            } catch (error) {
+                console.error('Failed to load clients:', error);
+                // Keep existing clients on error
+                if (clients.length === 0 && contextClients && contextClients.length > 0) {
+                    setClients(contextClients);
+                }
+                // Keep cached data on error
+                if (cachedClients.length === 0) {
+                    setClients([]);
+                }
+            } finally {
+                setIsRefreshing(false);
+            }
+        };
+        loadClients();
+    }, [fetchClients]);
 
     const [sortConfig, setSortConfig] = useState<{ key: keyof Client; direction: 'asc' | 'desc' }>({ key: 'joinedAt', direction: 'desc' });
 
@@ -100,7 +149,7 @@ export const ClientsView: React.FC = () => {
         }));
     };
 
-    const handleCreateClient = (e: React.FormEvent) => {
+    const handleCreateClient = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newClientName.trim()) {
             setIsShaking(true);
@@ -109,10 +158,7 @@ export const ClientsView: React.FC = () => {
             return;
         }
 
-        const clientId = `C-${Date.now()}`;
-
-        const newClient: Client = {
-            id: clientId,
+        const newClient: Omit<Client, 'id'> = {
             name: newClientName,
             companyName: newClientName,
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(newClientName)}&background=random&color=fff`,
@@ -123,25 +169,33 @@ export const ClientsView: React.FC = () => {
             phone: newPhone,
             joinedAt: new Date().toISOString(),
             assetsFolderUrl: '#',
-            source: newSource // NEW
+            source: newSource
         };
         
-        addClient(newClient);
+        try {
+            const result = await createClientAPI(newClient);
+            const clientId = result.id || `C-${Date.now()}`;
+            
+            // Update local state
+            setClients(prev => [...prev, { ...newClient, id: clientId } as Client]);
 
-        // Apply Onboarding Template if selected
-        if (selectedOnboardingFlow) {
-            // Updated Call: Pass the specific client ID so tasks are linked correctly
-            applyTemplate(selectedOnboardingFlow, clientId, newClientName);
+            // Apply Onboarding Template if selected
+            if (selectedOnboardingFlow) {
+                applyTemplate(selectedOnboardingFlow, clientId, newClientName);
+            }
+
+            setIsAddClientOpen(false);
+            setNewClientName('');
+            setNewContactPerson('');
+            setNewEmail('');
+            setNewPhone('');
+            setNewSource('Other');
+            setSelectedOnboardingFlow('');
+            setIsShaking(false);
+        } catch (error) {
+            // Error already handled by createClientAPI
+            setIsShaking(false);
         }
-
-        setIsAddClientOpen(false);
-        setNewClientName('');
-        setNewContactPerson('');
-        setNewEmail('');
-        setNewPhone('');
-        setNewSource('Other');
-        setSelectedOnboardingFlow('');
-        setIsShaking(false);
     };
 
     const openAddClientModal = () => {
@@ -159,7 +213,7 @@ export const ClientsView: React.FC = () => {
     ];
 
     return (
-        <div className="w-full flex flex-col h-auto md:h-full">
+        <div className="w-full flex flex-col h-auto md:h-full pb-16 md:pb-0">
             <AnimatePresence>
                 {selectedClient && (
                     <ClientDetailModal 
@@ -202,18 +256,18 @@ export const ClientsView: React.FC = () => {
                                         type="text" 
                                         value={newClientName}
                                         onChange={e => { setNewClientName(e.target.value); setIsShaking(false); }}
-                                        className={`w-full p-3 border rounded-xl outline-none font-medium transition-all ${isShaking ? 'border-red-500 ring-2 ring-red-200 animate-shake' : 'border-gray-200 focus:border-black'}`}
+                                        className={`w-full p-3 border rounded-xl outline-none font-medium transition-all ${isShaking ? 'border-red-500 ring-2 ring-red-200 animate-shake' : 'border-gray-200 focus:border-gray-400'}`}
                                         placeholder="לדוגמה: כהן טכנולוגיות בע״מ"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">איש קשר</label>
                                         <input 
                                             type="text" 
                                             value={newContactPerson}
                                             onChange={e => setNewContactPerson(e.target.value)}
-                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-black outline-none"
+                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-gray-400 outline-none"
                                             placeholder="ישראל ישראלי"
                                         />
                                     </div>
@@ -222,7 +276,7 @@ export const ClientsView: React.FC = () => {
                                         <CustomSelect 
                                             value={newPackage}
                                             onChange={(val) => setNewPackage(val)}
-                                            options={products.map(p => ({ value: p.name, label: p.name }))}
+                                            options={products.map((p: any) => ({ value: p.name, label: p.name }))}
                                         />
                                     </div>
                                 </div>
@@ -243,7 +297,7 @@ export const ClientsView: React.FC = () => {
                                         <PlayCircle size={14} /> הפעלת תהליך קליטה (Playbook)
                                     </label>
                                     <div className="space-y-2">
-                                        {onboardingTemplates.map(template => (
+                                        {onboardingTemplates.map((template: any) => (
                                             <label 
                                                 key={template.id} 
                                                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
@@ -278,14 +332,14 @@ export const ClientsView: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">טלפון</label>
                                         <input 
                                             type="tel" 
                                             value={newPhone}
                                             onChange={e => setNewPhone(e.target.value)}
-                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-black outline-none dir-ltr text-right"
+                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-gray-400 outline-none dir-ltr text-right"
                                             placeholder="050-0000000"
                                         />
                                     </div>
@@ -295,7 +349,7 @@ export const ClientsView: React.FC = () => {
                                             type="email" 
                                             value={newEmail}
                                             onChange={e => setNewEmail(e.target.value)}
-                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-black outline-none dir-ltr text-right"
+                                            className="w-full p-3 border border-gray-200 rounded-xl focus:border-gray-400 outline-none dir-ltr text-right"
                                             placeholder="client@company.com"
                                         />
                                     </div>
@@ -323,39 +377,44 @@ export const ClientsView: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            {/* Header */}
-            <div className="flex flex-col gap-6 mb-8">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900">ספר לקוחות פעילים</h1>
-                        <p className="text-gray-500 text-sm mt-1">רשימת הלקוחות המשלמים בלבד. אין כאן לידים.</p>
+            {/* Header - Mobile Optimized */}
+            <div className="pt-4 md:pt-6 pb-4 border-b border-gray-100 shrink-0">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6 mb-4">
+                    <div className="flex-1 min-w-0">
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">ספר לקוחות פעילים</h1>
+                        <p className="text-gray-500 text-xs md:text-sm mt-1">רשימת הלקוחות המשלמים בלבד. אין כאן לידים.</p>
                     </div>
                     
                     <button 
                         onClick={openAddClientModal}
-                        className="bg-black text-white px-5 py-3 rounded-2xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                        className="bg-black text-white px-4 py-2.5 md:py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all w-full md:w-auto"
                     >
-                        <Plus size={18} /> הוסף לקוח
+                        <Plus size={18} /> 
+                        <span>הוסף לקוח</span>
                     </button>
                 </div>
+            </div>
 
-                {/* Toolbar */}
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-2 rounded-2xl border border-gray-200/60 shadow-sm" style={{ overflow: 'visible', zIndex: 10 }}>
-                    <div className="relative w-full md:w-auto">
+            {/* Toolbar - Mobile Optimized */}
+            <div className="pt-4 pb-4">
+                <div className="flex flex-col gap-3 bg-white p-3 md:p-2 rounded-2xl border border-gray-200/60 shadow-sm" style={{ overflow: 'visible', zIndex: 10 }}>
+                    {/* Search Bar - Mobile Optimized */}
+                    <div className="relative w-full">
                         <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input 
                             type="text" 
                             placeholder="חפש לקוח..." 
-                            className="pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-colors"
+                            className="pl-4 pr-10 py-3 md:py-2.5 bg-gray-50 border border-gray-200 rounded-xl w-full focus:outline-none focus:ring-2 focus:ring-gray-900/5 focus:bg-white transition-colors text-sm md:text-base"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-500 hidden md:inline">מיון:</span>
-                            <div className="w-40">
+                    {/* Filters & View Toggle - Mobile Optimized */}
+                    <div className="flex items-center gap-3 w-full justify-between">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-xs font-bold text-gray-500 hidden sm:inline shrink-0">מיון:</span>
+                            <div className="flex-1 min-w-0">
                                 <CustomSelect 
                                     value={sortConfig.key}
                                     onChange={(val) => handleSort(val as keyof Client)}
@@ -365,223 +424,378 @@ export const ClientsView: React.FC = () => {
                                         { value: 'status', label: 'סטטוס' },
                                         { value: 'package', label: 'חבילה' }
                                     ]}
-                                    className="text-xs"
+                                    className="text-xs md:text-sm"
                                 />
                             </div>
                         </div>
 
-                        <div className="hidden md:flex bg-gray-100 p-1 rounded-xl">
+                        {/* View Mode Toggle - Mobile Optimized */}
+                        <div className="flex bg-gray-100 p-1 rounded-xl shrink-0">
                             <button 
                                 onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}
+                                className={`p-2 rounded-lg transition-all active:scale-95 ${viewMode === 'grid' ? 'bg-white shadow text-black' : 'text-gray-400 active:text-gray-600'}`}
                                 title="תצוגת כרטיסים"
+                                aria-label="תצוגת כרטיסים"
                             >
-                                <LayoutGrid size={18} />
+                                <LayoutGrid size={16} className="md:w-[18px] md:h-[18px]" />
                             </button>
                             <button 
                                 onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white shadow text-black' : 'text-gray-400 hover:text-gray-600'}`}
+                                className={`p-2 rounded-lg transition-all active:scale-95 ${viewMode === 'list' ? 'bg-white shadow text-black' : 'text-gray-400 active:text-gray-600'}`}
                                 title="תצוגת רשימה"
+                                aria-label="תצוגת רשימה"
                             >
-                                <List size={18} />
+                                <List size={16} className="md:w-[18px] md:h-[18px]" />
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Grid View */}
+            {/* Grid View - Mobile Optimized */}
             {(viewMode === 'grid') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedClients.map(client => (
-                        <div 
-                            key={client.id} 
+                <>
+                    {sortedClients.length === 0 ? (
+                        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-200 shadow-sm p-8 md:p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
+                            <div className="w-16 h-16 md:w-20 md:h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <Users size={32} className="md:w-10 md:h-10 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg md:text-xl font-black text-gray-900 mb-2">אין לקוחות פעילים</h3>
+                            <p className="text-sm md:text-base text-gray-500 mb-6 max-w-sm">התחל על ידי הוספת לקוח חדש לספר הלקוחות</p>
+                            <button 
+                                onClick={openAddClientModal}
+                                className="bg-black text-white px-6 py-3 rounded-xl text-sm md:text-base font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all"
+                            >
+                                <Plus size={18} /> הוסף לקוח ראשון
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                            {sortedClients.map((client, index) => (
+                        <motion.div 
+                            key={client.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
                             onClick={() => setSelectedClient(client)}
-                            className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-200/50 hover:border-gray-200 transition-all overflow-hidden group cursor-pointer flex flex-col relative h-full"
+                            className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:shadow-gray-200/50 hover:border-gray-200 active:scale-[0.98] transition-all overflow-hidden group cursor-pointer flex flex-col relative"
                         >
-                            <div className={`h-24 w-full ${getClientGradient(client.package)} relative`}>
-                                <div className="absolute top-3 right-3 flex gap-2">
+                            {/* Header Gradient - Mobile Optimized */}
+                            <div className={`h-20 md:h-24 w-full ${getClientGradient(client.package)} relative`}>
+                                <div className="absolute top-2 md:top-3 right-2 md:right-3 flex gap-1.5">
                                      <button 
                                         onClick={(e) => { e.stopPropagation(); setSelectedClient(client); }}
-                                        className="text-white/80 hover:text-white bg-black/10 hover:bg-black/30 backdrop-blur-md p-1.5 rounded-full transition-colors"
+                                        className="text-white/90 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md p-1.5 md:p-2 rounded-full transition-all active:scale-95"
+                                        aria-label="פתח פרטים"
                                     >
-                                        <MoreHorizontal size={16} />
+                                        <MoreHorizontal size={14} className="md:w-4 md:h-4" />
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="px-6 pb-6 pt-0 flex-1 flex flex-col">
-                                <div className="-mt-10 mb-3 flex justify-between items-end relative z-10">
-                                    <div className="w-20 h-20 rounded-2xl border-[4px] border-white shadow-lg bg-white overflow-hidden">
+                            <div className="px-4 md:px-6 pb-4 md:pb-6 pt-0 flex-1 flex flex-col">
+                                {/* Avatar & Status - Mobile Optimized */}
+                                <div className="-mt-8 md:-mt-10 mb-3 flex justify-between items-end relative z-10">
+                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl md:rounded-2xl border-[3px] md:border-[4px] border-white shadow-lg bg-white overflow-hidden">
                                         <img 
                                             src={client.avatar} 
                                             alt={client.companyName} 
                                             className="w-full h-full object-cover" 
                                         />
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border mb-1
+                                    <span className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full text-[9px] md:text-[10px] font-bold uppercase tracking-wide border
                                         ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-yellow-50 text-yellow-700 border-yellow-100'}`}>
-                                        {client.status === 'Active' ? 'פעיל' : 'תהליך קליטה'}
+                                        {client.status === 'Active' ? 'פעיל' : 'קליטה'}
                                     </span>
                                 </div>
 
-                                <h3 className="font-bold text-gray-900 text-xl leading-tight mb-1">{client.companyName}</h3>
-                                <p className="text-sm text-gray-500 font-medium mb-4">{client.contactPerson}</p>
+                                {/* Company Name & Contact - Mobile Optimized */}
+                                <h3 className="font-black text-gray-900 text-lg md:text-xl leading-tight mb-1 line-clamp-1">{client.companyName}</h3>
+                                <p className="text-xs md:text-sm text-gray-500 font-medium mb-3 md:mb-4 line-clamp-1">{client.contactPerson}</p>
 
-                                <div className="mt-auto">
-                                    <div className="flex gap-2 mb-4">
-                                        <div className={`text-xs px-3 py-2 rounded-xl font-bold uppercase tracking-wide border flex items-center gap-2 bg-gray-50 text-gray-800 border-gray-200 w-fit`}>
-                                            <ShoppingBag size={12} />
-                                            {client.package}
+                                {/* Package & Source Tags - Mobile Optimized */}
+                                <div className="mt-auto space-y-2 md:space-y-0">
+                                    <div className="flex flex-wrap gap-1.5 md:gap-2 mb-3 md:mb-4">
+                                        <div className={`text-[10px] md:text-xs px-2 md:px-3 py-1 md:py-2 rounded-lg md:rounded-xl font-bold uppercase tracking-wide border flex items-center gap-1 md:gap-2 bg-gray-50 text-gray-800 border-gray-200`}>
+                                            <ShoppingBag size={10} className="md:w-3 md:h-3" />
+                                            <span className="line-clamp-1">{client.package}</span>
                                         </div>
                                         {client.source && (
-                                            <div className="text-xs px-2 py-2 rounded-xl font-medium bg-blue-50 text-blue-700 border border-blue-100 w-fit" title={`מקור הגעה: ${client.source}`}>
+                                            <div className="text-[10px] md:text-xs px-2 py-1 md:py-2 rounded-lg md:rounded-xl font-medium bg-blue-50 text-blue-700 border border-blue-100" title={`מקור הגעה: ${client.source}`}>
                                                 {client.source}
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex items-center justify-between border-t border-gray-50 pt-4">
-                                        <div className="flex gap-2">
+                                    {/* Actions Bar - Mobile Optimized */}
+                                    <div className="flex items-center justify-between border-t border-gray-50 pt-3 md:pt-4">
+                                        <div className="flex gap-1.5 md:gap-2">
                                             <a 
                                                 href={`mailto:${client.email}`} 
                                                 onClick={(e) => e.stopPropagation()}
-                                                className={`p-2 rounded-xl transition-colors ${!client.email ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50'}`} 
+                                                className={`p-2 md:p-2.5 rounded-lg md:rounded-xl transition-all active:scale-95 ${!client.email ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-50 text-gray-500 active:text-blue-600 active:bg-blue-50'}`} 
                                                 title={client.email ? "שלח מייל" : "חסר אימייל"}
+                                                aria-label="שלח מייל"
                                             >
-                                                <Mail size={18} />
+                                                <Mail size={16} className="md:w-[18px] md:h-[18px]" />
                                             </a>
                                             <a 
                                                 href={`tel:${client.phone}`} 
                                                 onClick={(e) => e.stopPropagation()}
-                                                className="p-2 bg-gray-50 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-xl transition-colors" 
+                                                className="p-2 md:p-2.5 bg-gray-50 text-gray-500 active:text-green-600 active:bg-green-50 rounded-lg md:rounded-xl transition-all active:scale-95" 
                                                 title="התקשר"
+                                                aria-label="התקשר"
                                             >
-                                                <Phone size={18} />
+                                                <Phone size={16} className="md:w-[18px] md:h-[18px]" />
                                             </a>
                                         </div>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setSelectedClient(client); }}
-                                            className="text-xs font-bold text-gray-400 group-hover:text-blue-600 flex items-center gap-1 transition-colors"
+                                            className="text-[10px] md:text-xs font-bold text-gray-400 group-active:text-blue-600 flex items-center gap-1 transition-colors active:scale-95"
                                         >
-                                            פרטים מלאים <ExternalLink size={12} />
+                                            <span className="hidden sm:inline">פרטים מלאים</span>
+                                            <span className="sm:hidden">פרטים</span>
+                                            <ExternalLink size={10} className="md:w-3 md:h-3" />
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))}
                     
-                    <button 
-                        onClick={openAddClientModal}
-                        className="border-2 border-dashed border-gray-200 rounded-3xl flex flex-col items-center justify-center p-8 text-gray-400 min-h-[300px] text-center hover:border-gray-400 hover:bg-gray-50 transition-all cursor-pointer group"
-                    >
-                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                             <Plus size={32} />
+                            {/* Add Client Card - Mobile Optimized */}
+                            <motion.button 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: sortedClients.length * 0.05 }}
+                                onClick={openAddClientModal}
+                                className="border-2 border-dashed border-gray-200 rounded-2xl md:rounded-3xl flex flex-col items-center justify-center p-6 md:p-8 text-gray-400 min-h-[240px] md:min-h-[300px] text-center hover:border-gray-400 hover:bg-gray-50 active:scale-[0.98] transition-all cursor-pointer group"
+                            >
+                                <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3 md:mb-4 group-active:scale-110 transition-transform">
+                                     <Plus size={24} className="md:w-8 md:h-8" />
+                                </div>
+                                <p className="text-sm md:text-base font-bold text-gray-700">הוסף לקוח חדש</p>
+                                <p className="text-xs md:text-sm text-gray-600 mt-1">לחץ להקמת תיק לקוח</p>
+                            </motion.button>
                         </div>
-                        <p className="text-sm font-bold text-gray-500">הוסף לקוח חדש</p>
-                        <p className="text-xs text-gray-400 mt-1">לחץ להקמת תיק לקוח</p>
-                    </button>
-                </div>
+                    )}
+                </>
             )}
 
-            {/* List View */}
-            <div className="hidden md:block">
-                {viewMode === 'list' && (
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-right">
-                                <thead className="bg-gray-50/50 text-gray-500 font-bold border-b border-gray-100">
-                                    <tr>
-                                        <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('companyName')}>
-                                            <div className="flex items-center gap-2">חברה / לקוח <SortIcon columnKey="companyName" sortConfig={sortConfig} /></div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors hidden md:table-cell" onClick={() => handleSort('contactPerson')}>
-                                            <div className="flex items-center gap-2">איש קשר <SortIcon columnKey="contactPerson" sortConfig={sortConfig} /></div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('package')}>
-                                            <div className="flex items-center gap-2">חבילה <SortIcon columnKey="package" sortConfig={sortConfig} /></div>
-                                        </th>
-                                        <th className="px-6 py-4">
-                                            <div className="flex items-center gap-2">מקור הגעה</div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
-                                            <div className="flex items-center gap-2">סטטוס <SortIcon columnKey="status" sortConfig={sortConfig} /></div>
-                                        </th>
-                                        <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors hidden sm:table-cell" onClick={() => handleSort('joinedAt')}>
-                                            <div className="flex items-center gap-2">הצטרף ב <SortIcon columnKey="joinedAt" sortConfig={sortConfig} /></div>
-                                        </th>
-                                        <th className="px-6 py-4">פעולות</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {sortedClients.map(client => (
-                                        <tr 
-                                            key={client.id} 
-                                            onClick={() => setSelectedClient(client)}
-                                            className="hover:bg-blue-50/30 cursor-pointer transition-colors group"
-                                        >
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <img src={client.avatar} className="w-10 h-10 rounded-xl border border-gray-100 object-cover" />
-                                                    <span className="font-bold text-gray-900 group-hover:text-blue-700">{client.companyName}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600 hidden md:table-cell">
-                                                <div className="font-medium">{client.contactPerson}</div>
-                                                <div className="text-xs text-gray-400 font-mono">{client.phone}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border inline-flex items-center gap-1 bg-gray-100 text-gray-800 border-gray-300`}>
-                                                    <ShoppingBag size={10} />
-                                                    {client.package}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-xs text-gray-500">
-                                                {client.source || '-'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                                                    client.status === 'Active' ? 'text-green-700 bg-green-50 border border-green-100' : 'text-yellow-700 bg-yellow-50 border border-yellow-100'
-                                                }`}>
-                                                    {client.status === 'Active' ? 'פעיל' : 'תהליך קליטה'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-500 text-xs hidden sm:table-cell font-mono">
-                                                {new Date(client.joinedAt).toLocaleDateString('he-IL')}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                    <a 
-                                                        href={`mailto:${client.email}`} 
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className={`p-1.5 rounded-lg transition-colors ${!client.email ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
-                                                    >
-                                                        <Mail size={16} />
-                                                    </a>
-                                                    <a 
-                                                        href={`tel:${client.phone}`} 
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                                    >
-                                                        <Phone size={16} />
-                                                    </a>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); setSelectedClient(client); }}
-                                                        className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                                                    >
-                                                        <ExternalLink size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
+            {/* List View - Desktop Table & Mobile Cards */}
+            {viewMode === 'list' && (
+                <>
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block">
+                        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-right">
+                                    <thead className="bg-gray-50/50 text-gray-500 font-bold border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('companyName')}>
+                                                <div className="flex items-center gap-2">חברה / לקוח <SortIcon columnKey="companyName" sortConfig={sortConfig} /></div>
+                                            </th>
+                                            <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('contactPerson')}>
+                                                <div className="flex items-center gap-2">איש קשר <SortIcon columnKey="contactPerson" sortConfig={sortConfig} /></div>
+                                            </th>
+                                            <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('package')}>
+                                                <div className="flex items-center gap-2">חבילה <SortIcon columnKey="package" sortConfig={sortConfig} /></div>
+                                            </th>
+                                            <th className="px-6 py-4">
+                                                <div className="flex items-center gap-2">מקור הגעה</div>
+                                            </th>
+                                            <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('status')}>
+                                                <div className="flex items-center gap-2">סטטוס <SortIcon columnKey="status" sortConfig={sortConfig} /></div>
+                                            </th>
+                                            <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('joinedAt')}>
+                                                <div className="flex items-center gap-2">הצטרף ב <SortIcon columnKey="joinedAt" sortConfig={sortConfig} /></div>
+                                            </th>
+                                            <th className="px-6 py-4">פעולות</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50">
+                                        {sortedClients.length === 0 ? (
+                                            <tr>
+                                                <td colSpan={7} className="px-6 py-16 text-center">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                                            <Users size={32} className="text-gray-400" />
+                                                        </div>
+                                                        <h3 className="text-lg font-black text-gray-900 mb-2">אין לקוחות פעילים</h3>
+                                                        <p className="text-sm text-gray-500 mb-6">התחל על ידי הוספת לקוח חדש</p>
+                                                        <button 
+                                                            onClick={openAddClientModal}
+                                                            className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+                                                        >
+                                                            <Plus size={18} /> הוסף לקוח ראשון
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            sortedClients.map(client => (
+                                                <tr 
+                                                    key={client.id} 
+                                                    onClick={() => setSelectedClient(client)}
+                                                    className="hover:bg-blue-50/30 cursor-pointer transition-colors group"
+                                                >
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <img src={client.avatar} className="w-10 h-10 rounded-xl border border-gray-100 object-cover" />
+                                                            <span className="font-bold text-gray-900 group-hover:text-blue-700">{client.companyName}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-600">
+                                                        <div className="font-medium">{client.contactPerson}</div>
+                                                        <div className="text-xs text-gray-400 font-mono">{client.phone}</div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide border inline-flex items-center gap-1 bg-gray-100 text-gray-800 border-gray-300`}>
+                                                            <ShoppingBag size={10} />
+                                                            {client.package}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-xs text-gray-500">
+                                                        {client.source || '-'}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                                                            client.status === 'Active' ? 'text-green-700 bg-green-50 border border-green-100' : 'text-yellow-700 bg-yellow-50 border border-yellow-100'
+                                                        }`}>
+                                                            {client.status === 'Active' ? 'פעיל' : 'תהליך קליטה'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-gray-500 text-xs font-mono">
+                                                        {new Date(client.joinedAt).toLocaleDateString('he-IL')}
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                            <a 
+                                                                href={`mailto:${client.email}`} 
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className={`p-1.5 rounded-lg transition-colors ${!client.email ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                                            >
+                                                                <Mail size={16} />
+                                                            </a>
+                                                            <a 
+                                                                href={`tel:${client.phone}`} 
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                                            >
+                                                                <Phone size={16} />
+                                                            </a>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setSelectedClient(client); }}
+                                                                className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                                            >
+                                                                <ExternalLink size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                )}
-            </div>
+
+                    {/* Mobile Card View for List Mode */}
+                    <div className="md:hidden space-y-3">
+                        {sortedClients.length === 0 ? (
+                            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <Users size={32} className="text-gray-400" />
+                                </div>
+                                <h3 className="text-lg font-black text-gray-900 mb-2">אין לקוחות פעילים</h3>
+                                <p className="text-sm text-gray-500 mb-6">התחל על ידי הוספת לקוח חדש</p>
+                                <button 
+                                    onClick={openAddClientModal}
+                                    className="bg-black text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all"
+                                >
+                                    <Plus size={18} /> הוסף לקוח ראשון
+                                </button>
+                            </div>
+                        ) : (
+                            sortedClients.map((client, index) => (
+                            <motion.div
+                                key={client.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.03 }}
+                                onClick={() => setSelectedClient(client)}
+                                className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md active:scale-[0.98] transition-all overflow-hidden group cursor-pointer"
+                            >
+                                <div className="p-4">
+                                    {/* Header Row */}
+                                    <div className="flex items-start gap-3 mb-3">
+                                        <img 
+                                            src={client.avatar} 
+                                            className="w-12 h-12 rounded-xl border border-gray-100 object-cover shrink-0" 
+                                            alt={client.companyName}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-black text-gray-900 text-base leading-tight mb-1 line-clamp-1">{client.companyName}</h3>
+                                            <p className="text-xs text-gray-500 font-medium line-clamp-1">{client.contactPerson}</p>
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide border shrink-0
+                                            ${client.status === 'Active' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-yellow-50 text-yellow-700 border-yellow-100'}`}>
+                                            {client.status === 'Active' ? 'פעיל' : 'קליטה'}
+                                        </span>
+                                    </div>
+
+                                    {/* Info Row */}
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                        <div className={`text-[10px] px-2 py-1 rounded-lg font-bold uppercase tracking-wide border flex items-center gap-1 bg-gray-50 text-gray-800 border-gray-200`}>
+                                            <ShoppingBag size={9} />
+                                            {client.package}
+                                        </div>
+                                        {client.source && (
+                                            <div className="text-[10px] px-2 py-1 rounded-lg font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                                                {client.source}
+                                            </div>
+                                        )}
+                                        <div className="text-[10px] text-gray-500 font-mono">
+                                            {new Date(client.joinedAt).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' })}
+                                        </div>
+                                    </div>
+
+                                    {/* Actions Row */}
+                                    <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                                        <div className="flex gap-2">
+                                            <a 
+                                                href={`mailto:${client.email}`} 
+                                                onClick={(e) => e.stopPropagation()}
+                                                className={`p-2 rounded-lg transition-all active:scale-95 ${!client.email ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-50 text-gray-500 active:text-blue-600 active:bg-blue-50'}`}
+                                                aria-label="שלח מייל"
+                                            >
+                                                <Mail size={16} />
+                                            </a>
+                                            <a 
+                                                href={`tel:${client.phone}`} 
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-2 bg-gray-50 text-gray-500 active:text-green-600 active:bg-green-50 rounded-lg transition-all active:scale-95"
+                                                aria-label="התקשר"
+                                            >
+                                                <Phone size={16} />
+                                            </a>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setSelectedClient(client); }}
+                                            className="text-[10px] font-bold text-gray-400 group-active:text-blue-600 flex items-center gap-1 transition-colors active:scale-95"
+                                        >
+                                            פרטים מלאים
+                                            <ExternalLink size={10} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                            ))
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     );
 };

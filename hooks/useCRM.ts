@@ -1,7 +1,9 @@
+'use client';
 
-import { useState } from 'react';
-import { Client, Lead, Asset, Invoice, Product, Tenant, DriveFile, LeadStatus } from '../types';
-import { CLIENTS, LEADS, ASSETS, DEFAULT_PRODUCTS, TENANTS } from '../constants';
+import { useState, useEffect } from 'react';
+import { Client, Lead, Asset, Invoice, Product, Tenant, LeadStatus } from '../types';
+import { DEFAULT_PRODUCTS } from '../constants';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 export const useCRM = (
     currentUser: any,
@@ -9,18 +11,14 @@ export const useCRM = (
     addToast: (m: string, t?: any) => void,
     applyTemplate: (templateId: string, clientId?: string, clientName?: string) => void // NEW DEPENDENCY
 ) => {
-    const [clients, setClients] = useState<Client[]>(CLIENTS);
-    const [leads, setLeads] = useState<Lead[]>(LEADS);
-    const [assets, setAssets] = useState<Asset[]>(ASSETS);
+    const [clients, setClients] = useState<Client[]>([]);
+    const [leads, setLeads] = useState<Lead[]>([]);
+    const [assets, setAssets] = useState<Asset[]>([]);
     const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
-    const [tenants, setTenants] = useState<Tenant[]>(TENANTS);
+    const [tenants, setTenants] = useState<Tenant[]>([]);
     
     // Invoices
-    const [invoices, setInvoices] = useState<Invoice[]>([
-        { id: 'INV-1001', number: '1001', date: '2023-10-01', amount: 390, currency: 'ILS', status: 'Paid', url: '#', userId: '1', description: 'Nexus Pro - חודשי' },
-        { id: 'INV-1002', number: '1002', date: '2023-11-01', amount: 390, currency: 'ILS', status: 'Paid', url: '#', userId: '1', description: 'Nexus Pro - חודשי' },
-        { id: 'INV-2001', number: '2001', date: '2023-10-15', amount: 15000, currency: 'ILS', status: 'Paid', url: '#', clientId: 'C-1', description: 'ליווי עסקי Premium' },
-    ]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
 
     // Trash Bins
     const [trashClients, setTrashClients] = useState<Client[]>([]);
@@ -28,9 +26,6 @@ export const useCRM = (
     const [trashAssets, setTrashAssets] = useState<Asset[]>([]);
 
     // External Integration State
-    const [isDriveConnected, setIsDriveConnected] = useState(false);
-    const [isConnectingDrive, setIsConnectingDrive] = useState(false);
-    const [driveFiles, setDriveFiles] = useState<DriveFile[]>([]);
     const [isGreenInvoiceConnected, setIsGreenInvoiceConnected] = useState(false);
     const [incomingCall, setIncomingCall] = useState<any>(null);
 
@@ -71,7 +66,7 @@ export const useCRM = (
     // --- Lead Logic ---
     const addLead = (lead: Lead) => {
         setLeads(prev => [...prev, lead]);
-        addToast('ליד חדש נוצר', 'success');
+        addToast('ליד נוצר', 'success');
     };
 
     const updateLead = (id: string, updates: Partial<Lead>) => {
@@ -167,24 +162,85 @@ export const useCRM = (
     };
 
     // --- Invoices ---
-    const generateInvoice = (clientId: string, amount: number, description: string) => {
+    const generateInvoice = async (clientId: string, amount: number, description: string) => {
         if (!isGreenInvoiceConnected) {
-            addToast('נא לחבר את חשבונית ירוקה בהגדרות תחילה', 'warning');
+            addToast('נא לחבר את מורנינג בהגדרות תחילה', 'warning');
             return;
         }
-        const newInvoice: Invoice = {
-            id: `INV-${Date.now()}`,
-            number: Math.floor(Math.random() * 10000).toString(),
-            date: new Date().toISOString().split('T')[0],
-            amount,
-            currency: 'ILS',
-            status: 'Pending',
-            url: '#',
-            clientId,
-            description
-        };
-        setInvoices(prev => [newInvoice, ...prev]);
-        addToast('חשבונית הופקה ונשלחה ללקוח (דמו)', 'success');
+
+        // Find client to get details
+        const client = clients.find(c => c.id === clientId);
+        if (!client) {
+            addToast('לקוח לא נמצא', 'error');
+            return;
+        }
+
+        try {
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/integrations/green-invoice/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+                },
+                body: JSON.stringify({
+                    clientName: client.companyName || client.name,
+                    clientEmail: client.email,
+                    clientPhone: client.phone,
+                    items: [{
+                        description,
+                        quantity: 1,
+                        price: amount,
+                        vatRate: 17 // Default VAT rate
+                    }],
+                    currency: 'ILS',
+                    paymentMethod: 'bank_transfer',
+                    notes: `לקוח: ${client.companyName || client.name}`
+                })
+            });
+
+            if (!response.ok) {
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    if (response.status === 402 && (error as any)?.code === 'UPGRADE_REQUIRED') {
+                        const pkg = (error as any)?.paywall?.recommendedPackageType || 'the_operator';
+                        window.location.href = `/subscribe/checkout?billing=monthly&package=${encodeURIComponent(String(pkg))}`;
+                        return;
+                    }
+                    throw new Error(error.error || 'Failed to create invoice');
+                } else {
+                    // Response is HTML (error page)
+                    const text = await response.text();
+                    throw new Error(`Failed to create invoice (${response.status}): ${text.substring(0, 100)}`);
+                }
+            }
+
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('Invalid response format from server');
+            }
+            
+            const data = await response.json();
+            const newInvoice: Invoice = {
+                id: data.invoice.invoiceId,
+                number: data.invoice.invoiceNumber,
+                date: new Date().toISOString().split('T')[0],
+                amount,
+                currency: 'ILS',
+                status: 'Pending',
+                url: data.invoice.invoiceUrl,
+                clientId,
+                description
+            };
+            setInvoices(prev => [newInvoice, ...prev]);
+            addToast('חשבונית הופקה ונשלחה ללקוח', 'success');
+        } catch (error: any) {
+            console.error('[CRM] Error generating invoice:', error);
+            addToast(error.message || 'שגיאה ביצירת חשבונית', 'error');
+        }
     };
 
     // --- Products & Tenants ---
@@ -197,30 +253,129 @@ export const useCRM = (
         setTenants(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     };
 
+    const deleteTenant = (id: string) => {
+        setTenants(prev => prev.filter(t => t.id !== id));
+        addToast('לקוח עסקי נמחק', 'info');
+    };
+
+    // NEW: Update tenant version
+    const updateTenantVersion = (tenantId: string, version: string) => {
+        updateTenant(tenantId, { version });
+        addToast(`גרסת הלקוח עודכנה ל-${version}`, 'success');
+    };
+
+    // NEW: Add allowed email to tenant
+    const addAllowedEmail = (tenantId: string, email: string) => {
+        const tenant = tenants.find(t => t.id === tenantId);
+        if (tenant) {
+            const currentEmails = tenant.allowedEmails || [];
+            if (!currentEmails.includes(email)) {
+                updateTenant(tenantId, { allowedEmails: [...currentEmails, email] });
+                addToast(`מייל ${email} נוסף לרשימת המיילים המאושרים`, 'success');
+            } else {
+                addToast('המייל כבר קיים ברשימה', 'info');
+            }
+        }
+    };
+
+    // NEW: Remove allowed email from tenant
+    const removeAllowedEmail = (tenantId: string, email: string) => {
+        const tenant = tenants.find(t => t.id === tenantId);
+        if (tenant) {
+            const currentEmails = tenant.allowedEmails || [];
+            updateTenant(tenantId, { allowedEmails: currentEmails.filter(e => e !== email) });
+            addToast(`מייל ${email} הוסר מרשימת המיילים המאושרים`, 'info');
+        }
+    };
+
     const deleteProduct = (id: string) => {
         setProducts(prev => prev.filter(p => p.id !== id));
         addToast('מוצר נמחק בהצלחה', 'info');
     };
 
     // --- Integrations ---
-    const connectGoogleDrive = () => {
-        setIsConnectingDrive(true);
-        setTimeout(() => {
-            setIsConnectingDrive(false);
-            setIsDriveConnected(true);
-            setDriveFiles([
-                { id: 'df-1', name: 'מצגת משקיעים 2024', mimeType: 'presentation', url: '#', modifiedAt: '2023-10-25', owner: 'me' },
-                { id: 'df-2', name: 'דוח כספי Q3', mimeType: 'spreadsheet', url: '#', modifiedAt: '2023-10-20', owner: 'me' },
-                { id: 'df-3', name: 'לוגו החברה - וקטורי', mimeType: 'image', url: '#', modifiedAt: '2023-09-15', owner: 'me' },
-                { id: 'df-4', name: 'חוזה עבודה סטנדרטי', mimeType: 'document', url: '#', modifiedAt: '2023-08-01', owner: 'me' },
-            ]);
-            addToast('Google Drive מחובר בהצלחה', 'success');
-        }, 1500);
+    const connectGoogleCalendar = async () => {
+        try {
+            // Redirect to OAuth authorization (real Google OAuth, not demo)
+            window.location.href = '/api/integrations/google/authorize?service=calendar';
+        } catch (error: any) {
+            console.error('[CRM] Error connecting Google Calendar:', error);
+            addToast('שגיאה בחיבור ל-Google Calendar', 'error');
+        }
     };
 
-    const connectGreenInvoice = () => {
-        setIsGreenInvoiceConnected(true);
-        addToast('חשבונית ירוקה חוברה בהצלחה', 'success');
+    // Load Green Invoice connection status on mount
+    useEffect(() => {
+        let mounted = true;
+        const checkGreenInvoiceStatus = async () => {
+            try {
+                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                const response = await fetch('/api/integrations/green-invoice/status', {
+                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                });
+                if (!mounted) return;
+                
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (response.ok && contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    setIsGreenInvoiceConnected(data.connected || false);
+                } else {
+                    // Not JSON or not OK - assume not connected
+                    if (mounted) {
+                        setIsGreenInvoiceConnected(false);
+                    }
+                }
+            } catch (error) {
+                // Silently fail - integration is optional
+                console.warn('[CRM] Error checking Green Invoice status:', error);
+                if (mounted) {
+                    setIsGreenInvoiceConnected(false);
+                }
+            }
+        };
+        checkGreenInvoiceStatus();
+        return () => { mounted = false; };
+    }, []);
+
+    const connectGreenInvoice = async () => {
+        try {
+            // Show modal or prompt for API key
+            const apiKey = prompt('הזן את מפתח ה-API של מורנינג:');
+            if (!apiKey || !apiKey.trim()) {
+                addToast('נא להזין API Key', 'warning');
+                return;
+            }
+
+            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const response = await fetch('/api/integrations/green-invoice/connect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+                },
+                body: JSON.stringify({ apiKey })
+            });
+
+            if (!response.ok) {
+                // Check if response is JSON before parsing
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to connect Green Invoice');
+                } else {
+                    // Response is HTML (error page) - extract text or use status
+                    const text = await response.text();
+                    throw new Error(`Failed to connect מורנינג (${response.status}): ${text.substring(0, 100)}`);
+                }
+            }
+
+            setIsGreenInvoiceConnected(true);
+            addToast('חשבונית ירוקה חוברה בהצלחה', 'success');
+        } catch (error: any) {
+            console.error('[CRM] Error connecting Green Invoice:', error);
+            addToast(error.message || 'שגיאה בחיבור למורנינג', 'error');
+        }
     };
 
     // --- CRITICAL FIX: AUTO-ONBOARDING LOGIC ---
@@ -246,7 +401,7 @@ export const useCRM = (
         addNotification({
             recipientId: 'all',
             type: 'system',
-            text: `לקוח חדש נקלט מ-Sales OS: ${newClient.companyName}`,
+            text: `לקוח חדש נקלט מ-System: ${newClient.companyName}`,
             actorName: 'Webhook'
         });
         
@@ -284,14 +439,16 @@ export const useCRM = (
     const dismissCall = () => setIncomingCall(null);
 
     return {
-        clients, leads, assets, products, invoices, tenants, driveFiles,
+        clients, leads, assets, products, invoices, tenants,
         trashClients, trashLeads, trashAssets,
-        isDriveConnected, isConnectingDrive, isGreenInvoiceConnected, incomingCall,
+        isGreenInvoiceConnected, incomingCall,
         addClient, updateClient, deleteClient, restoreClient, permanentlyDeleteClient,
         addLead, updateLead, deleteLead, restoreLead, permanentlyDeleteLead, convertLeadToClient,
         addAsset, updateAsset, deleteAsset, restoreAsset, permanentlyDeleteAsset,
-        generateInvoice, addTenant, updateTenant, deleteProduct,
-        connectGoogleDrive, connectGreenInvoice, onboardClientFromWebhook, simulateIncomingCall, dismissCall,
-        setProducts
+        generateInvoice, addTenant, updateTenant, deleteTenant, deleteProduct,
+        connectGoogleCalendar, connectGreenInvoice, onboardClientFromWebhook, simulateIncomingCall, dismissCall,
+        setProducts,
+        // NEW: Version and Email Management
+        updateTenantVersion, addAllowedEmail, removeAllowedEmail
     };
 };

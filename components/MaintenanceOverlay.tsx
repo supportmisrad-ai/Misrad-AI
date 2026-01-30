@@ -2,10 +2,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { HardHat, Home, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
+import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
 
 export const MaintenanceOverlay: React.FC = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const pathname = usePathname();
+    const basePath = getNexusBasePath(pathname);
 
     return (
         <div className="flex flex-col items-center justify-center h-full w-full bg-slate-50 relative overflow-hidden rounded-3xl border-2 border-dashed border-yellow-200">
@@ -28,7 +31,7 @@ export const MaintenanceOverlay: React.FC = () => {
                 
                 <div className="flex gap-3 justify-center">
                     <button 
-                        onClick={() => navigate('/')}
+                        onClick={() => router.push(toNexusPath(basePath, '/'))}
                         className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-colors flex items-center gap-2"
                     >
                         <Home size={18} /> חזרה לבית

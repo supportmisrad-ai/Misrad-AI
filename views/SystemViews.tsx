@@ -1,10 +1,13 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, Map, ArrowRight, Home, Lock } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { getNexusBasePath, toNexusPath } from '@/lib/os/nexus-routing';
 
 export const NotFoundView: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
+  const pathname = usePathname();
+  const basePath = getNexusBasePath(pathname);
 
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-6">
@@ -17,7 +20,7 @@ export const NotFoundView: React.FC = () => {
         נראה שהלכת לאיבוד במערכת. העמוד שחיפשת אינו קיים או שהועבר למקום אחר.
       </p>
       <button 
-        onClick={() => navigate('/')}
+        onClick={() => router.push(toNexusPath(basePath, '/'))}
         className="flex items-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all"
       >
         <Home size={18} /> חזרה ללוח הבקרה
@@ -27,7 +30,9 @@ export const NotFoundView: React.FC = () => {
 };
 
 export const AccessDeniedView: React.FC = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
+  const pathname = usePathname();
+  const basePath = getNexusBasePath(pathname);
 
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-10rem)] text-center p-6">
@@ -54,7 +59,7 @@ export const AccessDeniedView: React.FC = () => {
             חזור אחורה
           </button>
           <button 
-            onClick={() => navigate('/')}
+            onClick={() => router.push(toNexusPath(basePath, '/'))}
             className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:bg-black transition-all"
           >
             ללוח הבקרה <ArrowRight size={18} className="rotate-180" />

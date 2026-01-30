@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { useData } from '../context/DataContext';
 import { Status } from '../types';
 import { STATUS_COLORS } from '../constants';
@@ -8,9 +8,10 @@ import { CheckCircle2, Clock, Calendar, ArrowRight, ShieldCheck, Download, Messa
 import confetti from 'canvas-confetti';
 
 export const GuestView: React.FC = () => {
-  const { taskId } = useParams();
+  const params = useParams();
+  const taskId = (params as any)?.taskId as string | undefined;
   const { tasks, workflowStages, addGuestMessage, approveTaskByGuest } = useData();
-  const task = tasks.find(t => t.id === taskId);
+  const task = tasks.find((t: any) => t.id === taskId);
   const [commentText, setCommentText] = useState('');
 
   if (!task) {
@@ -84,7 +85,7 @@ export const GuestView: React.FC = () => {
             
             <div className="mb-8">
                 <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-3 inline-block">
-                    סטטוס פרויקט: {workflowStages.find(s => s.id === task.status)?.name || task.status}
+                    סטטוס פרויקט: {workflowStages.find((s: any) => s.id === task.status)?.name || task.status}
                 </span>
                 <div className="flex justify-between items-start">
                     <h1 className="text-3xl md:text-5xl font-bold text-gray-900 leading-tight mb-4">{task.title}</h1>
@@ -153,7 +154,7 @@ export const GuestView: React.FC = () => {
                                 </div>
                             </div>
 
-                            {visibleMessages.map((msg) => (
+                            {visibleMessages.map((msg: any) => (
                                 <div key={msg.id} className={`relative flex gap-4 ${msg.senderId === 'guest' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white shadow-sm flex-shrink-0 font-bold text-xs
                                         ${msg.senderId === 'guest' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'}
@@ -208,7 +209,7 @@ export const GuestView: React.FC = () => {
 
             <div className="mt-12 text-center border-t border-gray-200 pt-8">
                 <p className="text-sm text-gray-400">
-                    מופעל על ידי <span className="font-bold text-gray-600">Nexus OS</span>
+                    מופעל על ידי <span className="font-bold text-gray-600">Misrad</span>
                 </p>
             </div>
         </main>

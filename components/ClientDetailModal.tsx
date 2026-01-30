@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
-import { Client, Status, Priority, Asset } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Client, Status, Priority, Asset, Task, Invoice } from '../types';
 import { useData } from '../context/DataContext';
 import { X, Mail, Phone, Calendar, FolderOpen, Plus, ExternalLink, CheckCircle2, Clock, Briefcase, FileText, Edit2, Save, Trash2, LayoutDashboard, ListTodo, Link, Key, Zap, MessageCircle, MapPin, DollarSign, Upload, Check, ChevronDown, Receipt, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TaskItem } from './TaskItem';
+import { TaskItem } from './nexus/TaskItem';
 import { CustomSelect } from './CustomSelect';
 import { DeleteConfirmationModal } from './DeleteConfirmationModal';
+import { CreateInvoiceModal } from './CreateInvoiceModal';
 
 interface ClientDetailModalProps {
   client: Client;
@@ -27,25 +28,36 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
   
   // Delete Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
+  // Invoice Modal
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
+
+  // Scroll to top on mobile when modal opens
+  useEffect(() => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (isMobile) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+  }, []);
 
   // Filter tasks related to this client (Robust Check: ID or Name match)
-  const clientTasks = tasks.filter(t => 
+  const clientTasks: Task[] = tasks.filter((t: Task) => 
       t.clientId === client.id || // Exact match
       t.tags.some(tag => tag.toLowerCase() === client.companyName.toLowerCase()) // Fallback for old tasks
   );
 
-  const activeTasks = clientTasks.filter(t => t.status !== Status.DONE && t.status !== Status.CANCELED);
-  const completedTasks = clientTasks.filter(t => t.status === Status.DONE);
+  const activeTasks = clientTasks.filter((t: Task) => t.status !== Status.DONE && t.status !== Status.CANCELED);
+  const completedTasks = clientTasks.filter((t: Task) => t.status === Status.DONE);
   const progress = clientTasks.length > 0 ? Math.round((completedTasks.length / clientTasks.length) * 100) : 0;
 
   // Filter assets related to this client (Robust Check: ID or Name match)
-  const clientAssets = assets.filter(a => 
+  const clientAssets = assets.filter((a: Asset) => 
       a.clientId === client.id || 
       a.tags.some(tag => tag.toLowerCase() === client.companyName.toLowerCase())
   );
 
   // Filter Invoices
-  const clientInvoices = invoices.filter(inv => inv.clientId === client.id);
+  const clientInvoices = invoices.filter((inv: Invoice) => inv.clientId === client.id);
 
   // Mock Financial Data based on package
   const monthlyValue = client.package === 'Premium 1:1' ? 15000 : client.package === 'Mastermind Group' ? 5000 : 2500;
@@ -95,13 +107,15 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
   };
 
   const handleGenerateInvoice = () => {
-      const amount = prompt('סכום החשבונית (בש״ח):', monthlyValue.toString());
-      if (amount) {
-          const desc = prompt('תיאור:', `שירות ${client.package} - חודש שוטף`);
-          if (desc) {
-              generateInvoice(client.id, Number(amount), desc);
+      setIsInvoiceModalOpen(true);
+  };
+
+  const handleInvoiceSuccess = (invoiceUrl: string) => {
+      if (invoiceUrl) {
+          window.open(invoiceUrl, '_blank');
           }
-      }
+      // Refresh invoices list
+      window.location.reload();
   };
 
   const getAssetIcon = (type: string) => {
@@ -159,13 +173,13 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
         <div className={`h-40 w-full relative flex-shrink-0 ${getGradient(client.package)}`}>
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
             <div className="absolute top-4 left-4 flex gap-3 z-20">
-                {/* Sales OS Jump Button */}
+                {/* System.OS Jump Button */}
                 <button 
                     onClick={openSalesOS}
                     className="bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-full backdrop-blur-md transition-colors flex items-center gap-2 text-xs font-bold border border-white/20"
-                    title="פתח תיק לקוח ב-Sales OS"
+                    title="פתח תיק לקוח ב-System"
                 >
-                    <Zap size={14} /> Sales OS
+                    <Zap size={14} /> System
                 </button>
                 <button 
                     onClick={onClose}
@@ -248,7 +262,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                             <Mail size={18} />
                         </a>
                         <a 
-                            href={`https://wa.me/${client.phone?.replace(/-/g, '').replace(/^0/, '972')}`} 
+                            href={`https://wa.me/${String((client as any)?.phone ?? '').replace(/-/g, '').replace(/^0/, '972')}`} 
                             target="_blank" 
                             rel="noreferrer"
                             className="flex items-center justify-center p-2.5 bg-gray-50 text-gray-600 rounded-xl hover:bg-green-100 hover:text-green-700 transition-colors"
@@ -340,7 +354,8 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
             <div className="flex-1 flex flex-col h-auto md:h-full md:overflow-hidden pt-12 md:pt-0">
                 
                 {/* NEW TABS - SEGMENTED CONTROL STYLE */}
-                <div className="flex p-1 bg-gray-100/80 rounded-xl mb-6 self-start overflow-x-auto no-scrollbar max-w-full">
+                <div className="flex p-1 bg-gray-100/80 rounded-xl mb-6 self-start overflow-x-auto no-scrollbar w-full max-w-full">
+                    <div className="flex gap-1 min-w-max">
                     {[
                         { id: 'overview', label: 'לוח בקרה', icon: LayoutDashboard },
                         { id: 'tasks', label: `משימות (${activeTasks.length})`, icon: ListTodo },
@@ -351,16 +366,17 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`
-                                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap
+                                    flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-bold transition-all duration-200 whitespace-nowrap shrink-0
                                 ${activeTab === tab.id 
                                     ? 'bg-white shadow-sm text-gray-900 ring-1 ring-black/5' 
                                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}
                             `}
                         >
-                            <tab.icon size={16} className={activeTab === tab.id ? 'text-gray-900' : 'text-gray-400'} />
-                            {tab.label}
+                                <tab.icon size={14} className="md:w-4 md:h-4 shrink-0" />
+                                <span>{tab.label}</span>
                         </button>
                     ))}
+                    </div>
                 </div>
 
                 {/* Tab Content */}
@@ -391,7 +407,12 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                                         <Clock size={14} className="text-orange-500" /> שעות עבודה
                                     </div>
                                     <div className="text-2xl font-bold text-gray-900">
-                                        {Math.round(clientTasks.reduce((acc, t) => acc + (t.timeSpent || 0), 0) / 3600)}
+                                        {Math.round(
+                                          clientTasks.reduce(
+                                            (acc: number, t: Task) => acc + (t.timeSpent || 0),
+                                            0
+                                          ) / 3600
+                                        )}
                                     </div>
                                     <div className="text-xs text-gray-400">שעות מצטברות החודש</div>
                                 </div>
@@ -401,7 +422,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                             <div>
                                 <h3 className="text-sm font-bold text-gray-900 mb-3">משימות אחרונות</h3>
                                 <div className="space-y-2">
-                                    {clientTasks.slice(0, 3).map(task => (
+                                    {clientTasks.slice(0, 3).map((task: Task) => (
                                         <div key={task.id} className="bg-white p-3 rounded-xl border border-gray-100 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-2 h-2 rounded-full ${task.status === Status.DONE ? 'bg-green-500' : 'bg-blue-500'}`}></div>
@@ -440,7 +461,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                             </div>
                             {clientTasks.length > 0 ? (
                                 <div className="space-y-2">
-                                    {clientTasks.map(task => (
+                                    {clientTasks.map((task: Task) => (
                                         <TaskItem key={task.id} task={task} users={users} />
                                     ))}
                                 </div>
@@ -509,7 +530,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
 
                              {clientAssets.length > 0 ? (
                                  <div className="grid grid-cols-2 gap-3">
-                                    {clientAssets.map(asset => (
+                                     {clientAssets.map((asset: Asset) => (
                                         <div key={asset.id} className="p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-300 transition-all group flex flex-col justify-between h-32">
                                             <div className="flex justify-between items-start">
                                                 <div className="p-2 bg-gray-50 rounded-lg text-gray-600 border border-gray-100 group-hover:bg-white group-hover:shadow-sm transition-colors">
@@ -554,7 +575,7 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
 
                             {clientInvoices.length > 0 ? (
                                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                    {clientInvoices.map((inv, idx) => (
+                                    {clientInvoices.map((inv: Invoice, idx: number) => (
                                         <div key={inv.id} className={`flex items-center justify-between p-4 ${idx !== clientInvoices.length - 1 ? 'border-b border-gray-100' : ''} hover:bg-gray-50 transition-colors`}>
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-green-50 text-green-600 rounded-lg"><Receipt size={18} /></div>
@@ -584,7 +605,21 @@ export const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, on
                 </div>
             </div>
 
-        </motion.div>
+          {/* End Main Content Container */}
+        </div>
+      </motion.div>
+
+      {/* Create Invoice Modal */}
+      <CreateInvoiceModal
+        isOpen={isInvoiceModalOpen}
+        onClose={() => setIsInvoiceModalOpen(false)}
+        onSuccess={handleInvoiceSuccess}
+        clientName={client.companyName || client.name}
+        clientEmail={client.email}
+        clientPhone={client.phone}
+        defaultAmount={monthlyValue}
+        defaultDescription={`שירות ${client.package} - חודש שוטף`}
+      />
     </div>
   );
 };

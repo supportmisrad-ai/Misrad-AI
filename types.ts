@@ -3,14 +3,14 @@ import { LucideIcon } from 'lucide-react';
 
 export type PermissionId = 
     | 'view_financials' 
-    | 'manage_team' 
+    | 'manage_team'      // Includes inviting employees
     | 'manage_system' 
     | 'delete_data' 
     | 'view_intelligence' 
     | 'view_crm'       // Clients & Leads access
     | 'view_assets';   // Files & Credentials access
 
-export type ModuleId = 'crm' | 'finance' | 'ai' | 'team' | 'content';
+export type ModuleId = 'crm' | 'finance' | 'ai' | 'team' | 'content' | 'assets' | 'operations';
 
 export type SystemScreenStatus = 'active' | 'maintenance' | 'hidden';
 
@@ -22,6 +22,7 @@ export interface ScreenDefinition {
 }
 
 export interface RoleDefinition {
+    id?: string;
     name: string;
     permissions: PermissionId[];
     isSystem?: boolean;
@@ -97,8 +98,13 @@ export interface User {
         leadsMonth?: number;
     };
     notificationPreferences?: NotificationPreferences;
+    uiPreferences?: UIPreferences;
     twoFactorEnabled?: boolean;
     isSuperAdmin?: boolean; // NEW: Grants access to SaaS Console
+    isTenantAdmin?: boolean;
+    managerId?: string | null; // NEW: Hierarchy - ID of the user's manager
+    managedDepartment?: string | null; // NEW: Department this user manages (if they are a department manager)
+    tenantId?: string | null; // NEW: Tenant ID for multi-tenant support
     billingInfo?: {
         last4Digits: string;
         cardType: string;
@@ -115,10 +121,16 @@ export interface NotificationPreferences {
     marketing: boolean;
 }
 
+export interface UIPreferences {
+    showHebrewCalendar?: boolean;
+    showHebrewDates?: boolean;
+}
+
 export interface Attachment {
     name: string;
     type: 'image' | 'video' | 'file';
     url: string;
+    ref?: string;
 }
 
 export interface Message {
@@ -227,6 +239,19 @@ export interface Lead {
     activities?: SalesActivity[];
 }
 
+export interface Campaign {
+    id: string;
+    name: string;
+    platform: string;
+    status: 'active' | 'paused' | 'draft';
+    budget: number;
+    spent: number;
+    leads: number;
+    cpl: number;
+    roas: number;
+    impressions: number;
+}
+
 export interface Asset {
     id: string;
     title: string;
@@ -269,6 +294,25 @@ export interface Product {
     name: string;
     price: number;
     color: string;
+    modules: ModuleId[]; // Which modules/features this plan includes
+    maxUsers?: number; // Maximum users allowed
+    maxStorageGB?: number; // Storage limit (GB)
+    maxClients?: number; // Maximum clients/companies
+    maxTasks?: number; // Maximum tasks per month
+    maxLeads?: number; // Maximum leads per month
+    maxApiCalls?: number; // Maximum API calls per month
+    maxIntegrations?: number; // Maximum external integrations
+    maxDepartments?: number; // Maximum departments
+    maxCustomFields?: number; // Maximum custom fields
+    allowCustomBranding?: boolean; // Allow custom logo/colors
+    allowApiAccess?: boolean; // Allow API access
+    allowWebhooks?: boolean; // Allow webhook integrations
+    allowExport?: boolean; // Allow data export
+    allowAdvancedReports?: boolean; // Allow advanced reporting
+    allowAiFeatures?: boolean; // Allow AI features (separate from AI module)
+    allowPrioritySupport?: boolean; // Priority support access
+    features?: string[]; // Additional feature descriptions
+    limits?: Record<string, number | boolean>; // Flexible custom limits
 }
 
 export interface Notification {
@@ -390,19 +434,53 @@ export interface NavItem {
     screenId?: string; // NEW: Link to system flag
 }
 
-export type FeatureRequestType = 'feature' | 'bug' | 'change';
-export type FeatureRequestStatus = 'new' | 'reviewing' | 'approved' | 'done';
+export type FeatureRequestType = 'feature' | 'bug' | 'improvement' | 'integration';
+export type FeatureRequestStatus = 'pending' | 'under_review' | 'planned' | 'in_progress' | 'completed' | 'rejected';
 
 export interface FeatureRequest {
     id: string;
+    user_id: string;
+    tenant_id?: string;
     title: string;
     description: string;
     type: FeatureRequestType;
     status: FeatureRequestStatus;
     priority: Priority;
     votes: string[]; 
-    creatorId: string;
+    creatorId?: string; // Legacy field
     createdAt: string;
+    updated_at?: string;
+    assigned_to?: string;
+    reviewed_by?: string;
+    reviewed_at?: string;
+    completed_at?: string;
+    admin_notes?: string;
+    rejection_reason?: string;
+    metadata?: Record<string, unknown>;
+}
+
+export type SupportTicketCategory = 'Tech' | 'Account' | 'Billing' | 'Feature';
+export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface SupportTicket {
+    id: string;
+    user_id: string;
+    tenant_id?: string;
+    category: SupportTicketCategory;
+    subject: string;
+    message: string;
+    ticket_number: string;
+    status: SupportTicketStatus;
+    priority: Priority;
+    assigned_to?: string;
+    resolved_by?: string;
+    created_at: string;
+    updated_at?: string;
+    resolved_at?: string;
+    closed_at?: string;
+    admin_response?: string;
+    resolution_notes?: string;
+    metadata?: Record<string, unknown>;
 }
 
 export interface SystemUpdate {
@@ -424,6 +502,19 @@ export interface ChangeRequest {
     createdAt: string;
 }
 
+// NEW: User Approval System
+export interface UserApprovalRequest {
+    id: string;
+    email: string;
+    name?: string;
+    tenantId?: string; // Which tenant they're requesting access to
+    requestedAt: string;
+    status: 'pending' | 'approved' | 'rejected';
+    approvedBy?: string; // Admin user ID who approved/rejected
+    approvedAt?: string;
+    rejectionReason?: string;
+}
+
 export interface Tenant {
     id: string;
     name: string;
@@ -437,6 +528,9 @@ export interface Tenant {
     logo?: string;
     modules: ModuleId[]; // NEW: Per tenant module config
     region?: 'eu-west' | 'us-east' | 'il-central'; // NEW: Infrastructure location
+    version?: string; // NEW: System version for this tenant (e.g., "2.5.0", "2.6.0-beta")
+    allowedEmails?: string[]; // NEW: Whitelist of approved email domains/addresses
+    requireApproval?: boolean; // NEW: Whether new users need admin approval
 }
 
 // NEW: Feedback and Report Types
@@ -506,4 +600,70 @@ export interface ContentItem {
         likes?: number;
         shares?: number;
     };
+}
+
+// NEW: Team Events & Leave Requests Types
+export type TeamEventType = 'training' | 'fun_day' | 'group_meeting' | 'enrichment' | 'company_event' | 'other';
+export type TeamEventStatus = 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+export type LeaveRequestType = 'vacation' | 'sick' | 'personal' | 'unpaid' | 'other';
+export type LeaveRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type AttendanceStatus = 'invited' | 'attending' | 'not_attending' | 'attended' | 'absent';
+
+export interface TeamEvent {
+    id: string;
+    tenantId?: string;
+    title: string;
+    description?: string;
+    eventType: TeamEventType;
+    startDate: string; // ISO timestamp
+    endDate: string; // ISO timestamp
+    allDay?: boolean;
+    location?: string;
+    organizerId?: string;
+    requiredAttendees?: string[]; // User IDs
+    optionalAttendees?: string[]; // User IDs
+    status: TeamEventStatus;
+    requiresApproval?: boolean;
+    approvedBy?: string;
+    approvedAt?: string;
+    notificationSent?: boolean;
+    reminderSent?: boolean;
+    reminderDaysBefore?: number;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+    createdBy?: string;
+    updatedAt: string;
+}
+
+export interface LeaveRequest {
+    id: string;
+    tenantId?: string;
+    employeeId: string;
+    leaveType: LeaveRequestType;
+    startDate: string; // Date string
+    endDate: string; // Date string
+    daysRequested: number; // Can be decimal (0.5, 1.5, etc.)
+    reason?: string;
+    status: LeaveRequestStatus;
+    requestedBy?: string;
+    approvedBy?: string;
+    approvedAt?: string;
+    rejectionReason?: string;
+    notificationSent?: boolean;
+    employeeNotified?: boolean;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface EventAttendance {
+    id: string;
+    eventId: string;
+    userId: string;
+    status: AttendanceStatus;
+    rsvpAt?: string;
+    attendedAt?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
 }

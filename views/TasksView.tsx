@@ -1,13 +1,19 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Priority, Task, Status, TaskCreationDefaults } from '../types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { useNexusNavigation } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { Priority, Task, Status, TaskCreationDefaults, User, Template, Client, WorkflowStage } from '../types';
 import { useData } from '../context/DataContext';
-import { TaskItem } from '../components/TaskItem';
-import { TaskCard } from '../components/TaskCard';
-import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, CheckSquare, Star, Users, Flag, Briefcase, Server } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { listNexusTasks, updateNexusTask } from '@/app/actions/nexus';
+import { TaskItem } from '../components/nexus/TaskItem';
+import { TaskCard } from '../components/nexus/TaskCard';
+import { Filter, List, Kanban, Plus, Zap, Copy, ChevronDown, Layers, UserPlus, FileText, CheckSquare, Star, Users, Flag, Briefcase, Server, Settings, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_LABELS, PRIORITY_COLORS } from '../constants';
 import { CustomSelect } from '../components/CustomSelect';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 // Map string names to components for templates
 const ICON_MAP: Record<string, any> = {
@@ -23,10 +29,40 @@ const ICON_MAP: Record<string, any> = {
 type GroupByOption = 'status' | 'assignee' | 'priority' | 'client';
 
 export const TasksView: React.FC = () => {
-  const { tasks, users, updateTask, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission } = useData();
+  const { navigate, pathname } = useNexusNavigation();
+  const { users, templates, applyTemplate, openCreateTask, workflowStages, openTask, clients, currentUser, hasPermission, addToast, isCreateTaskOpen, tasks: contextTasks, toggleTimer: contextToggleTimer, replaceTasks: replaceContextTasks } = useData();
+  const queryClient = useQueryClient();
+  const orgSlug = useMemo(() => {
+      return getWorkspaceOrgSlugFromPathname(pathname || '');
+  }, [pathname]);
+
+  const tasksQuery = useQuery({
+      queryKey: ['nexus', 'tasks', orgSlug],
+      queryFn: async () => {
+          return listNexusTasks({ orgId: orgSlug as string });
+      },
+      enabled: Boolean(orgSlug),
+      staleTime: 30_000,
+      refetchInterval: false,
+      retry: 1,
+  });
+
+  const refetchTasks = tasksQuery.refetch;
+
+  const updateTaskMutation = useMutation({
+      mutationFn: async (params: { taskId: string; updates: Partial<Task> }) => {
+          if (!orgSlug) throw new Error('Missing orgSlug');
+          const org = orgSlug;
+          return updateNexusTask({ orgId: org, taskId: params.taskId, updates: params.updates });
+      },
+  });
+  const [tasks, setTasks] = useState<Task[]>(contextTasks || []);
+  const [cachedTasks, setCachedTasks] = useState<Task[]>(contextTasks || []);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board');
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null); // Visual feedback
+  const dragStartRef = useRef<{ taskId: string | null; time: number; x: number; y: number }>({ taskId: null, time: 0, x: 0, y: 0 });
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
 
@@ -46,16 +82,326 @@ export const TasksView: React.FC = () => {
   const groupByButtonRef = useRef<HTMLButtonElement>(null);
   const groupByDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Positions for mobile portal dropdowns
+  const [filterPosition, setFilterPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [groupByPosition, setGroupByPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [templatesPosition, setTemplatesPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [isMobile, setIsMobile] = useState(() => {
+      return typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  });
+
+  const isNarrow = isMobile || (typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+
+  // Mobile Task Status Menu
+  const [isTaskStatusSheetOpen, setIsTaskStatusSheetOpen] = useState(false);
+  const [taskStatusSheetTaskId, setTaskStatusSheetTaskId] = useState<string | null>(null);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+      const checkMobile = () => {
+          const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          setIsMobile(mobile);
+      };
+      checkMobile();
+      if (typeof window !== 'undefined') {
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+      }
+  }, []);
+
+  // Listen for TaskItem 3-dots status menu event (mobile)
+  useEffect(() => {
+      if (typeof window === 'undefined') return;
+
+      const handler = (e: Event) => {
+          const ce = e as CustomEvent;
+          const taskId = ce?.detail?.taskId as string | undefined;
+          if (!taskId) return;
+          setTaskStatusSheetTaskId(taskId);
+          setIsTaskStatusSheetOpen(true);
+      };
+
+      window.addEventListener('taskStatusMenu', handler as any);
+      return () => {
+          window.removeEventListener('taskStatusMenu', handler as any);
+      };
+  }, [isMobile]);
+
+  // Track previous modal state to detect when it closes
+  const prevModalOpenRef = useRef(isCreateTaskOpen);
+  const hasReloadedRef = useRef(false);
+
+  const tasksRef = useRef<Task[]>(tasks);
+  useEffect(() => {
+      tasksRef.current = tasks;
+  }, [tasks]);
+
+  useEffect(() => {
+      const next = tasksQuery.data?.tasks;
+      if (Array.isArray(next)) {
+          setTasks(next);
+          setCachedTasks(next);
+          if (typeof replaceContextTasks === 'function') {
+              replaceContextTasks(next);
+          }
+      }
+  }, [tasksQuery.data, replaceContextTasks]);
+
+  // Sync with context tasks when they change (for immediate updates)
+  useEffect(() => {
+      if (contextTasks && contextTasks.length > 0) {
+          // Update local state with context tasks, preserving any local changes
+          setTasks(prev => {
+              // Merge: use context tasks as base, but keep local timer states if they differ
+              const merged = contextTasks.map((contextTask: Task) => {
+                  const localTask = prev.find(t => t.id === contextTask.id);
+                  // If local task has timer running, preserve it (optimistic update)
+                  if (localTask && localTask.isTimerRunning !== contextTask.isTimerRunning) {
+                      // Keep local state if it was recently updated (within last 2 seconds)
+                      return localTask;
+                  }
+                  return contextTask;
+              });
+              return merged;
+          });
+          setCachedTasks(contextTasks);
+      }
+  }, [contextTasks]);
+
+  // Sync local list with global task events (TaskDetailModal uses DataContext actions)
+  useEffect(() => {
+      if (typeof window === 'undefined') return;
+
+      const onDeleted = (e: Event) => {
+          const ce = e as CustomEvent;
+          const taskId = ce?.detail?.taskId as string | undefined;
+          if (!taskId) return;
+          setTasks(prev => prev.filter(t => t.id !== taskId));
+          setCachedTasks(prev => prev.filter(t => t.id !== taskId));
+      };
+
+      const onRestored = (e: Event) => {
+          const ce = e as CustomEvent;
+          const task = ce?.detail?.task as Task | undefined;
+          if (!task?.id) return;
+          setTasks(prev => (prev.some(t => t.id === task.id) ? prev : [task, ...prev]));
+          setCachedTasks(prev => (prev.some(t => t.id === task.id) ? prev : [task, ...prev]));
+      };
+
+      const onUpdated = (e: Event) => {
+          const ce = e as CustomEvent;
+          const taskId = ce?.detail?.taskId as string | undefined;
+          const updates = ce?.detail?.updates as Partial<Task> | undefined;
+          if (!taskId || !updates) return;
+          setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
+          setCachedTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
+      };
+
+      window.addEventListener('nexusTaskDeleted', onDeleted as any);
+      window.addEventListener('nexusTaskRestored', onRestored as any);
+      window.addEventListener('nexusTaskUpdated', onUpdated as any);
+
+      return () => {
+          window.removeEventListener('nexusTaskDeleted', onDeleted as any);
+          window.removeEventListener('nexusTaskRestored', onRestored as any);
+          window.removeEventListener('nexusTaskUpdated', onUpdated as any);
+      };
+  }, []);
+
+  // Load tasks from server actions with cache (initial load only)
+  useEffect(() => {
+      // STEP 2: Show context tasks immediately (from DataContext) - CRITICAL for instant display
+      if (contextTasks && contextTasks.length > 0) {
+          setTasks(contextTasks);
+          setCachedTasks(contextTasks);
+      }
+      
+      const loadTasks = async () => {
+          if (!orgSlug) return;
+          // Don't show loading spinner if we already have tasks
+          if (tasksRef.current.length === 0) {
+              setIsRefreshing(true);
+          }
+          try {
+              const res = await refetchTasks();
+              const newTasks = res.data?.tasks || [];
+              // Only update if we got new tasks or if we had no tasks before
+              if (newTasks.length > 0 || tasksRef.current.length === 0) {
+                  setTasks(newTasks);
+                  setCachedTasks(newTasks);
+                  if (typeof replaceContextTasks === 'function') {
+                      replaceContextTasks(newTasks);
+                  }
+              }
+          } catch (error) {
+              console.error('Failed to load tasks:', error);
+              // Keep existing tasks on error
+              if (tasksRef.current.length === 0 && contextTasks && contextTasks.length > 0) {
+                  setTasks(contextTasks);
+              }
+          } finally {
+              setIsRefreshing(false);
+          }
+      };
+      
+      // Always load in background to refresh, but show cached/contextTasks immediately
+      // Use setTimeout to ensure UI renders first
+      const timeoutId = setTimeout(() => {
+          loadTasks();
+      }, 100);
+      
+      // Auto-sync every 30 seconds (polling)
+      const syncInterval = setInterval(() => {
+          loadTasks();
+      }, 60000); // 60 seconds
+      
+      return () => {
+          clearTimeout(timeoutId);
+          clearInterval(syncInterval);
+      };
+  }, [orgSlug, contextTasks, refetchTasks, replaceContextTasks]);
+
+  // Reload tasks when create task modal closes (task was created)
+  useEffect(() => {
+      // Only reload if modal was just closed (transition from open to closed)
+      const wasOpen = prevModalOpenRef.current;
+      const isNowClosed = !isCreateTaskOpen;
+      
+      if (wasOpen && isNowClosed && !hasReloadedRef.current) {
+          // Modal was just closed, reload tasks to get newly created ones from database
+          hasReloadedRef.current = true;
+          
+          const loadTasks = async () => {
+              try {
+                  if (!orgSlug) return;
+                  const res = await refetchTasks();
+                  const newTasks = res.data?.tasks || [];
+                  setTasks(newTasks);
+                  setCachedTasks(newTasks);
+                  if (typeof replaceContextTasks === 'function') {
+                      replaceContextTasks(newTasks);
+                  }
+              } catch (error) {
+                  console.error('Failed to reload tasks:', error);
+              } finally {
+                  // Reset flag after a delay to allow future reloads
+                  setTimeout(() => {
+                      hasReloadedRef.current = false;
+                  }, 1000);
+              }
+          };
+          
+          // Small delay to ensure API has processed the creation
+          const timeoutId = setTimeout(loadTasks, 300);
+          return () => clearTimeout(timeoutId);
+      }
+      
+      // Update ref for next render
+      prevModalOpenRef.current = isCreateTaskOpen;
+  }, [isCreateTaskOpen, orgSlug, refetchTasks, replaceContextTasks]);
+
+  // Wrapper for updateTask that updates local state and calls API
+  const updateTask = async (taskId: string, updates: Partial<Task>) => {
+      // Optimistic update immediately
+      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+      
+      try {
+          const updated = await updateTaskMutation.mutateAsync({ taskId, updates });
+          if (updated) {
+              setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+              setCachedTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updated } : t));
+          }
+          queryClient.invalidateQueries({ queryKey: ['nexus', 'tasks', orgSlug] });
+      } catch (error) {
+          // Revert on error
+          setTasks(prev => prev.map(t => {
+              if (t.id === taskId) {
+                  // Revert to previous state
+                  const originalTask = cachedTasks.find(ct => ct.id === taskId);
+                  return originalTask || t;
+              }
+              return t;
+          }));
+          // Reload tasks on error to sync with server
+          if (orgSlug) {
+              const res = await tasksQuery.refetch();
+              const newTasks = res.data?.tasks || [];
+              setTasks(newTasks);
+              setCachedTasks(newTasks);
+          }
+      }
+  };
+
+  // Wrapper for toggleTimer that updates local state with optimistic update
+  const handleToggleTimer = async (taskId: string) => {
+      // Optimistic update FIRST - immediate UI feedback
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+      
+      const newTimerState = !task.isTimerRunning;
+      setTasks(prev => prev.map(t => {
+          if (t.id === taskId) {
+              return { ...t, isTimerRunning: newTimerState };
+          }
+          return t;
+      }));
+      
+      // Then update via context (which calls API)
+      if (contextToggleTimer) {
+          try {
+              await contextToggleTimer(taskId);
+          } catch (error) {
+              // Revert on error
+              setTasks(prev => prev.map(t => {
+                  if (t.id === taskId) {
+                      return { ...t, isTimerRunning: task.isTimerRunning };
+                  }
+                  return t;
+              }));
+          }
+      }
+  };
+
+  // Handle status update from mobile menu
+  const handleStatusUpdate = async (taskId: string, newStatus: string) => {
+      await updateTask(taskId, { status: newStatus });
+  };
+
   // --- SCOPING LOGIC ---
-  const isGlobalAdmin = currentUser.isSuperAdmin || currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין';
+  // Super Admin: system admin, sees everything across all tenants
+  const isSuperAdmin = currentUser.isSuperAdmin === true;
+  // Tenant Admin: CEO/Admin within their tenant, sees everything within their tenant
+  const isTenantAdmin = !isSuperAdmin && isTenantAdminRole(currentUser.role);
+  // Manager: has manage_team permission within tenant
   const isManager = hasPermission('manage_team');
 
   // Filter users for the dropdown based on scope
-  const scopedUsers = users.filter(u => {
-        if (isGlobalAdmin) return true;
+  // Super Admin and Tenant Admin see all users (within their scope)
+  const scopedUsers = users.filter((u: User) => {
+        // Always include current user
+        if (u.id === currentUser.id) return true;
+        // Super Admin sees everyone (all tenants)
+        if (isSuperAdmin) return true;
+        // Tenant Admin sees everyone within their tenant
+        if (isTenantAdmin) return true;
+        // Manager sees users in their department
         if (isManager) return u.department === currentUser.department;
-        return u.id === currentUser.id;
+        // Regular users see only themselves
+        return false;
   });
+
+  // Reset positions when dropdowns close
+  useEffect(() => {
+      if (!isFilterMenuOpen) {
+          setFilterPosition(null);
+      }
+  }, [isFilterMenuOpen]);
+
+  useEffect(() => {
+      if (!isGroupByOpen) {
+          setGroupByPosition(null);
+      }
+  }, [isGroupByOpen]);
 
   // Close Dropdowns on click outside
   useEffect(() => {
@@ -94,16 +440,24 @@ export const TasksView: React.FC = () => {
           }
       };
 
-      if (isTemplatesOpen || isFilterMenuOpen || isGroupByOpen) {
+      if (typeof document !== 'undefined' && (isTemplatesOpen || isFilterMenuOpen || isGroupByOpen)) {
           document.addEventListener('mousedown', handleClickOutside);
       }
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () => {
+          if (typeof document !== 'undefined') {
+              document.removeEventListener('mousedown', handleClickOutside);
+          }
+      };
   }, [isTemplatesOpen, isFilterMenuOpen, isGroupByOpen]);
 
   const getFilteredTasks = () => {
       // 1. Initial Scope Filtering
       let filtered = tasks.filter(t => {
-          if (isGlobalAdmin) return true;
+          // Super Admin sees all tasks (all tenants)
+          if (isSuperAdmin) return true;
+          // Tenant Admin sees all tasks within their tenant
+          if (isTenantAdmin) return true;
+          // Manager sees tasks in their department
           if (isManager && t.department === currentUser.department) return true;
           // Employees see tasks assigned to them OR tasks they created
           return t.assigneeIds?.includes(currentUser.id) || t.assigneeId === currentUser.id || t.creatorId === currentUser.id;
@@ -140,21 +494,21 @@ export const TasksView: React.FC = () => {
   const getColumns = (): { id: string; title: string; color: string; avatar?: string }[] => {
       switch (groupBy) {
           case 'status':
-              return workflowStages.map(s => ({ id: s.id, title: s.name, color: s.color }));
+              return workflowStages.map((s: WorkflowStage) => ({ id: s.id, title: s.name, color: s.color }));
           case 'assignee':
               return [
-                  ...scopedUsers.map(u => ({ id: u.id, title: u.name, color: 'bg-white border-gray-200 text-gray-900', avatar: u.avatar })),
+                  ...scopedUsers.map((u: User) => ({ id: u.id, title: u.name, color: 'bg-white border-gray-200 text-gray-900', avatar: u.avatar })),
                   { id: 'unassigned', title: 'לא משויך', color: 'bg-gray-50 border-gray-200 text-gray-500' }
               ];
           case 'priority':
               return (Object.values(Priority) as Priority[]).map(p => ({ 
                   id: p, 
                   title: PRIORITY_LABELS[p], 
-                  color: PRIORITY_COLORS[p].replace('bg-', 'border-t-4 bg-white border-') // Custom style for priority cols
+                  color: (PRIORITY_COLORS[p] || '').replace('bg-', 'border-t-4 bg-white border-') // Custom style for priority cols
               }));
           case 'client':
               return [
-                  ...clients.map(c => ({ id: c.id, title: c.companyName, color: 'bg-white border-gray-200 text-gray-900', avatar: c.avatar })),
+                  ...clients.map((c: Client) => ({ id: c.id, title: c.companyName, color: 'bg-white border-gray-200 text-gray-900', avatar: c.avatar })),
                   { id: 'no-client', title: 'ללא לקוח (פנימי)', color: 'bg-gray-50 border-gray-200 text-gray-500' }
               ];
           default:
@@ -173,9 +527,9 @@ export const TasksView: React.FC = () => {
               case 'priority':
                   return task.priority === columnId;
               case 'client':
-                  if (columnId === 'no-client') return !task.clientId && !task.tags.some(t => clients.some(c => c.companyName === t));
+                  if (columnId === 'no-client') return !task.clientId && !task.tags.some(t => clients.some((c: Client) => c.companyName === t));
                   // Match by ID or Tag Name
-                  const client = clients.find(c => c.id === columnId);
+                  const client = clients.find((c: Client) => c.id === columnId);
                   return task.clientId === columnId || (client && task.tags.includes(client.companyName));
               default:
                   return false;
@@ -189,13 +543,63 @@ export const TasksView: React.FC = () => {
     e.dataTransfer.effectAllowed = 'move';
     
     // Create a custom drag image
+    if (typeof document === 'undefined') return;
     const dragIcon = document.createElement('div');
     dragIcon.style.width = '1px';
     dragIcon.style.height = '1px';
+    dragIcon.style.position = 'absolute';
+    dragIcon.style.top = '-1000px';
     dragIcon.style.opacity = '0';
     document.body.appendChild(dragIcon);
     e.dataTransfer.setDragImage(dragIcon, 0, 0);
-    setTimeout(() => document.body.removeChild(dragIcon), 0);
+    setTimeout(() => dragIcon.remove(), 0);
+  };
+
+  const handleCardMouseDown = (e: React.MouseEvent | React.TouchEvent, taskId: string) => {
+    // Prevent drag on buttons and interactive elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) {
+      return;
+    }
+    
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    
+    dragStartRef.current = {
+      taskId,
+      time: Date.now(),
+      x: clientX || 0,
+      y: clientY || 0
+    };
+  };
+
+  const handleCardMouseUp = (e: React.MouseEvent | React.TouchEvent, taskId: string) => {
+    // Don't open if clicking on buttons
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('[role="button"]')) {
+      return;
+    }
+    
+    // If we just dragged this task, don't open it
+    if (draggedTaskId === taskId) {
+      return;
+    }
+    
+    const { time, x, y, taskId: startTaskId } = dragStartRef.current;
+    if (!startTaskId || startTaskId !== taskId) {
+      return;
+    }
+    
+    const clientX = 'changedTouches' in e ? e.changedTouches[0]?.clientX : e.clientX;
+    const clientY = 'changedTouches' in e ? e.changedTouches[0]?.clientY : e.clientY;
+    
+    const timeDiff = Date.now() - time;
+    const posDiff = Math.abs((clientX || 0) - x) + Math.abs((clientY || 0) - y);
+    
+    // Only open if it was a quick click (not a drag)
+    if (timeDiff < 300 && posDiff < 10) {
+      openTask(taskId);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, columnId: string) => {
@@ -253,33 +657,123 @@ export const TasksView: React.FC = () => {
       setIsFilterMenuOpen(false);
   };
 
+  const taskForStatusSheet = taskStatusSheetTaskId ? tasks.find(t => t.id === taskStatusSheetTaskId) : null;
+  const orderedStages = [...(workflowStages || [])].sort((a: any, b: any) => {
+      const ao = typeof a?.order === 'number' ? a.order : 0;
+      const bo = typeof b?.order === 'number' ? b.order : 0;
+      return ao - bo;
+  });
+
   const columns = getColumns();
 
   return (
-    <div className="w-full h-[calc(100vh-8rem)] md:h-[calc(100vh-10rem)] flex flex-col overflow-hidden">
+    <div className="w-full h-full md:h-[calc(100vh-10rem)] flex flex-col overflow-hidden min-h-0" style={{ touchAction: 'pan-y' }}>
+
+      {/* Mobile Status Bottom Sheet */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isTaskStatusSheetOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+                style={{ zIndex: 1000 }}
+                onClick={() => {
+                  setIsTaskStatusSheetOpen(false);
+                  setTaskStatusSheetTaskId(null);
+                }}
+              />
+              <motion.div
+                initial={{ y: 24, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 24, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                className="fixed left-0 right-0 bottom-0 bg-white rounded-t-3xl border border-gray-200 shadow-2xl overflow-hidden"
+                style={{ zIndex: 1001 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-4 pt-3 pb-2 border-b border-gray-100 flex items-center justify-between">
+                  <div className="text-right">
+                    <div className="text-xs font-black text-gray-900">שינוי שלב</div>
+                    <div className="text-[11px] text-gray-500 font-medium truncate max-w-[260px]">{taskForStatusSheet?.title || ''}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTaskStatusSheetOpen(false);
+                      setTaskStatusSheetTaskId(null);
+                    }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+                    aria-label="סגור"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="max-h-[60vh] overflow-y-auto p-2">
+                  {orderedStages.map((stage: WorkflowStage) => {
+                    const selected = taskForStatusSheet?.status === stage.id;
+                    return (
+                      <button
+                        key={stage.id}
+                        type="button"
+                        onClick={async () => {
+                          if (!taskStatusSheetTaskId) return;
+                          await handleStatusUpdate(taskStatusSheetTaskId, stage.id);
+                          setIsTaskStatusSheetOpen(false);
+                          setTaskStatusSheetTaskId(null);
+                        }}
+                        className={`w-full flex items-center justify-between gap-3 px-3 py-3 rounded-2xl transition-colors ${selected ? 'bg-black text-white' : 'hover:bg-gray-50 text-gray-700'}`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${String(stage.color || '').includes('bg-') ? String(stage.color).split(' ')[0] : 'bg-gray-300'}`} />
+                          <span className="text-sm font-bold truncate">{stage.name}</span>
+                        </div>
+                        {selected ? <Check size={16} className="shrink-0" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
       
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 px-1 md:px-0 shrink-0">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">
-              {isFocusMode ? 'מיקוד אישי' : 'ניהול משימות'}
-          </h2>
-          <button 
-            onClick={() => setIsFocusMode(!isFocusMode)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all ${isFocusMode ? 'bg-black text-white shadow-lg ring-2 ring-offset-2 ring-black' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
-          >
-            <Zap size={14} className={isFocusMode ? 'fill-yellow-400 text-yellow-400' : ''} />
-            {isFocusMode ? 'יציאה' : 'מצב מיקוד'}
-          </button>
-        </div>
+      <div className="pt-6 pb-4 md:border-b md:border-gray-100 shrink-0">
+        <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6 mb-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+                {isFocusMode ? 'מיקוד אישי' : 'ניהול משימות'}
+              </h1>
+              <button 
+                onClick={() => setIsFocusMode(!isFocusMode)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide transition-all whitespace-nowrap ${isFocusMode ? 'bg-black text-white shadow-lg ring-2 ring-gray-900/10' : 'bg-white border border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+              >
+                <Zap size={12} fill={isFocusMode ? 'currentColor' : 'none'} />
+                {isFocusMode ? 'יציאה' : 'מצב מיקוד'}
+              </button>
+            </div>
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
+              {isFocusMode 
+                ? 'משימות היום שלך בלבד - ללא הסחות דעת'
+                : 'ניהול ועקיבה אחר כל המשימות שלך ושל הצוות'
+              }
+            </p>
+          </div>
         
-        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <button 
                 onClick={() => openCreateTask()}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold shadow-lg shadow-slate-900/20 hover:shadow-slate-900/40 hover:-translate-y-0.5 border border-slate-700 transition-all active:scale-95 group relative overflow-hidden"
+                aria-label="צור משימה חדשה"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-black text-white text-sm font-bold shadow-lg hover:bg-gray-800 transition-colors"
             >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300 text-indigo-300 group-hover:text-white" />
-                <span className="hidden sm:inline relative z-10">משימה חדשה</span>
+                <Plus size={18} />
+                <span className="hidden sm:inline">משימה חדשה</span>
             </button>
 
             <div className="h-8 w-px bg-gray-300 mx-1 hidden md:block"></div>
@@ -288,12 +782,96 @@ export const TasksView: React.FC = () => {
             <div className="relative">
                 <button 
                     ref={templatesButtonRef}
-                    onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
+                    onClick={() => {
+                        const mobileNow = typeof window !== 'undefined' && window.innerWidth < 768;
+                        const newState = !isTemplatesOpen;
+                        setIsTemplatesOpen(newState);
+                        if (newState && mobileNow && typeof window !== 'undefined') {
+                            setTemplatesPosition({
+                                top: window.innerHeight / 2,
+                                left: window.innerWidth / 2,
+                                width: Math.min(280, window.innerWidth - 32)
+                            });
+                        } else {
+                            setTemplatesPosition(null);
+                        }
+                    }}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-white hover:border-gray-300 bg-gray-50 shadow-sm transition-all"
                 >
                     <Copy size={16} />
                     <span className="hidden sm:inline">תבניות</span>
                 </button>
+                
+                {isNarrow && typeof document !== 'undefined' && createPortal(
+                    <AnimatePresence>
+                        {isTemplatesOpen && (
+                            <>
+                                <motion.div 
+                                    initial={{ opacity: 0 }} 
+                                    animate={{ opacity: 1 }} 
+                                    exit={{ opacity: 0 }} 
+                                    className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+                                    style={{ zIndex: 101 }}
+                                    onClick={() => setIsTemplatesOpen(false)}
+                                />
+                                <div
+                                    className="fixed inset-0 flex items-center justify-center p-4"
+                                    style={{ zIndex: 102 }}
+                                    onClick={() => setIsTemplatesOpen(false)}
+                                >
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        ref={templatesDropdownRef}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            width: templatesPosition?.width || (typeof window !== 'undefined' ? Math.min(320, window.innerWidth - 32) : 320),
+                                            maxWidth: 'calc(100vw - 32px)',
+                                            maxHeight: 'calc(100vh - 32px)',
+                                        }}
+                                        className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col"
+                                    >
+                                        <div className="p-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">צור במהירות</div>
+                                        <div className="flex-1 min-h-0 overflow-y-auto">
+                                            {templates.length > 0 ? (
+                                                templates.map((tmp: Template) => {
+                                                    const IconComponent = ICON_MAP[tmp.icon] || Layers;
+                                                    return (
+                                                        <button 
+                                                            key={tmp.id}
+                                                            onClick={() => { handleApplyTemplate(tmp.id); setIsTemplatesOpen(false); }}
+                                                            className="w-full text-right px-4 py-3 hover:bg-blue-50 text-sm font-medium text-gray-700 flex items-center gap-3 transition-colors"
+                                                        >
+                                                            <IconComponent size={16} className="text-blue-500" />
+                                                            {tmp.name}
+                                                        </button>
+                                                    );
+                                                })
+                                            ) : (
+                                                <div className="p-4 text-center">
+                                                    <p className="text-sm text-gray-500 mb-3">אין תבניות זמינות</p>
+                                                    <button
+                                                        onClick={() => {
+                                                            setIsTemplatesOpen(false);
+                                                            navigate('/settings?tab=templates');
+                                                        }}
+                                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors"
+                                                    >
+                                                        <Settings size={16} />
+                                                        <span>הגדר תבניות</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            </>
+                        )}
+                    </AnimatePresence>,
+                    document.body
+                )}
+                {!isNarrow && (
                 <AnimatePresence>
                     {isTemplatesOpen && (
                         <motion.div
@@ -301,10 +879,11 @@ export const TasksView: React.FC = () => {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             ref={templatesDropdownRef}
-                            className="absolute top-full right-0 md:left-0 md:right-auto mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden ring-1 ring-black/5 origin-top-right md:origin-top-left"
+                            className="absolute top-full right-0 md:left-0 md:right-auto mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden ring-1 ring-gray-900/5 origin-top-right md:origin-top-left"
                         >
                             <div className="p-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase">צור במהירות</div>
-                            {templates.map(tmp => {
+                                {templates.length > 0 ? (
+                                    templates.map((tmp: Template) => {
                                 const IconComponent = ICON_MAP[tmp.icon] || Layers;
                                 return (
                                     <button 
@@ -316,17 +895,47 @@ export const TasksView: React.FC = () => {
                                         {tmp.name}
                                     </button>
                                 );
-                            })}
+                                    })
+                                ) : (
+                                    <div className="p-4 text-center">
+                                        <p className="text-sm text-gray-500 mb-3">אין תבניות זמינות</p>
+                                        <button
+                                            onClick={() => {
+                                                setIsTemplatesOpen(false);
+                                                navigate('/settings?tab=templates');
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-sm font-bold transition-colors"
+                                        >
+                                            <Settings size={16} />
+                                            <span>הגדר תבניות</span>
+                                        </button>
+                                    </div>
+                                )}
                         </motion.div>
                     )}
                 </AnimatePresence>
+                )}
             </div>
 
             {/* Group By Dropdown */}
             <div className="relative">
                 <button 
                     ref={groupByButtonRef}
-                    onClick={() => setIsGroupByOpen(!isGroupByOpen)}
+                    onClick={() => {
+                        const mobileNow = typeof window !== 'undefined' && window.innerWidth < 768;
+                        const newState = !isGroupByOpen;
+                        setIsGroupByOpen(newState);
+                        if (newState && mobileNow && typeof window !== 'undefined') {
+                            setGroupByPosition({
+                                top: window.innerHeight / 2,
+                                left: window.innerWidth / 2,
+                                width: Math.min(200, window.innerWidth - 32)
+                            });
+                        } else {
+                            setGroupByPosition(null);
+                        }
+                    }}
+                    aria-label="מיון משימות לפי"
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all ${groupBy !== 'status' ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300 bg-gray-50 shadow-sm'}`}
                 >
                     {groupBy === 'status' && <Kanban size={16} />}
@@ -340,8 +949,62 @@ export const TasksView: React.FC = () => {
                     <ChevronDown size={14} className="opacity-50" />
                 </button>
 
+                {isNarrow && typeof document !== 'undefined' && createPortal(
                 <AnimatePresence>
-                    {isGroupByOpen && (
+                        {isGroupByOpen && (
+                        <>
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                                    className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+                                    style={{ zIndex: 101 }}
+                            onClick={() => setIsGroupByOpen(false)}
+                        />
+                        <div
+                            className="fixed inset-0 flex items-center justify-center p-4"
+                            style={{ zIndex: 102 }}
+                            onClick={() => setIsGroupByOpen(false)}
+                        >
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                ref={groupByDropdownRef}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: groupByPosition?.width || (typeof window !== 'undefined' ? Math.min(320, window.innerWidth - 32) : 320),
+                                    maxWidth: 'calc(100vw - 32px)',
+                                    maxHeight: 'calc(100vh - 32px)',
+                                }}
+                                className="bg-white rounded-2xl shadow-xl border border-gray-100 p-2 overflow-y-auto"
+                            >
+                                <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">קבץ משימות לפי</div>
+                                {[
+                                    { id: 'status', label: 'תהליך (סטטוס)', icon: Kanban },
+                                    { id: 'client', label: 'לקוחות (פרויקטים)', icon: Briefcase },
+                                    { id: 'assignee', label: 'צוות', icon: Users },
+                                    { id: 'priority', label: 'דחיפות', icon: Flag },
+                                ].map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => { setGroupBy(opt.id as GroupByOption); setIsGroupByOpen(false); }}
+                                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-bold transition-colors ${groupBy === opt.id ? 'bg-black text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        <opt.icon size={16} />
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </motion.div>
+                        </div>
+                            </>
+                        )}
+                    </AnimatePresence>,
+                        document.body
+                )}
+                {!isNarrow && (
+                    <AnimatePresence>
+                        {isGroupByOpen && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -366,15 +1029,32 @@ export const TasksView: React.FC = () => {
                                 </button>
                             ))}
                         </motion.div>
-                    )}
+                        )}
                 </AnimatePresence>
+                )}
             </div>
 
             {/* Filter Dropdown */}
             <div className="relative">
                 <button 
                     ref={filterButtonRef}
-                    onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const mobileNow = typeof window !== 'undefined' && window.innerWidth < 768;
+                        const newState = !isFilterMenuOpen;
+                        setIsFilterMenuOpen(newState);
+                        if (newState && mobileNow && typeof window !== 'undefined') {
+                            setFilterPosition({
+                                top: window.innerHeight / 2,
+                                left: window.innerWidth / 2,
+                                width: Math.min(320, window.innerWidth - 32)
+                            });
+                        } else {
+                            setFilterPosition(null);
+                        }
+                    }}
+                    aria-label={`סינון משימות${activeFiltersCount > 0 ? ` (${activeFiltersCount} פעיל)` : ''}`}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all ${isFilterMenuOpen || activeFiltersCount > 0 ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300 bg-gray-50 shadow-sm'}`}
                 >
                     <Filter size={16} />
@@ -386,28 +1066,106 @@ export const TasksView: React.FC = () => {
                     )}
                 </button>
 
+                {isNarrow && typeof document !== 'undefined' && createPortal(
                 <AnimatePresence>
+                        {isFilterMenuOpen && (
+                        <>
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                                    className="fixed inset-0 bg-black/20 backdrop-blur-sm"
+                                    style={{ zIndex: 101 }}
+                            onClick={() => setIsFilterMenuOpen(false)}
+                        />
+                        <div
+                            className="fixed inset-0 flex items-center justify-center p-4"
+                            style={{ zIndex: 102 }}
+                            onClick={() => setIsFilterMenuOpen(false)}
+                        >
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                ref={filterDropdownRef}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                    width: filterPosition?.width || (typeof window !== 'undefined' ? Math.min(360, window.innerWidth - 32) : 360),
+                                    maxWidth: 'calc(100vw - 32px)',
+                                    maxHeight: 'calc(100vh - 32px)',
+                                }}
+                                className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 space-y-4 overflow-y-auto"
+                            >
+                                <div className="flex items-center justify-between border-b border-gray-50 pb-2">
+                                    <span className="text-xs font-bold text-gray-400 uppercase">סינון לפי</span>
+                                    {activeFiltersCount > 0 && (
+                                        <button onClick={clearFilters} className="text-xs text-red-500 hover:underline whitespace-nowrap">נקה הכל</button>
+                                    )}
+                                </div>
+                                
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 block mb-2">דחיפות</label>
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                        <button 
+                                            onClick={() => setFilterPriority('all')}
+                                            className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === 'all' ? 'bg-black text-white border-gray-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                                        >
+                                            הכל
+                                        </button>
+                                        {(Object.values(Priority) as Priority[]).map(p => (
+                                            <button 
+                                                key={p}
+                                                onClick={() => setFilterPriority(p)}
+                                                className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === p ? PRIORITY_COLORS[p] + ' ring-1 ring-offset-1 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                                            >
+                                                {PRIORITY_LABELS[p]}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 block mb-2">אחראי</label>
+                                    <CustomSelect 
+                                        value={filterAssignee}
+                                        onChange={setFilterAssignee}
+                                        options={[
+                                            { value: 'all', label: 'כל העובדים' },
+                                            ...scopedUsers.map((u: User) => ({ value: u.id, label: u.name }))
+                                        ]}
+                                        className="text-sm w-full"
+                                    />
+                                </div>
+                            </motion.div>
+                        </div>
+                            </>
+                        )}
+                    </AnimatePresence>,
+                        document.body
+                )}
+                {!isNarrow && (
+                    <AnimatePresence>
                     {isFilterMenuOpen && (
                         <motion.div 
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                             ref={filterDropdownRef}
-                            className="absolute top-full right-0 md:left-0 md:right-auto mt-2 w-72 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-4 space-y-4 origin-top-right md:origin-top-left"
+                            className="absolute top-full left-0 md:left-0 md:right-auto mt-2 w-72 max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 z-50 p-3 sm:p-4 space-y-3 sm:space-y-4 origin-top-left"
                         >
                             <div className="flex items-center justify-between border-b border-gray-50 pb-2">
                                 <span className="text-xs font-bold text-gray-400 uppercase">סינון לפי</span>
                                 {activeFiltersCount > 0 && (
-                                    <button onClick={clearFilters} className="text-xs text-red-500 hover:underline">נקה הכל</button>
+                                    <button onClick={clearFilters} className="text-xs text-red-500 hover:underline whitespace-nowrap">נקה הכל</button>
                                 )}
                             </div>
                             
                             <div>
                                 <label className="text-xs font-bold text-gray-700 block mb-2">דחיפות</label>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                     <button 
                                         onClick={() => setFilterPriority('all')}
-                                        className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${filterPriority === 'all' ? 'bg-black text-white border-black' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                                        className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === 'all' ? 'bg-black text-white border-gray-200' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
                                     >
                                         הכל
                                     </button>
@@ -415,7 +1173,7 @@ export const TasksView: React.FC = () => {
                                         <button 
                                             key={p}
                                             onClick={() => setFilterPriority(p)}
-                                            className={`text-xs px-2 py-1.5 rounded-lg border transition-all ${filterPriority === p ? PRIORITY_COLORS[p] + ' ring-1 ring-offset-1 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+                                            className={`text-[11px] sm:text-xs px-2.5 sm:px-2 py-1.5 rounded-lg border transition-all whitespace-nowrap shrink-0 ${filterPriority === p ? PRIORITY_COLORS[p] + ' ring-1 ring-offset-1 shadow-sm' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'}`}
                                         >
                                             {PRIORITY_LABELS[p]}
                                         </button>
@@ -430,14 +1188,15 @@ export const TasksView: React.FC = () => {
                                     onChange={setFilterAssignee}
                                     options={[
                                         { value: 'all', label: 'כל העובדים' },
-                                        ...scopedUsers.map(u => ({ value: u.id, label: u.name }))
+                                        ...scopedUsers.map((u: User) => ({ value: u.id, label: u.name }))
                                     ]}
-                                    className="text-sm"
+                                    className="text-sm w-full"
                                 />
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
+                )}
             </div>
             
             <div className="hidden md:flex bg-gray-100 p-1 rounded-xl">
@@ -456,18 +1215,22 @@ export const TasksView: React.FC = () => {
                     <Kanban size={18} />
                 </button>
             </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 md:overflow-hidden relative">
+      <div className="flex-1 md:overflow-hidden relative min-h-0">
         {/* Mobile List View */}
-        <div className="block md:hidden h-auto p-1 pb-20">
+        <div
+          className={`block md:hidden h-full overflow-y-auto px-2 pt-4 min-h-0 ${isTaskStatusSheetOpen ? 'pb-24' : 'pb-12'}`}
+        >
              {filteredTasks.length > 0 ? filteredTasks.map(task => (
                 <TaskItem 
                     key={task.id} 
                     task={task} 
                     users={users} 
                     onClick={() => openTask(task.id)}
+                    toggleTimer={handleToggleTimer}
                 />
             )) : (
                 <div className="p-10 text-center text-gray-400">
@@ -530,7 +1293,7 @@ export const TasksView: React.FC = () => {
                                             {col.avatar ? (
                                                 <img src={col.avatar} className="w-6 h-6 rounded-full border border-white shadow-sm" />
                                             ) : (
-                                                <div className={`w-2 h-2 rounded-full ${col.color.includes('bg-') ? col.color.split(' ')[0].replace('bg-', 'bg-') : 'bg-gray-400'}`}></div>
+                                                <div className={`w-2 h-2 rounded-full ${String((col as any)?.color ?? '').includes('bg-') ? String((col as any)?.color ?? '').split(' ')[0].replace('bg-', 'bg-') : 'bg-gray-400'}`}></div>
                                             )}
                                             
                                             <h3 className="text-sm font-bold text-gray-900 truncate max-w-[120px]" title={col.title}>{col.title}</h3>
@@ -559,18 +1322,15 @@ export const TasksView: React.FC = () => {
                                     {/* Infinite Drop Zone with Padding to prevent clipping */}
                                     <div className="flex-1 overflow-y-auto px-2 pb-20 pt-2 space-y-3 no-scrollbar h-full min-h-[150px] relative">
                                         {columnTasks.map((task) => (
-                                            <div 
+                                            <TaskCard 
                                                 key={task.id}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, task.id)}
-                                                className={`transform transition-all duration-200 ${draggedTaskId === task.id ? 'opacity-50 scale-95 grayscale' : 'hover:scale-[1.02]'}`}
-                                            >
-                                                <TaskCard 
-                                                    task={task} 
-                                                    users={users} 
-                                                    onClick={() => openTask(task.id)}
-                                                />
-                                            </div>
+                                                task={task} 
+                                                users={users} 
+                                                onClick={() => {
+                                                    openTask(task.id);
+                                                }}
+                                                toggleTimer={handleToggleTimer}
+                                            />
                                         ))}
                                         
                                         {/* Drop Zone Visual Cue - fills empty space */}

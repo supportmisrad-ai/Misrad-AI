@@ -1,3 +1,4 @@
+'use client';
 
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
@@ -8,25 +9,28 @@ import { PERMISSIONS_LIST } from '../../constants';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
 
 export const RolesTab: React.FC = () => {
-    const { roleDefinitions, updateSettings, deleteRole, addToast } = useData();
+    const { roleDefinitions, createRole, updateRole, deleteRole, addToast, isLoadingRoles } = useData();
     const [newRoleName, setNewRoleName] = useState('');
     const [isAddingRole, setIsAddingRole] = useState(false);
     
     // Delete Modal
     const [roleToDelete, setRoleToDelete] = useState<string | null>(null);
 
-    const handleAddRole = (e: React.FormEvent) => {
+    const handleAddRole = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newRoleName.trim() && !roleDefinitions.some(r => r.name === newRoleName.trim())) {
-            const newRoleDef: RoleDefinition = {
-                name: newRoleName.trim(),
-                permissions: [] // Start with empty permissions
-            };
-            updateSettings('roleDefinitions', [...roleDefinitions, newRoleDef]);
-            addToast(`תפקיד "${newRoleName}" נוצר בהצלחה`, 'success');
-            setNewRoleName('');
-            setIsAddingRole(false);
-        } else if (roleDefinitions.some(r => r.name === newRoleName.trim())) {
+        if (newRoleName.trim() && !roleDefinitions.some((r: RoleDefinition) => r.name === newRoleName.trim())) {
+            try {
+                const newRoleDef: Omit<RoleDefinition, 'id'> = {
+                    name: newRoleName.trim(),
+                    permissions: [] // Start with empty permissions
+                };
+                await createRole(newRoleDef);
+                setNewRoleName('');
+                setIsAddingRole(false);
+            } catch (error: any) {
+                // Error already handled in createRole
+            }
+        } else if (roleDefinitions.some((r: RoleDefinition) => r.name === newRoleName.trim())) {
             addToast('תפקיד בשם זה כבר קיים', 'warning');
         }
     };
@@ -37,31 +41,39 @@ export const RolesTab: React.FC = () => {
         setRoleToDelete(roleName);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (roleToDelete) {
-            deleteRole(roleToDelete);
-            setRoleToDelete(null);
+            try {
+                await deleteRole(roleToDelete);
+                setRoleToDelete(null);
+            } catch (error: any) {
+                // Error already handled in deleteRole
+            }
         }
     };
 
-    const togglePermission = (roleName: string, permission: PermissionId) => {
-        const updatedRoles = roleDefinitions.map(role => {
-            if (role.name === roleName) {
-                const hasPermission = role.permissions.includes(permission);
-                return {
-                    ...role,
-                    permissions: hasPermission 
-                        ? role.permissions.filter(p => p !== permission)
-                        : [...role.permissions, permission]
-                };
-            }
-            return role;
-        });
-        updateSettings('roleDefinitions', updatedRoles);
+    const togglePermission = async (roleName: string, permission: PermissionId) => {
+        const role = roleDefinitions.find((r: RoleDefinition) => r.name === roleName);
+        if (!role || !(role as any).id) {
+            addToast('שגיאה: תפקיד לא נמצא', 'error');
+            return;
+        }
+        
+        const roleId = (role as any).id;
+        const hasPermission = role.permissions.includes(permission);
+        const newPermissions = hasPermission 
+            ? role.permissions.filter((p: PermissionId) => p !== permission)
+            : [...role.permissions, permission];
+        
+        try {
+            await updateRole(roleId, { permissions: newPermissions });
+        } catch (error: any) {
+            // Error already handled in updateRole
+        }
     };
 
     return (
-        <motion.div key="roles" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 pb-20">
+        <motion.div key="roles" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6 pb-24 md:pb-20">
             
             <DeleteConfirmationModal 
                 isOpen={!!roleToDelete}
@@ -73,15 +85,15 @@ export const RolesTab: React.FC = () => {
                 isHardDelete={true}
             />
 
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
+            <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
                     <div>
                         <h3 className="font-bold text-lg flex items-center gap-2"><Shield size={20} className="text-gray-400" /> הגדרת הרשאות ותפקידים</h3>
                         <p className="text-sm text-gray-500 mt-1">שלוט בדיוק על מה כל עובד יכול לראות ולעשות במערכת.</p>
                     </div>
                     <button 
                         onClick={() => setIsAddingRole(true)} 
-                        className="bg-black text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2 hover:bg-gray-800"
+                        className="bg-black text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-gray-800 w-full md:w-auto"
                     >
                         <Plus size={18} /> תפקיד חדש
                     </button>
@@ -103,8 +115,8 @@ export const RolesTab: React.FC = () => {
                 )}
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                    {roleDefinitions.map(role => (
-                        <div key={role.name} className="border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors bg-white relative">
+                    {roleDefinitions.map((role: RoleDefinition) => (
+                        <div key={role.name} className="border border-gray-200 rounded-xl p-4 md:p-5 hover:border-gray-300 transition-colors bg-white relative overflow-hidden">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex items-center gap-2">
                                     <div className={`p-2 rounded-lg ${role.isSystem ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'}`}>
@@ -116,7 +128,7 @@ export const RolesTab: React.FC = () => {
                                     </div>
                                 </div>
                                 {!role.isSystem && (
-                                    <button onClick={(e) => handleDeleteClick(e, role.name)} className="text-gray-300 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg">
+                                    <button onClick={(e) => handleDeleteClick(e, role.name)} className="text-gray-300 hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg" aria-label={`מחק תפקיד ${role.name}`}>
                                         <Trash2 size={16} />
                                     </button>
                                 )}
@@ -132,7 +144,7 @@ export const RolesTab: React.FC = () => {
                                                 key={perm.id}
                                                 onClick={() => { if (!role.isSystem) togglePermission(role.name, perm.id); }}
                                                 disabled={role.isSystem} 
-                                                className={`flex items-start gap-2 p-2 rounded-lg text-right transition-all border ${
+                                                className={`flex items-start gap-2 p-2.5 rounded-xl text-right transition-all border ${
                                                     hasPerm 
                                                     ? 'bg-blue-50 border-blue-200' 
                                                     : 'bg-white border-gray-100 hover:bg-gray-50'
@@ -143,9 +155,9 @@ export const RolesTab: React.FC = () => {
                                                 }`}>
                                                     {hasPerm && <Check size={10} className="text-white" />}
                                                 </div>
-                                                <div>
-                                                    <div className={`text-xs font-bold ${hasPerm ? 'text-blue-800' : 'text-gray-700'}`}>{perm.label}</div>
-                                                    <div className="text-[10px] text-gray-500 leading-tight">{perm.desc}</div>
+                                                <div className="min-w-0">
+                                                    <div className={`text-xs font-bold break-words ${hasPerm ? 'text-blue-800' : 'text-gray-700'}`}>{perm.label}</div>
+                                                    <div className="text-[10px] text-gray-500 leading-tight break-words">{perm.desc}</div>
                                                 </div>
                                             </button>
                                         );

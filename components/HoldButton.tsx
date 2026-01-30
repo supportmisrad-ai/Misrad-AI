@@ -18,6 +18,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
     // and reacts instantly to the non-linear math.
     const [progress, setProgress] = useState(0);
     const intervalRef = useRef<number | null>(null);
+    const isCompletingRef = useRef<boolean>(false); // Guard to prevent double calls
 
     // Pulse animation logic
     useEffect(() => {
@@ -59,6 +60,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
     const startHold = () => {
         setIsHolding(true);
         setProgress(0);
+        isCompletingRef.current = false; // Reset guard when starting new hold
         
         intervalRef.current = window.setInterval(() => {
             setProgress((prev) => {
@@ -70,8 +72,11 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
                 const increment = prev < 85 ? 12 : 2; 
                 
                 const next = prev + increment;
-                if (next >= 100) {
+                if (next >= 100 && !isCompletingRef.current) {
+                    // Use setTimeout to defer the completion call until after render
+                    setTimeout(() => {
                     completeHold();
+                    }, 0);
                     return 100;
                 }
                 return next;
@@ -83,9 +88,14 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
         setIsHolding(false);
         if (intervalRef.current) clearInterval(intervalRef.current);
         setProgress(0);
+        isCompletingRef.current = false; // Reset guard when stopping
     };
 
     const completeHold = () => {
+        // Guard: Prevent double execution
+        if (isCompletingRef.current) return;
+        isCompletingRef.current = true;
+        
         // Clear interval manually here to prevent extra ticks
         if (intervalRef.current) clearInterval(intervalRef.current);
         setIsHolding(false);
@@ -101,7 +111,7 @@ export const HoldButton: React.FC<HoldButtonProps> = ({ isActive, onComplete, la
             onMouseDown={startHold}
             onMouseUp={stopHold}
             onMouseLeave={stopHold}
-            onTouchStart={(e) => { e.preventDefault(); startHold(); }}
+            onTouchStart={() => { startHold(); }}
             onTouchEnd={stopHold}
         >
             <div className={`relative ${containerSize} cursor-pointer group`}>

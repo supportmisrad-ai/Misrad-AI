@@ -110,6 +110,10 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="dialog-title"
+                aria-describedby="dialog-description"
                 className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden relative z-10"
                 onClick={(e) => e.stopPropagation()}
             >
@@ -123,9 +127,9 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
                         <Icon size={32} className={`text-${config.color}-500 stroke-[2.5px]`} />
                     </div>
                     
-                    <h3 className="text-2xl font-black text-slate-900 mb-3 tracking-tight leading-none">{title}</h3>
+                    <h3 id="dialog-title" className="text-2xl font-black text-slate-900 mb-3 tracking-tight leading-none">{title}</h3>
                     
-                    <p className="text-slate-500 font-medium leading-relaxed mb-1 text-sm px-2">
+                    <p id="dialog-description" className="text-slate-500 font-medium leading-relaxed mb-1 text-sm px-2">
                         {description}
                     </p>
                     

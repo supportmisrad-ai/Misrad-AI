@@ -1,0 +1,669 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "system.leads",
+      "title": "לידים",
+      "pathTemplate": "/w/{orgSlug}/system/sales_leads",
+      "description": "טבלת לידים (ניהול לידים פעיל).",
+      "primaryActions": ["ליד חדש"],
+      "keywords": ["לידים", "ליד", "ניהול לידים", "מכירות", "leads", "lead"]
+    },
+    {
+      "id": "system.leadsDeepLink",
+      "title": "לידים - פתיחת ליד ספציפי",
+      "pathTemplate": "/w/{orgSlug}/system/sales_leads?leadId={leadId}",
+      "description": "פתיחה/גלילה לליד ספציפי בתוך רשימת הלידים (Deep Link).",
+      "primaryActions": ["ליד חדש"],
+      "keywords": ["leadId", "ליד ספציפי", "פתיחת ליד", "קישור לליד", "לידים"]
+    },
+    {
+      "id": "system.leadsCreateLeadModal",
+      "title": "לידים - יצירת ליד חדש (מודאל)",
+      "pathTemplate": "/w/{orgSlug}/system/sales_leads",
+      "description": "פתיחת מודאל יצירת ליד חדש מתוך מסך הלידים (בלחיצה על \"ליד חדש\").",
+      "primaryActions": ["שמור ליד", "ביטול"],
+      "keywords": ["ליד חדש", "יצירת ליד", "מודאל", "שמור ליד", "ביטול"]
+    },
+    {
+      "id": "system.pipeline",
+      "title": "פייפליין מכירות",
+      "pathTemplate": "/w/{orgSlug}/system/sales_pipeline",
+      "description": "פייפליין מכירות (שלבים / סטטוסים של לידים).",
+      "primaryActions": [],
+      "keywords": ["פייפליין", "pipeline", "שלבים", "סטטוסים", "מכירות"]
+    },
+    {
+      "id": "system.tasks",
+      "title": "משימות",
+      "pathTemplate": "/w/{orgSlug}/system/tasks",
+      "description": "ניהול משימות במערכת.",
+      "primaryActions": ["משימה חדשה"],
+      "keywords": ["משימות", "משימה", "todo", "tasks"]
+    },
+    {
+      "id": "system.calendar",
+      "title": "יומן",
+      "pathTemplate": "/w/{orgSlug}/system/calendar",
+      "description": "יומן ואירועים.",
+      "primaryActions": ["קבע פגישה", "שמור", "ביטול", "סנכרון אירועים", "היום"],
+      "keywords": ["יומן", "calendar", "אירועים", "פגישה", "פגישות"]
+    },
+    {
+      "id": "finance.overview",
+      "title": "כספים - סקירה",
+      "pathTemplate": "/w/{orgSlug}/finance/overview",
+      "description": "דשבורד כספים / סקירה כללית.",
+      "primaryActions": ["חיבור אינטגרציה"],
+      "keywords": ["כספים", "פיננסי", "finance", "סקירה", "דשבורד כספים"]
+    },
+    {
+      "id": "finance.invoices",
+      "title": "חשבוניות",
+      "pathTemplate": "/w/{orgSlug}/finance/invoices",
+      "description": "ניהול חשבוניות.",
+      "primaryActions": ["פתח"],
+      "keywords": ["חשבוניות", "חשבונית", "invoices", "invoice"]
+    },
+    {
+      "id": "finance.expenses",
+      "title": "הוצאות",
+      "pathTemplate": "/w/{orgSlug}/finance/expenses",
+      "description": "דוח/ניהול הוצאות.",
+      "primaryActions": [],
+      "keywords": ["הוצאות", "expense", "expenses"]
+    },
+    {
+      "id": "social.dashboard",
+      "title": "סושיאל - דשבורד",
+      "pathTemplate": "/w/{orgSlug}/social/dashboard",
+      "description": "דשבורד סושיאל.",
+      "primaryActions": [],
+      "keywords": ["סושיאל", "social", "דשבורד", "dashboard"]
+    },
+    {
+      "id": "social.taskModal",
+      "title": "סושיאל - משימה חדשה/עריכת משימה (מודאל)",
+      "pathTemplate": "/w/{orgSlug}/social/dashboard",
+      "description": "מודאל משימות (נפתח לדוגמה בלחיצה על \"+ משימה חדשה\").",
+      "primaryActions": ["שמור", "ביטול"],
+      "keywords": ["משימה", "משימה חדשה", "עריכת משימה", "מודאל", "שמור", "ביטול"]
+    },
+    {
+      "id": "social.inbox",
+      "title": "תיבת הודעות (סושיאל)",
+      "pathTemplate": "/w/{orgSlug}/social/inbox",
+      "description": "Inbox - הודעות נכנסות/שיחות.",
+      "primaryActions": ["שלח"],
+      "keywords": ["אינבוקס", "inbox", "הודעות", "שיחות", "צ'אט", "וואטסאפ"]
+    },
+    {
+      "id": "social.calendar",
+      "title": "סושיאל - יומן",
+      "pathTemplate": "/w/{orgSlug}/social/calendar",
+      "description": "יומן סושיאל / תכנון תוכן.",
+      "primaryActions": ["פוסט חדש", "סנכרן אירועים", "חזרה להיום"],
+      "keywords": ["יומן סושיאל", "תכנון תוכן", "calendar"]
+    },
+    {
+      "id": "social.campaigns",
+      "title": "קמפיינים (סושיאל)",
+      "pathTemplate": "/w/{orgSlug}/social/campaigns",
+      "description": "ניהול קמפיינים במודול סושיאל.",
+      "primaryActions": ["קמפיין חדש", "השהה קמפיין", "הפעל קמפיין", "ערוך הגדרות"],
+      "keywords": ["קמפיינים", "campaigns", "קמפיין"]
+    },
+    {
+      "id": "social.campaignWizard",
+      "title": "סושיאל - הקמת קמפיין חדש (וויזארד)",
+      "pathTemplate": "/w/{orgSlug}/social/campaigns",
+      "description": "וויזארד הקמת קמפיין חדש (נפתח בלחיצה על \"קמפיין חדש\").",
+      "primaryActions": ["הבא", "הקמה", "חזרה"],
+      "keywords": ["הקמת קמפיין", "קמפיין חדש", "wizard", "הבא", "הקמה", "חזרה"]
+    },
+    {
+      "id": "operations.dashboard",
+      "title": "אופרציות - דשבורד",
+      "pathTemplate": "/w/{orgSlug}/operations",
+      "description": "דשבורד אופרציות.",
+      "primaryActions": [],
+      "keywords": ["אופרציות", "operations", "דשבורד אופרציות"]
+    },
+    {
+      "id": "operations.projects",
+      "title": "פרויקטים",
+      "pathTemplate": "/w/{orgSlug}/operations/projects",
+      "description": "כל הפרויקטים.",
+      "primaryActions": ["פרויקט חדש"],
+      "keywords": ["פרויקטים", "פרויקט", "projects", "project"]
+    },
+    {
+      "id": "operations.workOrders",
+      "title": "קריאות שירות",
+      "pathTemplate": "/w/{orgSlug}/operations/work-orders",
+      "description": "רשימת קריאות שירות (Work Orders).",
+      "primaryActions": ["קריאה חדשה"],
+      "keywords": ["קריאות", "קריאת שירות", "work orders", "work-orders", "workorder", "טכנאי"]
+    },
+    {
+      "id": "operations.workOrderDetails",
+      "title": "אופרציות - פרטי קריאה",
+      "pathTemplate": "/w/{orgSlug}/operations/work-orders/{id}",
+      "description": "מסך פרטי קריאת שירות ספציפית (כולל סטטוס, שיוך טכנאי, חומרים, חתימה).",
+      "primaryActions": ["התחל עבודה", "סיום עם חתימה", "שמור שיוך", "הוסף חומר והורד מהמלאי", "חזרה"],
+      "keywords": ["פרטי קריאה", "קריאה", "work order", "work-orders", "סטטוס", "שיוך טכנאי", "חומרים", "חתימה", "id"]
+    },
+    {
+      "id": "operations.inventory",
+      "title": "מלאי",
+      "pathTemplate": "/w/{orgSlug}/operations/inventory",
+      "description": "ניהול מלאי.",
+      "primaryActions": ["חפש"],
+      "keywords": ["מלאי", "inventory"]
+    },
+    {
+      "id": "operations.contractors",
+      "title": "קבלנים",
+      "pathTemplate": "/w/{orgSlug}/operations/contractors",
+      "description": "ניהול קבלנים.",
+      "primaryActions": ["צור טוקן"],
+      "keywords": ["קבלנים", "contractors", "קבלן"]
+    },
+    {
+      "id": "client.dashboard",
+      "title": "Client OS - דשבורד",
+      "pathTemplate": "/w/{orgSlug}/client/dashboard",
+      "description": "דשבורד Client OS.",
+      "primaryActions": [],
+      "keywords": ["client", "קליינט", "דשבורד לקוח", "Client OS", "client os"]
+    },
+    {
+      "id": "client.clients",
+      "title": "Client OS - לקוחות",
+      "pathTemplate": "/w/{orgSlug}/client/clients",
+      "description": "רשימת לקוחות בתוך Client OS.",
+      "primaryActions": [],
+      "keywords": ["לקוחות", "לקוח", "clients", "client"]
+    },
+    {
+      "id": "client.clientsDeepLink",
+      "title": "Client OS - לקוחות (Deep Link)",
+      "pathTemplate": "/w/{orgSlug}/client/clients?tab={tab}&meetingId={meetingId}",
+      "description": "פתיחה עם טאב/פגישה ספציפית (לפי query params).",
+      "primaryActions": [],
+      "keywords": ["tab", "meetingId", "פגישה", "טאב", "לקוחות", "client os"]
+    },
+    {
+      "id": "client.settings",
+      "title": "Client OS - הגדרות",
+      "pathTemplate": "/w/{orgSlug}/client/hub",
+      "description": "הגדרות Client OS.",
+      "primaryActions": [],
+      "keywords": ["הגדרות", "settings", "hub"]
+    },
+    {
+      "id": "client.workflows",
+      "title": "Client OS - תהליכים (Workflows)",
+      "pathTemplate": "/w/{orgSlug}/client/workflows",
+      "description": "בניית תהליכים אוטומטיים (Workflow Builder).",
+      "primaryActions": [],
+      "keywords": ["וורקפלואו", "workflows", "workflow", "תהליכים", "אוטומציות"]
+    },
+    {
+      "id": "client.analyzer",
+      "title": "Client OS - מנתח שיחות",
+      "pathTemplate": "/w/{orgSlug}/client/view/analyzer",
+      "description": "Meeting Analyzer / ניתוח שיחות.",
+      "primaryActions": [],
+      "keywords": ["מנתח", "ניתוח שיחה", "analyzer", "meeting analyzer", "שיחות"]
+    },
+    {
+      "id": "client.intelligence",
+      "title": "Client OS - אינטליגנציה",
+      "pathTemplate": "/w/{orgSlug}/client/view/intelligence",
+      "description": "Meeting Intelligence / תובנות מישיבות.",
+      "primaryActions": [],
+      "keywords": ["אינטליגנציה", "intelligence", "תובנות", "פגישות", "ישיבות"]
+    },
+    {
+      "id": "client.email",
+      "title": "Client OS - מרכז אימייל",
+      "pathTemplate": "/w/{orgSlug}/client/view/email",
+      "description": "Email Center.",
+      "primaryActions": [],
+      "keywords": ["אימייל", "מייל", "email", "emails"]
+    },
+    {
+      "id": "client.forms",
+      "title": "Client OS - טפסים",
+      "pathTemplate": "/w/{orgSlug}/client/view/forms",
+      "description": "Forms Manager.",
+      "primaryActions": [],
+      "keywords": ["טפסים", "טופס", "forms", "form"]
+    },
+    {
+      "id": "client.feedback",
+      "title": "Client OS - פידבק",
+      "pathTemplate": "/w/{orgSlug}/client/view/feedback",
+      "description": "Feedback Loop.",
+      "primaryActions": [],
+      "keywords": ["פידבק", "feedback", "משוב"]
+    },
+    {
+      "id": "client.portal",
+      "title": "פורטל לקוחות",
+      "pathTemplate": "/w/{orgSlug}/client/portal",
+      "description": "פורטל לקוחות (Client Portal).",
+      "primaryActions": [],
+      "keywords": ["פורטל", "portal", "פורטל לקוחות"]
+    },
+    {
+      "id": "client.clientPortal",
+      "title": "Client OS - פורטל לקוח (מסך ללקוח ספציפי)",
+      "pathTemplate": "/w/{orgSlug}/client/client-portal",
+      "description": "פורטל לקוח לפי clientId (בדרך כלל מגיעים מכרטיס לקוח או לינק פנימי).",
+      "primaryActions": [],
+      "keywords": ["client portal", "client-portal", "פורטל לקוח", "פורטל", "clientId"]
+    },
+    {
+      "id": "client.cycles",
+      "title": "Client OS - מחזורים (Cycles)",
+      "pathTemplate": "/w/{orgSlug}/client/view/cycles",
+      "description": "Cycles Manager.",
+      "primaryActions": [],
+      "keywords": ["מחזורים", "cycles", "cycle"]
+    },
+    {
+      "id": "client.me",
+      "title": "Client OS - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/client/me",
+      "description": "אזור אישי במודול Client.",
+      "primaryActions": [],
+      "keywords": ["אזור אישי", "me", "פרופיל", "profile"]
+    },
+    {
+      "id": "finance.me",
+      "title": "כספים - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/finance/me",
+      "description": "אזור אישי במודול Finance.",
+      "primaryActions": [],
+      "keywords": ["finance me", "פרופיל", "אזור אישי", "me"]
+    },
+    {
+      "id": "system.home",
+      "title": "System - דף בית",
+      "pathTemplate": "/w/{orgSlug}/system",
+      "description": "דף הבית של מודול System (לידים, אירועים, משימות, קמפיינים, התראות).",
+      "primaryActions": [],
+      "keywords": ["system", "לוח בקרה", "דשבורד", "דף הבית"]
+    },
+    {
+      "id": "system.analytics",
+      "title": "System - אנליטיקה",
+      "pathTemplate": "/w/{orgSlug}/system/analytics",
+      "description": "אנליטיקה ונתונים (כולל משימות Nexus שהובאו ל-System).",
+      "primaryActions": [],
+      "keywords": ["אנליטיקה", "analytics", "מדדים", "סטטיסטיקות"]
+    },
+    {
+      "id": "system.reports",
+      "title": "System - דוחות",
+      "pathTemplate": "/w/{orgSlug}/system/reports",
+      "description": "דוחות ונתונים.",
+      "primaryActions": ["ייצוא דוח", "הדפס דוח"],
+      "keywords": ["דוחות", "דוח", "reports", "ייצוא", "הדפס"]
+    },
+    {
+      "id": "system.dialer",
+      "title": "System - תקשורת",
+      "pathTemplate": "/w/{orgSlug}/system/dialer",
+      "description": "מסך תקשורת/שיחות ופעילויות מול לידים.",
+      "primaryActions": [],
+      "keywords": ["תקשורת", "שיחות", "חייגן", "dialer", "communication"]
+    },
+    {
+      "id": "system.notifications",
+      "title": "System - התראות",
+      "pathTemplate": "/w/{orgSlug}/system/notifications",
+      "description": "מרכז העדכון (התראות מערכת).",
+      "primaryActions": ["סמן הכל כנקרא", "מחק התראה"],
+      "keywords": ["התראות", "notifications", "מרכז העדכון", "עדכונים"]
+    },
+    {
+      "id": "system.settings",
+      "title": "System - הגדרות",
+      "pathTemplate": "/w/{orgSlug}/system/settings",
+      "description": "הגדרות מערכת / פרופיל.",
+      "primaryActions": [],
+      "keywords": ["הגדרות", "settings", "פרופיל", "profile"]
+    },
+    {
+      "id": "system.me",
+      "title": "System - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/system/me",
+      "description": "אזור אישי במודול System.",
+      "primaryActions": [],
+      "keywords": ["אזור אישי", "me", "פרופיל", "profile"]
+    },
+    {
+      "id": "system.ai_analytics",
+      "title": "System - AI Analytics (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/ai_analytics",
+      "description": "הפניה למסך אנליטיקה.",
+      "primaryActions": [],
+      "keywords": ["ai analytics", "ai_analytics", "אנליטיקה"]
+    },
+    {
+      "id": "system.hub",
+      "title": "System - Hub (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/hub",
+      "description": "הפניה להגדרות.",
+      "primaryActions": [],
+      "keywords": ["hub", "מרכז", "הגדרות"]
+    },
+    {
+      "id": "system.comms",
+      "title": "System - Comms (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/comms",
+      "description": "הפניה למסך תקשורת.",
+      "primaryActions": [],
+      "keywords": ["comms", "תקשורת", "שיחות"]
+    },
+    {
+      "id": "system.headquarters",
+      "title": "System - Headquarters (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/headquarters",
+      "description": "הפניה לדף הבית של System.",
+      "primaryActions": [],
+      "keywords": ["headquarters", "דף הבית"]
+    },
+    {
+      "id": "system.notificationsCenter",
+      "title": "System - Notifications Center (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/notifications_center",
+      "description": "הפניה למסך התראות.",
+      "primaryActions": [],
+      "keywords": ["notifications center", "notifications_center", "התראות"]
+    },
+    {
+      "id": "system.legacySettings",
+      "title": "System - System (הפניה)",
+      "pathTemplate": "/w/{orgSlug}/system/system",
+      "description": "הפניה להגדרות.",
+      "primaryActions": [],
+      "keywords": ["system/system", "legacy", "הגדרות"]
+    },
+    {
+      "id": "operations.settings",
+      "title": "אופרציות - הגדרות",
+      "pathTemplate": "/w/{orgSlug}/operations/settings",
+      "description": "ניהול מחסנים, רכבים וסוגי קריאות.",
+      "primaryActions": ["הוסף", "מחק"],
+      "keywords": ["הגדרות", "settings", "מחסנים", "רכבים", "סוגי קריאות"]
+    },
+    {
+      "id": "operations.projectNew",
+      "title": "אופרציות - פרויקט חדש",
+      "pathTemplate": "/w/{orgSlug}/operations/projects/new",
+      "description": "יצירת פרויקט חדש.",
+      "primaryActions": ["צור פרויקט", "ביטול", "חזרה"],
+      "keywords": ["פרויקט חדש", "צור פרויקט", "projects new"]
+    },
+    {
+      "id": "operations.workOrderNew",
+      "title": "אופרציות - קריאה חדשה",
+      "pathTemplate": "/w/{orgSlug}/operations/work-orders/new",
+      "description": "יצירת קריאת שירות חדשה.",
+      "primaryActions": ["צור קריאה", "ביטול", "חזרה"],
+      "keywords": ["קריאה חדשה", "צור קריאה", "work order new", "work-orders new"]
+    },
+    {
+      "id": "operations.me",
+      "title": "אופרציות - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/operations/me",
+      "description": "אזור אישי לטכנאי: רכב פעיל, קיצורי דרך לקריאות ומלאי.",
+      "primaryActions": ["שמור"],
+      "keywords": ["operations me", "אזור אישי", "רכב פעיל", "me"]
+    },
+    {
+      "id": "social.settings",
+      "title": "סושיאל - הגדרות",
+      "pathTemplate": "/w/{orgSlug}/social/settings",
+      "description": "הגדרות מערכת סושיאל (עדכונים, אינטגרציות, אבטחה, צוות, חיבורי רשתות).",
+      "primaryActions": ["עדכונים", "שירותים ומחירון", "אינטגרציות", "אוטומציות וגבייה", "אבטחה וסיסמה", "חיבורי רשתות"],
+      "keywords": ["הגדרות", "settings", "אינטגרציות", "אבטחה", "צוות", "pricing"]
+    },
+    {
+      "id": "social.hub",
+      "title": "סושיאל - Hub (הגדרות)",
+      "pathTemplate": "/w/{orgSlug}/social/hub",
+      "description": "מסך הגדרות (alias).",
+      "primaryActions": ["עדכונים", "שירותים ומחירון", "אינטגרציות"],
+      "keywords": ["hub", "הגדרות", "settings"]
+    },
+    {
+      "id": "social.clients",
+      "title": "סושיאל - לקוחות",
+      "pathTemplate": "/w/{orgSlug}/social/clients",
+      "description": "ניהול לקוחות במודול סושיאל.",
+      "primaryActions": ["לקוח חדש", "הוסף לקוח"],
+      "keywords": ["לקוחות", "client", "clients", "לקוח חדש", "הוסף לקוח"]
+    },
+    {
+      "id": "social.inviteClientModal",
+      "title": "סושיאל - שלח לינק הצטרפות (מודאל)",
+      "pathTemplate": "/w/{orgSlug}/social/clients",
+      "description": "מודאל יצירת/שליחת לינק הקמה ללקוח (נפתח בלחיצה על \"שלח לינק הצטרפות\").",
+      "primaryActions": ["צור לינק הקמה", "העתק", "וואטסאפ", "כרטיס לקוח"],
+      "keywords": ["לינק הצטרפות", "לינק הקמה", "הזמנת לקוח", "וואטסאפ", "העתק", "כרטיס לקוח"]
+    },
+    {
+      "id": "social.collection",
+      "title": "סושיאל - גבייה",
+      "pathTemplate": "/w/{orgSlug}/social/collection",
+      "description": "מסך גבייה/תשלומים.",
+      "primaryActions": [],
+      "keywords": ["גבייה", "collection", "תשלומים", "payment"]
+    },
+    {
+      "id": "social.paymentLinkModal",
+      "title": "סושיאל - יצירת לינק לתשלום (מודאל)",
+      "pathTemplate": "/w/{orgSlug}/social/collection",
+      "description": "מודאל יצירת לינק לתשלום (נפתח בלחיצה על \"צור לינק תשלום\").",
+      "primaryActions": ["צור לינק תשלום", "העתק", "וואטסאפ", "סיום"],
+      "keywords": ["לינק לתשלום", "צור לינק תשלום", "תשלום", "גבייה", "payment", "העתק", "וואטסאפ"]
+    },
+    {
+      "id": "social.machine",
+      "title": "סושיאל - מכונת תוכן",
+      "pathTemplate": "/w/{orgSlug}/social/machine",
+      "description": "יצירת תוכן ופוסטים.",
+      "primaryActions": ["פוסט חדש"],
+      "keywords": ["מכונת תוכן", "machine", "תוכן", "פוסט", "פוסט חדש"]
+    },
+    {
+      "id": "social.analytics",
+      "title": "סושיאל - אנליטיקה",
+      "pathTemplate": "/w/{orgSlug}/social/analytics",
+      "description": "אנליטיקה ומדדים במודול סושיאל.",
+      "primaryActions": [],
+      "keywords": ["אנליטיקה", "analytics", "מדדים"]
+    },
+    {
+      "id": "social.workspace",
+      "title": "סושיאל - Workspace",
+      "pathTemplate": "/w/{orgSlug}/social/workspace",
+      "description": "Workspace לקוח (לעיתים נפתח עם query params כגון clientId).",
+      "primaryActions": [],
+      "keywords": ["workspace", "לקוח", "clientId", "clientName"]
+    },
+    {
+      "id": "social.workspaceClient",
+      "title": "סושיאל - Workspace (לקוח ספציפי)",
+      "pathTemplate": "/w/{orgSlug}/social/workspace?clientId={clientId}&onboarding={onboarding}",
+      "description": "פתיחה ישירה ל-Workspace של לקוח לפי clientId (כולל מצב onboarding אופציונלי).",
+      "primaryActions": [],
+      "keywords": ["clientId", "onboarding", "workspace", "לקוח", "סושיאל"]
+    },
+    {
+      "id": "social.team",
+      "title": "סושיאל - צוות",
+      "pathTemplate": "/w/{orgSlug}/social/team",
+      "description": "צוות והרשאות במודול סושיאל.",
+      "primaryActions": ["הוסף משתמש"],
+      "keywords": ["צוות", "team", "הרשאות", "users", "הוסף משתמש"]
+    },
+    {
+      "id": "social.me",
+      "title": "סושיאל - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/social/me",
+      "description": "אזור אישי במודול סושיאל.",
+      "primaryActions": [],
+      "keywords": ["אזור אישי", "me", "פרופיל", "profile"]
+    },
+    {
+      "id": "social.admin",
+      "title": "סושיאל - ניהול",
+      "pathTemplate": "/w/{orgSlug}/social/admin",
+      "description": "מסכי ניהול במודול סושיאל.",
+      "primaryActions": [],
+      "keywords": ["admin", "ניהול", "מסוף"]
+    },
+    {
+      "id": "social.agencyInsights",
+      "title": "סושיאל - תובנות סוכנות",
+      "pathTemplate": "/w/{orgSlug}/social/agency-insights",
+      "description": "Insights לסוכנות/ביצועים.",
+      "primaryActions": [],
+      "keywords": ["agency", "insights", "תובנות", "סוכנות"]
+    },
+    {
+      "id": "nexus.dashboard",
+      "title": "Nexus - דשבורד",
+      "pathTemplate": "/w/{orgSlug}/nexus",
+      "description": "דשבורד ראשי של Nexus.",
+      "primaryActions": [],
+      "keywords": ["nexus", "דשבורד", "dashboard", "דף הבית"]
+    },
+    {
+      "id": "nexus.tasks",
+      "title": "Nexus - משימות",
+      "pathTemplate": "/w/{orgSlug}/nexus/tasks",
+      "description": "ניהול משימות (לוח/רשימה/מיקוד).",
+      "primaryActions": ["משימה חדשה", "מצב מיקוד"],
+      "keywords": ["משימות", "task", "tasks", "ניהול משימות", "מצב מיקוד"]
+    },
+    {
+      "id": "nexus.createTaskModal",
+      "title": "Nexus - יצירת משימה (מודאל)",
+      "pathTemplate": "/w/{orgSlug}/nexus/tasks",
+      "description": "מודאל יצירת משימה חדשה (נפתח בלחיצה על \"משימה חדשה\").",
+      "primaryActions": ["צור משימה", "שלח לאישור"],
+      "keywords": ["יצירת משימה", "משימה חדשה", "צור משימה", "שלח לאישור", "מודאל", "nexus"]
+    },
+    {
+      "id": "nexus.calendar",
+      "title": "Nexus - יומן",
+      "pathTemplate": "/w/{orgSlug}/nexus/calendar",
+      "description": "יומן ב-Nexus.",
+      "primaryActions": [],
+      "keywords": ["יומן", "calendar"]
+    },
+    {
+      "id": "nexus.clients",
+      "title": "Nexus - לקוחות",
+      "pathTemplate": "/w/{orgSlug}/nexus/clients",
+      "description": "לקוחות ב-Nexus.",
+      "primaryActions": [],
+      "keywords": ["לקוחות", "clients", "client"]
+    },
+    {
+      "id": "nexus.team",
+      "title": "Nexus - צוות",
+      "pathTemplate": "/w/{orgSlug}/nexus/team",
+      "description": "צוות/משתמשים.",
+      "primaryActions": [],
+      "keywords": ["צוות", "users", "team", "עובדים"]
+    },
+    {
+      "id": "nexus.users",
+      "title": "Nexus - משתמשים",
+      "pathTemplate": "/w/{orgSlug}/nexus/users",
+      "description": "Alias לצוות.",
+      "primaryActions": [],
+      "keywords": ["משתמשים", "users", "צוות"]
+    },
+    {
+      "id": "nexus.reports",
+      "title": "Nexus - דוחות",
+      "pathTemplate": "/w/{orgSlug}/nexus/reports",
+      "description": "דוחות (עם ModuleGuard ל-Finance).",
+      "primaryActions": [],
+      "keywords": ["דוחות", "reports", "finance"]
+    },
+    {
+      "id": "nexus.assets",
+      "title": "Nexus - נכסים",
+      "pathTemplate": "/w/{orgSlug}/nexus/assets",
+      "description": "נכסים/קבצים.",
+      "primaryActions": [],
+      "keywords": ["נכסים", "assets", "קבצים"]
+    },
+    {
+      "id": "nexus.trash",
+      "title": "Nexus - סל מחזור",
+      "pathTemplate": "/w/{orgSlug}/nexus/trash",
+      "description": "Recycle Bin.",
+      "primaryActions": [],
+      "keywords": ["סל מחזור", "trash", "recycle"]
+    },
+    {
+      "id": "nexus.settings",
+      "title": "Nexus - הגדרות",
+      "pathTemplate": "/w/{orgSlug}/nexus/settings",
+      "description": "הגדרות.",
+      "primaryActions": [],
+      "keywords": ["הגדרות", "settings"]
+    },
+    {
+      "id": "nexus.me",
+      "title": "Nexus - אזור אישי",
+      "pathTemplate": "/w/{orgSlug}/nexus/me",
+      "description": "אזור אישי.",
+      "primaryActions": [],
+      "keywords": ["אזור אישי", "me", "פרופיל", "profile"]
+    },
+    {
+      "id": "nexus.brain",
+      "title": "Nexus - Brain",
+      "pathTemplate": "/w/{orgSlug}/nexus/brain",
+      "description": "מודיעין/AI.",
+      "primaryActions": [],
+      "keywords": ["brain", "מודיעין", "AI", "intelligence"]
+    },
+    {
+      "id": "nexus.sales",
+      "title": "Nexus - מכירות",
+      "pathTemplate": "/w/{orgSlug}/nexus/sales",
+      "description": "דשבורד מכירות ב-Nexus.",
+      "primaryActions": [],
+      "keywords": ["מכירות", "sales"]
+    },
+    {
+      "id": "nexus.salesPipeline",
+      "title": "Nexus - פייפליין מכירות",
+      "pathTemplate": "/w/{orgSlug}/nexus/sales/pipeline",
+      "description": "פייפליין מכירות.",
+      "primaryActions": [],
+      "keywords": ["פייפליין", "pipeline", "מכירות"]
+    },
+    {
+      "id": "nexus.salesTargets",
+      "title": "Nexus - יעדי מכירות",
+      "pathTemplate": "/w/{orgSlug}/nexus/sales/targets",
+      "description": "יעדי מכירות.",
+      "primaryActions": [],
+      "keywords": ["יעדים", "targets", "מכירות"]
+    }
+  ]
+}

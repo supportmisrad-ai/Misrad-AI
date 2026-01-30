@@ -1,12 +1,22 @@
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useData } from '../context/DataContext';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket } from 'lucide-react';
-import { Status, Priority, LeadStatus } from '../types';
-import { TaskCard } from '../components/TaskCard';
+import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket, Image as ImageIcon, Upload, Plus, Mic } from 'lucide-react';
+import { Status, Priority, LeadStatus, User as UserType } from '../types';
+import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
-import { useNavigate } from 'react-router-dom';
+import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
+import { upsertMyProfile } from '@/app/actions/profiles';
+import { Skeleton } from '@/components/ui/skeletons';
+import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
+import { isCeoRole } from '@/lib/constants/roles';
+import { listNexusUsers } from '@/app/actions/nexus';
+
+const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
 const TrendChart = ({ data, color }: { data: number[], color: string }) => {
     const max = Math.max(...data);
@@ -23,7 +33,7 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
         <div className="relative h-20 w-full overflow-hidden">
             <svg viewBox={`0 0 100 ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
                 <path d={`M0,${height} ${points} 100,${height}`} fill={`url(#gradient-${color})`} className="opacity-30" />
-                <path d={`M${points.replace(/ /g, ' L')}`} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" className={color} strokeLinecap="round" strokeLinejoin="round" />
+                <path d={`M${String(points ?? '').replace(/ /g, ' L')}`} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" className={color} strokeLinecap="round" strokeLinejoin="round" />
                 <defs>
                     <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="currentColor" stopOpacity="0.6" className={color} />
@@ -35,15 +45,275 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
     );
 };
 
-export const DashboardView: React.FC = () => {
-    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, users, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization } = useData();
-    const navigate = useNavigate();
+export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initialOwnerDashboard }) => {
+    const renderCountRef = useRef(0);
+    renderCountRef.current += 1;
+    if (renderCountRef.current === 1 || renderCountRef.current % 10 === 0) {
+        console.log('[Nexus][DashboardView] render', { count: renderCountRef.current });
+    }
+
+    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
+    const [users, setUsers] = useState<UserType[]>([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const { navigate, pathname } = useNexusNavigation();
+    const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+    const isHomeDashboard = useRef(false);
+    isHomeDashboard.current = typeof pathname === 'string' ? /\/nexus\/?$/.test(pathname) : false;
+    const [ownerDashboard, setOwnerDashboard] = useState<any>(initialOwnerDashboard ?? null);
+    const [showOwnerDashboard, setShowOwnerDashboard] = useState(true);
+    const [isPilotLoading, setIsPilotLoading] = useState(false);
+    const [isFocusMode, setIsFocusMode] = useState(false);
+    const [pilotErrorCount, setPilotErrorCount] = useState(0);
+
+    const [showTourPrompt, setShowTourPrompt] = useState(false);
+
+    const showExtraQuickActions = false;
+
+    useEffect(() => {
+        console.log('[Nexus][DashboardView] mount');
+        return () => {
+            console.log('[Nexus][DashboardView] unmount');
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!isHomeDashboard.current) return;
+        if (typeof window === 'undefined') return;
+        try {
+            const seen = window.localStorage.getItem(TOUR_PROMPT_STORAGE_KEY);
+            if (!seen) setShowTourPrompt(true);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!isHomeDashboard.current) return;
+        if (typeof window === 'undefined') return;
+
+        const url = new URL(window.location.href);
+        const shouldStart = url.searchParams.get('tour') === '1';
+        if (!shouldStart) return;
+
+        url.searchParams.delete('tour');
+        const nextSearch = url.searchParams.toString();
+        window.history.replaceState({}, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
+
+        setTimeout(() => startTutorial(), 0);
+    }, [startTutorial]);
+    
+    const usersQuery = useQuery({
+        queryKey: ['nexus', 'users', workspaceOrgSlug],
+        queryFn: async () => {
+            return listNexusUsers({ orgId: workspaceOrgSlug as string, page: 1, pageSize: 200 });
+        },
+        enabled: Boolean(workspaceOrgSlug),
+        staleTime: 30_000,
+        refetchInterval: 60_000,
+        retry: 1,
+    });
+
+    useEffect(() => {
+        setIsRefreshing(Boolean(usersQuery.isFetching));
+        const next = (usersQuery.data as any)?.users;
+        if (Array.isArray(next)) {
+            setUsers(next);
+        }
+    }, [usersQuery.data, usersQuery.isFetching]);
+
+    // Load Pilot (Owner Control Center) KPIs + Next Actions
+    useEffect(() => {
+        if (initialOwnerDashboard) return;
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) return;
+
+        if (pilotErrorCount >= 3) return;
+
+        let cancelled = false;
+        const load = async () => {
+            setIsPilotLoading(true);
+            try {
+                const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/owner-dashboard`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!cancelled) setOwnerDashboard(data);
+                if (!cancelled) setPilotErrorCount(0);
+            } catch {
+                // ignore
+                if (!cancelled) setPilotErrorCount((c) => c + 1);
+            } finally {
+                if (!cancelled) setIsPilotLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [pathname, initialOwnerDashboard]);
+
     const [elapsed, setElapsed] = useState('00:00:00');
     const [isEditingGoals, setIsEditingGoals] = useState(false);
     const [tempGoals, setTempGoals] = useState(monthlyGoals);
     
     // Onboarding State
     const [showOnboarding, setShowOnboarding] = useState(true);
+    const onboardingPersistedRef = useRef(false);
+    const onboardingKey = 'nexusOnboarding';
+
+    const [onboardingTemplate, setOnboardingTemplate] = useState<string | null>(null);
+    const [isLoadingOnboardingTemplate, setIsLoadingOnboardingTemplate] = useState(false);
+    const [isApplyingOnboardingTemplate, setIsApplyingOnboardingTemplate] = useState(false);
+
+    const [billingItems, setBillingItems] = useState<any[] | null>(null);
+    const [isLoadingBillingItems, setIsLoadingBillingItems] = useState(false);
+    
+    // Logo Reminder State
+    const [showLogoReminder, setShowLogoReminder] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            setShowLogoReminder(!localStorage.getItem('logo_reminder_dismissed'));
+        } catch {
+            setShowLogoReminder(true);
+        }
+    }, []);
+
+    useEffect(() => {
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) return;
+
+        let cancelled = false;
+        const load = async () => {
+            setIsLoadingOnboardingTemplate(true);
+            try {
+                const res = await fetch('/api/nexus/onboarding-template', {
+                    headers: { 'x-org-id': orgSlug },
+                    cache: 'no-store',
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const key = (data?.template && (data.template.key || data.template.templateKey)) || null;
+                if (!cancelled) setOnboardingTemplate(typeof key === 'string' ? key : null);
+            } catch {
+                // ignore
+            } finally {
+                if (!cancelled) setIsLoadingOnboardingTemplate(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [pathname]);
+
+    useEffect(() => {
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) return;
+
+        let cancelled = false;
+        const load = async () => {
+            setIsLoadingBillingItems(true);
+            try {
+                const res = await fetch('/api/nexus/billing', {
+                    headers: { 'x-org-id': orgSlug },
+                    cache: 'no-store',
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                const items = Array.isArray(data?.billing?.items) ? data.billing.items : null;
+                if (!cancelled) setBillingItems(items);
+            } catch {
+                // ignore
+            } finally {
+                if (!cancelled) setIsLoadingBillingItems(false);
+            }
+        };
+
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [pathname]);
+
+    const applyNexusOnboardingTemplate = async (templateKey: 'retainer_fixed' | 'deliverables_package') => {
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) {
+            addToast('לא ניתן לזהות סביבת עבודה (org). נסה לרענן.', 'error');
+            return;
+        }
+
+        setIsApplyingOnboardingTemplate(true);
+        try {
+            const saveRes = await fetch('/api/nexus/onboarding-template', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-org-id': orgSlug,
+                },
+                body: JSON.stringify({ templateKey }),
+            });
+
+            if (!saveRes.ok) {
+                const err = await saveRes.json().catch(() => null);
+                throw new Error(err?.error || 'שגיאה בשמירת התבנית');
+            }
+
+            const applyRes = await fetch('/api/nexus/onboarding/apply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-org-id': orgSlug,
+                },
+                body: JSON.stringify({ templateKey }),
+            });
+
+            if (!applyRes.ok) {
+                const err = await applyRes.json().catch(() => null);
+                throw new Error(err?.error || 'שגיאה ביצירת משימות התחלה');
+            }
+
+            try {
+                const billingRes = await fetch('/api/nexus/billing/apply', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-org-id': orgSlug,
+                    },
+                    body: JSON.stringify({ templateKey }),
+                });
+
+                if (!billingRes.ok) {
+                    addToast('המשימות נוצרו, אבל יצירת פריטי חיוב לא הושלמה. אפשר להגדיר ידנית בהמשך.', 'info');
+                } else {
+                    try {
+                        const billingGet = await fetch('/api/nexus/billing', {
+                            headers: { 'x-org-id': orgSlug },
+                            cache: 'no-store',
+                        });
+                        if (billingGet.ok) {
+                            const data = await billingGet.json();
+                            const items = Array.isArray(data?.billing?.items) ? data.billing.items : null;
+                            setBillingItems(items);
+                        }
+                    } catch {
+                        // ignore
+                    }
+                }
+            } catch {
+                addToast('המשימות נוצרו, אבל יצירת פריטי חיוב לא הושלמה. אפשר להגדיר ידנית בהמשך.', 'info');
+            }
+
+            setOnboardingTemplate(templateKey);
+            addToast('התבנית הופעלה. יצרנו עבורך סט משימות התחלה.', 'success');
+        } catch (e: any) {
+            addToast(e?.message || 'שגיאה בהפעלת התבנית', 'error');
+        } finally {
+            setIsApplyingOnboardingTemplate(false);
+        }
+    };
 
     // Dynamic Onboarding Checks
     const onboardingSteps = [
@@ -53,14 +323,14 @@ export const DashboardView: React.FC = () => {
             subLabel: 'הוסף טלפון ופרטים',
             done: !!currentUser.phone && currentUser.phone.length > 0, 
             icon: User,
-            action: () => navigate('/me'),
+            action: () => navigate('/me?edit=profile'),
             color: 'text-blue-600 bg-blue-50'
         },
         { 
             id: 2, 
             label: 'משימה ראשונה', 
             subLabel: 'צור משימה במערכת',
-            done: tasks.some(t => t.creatorId === currentUser.id), 
+            done: tasks.some((t: any) => t.creatorId === currentUser.id), 
             icon: CheckSquare,
             action: () => openCreateTask(),
             color: 'text-purple-600 bg-purple-50'
@@ -69,9 +339,10 @@ export const DashboardView: React.FC = () => {
             id: 3, 
             label: 'כניסה למשמרת', 
             subLabel: 'הפעל שעון נוכחות',
-            done: !!activeShift || tasks.some(t => t.timeSpent > 0), // Done if active or has logged time before
+            done: !!activeShift || tasks.some((t: any) => t.timeSpent > 0), // Done if active or has logged time before
             icon: Clock,
             action: () => {
+                if (typeof document === 'undefined') return;
                 const clockElement = document.getElementById('time-clock-widget');
                 if (clockElement) clockElement.scrollIntoView({ behavior: 'smooth' });
             },
@@ -87,11 +358,89 @@ export const DashboardView: React.FC = () => {
             color: 'text-amber-600 bg-amber-50',
             moduleId: 'ai'
         }
-    ].filter(step => !step.moduleId || organization.enabledModules.includes(step.moduleId)); // Filter steps based on enabled modules
+    ].filter((step: any) => !step.moduleId || organization.enabledModules.includes(step.moduleId)); // Filter steps based on enabled modules
     
-    const completedSteps = onboardingSteps.filter(s => s.done).length;
+    const completedSteps = onboardingSteps.filter((s: any) => s.done).length;
     const progressPercent = (completedSteps / onboardingSteps.length) * 100;
     const isAllComplete = completedSteps === onboardingSteps.length;
+
+    useEffect(() => {
+        const completedAt = (currentUser as any)?.uiPreferences?.[onboardingKey]?.completedAt;
+        const dismissedAt = (currentUser as any)?.uiPreferences?.[onboardingKey]?.dismissedAt;
+        if (completedAt) {
+            setShowOnboarding(false);
+            return;
+        }
+        if (dismissedAt) {
+            setShowOnboarding(false);
+            return;
+        }
+        setShowOnboarding(true);
+    }, [(currentUser as any)?.uiPreferences]);
+
+    useEffect(() => {
+        if (onboardingPersistedRef.current) return;
+        if (!isAllComplete) return;
+
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) return;
+
+        const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
+        const completedAt = existing?.completedAt;
+        if (completedAt) {
+            onboardingPersistedRef.current = true;
+            setShowOnboarding(false);
+            return;
+        }
+
+        onboardingPersistedRef.current = true;
+        setShowOnboarding(false);
+        (async () => {
+            try {
+                const nextPrefs = {
+                    ...((currentUser as any)?.uiPreferences || {}),
+                    [onboardingKey]: {
+                        ...existing,
+                        completedAt: new Date().toISOString(),
+                    },
+                };
+                await upsertMyProfile({
+                    orgSlug,
+                    updates: { uiPreferences: nextPrefs },
+                });
+            } catch {
+                // ignore
+            }
+        })();
+    }, [isAllComplete, pathname]);
+
+    const dismissOnboarding = () => {
+        setShowOnboarding(false);
+
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) return;
+
+        const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
+        if (existing?.completedAt) return;
+
+        (async () => {
+            try {
+                const nextPrefs = {
+                    ...((currentUser as any)?.uiPreferences || {}),
+                    [onboardingKey]: {
+                        ...existing,
+                        dismissedAt: new Date().toISOString(),
+                    },
+                };
+                await upsertMyProfile({
+                    orgSlug,
+                    updates: { uiPreferences: nextPrefs },
+                });
+            } catch {
+                // ignore
+            }
+        })();
+    };
 
     useEffect(() => {
         if (!activeShift) {
@@ -117,7 +466,7 @@ export const DashboardView: React.FC = () => {
 
     // --- FOCUS TASKS LOGIC (SYNCED) ---
     // 1. Get tasks explicitly marked as 'isFocus' from Morning Briefing
-    const explicitFocusTasks = tasks.filter(t => 
+    const explicitFocusTasks = tasks.filter((t: any) => 
         t.assigneeIds?.includes(currentUser.id) && 
         t.isFocus && 
         t.status !== Status.DONE && 
@@ -125,7 +474,7 @@ export const DashboardView: React.FC = () => {
     );
 
     // 2. Fallback heuristic if no tasks are marked (user skipped briefing)
-    const fallbackTasks = tasks.filter(t => 
+    const fallbackTasks = tasks.filter((t: any) => 
         t.assigneeIds?.includes(currentUser.id) && 
         t.status !== Status.DONE && 
         t.status !== Status.CANCELED &&
@@ -135,14 +484,14 @@ export const DashboardView: React.FC = () => {
     const focusTasks = explicitFocusTasks.length > 0 ? explicitFocusTasks : fallbackTasks;
     const isSynced = explicitFocusTasks.length > 0;
 
-    const completedTasksCount = tasks.filter(t => t.status === Status.DONE).length;
+    const completedTasksCount = tasks.filter((t: any) => t.status === Status.DONE).length;
     const totalTasksCount = tasks.length;
     const completionRate = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0;
     const taskProgress = Math.min((completionRate / monthlyGoals.tasksCompletion) * 100, 100);
 
-    const recurringRevenue = clients.filter(c => c.status === 'Active').reduce((sum, client) => {
+    const recurringRevenue = clients.filter((c: any) => c.status === 'Active').reduce((sum: number, client: any) => {
             let price = 0;
-            const product = products.find(p => p.name === client.package);
+            const product = products.find((p: any) => p.name === client.package);
             if (product) price = product.price;
             else {
                 if(client.package.includes('Premium')) price = 15000;
@@ -151,7 +500,7 @@ export const DashboardView: React.FC = () => {
             return sum + price;
         }, 0);
 
-    const wonLeadsRevenue = leads.filter(l => l.status === LeadStatus.WON).reduce((sum, lead) => sum + lead.value, 0);
+    const wonLeadsRevenue = leads.filter((l: any) => l.status === LeadStatus.WON).reduce((sum: number, lead: any) => sum + lead.value, 0);
     const totalRevenue = recurringRevenue + wonLeadsRevenue;
     const revenueGoal = monthlyGoals.revenue || 1; 
     const revenueProgress = Math.min((totalRevenue / revenueGoal) * 100, 100);
@@ -160,7 +509,7 @@ export const DashboardView: React.FC = () => {
     const growth = ((revenueHistory[5] - revenueHistory[4]) / (revenueHistory[4] || 1)) * 100;
 
     // Correct Logic for Monthly Tasks: Check actual completion date, not creation date
-    const myCompletedTasksThisMonth = tasks.filter(t => {
+    const myCompletedTasksThisMonth = tasks.filter((t: any) => {
         if (!t.assigneeIds?.includes(currentUser.id)) return false;
         if (t.status !== Status.DONE) return false;
         
@@ -184,8 +533,8 @@ export const DashboardView: React.FC = () => {
     // Gamification Display
     const streak = currentUser.streakDays || 0;
 
-    return (
-        <div className="flex flex-col gap-8 pb-20">
+        return (
+        <div className="flex flex-col gap-8 pb-16 md:pb-20">
             <AnimatePresence>
                 {isEditingGoals && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -193,8 +542,8 @@ export const DashboardView: React.FC = () => {
                         <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 flex flex-col p-6">
                             <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-lg text-gray-900">הגדרת יעדים חודשיים</h3><button onClick={() => setIsEditingGoals(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button></div>
                             <div className="space-y-4">
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד הכנסות (₪)</label><input type="number" value={tempGoals.revenue} onChange={(e) => setTempGoals({...tempGoals, revenue: Number(e.target.value)})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-black font-bold text-lg" /></div>
-                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד השלמת משימות (%)</label><input type="number" value={tempGoals.tasksCompletion} onChange={(e) => setTempGoals({...tempGoals, tasksCompletion: Number(e.target.value)})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-black font-bold text-lg" max="100" /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד הכנסות (₪)</label><input type="number" value={tempGoals.revenue} onChange={(e) => setTempGoals({...tempGoals, revenue: Number(e.target.value)})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 font-bold text-lg" /></div>
+                                <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד השלמת משימות (%)</label><input type="number" value={tempGoals.tasksCompletion} onChange={(e) => setTempGoals({...tempGoals, tasksCompletion: Number(e.target.value)})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 font-bold text-lg" max="100" /></div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6"><button onClick={() => setIsEditingGoals(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm">ביטול</button><button onClick={handleSaveGoals} className="px-6 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm shadow-lg"><Check size={16} /> שמור יעדים</button></div>
                         </motion.div>
@@ -202,31 +551,13 @@ export const DashboardView: React.FC = () => {
                 )}
             </AnimatePresence>
 
-            <div className="flex items-end justify-between">
-                <div>
-                    <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                        בוקר טוב, {currentUser.name.split(' ')[0]} 
-                        <span className="inline-block animate-wave origin-bottom-right">👋</span>
-                    </h1>
-                    <div className="flex items-center gap-3 mt-2">
-                        <p className="text-gray-500 text-lg">מוכן לכבוש את היום? הנה המצב שלך.</p>
-                        {streak > 0 && (
-                            <div className="flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200" title="ימי עבודה רצופים בעמידה ביעדים">
-                                <Flame size={14} fill="currentColor" className="animate-pulse" />
-                                {streak} ימים ברצף!
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
             {/* ONBOARDING WIDGET - Redesigned */}
             <AnimatePresence>
                 {showOnboarding && !isAllComplete && (
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
                         className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl mb-8"
                     >
                         {/* Gradient Border Effect */}
@@ -238,8 +569,9 @@ export const DashboardView: React.FC = () => {
                             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
 
                             <button 
-                                onClick={() => setShowOnboarding(false)} 
-                                className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors z-20"
+                                onClick={dismissOnboarding} 
+                                className="absolute top-6 left-6 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors z-20"
+                                aria-label="סגור תדריך התחלה"
                             >
                                 <X size={20} />
                             </button>
@@ -254,7 +586,7 @@ export const DashboardView: React.FC = () => {
                                     
                                     <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight tracking-tight mb-4">
                                         ברוכים הבאים ל-<br/>
-                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Nexus OS</span>
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">Nexus</span>
                                     </h2>
                                     
                                     <p className="text-slate-500 text-sm leading-relaxed mb-8 max-w-sm">
@@ -310,9 +642,9 @@ export const DashboardView: React.FC = () => {
                                                 </div>
                                                 
                                                 <div className="mt-auto">
-                                                    <h4 className={`font-bold text-base mb-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
+                                                    <h3 className={`font-bold text-base mb-1 ${isDone ? 'text-slate-500 line-through' : 'text-slate-900'}`}>
                                                         {step.label}
-                                                    </h4>
+                                                    </h3>
                                                     <p className={`text-xs ${isDone ? 'text-slate-400' : 'text-slate-500'}`}>
                                                         {step.subLabel}
                                                     </p>
@@ -327,10 +659,561 @@ export const DashboardView: React.FC = () => {
                 )}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {!isLoadingOnboardingTemplate && !onboardingTemplate && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 12 }}
+                        className="mb-6"
+                    >
+                        <div className="relative bg-white border border-gray-200 rounded-[2rem] p-6 shadow-sm overflow-hidden">
+                            <div className="absolute -top-24 -left-24 w-80 h-80 bg-indigo-500/10 rounded-full blur-[60px]" />
+                            <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-500/10 rounded-full blur-[60px]" />
+
+                            <div className="relative flex flex-col lg:flex-row lg:items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2 text-indigo-600 font-black">
+                                        <Rocket size={18} />
+                                        <span>הגדרה מהירה</span>
+                                    </div>
+                                    <h3 className="mt-2 text-xl font-black text-gray-900">בחר תבנית עבודה לנקסוס</h3>
+                                    <p className="mt-1 text-sm text-gray-500">בחר פעם אחת, ואנחנו ניצור סט משימות התחלה שמותאם לשיטת עבודה שלך.</p>
+                                </div>
+
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={() => applyNexusOnboardingTemplate('retainer_fixed')}
+                                        disabled={isApplyingOnboardingTemplate}
+                                        className={`px-5 py-3 rounded-2xl font-bold text-sm border transition-all ${
+                                            isApplyingOnboardingTemplate
+                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                : 'bg-black text-white border-black hover:bg-gray-800'
+                                        }`}
+                                        type="button"
+                                    >
+                                        ריטיינר קבוע
+                                    </button>
+                                    <button
+                                        onClick={() => applyNexusOnboardingTemplate('deliverables_package')}
+                                        disabled={isApplyingOnboardingTemplate}
+                                        className={`px-5 py-3 rounded-2xl font-bold text-sm border transition-all ${
+                                            isApplyingOnboardingTemplate
+                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                                : 'bg-white text-gray-900 border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                                        }`}
+                                        type="button"
+                                    >
+                                        חבילת דליברבלס
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div className="flex items-end justify-between">
+                <div>
+                    <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight flex items-center gap-3" suppressHydrationWarning>
+                        בוקר טוב, {currentUser.name.split(' ')[0]} 
+                        <span className="inline-block animate-wave origin-bottom-right">👋</span>
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-2">
+                        <p className="text-gray-500 text-base md:text-lg">מוכן לכבוש את היום? הנה המצב שלך.</p>
+                        {streak > 0 && (
+                            <div className="flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200 whitespace-nowrap" title="ימי עבודה רצופים בעמידה ביעדים">
+                                <Flame size={14} fill="currentColor" className="animate-pulse" />
+                                {streak} ימים ברצף!
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {ownerDashboard && !showOwnerDashboard && (
+                    <button
+                        onClick={() => {
+                            setShowOwnerDashboard(true);
+                            setIsFocusMode(false);
+                            if (typeof document !== 'undefined') {
+                                setTimeout(() => {
+                                    const el = document.querySelector('[data-owner-dashboard]');
+                                    if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }, 0);
+                            }
+                        }}
+                        type="button"
+                        className="h-11 px-5 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
+                        aria-label="הצג תמונת מצב לבעלים"
+                    >
+                        הצג תמונת מצב
+                    </button>
+                )}
+            </div>
+
+            {isHomeDashboard.current && showTourPrompt && (
+                <div className="mt-4">
+                    <div className="w-full max-w-none mx-auto px-2">
+                        <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 border border-white/50 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 shrink-0">
+                                        <Compass size={18} />
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-base md:text-lg font-black text-slate-900 tracking-tight">סיור קצר להתחלה</div>
+                                        <div className="mt-1 text-xs font-bold text-slate-500">30 שניות, ואז אתה בפנים.</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            try {
+                                                if (typeof window !== 'undefined') {
+                                                    window.localStorage.setItem(TOUR_PROMPT_STORAGE_KEY, 'true');
+                                                }
+                                            } catch {
+                                                // ignore
+                                            }
+                                            setShowTourPrompt(false);
+                                            setTimeout(() => startTutorial(), 100);
+                                        }}
+                                        className="h-11 px-5 rounded-xl bg-slate-900 text-white text-sm font-black hover:bg-black transition-colors"
+                                    >
+                                        התחל סיור
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            try {
+                                                if (typeof window !== 'undefined') {
+                                                    window.localStorage.setItem(TOUR_PROMPT_STORAGE_KEY, 'true');
+                                                }
+                                            } catch {
+                                                // ignore
+                                            }
+                                            setShowTourPrompt(false);
+                                        }}
+                                        className="h-11 px-5 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 transition-all"
+                                    >
+                                        לא עכשיו
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Pilot Interface (Cross-module Owner Control Center) */}
+            {ownerDashboard && showOwnerDashboard && (
+                <div className="relative overflow-hidden rounded-[2.5rem] p-1 shadow-2xl" data-owner-dashboard>
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 opacity-20"></div>
+
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.3rem] p-6 sm:p-8 md:p-10 border border-white/50 overflow-hidden">
+                        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px] pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+                        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none translate-y-1/3 -translate-x-1/3"></div>
+
+                        <div className="relative z-10 flex flex-col gap-8">
+                            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                                <div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-900 text-white rounded-full text-[10px] font-bold w-fit shadow-lg shadow-slate-900/20">
+                                        <Rocket size={12} className="text-yellow-400" />
+                                        <span>תמונת מצב</span>
+                                    </div>
+                                    <h2 className="mt-4 text-2xl md:text-3xl font-black text-slate-900">תמונת מצב לבעלים</h2>
+                                    <p className="mt-2 text-sm text-slate-500">מבט אחד על מה שקורה בעסק – לפי ההרשאות שלך</p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setShowOwnerDashboard(false);
+                                            setIsFocusMode(false);
+                                        }}
+                                        className="h-11 w-11 inline-flex items-center justify-center rounded-xl border bg-white/70 hover:bg-white border-slate-200 text-slate-500 hover:text-slate-700 transition-colors"
+                                        aria-label="סגור תמונת מצב"
+                                        title="סגור"
+                                    >
+                                        <X size={18} />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsFocusMode((v) => !v)}
+                                        className={`h-11 px-4 rounded-xl border text-sm font-bold flex items-center gap-2 transition-colors ${isFocusMode ? 'bg-slate-900 text-white border-transparent shadow-lg shadow-slate-900/20' : 'bg-white/70 hover:bg-white border-slate-200 text-slate-700'}`}
+                                        aria-label="מצב מיקוד"
+                                    >
+                                        <Zap size={16} />
+                                        {isFocusMode ? 'יציאה' : 'מצב מיקוד'}
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+                                            if (!orgSlug) return;
+                                            if (isPilotLoading) return;
+                                            setIsPilotLoading(true);
+                                            fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/owner-dashboard`, { cache: 'no-store' })
+                                                .then((r) => (r.ok ? r.json() : null))
+                                                .then((data) => {
+                                                    if (data) {
+                                                        setOwnerDashboard(data);
+                                                        setPilotErrorCount(0);
+                                                    }
+                                                })
+                                                .catch(() => setPilotErrorCount((c) => c + 1))
+                                                .finally(() => setIsPilotLoading(false));
+                                        }}
+                                        className="h-11 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-sm font-bold flex items-center gap-2 text-slate-700 transition-colors"
+                                        aria-label="רענן תא טייס"
+                                    >
+                                        {isPilotLoading ? <Skeleton className="w-4 h-4 rounded-full" /> : <RefreshCw size={16} />}
+                                        רענן
+                                    </button>
+                                </div>
+                            </div>
+
+                            {!isFocusMode && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {ownerDashboard?.kpis?.nexus && (
+                                        <div className="ui-card p-5 transform-none hover:transform-none">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs text-slate-500 font-bold">Nexus</div>
+                                                <CheckSquare size={18} className="text-[#3730A3]" />
+                                            </div>
+                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.nexus.tasksOpen ?? 0}</div>
+                                            <div className="mt-1 text-xs text-slate-500">משימות פתוחות</div>
+                                            <div className="mt-3 text-xs text-[#3730A3] font-bold">דחופות: {ownerDashboard.kpis.nexus.tasksUrgent ?? 0}</div>
+                                        </div>
+                                    )}
+
+                                    {ownerDashboard?.kpis?.system && (
+                                        <div className="ui-card p-5 transform-none hover:transform-none">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs text-slate-500 font-bold">System</div>
+                                                <Target size={18} className="text-[#3730A3]" />
+                                            </div>
+                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.system.leadsTotal ?? 0}</div>
+                                            <div className="mt-1 text-xs text-slate-500">לידים</div>
+                                            <div className="mt-3 text-xs text-[#3730A3] font-bold">חמים: {ownerDashboard.kpis.system.leadsHot ?? 0}</div>
+                                        </div>
+                                    )}
+
+                                    {ownerDashboard?.kpis?.social && (
+                                        <div className="ui-card p-5 transform-none hover:transform-none">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs text-slate-500 font-bold">Social</div>
+                                                <Sparkles size={18} className="text-[#3730A3]" />
+                                            </div>
+                                            <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.social.postsTotal ?? 0}</div>
+                                            <div className="mt-1 text-xs text-slate-500">פוסטים</div>
+                                            <div className="mt-3 text-xs text-slate-500">מתוזמנים: {ownerDashboard.kpis.social.postsScheduled ?? 0}</div>
+                                        </div>
+                                    )}
+
+                                    {ownerDashboard?.kpis?.finance && (
+                                        <div className="ui-card p-5 transform-none hover:transform-none">
+                                            <div className="flex items-center justify-between">
+                                                <div className="text-xs text-slate-500 font-bold">Finance</div>
+                                                <DollarSign size={18} className="text-[#3730A3]" />
+                                            </div>
+                                            {ownerDashboard.kpis.finance.locked ? (
+                                                <>
+                                                    <div className="mt-3 text-2xl font-black">נעול</div>
+                                                    <div className="mt-1 text-xs text-slate-500">אין הרשאת צפייה פיננסית</div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="mt-3 text-3xl font-black">{ownerDashboard.kpis.finance.totalHours ?? 0}</div>
+                                                    <div className="mt-1 text-xs text-slate-500">שעות עבודה (Time Entries)</div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="ui-card p-5 transform-none hover:transform-none">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-black">מה דחוף עכשיו</div>
+                                        <div className="text-xs text-slate-500 mt-0.5">הפעולות הכי דחופות בכל המודולים</div>
+                                    </div>
+                                    <Zap size={18} className="text-[#3730A3]" />
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {(ownerDashboard?.nextActions || [])
+                                        .filter((a: any) => (isFocusMode ? a?.source === 'nexus' : true))
+                                        .slice(0, 6)
+                                        .map((a: any) => {
+                                            const content = (
+                                                <>
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="text-xs text-slate-500 font-bold">{String(a.source || '').toUpperCase()}</div>
+                                                        <div className={`text-[10px] font-black px-2 py-1 rounded-full border ${a.priority === 'urgent' ? 'bg-[#3730A3]/5 border-[#3730A3]/20 text-[#3730A3]' : a.priority === 'high' ? 'bg-[#3730A3]/5 border-[#3730A3]/20 text-[#3730A3]' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                                            {a.priority === 'urgent' ? 'דחוף' : a.priority === 'high' ? 'גבוה' : 'רגיל'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-2 font-bold text-slate-900">{a.title}</div>
+                                                    {a.subtitle && <div className="mt-1 text-xs text-slate-500">{a.subtitle}</div>}
+                                                </>
+                                            );
+
+                                            if (a.href) {
+                                                return (
+                                                    <Link
+                                                        key={a.id}
+                                                        href={a.href}
+                                                        className="text-right ui-card p-4 transition-colors block transform-none hover:transform-none"
+                                                    >
+                                                        {content}
+                                                    </Link>
+                                                );
+                                            }
+
+                                            return (
+                                                <div key={a.id} className="text-right ui-card p-4 transform-none hover:transform-none">
+                                                    {content}
+                                                </div>
+                                            );
+                                        })}
+
+                                    {(ownerDashboard?.nextActions || []).filter((a: any) => (isFocusMode ? a?.source === 'nexus' : true)).length === 0 && (
+                                        <div className="text-sm text-slate-500">אין פעולות דחופות כרגע</div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {(() => {
+                // Hidden for now (visual noise cleanup): "גבייה" + "הסבר"
+                return null;
+            })()}
+
+            {/* CEO Logo Reminder - Only for CEO/Manager */}
+            <AnimatePresence>
+                {showLogoReminder && (!organization.logo || organization.logo === '') && (isCeoRole(currentUser.role) || currentUser.isSuperAdmin) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6 shadow-lg mb-8"
+                    >
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <ImageIcon className="text-blue-600" size={24} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-bold text-lg text-gray-900 mb-1">הוסף לוגו לעסק</h3>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    הלוגו יוצג במסכי הכניסה, במיילים שנשלחים ללקוחות, ובקישורים החד פעמיים. זה חשוב לזהות העסקית שלך.
+                                </p>
+                                <button
+                                    onClick={() => navigate('/settings?tab=organization')}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-md"
+                                >
+                                    <Upload size={16} />
+                                    הוסף לוגו עכשיו
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    // Store dismissal in localStorage
+                                    localStorage.setItem('logo_reminder_dismissed', 'true');
+                                    setShowLogoReminder(false);
+                                }}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                                aria-label="סגור תזכורת"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {isHomeDashboard.current && (
+                <button
+                    onClick={() => setShowMorningBrief(true)}
+                    type="button"
+                    className="group relative w-full max-w-none mx-auto px-2"
+                    aria-label="תדריך בוקר"
+                >
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 border border-white/50 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="text-right">
+                                <div className="text-base md:text-lg font-black text-slate-900 tracking-tight">תדריך בוקר</div>
+                                <div className="mt-1 text-xs font-bold text-slate-500">מיקוד להיום</div>
+                            </div>
+                            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 group-hover:scale-105 transition-transform">
+                                <Sun size={18} />
+                            </div>
+                        </div>
+                        {!isSynced && (
+                            <span className="absolute top-5 left-5 flex h-2.5 w-2.5" aria-hidden>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                            </span>
+                        )}
+                    </div>
+                </button>
+            )}
+
+            <div className="mt-4">
+                <div className="w-full max-w-none mx-auto px-2">
+                    <div className="relative bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 border border-white/50 overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
+                        <div className="flex items-center justify-between gap-4 mb-4">
+                            <div className="text-right">
+                                <div className="text-base md:text-lg font-black text-slate-900 tracking-tight">פעולות מהירות</div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3">
+                            <button
+                                id="create-task-btn"
+                                onClick={() => openCreateTask()}
+                                type="button"
+                                className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                aria-label="משימה חדשה"
+                            >
+                                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative">
+                                    <Plus size={18} />
+                                    <span
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (typeof window !== 'undefined') {
+                                                window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'));
+                                            }
+                                        }}
+                                        className="absolute -bottom-1 -left-1 w-6 h-6 rounded-xl bg-white text-slate-900 border border-slate-200 flex items-center justify-center shadow-sm"
+                                        aria-label="הקלטת משימה"
+                                    >
+                                        <Mic size={12} />
+                                    </span>
+                                </div>
+                                <div className="font-black text-sm text-slate-900">משימה חדשה</div>
+                                <div className="mt-1 text-[10px] font-bold text-slate-500">התחלה מהירה</div>
+                            </button>
+
+                            <button
+                                onClick={() => navigate('/team?newEmployee=1')}
+                                type="button"
+                                className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                aria-label="עובד חדש"
+                            >
+                                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform">
+                                    <Users size={18} />
+                                </div>
+                                <div className="font-black text-sm text-slate-900">עובד חדש</div>
+                                <div className="mt-1 text-[10px] font-bold text-slate-500">הזמנה / הוספה</div>
+                            </button>
+
+                            {showExtraQuickActions && (
+                                <>
+                                    {isHomeDashboard.current && (
+                                        <button
+                                            onClick={() => setShowMorningBrief(true)}
+                                            type="button"
+                                            className="group relative rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                            aria-label="תדריך בוקר"
+                                        >
+                                            <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform">
+                                                <Sun size={18} />
+                                            </div>
+                                            <div className="font-black text-sm text-slate-900">תדריך בוקר</div>
+                                            <div className="mt-1 text-[10px] font-bold text-slate-500">מיקוד להיום</div>
+                                            {!isSynced && (
+                                                <span className="absolute top-3 left-3 flex h-2.5 w-2.5" aria-hidden>
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500"></span>
+                                                </span>
+                                            )}
+                                        </button>
+                                    )}
+
+                                    <button
+                                        onClick={() => navigate('/tasks')}
+                                        type="button"
+                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        aria-label="משימות"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-700 flex items-center justify-center border border-yellow-100 mb-3 group-hover:scale-105 transition-transform">
+                                            <Zap size={18} />
+                                        </div>
+                                        <div className="font-black text-sm text-slate-900">משימות</div>
+                                        <div className="mt-1 text-[10px] font-bold text-slate-500">לכל המשימות</div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => setIsEditingGoals(true)}
+                                        type="button"
+                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        aria-label="יעדים חודשיים"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 mb-3 group-hover:scale-105 transition-transform">
+                                            <Target size={18} />
+                                        </div>
+                                        <div className="font-black text-sm text-slate-900">יעדים חודשיים</div>
+                                        <div className="mt-1 text-[10px] font-bold text-slate-500">עדכון מהיר</div>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            if (typeof document === 'undefined') return;
+                                            const el = document.querySelector('[data-focus-today]');
+                                            if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }}
+                                        type="button"
+                                        className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                        aria-label="המיקוד להיום"
+                                    >
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center border border-slate-200 mb-3 group-hover:scale-105 transition-transform">
+                                            <Compass size={18} />
+                                        </div>
+                                        <div className="font-black text-sm text-slate-900">המיקוד להיום</div>
+                                        <div className="mt-1 text-[10px] font-bold text-slate-500">לראות מה חשוב</div>
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+
+                        {isHomeDashboard.current && workspaceOrgSlug ? (
+                            <div className="mt-5 pt-5 border-t border-white/50">
+                                <div className="text-sm font-black text-slate-900 text-right mb-3">מעבר מהיר למודולים</div>
+                                <OSAppSwitcher
+                                    mode="inlineGrid"
+                                    compact={true}
+                                    hideLockedModules={true}
+                                    orgSlug={workspaceOrgSlug}
+                                    className="w-full"
+                                />
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                 
                 {/* 1. Time Clock Widget - Glass */}
-                <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 ${activeShift ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
+                <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${activeShift ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
                     {activeShift && (
                         <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-green-500/20 rounded-full blur-[80px] animate-pulse"></div>
                     )}
@@ -366,7 +1249,7 @@ export const DashboardView: React.FC = () => {
                                     <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl shadow-sm"><TrendingUp size={28} /></div>
                                     <div><h3 className="font-bold text-gray-900 text-lg">הכנסות</h3><p className="text-xs text-blue-600 font-bold flex items-center gap-1"><RefreshCw size={10} /> Live</p></div>
                                 </div>
-                                <button onClick={() => { setTempGoals(monthlyGoals); setIsEditingGoals(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"><Edit2 size={18} /></button>
+                                <button onClick={() => { setTempGoals(monthlyGoals); setIsEditingGoals(true); }} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" aria-label="ערוך יעדים חודשיים"><Edit2 size={18} /></button>
                             </div>
                             <div className="relative z-10">
                                 <div className="flex items-end justify-between mb-6">
@@ -413,7 +1296,7 @@ export const DashboardView: React.FC = () => {
                             <div className="p-3.5 bg-purple-50 text-purple-600 rounded-2xl shadow-sm"><Users size={28} /></div>
                             <div><h3 className="font-bold text-gray-900 text-lg">הצוות</h3><p className="text-sm text-gray-500">{Math.round(completionRate)}% מהמשימות</p></div>
                         </div>
-                        <button onClick={() => navigate('/team')} className="text-gray-300 hover:text-black transition-colors p-2 hover:bg-gray-100 rounded-xl"><ArrowRight size={24} /></button>
+                        <button onClick={() => navigate('/team')} className="text-gray-300 hover:text-black transition-colors p-2 hover:bg-gray-100 rounded-xl" aria-label="עבור לצוות"><ArrowRight size={24} /></button>
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
                         <div className="mb-6">
@@ -424,54 +1307,61 @@ export const DashboardView: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-3 space-x-reverse">
-                                {users.filter(u => u.online).slice(0, 3).map(u => (
+                                {users.filter((u: any) => u.online).slice(0, 3).map((u: any) => (
                                     <img key={u.id} src={u.avatar} className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-green-400 shadow-md object-cover" />
                                 ))}
                             </div>
-                            {users.filter(u => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter(u => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
+                            {users.filter((u: any) => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter((u: any) => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
                         </div>
                     </div>
                 </div>
                 )}
             </div>
 
-            <div className="mt-4">
-                <div className="flex items-center justify-between mb-6 px-2">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <Zap size={24} className="text-yellow-500 fill-yellow-500 drop-shadow-sm" /> המיקוד להיום
-                        {!isSynced && <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-1 rounded-full">(אוטומטי)</span>}
-                    </h2>
-                    <div className="flex gap-2">
-                        {!isSynced && (
-                            <button onClick={() => setShowMorningBrief(true)} className="text-sm font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2">
-                                <Sun size={16} /> תדריך בוקר
-                            </button>
-                        )}
-                        <button onClick={() => navigate('/tasks')} className="text-sm font-bold text-gray-500 hover:text-black hover:bg-white/50 px-4 py-2 rounded-xl transition-all shadow-sm">לכל המשימות</button>
-                    </div>
-                </div>
-                
-                <div className="space-y-4">
-                    {focusTasks.length > 0 ? focusTasks.map(task => (
+            {(() => {
+                // moved above (visual cleanup + ordering)
+                return null;
+            })()}
+
+            <div
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0 mt-8 mb-6 px-2"
+                data-focus-today
+            >
+                <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2 md:gap-3 flex-wrap">
+                    <Zap size={20} className="md:w-6 md:h-6 text-yellow-500 fill-yellow-500 drop-shadow-sm" /> המיקוד להיום
+                    {!isSynced && (
+                        <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-1 rounded-full whitespace-nowrap">(אוטומטי)</span>
+                    )}
+                </h2>
+
+                <button
+                    onClick={() => navigate('/tasks')}
+                    type="button"
+                    className="h-11 w-full md:w-auto px-6 rounded-xl bg-white/70 border border-slate-200 text-sm font-black text-slate-700 hover:bg-white hover:text-slate-900 hover:shadow-sm transition-all"
+                    aria-label="לכל המשימות"
+                >
+                    לכל המשימות
+                </button>
+            </div>
+
+            <div className="space-y-4">
+                {focusTasks.length > 0 ? (
+                    focusTasks.map((task: any) => (
                         <div key={task.id} className="relative">
                             {task.isFocus && (
                                 <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-400 rounded-r-lg shadow-sm"></div>
                             )}
-                            <TaskCard 
-                                task={task} 
-                                users={users} 
-                                onClick={() => openTask(task.id)} 
-                            />
+                            <TaskCard task={task} users={users} onClick={() => openTask(task.id)} />
                         </div>
-                    )) : (
-                        <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-12 text-center border border-dashed border-gray-300">
-                            <Trophy size={64} className="mx-auto text-yellow-400 mb-4 drop-shadow-md" />
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">סיימת את המיקוד להיום!</h3>
-                            <p className="text-gray-500">קח משימה חדשה מהמאגר או צא להפסקה.</p>
-                        </div>
-                    )}
-                </div>
+                    ))
+                ) : (
+                    <div className="bg-white/60 backdrop-blur-md rounded-[2rem] p-12 text-center border border-dashed border-gray-300">
+                        <Trophy size={64} className="mx-auto text-yellow-400 mb-4 drop-shadow-md" />
+                        <h3 className="text-2xl font-bold text-gray-900 mb-2">סיימת את המיקוד להיום!</h3>
+                        <p className="text-gray-500">קח משימה חדשה מהמאגר או צא להפסקה.</p>
+                    </div>
+                )}
             </div>
         </div>
-    );
+        );
 };

@@ -3,6 +3,9 @@ import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Mail, Zap, Sun, Volume2, Megaphone, Bell } from 'lucide-react';
 import { NotificationPreferences } from '../../types';
+import { usePathname } from 'next/navigation';
+import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { upsertMyProfile } from '@/app/actions/profiles';
 
 interface NotificationSettingsProps {
     onClose: () => void;
@@ -10,6 +13,8 @@ interface NotificationSettingsProps {
 
 export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onClose }) => {
     const { currentUser, updateUser, addToast } = useData();
+    const pathname = usePathname();
+    const orgSlug = parseWorkspaceRoute(pathname).orgSlug;
     const [prefs, setPrefs] = useState<NotificationPreferences>(currentUser.notificationPreferences || {
         emailNewTask: true,
         browserPush: true,
@@ -22,7 +27,19 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onCl
         setPrefs(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        if (orgSlug) {
+            const res = await upsertMyProfile({
+                orgSlug,
+                updates: {
+                    notificationPreferences: prefs,
+                },
+            });
+            if (!res.success) {
+                addToast(res.error || 'שגיאה בשמירת הגדרות התראות', 'error');
+                return;
+            }
+        }
         updateUser(currentUser.id, { notificationPreferences: prefs });
         addToast('הגדרות ההתראות נשמרו בהצלחה', 'success');
         onClose();

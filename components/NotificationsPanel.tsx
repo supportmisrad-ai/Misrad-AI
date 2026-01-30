@@ -1,9 +1,11 @@
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useData } from '../context/DataContext';
 import { Bell, User, Info, AlertTriangle, Check, X, Trash2 } from 'lucide-react';
+import { Notification } from '../types';
 
 interface NotificationsPanelProps {
   isOpen: boolean;
@@ -14,18 +16,23 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
   const { notifications, markNotificationRead, markAllNotificationsRead, dismissNotification, clearAllNotifications, openTask, currentUser } = useData();
   const [activeTab, setActiveTab] = useState<'all' | 'mentions'>('all');
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
   
   const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
+  useEffect(() => {
+      setMounted(true);
+  }, []);
+
   // Filter notifications for the current user
-  const userNotifications = notifications.filter(n => n.recipientId === 'all' || n.recipientId === currentUser.id);
+  const userNotifications = notifications.filter((n: Notification) => n.recipientId === 'all' || n.recipientId === currentUser.id);
 
   const filteredNotifications = activeTab === 'all' 
     ? userNotifications 
-    : userNotifications.filter(n => n.type === 'mention' || n.type === 'alert');
+    : userNotifications.filter((n: Notification) => n.type === 'mention' || n.type === 'alert');
 
-  const unreadCount = userNotifications.filter(n => !n.read).length;
+  const unreadCount = userNotifications.filter((n: Notification) => !n.read).length;
 
   const handleNotificationClick = (notification: any) => {
       markNotificationRead(notification.id);
@@ -35,7 +42,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
       }
   };
 
-  const visibleIds = filteredNotifications.map(n => n.id);
+  const visibleIds = filteredNotifications.map((n: Notification) => n.id);
 
   const handleMarkAllVisibleRead = () => {
       markAllNotificationsRead(visibleIds);
@@ -95,6 +102,9 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
         document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
+
+  const portalTarget = typeof document !== 'undefined' ? document.body : null;
+  if (!mounted || !portalTarget) return null;
 
   // Use Portal to render outside of parent stacking context
   return createPortal(
@@ -167,7 +177,7 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
                 <div className="flex-1 overflow-y-auto p-0 custom-scrollbar">
                     {filteredNotifications.length > 0 ? (
                         <div className="divide-y divide-gray-50">
-                            {filteredNotifications.map(notification => (
+                            {filteredNotifications.map((notification: Notification) => (
                                 <div 
                                     key={notification.id} 
                                     onClick={() => handleNotificationClick(notification)}
@@ -230,6 +240,6 @@ export const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ isOpen, 
         </>
       )}
     </AnimatePresence>,
-    document.body
+    portalTarget
   );
 };

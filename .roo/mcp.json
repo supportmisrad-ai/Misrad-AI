@@ -1,0 +1,1 @@
+{"mcpServers":{"filesystem":{"command":"npx","args":["-y","@modelcontextprotocol/server-filesystem","C:/Users/USER/OneDrive/שולחן העבודה/פרויקטים/00 פרויקט בביצוע/nexus-os/scale-crm"]},"sequentialthinking":{"command":"npx","args":["-y","@modelcontextprotocol/server-sequential-thinking"],"alwaysAllow":["sequentialthinking"]}}}

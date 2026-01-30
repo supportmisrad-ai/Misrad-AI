@@ -1,0 +1,15 @@
+export { default as PulseTab } from './tabs/PulseTab';
+export { default as OverviewTab } from './tabs/OverviewTab';
+export { default as UsersTab } from './tabs/UsersTab';
+export { default as ClientsTab } from './tabs/ClientsTab';
+export { default as PaymentsTab } from './tabs/PaymentsTab';
+export { default as NotificationsTab } from './tabs/NotificationsTab';
+export { default as RecycleTab } from './tabs/RecycleTab';
+export { default as IntelligenceTab } from './tabs/IntelligenceTab';
+export { default as FlagsTab } from './tabs/FlagsTab';
+export { default as OrganizationsTab } from './tabs/OrganizationsTab';
+export { default as SystemTab } from './tabs/SystemTab';
+export { default as MaintenanceTab } from './tabs/MaintenanceTab';
+export { default as CMSTab } from './tabs/CMSTab';
+export { default as NavigationTab } from './tabs/NavigationTab';
+export type { AdminTab } from './types';
