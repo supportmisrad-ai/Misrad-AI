@@ -91,9 +91,9 @@ export default async function RootPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden" dir="rtl">
+    <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden flex flex-col" dir="rtl">
       <Navbar />
-      <main className="pt-24">
+      <main className="pt-24 flex-1">
         <section className="relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[560px] h-[560px] bg-amber-200/35 rounded-full blur-[140px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[640px] h-[640px] bg-rose-200/20 rounded-full blur-[170px] pointer-events-none" />
@@ -102,11 +102,11 @@ export default async function RootPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
               <div>
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm">
-                  <span className="px-2 py-0.5 rounded-full bg-onyx-900 text-white text-[10px] font-black">MISRAD OS</span>
+                  <span className="px-2 py-0.5 rounded-full bg-onyx-900 text-white text-[10px] font-black">MISRAD AI</span>
                 </div>
 
                 <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
-                  MISRAD OS:
+                  MISRAD AI:
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-rose-700 to-indigo-700">
                     המערכת היחידה ששומעת אותך,
                   </span>
