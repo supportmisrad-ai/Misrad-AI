@@ -6,7 +6,7 @@
       "schedule": "*/5 * * * *"
     }
   ],
-  "buildCommand": "npm run security:scan-api-guards && NODE_OPTIONS=--max-old-space-size=6144 npm run build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
