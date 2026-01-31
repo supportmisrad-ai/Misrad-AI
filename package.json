@@ -11,7 +11,7 @@
     "postinstall": "prisma generate --schema prisma/schema.prisma",
     "prebuild": "npm run security:scan-api-guards",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "set \"NODE_OPTIONS=--max-old-space-size=8192\" && npm run security:scan-api-guards && prisma generate --schema prisma/schema.prisma && next build --webpack",
+    "build": "npm run security:scan-api-guards && prisma generate --schema prisma/schema.prisma && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "security:scan-api-guards": "node scripts/security/scan-api-guards.js",

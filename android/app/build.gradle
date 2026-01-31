@@ -39,10 +39,22 @@ dependencies {
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
-    implementation project(':capacitor-cordova-android-plugins')
+    if (project.findProject(':capacitor-cordova-android-plugins') != null) {
+        implementation project(':capacitor-cordova-android-plugins')
+    }
 }
 
-apply from: 'capacitor.build.gradle'
+def cordovaVars = file('../capacitor-cordova-android-plugins/cordova.variables.gradle')
+if (cordovaVars.exists()) {
+    apply from: 'capacitor.build.gradle'
+}
+
+android {
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
 
 try {
     def servicesJSON = file('google-services.json')

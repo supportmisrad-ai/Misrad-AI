@@ -34,7 +34,14 @@ async function GETHandler(request: NextRequest) {
     }
 
     // Determine integration name from state
-    const integrationName = state as 'google_calendar' | 'google_drive' | 'google_sheets';
+    const allowedIntegrationNames = new Set(['google_calendar', 'google_drive', 'google_sheets']);
+    const integrationNameRaw = String(state || '').trim();
+    if (!allowedIntegrationNames.has(integrationNameRaw)) {
+      return NextResponse.redirect(
+        new URL('/settings?tab=integrations&error=invalid_state', request.url)
+      );
+    }
+    const integrationName = integrationNameRaw as 'google_calendar' | 'google_drive' | 'google_sheets';
 
     // Calculate expiration
     const expiresAt = tokens.expiry_date

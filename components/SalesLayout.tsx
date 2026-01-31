@@ -18,8 +18,8 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
   
   // Filter notifications for current user only
   const hasUnread = notifications
-    .filter(n => n.recipientId === 'all' || n.recipientId === currentUser.id)
-    .some(n => !n.read);
+    .filter((n: any) => n.recipientId === 'all' || n.recipientId === currentUser.id)
+    .some((n: any) => !n.read);
   
   const navItems = [
       { path: '/sales', label: 'לוח בקרה', icon: LayoutDashboard },
@@ -94,7 +94,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
             <header className="h-16 border-b border-slate-800 flex items-center justify-between px-8 backdrop-blur-sm z-10">
                 <div className="flex items-center gap-2 text-slate-400 text-sm">
                     <span>/</span>
-                    <span className="text-white font-bold">{navItems.find(i => isActive(i.path))?.label}</span>
+                    <span className="text-white font-bold">{navItems.find((i: any) => isActive(i.path))?.label}</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <div className="h-8 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-emerald-400 text-xs font-bold font-mono">

@@ -213,7 +213,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                     const isMe = msg.senderId === currentUser.id; 
                     const isSystem = msg.type === 'system';
                     const isGuest = msg.type === 'guest';
-                    const sender = users.find(u => u.id === msg.senderId);
+                    const sender = users.find((u: any) => u.id === msg.senderId);
                     const isVoice = msg.text.startsWith('🎤');
                     const isEditing = editingMessageId === msg.id;
                     const isOpen = openMenuId === msg.id;

@@ -46,15 +46,15 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     const isGlobalAdmin = currentUser.isSuperAdmin || currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין';
     const isManager = hasPermission('manage_team');
     
-    const availableUsers = users.filter(u => {
+    const availableUsers = users.filter((u: any) => {
         if (isGlobalAdmin) return true; // CEO sees everyone
         if (isManager) return u.department === currentUser.department; // Manager sees dept
         return u.id === currentUser.id; // Employee sees self
     });
 
     // Get unique existing tags from all tasks
-    const existingTags = Array.from(new Set(tasks.flatMap(t => t.tags))) as string[];
-    const filteredTags = existingTags.filter(t => t.toLowerCase().includes(tag.toLowerCase()) && t !== tag);
+    const existingTags = Array.from(new Set(tasks.flatMap((t: any) => t.tags))) as string[];
+    const filteredTags = existingTags.filter((t: any) => t.toLowerCase().includes(tag.toLowerCase()) && t !== tag);
 
     // Logic for Approval Requirement (e.g., tasks > 4 hours)
     const estimateHoursNum = Number(manualHours) || 0;

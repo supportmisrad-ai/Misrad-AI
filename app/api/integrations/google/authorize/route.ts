@@ -15,7 +15,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getGoogleAuthUrl } from '@/lib/integrations/google-oauth';
+import { getGoogleOAuthClient, GOOGLE_SCOPES } from '@/lib/googleAuth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -38,7 +38,6 @@ async function GETHandler(request: NextRequest) {
         // Get query parameters
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
-        const tenantId = searchParams.get('tenantId');
 
         // Validate service type
         if (!service || !['calendar', 'drive'].includes(service)) {
@@ -53,7 +52,15 @@ async function GETHandler(request: NextRequest) {
 
         // Generate authorization URL
         console.log('[Google OAuth] Generating auth URL...');
-        const authUrl = await getGoogleAuthUrl(serviceType, user.id, tenantId || undefined);
+        const oauth2Client = getGoogleOAuthClient();
+        const scopes = service === 'calendar' ? GOOGLE_SCOPES.calendar : GOOGLE_SCOPES.drive;
+        const authUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: scopes,
+            state: serviceType,
+            include_granted_scopes: true,
+        });
         console.log('[Google OAuth] Auth URL generated successfully');
 
         // Redirect to Google OAuth consent screen

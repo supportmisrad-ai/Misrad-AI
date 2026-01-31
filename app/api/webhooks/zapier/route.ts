@@ -67,6 +67,15 @@ async function POSTHandler(request: NextRequest) {
     const supabaseUserId = userResult.userId;
     const supabase = createClient();
 
+    const webhookOwner = await prisma.social_users.findFirst({
+      where: { id: supabaseUserId },
+      select: { organization_id: true },
+    });
+    const ownerOrganizationId = webhookOwner?.organization_id ? String(webhookOwner.organization_id) : null;
+    if (!ownerOrganizationId) {
+      return NextResponse.json({ error: 'Webhook user is not linked to an organization' }, { status: 403 });
+    }
+
     // Get webhook config
     const { data: webhookConfig } = await supabase
       .from('webhook_configs')
@@ -126,14 +135,17 @@ async function POSTHandler(request: NextRequest) {
       const payload = (body?.payload && typeof body.payload === 'object' ? body.payload : body) as any;
       const orgSlug = String(payload.orgSlug || payload.org_slug || payload.organization || payload.organization_id || '').trim();
 
-      if (!orgSlug) {
-        return NextResponse.json({ error: 'Missing orgSlug' }, { status: 400 });
+      if (orgSlug) {
+        const payloadOrganizationId = await resolveOrgId(orgSlug);
+        if (!payloadOrganizationId) {
+          return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+        }
+        if (String(payloadOrganizationId) !== String(ownerOrganizationId)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
       }
 
-      const organizationId = await resolveOrgId(orgSlug);
-      if (!organizationId) {
-        return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
-      }
+      const organizationId = ownerOrganizationId;
 
       const name = String(payload.name || payload.full_name || payload.fullName || '').trim();
       const emailRaw = String(payload.email || payload.email_address || '').trim();

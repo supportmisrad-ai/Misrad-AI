@@ -59,12 +59,12 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
     const priorityButtonRef = useRef<HTMLButtonElement>(null);
     const estimateButtonRef = useRef<HTMLButtonElement>(null);
 
-    const assignedUsers = users.filter(u => 
+    const assignedUsers = users.filter((u: any) => 
         (task.assigneeIds && task.assigneeIds.includes(u.id)) || 
         (task.assigneeId === u.id)
     );
 
-    const handlePopoverClick = (type: 'assignee' | 'priority' | 'estimate', ref: React.RefObject<HTMLButtonElement>) => {
+    const handlePopoverClick = (type: 'assignee' | 'priority' | 'estimate', ref: React.RefObject<HTMLButtonElement | null>) => {
         if (ref.current) {
             onOpenPopover(type, ref.current.getBoundingClientRect());
         }
@@ -82,8 +82,8 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
     };
 
     const handleClientChange = (newClientId: string) => {
-        const client = clients.find(c => c.id === newClientId);
-        const oldTags = task.tags.filter(t => !clients.some(c => c.companyName === t));
+        const client = clients.find((c: any) => c.id === newClientId);
+        const oldTags = task.tags.filter((t) => !clients.some((c: any) => c.companyName === t));
         updateTask(task.id, { 
             clientId: newClientId,
             tags: client ? [...oldTags, client.companyName] : oldTags
@@ -103,7 +103,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                 <CustomSelect 
                     value={task.status}
                     onChange={(val) => updateTask(task.id, { status: val })}
-                    options={workflowStages.map(s => ({ 
+                    options={workflowStages.map((s: any) => ({ 
                         value: s.id, 
                         label: s.name, 
                         icon: <div className={`w-2 h-2 rounded-full ${getStatusSolidColor(s.color)}`} /> 
@@ -142,7 +142,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                             {assignedUsers.length > 0 ? (
                                 <>
                                     <div className="flex -space-x-2 space-x-reverse shrink-0">
-                                        {assignedUsers.slice(0,2).map(u => (
+                                        {assignedUsers.slice(0,2).map((u: any) => (
                                             <img key={u.id} src={u.avatar} className="w-5 h-5 rounded-full border border-white shadow-sm" />
                                         ))}
                                     </div>
@@ -192,7 +192,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                     onChange={handleClientChange}
                     options={[
                         { value: '', label: 'פנימי / ללא' },
-                        ...clients.map(c => ({ value: c.id, label: c.companyName }))
+                        ...clients.map((c: any) => ({ value: c.id, label: c.companyName }))
                     ]}
                     icon={<Briefcase size={16} />}
                     placeholder="שיוך לקוח"

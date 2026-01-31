@@ -44,7 +44,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick }) => {
   );
 
   // Find status display data
-  const stage = workflowStages.find(s => s.id === task.status);
+  const stage = workflowStages.find((s: { id: string }) => s.id === task.status);
   const statusColor = stage ? stage.color : (DEFAULT_STATUS_COLORS[task.status] || 'bg-gray-100 text-gray-500');
   const statusLabel = stage ? stage.name : task.status;
 
