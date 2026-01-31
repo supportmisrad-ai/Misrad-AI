@@ -28,6 +28,8 @@ storageState.json
 # misc
 .DS_Store
 local.properties
+keystore.properties
+*.jks
 *.pem
 /backups/
 /tmp_db_schema.prisma
