@@ -10,7 +10,7 @@
     "dev:turbo": "next dev -p 5000",
     "postinstall": "prisma generate --schema prisma/schema.prisma",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "npm run security:scan-api-guards && next build --webpack",
+    "build": "npm run security:scan-api-guards && next build",
     "start": "next start",
     "lint": "eslint",
     "security:scan-api-guards": "node scripts/security/scan-api-guards.js",
