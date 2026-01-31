@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase';
 import { AIService } from '@/lib/services/ai/AIService';
 import { contractorResolveTokenForApi } from '@/app/actions/operations';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 export const runtime = 'nodejs';
 
@@ -60,6 +61,23 @@ async function POSTHandler(req: Request) {
       userId = clerkUserId;
     }
 
+    const abuse = await enforceAiAbuseGuard({
+      req,
+      namespace: token ? 'ai.vision.identify.contractor' : 'ai.vision.identify',
+      organizationId,
+      userId,
+      limits: token
+        ? {
+            ipMin: { limit: 20, windowMs: 60_000, label: 'ip-min' },
+            userMin: { limit: 12, windowMs: 60_000, label: 'user-min' },
+            org10m: { limit: 60, windowMs: 10 * 60_000, label: 'org-10m' },
+          }
+        : undefined,
+    });
+    if (!abuse.ok) {
+      return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
+    }
+
     const imageDataUrl = toImageDataUrl({ imageBase64: asString(body.imageBase64), mimeType: body.mimeType || null });
     if (!imageDataUrl) {
       return apiError('חסרה תמונה (imageBase64)', { status: 400 });
@@ -110,16 +128,22 @@ async function POSTHandler(req: Request) {
       "מבנה חובה: {\"name\": string, \"isFaulty\": boolean}. \n" +
       "אם לא בטוח, תן השערה סבירה ועדיין החזר את אותו מבנה.";
 
-    const out = await ai.generateVisionJson<{ name?: string; isFaulty?: boolean }>({
-      featureKey: 'ai.vision.identify',
-      organizationId: organizationId || undefined,
-      userId: userId || undefined,
-      bypassAuth: Boolean(token),
-      prompt,
-      imageDataUrl,
-      systemInstruction,
-      meta: {
-        source: token ? 'contractor_portal' : 'internal',
+    const out = await withAiLoadIsolation({
+      namespace: 'ai.vision',
+      organizationId: organizationId,
+      task: async () => {
+        return await ai.generateVisionJson<{ name?: string; isFaulty?: boolean }>({
+          featureKey: 'ai.vision.identify',
+          organizationId: organizationId || undefined,
+          userId: userId || undefined,
+          bypassAuth: Boolean(token),
+          prompt,
+          imageDataUrl,
+          systemInstruction,
+          meta: {
+            source: token ? 'contractor_portal' : 'internal',
+          },
+        });
       },
     });
 
@@ -162,7 +186,7 @@ async function POSTHandler(req: Request) {
       }
     }
 
-    return apiSuccess({ name, isFaulty });
+    return apiSuccess({ name, isFaulty }, { headers: abuse.headers });
   } catch (e: any) {
     console.error('[ai.vision.identify] failed', e);
     return apiError(e, { status: 500, message: e?.message || 'שגיאה כללית' });

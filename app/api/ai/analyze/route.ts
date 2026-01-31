@@ -14,6 +14,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function POSTHandler(request: NextRequest) {
@@ -43,6 +44,16 @@ async function POSTHandler(request: NextRequest) {
 
         // Strict tenant enforcement: the caller must have access to their resolved organization
         await getWorkspaceByOrgKeyOrThrow(callerOrganizationId);
+
+        const abuse = await enforceAiAbuseGuard({
+            req: request,
+            namespace: 'ai.analyze',
+            organizationId: callerOrganizationId,
+            userId: clerkUserId,
+        });
+        if (!abuse.ok) {
+            return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
+        }
         
         // 2. Parse request
         const body = await request.json();
@@ -187,12 +198,18 @@ async function POSTHandler(request: NextRequest) {
                    
                    Query: ${query}`;
         
-        const aiOut = await aiService.generateJson({
-            featureKey: 'ai.analyze',
+        const aiOut = await withAiLoadIsolation({
+            namespace: 'ai.generate_json',
             organizationId: callerOrganizationId,
-            userId: clerkUserId,
-            prompt,
-            responseSchema: responseSchema,
+            task: async () => {
+                return await aiService.generateJson({
+                    featureKey: 'ai.analyze',
+                    organizationId: callerOrganizationId,
+                    userId: clerkUserId,
+                    prompt,
+                    responseSchema: responseSchema,
+                });
+            },
         });
 
         // 8. Validate response doesn't contain sensitive data
@@ -204,7 +221,7 @@ async function POSTHandler(request: NextRequest) {
         }
         
         // 9. Return safe response
-        return apiSuccess({ result });
+        return apiSuccess({ result }, { headers: abuse.headers });
         
     } catch (error: any) {
         await logAuditEvent('ai.query', 'intelligence', {

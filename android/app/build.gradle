@@ -7,6 +7,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 def signingStoreFile = System.getenv('ANDROID_KEYSTORE_FILE') ?: keystoreProperties.getProperty('storeFile')
+def signingStoreType = System.getenv('ANDROID_KEYSTORE_TYPE') ?: keystoreProperties.getProperty('storeType')
 def signingStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD') ?: keystoreProperties.getProperty('storePassword')
 def signingKeyAlias = System.getenv('ANDROID_KEY_ALIAS') ?: keystoreProperties.getProperty('keyAlias')
 def signingKeyPassword = System.getenv('ANDROID_KEY_PASSWORD') ?: keystoreProperties.getProperty('keyPassword')
@@ -41,6 +42,9 @@ android {
         if (hasReleaseSigning) {
             release {
                 storeFile resolveSigningFile(signingStoreFile)
+                if (signingStoreType) {
+                    storeType signingStoreType
+                }
                 storePassword signingStorePassword
                 keyAlias signingKeyAlias
                 keyPassword signingKeyPassword

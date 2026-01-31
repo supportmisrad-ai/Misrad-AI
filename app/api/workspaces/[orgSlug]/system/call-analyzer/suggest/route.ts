@@ -4,6 +4,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { logAuditEvent } from '@/lib/audit';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -27,6 +28,16 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
     }
 
     const { workspace } = await getWorkspaceContextOrThrow(req, { params });
+
+    const abuse = await enforceAiAbuseGuard({
+      req,
+      namespace: 'ai.system.call_analyzer.suggest',
+      organizationId: workspace.id,
+      userId: clerkUserId,
+    });
+    if (!abuse.ok) {
+      return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
+    }
 
     const body = (await req.json().catch(() => ({}))) as SuggestRequestBody;
     const transcriptText = String(body.transcriptText || '').trim();
@@ -73,16 +84,22 @@ ${transcriptText.slice(0, 24000)}
   "transcript": [{"speaker":"Agent"|"Customer","timestamp":0,"text":"...","sentiment":"positive"|"negative"|"neutral"}]
 }`;
 
-    const ai = AIService.getInstance();
-    const out = await ai.generateJson({
-      featureKey: 'system.calls.objection_suggestions',
+    const out = await withAiLoadIsolation({
+      namespace: 'ai.generate_json',
       organizationId: workspace.id,
-      userId: clerkUserId,
-      prompt,
-      meta: {
-        module: 'system',
-        source: 'call-analyzer',
-        transcriptChars: transcriptText.length,
+      task: async () => {
+        const ai = AIService.getInstance();
+        return await ai.generateJson({
+          featureKey: 'system.calls.objection_suggestions',
+          organizationId: workspace.id,
+          userId: clerkUserId,
+          prompt,
+          meta: {
+            module: 'system',
+            source: 'call-analyzer',
+            transcriptChars: transcriptText.length,
+          },
+        });
       },
     });
 
@@ -91,7 +108,7 @@ ${transcriptText.slice(0, 24000)}
       provider: out.provider,
       model: out.model,
       chargedCents: out.chargedCents,
-    });
+    }, { headers: abuse.headers });
   } catch (e: any) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });

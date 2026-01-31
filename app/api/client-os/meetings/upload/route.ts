@@ -6,7 +6,9 @@ import { spawn } from 'child_process';
 import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -62,6 +64,11 @@ async function POSTHandler(req: Request) {
 
   try {
     await getAuthenticatedUser();
+
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return apiError('Unauthorized', { status: 401 });
+    }
 
     const contentType = req.headers.get('content-type') || '';
 
@@ -125,6 +132,20 @@ async function POSTHandler(req: Request) {
       return apiError(e, { status, message: e?.message || 'Forbidden' });
     }
 
+    const abuse = await enforceAiAbuseGuard({
+      req,
+      namespace: 'ai.client_os.meetings.upload',
+      organizationId: orgId,
+      userId: clerkUserId,
+      limits: {
+        ipMin: { limit: 10, windowMs: 60_000, label: 'ip-min' },
+        userMin: { limit: 6, windowMs: 60_000, label: 'user-min' },
+      },
+    });
+    if (!abuse.ok) {
+      return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
+    }
+
     const isAudio = mimeType.startsWith('audio/');
     const isVideo = mimeType.startsWith('video/');
     if (!isAudio && !isVideo) {
@@ -146,13 +167,20 @@ async function POSTHandler(req: Request) {
 
     const audioBuf = await fs.readFile(audioPath);
 
-    const ai = AIService.getInstance();
-    const out = await ai.transcribe({
-      featureKey: 'client_os.meetings.transcription',
+    const out = await withAiLoadIsolation({
+      namespace: 'ai.transcribe',
       organizationId: orgId,
-      audioBuffer: bufferToArrayBuffer(audioBuf),
-      mimeType: audioMime,
-      meta: { source: 'client-os-meetings-upload', isVideo },
+      task: async () => {
+        const ai = AIService.getInstance();
+        return await ai.transcribe({
+          featureKey: 'client_os.meetings.transcription',
+          organizationId: orgId,
+          userId: clerkUserId,
+          audioBuffer: bufferToArrayBuffer(audioBuf),
+          mimeType: audioMime,
+          meta: { source: 'client-os-meetings-upload', isVideo },
+        });
+      },
     });
     const transcript = out.text;
 
@@ -164,7 +192,7 @@ async function POSTHandler(req: Request) {
       transcript,
     });
 
-    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
+    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
   } catch (e: any) {
     return apiError(e, { status: 500, message: 'Upload failed' });
   } finally {

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Check, Hash, User as UserIcon, Calendar, Flag, ArrowUpRight, ChevronDown, Clock, Tag, Briefcase, Activity, AlertTriangle, AlignLeft, Timer } from 'lucide-react';
 import { useData } from '../context/DataContext';
-import { Client, Priority, Status, Task } from '../types';
+import { Client, Priority, Status, Task, User, WorkflowStage } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PRIORITY_COLORS, PRIORITY_LABELS } from '../constants';
 import { CustomDatePicker } from './CustomDatePicker';
@@ -46,7 +46,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
     const isGlobalAdmin = currentUser.isSuperAdmin || currentUser.role === 'מנכ״ל' || currentUser.role === 'אדמין';
     const isManager = hasPermission('manage_team');
     
-    const availableUsers = users.filter((u: any) => {
+    const availableUsers = users.filter((u: User) => {
         if (isGlobalAdmin) return true; // CEO sees everyone
         if (isManager) return u.department === currentUser.department; // Manager sees dept
         return u.id === currentUser.id; // Employee sees self
@@ -219,9 +219,9 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
         onClose();
     };
 
-    const selectedAssignee = users.find(u => u.id === assigneeId);
+    const selectedAssignee = users.find((u: User) => u.id === assigneeId);
     const selectedClient = clients.find((c: Client) => c.id === clientId);
-    const selectedStatus = workflowStages.find(s => s.id === status);
+    const selectedStatus = workflowStages.find((s: WorkflowStage) => s.id === status);
 
     return (
         <>
@@ -331,7 +331,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                     >
                                         <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">סטטוס התחלתי</div>
                                         <div className="space-y-1">
-                                            {workflowStages.map(s => (
+                                            {workflowStages.map((s: WorkflowStage) => (
                                                 <button 
                                                     key={s.id}
                                                     onClick={() => { setStatus(s.id); setActivePopover('none'); }}
@@ -392,7 +392,7 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ onClose }) => 
                                                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"><X size={14} /></div>
                                                 ללא שיוך
                                             </button>
-                                            {availableUsers.map(u => (
+                                            {availableUsers.map((u: User) => (
                                                 <button 
                                                     key={u.id}
                                                     onClick={() => { setAssigneeId(u.id); setActivePopover('none'); }}

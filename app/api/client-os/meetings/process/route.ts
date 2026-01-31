@@ -8,7 +8,9 @@ import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
 import { createClinicSession } from '@/app/actions/client-clinic';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -70,6 +72,11 @@ async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
 
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return apiError('Unauthorized', { status: 401 });
+    }
+
     const body = (await req.json().catch(() => ({}))) as {
       orgId?: string;
       clientId?: string;
@@ -101,6 +108,20 @@ async function POSTHandler(req: Request) {
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : 403;
       return apiError(e, { status, message: e?.message || 'Forbidden' });
+    }
+
+    const abuse = await enforceAiAbuseGuard({
+      req,
+      namespace: 'ai.client_os.meetings.process',
+      organizationId: orgId,
+      userId: clerkUserId,
+      limits: {
+        ipMin: { limit: 10, windowMs: 60_000, label: 'ip-min' },
+        userMin: { limit: 6, windowMs: 60_000, label: 'user-min' },
+      },
+    });
+    if (!abuse.ok) {
+      return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
     }
 
     const expectedPrefix = `${orgId}/`;
@@ -146,13 +167,20 @@ async function POSTHandler(req: Request) {
 
     const audioBuf = await fs.readFile(audioPath);
 
-    const ai = AIService.getInstance();
-    const out = await ai.transcribe({
-      featureKey: 'client_os.meetings.transcription',
+    const out = await withAiLoadIsolation({
+      namespace: 'ai.transcribe',
       organizationId: orgId,
-      audioBuffer: bufferToArrayBuffer(audioBuf),
-      mimeType: audioMime,
-      meta: { source: 'client-os-meetings-process', isVideo },
+      task: async () => {
+        const ai = AIService.getInstance();
+        return await ai.transcribe({
+          featureKey: 'client_os.meetings.transcription',
+          organizationId: orgId,
+          userId: clerkUserId,
+          audioBuffer: bufferToArrayBuffer(audioBuf),
+          mimeType: audioMime,
+          meta: { source: 'client-os-meetings-process', isVideo },
+        });
+      },
     });
     const transcript = out.text;
 
@@ -188,7 +216,7 @@ async function POSTHandler(req: Request) {
       // ignore
     }
 
-    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript });
+    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
   } catch (e: any) {
     return apiError(e, { status: 500, message: 'Processing failed' });
   } finally {

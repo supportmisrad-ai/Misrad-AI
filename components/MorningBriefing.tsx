@@ -44,26 +44,31 @@ export const MorningBriefing: React.FC = () => {
 
   // 1. Identify Candidate Tasks
   // Red Flags: High priority not done
-  const redFlags = tasks.filter(t => 
+  const redFlags = tasks.filter((t: Task) => 
     t.status !== Status.DONE && 
     (t.priority === Priority.URGENT || t.priority === Priority.HIGH)
   );
 
   // Existing Today: Already scheduled for today
-  const existingToday = tasks.filter(t => 
+  const existingToday = tasks.filter((t: Task) => 
     t.status !== Status.DONE &&
     (t.dueDate === 'היום' || t.dueDate === new Date().toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }))
   );
 
   // Opportunity: My tasks, not urgent, not today
-  const opportunities = tasks.filter(t => 
+  const opportunities = tasks.filter((t: Task) => 
     t.assigneeIds?.includes(currentUserId) && 
     t.status !== Status.DONE &&
     t.priority !== Priority.URGENT &&
     !existingToday.includes(t) &&
     !redFlags.includes(t)
-  ).sort((a, b) => {
-      const pWeight = { [Priority.URGENT]: 4, [Priority.HIGH]: 3, [Priority.MEDIUM]: 2, [Priority.LOW]: 1 };
+  ).sort((a: Task, b: Task) => {
+      const pWeight: Record<Priority, number> = {
+        [Priority.URGENT]: 4,
+        [Priority.HIGH]: 3,
+        [Priority.MEDIUM]: 2,
+        [Priority.LOW]: 1,
+      };
       return pWeight[b.priority] - pWeight[a.priority];
   });
 
@@ -73,8 +78,8 @@ export const MorningBriefing: React.FC = () => {
   useEffect(() => {
       const initialSet = new Set<string>();
       // Auto-select Red Flags and Existing Today Tasks
-      redFlags.forEach(t => initialSet.add(t.id));
-      existingToday.forEach(t => initialSet.add(t.id));
+      redFlags.forEach((t: Task) => initialSet.add(t.id));
+      existingToday.forEach((t: Task) => initialSet.add(t.id));
       
       // Auto-select top opportunity if schedule is light
       if (initialSet.size < 3 && opportunities.length > 0) {
@@ -194,10 +199,10 @@ export const MorningBriefing: React.FC = () => {
   const handleOptimize = async () => {
       setIsOptimizing(true);
       
-      const selectedSystemTasks = tasks.filter(t => selectedTaskIds.has(t.id));
+      const selectedSystemTasks = tasks.filter((t: Task) => selectedTaskIds.has(t.id));
       
       const tasksToSchedule = [
-          ...selectedSystemTasks.map(t => ({ id: t.id, title: t.title, duration: 60, isFixed: false })),
+          ...selectedSystemTasks.map((t: Task) => ({ id: t.id, title: t.title, duration: 60, isFixed: false })),
           ...customTasks.map(t => ({ id: t.id, title: t.title, duration: 45, isFixed: false }))
       ];
 
@@ -248,7 +253,7 @@ export const MorningBriefing: React.FC = () => {
 
   const handleCommit = () => {
       // 1. Reset focus for current user's tasks
-      tasks.forEach(t => {
+      tasks.forEach((t: Task) => {
           if (t.assigneeIds?.includes(currentUserId) && t.isFocus) {
               updateTask(t.id, { isFocus: false });
           }
@@ -410,7 +415,7 @@ export const MorningBriefing: React.FC = () => {
                                         </div>
                                         
                                         {/* Existing Scheduled */}
-                                        {existingToday.map(task => (
+                                        {existingToday.map((task: Task) => (
                                             <div 
                                                 key={task.id} 
                                                 onClick={() => toggleTaskSelection(task.id)}
@@ -434,7 +439,7 @@ export const MorningBriefing: React.FC = () => {
                                         ))}
 
                                         {/* Urgent / Red Flags */}
-                                        {redFlags.filter(t => !existingToday.includes(t)).map(task => (
+                                        {redFlags.filter((t: Task) => !existingToday.includes(t)).map((task: Task) => (
                                             <div 
                                                 key={task.id} 
                                                 onClick={() => toggleTaskSelection(task.id)}
@@ -469,7 +474,7 @@ export const MorningBriefing: React.FC = () => {
                                         </div>
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {opportunities.map(task => (
+                                            {opportunities.map((task: Task) => (
                                                 <div 
                                                     key={task.id} 
                                                     onClick={() => toggleTaskSelection(task.id)}
