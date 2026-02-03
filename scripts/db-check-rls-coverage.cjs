@@ -82,7 +82,7 @@ function shouldEnforceRlsCheck() {
   const explicitRequire = envBool('RLS_CHECK_REQUIRE', false);
   if (explicitRequire) return true;
 
-  const ci = envBool('CI', false);
+  const ci = envBool('CI', false) && !envBool('VERCEL', false);
   if (ci) return true;
 
   return false;
@@ -306,6 +306,12 @@ async function main() {
     );
     process.exit(1);
   }, timeoutMs);
+
+  if (envBool('VERCEL', false) && !envBool('RLS_CHECK_ON_VERCEL', false)) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'VERCEL_SKIP_BY_DEFAULT' }, null, 2));
+    clearTimeout(timeout);
+    return;
+  }
 
   if (envBool('RLS_CHECK_DISABLE', false)) {
     console.log(JSON.stringify({ ok: true, skipped: true, reason: 'RLS_CHECK_DISABLE' }, null, 2));

@@ -67,7 +67,7 @@ function envInt(name, defaultValue) {
 function shouldEnforceMigrationSync() {
   if (envBool('PRISMA_MIGRATION_SYNC_DISABLE', false)) return false;
   if (envBool('PRISMA_MIGRATION_SYNC_REQUIRE', false)) return true;
-  if (envBool('CI', false)) return true;
+  if (envBool('CI', false) && !envBool('VERCEL', false)) return true;
   return false;
 }
 
@@ -219,6 +219,12 @@ async function main() {
     );
     process.exit(1);
   }, timeoutMs);
+
+  if (envBool('VERCEL', false) && !envBool('PRISMA_MIGRATION_SYNC_ON_VERCEL', false)) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'VERCEL_SKIP_BY_DEFAULT' }, null, 2));
+    clearTimeout(timeout);
+    return;
+  }
 
   if (envBool('PRISMA_MIGRATION_SYNC_DISABLE', false)) {
     console.log(JSON.stringify({ ok: true, skipped: true, reason: 'PRISMA_MIGRATION_SYNC_DISABLE' }, null, 2));

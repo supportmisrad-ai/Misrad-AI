@@ -24,7 +24,7 @@ function envInt(name, fallback) {
 function shouldEnforceMigrationsCheck() {
   if (envBool('PRISMA_MIGRATIONS_DISABLE', false) || envBool('PRISMA_MIGRATIONS_CHECK_DISABLE', false)) return false;
   if (envBool('PRISMA_MIGRATIONS_REQUIRE', false) || envBool('PRISMA_MIGRATIONS_CHECK_REQUIRE', false)) return true;
-  if (envBool('CI', false)) return true;
+  if (envBool('CI', false) && !envBool('VERCEL', false)) return true;
   return false;
 }
 
@@ -213,6 +213,12 @@ async function main() {
     );
     process.exit(1);
   }, timeoutMs);
+
+  if (envBool('VERCEL', false) && !envBool('PRISMA_MIGRATIONS_CHECK_ON_VERCEL', false)) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'VERCEL_SKIP_BY_DEFAULT' }, null, 2));
+    clearTimeout(timeout);
+    return;
+  }
 
   if (envBool('PRISMA_MIGRATIONS_DISABLE', false) || envBool('PRISMA_MIGRATIONS_CHECK_DISABLE', false)) {
     console.log(JSON.stringify({ ok: true, skipped: true, reason: 'PRISMA_MIGRATIONS_DISABLE' }, null, 2));

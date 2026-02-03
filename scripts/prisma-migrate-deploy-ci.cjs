@@ -20,9 +20,11 @@ function main() {
     return;
   }
 
-  const isCiLike = envBool('CI', false) || envBool('VERCEL', false);
-  if (!isCiLike) {
-    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'NOT_CI_OR_VERCEL' }, null, 2));
+  const isVercel = envBool('VERCEL', false);
+  const isCi = envBool('CI', false) && !isVercel;
+  const allowOnVercel = envBool('PRISMA_MIGRATE_DEPLOY_ON_VERCEL', false);
+  if (!isCi && !(isVercel && allowOnVercel)) {
+    console.log(JSON.stringify({ ok: true, skipped: true, reason: 'NOT_CI_OR_VERCEL_ENABLED' }, null, 2));
     return;
   }
 
