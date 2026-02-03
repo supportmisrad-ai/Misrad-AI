@@ -1,17 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
 import { CommandPaletteProps, CommandPaletteMode } from './command-palette/command-palette.types';
 import { useCommandPalette } from './command-palette/useCommandPalette';
 import { CommandPaletteHeader } from './command-palette/CommandPaletteHeader';
 import { CommandPaletteChat } from './command-palette/CommandPaletteChat';
 import { CommandPaletteSearch } from './command-palette/CommandPaletteSearch';
-
 import { getSemanticStarters } from './command-palette/semanticStarters';
-import { usePathname } from 'next/navigation';
-import { parseWorkspaceRoute } from '@/lib/os/social-routing';
-import { getModuleDefinition } from '@/lib/os/modules/registry';
-import type { OSModuleKey } from '@/lib/os/modules/types';
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
@@ -19,36 +15,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   onNavigate,
   onSelectLead,
   leads,
-  moduleKey,
   navItems,
   hideLeads,
   hideAssets,
 }) => {
   const [mode, setMode] = useState<CommandPaletteMode>('search');
-
-  const pathname = usePathname();
-  const routeInfo = parseWorkspaceRoute(pathname);
-  const resolvedModuleKey: OSModuleKey = (routeInfo.module || moduleKey || 'nexus') as OSModuleKey;
-  const moduleDef = getModuleDefinition(resolvedModuleKey);
-  const moduleAccent = moduleDef?.theme?.accent || '#3730A3';
-
-  const moduleGradient = (() => {
-    switch (resolvedModuleKey) {
-      case 'system':
-        return 'linear-gradient(135deg, #A21D3C 0%, #881337 100%)';
-      case 'finance':
-        return 'linear-gradient(135deg, #10B981 0%, #0D9488 100%)';
-      case 'social':
-        return 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #EC4899 100%)';
-      case 'client':
-        return 'linear-gradient(135deg, #EAD7A1 0%, #C5A572 50%, #B45309 100%)';
-      case 'operations':
-        return 'linear-gradient(135deg, #0EA5E9 0%, #06B6D4 100%)';
-      case 'nexus':
-      default:
-        return 'linear-gradient(135deg, #6366F1 0%, #9333EA 100%)';
-    }
-  })();
 
   const {
     query,
@@ -62,7 +33,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     getFilteredResults,
     handleSendMessage,
     sendText
-  } = useCommandPalette(isOpen, mode, { navItems, hideLeads, hideAssets, moduleKey: resolvedModuleKey });
+  } = useCommandPalette(isOpen, mode, { navItems, hideLeads, hideAssets });
 
   useEffect(() => {
     if (!isOpen) {
@@ -78,6 +49,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       e.preventDefault();
       if (mode === 'chat') {
         handleSendMessage();
+      } else if (mode === 'search' && query.trim().length >= 2) {
+        handleSendMessage();
       }
     }
   };
@@ -87,17 +60,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const { filteredNav, filteredLeads, filteredAssets } = getFilteredResults(leads);
 
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-start justify-center transition-all duration-300"
-      onClick={onClose}
-      style={{
-        paddingTop: mode === 'chat' ? '5vh' : '12vh',
-        '--os-accent': moduleAccent,
-      } as React.CSSProperties}
-    >
+    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-start justify-center transition-all duration-300" onClick={onClose} style={{ paddingTop: '8vh' }}>
       <div 
         className={`w-full bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 animate-scale-in transform transition-all ${
-          mode === 'chat' ? 'max-w-5xl h-[85vh] flex flex-col' : 'max-w-5xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.15)]'
+          mode === 'chat' ? 'max-w-5xl h-[85vh] flex flex-col' : 'max-w-2xl shadow-[0_20px_60px_-12px_rgba(0,0,0,0.15)]'
         }`}
         onClick={e => e.stopPropagation()}
         style={{
@@ -111,8 +77,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           onModeChange={setMode} 
           onClose={onClose}
           inputRef={inputRef}
-          moduleGradient={moduleGradient}
-          moduleAccent={moduleAccent}
         />
 
         {mode === 'chat' ? (
@@ -127,25 +91,26 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
             extractMessageText={extractMessageText}
             handleSendMessage={handleSendMessage}
             sendText={sendText}
-            starters={getSemanticStarters(resolvedModuleKey as any)}
+            starters={getSemanticStarters('nexus')}
             onKeyDown={handleKeyDown}
-            moduleGradient={moduleGradient}
-            moduleAccent={moduleAccent}
           />
         ) : (
           <CommandPaletteSearch
             query={query}
             setQuery={setQuery}
             isThinking={isThinking}
+            messages={messages}
+            error={error}
             inputRef={inputRef as React.RefObject<HTMLInputElement>}
-            onKeyDown={handleKeyDown}
+            extractMessageText={extractMessageText}
+            handleSendMessage={handleSendMessage}
+                            onKeyDown={handleKeyDown}
             filteredNav={filteredNav}
             filteredLeads={filteredLeads}
             filteredAssets={filteredAssets}
             onNavigate={onNavigate}
             onSelectLead={onSelectLead}
             onClose={onClose}
-            moduleAccent={moduleAccent}
           />
         )}
       </div>
