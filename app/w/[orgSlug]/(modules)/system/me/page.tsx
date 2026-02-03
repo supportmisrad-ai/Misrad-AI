@@ -12,10 +12,24 @@ export default async function SystemMePage({
   const { orgSlug } = await params;
   const { initialCurrentUser, initialOrganization } = await getSystemBootstrap(orgSlug);
 
+  const normalizedCurrentUser = initialCurrentUser
+    ? {
+        ...initialCurrentUser,
+        phone: initialCurrentUser.phone ?? undefined,
+      }
+    : undefined;
+
+  const normalizedOrganization = initialOrganization
+    ? {
+        ...initialOrganization,
+        logo: initialOrganization.logo ?? undefined,
+      }
+    : undefined;
+
   const basePathOverride = `/w/${encodeURIComponent(orgSlug)}/system`;
 
   return (
-    <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+    <DataProvider initialCurrentUser={normalizedCurrentUser} initialOrganization={normalizedOrganization}>
       <MeView
         basePathOverride={basePathOverride}
         moduleCards={[

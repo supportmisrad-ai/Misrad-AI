@@ -6,20 +6,98 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../lib/auth';
-import { createClient } from '../../../lib/supabase';
-import { FeatureRequest } from '../../../types';
+import { FeatureRequest, FeatureRequestStatus, FeatureRequestType, Priority } from '../../../types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as UnknownRecord;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+const VALID_TYPES: readonly FeatureRequestType[] = ['feature', 'bug', 'improvement', 'integration'] as const;
+const VALID_STATUSES: readonly FeatureRequestStatus[] = ['pending', 'under_review', 'planned', 'in_progress', 'completed', 'rejected'] as const;
+
+function toFeatureType(value: unknown): FeatureRequestType {
+    const v = String(value ?? '').trim();
+    return (VALID_TYPES as readonly string[]).includes(v) ? (v as FeatureRequestType) : 'feature';
+}
+
+function toFeatureStatus(value: unknown): FeatureRequestStatus {
+    const v = String(value ?? '').trim();
+    return (VALID_STATUSES as readonly string[]).includes(v) ? (v as FeatureRequestStatus) : 'pending';
+}
+
+function toPriority(value: unknown): Priority {
+    const v = String(value ?? '').trim().toLowerCase();
+    if (v === 'low' || v === String(Priority.LOW).toLowerCase()) return Priority.LOW;
+    if (v === 'high' || v === String(Priority.HIGH).toLowerCase()) return Priority.HIGH;
+    if (v === 'urgent' || v === String(Priority.URGENT).toLowerCase()) return Priority.URGENT;
+    return Priority.MEDIUM;
+}
+
+function toIsoString(input: unknown): string | undefined {
+    if (!input) return undefined;
+    if (input instanceof Date) return input.toISOString();
+    if (typeof input === 'string') return input;
+    return undefined;
+}
+
+function normalizeMetadata(input: unknown): Record<string, unknown> | undefined {
+    const obj = asObject(input);
+    return obj ?? undefined;
+}
+
+function normalizeVotes(input: unknown): string[] {
+    if (Array.isArray(input)) return input.map((x) => String(x)).filter(Boolean);
+    return [];
+}
+
+function normalizeFeatureRequestRow(row: unknown): FeatureRequest {
+    const r = asObject(row) ?? {};
+    return {
+        id: String(r.id),
+        user_id: String(r.user_id),
+        tenant_id: r.tenant_id ? String(r.tenant_id) : undefined,
+        title: String(r.title || ''),
+        description: String(r.description || ''),
+        type: toFeatureType(r.type),
+        status: toFeatureStatus(r.status),
+        priority: toPriority(r.priority),
+        votes: normalizeVotes(r.votes),
+        creatorId: String(r.user_id),
+        createdAt: toIsoString(r.created_at) || new Date().toISOString(),
+        updated_at: toIsoString(r.updated_at),
+        assigned_to: r.assigned_to ? String(r.assigned_to) : undefined,
+        reviewed_by: r.reviewed_by ? String(r.reviewed_by) : undefined,
+        reviewed_at: toIsoString(r.reviewed_at),
+        completed_at: toIsoString(r.completed_at),
+        admin_notes: r.admin_notes ? String(r.admin_notes) : undefined,
+        rejection_reason: r.rejection_reason ? String(r.rejection_reason) : undefined,
+        metadata: normalizeMetadata(r.metadata) ?? {},
+    };
+}
+
 async function GETHandler(request: NextRequest) {
 
     try {
         const user = await getAuthenticatedUser();
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
-
-        const supabase = createClient();
         
         const searchParams = request.nextUrl.searchParams;
         const requestId = searchParams.get('id');
@@ -30,65 +108,29 @@ async function GETHandler(request: NextRequest) {
         // Check if user is admin
         const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
-        let query = supabase
-            .from('misrad_feature_requests')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const where: Prisma.scale_feature_requestsWhereInput = {
+            tenant_id: String(workspaceId),
+        };
 
-        query = query.eq('tenant_id', workspaceId);
-
-        // Filter by request ID
         if (requestId) {
-            query = query.eq('id', requestId).limit(1);
+            where.id = String(requestId);
         }
-
-        // Filter by status
         if (status) {
-            query = query.eq('status', status);
+            where.status = String(status);
         }
-
-        // Filter by type
         if (type) {
-            query = query.eq('type', type);
+            where.type = String(type);
         }
-
-        // Admin can filter by user
         if (isAdmin && userId) {
-            query = query.eq('user_id', userId);
+            where.user_id = String(userId);
         }
 
-        const { data: requests, error } = await query;
+        const rows = await prisma.scale_feature_requests.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+        });
 
-        if (error) {
-            console.error('[API] Error fetching feature requests:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בטעינת בקשות פיצ\'רים' },
-                { status: 500 }
-            );
-        }
-
-        // Transform to match TypeScript interface
-        const transformedRequests: FeatureRequest[] = (requests || []).map((req: any) => ({
-            id: req.id,
-            user_id: req.user_id,
-            tenant_id: req.tenant_id,
-            title: req.title,
-            description: req.description,
-            type: req.type,
-            status: req.status,
-            priority: req.priority,
-            votes: Array.isArray(req.votes) ? req.votes : [],
-            creatorId: req.user_id, // Legacy field
-            createdAt: req.created_at,
-            updated_at: req.updated_at,
-            assigned_to: req.assigned_to,
-            reviewed_by: req.reviewed_by,
-            reviewed_at: req.reviewed_at,
-            completed_at: req.completed_at,
-            admin_notes: req.admin_notes,
-            rejection_reason: req.rejection_reason,
-            metadata: req.metadata || {}
-        }));
+        const transformedRequests: FeatureRequest[] = (rows || []).map(normalizeFeatureRequestRow);
 
         if (requestId) {
             return NextResponse.json(transformedRequests[0] || null);
@@ -96,14 +138,15 @@ async function GETHandler(request: NextRequest) {
 
         return NextResponse.json({ requests: transformedRequests });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/features GET:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'שגיאה בטעינת בקשות פיצ\'רים' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: message || 'שגיאה בטעינת בקשות פיצ\'רים' },
+            { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }
@@ -113,8 +156,6 @@ async function POSTHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
-
-        const supabase = createClient();
         
         const body = await request.json();
         const { title, description, type, priority } = body;
@@ -136,55 +177,21 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        // Create feature request
-        const requestData = {
-            user_id: user.id,
-            tenant_id: workspaceId,
-            title: title.trim(),
-            description: description.trim(),
-            type: type,
-            priority: priority || 'medium',
-            status: 'pending',
-            votes: [],
-            metadata: {}
-        };
+        const featureRequest = await prisma.scale_feature_requests.create({
+            data: {
+                user_id: String(user.id),
+                tenant_id: String(workspaceId),
+                title: String(title).trim(),
+                description: String(description).trim(),
+                type: String(type),
+                priority: String(priority || 'medium'),
+                status: 'pending',
+                votes: [],
+                metadata: {},
+            },
+        });
 
-        const { data: featureRequest, error: createError } = await supabase
-            .from('misrad_feature_requests')
-            .insert(requestData)
-            .select()
-            .single();
-
-        if (createError) {
-            console.error('[API] Error creating feature request:', createError);
-            return NextResponse.json(
-                { error: 'שגיאה ביצירת בקשת פיצ\'ר' },
-                { status: 500 }
-            );
-        }
-
-        // Transform response
-        const transformedRequest: FeatureRequest = {
-            id: featureRequest.id,
-            user_id: featureRequest.user_id,
-            tenant_id: featureRequest.tenant_id,
-            title: featureRequest.title,
-            description: featureRequest.description,
-            type: featureRequest.type,
-            status: featureRequest.status,
-            priority: featureRequest.priority,
-            votes: Array.isArray(featureRequest.votes) ? featureRequest.votes : [],
-            creatorId: featureRequest.user_id,
-            createdAt: featureRequest.created_at,
-            updated_at: featureRequest.updated_at,
-            assigned_to: featureRequest.assigned_to,
-            reviewed_by: featureRequest.reviewed_by,
-            reviewed_at: featureRequest.reviewed_at,
-            completed_at: featureRequest.completed_at,
-            admin_notes: featureRequest.admin_notes,
-            rejection_reason: featureRequest.rejection_reason,
-            metadata: featureRequest.metadata || {}
-        };
+        const transformedRequest: FeatureRequest = normalizeFeatureRequestRow(featureRequest);
 
         return NextResponse.json({
             success: true,
@@ -192,14 +199,15 @@ async function POSTHandler(request: NextRequest) {
             message: 'בקשת פיצ\'ר נוצרה בהצלחה'
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/features POST:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'שגיאה ביצירת בקשת פיצ\'ר' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: message || 'שגיאה ביצירת בקשת פיצ\'ר' },
+            { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }

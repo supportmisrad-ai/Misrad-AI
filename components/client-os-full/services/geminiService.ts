@@ -9,11 +9,23 @@ const getOrgHeaders = () => {
   return headers;
 };
 
+const getOrgIdFromClientOsContext = (): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = (window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
+    const orgId = raw?.organizationId ? String(raw.organizationId) : null;
+    return orgId || null;
+  } catch {
+    return null;
+  }
+};
+
 export const analyzeMeetingTranscript = async (transcript: string): Promise<MeetingAnalysisResult> => {
-  const res = await fetch('/api/client-os/meetings/process', {
+  const orgId = getOrgIdFromClientOsContext();
+  const res = await fetch('/api/client-os/meetings/analyze-transcript', {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...getOrgHeaders() },
-    body: JSON.stringify({ transcript }),
+    body: JSON.stringify({ transcript, orgId }),
   });
 
   if (!res.ok) {
@@ -31,7 +43,7 @@ export const analyzeMeetingTranscript = async (transcript: string): Promise<Meet
   }
 
   const data = (await res.json().catch(() => null)) as any;
-  return (data?.analysis || data) as MeetingAnalysisResult;
+  return (data?.analysis || data?.data?.analysis || data) as MeetingAnalysisResult;
 };
 
 export const generateClientInsight = async (clientName: string, healthScore: number, sentimentTrend: string[]) => {

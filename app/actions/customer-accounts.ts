@@ -1,6 +1,5 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { provisionCurrentUserWorkspaceAction } from '@/app/actions/users';
@@ -60,28 +59,29 @@ export async function getCustomerAccountForCurrentOrganization(): Promise<{
 }> {
   try {
     const organizationId = await requireCurrentOrganizationId();
-    const supabase = createClient();
 
-    const { data: row } = await supabase
-      .from('customer_accounts')
-      .select('id, organization_id, name, company_name, phone, email')
-      .eq('organization_id', organizationId)
-      .maybeSingle();
+    const row = await prisma.customerAccount.findFirst({
+      where: { organizationId: String(organizationId) },
+      select: {
+        id: true,
+        organizationId: true,
+        name: true,
+        company_name: true,
+        phone: true,
+        email: true,
+      },
+    });
 
-    if (!row?.id) {
-      return createSuccessResponse(null);
-    }
+    if (!row?.id) return createSuccessResponse(null);
 
-    const mapped: CustomerAccountRecord = {
-      id: String((row as any).id),
-      organizationId: String((row as any).organization_id),
-      name: String((row as any).name || ''),
-      companyName: (row as any).company_name ? String((row as any).company_name) : null,
-      phone: (row as any).phone ? String((row as any).phone) : null,
-      email: (row as any).email ? String((row as any).email) : null,
-    };
-
-    return createSuccessResponse(mapped);
+    return createSuccessResponse({
+      id: String(row.id),
+      organizationId: String(row.organizationId),
+      name: String(row.name || ''),
+      companyName: row.company_name ? String(row.company_name) : null,
+      phone: row.phone ? String(row.phone) : null,
+      email: row.email ? String(row.email) : null,
+    });
   } catch (error: any) {
     return createErrorResponse(error, error?.message || 'שגיאה בטעינת פרטי העסק');
   }
@@ -109,52 +109,51 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
 
     const organizationId = await requireCurrentOrganizationId();
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const { data: existing } = await supabase
-      .from('customer_accounts')
-      .select('id')
-      .eq('organization_id', organizationId)
-      .maybeSingle();
+    const existing = await prisma.customerAccount.findFirst({
+      where: { organizationId: String(organizationId) },
+      select: { id: true },
+    });
 
     if (existing?.id) {
-      const { error: updateError } = await supabase
-        .from('customer_accounts')
-        .update({
+      await prisma.customerAccount.update({
+        where: { id: String(existing.id) },
+        data: {
           name: companyName,
           company_name: companyName,
           phone,
           email,
           updated_at: now,
-        } as any)
-        .eq('id', String(existing.id));
-
-      if (updateError) {
-        return createErrorResponse(updateError, 'שגיאה בעדכון פרטי העסק');
-      }
+        },
+      });
     } else {
-      const { error: insertError } = await supabase
-        .from('customer_accounts')
-        .insert({
-          organization_id: organizationId,
+      await prisma.customerAccount.create({
+        data: {
+          organizationId: String(organizationId),
           name: companyName,
           company_name: companyName,
           phone,
           email,
           created_at: now,
           updated_at: now,
-        } as any);
-
-      if (insertError) {
-        return createErrorResponse(insertError, 'שגיאה בשמירת פרטי העסק');
-      }
+        },
+      });
     }
 
-    await supabase
-      .from('organizations')
-      .update({ name: companyName, updated_at: now } as any)
-      .eq('id', organizationId);
+    try {
+      await prisma.social_organizations.update({
+        where: { id: String(organizationId) },
+        data: { name: companyName, updated_at: now },
+      });
+    } catch {
+      // ignore
+    }
+
+    const provision = await provisionCurrentUserWorkspaceAction();
+    if (!provision.success) {
+      return createErrorResponse(provision.error || 'Failed to provision workspace');
+    }
 
     return createSuccessResponse(true);
   } catch (error: any) {

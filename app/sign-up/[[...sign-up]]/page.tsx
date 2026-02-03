@@ -1,20 +1,31 @@
-"use client";
-
-import { SignUp } from "@clerk/nextjs";
-import { useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { redirect } from 'next/navigation';
 
 // Force dynamic rendering to prevent build-time Clerk errors
 export const dynamic = 'force-dynamic';
 
-export default function Page() {
-  const searchParams = useSearchParams();
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  const qs = new URLSearchParams();
 
-  const redirectUrl = useMemo(() => {
-    const raw = searchParams.get('redirect_url') || searchParams.get('redirectUrl') || searchParams.get('redirect');
-    if (!raw) return undefined;
-    return raw;
-  }, [searchParams]);
+  for (const [key, value] of Object.entries(searchParams || {})) {
+    if (value == null) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) qs.append(key, String(v));
+      continue;
+    }
+    qs.set(key, String(value));
+  }
 
-  return <SignUp redirectUrl={redirectUrl} afterSignUpUrl={redirectUrl} />;
+  const redirectParam = qs.get('redirect') || qs.get('redirect_url') || qs.get('redirectUrl');
+  if (redirectParam && !qs.get('redirect')) {
+    qs.set('redirect', redirectParam);
+  }
+
+  qs.set('mode', 'sign-up');
+
+  const queryString = qs.toString();
+  redirect(queryString ? `/login?${queryString}` : '/login?mode=sign-up');
 }

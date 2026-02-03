@@ -11,29 +11,25 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 async function GETHandler(request: NextRequest) {
     try {
@@ -49,20 +45,8 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
-        let sb: any;
-        try {
-            sb = createClient();
-        } catch {
-            return apiSuccess({
-                status: {
-                    calendar: { connected: false },
-                    drive: { connected: false }
-                }
-            });
-        }
-
-        // Convert Clerk email to Supabase user id
-        const dbUserId = await selectDbUserId({ supabase: sb, workspaceId: workspace.id, email: clerkUser.email });
+        // Convert Clerk email to Nexus user id
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
         if (!dbUserId) {
             return apiSuccess({
                 status: {
@@ -75,34 +59,24 @@ async function GETHandler(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
 
-        const buildBaseQuery = () => {
-            let q = sb
-                .from('misrad_integrations')
-                .select('*')
-                .eq('user_id', dbUserId)
-                .eq('organization_id', workspace.id)
-                .eq('is_active', true);
-
-            if (service === 'calendar') {
-                q = q.eq('service_type', 'google_calendar');
-            } else if (service === 'drive') {
-                q = q.eq('service_type', 'google_drive');
-            } else {
-                q = q.in('service_type', ['google_calendar', 'google_drive']);
-            }
-
-            return q;
-        };
-
-        let integrations: any[] | null = null;
-        let error: any = null;
-
-        ({ data: integrations, error } = await buildBaseQuery());
-
-        // If table doesn't exist, return empty status
-        if (error) {
-            // Check if it's a "table doesn't exist" error
-            if (error.message?.includes('does not exist') || error.code === '42P01') {
+        let integrations: any[] = [];
+        try {
+            integrations = await prisma.scale_integrations.findMany({
+                where: {
+                    user_id: String(dbUserId),
+                    tenant_id: String(workspace.id),
+                    is_active: true,
+                    service_type:
+                        service === 'calendar'
+                            ? 'google_calendar'
+                            : service === 'drive'
+                                ? 'google_drive'
+                                : { in: ['google_calendar', 'google_drive'] },
+                },
+            });
+        } catch (error: any) {
+            const msg = String(error?.message || '');
+            if (msg.includes('does not exist') || msg.includes('42P01')) {
                 console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
                 return apiSuccess({
                     status: {
@@ -111,10 +85,12 @@ async function GETHandler(request: NextRequest) {
                     }
                 });
             }
-            if (error.code === '42703') {
-                return apiError('[SchemaMismatch] misrad_integrations is missing organization_id', { status: 500 });
-            }
-            throw error;
+            return apiSuccess({
+                status: {
+                    calendar: { connected: false },
+                    drive: { connected: false },
+                },
+            });
         }
 
         // Return status without sensitive tokens
@@ -135,6 +111,15 @@ async function GETHandler(request: NextRequest) {
 
     } catch (error: any) {
         if (error instanceof APIError) {
+            // Status endpoints are optional; on screens like /login we may not have workspace context.
+            if (error.status === 400) {
+                return apiSuccess({
+                    status: {
+                        calendar: { connected: false },
+                        drive: { connected: false },
+                    },
+                });
+            }
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         console.warn('[API] Error getting Google integration status (non-critical):', error.message);

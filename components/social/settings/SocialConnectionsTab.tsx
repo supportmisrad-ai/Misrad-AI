@@ -7,10 +7,7 @@ import { SocialPlatform } from '@/types/social';
 import { PLATFORM_ICONS } from '../SocialIcons';
 import { useApp } from '@/contexts/AppContext';
 
-interface SocialConnectionsTabProps {
-}
-
-export default function SocialConnectionsTab({}: SocialConnectionsTabProps) {
+export default function SocialConnectionsTab() {
   const { setSettingsSubView } = useApp();
 
   return (

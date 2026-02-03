@@ -49,9 +49,9 @@ export const getScreenNameFromPathname = (pathname: string | null | undefined): 
 
   if (pathname.startsWith('/w/')) {
     const parts = pathname.split('/').filter(Boolean);
-    const module = parts[2] || null;
+    const moduleKey = parts[2] || null;
     const rest = parts.length > 3 ? `/${parts.slice(3).join('/')}` : '';
-    if (module === 'social') {
+    if (moduleKey === 'social') {
       return SOCIAL_SCREEN_TITLES[`/social${rest}`] || null;
     }
   }

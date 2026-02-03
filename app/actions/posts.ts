@@ -1,7 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
 import { auth } from '@clerk/nextjs/server';
 import { SocialPost, SocialPlatform, PostStatus } from '@/types/social';
 import { translateError } from '@/lib/errorTranslations';
@@ -198,7 +198,7 @@ export async function createPost(
       return { success: false, error: 'לא נמצא מזהה משתמש' };
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       return { success: false, error: userResult.error || 'שגיאה בקבלת משתמש' };
     }

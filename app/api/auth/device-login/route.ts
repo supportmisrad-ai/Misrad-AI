@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const runtime = 'nodejs';
@@ -23,15 +23,12 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'Missing token' }, { status: 400 });
   }
 
-  const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'device_login_pairing_token_consume' });
-
-  const { data: row, error } = await supabase
-    .from('device_pairing_tokens')
-    .select('*')
-    .eq('token', token)
-    .maybeSingle();
-
-  if (error) {
+  let row: any = null;
+  try {
+    row = await prisma.devicePairingToken.findUnique({
+      where: { token: String(token) },
+    });
+  } catch {
     return NextResponse.json({ error: 'שגיאה בטעינת טוקן' }, { status: 500 });
   }
 
@@ -39,30 +36,24 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
   }
 
-  const orgId = row.organization_id ? String(row.organization_id).trim() : '';
+  const orgId = row.organizationId ? String(row.organizationId).trim() : '';
   if (!orgId) {
     return NextResponse.json({ error: 'Token misconfigured' }, { status: 500 });
   }
 
-  const scoped = createServiceRoleClientScoped({
-    reason: 'device_login_pairing_token_consume',
-    scopeColumn: 'organization_id',
-    scopeId: orgId,
-  });
-
   const now = new Date();
-  const expiresAt = row.expires_at ? new Date(String(row.expires_at)) : null;
+  const expiresAt = row.expiresAt ? new Date(String(row.expiresAt)) : null;
   const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
 
   if (isExpired) {
     return NextResponse.json({ error: 'Token expired' }, { status: 400 });
   }
 
-  if (row.used === true || String(row.status || '').toUpperCase() === 'CONSUMED' || row.consumed_at) {
+  if (row.used === true || String(row.status || '').toUpperCase() === 'CONSUMED' || row.consumedAt) {
     return NextResponse.json({ error: 'Token already used' }, { status: 400 });
   }
 
-  const creatorClerkUserId = row.creator_clerk_user_id ? String(row.creator_clerk_user_id) : '';
+  const creatorClerkUserId = row.creatorClerkUserId ? String(row.creatorClerkUserId) : '';
   if (!creatorClerkUserId) {
     return NextResponse.json({ error: 'Token misconfigured' }, { status: 500 });
   }
@@ -94,20 +85,17 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'שגיאה ביצירת sign-in token' }, { status: 500 });
   }
 
-  const updateQuery = scoped
-    .from('device_pairing_tokens')
-    .update({
-      used: true,
-      status: 'CONSUMED',
-      sign_in_token: signInToken,
-      consumed_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    } as any)
-    .eq('id', row.id)
-    .eq('token', token);
-
-  const { error: updateError } = await updateQuery;
-  if (updateError) {
+  try {
+    await prisma.devicePairingToken.update({
+      where: { id: String(row.id) },
+      data: {
+        used: true,
+        status: 'CONSUMED',
+        signInToken,
+        consumedAt: now,
+      },
+    });
+  } catch {
     return NextResponse.json({ error: 'שגיאה בשמירת סטטוס טוקן' }, { status: 500 });
   }
 

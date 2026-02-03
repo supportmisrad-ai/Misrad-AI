@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -16,13 +16,6 @@ async function GETHandler(
     { params }: { params: Promise<{ token: string }> }
 ) {
     try {
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
-
         const { token } = await params;
 
         if (!token || token === 'undefined' || token === 'null') {
@@ -45,40 +38,39 @@ async function GETHandler(
             });
         }
 
-        // Get invitation link - use limit(1) to avoid single() coercion error
-        const { data: invitations, error } = await supabase
-            .from('system_invitation_links')
-            .select(`
-                id,
-                token,
-                client_id,
-                created_at,
-                expires_at,
-                is_used,
-                is_active,
-                used_at,
-                ceo_name,
-                ceo_email,
-                ceo_phone,
-                company_name,
-                company_logo,
-                company_address,
-                company_website,
-                additional_notes,
-                source,
-                metadata
-            `)
-            .eq('token', token)
-            .limit(1);
-
-        if (error) {
+        let invitations: any[] = [];
+        try {
+            const row = await (prisma as any).system_invitation_links.findUnique({
+                where: { token: String(token) },
+                select: {
+                    id: true,
+                    token: true,
+                    client_id: true,
+                    created_at: true,
+                    expires_at: true,
+                    is_used: true,
+                    is_active: true,
+                    used_at: true,
+                    ceo_name: true,
+                    ceo_email: true,
+                    ceo_phone: true,
+                    company_name: true,
+                    company_logo: true,
+                    company_address: true,
+                    company_website: true,
+                    additional_notes: true,
+                    source: true,
+                    metadata: true,
+                },
+            });
+            invitations = row ? [row] : [];
+        } catch (error: any) {
             console.error('[API] Error fetching invitation:', error);
-            // Return more specific error message
             const errorMessage = error.message || 'שגיאה בטעינת הקישור';
             return apiError(errorMessage, { status: 500 });
         }
 
-        if (!invitations || invitations.length === 0) {
+        if (invitations.length === 0) {
             return apiError('קישור לא נמצא', { status: 404 });
         }
 

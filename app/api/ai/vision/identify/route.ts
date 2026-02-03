@@ -2,15 +2,52 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { AIService } from '@/lib/services/ai/AIService';
 import { contractorResolveTokenForApi } from '@/app/actions/operations';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import type { Prisma } from '@prisma/client';
 
 export const runtime = 'nodejs';
 
-function asString(v: any): string {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => toInputJsonValue(v))
+      .filter((v): v is Prisma.InputJsonValue => v !== undefined);
+  }
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  return toInputJsonObject(obj);
+}
+
+function toInputJsonObject(value: unknown): Prisma.InputJsonObject {
+  const obj = asObject(value) ?? {};
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const next = toInputJsonValue(v);
+    if (next !== undefined) out[k] = next;
+  }
+  return out as Prisma.InputJsonObject;
+}
+
+function asString(v: unknown): string {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
 }
 
@@ -22,21 +59,18 @@ function toImageDataUrl(params: { imageBase64: string; mimeType?: string | null 
   return `data:${mt};base64,${raw}`;
 }
 
-function asNumber(v: any): number {
+function asNumber(v: unknown): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
 
 async function POSTHandler(req: Request) {
   try {
-    const body = (await req.json().catch(() => ({}))) as {
-      token?: string;
-      orgId?: string;
-      imageBase64?: string;
-      mimeType?: string;
-    };
+    const body: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(body) ?? {};
 
-    const token = body.token ? String(body.token) : null;
+    const tokenRaw = bodyObj.token;
+    const token = tokenRaw ? String(tokenRaw) : null;
 
     let organizationId: string | null = null;
     let userId: string | null = null;
@@ -78,7 +112,7 @@ async function POSTHandler(req: Request) {
       return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
     }
 
-    const imageDataUrl = toImageDataUrl({ imageBase64: asString(body.imageBase64), mimeType: body.mimeType || null });
+    const imageDataUrl = toImageDataUrl({ imageBase64: asString(bodyObj.imageBase64), mimeType: bodyObj.mimeType ? String(bodyObj.mimeType) : null });
     if (!imageDataUrl) {
       return apiError('חסרה תמונה (imageBase64)', { status: 400 });
     }
@@ -89,26 +123,25 @@ async function POSTHandler(req: Request) {
     let currentUsage = 0;
     if (!token && organizationId) {
       try {
-        const supabase = createClient();
+        const orgRow = await prisma.social_organizations.findUnique({
+          where: { id: String(organizationId) },
+          select: { subscription_status: true },
+        });
 
-        const { data: orgRow } = await supabase
-          .from('organizations')
-          .select('subscription_status')
-          .eq('id', String(organizationId))
-          .maybeSingle();
-
-        const subStatus = (orgRow as any)?.subscription_status ? String((orgRow as any).subscription_status) : 'trial';
+        const orgObj = asObject(orgRow as unknown) ?? {};
+        const subStatus = orgObj.subscription_status ? String(orgObj.subscription_status) : 'trial';
         const isTrial = subStatus === 'trial';
 
         if (isTrial) {
-          const { data: settingsRow } = await supabase
-            .from('organization_settings')
-            .select('ai_dna')
-            .eq('organization_id', String(organizationId))
-            .maybeSingle();
+          const settingsRow = await prisma.organization_settings.findUnique({
+            where: { organization_id: String(organizationId) },
+            select: { ai_dna: true },
+          });
 
-          const aiDna = (settingsRow as any)?.ai_dna || {};
-          currentUsage = asNumber((aiDna as any)?.ai_vision_usage);
+          const settingsObj = asObject(settingsRow as unknown) ?? {};
+          const aiDna = settingsObj.ai_dna;
+          const aiDnaObj = asObject(aiDna) ?? {};
+          currentUsage = asNumber(aiDnaObj.ai_vision_usage);
           shouldTrackUsage = true;
 
           if (currentUsage >= 5) {
@@ -157,39 +190,44 @@ async function POSTHandler(req: Request) {
     // Best-effort usage tracking (internal only)
     if (shouldTrackUsage && organizationId) {
       try {
-        const supabase = createClient();
         const nextUsage = currentUsage + 1;
+        const settingsRow = await prisma.organization_settings.findUnique({
+          where: { organization_id: String(organizationId) },
+          select: { ai_dna: true },
+        });
 
-        const { data: settingsRow } = await supabase
-          .from('organization_settings')
-          .select('ai_dna')
-          .eq('organization_id', String(organizationId))
-          .maybeSingle();
+        const settingsObj = asObject(settingsRow as unknown) ?? {};
+        const aiDna = settingsObj.ai_dna;
+        const aiDnaJson = toInputJsonObject(aiDna);
 
-        const aiDna = (settingsRow as any)?.ai_dna || {};
-
-        await supabase
-          .from('organization_settings')
-          .upsert(
-            {
-              organization_id: String(organizationId),
-              ai_dna: {
-                ...(aiDna as any),
-                ai_vision_usage: nextUsage,
-              },
-              updated_at: new Date().toISOString(),
-            } as any,
-            { onConflict: 'organization_id' }
-          );
+        await prisma.organization_settings.upsert({
+          where: { organization_id: String(organizationId) },
+          create: {
+            organization_id: String(organizationId),
+            ai_dna: {
+              ...aiDnaJson,
+              ai_vision_usage: nextUsage,
+            },
+            updated_at: new Date(),
+            created_at: new Date(),
+          },
+          update: {
+            ai_dna: {
+              ...aiDnaJson,
+              ai_vision_usage: nextUsage,
+            },
+            updated_at: new Date(),
+          },
+        });
       } catch {
         // ignore
       }
     }
 
     return apiSuccess({ name, isFaulty }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('[ai.vision.identify] failed', e);
-    return apiError(e, { status: 500, message: e?.message || 'שגיאה כללית' });
+    return apiError(e, { status: 500, message: getErrorMessage(e) || 'שגיאה כללית' });
   }
 }
 

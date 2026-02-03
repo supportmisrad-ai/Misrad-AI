@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
@@ -28,19 +28,16 @@ async function GETHandler(
     }
     return NextResponse.json({ error: e?.message || 'Internal server error' }, { status: 500 });
   }
-  const supabase = createClient();
-
-  const { data: socialUser } = await supabase
-    .from('social_users')
-    .select('id, role')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
-
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, owner_id')
-    .eq('id', workspace.id)
-    .maybeSingle();
+  const [socialUser, org] = await Promise.all([
+    prisma.social_users.findUnique({
+      where: { clerk_user_id: String(clerkUserId) },
+      select: { id: true, role: true },
+    }),
+    prisma.social_organizations.findUnique({
+      where: { id: String(workspace.id) },
+      select: { owner_id: true },
+    }),
+  ]);
 
   const isSuperAdmin = String((socialUser as any)?.role || '').toLowerCase() === 'super_admin';
   const isOwner = Boolean(org?.owner_id && (socialUser as any)?.id && String(org.owner_id) === String((socialUser as any).id));

@@ -6,49 +6,32 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { safeWritePayload } from '@/lib/tenant-isolation';
+import prisma from '@/lib/prisma';
+import { MisradNotificationType } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectTenantAdminIdsInWorkspace(params: { supabase: any; workspaceId: string }): Promise<string[]> {
+async function selectTenantAdminIdsInWorkspace(params: { workspaceId: string }): Promise<string[]> {
     const roles = ['מנכ״ל', 'מנכ"ל', 'מנכל', 'אדמין'];
 
-    const superAdminsRes = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('organization_id', params.workspaceId)
-        .eq('is_super_admin', true);
+    const users = await prisma.nexusUser.findMany({
+        where: {
+            organizationId: params.workspaceId,
+            OR: [{ isSuperAdmin: true }, { role: { in: roles } }],
+        },
+        select: { id: true },
+        take: 200,
+    });
 
-    const rolesRes = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('organization_id', params.workspaceId)
-        .in('role', roles);
-
-    const ids = new Set<string>();
-    for (const row of Array.isArray(superAdminsRes.data) ? superAdminsRes.data : []) {
-        if (row?.id) ids.add(String(row.id));
-    }
-    for (const row of Array.isArray(rolesRes.data) ? rolesRes.data : []) {
-        if (row?.id) ids.add(String(row.id));
-    }
-    return Array.from(ids);
+    return (users || []).map((u) => String(u.id));
 }
 async function POSTHandler(
     request: NextRequest,
     { params }: { params: Promise<{ token: string }> }
 ) {
     try {
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
-
         const { token } = await params;
 
         if (!token || token === 'undefined' || token === 'null') {
@@ -71,23 +54,14 @@ async function POSTHandler(
             });
         }
 
-        // Get invitation link - use maybeSingle to avoid coercion error
-        const { data: invitations, error: getError } = await supabase
-            .from('system_invitation_links')
-            .select('*')
-            .eq('token', token)
-            .limit(1);
+        // Get invitation link
+        const invitation = await prisma.system_invitation_links.findUnique({
+            where: { token: String(token) },
+        });
 
-        if (getError) {
-            console.error('[API] Error fetching invitation:', getError);
-            return apiError('שגיאה בטעינת הקישור', { status: 500 });
-        }
-
-        if (!invitations || invitations.length === 0) {
+        if (!invitation) {
             return apiError('קישור לא נמצא', { status: 404 });
         }
-
-        const invitation = invitations[0];
 
         // Validate invitation
         if (invitation.is_used) {
@@ -99,7 +73,7 @@ async function POSTHandler(
         }
 
         if (invitation.expires_at) {
-            const expiresAt = new Date(invitation.expires_at);
+            const expiresAt = new Date(invitation.expires_at as any);
             const now = new Date();
             if (now > expiresAt) {
                 return apiError('קישור זה פג תוקף', { status: 410 });
@@ -142,77 +116,46 @@ async function POSTHandler(
             company_website: companyWebsite || null,
             additional_notes: additionalNotes || null,
             is_used: true,
-            used_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            used_at: new Date(),
+            updated_at: new Date(),
         };
 
         // Add company ID (ח.פ./ע.מ.) if provided - store in metadata
-        if (companyId) {
-            // Store in metadata (since company_id column doesn't exist in table)
-            const existingMetadata = (invitation.metadata && typeof invitation.metadata === 'object') 
-                ? invitation.metadata 
-                : {};
-            updateData.metadata = {
-                ...existingMetadata,
-                companyId: companyId
-            };
-        } else if (invitation.metadata) {
-            // Preserve existing metadata if no companyId provided
-            updateData.metadata = invitation.metadata;
-        } else {
-            // Initialize empty metadata if none exists
-            updateData.metadata = {};
-        }
+        const existingMetadata = invitation?.metadata && typeof invitation.metadata === 'object' ? invitation.metadata : {};
+        updateData.metadata = companyId
+            ? ({
+                ...(existingMetadata as any),
+                companyId: String(companyId),
+              } as any)
+            : (existingMetadata as any);
 
-        // Update invitation link directly using Supabase (since updateRecord doesn't support invitation_links)
-        const { data: updatedInvitations, error: updateError } = await supabase
-            .from('system_invitation_links')
-            .update(updateData)
-            .eq('id', invitation.id)
-            .select()
-            .limit(1);
-
-        if (updateError) {
-            console.error('[API] Error updating invitation:', updateError);
-            return apiError('שגיאה בעדכון הקישור', { status: 500 });
-        }
-
-        if (!updatedInvitations || updatedInvitations.length === 0) {
-            return apiError('לא נמצא קישור לעדכון', { status: 404 });
-        }
-
-        const updatedInvitation = updatedInvitations[0];
+        const updatedInvitation = await prisma.system_invitation_links.update({
+            where: { id: String(invitation.id) },
+            data: updateData,
+        });
 
         // If there's a client_id, update the client with the new information
         if (invitation.client_id) {
             try {
                 const organizationIdFromMetadata =
-                    invitation.metadata && typeof invitation.metadata === 'object'
-                        ? (invitation.metadata as any).organizationId
-                        : null;
+                    invitation.metadata && typeof invitation.metadata === 'object' ? (invitation.metadata as any).organizationId : null;
 
                 let organizationId: string | null =
-                    typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0
-                        ? organizationIdFromMetadata
-                        : null;
+                    typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0 ? organizationIdFromMetadata : null;
 
                 if (!organizationId) {
-                    const { data: clientOrgRow, error: clientOrgError } = await supabase
-                        .from('nexus_clients')
-                        .select('organization_id')
-                        .eq('id', invitation.client_id)
-                        .maybeSingle();
-
-                    if (!clientOrgError && clientOrgRow?.organization_id) {
-                        organizationId = String(clientOrgRow.organization_id);
-                    }
+                    const clientOrgRow = await prisma.nexusClient.findUnique({
+                        where: { id: String(invitation.client_id) },
+                        select: { organizationId: true },
+                    });
+                    if (clientOrgRow?.organizationId) organizationId = String(clientOrgRow.organizationId);
                 }
 
                 const clientUpdateData: any = {
                     name: ceoName,
                     email: ceoEmail,
                     phone: ceoPhone || null,
-                    company_name: companyName
+                    companyName: companyName
                 };
 
                 // Update client logo if provided
@@ -221,15 +164,13 @@ async function POSTHandler(
                 }
 
                 if (organizationId) {
-                    const byOrgUpdate = await supabase
-                        .from('nexus_clients')
-                        .update(clientUpdateData)
-                        .eq('id', invitation.client_id)
-                        .eq('organization_id', String(organizationId));
-
-                    if ((byOrgUpdate as any)?.error?.code === '42703') {
-                        throw new Error('[SchemaMismatch] nexus_clients is missing organization_id');
-                    }
+                    await prisma.nexusClient.updateMany({
+                        where: {
+                            id: String(invitation.client_id),
+                            organizationId: String(organizationId),
+                        },
+                        data: clientUpdateData,
+                    });
                 }
             } catch (clientError) {
                 console.error('[API] Error updating client:', clientError);
@@ -241,72 +182,61 @@ async function POSTHandler(
         // Try to create a system task or notification for admins
         try {
             const organizationIdFromMetadata =
-                invitation?.metadata && typeof invitation.metadata === 'object'
-                    ? (invitation.metadata as any).organizationId
-                    : null;
+                invitation?.metadata && typeof invitation.metadata === 'object' ? (invitation.metadata as any).organizationId : null;
 
-            const organizationId =
-                typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0
-                    ? organizationIdFromMetadata
-                    : (invitation as any).organization_id || null;
+            let organizationId: string | null =
+                typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0 ? organizationIdFromMetadata : null;
 
-            if (!organizationId) {
-                return apiSuccess({
-                    message: 'הטופס נשלח בהצלחה',
-                    invitation: {
-                        id: updatedInvitation.id,
-                        token: updatedInvitation.token,
-                        usedAt: updatedInvitation.used_at
-                    }
-                }, { status: 200 });
+            if (!organizationId && invitation.client_id) {
+                const clientOrg = await prisma.nexusClient.findUnique({
+                    where: { id: String(invitation.client_id) },
+                    select: { organizationId: true },
+                });
+                if (clientOrg?.organizationId) organizationId = String(clientOrg.organizationId);
             }
 
-            const adminIds = await selectTenantAdminIdsInWorkspace({ supabase, workspaceId: String(organizationId) });
+            if (!organizationId) {
+                return apiSuccess(
+                    {
+                        message: 'הטופס נשלח בהצלחה',
+                        invitation: {
+                            id: updatedInvitation.id,
+                            token: updatedInvitation.token,
+                            usedAt: (updatedInvitation as any).used_at,
+                        },
+                    },
+                    { status: 200 }
+                );
+            }
+
+            const adminIds = await selectTenantAdminIdsInWorkspace({ workspaceId: String(organizationId) });
             
             if (adminIds.length > 0) {
                 // Try to create notifications in notifications table (if exists)
                 // Otherwise, we'll log it and admins can see it in the invitation links panel
-                const notificationText = `🎉 טופס הזמנה הושלם: ${companyName} (${ceoName} - ${ceoEmail})`;
+                const notificationText = `טופס הזמנה הושלם: ${companyName} (${ceoName} - ${ceoEmail})`;
                 
                 // Try to insert into notifications table (gracefully handle if table doesn't exist)
                 try {
-                    const safeNotifications = adminIds.map((adminId: string) =>
-                        safeWritePayload({
-                            context: 'api.invitations.complete',
-                            table: 'misrad_notifications',
-                            mode: 'insert',
-                            organizationId: String(organizationId),
-                            payload: {
-                                organization_id: String(organizationId),
-                                recipient_id: adminId,
-                                type: 'system',
-                                text: notificationText,
-                                is_read: false,
-                                created_at: new Date().toISOString(),
-                                metadata: {
-                                    invitationId: invitation.id,
-                                    companyName,
-                                    ceoName,
-                                    ceoEmail,
-                                    token: token
-                                }
-                            } as any,
-                        })
-                    );
-
-                    const { error: notifError } = await supabase.from('misrad_notifications').insert(
-                        safeNotifications
-                    );
-                    
-                    if (notifError) {
-                        if (notifError.code !== '42P01' && !String(notifError.message || '').includes('does not exist')) {
-                            throw new Error(`[SchemaMismatch] misrad_notifications insert failed: ${notifError.message}`);
-                        }
-                    }
+                    await prisma.misradNotification.createMany({
+                        data: adminIds.map((adminId: string) => ({
+                            organization_id: String(organizationId),
+                            recipient_id: String(adminId),
+                            type: MisradNotificationType.SUCCESS,
+                            title: 'טופס הזמנה הושלם',
+                            message: notificationText,
+                            timestamp: new Date().toISOString(),
+                            isRead: false,
+                            client_id: invitation.client_id ? String(invitation.client_id) : null,
+                            link: null,
+                        })),
+                    });
                 } catch (notifError: any) {
                     // Only ignore if table doesn't exist
-                    if (String(notifError?.message || '').includes('42P01') || String(notifError?.message || '').includes('does not exist')) {
-                        console.log('[API] Could not create notifications (table may not exist):', notifError.message);
+                    const msg = String(notifError?.message || '');
+                    const code = String(notifError?.code || '');
+                    if (code === 'P2021' || msg.toLowerCase().includes('does not exist')) {
+                        console.log('[API] Could not create notifications (table may not exist):', msg);
                     } else {
                         throw notifError;
                     }

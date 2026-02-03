@@ -287,7 +287,7 @@ async function POSTHandler(request: NextRequest) {
             metadata: {}
         };
 
-        let invitation: Prisma.nexus_employee_invitation_linksGetPayload<{}>;
+        let invitation: Prisma.nexus_employee_invitation_linksGetPayload<Prisma.nexus_employee_invitation_linksDefaultArgs>;
         try {
             invitation = await prisma.nexus_employee_invitation_links.create({
                 data: {
@@ -340,7 +340,7 @@ async function POSTHandler(request: NextRequest) {
         const baseUrl = getBaseUrl(request);
         const finalizePath = `/employee-invite/${encodeURIComponent(String(token))}/finalize`;
         const finalizeUrl = `${baseUrl}${finalizePath}`;
-        const invitationUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(normalizedEmployeeEmail)}&invited=true&employee=true&redirect_url=${encodeURIComponent(finalizeUrl)}`;
+        const invitationUrl = `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(normalizedEmployeeEmail)}&invited=true&employee=true&redirect=${encodeURIComponent(finalizePath)}`;
 
         // 11. Enqueue invitation email (async)
         try {

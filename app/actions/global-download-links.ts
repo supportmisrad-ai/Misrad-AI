@@ -11,19 +11,27 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
-async function requireSuperAdminOrFail() {
+async function requireSuperAdminOrFail(): Promise<
+  | { success: false; error: string }
+  | {
+      success: true;
+      userId: string;
+    }
+> {
   const authCheck = await requireAuth();
-  if (!authCheck.success) return authCheck;
+  if (!authCheck.success) {
+    return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+  }
 
   const u = await currentUser();
   const meta = asObject(u?.publicMetadata);
   const isSuperAdmin = Boolean(meta?.isSuperAdmin);
   if (!isSuperAdmin) {
-    return createErrorResponse('Forbidden', 'אין הרשאה');
+    return { success: false, error: 'אין הרשאה' };
   }
 
   const userId = authCheck.userId ?? authCheck.data?.userId;
-  return { success: true, userId: String(userId || '') } as const;
+  return { success: true, userId: String(userId || '') };
 }
 
 export type GlobalDownloadLinksDTO = {
@@ -43,7 +51,7 @@ export async function adminGetGlobalDownloadLinks(): Promise<{
 }> {
   try {
     const guard = await requireSuperAdminOrFail();
-    if (!guard.success) return guard;
+    if (!guard.success) return { success: false, error: guard.error };
 
     const { getGlobalDownloadLinksUnsafe } = await import('@/lib/server/globalDownloadLinks');
     const links = await getGlobalDownloadLinksUnsafe();
@@ -63,7 +71,7 @@ export async function adminUpdateGlobalDownloadLinks(input: {
 }): Promise<{ success: boolean; data?: GlobalDownloadLinksDTO; error?: string }> {
   try {
     const guard = await requireSuperAdminOrFail();
-    if (!guard.success) return guard;
+    if (!guard.success) return { success: false, error: guard.error };
 
     const parsed = updateSchema.safeParse(input);
     if (!parsed.success) {

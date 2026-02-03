@@ -10,7 +10,7 @@ import { ToastManager } from '@/components/client-os-full/components/ui/ToastMan
 import { ClientProvider } from '../context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAuth } from '@clerk/nextjs';
-import { createBrowserClientWithClerk } from '@/lib/supabase-client';
+import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
 
 export default function ClientOsAppLayoutClient({
   children,

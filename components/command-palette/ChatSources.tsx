@@ -18,7 +18,7 @@ export function ChatSources({ sources }: { sources: ChatSource[] }) {
   return (
     <div className="mt-3 bg-slate-50/80 border border-slate-200/60 rounded-2xl p-4">
       <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-        <Sparkles size={12} className="text-indigo-500" />
+        <Sparkles size={12} style={{ color: 'var(--os-accent, #3730A3)' }} />
         Sources (pgvector)
       </div>
       <div className="mt-3 space-y-3">

@@ -16,6 +16,22 @@ type AuditItem = {
   timestamp: string;
 };
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toAuditItem(row: unknown): AuditItem {
+  const obj = asObject(row) ?? {};
+  return {
+    action: String(obj.action ?? ''),
+    user: String(obj.user ?? ''),
+    time: String(obj.time ?? ''),
+    timestamp: String(obj.timestamp ?? ''),
+  };
+}
+
 export default function AdminLogsPage() {
   const { addToast } = useData();
   const [isLoading, setIsLoading] = useState(true);
@@ -30,7 +46,7 @@ export default function AdminLogsPage() {
         setItems([]);
         return;
       }
-      setItems((res.data || []) as any);
+      setItems((res.data || []).map(toAuditItem));
     } finally {
       setIsLoading(false);
     }

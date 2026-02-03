@@ -8,44 +8,129 @@
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../lib/auth';
 import { getBaseUrl } from '../../../lib/utils';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type InvitationRow = Record<string, unknown>;
+
+type LoadInvitationsResult =
+    | { missingTable: boolean; rows: InvitationRow[] }
+    | InvitationRow[];
+
+function isMissingTableOrSchemaError(error: unknown): boolean {
+    const obj = asObject(error);
+    const meta = asObject(obj?.meta);
+    const metaCode = meta?.code;
+    if (metaCode === '42P01' || metaCode === '42703') return true;
+    const msg = String(obj?.message || '').toLowerCase();
+    return msg.includes('does not exist') || msg.includes('could not find the table') || msg.includes('schema cache');
+}
+
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: { email, organizationId: String(params.workspaceId) },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
+
+async function loadInvitationsForWorkspace(workspaceId: string) {
+    try {
+        const rows = await prisma.$queryRaw<unknown[]>(
+            Prisma.sql`
+                SELECT
+                    id,
+                    token,
+                    client_id,
+                    created_at,
+                    expires_at,
+                    is_used,
+                    is_active,
+                    used_at,
+                    ceo_name,
+                    ceo_email,
+                    company_name,
+                    source,
+                    metadata
+                FROM system_invitation_links
+                WHERE organization_id = ${String(workspaceId)}
+                ORDER BY created_at DESC
+            `
+        );
+        return (Array.isArray(rows) ? rows : []).map((r) => asObject(r) ?? {});
+    } catch (error: unknown) {
+        const obj = asObject(error);
+        const meta = asObject(obj?.meta);
+        const code = String(obj?.code || meta?.code || '');
+        if (code === '42P01' || (isMissingTableOrSchemaError(error) && code === '42P01')) {
+            return { missingTable: true as const, rows: [] as InvitationRow[] };
+        }
+        if (code === '42703') {
+            const rows = await prisma.$queryRaw<unknown[]>(
+                Prisma.sql`
+                    SELECT
+                        id,
+                        token,
+                        client_id,
+                        created_at,
+                        expires_at,
+                        is_used,
+                        is_active,
+                        used_at,
+                        ceo_name,
+                        ceo_email,
+                        company_name,
+                        source,
+                        metadata
+                    FROM system_invitation_links
+                    ORDER BY created_at DESC
+                `
+            );
+            return { missingTable: false as const, rows: (Array.isArray(rows) ? rows : []).map((r) => asObject(r) ?? {}) };
+        }
+        throw error;
+    }
+}
+
+function normalizeLoadInvitationsResult(value: LoadInvitationsResult): { missingTable: boolean; rows: InvitationRow[] } {
+    if (Array.isArray(value)) return { missingTable: false, rows: value };
+    const obj = asObject(value) ?? {};
+    const missingTable = Boolean(obj.missingTable);
+    const rowsRaw = obj.rows;
+    const rows = Array.isArray(rowsRaw) ? rowsRaw.map((r) => asObject(r) ?? {}) : [];
+    return { missingTable, rows };
+}
+
 async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
-        let clerkUser;
-        try {
-            clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
-            return apiError('Unauthorized', { status: 401 });
-        }
+        const clerkUser = await getAuthenticatedUser();
 
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
-            return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
+        } catch (e: unknown) {
+            return apiError(getErrorMessage(e) || 'Forbidden - Super Admin required', { status: 403 });
         }
 
         if (!clerkUser.email) {
@@ -54,15 +139,8 @@ async function GETHandler(request: NextRequest) {
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        let supabaseClient: any;
-        try {
-            supabaseClient = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
-
         // 2. Find user in database by email
-        const dbUserId = await selectDbUserId({ supabase: supabaseClient, workspaceId: workspace.id, email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
 
         if (!dbUserId) {
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
@@ -70,63 +148,35 @@ async function GETHandler(request: NextRequest) {
 
         // Super admin already validated above
 
-        // 3. Get all invitation links (scoped to workspace)
-        const baseQuery = () => supabaseClient
-            .from('system_invitation_links')
-            .select(`
-                id,
-                token,
-                client_id,
-                created_at,
-                expires_at,
-                is_used,
-                is_active,
-                used_at,
-                ceo_name,
-                ceo_email,
-                company_name,
-                source,
-                metadata
-            `)
-            .order('created_at', { ascending: false });
+        const res = await loadInvitationsForWorkspace(String(workspace.id));
+        const normalized = normalizeLoadInvitationsResult(res as LoadInvitationsResult);
+        const invitations = normalized.rows;
+        const missingTable = normalized.missingTable;
 
-        const byOrg = await baseQuery().eq('organization_id', workspace.id);
-        let invitations = (byOrg as any).data;
-        let error = (byOrg as any).error;
-
-        if (error?.code === '42703') {
-            return apiError('[SchemaMismatch] system_invitation_links is missing organization_id', { status: 500 });
-        }
-
-        if (error) {
-            console.error('[API] Supabase error getting invitations:', error);
-            // If table doesn't exist, return empty array instead of error
-            if (error.code === '42P01' || error.message?.includes('does not exist')) {
-                console.warn('[API] invitation_links table does not exist. Please run the schema SQL.');
-                return apiSuccess({
-                    invitations: [],
-                    warning: 'invitation_links table does not exist. Please run supabase-invitation-links-schema.sql'
-                });
-            }
-            throw error;
+        if (missingTable) {
+            console.warn('[API] invitation_links table does not exist. Please run the schema SQL.');
+            return apiSuccess({
+                invitations: [],
+                warning: 'invitation_links table does not exist. Please run supabase-invitation-links-schema.sql'
+            });
         }
 
         // 4. Generate URLs for each invitation
         const baseUrl = getBaseUrl(request);
 
-        const invitationsWithUrls = (invitations || []).map((invitation: any) => ({
+        const invitationsWithUrls = (invitations || []).map((invitation) => ({
             ...invitation,
             url: `${baseUrl}/invite/${invitation.token}`
         }));
 
         return apiSuccess({ invitations: invitationsWithUrls });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error getting invitations:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: error.message || 'Failed to get invitations' });
+        return apiError(error, { status: 500, message: getErrorMessage(error) || 'Failed to get invitations' });
     }
 }
 

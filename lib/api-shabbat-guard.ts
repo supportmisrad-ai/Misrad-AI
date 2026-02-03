@@ -6,6 +6,26 @@
 
 import { isShabbatNow } from './shabbat';
 import { apiError } from '@/lib/server/api-response';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorStatus(error: unknown): number | null {
+  const obj = asObject(error);
+  const status = obj?.status;
+  return typeof status === 'number' && Number.isFinite(status) ? status : null;
+}
+
+function toWorkspaceCtx(value: unknown): { params?: unknown } | undefined {
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  return { params: obj.params };
+}
 
 /**
  * Wrapper function that blocks API access during Shabbat
@@ -27,6 +47,31 @@ export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) 
         });
       }
       
+      let workspaceId: string | null = null;
+      try {
+        const request = args[0] as unknown;
+        const ctx = args.length > 1 ? (args[1] as unknown) : undefined;
+
+        if (request && typeof request === 'object') {
+          const resolved = await getWorkspaceContextOrThrow(request as Request, toWorkspaceCtx(ctx));
+          workspaceId = resolved.workspaceId ? String(resolved.workspaceId) : null;
+        }
+      } catch (e: unknown) {
+        if (e instanceof APIError && e.status === 400) {
+          workspaceId = null;
+        } else {
+          const status = getErrorStatus(e);
+          return apiError(e, { status: typeof status === 'number' ? status : 403 });
+        }
+      }
+
+      if (workspaceId) {
+        return await withTenantIsolationContext(
+          { source: 'api_shabbat_guard', organizationId: workspaceId },
+          async () => handler(...args)
+        );
+      }
+
       // Not Shabbat - proceed with the handler
       return handler(...args);
     } catch (error: unknown) {

@@ -1,10 +1,22 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { loadCurrentUserLastLocation, requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 // Force dynamic rendering to prevent build-time Clerk errors and handle auth server-side
 export const dynamic = 'force-dynamic';
+
+ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+   let timeoutId: ReturnType<typeof setTimeout> | null = null;
+   const timeout = new Promise<never>((_, reject) => {
+     timeoutId = setTimeout(() => reject(new Error(`Timeout after ${ms}ms: ${label}`)), ms);
+   });
+   try {
+     return (await Promise.race([promise, timeout])) as T;
+   } finally {
+     if (timeoutId) clearTimeout(timeoutId);
+   }
+ }
 
 export default async function AppEntryPage() {
   const userId = await getCurrentUserId();
@@ -12,76 +24,91 @@ export default async function AppEntryPage() {
     redirect('/sign-in');
   }
 
-  const last = await loadCurrentUserLastLocation();
-  if (!last.orgSlug) {
-    const supabase = createClient();
+  try {
+    const last = await withTimeout(loadCurrentUserLastLocation(), 8000, 'loadCurrentUserLastLocation');
+    if (!last.orgSlug) {
+      const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+      let socialUser = await withTimeout(
+        prisma.social_users.findUnique({
+          where: { clerk_user_id: userId },
+          select: { id: true, organization_id: true },
+        }),
+        8000,
+        'prisma.social_users.findUnique'
+      );
 
-    let { data: socialUser } = await supabase
-      .from('social_users')
-      .select('id, organization_id')
-      .eq('clerk_user_id', userId)
-      .single();
+      if (!socialUser?.id) {
+        await sleep(1000);
+        socialUser = await withTimeout(
+          prisma.social_users.findUnique({
+            where: { clerk_user_id: userId },
+            select: { id: true, organization_id: true },
+          }),
+          8000,
+          'prisma.social_users.findUnique(retry)'
+        );
+      }
 
-    if (!socialUser?.id) {
-      await sleep(1000);
-      const retry = await supabase
-        .from('social_users')
-        .select('id, organization_id')
-        .eq('clerk_user_id', userId)
-        .single();
-      socialUser = retry.data as any;
-    }
+      if (!socialUser?.id) {
+        redirect('/workspaces');
+      }
 
-    if (!socialUser?.id) {
+      const orgIds = new Set<string>();
+      if (socialUser.organization_id) {
+        orgIds.add(String(socialUser.organization_id));
+      }
+
+      const ownedOrgs = await withTimeout(
+        prisma.social_organizations.findMany({
+          where: { owner_id: String(socialUser.id) },
+          select: { id: true },
+        }),
+        8000,
+        'prisma.social_organizations.findMany(owned)'
+      );
+
+      for (const org of ownedOrgs || []) {
+        if (org?.id) orgIds.add(String(org.id));
+      }
+
+      const memberships = await withTimeout(
+        prisma.social_team_members.findMany({
+          where: { user_id: String(socialUser.id) },
+          select: { organization_id: true },
+        }),
+        8000,
+        'prisma.social_team_members.findMany'
+      );
+
+      for (const row of memberships || []) {
+        if (row.organization_id) orgIds.add(String(row.organization_id));
+      }
+
+      const ids = Array.from(orgIds);
+      if (ids.length === 1) {
+        const onlyOrgId = ids[0];
+        const org = await withTimeout(
+          prisma.social_organizations.findUnique({
+            where: { id: String(onlyOrgId) },
+            select: { id: true, slug: true },
+          }),
+          8000,
+          'prisma.social_organizations.findUnique'
+        );
+
+        const onlyOrgSlug = String(org?.slug || org?.id || onlyOrgId);
+        redirect(`/w/${encodeURIComponent(onlyOrgSlug)}`);
+      }
+
       redirect('/workspaces');
     }
 
-    const orgIds = new Set<string>();
-    if (socialUser.organization_id) {
-      orgIds.add(String(socialUser.organization_id));
-    }
-
-    const { data: ownedOrgs } = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('owner_id', socialUser.id);
-
-    for (const org of ownedOrgs || []) {
-      if (org?.id) orgIds.add(String(org.id));
-    }
-
-    const { data: memberships } = await supabase
-      .from('social_team_members')
-      .select('organization_id')
-      .eq('user_id', socialUser.id);
-
-    for (const row of memberships || []) {
-      const orgId = (row as any)?.organization_id;
-      if (orgId) orgIds.add(String(orgId));
-    }
-
-    const ids = Array.from(orgIds);
-    if (ids.length === 1) {
-      const onlyOrgId = ids[0];
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('id, slug')
-        .eq('id', onlyOrgId)
-        .maybeSingle();
-
-      const onlyOrgSlug = String((org as any)?.slug || (org as any)?.id || onlyOrgId);
-      redirect(`/w/${encodeURIComponent(onlyOrgSlug)}`);
-    }
-
-    redirect('/workspaces');
-  }
-
-  // Validate the workspace exists and is accessible before redirecting.
-  // If invalid/outdated -> fallback to /workspaces.
-  try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(last.orgSlug);
+    const workspace = await withTimeout(
+      requireWorkspaceAccessByOrgSlug(last.orgSlug),
+      8000,
+      'requireWorkspaceAccessByOrgSlug'
+    );
 
     if (last.module && workspace.entitlements[last.module]) {
       redirect(`/w/${encodeURIComponent(last.orgSlug)}/${last.module}`);
@@ -90,7 +117,10 @@ export default async function AppEntryPage() {
     // If we don't have a valid last module, send the user to the workspace entry.
     // That page will choose (last module / single allowed / lobby).
     redirect(`/w/${encodeURIComponent(last.orgSlug)}`);
-  } catch {
+  } catch (error) {
+    console.error('[AppEntryPage] bootstrap failed, falling back to /workspaces:', error);
     redirect('/workspaces');
   }
 }
+
+ export const runtime = 'nodejs';

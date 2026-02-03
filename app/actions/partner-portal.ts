@@ -1,7 +1,7 @@
 'use server';
 
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -34,60 +34,60 @@ export async function getPartnerPortalSummary(input: {
       return createErrorResponse(null, 'קוד שותף חובה');
     }
 
-    const supabase = createClient();
-
-    const { data: partner } = await supabase
-      .from('partners')
-      .select('id, name, referral_code')
-      .eq('referral_code', referralCode)
-      .maybeSingle();
-
-    const partnerRow = partner
-      ? partner
-      : (
-          await supabase
-            .from('partners')
-            .select('id, name, referral_code')
-            .eq('referral_code', referralCode.toUpperCase())
-            .maybeSingle()
-        ).data;
+    const partnerRow = await prisma.partner.findFirst({
+      where: {
+        OR: [
+          { referralCode },
+          { referralCode: referralCode.toUpperCase() },
+        ],
+      },
+      select: { id: true, name: true, referralCode: true },
+    });
 
     if (!partnerRow?.id) {
       return createErrorResponse(null, 'קוד שותף לא נמצא');
     }
 
-    const { data: orgs } = await supabase
-      .from('organizations')
-      .select('id, name, slug, created_at')
-      .eq('partner_id', partnerRow.id)
-      .order('created_at', { ascending: false });
+    const orgs = await prisma.social_organizations.findMany({
+      where: { partnerId: String(partnerRow.id) },
+      select: { id: true, name: true, slug: true, created_at: true },
+      orderBy: { created_at: 'desc' },
+    });
 
-    const organizations = (orgs || []) as PartnerPortalOrg[];
+    const organizations: PartnerPortalOrg[] = (Array.isArray(orgs) ? orgs : []).map((o: any) => ({
+      id: String(o.id ?? ''),
+      name: String(o.name ?? ''),
+      slug: o.slug == null ? null : String(o.slug),
+      created_at: o.created_at ? new Date(o.created_at).toISOString() : null,
+    }));
     const orgIds = organizations.map((o) => o.id).filter(Boolean);
 
     let paidOrdersCount = 0;
     let paidRevenueTotal = 0;
 
     if (orgIds.length) {
-      const { data: orders } = await supabase
-        .from('subscription_orders')
-        .select('amount, organization_id, status')
-        .in('organization_id', orgIds)
-        .eq('status', 'paid');
+      const agg = await prisma.subscription_orders.aggregate({
+        where: {
+          organization_id: { in: orgIds },
+          status: 'paid',
+        },
+        _count: { _all: true },
+        _sum: { amount: true },
+      });
 
-      const list: unknown[] = Array.isArray(orders) ? orders : [];
-      for (const o of list) {
-        const obj = asObject(o) ?? {};
-        paidOrdersCount += 1;
-        const amount = Number(obj.amount);
-        if (Number.isFinite(amount)) paidRevenueTotal += amount;
+      paidOrdersCount = Number(agg?._count?._all ?? 0) || 0;
+
+      const sumAmount: any = (agg as any)?._sum?.amount;
+      if (sumAmount != null) {
+        const n = typeof sumAmount?.toNumber === 'function' ? sumAmount.toNumber() : Number(sumAmount);
+        if (Number.isFinite(n)) paidRevenueTotal = n;
       }
     }
 
     return createSuccessResponse({
-      partnerId: partnerRow.id,
-      partnerName: partnerRow.name,
-      referralCode: partnerRow.referral_code,
+      partnerId: String(partnerRow.id),
+      partnerName: String(partnerRow.name),
+      referralCode: String(partnerRow.referralCode),
       organizations,
       paidOrdersCount,
       paidRevenueTotal,

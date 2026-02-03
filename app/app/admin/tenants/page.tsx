@@ -13,8 +13,38 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 
-const unwrap = (data: any) =>
-  (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function unwrapData(value: unknown): unknown {
+  const obj = asObject(value);
+  const data = obj?.data;
+  if (data && typeof data === 'object') return data;
+  return value;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  if (!obj) return null;
+  const v = obj[key];
+  return typeof v === 'string' ? v : v == null ? null : String(v);
+}
+
+function getTenantArray(payload: unknown): Tenant[] {
+  const obj = asObject(payload);
+  const tenants = obj?.tenants;
+  return Array.isArray(tenants) ? (tenants as Tenant[]) : [];
+}
+
+function getTenant(payload: unknown): Tenant | null {
+  const obj = asObject(payload);
+  const tenant = obj?.tenant;
+  const tObj = asObject(tenant);
+  const id = getStringProp(tObj, 'id');
+  return id ? (tenant as Tenant) : null;
+}
 
 export default function AdminTenantsPage() {
   const router = useRouter();
@@ -32,13 +62,13 @@ export default function AdminTenantsPage() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/admin/tenants', { cache: 'no-store' });
-      const raw = await res.json().catch(() => ({}));
-      const data = unwrap(raw);
+      const raw: unknown = await res.json().catch(() => null);
+      const data = unwrapData(raw);
       if (!res.ok) {
-        throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה בטעינת טננטים');
+        throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בטעינת טננטים');
       }
 
-      const loaded = Array.isArray((data as any).tenants) ? ((data as any).tenants as Tenant[]) : [];
+      const loaded = getTenantArray(data);
       const existingIds = new Set((Array.isArray(tenants) ? tenants : []).map((t: Tenant) => t.id));
       for (const t of loaded) {
         if (!existingIds.has(t.id)) addTenant(t);
@@ -81,7 +111,7 @@ export default function AdminTenantsPage() {
     if (!q) return list;
     return list.filter((t) => {
       const name = String(t.name || '').toLowerCase();
-      const ownerEmail = String((t as any).ownerEmail || '').toLowerCase();
+      const ownerEmail = String(t.ownerEmail || '').toLowerCase();
       return name.includes(q) || ownerEmail.includes(q);
     });
   }, [searchTerm, tenants]);
@@ -104,17 +134,18 @@ export default function AdminTenantsPage() {
           logo: `https://ui-avatars.com/api/?name=${encodeURIComponent(tenantData.name)}&background=6366f1&color=fff`,
         }),
       });
-      const raw = await res.json().catch(() => ({}));
-      const data = unwrap(raw);
-      if (!res.ok) throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה ביצירת tenant');
+      const raw: unknown = await res.json().catch(() => null);
+      const data = unwrapData(raw);
+      if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה ביצירת tenant');
 
-      const newTenant = (data as any).tenant as Tenant;
+      const newTenant = getTenant(data);
+      if (!newTenant) throw new Error('תשובת שרת לא תקינה (tenant חסר)');
       addTenant(newTenant);
       addToast(`הלקוח ${tenantData.name} הוקם בהצלחה!`, 'success');
 
       setTimeout(async () => {
         try {
-          await handleUpdateTenant(newTenant.id, { status: 'Active' as any });
+          await handleUpdateTenant(newTenant.id, { status: 'Active' });
         } catch {
           // ignore
         }
@@ -131,10 +162,11 @@ export default function AdminTenantsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
-    const raw = await res.json().catch(() => ({}));
-    const data = unwrap(raw);
-    if (!res.ok) throw new Error((data as any)?.error || (raw as any)?.error || 'שגיאה בעדכון טננט');
-    const updatedTenant = (data as any).tenant as Tenant;
+    const raw: unknown = await res.json().catch(() => null);
+    const data = unwrapData(raw);
+    if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בעדכון טננט');
+    const updatedTenant = getTenant(data);
+    if (!updatedTenant) throw new Error('תשובת שרת לא תקינה (tenant חסר)');
     updateTenant(id, updatedTenant);
     return updatedTenant;
   };
@@ -142,7 +174,7 @@ export default function AdminTenantsPage() {
   const toggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'Active' ? 'Churned' : 'Active';
     try {
-      await handleUpdateTenant(id, { status: newStatus as any });
+      await handleUpdateTenant(id, { status: newStatus });
       addToast('טננט עודכן בהצלחה!', 'success');
     } catch (e: any) {
       addToast(e?.message || 'שגיאה בעדכון טננט', 'error');

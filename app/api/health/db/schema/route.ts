@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 async function GETHandler(request: NextRequest) {
   try {
     await requireSuperAdmin();
-
-    const supabase = createClient();
 
     let workspaceId = '';
     try {
@@ -26,51 +24,44 @@ async function GETHandler(request: NextRequest) {
 
     const runCheck = async (name: string, fn: () => PromiseLike<any>) => {
       try {
-        const res = await fn();
-        const error = (res as any)?.error;
-        if (error) {
-          const code = String((error as any)?.code || '');
-          const message = String((error as any)?.message || '');
-
-          if (code === '42703') {
-            checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing column (${message})` };
-            return;
-          }
-
-          if (code === '42P01' || message.includes('does not exist')) {
-            checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing table (${message})` };
-            return;
-          }
-
-          checks[name] = { ok: false, error: `${code ? `${code} ` : ''}${message}`.trim() || 'Unknown error' };
-          return;
-        }
-
+        await fn();
         checks[name] = { ok: true };
       } catch (e: any) {
+        const code = String(e?.code || '');
         const msg = String(e?.message || e || 'Unknown error');
+        if (code === 'P2022') {
+          checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing column (${msg})` };
+          return;
+        }
+        if (code === 'P2021') {
+          checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing table (${msg})` };
+          return;
+        }
         checks[name] = { ok: false, error: msg };
       }
     };
 
     await runCheck('nexus_users.organization_id', () =>
-      supabase.from('nexus_users').select('id, organization_id').limit(1)
+      prisma.nexusUser.findFirst({ select: { id: true, organizationId: true } })
     );
 
     await runCheck('nexus_team_events.organization_id', () =>
-      supabase.from('nexus_team_events').select('id, organization_id').limit(1)
+      prisma.nexus_team_events.findFirst({ select: { id: true, organizationId: true } })
     );
 
     await runCheck('nexus_leave_requests.organization_id', () =>
-      supabase.from('nexus_leave_requests').select('id, organization_id').limit(1)
+      prisma.nexus_leave_requests.findFirst({ select: { id: true, organizationId: true } })
     );
 
     await runCheck('nexus_employee_invitation_links.organization_id', () =>
-      supabase.from('nexus_employee_invitation_links').select('id, organization_id').limit(1)
+      prisma.nexus_employee_invitation_links.findFirst({ select: { id: true, organizationId: true } })
     );
 
     await runCheck('misrad_notifications.is_read', () =>
-      supabase.from('misrad_notifications').select('id, organization_id, recipient_id, is_read').eq('organization_id', workspaceId).limit(1)
+      prisma.misradNotification.findFirst({
+        where: { organization_id: workspaceId },
+        select: { id: true, organization_id: true, recipient_id: true, isRead: true },
+      })
     );
 
     const hasFailures = Object.values(checks).some((c) => !c.ok);

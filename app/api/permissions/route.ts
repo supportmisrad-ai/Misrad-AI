@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -15,19 +15,13 @@ async function GETHandler(request: NextRequest) {
         
         // Only users with manage_system permission can view permissions
         await requirePermission('manage_system');
-        
-        const supabase = createClient();
 
-        const { data, error } = await supabase
-            .from('misrad_permissions')
-            .select('*')
-            .order('id');
+        const rows = await prisma.scale_permissions.findMany({
+            orderBy: { id: 'asc' },
+            select: { id: true, label: true, description: true, category: true },
+        });
 
-        if (error) {
-            throw error;
-        }
-
-        const permissions = (data || []).map((p: any) => ({
+        const permissions = (rows || []).map((p: any) => ({
             id: p.id,
             label: p.label,
             description: p.description,

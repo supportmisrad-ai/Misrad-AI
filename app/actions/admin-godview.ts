@@ -121,7 +121,7 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
       .map((r: any) => (r?.organization_id ? String(r.organization_id) : null))
       .filter(Boolean) as string[];
 
-    let orgsById = new Map<string, { name: string; slug: string | null }>();
+    const orgsById = new Map<string, { name: string; slug: string | null }>();
     if (orgIds.length) {
       const orgs = await prisma.social_organizations.findMany({
         where: { id: { in: orgIds } },

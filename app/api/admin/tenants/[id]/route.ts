@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { Tenant } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
-import { createServiceRoleClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -17,50 +17,50 @@ function mapTenantRow(row: any): Tenant {
     return {
         id: String(row?.id ?? ''),
         name: row?.name,
-        ownerEmail: row?.owner_email,
+        ownerEmail: row?.ownerEmail ?? row?.owner_email,
         subdomain: row?.subdomain,
         plan: row?.plan,
         status: row?.status,
-        joinedAt: row?.joined_at,
+        joinedAt: row?.joinedAt ?? row?.joined_at,
         mrr: row?.mrr || 0,
-        usersCount: row?.users_count || 0,
+        usersCount: (row?.usersCount ?? row?.users_count) || 0,
         logo: row?.logo,
         modules: row?.modules || [],
         region: row?.region,
         version: row?.version,
-        allowedEmails: row?.allowed_emails || [],
-        requireApproval: row?.require_approval || false,
+        allowedEmails: (row?.allowedEmails ?? row?.allowed_emails) || [],
+        requireApproval: (row?.requireApproval ?? row?.require_approval) || false,
     } as Tenant;
 }
 
-async function loadTenantById(params: { supabase: any; tenantId: string }): Promise<Tenant | null> {
-    const { data, error } = await params.supabase
-        .from('nexus_tenants')
-        .select('*')
-        .eq('id', params.tenantId)
-        .limit(1)
-        .maybeSingle();
-
-    if (error || !data) return null;
-    return mapTenantRow(data);
+async function loadTenantById(params: { tenantId: string }): Promise<Tenant | null> {
+    const row = await prisma.nexusTenant.findUnique({
+        where: { id: String(params.tenantId) },
+    });
+    if (!row) return null;
+    return mapTenantRow({
+        ...row,
+        joinedAt: row?.joinedAt ? new Date(row.joinedAt).toISOString() : null,
+        mrr: row?.mrr == null ? 0 : Number(row.mrr),
+    });
 }
 
 function buildTenantDbUpdates(updateData: Partial<Tenant>): any {
     const dbUpdates: any = {};
 
     if (updateData.name !== undefined) dbUpdates.name = updateData.name;
-    if (updateData.ownerEmail !== undefined) dbUpdates.owner_email = updateData.ownerEmail;
+    if (updateData.ownerEmail !== undefined) dbUpdates.ownerEmail = updateData.ownerEmail;
     if (updateData.subdomain !== undefined) dbUpdates.subdomain = updateData.subdomain;
     if (updateData.plan !== undefined) dbUpdates.plan = updateData.plan;
     if (updateData.region !== undefined) dbUpdates.region = updateData.region;
     if (updateData.status !== undefined) dbUpdates.status = updateData.status;
     if (updateData.mrr !== undefined) dbUpdates.mrr = updateData.mrr;
-    if (updateData.usersCount !== undefined) dbUpdates.users_count = updateData.usersCount;
+    if (updateData.usersCount !== undefined) dbUpdates.usersCount = updateData.usersCount;
     if (updateData.logo !== undefined) dbUpdates.logo = updateData.logo;
     if (updateData.modules !== undefined) dbUpdates.modules = updateData.modules;
     if (updateData.version !== undefined) dbUpdates.version = updateData.version;
-    if (updateData.allowedEmails !== undefined) dbUpdates.allowed_emails = updateData.allowedEmails;
-    if (updateData.requireApproval !== undefined) dbUpdates.require_approval = updateData.requireApproval;
+    if (updateData.allowedEmails !== undefined) dbUpdates.allowedEmails = updateData.allowedEmails;
+    if (updateData.requireApproval !== undefined) dbUpdates.requireApproval = updateData.requireApproval;
 
     return dbUpdates;
 }
@@ -75,9 +75,7 @@ async function PATCHHandler(request: NextRequest, { params }: { params: Promise<
             return apiError('Tenant ID is required', { status: 400 });
         }
 
-        const supabaseAdmin = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_super_admin_update' });
-
-        const existingTenant = await loadTenantById({ supabase: supabaseAdmin, tenantId });
+        const existingTenant = await loadTenantById({ tenantId });
         if (!existingTenant) {
             return apiError('Tenant not found', { status: 404 });
         }
@@ -122,18 +120,24 @@ async function PATCHHandler(request: NextRequest, { params }: { params: Promise<
         if (body.usersCount !== undefined) updateData.usersCount = body.usersCount;
 
         const dbUpdates = buildTenantDbUpdates(updateData);
-        const { data: updatedRow, error: updateError } = await (supabaseAdmin as any)
-            .from('nexus_tenants')
-            .update(dbUpdates)
-            .eq('id', tenantId)
-            .select('*')
-            .single();
-
-        if (updateError) {
-            throw updateError;
+        let updatedRow: any;
+        try {
+            updatedRow = await prisma.nexusTenant.update({
+                where: { id: String(tenantId) },
+                data: dbUpdates,
+            });
+        } catch (e: any) {
+            if (String(e?.code || '') === 'P2002') {
+                return apiError('Tenant with this subdomain already exists', { status: 409 });
+            }
+            throw e;
         }
 
-        const updatedTenant = mapTenantRow(updatedRow);
+        const updatedTenant = mapTenantRow({
+            ...updatedRow,
+            joinedAt: updatedRow?.joinedAt ? new Date(updatedRow.joinedAt).toISOString() : null,
+            mrr: updatedRow?.mrr == null ? 0 : Number(updatedRow.mrr),
+        });
 
         await logAuditEvent('data.write', 'tenant', {
             resourceId: tenantId,
@@ -161,19 +165,14 @@ async function DELETEHandler(request: NextRequest, { params }: { params: Promise
             return apiError('Tenant ID is required', { status: 400 });
         }
 
-        const supabaseAdmin = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_super_admin_delete' });
-
-        const existingTenant = await loadTenantById({ supabase: supabaseAdmin, tenantId });
+        const existingTenant = await loadTenantById({ tenantId });
         if (!existingTenant) {
             return apiError('Tenant not found', { status: 404 });
         }
 
         const tenantName = existingTenant.name;
 
-        const { error: deleteError } = await (supabaseAdmin as any).from('nexus_tenants').delete().eq('id', tenantId);
-        if (deleteError) {
-            throw deleteError;
-        }
+        await prisma.nexusTenant.delete({ where: { id: String(tenantId) } });
 
         await logAuditEvent('data.delete', 'tenant', {
             resourceId: tenantId,

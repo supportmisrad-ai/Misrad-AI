@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import type { ChatSource } from './ChatSources';
 
-export type AIModuleId = 'nexus' | 'system' | 'social' | 'client' | 'finance' | 'global';
+export type AIModuleId = 'nexus' | 'system' | 'social' | 'client' | 'finance' | 'operations' | 'global';
 
 export type AIModuleChatMessage = {
   id: string;
@@ -16,7 +16,7 @@ export type AIModuleChatMessage = {
 
 function normalizeModuleId(m: string | null | undefined): AIModuleId {
   const v = String(m || '').trim().toLowerCase();
-  if (v === 'nexus' || v === 'system' || v === 'social' || v === 'client' || v === 'finance') return v;
+  if (v === 'nexus' || v === 'system' || v === 'social' || v === 'client' || v === 'finance' || v === 'operations') return v;
   return 'global';
 }
 
@@ -72,7 +72,7 @@ export function useAIModuleChat(opts?: {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+            ...(orgSlug ? { 'x-org-id': encodeURIComponent(String(orgSlug)) } : {}),
           },
           body: JSON.stringify({
             featureKey,

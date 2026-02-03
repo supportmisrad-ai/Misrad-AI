@@ -50,30 +50,33 @@ async function GETHandler(request: NextRequest) {
         // But only admins can UPDATE them (in PATCH method below)
 
         const searchParams = request.nextUrl.searchParams;
+        const organizationIdFromQuery = searchParams.get('organizationId');
         const tenantIdFromQuery = searchParams.get('tenantId');
         const headerOrgKey = getOrgKeyFromHeader(request);
 
-        if (!headerOrgKey && tenantIdFromQuery && user?.isSuperAdmin) {
+        const queryOrgKey = organizationIdFromQuery || tenantIdFromQuery;
+
+        if (!headerOrgKey && queryOrgKey && user?.isSuperAdmin) {
             await requireSuperAdmin();
         }
 
-        if (!headerOrgKey && !tenantIdFromQuery) {
+        if (!headerOrgKey && !queryOrgKey) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
-        if (!headerOrgKey && tenantIdFromQuery && !user?.isSuperAdmin) {
+        if (!headerOrgKey && queryOrgKey && !user?.isSuperAdmin) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
-        const primaryOrgKey = headerOrgKey || (tenantIdFromQuery ? String(tenantIdFromQuery) : null);
+        const primaryOrgKey = headerOrgKey || (queryOrgKey ? String(queryOrgKey) : null);
         if (!primaryOrgKey) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
 
-        if (headerOrgKey && tenantIdFromQuery && String(headerOrgKey) !== String(tenantIdFromQuery)) {
-            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(tenantIdFromQuery));
+        if (headerOrgKey && queryOrgKey && String(headerOrgKey) !== String(queryOrgKey)) {
+            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(queryOrgKey));
             if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
                 return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
             }
@@ -137,7 +140,7 @@ async function PATCHHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
 
         const body = await request.json();
-        const { screenId, status, tenantId: providedTenantId } = body;
+        const { screenId, status, organizationId: providedOrganizationId, tenantId: providedTenantId } = body;
 
         if (!screenId || !status) {
             return NextResponse.json(
@@ -154,24 +157,26 @@ async function PATCHHandler(request: NextRequest) {
         }
 
         const headerOrgKey = getOrgKeyFromHeader(request);
+        const organizationIdFromBody = providedOrganizationId ? String(providedOrganizationId) : null;
         const tenantIdFromBody = providedTenantId ? String(providedTenantId) : null;
+        const bodyOrgKey = organizationIdFromBody || tenantIdFromBody;
 
-        if (!headerOrgKey && !tenantIdFromBody) {
+        if (!headerOrgKey && !bodyOrgKey) {
             return NextResponse.json(
-                { error: 'Missing workspace context. Provide x-org-id header or tenantId in body.' },
+                { error: 'Missing workspace context. Provide x-org-id header or organizationId/tenantId in body.' },
                 { status: 400 }
             );
         }
 
-        const primaryOrgKey = headerOrgKey || tenantIdFromBody;
+        const primaryOrgKey = headerOrgKey || bodyOrgKey;
         if (!primaryOrgKey) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
 
-        if (headerOrgKey && tenantIdFromBody && String(headerOrgKey) !== String(tenantIdFromBody)) {
-            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(tenantIdFromBody));
+        if (headerOrgKey && bodyOrgKey && String(headerOrgKey) !== String(bodyOrgKey)) {
+            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(bodyOrgKey));
             if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
                 return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
             }

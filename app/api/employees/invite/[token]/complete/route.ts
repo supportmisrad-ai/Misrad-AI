@@ -12,15 +12,37 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
-import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as UnknownRecord;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type WorkspaceUserRow = {
+    id: string;
+    name: string | null;
+    email: string | null;
+    role: string | null;
+    department: string | null;
+};
 
 async function selectUserIdByEmailInWorkspace(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const rows = await queryRawOrgScoped<any[]>(prisma, {
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
         organizationId: params.workspaceId,
         reason: 'employee_invite_complete_user_id_by_email',
         query: `
@@ -34,14 +56,15 @@ async function selectUserIdByEmailInWorkspace(params: { workspaceId: string; ema
     });
 
     const row = Array.isArray(rows) ? rows[0] : null;
-    return row?.id ? String(row.id) : null;
+    const rowObj = asObject(row);
+    return rowObj?.id ? String(rowObj.id) : null;
 }
 
 async function loadUserInWorkspaceById(params: { workspaceId: string; userId: string }) {
     const userId = String(params.userId || '').trim();
     if (!userId) return null;
 
-    const rows = await queryRawOrgScoped<any[]>(prisma, {
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
         organizationId: params.workspaceId,
         reason: 'employee_invite_complete_user_by_id',
         query: `
@@ -54,13 +77,22 @@ async function loadUserInWorkspaceById(params: { workspaceId: string; userId: st
         values: [params.workspaceId, userId],
     });
 
-    return Array.isArray(rows) ? rows[0] ?? null : null;
+    const row = Array.isArray(rows) ? rows[0] ?? null : null;
+    const r = asObject(row);
+    if (!r?.id) return null;
+    return {
+        id: String(r.id),
+        name: r.name == null ? null : String(r.name),
+        email: r.email == null ? null : String(r.email),
+        role: r.role == null ? null : String(r.role),
+        department: r.department == null ? null : String(r.department),
+    } satisfies WorkspaceUserRow;
 }
 
-async function insertUserInWorkspace(params: { workspaceId: string; userData: any }) {
-    const u = params.userData || {};
+async function insertUserInWorkspace(params: { workspaceId: string; userData: unknown }) {
+    const u = asObject(params.userData) ?? {};
 
-    const rows = await queryRawOrgScoped<any[]>(prisma, {
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
         organizationId: params.workspaceId,
         reason: 'employee_invite_complete_user_insert',
         query: `
@@ -137,25 +169,35 @@ async function insertUserInWorkspace(params: { workspaceId: string; userData: an
         ],
     });
 
-    return Array.isArray(rows) ? rows[0] ?? null : null;
+    const row = Array.isArray(rows) ? rows[0] ?? null : null;
+    const r = asObject(row);
+    if (!r?.id) return null;
+    return {
+        id: String(r.id),
+        name: r.name == null ? null : String(r.name),
+        email: r.email == null ? null : String(r.email),
+        role: r.role == null ? null : String(r.role),
+        department: r.department == null ? null : String(r.department),
+    } satisfies WorkspaceUserRow;
 }
 
-async function markInvitationUsed(params: { organizationId: string; invitationId: string; patch: any }) {
+async function markInvitationUsed(params: { organizationId: string; invitationId: string; patch: unknown }) {
+    const patchObj = asObject(params.patch) ?? {};
     await prisma.nexus_employee_invitation_links.updateMany({
         where: { id: String(params.invitationId), organizationId: String(params.organizationId) },
         data: {
-            is_used: Boolean(params.patch?.is_used),
-            used_at: params.patch?.used_at ? new Date(String(params.patch.used_at)) : new Date(),
-            employee_name: params.patch?.employee_name ?? undefined,
-            employee_phone: params.patch?.employee_phone ?? undefined,
+            is_used: Boolean(patchObj.is_used),
+            used_at: patchObj.used_at ? new Date(String(patchObj.used_at)) : new Date(),
+            employee_name: patchObj.employee_name ?? undefined,
+            employee_phone: patchObj.employee_phone ?? undefined,
             updated_at: new Date(),
-            metadata: params.patch?.metadata ?? undefined,
+            metadata: patchObj.metadata ?? undefined,
         },
     });
 }
 
-async function insertNotification(params: { workspaceId: string; notification: any }) {
-    const n = params.notification || {};
+async function insertNotification(params: { workspaceId: string; notification: unknown }) {
+    const n = asObject(params.notification) ?? {};
     await executeRawOrgScoped(prisma, {
         organizationId: params.workspaceId,
         reason: 'employee_invite_complete_notification_insert',
@@ -207,19 +249,9 @@ async function POSTHandler(
         }
 
         // 1. Get invitation by token (token is a secret; use Service Role for unscoped lookup)
-        const svc = createServiceRoleClient({ allowUnscoped: true, reason: 'employee_invite_token_lookup' });
-        const invitationRes = await svc
-            .from('nexus_employee_invitation_links')
-            .select('*')
-            .eq('token', String(token))
-            .limit(1)
-            .maybeSingle();
-
-        if (invitationRes.error) {
-            throw new Error(invitationRes.error.message);
-        }
-
-        const invitation = invitationRes.data;
+        const invitation = await prisma.nexus_employee_invitation_links.findUnique({
+            where: { token: String(token) },
+        });
 
         if (!invitation) {
             return apiError('קישור הזמנה לא נמצא', { status: 404 });
@@ -243,42 +275,41 @@ async function POSTHandler(
             }
         }
 
-        const organizationId = (invitation as any).organization_id as string | null;
+        const organizationId = invitation.organizationId as string | null;
         if (!organizationId) {
             return apiError('הזמנה לא משויכת לארגון', { status: 400 });
         }
 
-        const orgScoped = createServiceRoleClientScoped({
-            reason: 'employee_invite_finalize_org',
-            scopeColumn: 'organization_id',
-            scopeId: String(organizationId),
+        const org = await prisma.social_organizations.findUnique({
+            where: { id: String(organizationId) },
+            select: {
+                has_nexus: true,
+                has_system: true,
+                has_social: true,
+                has_finance: true,
+                has_client: true,
+                has_operations: true,
+                seats_allowed: true,
+                slug: true,
+            },
         });
 
-        const orgRes = await orgScoped
-            .from('organizations')
-            .select('has_nexus, has_system, has_social, has_finance, has_client, has_operations, seats_allowed, slug')
-            .eq('id', String(organizationId))
-            .limit(1)
-            .maybeSingle();
-
-        if (orgRes.error) {
-            throw new Error(orgRes.error.message);
+        if (!org) {
+            return apiError('ארגון לא נמצא', { status: 404 });
         }
-
-        const org = orgRes.data as any;
 
         const flags = await getSystemFeatureFlags();
         const caps = computeWorkspaceCapabilities({
             entitlements: {
-                nexus: (org as any)?.has_nexus ?? false,
-                system: (org as any)?.has_system ?? false,
-                social: (org as any)?.has_social ?? false,
-                finance: (org as any)?.has_finance ?? false,
-                client: (org as any)?.has_client ?? false,
-                operations: (org as any)?.has_operations ?? false,
+                nexus: org.has_nexus ?? false,
+                system: org.has_system ?? false,
+                social: org.has_social ?? false,
+                finance: org.has_finance ?? false,
+                client: org.has_client ?? false,
+                operations: org.has_operations ?? false,
             },
             fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
-            seatsAllowedOverride: (org as any)?.seats_allowed ?? null,
+            seatsAllowedOverride: org.seats_allowed ?? null,
         });
 
         if (!caps.isTeamManagementEnabled) {
@@ -294,16 +325,14 @@ async function POSTHandler(
         }
 
         // 5. Parse form data
-        const body = await request.json();
-        const {
-            name,
-            email,
-            phone,
-            password, // For Clerk signup
-            // Additional details that might be filled
-            bio,
-            location
-        } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const name = String(bodyObj.name ?? '').trim();
+        const email = String(bodyObj.email ?? '').trim();
+        const phone = bodyObj.phone == null ? null : String(bodyObj.phone).trim();
+        const password = String(bodyObj.password ?? '').trim();
+        const bio = bodyObj.bio == null ? null : String(bodyObj.bio);
+        const location = bodyObj.location == null ? null : String(bodyObj.location);
 
         // 6. Validate required fields
         if (!name || !email || !password) {
@@ -331,7 +360,7 @@ async function POSTHandler(
 
         // 9. Create user in database
         const userData = {
-            name: name.trim(),
+            name,
             email: normalizedEmail,
             phone: phone || invitation.employee_phone || null,
             role: invitation.role || 'עובד',
@@ -391,13 +420,13 @@ async function POSTHandler(
                         created_at: new Date().toISOString(),
                     },
                 });
-            } catch (notifError: any) {
+            } catch (notifError: unknown) {
                 console.warn('[API] Could not create notification:', notifError);
             }
         }
 
         // 12. Return success (user should sign up via Clerk)
-        const orgSlug = (org as any)?.slug ? String((org as any).slug) : String(organizationId);
+        const orgSlug = org.slug ? String(org.slug) : String(organizationId);
 
         const lobbyPath = orgSlug ? `/w/${encodeURIComponent(orgSlug)}/lobby` : '/';
 
@@ -410,12 +439,12 @@ async function POSTHandler(
                 role: newUser.role,
                 department: newUser.department
             },
-            signupUrl: `/sign-up?email=${encodeURIComponent(normalizedEmail)}&invited=true&employee=true&redirect_url=${encodeURIComponent(lobbyPath)}`
+            signupUrl: `/login?mode=sign-up&email=${encodeURIComponent(normalizedEmail)}&invited=true&employee=true&redirect=${encodeURIComponent(lobbyPath)}`
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/employees/invite/[token]/complete POST:', error);
-        return apiError(error, { status: 500, message: 'שגיאה בהשלמת ההרשמה' });
+        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה בהשלמת ההרשמה' });
     }
 }
 

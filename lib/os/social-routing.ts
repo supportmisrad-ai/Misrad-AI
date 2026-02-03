@@ -6,15 +6,31 @@ export type WorkspaceRouteInfo = {
   module: OSModuleKey | null;
 };
 
+function safeDecodeURIComponent(value: string): string {
+  let v = String(value ?? '');
+  for (let i = 0; i < 3; i++) {
+    if (!v.includes('%')) return v;
+    try {
+      const next = decodeURIComponent(v);
+      if (next === v) return v;
+      v = next;
+    } catch {
+      return v;
+    }
+  }
+  return v;
+}
+
 export function parseWorkspaceRoute(pathname: string | null | undefined): WorkspaceRouteInfo {
   if (!pathname) return { orgSlug: null, module: null };
   const parts = pathname.split('/').filter(Boolean);
   if (parts[0] !== 'w') return { orgSlug: null, module: null };
-  const orgSlug = parts[1] || null;
+  const orgSlugRaw = parts[1] || null;
+  const orgSlug = orgSlugRaw ? safeDecodeURIComponent(orgSlugRaw) : null;
   const rawModule = parts[2] || null;
   const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
-  const module = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
-  return { orgSlug, module };
+  const workspaceModuleKey = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
+  return { orgSlug, module: workspaceModuleKey };
 }
 
 export function getSocialBasePath(pathname: string | null | undefined): string {

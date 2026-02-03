@@ -16,6 +16,19 @@ type PairingStatusResponse =
   | { status: 'NOT_FOUND' }
   | { status: 'APPROVED'; signInToken: string; organizationId: string | null };
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function unwrapData(value: unknown): unknown {
+  const obj = asObject(value);
+  const data = obj?.data;
+  if (data && typeof data === 'object') return data;
+  return value;
+}
+
 function getOrCreateDeviceNonce(): string {
   if (typeof window === 'undefined') return '';
   const key = 'kiosk_device_nonce';
@@ -30,9 +43,6 @@ export default function KioskLoginPage() {
   const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
 
-  const unwrap = (data: any) =>
-    (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
   const deviceNonce = useMemo(() => getOrCreateDeviceNonce(), []);
 
   const [code, setCode] = useState<string>('');
@@ -42,12 +52,14 @@ export default function KioskLoginPage() {
   const [isSigningIn, setIsSigningIn] = useState<boolean>(false);
 
   const pollRef = useRef<number | null>(null);
+  const pollInFlightRef = useRef(false);
+  const pollDelayMsRef = useRef(2000);
 
   const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
+    if (pollRef.current != null) {
+      window.clearTimeout(pollRef.current);
     }
+    pollRef.current = null;
   }, []);
 
   const createCode = useCallback(async () => {
@@ -68,8 +80,8 @@ export default function KioskLoginPage() {
         return;
       }
 
-      const data = await res.json().catch(() => ({} as any));
-      const payload = unwrap(data) as PairingCreateResponse;
+      const raw: unknown = await res.json().catch(() => null);
+      const payload = unwrapData(raw) as PairingCreateResponse;
       setCode(String(payload.code || '').toUpperCase());
       setExpiresAt(String(payload.expiresAt || ''));
       setIsCreating(false);
@@ -80,6 +92,8 @@ export default function KioskLoginPage() {
   }, [deviceNonce, stopPolling]);
 
   const pollStatus = useCallback(async (params: { currentCode: string }) => {
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
     try {
       const res = await fetch('/api/kiosk/pairing/status', {
         method: 'POST',
@@ -88,11 +102,15 @@ export default function KioskLoginPage() {
       });
 
       if (!res.ok) {
+        pollDelayMsRef.current = Math.min(20_000, Math.max(2_000, pollDelayMsRef.current * 2));
         return;
       }
 
-      const data = await res.json().catch(() => ({} as any));
-      const payload = unwrap(data) as PairingStatusResponse;
+      const raw: unknown = await res.json().catch(() => null);
+      const payload = unwrapData(raw) as PairingStatusResponse;
+
+      // success -> reset delay
+      pollDelayMsRef.current = 2000;
 
       if (payload.status === 'EXPIRED' || payload.status === 'NOT_FOUND') {
         stopPolling();
@@ -115,7 +133,7 @@ export default function KioskLoginPage() {
         const result = await signIn.create({
           strategy: 'ticket',
           ticket: payload.signInToken,
-        } as any);
+        } as unknown as Parameters<NonNullable<typeof signIn>['create']>[0]);
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId });
@@ -133,7 +151,10 @@ export default function KioskLoginPage() {
         await createCode();
       }
     } catch {
+      pollDelayMsRef.current = Math.min(20_000, Math.max(2_000, pollDelayMsRef.current * 2));
       return;
+    } finally {
+      pollInFlightRef.current = false;
     }
   }, [createCode, deviceNonce, isLoaded, router, setActive, signIn, stopPolling]);
 
@@ -147,16 +168,26 @@ export default function KioskLoginPage() {
   useEffect(() => {
     if (!code || isCreating || isSigningIn) return;
 
+    let cancelled = false;
     stopPolling();
-    pollRef.current = window.setInterval(() => {
-      pollStatus({ currentCode: code });
-    }, 2000);
+    pollDelayMsRef.current = 2000;
+
+    const tick = async () => {
+      if (cancelled) return;
+      await pollStatus({ currentCode: code });
+      if (cancelled) return;
+      pollRef.current = window.setTimeout(() => {
+        void tick();
+      }, pollDelayMsRef.current);
+    };
+
+    void tick();
 
     return () => {
+      cancelled = true;
       stopPolling();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code, isCreating, isSigningIn]);
+  }, [code, isCreating, isSigningIn, pollStatus, stopPolling]);
 
   const expiresText = expiresAt
     ? new Date(expiresAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
@@ -7,12 +7,50 @@ import { logAuditEvent } from '@/lib/audit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function getErrorStatus(error: unknown, fallback = 403): number {
+  const status = asObject(error)?.status;
+  return typeof status === 'number' ? status : fallback;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+  const obj = asObject(value);
+  const fn = obj?.[name];
+  return typeof fn === 'function';
+}
+
+type LegacyDelegate = {
+  findUnique?: (args: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+  findFirst?: (args: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
+};
+
+function getLegacyDelegate(name: string): LegacyDelegate {
+  const clientObj = asObject(prisma as unknown);
+  const delegate = clientObj?.[name];
+  if (!asObject(delegate)) {
+    throw new Error(`Prisma delegate ${name} is unavailable`);
+  }
+  return delegate as unknown as LegacyDelegate;
+}
+
 async function GETHandler(req: NextRequest) {
   try {
     try {
       await requireSuperAdmin();
-    } catch (e: any) {
-      return NextResponse.json({ ok: false, error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+    } catch (e: unknown) {
+      return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
     }
 
     const clerkUserId = await getCurrentUserId();
@@ -27,29 +65,45 @@ async function GETHandler(req: NextRequest) {
 
     try {
       await getWorkspaceByOrgKeyOrThrow(orgSlug);
-    } catch (e: any) {
+    } catch (e: unknown) {
       await logAuditEvent('data.read', 'debug.workspace-access', {
         success: false,
         details: { orgSlug, clerkUserId },
-        error: e?.message || 'Forbidden',
+        error: getErrorMessage(e) || 'Forbidden',
       });
 
-      return NextResponse.json({ ok: false, error: e?.message || 'Forbidden' }, { status: (e as any)?.status || 403 });
+      return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden' }, { status: getErrorStatus(e, 403) });
     }
 
-    const supabase = createClient();
+    let socialUser: Record<string, unknown> | null = null;
+    let socialUserError: unknown = null;
+    try {
+      const delegate = getLegacyDelegate('social_users');
+      const findUnique = delegate.findUnique;
+      if (!findUnique || !hasFunction(delegate, 'findUnique')) throw new Error('Prisma delegate social_users.findUnique is unavailable');
+      socialUser = await findUnique({
+        where: { clerk_user_id: String(clerkUserId) },
+        select: { id: true, clerk_user_id: true, email: true, full_name: true, organization_id: true, role: true },
+      });
+    } catch (e: unknown) {
+      socialUserError = e;
+    }
 
-    const { data: socialUser, error: socialUserError } = await supabase
-      .from('social_users')
-      .select('id, clerk_user_id, email, full_name, organization_id, role')
-      .eq('clerk_user_id', clerkUserId)
-      .maybeSingle();
-
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('id, name, owner_id, has_client, has_nexus, has_social, has_system, has_finance')
-      .eq('id', orgSlug)
-      .maybeSingle();
+    let org: Record<string, unknown> | null = null;
+    let orgError: unknown = null;
+    try {
+      const delegate = getLegacyDelegate('social_organizations');
+      const findFirst = delegate.findFirst;
+      if (!findFirst || !hasFunction(delegate, 'findFirst')) throw new Error('Prisma delegate social_organizations.findFirst is unavailable');
+      org = await findFirst({
+        where: {
+          OR: [{ id: String(orgSlug) }, { slug: String(orgSlug) }],
+        },
+        select: { id: true, name: true, owner_id: true, has_client: true, has_nexus: true, has_social: true, has_system: true, has_finance: true },
+      });
+    } catch (e: unknown) {
+      orgError = e;
+    }
 
     const isOwner = Boolean(org?.owner_id && socialUser?.id && String(org.owner_id) === String(socialUser.id));
     const isPrimary = Boolean(org?.id && socialUser?.organization_id && String(socialUser.organization_id) === String(org.id));
@@ -70,9 +124,9 @@ async function GETHandler(req: NextRequest) {
       orgSlug,
       clerkUserId,
       socialUser,
-      socialUserError: socialUserError ? { message: socialUserError.message, code: (socialUserError as any).code } : null,
+      socialUserError: socialUserError ? { message: getErrorMessage(socialUserError), code: String(asObject(socialUserError)?.code || '') } : null,
       org,
-      orgError: orgError ? { message: orgError.message, code: (orgError as any).code } : null,
+      orgError: orgError ? { message: getErrorMessage(orgError), code: String(asObject(orgError)?.code || '') } : null,
       access: {
         isOwner,
         isPrimary,
@@ -80,9 +134,9 @@ async function GETHandler(req: NextRequest) {
         hasClientModule: org?.has_client ?? null,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: error?.message || 'Unknown error', stack: error?.stack },
+      { ok: false, error: getErrorMessage(error) || 'Unknown error', stack: asObject(error)?.stack },
       { status: 500 }
     );
   }

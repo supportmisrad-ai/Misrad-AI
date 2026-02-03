@@ -7,13 +7,48 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useTasks } from '../hooks/useTasks';
 import { useCRM } from '../hooks/useCRM';
 import { useAdmin } from '../hooks/useAdmin';
-import { GeneratedReport, Feedback } from '../types';
+import { useContent } from '../hooks/useContent';
+import { GeneratedReport, Feedback, OrganizationProfile, User } from '../types';
 
-interface DataContextType {
-    [key: string]: any;
-}
+type SupportDraft = {
+    category: string;
+    subject: string;
+    message: string;
+};
 
-const DataContext = createContext<DataContextType | null>(null);
+type AdminReturn = ReturnType<typeof useAdmin>;
+type AuthReturn = Omit<ReturnType<typeof useAuth>, keyof AdminReturn>;
+
+export type DataContextValue =
+    ReturnType<typeof useToasts> &
+    AuthReturn &
+    ReturnType<typeof useNotifications> &
+    ReturnType<typeof useTasks> &
+    ReturnType<typeof useContent> &
+    ReturnType<typeof useCRM> &
+    AdminReturn & {
+        initialAdminKPIs?: unknown;
+
+        activeCelebration: boolean;
+
+        isTutorialActive: boolean;
+        startTutorial: () => void;
+        endTutorial: () => void;
+
+        isSupportModalOpen: boolean;
+        openSupport: (defaults?: Partial<SupportDraft>) => void;
+        closeSupport: () => void;
+        supportDraft: SupportDraft;
+        setSupportDraft: React.Dispatch<React.SetStateAction<SupportDraft>>;
+
+        feedbacks: Feedback[];
+        addFeedback: (fb: Omit<Feedback, 'id' | 'date' | 'status'>) => void;
+
+        systemReports: GeneratedReport[];
+        markReportRead: (id: string) => void;
+    };
+
+const DataContext = createContext<DataContextValue | null>(null);
 
 export const DataProvider = ({
     children,
@@ -22,9 +57,9 @@ export const DataProvider = ({
     initialAdminKPIs,
 }: {
     children: ReactNode;
-    initialCurrentUser?: any;
-    initialOrganization?: any;
-    initialAdminKPIs?: any;
+    initialCurrentUser?: User;
+    initialOrganization?: Partial<OrganizationProfile>;
+    initialAdminKPIs?: unknown;
 }) => {
     // 1. Base Utilities
     const { toasts, addToast, removeToast } = useToasts();
@@ -38,6 +73,9 @@ export const DataProvider = ({
     // 4. Tasks (Needs Notification & User)
     const taskManager = useTasks(auth.currentUser, notifications.addNotification, addToast);
 
+    // 4.5 Content/Studio (Needs Notification & User)
+    const content = useContent(auth.currentUser, notifications.addNotification, addToast, auth.users);
+
     // 5. CRM (Needs Notification & User & Tasks Logic for Auto-Onboarding)
     const crm = useCRM(auth.currentUser, notifications.addNotification, addToast, taskManager.applyTemplate);
 
@@ -49,10 +87,12 @@ export const DataProvider = ({
     const startTutorial = () => setIsTutorialActive(true);
     const endTutorial = () => setIsTutorialActive(false);
 
+    const activeCelebration = false;
+
     // 8. Support Draft State
     const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
     const [supportDraft, setSupportDraft] = useState({ category: 'Tech', subject: '', message: '' });
-    const openSupport = (defaults?: any) => {
+    const openSupport = (defaults?: Partial<SupportDraft>) => {
         if (defaults) setSupportDraft(prev => ({ ...prev, ...defaults }));
         setIsSupportModalOpen(true);
     };
@@ -77,15 +117,17 @@ export const DataProvider = ({
     };
 
     // Combine all hooks and state
-    const value = useMemo(() => {
+    const value = useMemo<DataContextValue>(() => {
         return {
             toasts, addToast, removeToast,
             ...auth,
             ...notifications,
             ...taskManager,
+            ...content,
             ...crm,
             ...admin,
             initialAdminKPIs,
+            activeCelebration,
             isTutorialActive, startTutorial, endTutorial,
             isSupportModalOpen, openSupport, closeSupport, supportDraft, setSupportDraft,
             feedbacks, addFeedback,
@@ -98,9 +140,11 @@ export const DataProvider = ({
         auth,
         notifications,
         taskManager,
+        content,
         crm,
         admin,
         initialAdminKPIs,
+        activeCelebration,
         isTutorialActive,
         isSupportModalOpen,
         supportDraft,

@@ -9,6 +9,7 @@ import { WorkspaceSwitcher } from '@/components/os/WorkspaceSwitcher';
 import { useRouter } from 'next/navigation';
 import { BusinessSwitcher } from '@/components/BusinessSwitcher';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { PermissionId } from '@/types';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -19,7 +20,7 @@ interface SidebarProps {
     enabledModules: string[];
     systemFlags?: Record<string, string>;
   };
-  hasPermission: (permission: string) => boolean;
+  hasPermission: (permission: PermissionId) => boolean;
   filteredNavItems: typeof NAV_ITEMS;
   isActive: (path: string) => boolean;
   navigate: (path: string) => void;
@@ -35,9 +36,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   navigate,
 }) => {
   const router = useRouter();
-  const renderCountRef = React.useRef(0);
-  renderCountRef.current += 1;
-  console.log(`[Nexus][Sidebar] render #${renderCountRef.current}`);
 
   const { roomName, room } = useRoomBranding();
 

@@ -10,7 +10,7 @@
  * - API Key must be stored securely in integrations table
  */
 
-import { supabase } from '../supabase';
+import prisma from '@/lib/prisma';
 
 // Green Invoice API base URL
 const GREEN_INVOICE_API_URL = 'https://api.greeninvoice.co.il/api/v1';
@@ -22,11 +22,6 @@ const GREEN_INVOICE_API_URL = 'https://api.greeninvoice.co.il/api/v1';
  * @returns API key or null if not configured
  */
 export async function getGreenInvoiceApiKey(userId: string, organizationId: string): Promise<string | null> {
-    if (!supabase) {
-        console.error('[Green Invoice] Supabase not configured');
-        return null;
-    }
-
     const orgId = String(organizationId || '').trim();
     if (!orgId) {
         console.error('[Green Invoice] Missing organizationId (Tenant Isolation lockdown)');
@@ -34,21 +29,22 @@ export async function getGreenInvoiceApiKey(userId: string, organizationId: stri
     }
 
     try {
-        const { data: integration, error } = await supabase
-            .from('misrad_integrations')
-            .select('access_token, is_active')
-            .eq('user_id', userId)
-            .eq('organization_id', orgId)
-            .eq('service_type', 'green_invoice')
-            .eq('is_active', true)
-            .single();
+        const integration = await prisma.scale_integrations.findFirst({
+            where: {
+                user_id: String(userId),
+                tenant_id: String(orgId),
+                service_type: 'green_invoice',
+                is_active: true,
+            },
+            select: { access_token: true },
+        });
 
-        if (error || !integration) {
+        if (!integration) {
             return null;
         }
 
         // In Green Invoice, access_token stores the API key
-        return integration.access_token || null;
+        return (integration as any).access_token || null;
     } catch (error) {
         console.error('[Green Invoice] Error getting API key:', error);
         return null;
@@ -169,30 +165,33 @@ export async function createInvoice(
         const result = await response.json();
 
         // Update last sync time
-        if (supabase) {
-            // Get existing metadata first
-            const existingMetadata = await supabase
-                .from('misrad_integrations')
-                .select('metadata')
-                .eq('user_id', userId)
-                .eq('organization_id', String(organizationId || '').trim())
-                .eq('service_type', 'green_invoice')
-                .single();
-            
-            await supabase
-                .from('misrad_integrations')
-                .update({ 
-                    last_synced_at: new Date().toISOString(),
-                    metadata: {
-                        ...(existingMetadata.data?.metadata || {}),
-                        lastInvoiceId: result.id,
-                        lastInvoiceNumber: result.number
-                    }
-                })
-                .eq('user_id', userId)
-                .eq('organization_id', String(organizationId || '').trim())
-                .eq('service_type', 'green_invoice')
-                .eq('is_active', true);
+        const orgId = String(organizationId || '').trim();
+        if (orgId) {
+            const existing = await prisma.scale_integrations.findFirst({
+                where: {
+                    user_id: String(userId),
+                    tenant_id: String(orgId),
+                    service_type: 'green_invoice',
+                    is_active: true,
+                },
+                select: { id: true, metadata: true },
+            });
+
+            const prevMeta = (existing as any)?.metadata || {};
+            if (existing?.id) {
+                await prisma.scale_integrations.update({
+                    where: { id: String(existing.id) },
+                    data: {
+                        last_synced_at: new Date(),
+                        metadata: {
+                            ...(prevMeta as any),
+                            lastInvoiceId: result.id,
+                            lastInvoiceNumber: result.number,
+                        } as any,
+                        updated_at: new Date(),
+                    },
+                });
+            }
         }
 
         return {

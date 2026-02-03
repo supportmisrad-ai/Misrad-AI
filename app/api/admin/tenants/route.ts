@@ -5,13 +5,12 @@
  */
 
 import { NextRequest } from 'next/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { ModuleId, Tenant } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
 import { sendTenantInvitationEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
-import { createServiceRoleClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiErrorCompat, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -79,39 +78,48 @@ function mapTenantRow(row: unknown): Tenant {
     return {
         id: obj ? getString(obj, 'id') : '',
         name: obj ? getString(obj, 'name') : '',
-        ownerEmail: obj ? (getNullableString(obj, 'owner_email') ?? '') : '',
+        ownerEmail: obj ? (getNullableString(obj, 'ownerEmail') ?? getNullableString(obj, 'owner_email') ?? '') : '',
         subdomain: obj ? (getNullableString(obj, 'subdomain') ?? '') : '',
         plan: obj ? (getNullableString(obj, 'plan') ?? '') : '',
         status: coerceTenantStatus(obj ? getNullableString(obj, 'status') : null, 'Provisioning'),
-        joinedAt: obj ? (getNullableString(obj, 'joined_at') ?? '') : '',
+        joinedAt: obj ? (getNullableString(obj, 'joinedAt') ?? getNullableString(obj, 'joined_at') ?? '') : '',
         mrr: Number(obj ? (obj['mrr'] ?? 0) : 0) || 0,
-        usersCount: Number(obj ? (obj['users_count'] ?? 0) : 0) || 0,
+        usersCount: Number(obj ? (obj['usersCount'] ?? obj['users_count'] ?? 0) : 0) || 0,
         logo: obj ? (getNullableString(obj, 'logo') ?? undefined) : undefined,
         modules: coerceModules(obj ? obj['modules'] : null, []),
         region: coerceTenantRegion(obj ? getNullableString(obj, 'region') : null, undefined),
         version: obj ? (getNullableString(obj, 'version') ?? undefined) : undefined,
         allowedEmails: (() => {
-            const v = obj ? obj['allowed_emails'] : null;
+            const v = obj ? (obj['allowedEmails'] ?? obj['allowed_emails']) : null;
             return Array.isArray(v) ? v.map((x) => String(x)) : [];
         })(),
-        requireApproval: Boolean(obj ? obj['require_approval'] : false),
+        requireApproval: Boolean(obj ? (obj['requireApproval'] ?? obj['require_approval']) : false),
     } as Tenant;
 }
 
 async function selectTenants(params: {
-    supabase: SupabaseClient;
     filters: { tenantId?: string; status?: string; ownerEmail?: string; subdomain?: string };
 }): Promise<Tenant[]> {
-    let query = params.supabase.from('nexus_tenants').select('*');
+    const where: any = {};
+    if (params.filters.tenantId) where.id = String(params.filters.tenantId);
+    if (params.filters.status) where.status = String(params.filters.status);
+    if (params.filters.ownerEmail) where.ownerEmail = String(params.filters.ownerEmail);
+    if (params.filters.subdomain) where.subdomain = String(params.filters.subdomain);
 
-    if (params.filters.tenantId) query = query.eq('id', params.filters.tenantId);
-    if (params.filters.status) query = query.eq('status', params.filters.status);
-    if (params.filters.ownerEmail) query = query.eq('owner_email', params.filters.ownerEmail);
-    if (params.filters.subdomain) query = query.eq('subdomain', params.filters.subdomain);
+    const rows = await prisma.nexusTenant.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+    });
 
-    const { data, error } = await query;
-    if (error) throw error;
-    return (Array.isArray(data) ? data : []).map(mapTenantRow);
+    const mapped = (Array.isArray(rows) ? rows : []).map((r: any) =>
+        mapTenantRow({
+            ...r,
+            joinedAt: r?.joinedAt ? new Date(r.joinedAt).toISOString() : null,
+            mrr: r?.mrr == null ? 0 : Number(r.mrr),
+        })
+    );
+
+    return mapped;
 }
 
 /**
@@ -150,8 +158,7 @@ async function GETHandler(request: NextRequest) {
             filters.ownerEmail = ownerEmail;
         }
 
-        const sb = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_admin_list' });
-        const tenants = await selectTenants({ supabase: sb as any, filters });
+        const tenants = await selectTenants({ filters });
 
         await logAuditEvent('data.read', 'tenant', {
             resourceId: 'list',
@@ -213,15 +220,12 @@ async function POSTHandler(request: NextRequest) {
             return apiError('Invalid status. Must be one of: Provisioning, Active, Trial, Churned', { status: 400 });
         }
 
-        const sbAdmin = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_super_admin_create' });
-
-        const existingTenants = await selectTenants({
-            supabase: sbAdmin as any,
-            filters: { subdomain: String(subdomainInput ?? '').toLowerCase().replace(/\s+/g, '-') },
+        const normalizedSubdomain = String(subdomainInput ?? '').toLowerCase().replace(/\s+/g, '-');
+        const existing = await prisma.nexusTenant.findUnique({
+            where: { subdomain: normalizedSubdomain },
+            select: { id: true },
         });
-        if (existingTenants.length > 0) {
-            return apiError('Tenant with this subdomain already exists', { status: 409 });
-        }
+        if (existing?.id) return apiError('Tenant with this subdomain already exists', { status: 409 });
 
         const tenantData: Omit<Tenant, 'id'> = {
             name,
@@ -240,34 +244,38 @@ async function POSTHandler(request: NextRequest) {
             requireApproval: Boolean(bodyObj['requireApproval'] ?? false),
         };
 
-        const dbData = {
-            name: tenantData.name,
-            owner_email: tenantData.ownerEmail,
-            subdomain: tenantData.subdomain,
-            plan: tenantData.plan,
-            region: tenantData.region,
-            status: tenantData.status,
-            joined_at: tenantData.joinedAt,
-            mrr: tenantData.mrr,
-            users_count: tenantData.usersCount,
-            logo: tenantData.logo,
-            modules: tenantData.modules,
-            version: tenantData.version,
-            allowed_emails: tenantData.allowedEmails,
-            require_approval: tenantData.requireApproval,
-        };
-
-        const { data: inserted, error: insertError } = await (sbAdmin as any)
-            .from('nexus_tenants')
-            .insert(dbData)
-            .select('*')
-            .single();
-
-        if (insertError) {
-            throw insertError;
+        let inserted: any;
+        try {
+            inserted = await prisma.nexusTenant.create({
+                data: {
+                    name: tenantData.name,
+                    ownerEmail: tenantData.ownerEmail,
+                    subdomain: tenantData.subdomain,
+                    plan: tenantData.plan,
+                    region: tenantData.region ?? null,
+                    status: tenantData.status ?? null,
+                    joinedAt: new Date(tenantData.joinedAt),
+                    mrr: tenantData.mrr,
+                    usersCount: tenantData.usersCount,
+                    logo: tenantData.logo ?? null,
+                    modules: tenantData.modules,
+                    version: tenantData.version ?? null,
+                    allowedEmails: tenantData.allowedEmails,
+                    requireApproval: tenantData.requireApproval,
+                },
+            });
+        } catch (e: any) {
+            if (String(e?.code || '') === 'P2002') {
+                return apiError('Tenant with this subdomain already exists', { status: 409 });
+            }
+            throw e;
         }
 
-        const newTenant = mapTenantRow(inserted);
+        const newTenant = mapTenantRow({
+            ...inserted,
+            joinedAt: inserted?.joinedAt ? new Date(inserted.joinedAt).toISOString() : null,
+            mrr: inserted?.mrr == null ? 0 : Number(inserted.mrr),
+        });
 
         await logAuditEvent('data.write', 'tenant', {
             resourceId: newTenant.id,
@@ -285,7 +293,7 @@ async function POSTHandler(request: NextRequest) {
         if (autoSendInvitation && newTenant.ownerEmail) {
             try {
                 const baseUrl = getBaseUrl(request);
-                signupUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(newTenant.ownerEmail)}&tenant=${encodeURIComponent(newTenant.id)}&invited=true`;
+                signupUrl = `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(newTenant.ownerEmail)}&tenant=${encodeURIComponent(newTenant.id)}&invited=true`;
 
                 const emailResult = await sendTenantInvitationEmail(newTenant.ownerEmail, newTenant.name, signupUrl, {
                     ownerName: null,
@@ -302,8 +310,11 @@ async function POSTHandler(request: NextRequest) {
                         invitationError: emailResult.error || null,
                     };
 
-                    const supabaseAdmin = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_update_metadata' });
-                    await (supabaseAdmin as any).from('nexus_tenants').update({ metadata }).eq('id', newTenant.id);
+                    try {
+                        await prisma.$executeRaw`update nexus_tenants set metadata = ${metadata as any} where id = ${newTenant.id}::uuid`;
+                    } catch {
+                        // ignore
+                    }
                 } catch {
                     // ignore
                 }

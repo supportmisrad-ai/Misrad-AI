@@ -4,20 +4,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, RefreshCw, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { getAdminClients, impersonateUser } from '@/app/actions/admin';
+import type { AdminClientLite } from '@/app/actions/admin';
 import { useData } from '@/context/DataContext';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 
-type AdminClientRow = {
-  id: string;
-  companyName: string;
-  fullName: string;
-  email: string | null;
-  organizationId: string | null;
-  createdAt: string | null;
-};
+type AdminClientRow = AdminClientLite;
 
 export default function AdminUsersPage() {
   const { addToast } = useData();
@@ -35,7 +29,7 @@ export default function AdminUsersPage() {
         setRows([]);
         return;
       }
-      setRows((res.data || []) as any);
+      setRows(res.data || []);
     } finally {
       setIsLoading(false);
     }

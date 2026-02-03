@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
@@ -69,7 +69,7 @@ async function POSTHandler(req: Request) {
       return apiError(error?.message || 'Failed to create signed upload URL', { status: 500 });
     }
 
-    return apiSuccess({
+    return apiSuccessCompat({
       bucket,
       path,
       mimeType,

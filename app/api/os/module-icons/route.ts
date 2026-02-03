@@ -1,23 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 async function GETHandler() {
   try {
-    const supabase = createClient();
+    const row = await prisma.social_system_settings.findUnique({
+      where: { key: 'module_icons' },
+      select: { value: true },
+    });
 
-    const { data, error } = await supabase
-      .from('social_system_settings')
-      .select('value')
-      .eq('key', 'module_icons')
-      .maybeSingle();
-
-    if (error) {
-      return NextResponse.json({ moduleIcons: {} });
-    }
-
-    const rawValue = (data as any)?.value;
+    const rawValue = (row as any)?.value;
     let parsedValue: any = null;
     if (rawValue && typeof rawValue === 'string') {
       try {

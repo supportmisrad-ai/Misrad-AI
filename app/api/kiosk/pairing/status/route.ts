@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -23,16 +23,12 @@ async function POSTHandler(request: NextRequest) {
     return apiError('Missing code/deviceNonce', { status: 400 });
   }
 
-  const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'kiosk_pairing_status' });
-
-  const { data: row, error } = await supabase
-    .from('device_pairing_tokens')
-    .select('*')
-    .eq('code', code)
-    .eq('device_nonce', deviceNonce)
-    .maybeSingle();
-
-  if (error) {
+  let row: any = null;
+  try {
+    row = await prisma.devicePairingToken.findFirst({
+      where: { code: String(code), deviceNonce: String(deviceNonce) },
+    });
+  } catch {
     return apiError('שגיאה בטעינת סטטוס', { status: 500 });
   }
 
@@ -40,46 +36,37 @@ async function POSTHandler(request: NextRequest) {
     return apiSuccess({ status: 'NOT_FOUND' });
   }
 
-  const orgId = row.organization_id ? String(row.organization_id) : null;
-  const scoped = orgId
-    ? createServiceRoleClientScoped({
-        reason: 'kiosk_pairing_status_update',
-        scopeColumn: 'organization_id',
-        scopeId: orgId,
-      })
-    : supabase;
-
   const now = new Date();
-  const expiresAt = row.expires_at ? new Date(String(row.expires_at)) : null;
+  const expiresAt = row.expiresAt ? new Date(String(row.expiresAt)) : null;
   const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
 
   if (isExpired && String(row.status || '').toUpperCase() === 'PENDING') {
-    await scoped
-      .from('device_pairing_tokens')
-      .update({ status: 'EXPIRED', updated_at: now.toISOString() } as any)
-      .eq('id', row.id);
+    await prisma.devicePairingToken.update({
+      where: { id: String(row.id) },
+      data: { status: 'EXPIRED' },
+    });
 
     return apiSuccess({ status: 'EXPIRED' });
   }
 
   const status = String(row.status || '').toUpperCase();
 
-  if (status === 'APPROVED' && row.sign_in_token && !row.consumed_at) {
-    await scoped
-      .from('device_pairing_tokens')
-      .update({ status: 'CONSUMED', consumed_at: now.toISOString(), updated_at: now.toISOString() } as any)
-      .eq('id', row.id);
+  if (status === 'APPROVED' && row.signInToken && !row.consumedAt) {
+    await prisma.devicePairingToken.update({
+      where: { id: String(row.id) },
+      data: { status: 'CONSUMED', consumedAt: now },
+    });
 
     return apiSuccess({
       status: 'APPROVED',
-      signInToken: String(row.sign_in_token),
-      organizationId: row.organization_id ? String(row.organization_id) : null,
+      signInToken: String(row.signInToken),
+      organizationId: row.organizationId ? String(row.organizationId) : null,
     });
   }
 
   return apiSuccess({
     status,
-    expiresAt: row.expires_at || null,
+    expiresAt: row.expiresAt ? new Date(row.expiresAt).toISOString() : null,
   });
 }
 

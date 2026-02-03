@@ -5,6 +5,8 @@ import { PRIORITY_COLORS, PRIORITY_LABELS } from '../constants';
 import { CalendarDays, Play, Pause, Timer, Lock, MoreHorizontal, Clock, Briefcase, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useData } from '../context/DataContext';
+import { useSecondTicker } from '../hooks/useSecondTicker';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface TaskCardProps {
   task: Task;
@@ -19,8 +21,32 @@ const formatTime = (seconds: number) => {
     return `${m} דק׳`;
 };
 
+const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
+  const base = Number(task.timeSpent ?? 0) || 0;
+  if (!task.isTimerRunning) return base;
+  if (typeof window === 'undefined') return base;
+
+  const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+  if (!orgSlug) return base;
+
+  try {
+    const raw = window.sessionStorage.getItem(`nexus_task_timers_v1:${orgSlug}`);
+    if (!raw) return base;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return base;
+    const startedAt = (parsed as Record<string, unknown>)[String(task.id)];
+    if (typeof startedAt !== 'number' || !Number.isFinite(startedAt) || startedAt <= 0) return base;
+    const deltaSeconds = Math.floor(Math.max(0, nowMs - startedAt) / 1000);
+    return base + deltaSeconds;
+  } catch {
+    return base;
+  }
+};
+
 export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick }) => {
   const { toggleTimer, clients } = useData();
+  const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
+  const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
   const assignedUsers = users.filter(u => (task.assigneeIds && task.assigneeIds.includes(u.id)) || (task.assigneeId === u.id));
   
   // Find linked client if exists
@@ -91,7 +117,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, users, onClick }) => {
         <div className="flex items-center gap-3">
             {(task.timeSpent > 0 || task.isTimerRunning) && (
                 <div className={`text-[10px] font-bold flex items-center gap-1.5 px-2 py-1 rounded-md ${task.isTimerRunning ? 'text-green-600 bg-green-50' : 'text-gray-500 bg-gray-50'}`}>
-                    <Timer size={12} /> {formatTime(task.timeSpent)}
+                    <Timer size={12} /> {formatTime(liveTimeSpent)}
                 </div>
             )}
             {task.dueDate && (

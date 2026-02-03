@@ -6,9 +6,51 @@
  */
 
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { PermissionId, Tenant } from '../types';
-import { createClient } from '@/lib/supabase';
+import { Prisma } from '@prisma/client';
+import { ModuleId, PermissionId, Tenant } from '../types';
+import prisma from '@/lib/prisma';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function toStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((v): v is string => typeof v === 'string');
+}
+
+const TENANT_STATUSES: ReadonlySet<Tenant['status']> = new Set(['Active', 'Trial', 'Churned', 'Provisioning']);
+
+function toTenantStatus(value: unknown): Tenant['status'] {
+    const s = typeof value === 'string' ? value : String(value ?? '');
+    return TENANT_STATUSES.has(s as Tenant['status']) ? (s as Tenant['status']) : 'Trial';
+}
+
+const TENANT_REGIONS: ReadonlySet<NonNullable<Tenant['region']>> = new Set(['eu-west', 'us-east', 'il-central']);
+
+function toTenantRegion(value: unknown): Tenant['region'] {
+    if (value == null) return undefined;
+    const s = typeof value === 'string' ? value : String(value);
+    return TENANT_REGIONS.has(s as NonNullable<Tenant['region']>) ? (s as Tenant['region']) : undefined;
+}
+
+const MODULE_IDS: readonly ModuleId[] = ['crm', 'finance', 'ai', 'team', 'content', 'assets', 'operations'] as const;
+const MODULE_ID_SET: ReadonlySet<ModuleId> = new Set(MODULE_IDS);
+
+function toModuleIds(value: unknown): ModuleId[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((m): m is ModuleId => typeof m === 'string' && MODULE_ID_SET.has(m as ModuleId));
+}
 
  function parseEnvCsv(value: string | undefined | null): string[] {
      return String(value || '')
@@ -19,14 +61,14 @@ import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
 
 // Fallback role definitions (used if database is not available)
 const FALLBACK_ROLE_PERMISSIONS: Record<string, PermissionId[]> = {
-    [ROLE_CEO]: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
-    [ROLE_ADMIN]: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
-    'סמנכ״ל מכירות': ['view_financials', 'view_intelligence', 'view_crm', 'view_assets', 'manage_team'],
+    [ROLE_CEO]: ['view_financials', 'manage_team', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
+    [ROLE_ADMIN]: ['manage_team', 'view_intelligence', 'view_crm', 'view_assets'],
+    'סמנכ״ל מכירות': ['view_intelligence', 'view_crm', 'view_assets', 'manage_team'],
     'מנהלת שיווק': ['manage_team', 'view_intelligence', 'view_assets', 'view_crm'],
     'איש מכירות': ['view_crm', 'view_intelligence'],
     'מנהל אופרציה': ['manage_team', 'view_intelligence', 'view_assets', 'view_crm'],
     'עובד שיווק': ['view_intelligence', 'view_assets'],
-    'אדמיניסטרציה': ['view_assets', 'view_crm', 'manage_team', 'view_financials'],
+    'אדמיניסטרציה': ['view_assets', 'view_crm', 'manage_team'],
     'הנהלת חשבונות': ['view_financials', 'view_assets', 'view_crm'],
     'מנהל קהילה': ['view_crm', 'view_intelligence'],
     'עובד': ['view_intelligence'],
@@ -37,18 +79,19 @@ async function selectRolePermissionsByName(roleName: string): Promise<Permission
     const name = String(roleName || '').trim();
     if (!name) return null;
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('misrad_roles')
-        .select('permissions')
-        .eq('name', name)
-        .limit(1)
-        .maybeSingle();
-
-    if (error || !data) return null;
-
-    const perms = (data as any)?.permissions;
-    return Array.isArray(perms) ? (perms as PermissionId[]) : null;
+    try {
+        const row = await prisma.scale_roles.findUnique({
+            where: { name },
+            select: { permissions: true },
+        });
+        if (!row) return null;
+        const permsValue = row.permissions;
+        if (!Array.isArray(permsValue)) return null;
+        const perms = permsValue.filter((p): p is PermissionId => typeof p === 'string') as PermissionId[];
+        return perms;
+    } catch {
+        return null;
+    }
 }
 
 async function selectTenants(filters?: {
@@ -57,34 +100,36 @@ async function selectTenants(filters?: {
     ownerEmail?: string;
     subdomain?: string;
 }): Promise<Tenant[]> {
-    const supabase = createClient();
+    try {
+        const where: Prisma.NexusTenantWhereInput = {};
+        if (filters?.tenantId) where.id = String(filters.tenantId);
+        if (filters?.status) where.status = String(filters.status);
+        if (filters?.ownerEmail) where.ownerEmail = String(filters.ownerEmail);
+        if (filters?.subdomain) where.subdomain = String(filters.subdomain);
 
-    let query = supabase.from('nexus_tenants').select('*');
-    if (filters?.tenantId) query = query.eq('id', filters.tenantId);
-    if (filters?.status) query = query.eq('status', filters.status);
-    if (filters?.ownerEmail) query = query.eq('owner_email', filters.ownerEmail);
-    if (filters?.subdomain) query = query.eq('subdomain', filters.subdomain);
-
-    const { data, error } = await query;
-    if (error) return [];
-
-    return (Array.isArray(data) ? data : []).map((row: any) => ({
-        id: row.id,
-        name: row.name,
-        ownerEmail: row.owner_email,
-        subdomain: row.subdomain,
-        plan: row.plan,
-        status: row.status,
-        joinedAt: row.joined_at,
-        mrr: row.mrr || 0,
-        usersCount: row.users_count || 0,
-        logo: row.logo,
-        modules: row.modules || [],
-        region: row.region,
-        version: row.version,
-        allowedEmails: row.allowed_emails || [],
-        requireApproval: row.require_approval || false,
-    })) as Tenant[];
+        const data = await prisma.nexusTenant.findMany({ where });
+        return (Array.isArray(data) ? data : []).map((row): Tenant => {
+            return {
+                id: String(row.id ?? ''),
+                name: String(row.name ?? ''),
+                ownerEmail: String(row.ownerEmail ?? ''),
+                subdomain: String(row.subdomain ?? ''),
+                plan: String(row.plan ?? ''),
+                status: toTenantStatus(row.status),
+                joinedAt: row.joinedAt instanceof Date ? row.joinedAt.toISOString() : String(row.joinedAt ?? ''),
+                mrr: (row.mrr?.toNumber?.() ?? Number(row.mrr ?? 0)) || 0,
+                usersCount: row.usersCount ?? 0,
+                logo: row.logo == null ? '' : String(row.logo),
+                modules: toModuleIds(row.modules),
+                region: toTenantRegion(row.region),
+                version: row.version == null ? undefined : String(row.version),
+                allowedEmails: Array.isArray(row.allowedEmails) ? row.allowedEmails : [],
+                requireApproval: Boolean(row.requireApproval ?? false),
+            };
+        });
+    } catch {
+        return [];
+    }
 }
 
 /**
@@ -99,7 +144,7 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
         }
     } catch (error) {
         console.warn('[Auth] Could not fetch role from database, using fallback:', {
-            message: (error as any)?.message
+            message: getErrorMessage(error)
         });
     }
     
@@ -127,6 +172,9 @@ export async function getAuthenticatedUser() {
             throw new Error('Unauthorized - User not found');
         }
         
+        const rawRole = user.publicMetadata?.role;
+        const role = typeof rawRole === 'string' && rawRole.trim() ? rawRole : 'עובד';
+
         return {
             id: userId,
             email: user.emailAddresses[0]?.emailAddress,
@@ -134,19 +182,20 @@ export async function getAuthenticatedUser() {
             lastName: user.lastName,
             imageUrl: user.imageUrl,
             // Get role from metadata (you'll need to set this in Clerk)
-            role: user.publicMetadata?.role as string || 'עובד',
+            role,
             isSuperAdmin: user.publicMetadata?.isSuperAdmin === true
         };
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
         console.error('[Auth] Error in getAuthenticatedUser:', {
-            message: error?.message,
-            name: error?.name
+            message,
+            name: error instanceof Error ? error.name : undefined,
         });
         // Re-throw with clearer message
-        if (error.message?.includes('Unauthorized')) {
-            throw error;
+        if (message.includes('Unauthorized')) {
+            throw error instanceof Error ? error : new Error(message);
         }
-        throw new Error(`Unauthorized - ${error.message || 'Authentication failed'}`);
+        throw new Error(`Unauthorized - ${message || 'Authentication failed'}`);
     }
 }
 
@@ -168,31 +217,26 @@ export async function hasPermission(permission: PermissionId): Promise<boolean> 
         if (user.isSuperAdmin) {
             return true;
         }
-        
-        // Tenant owners/admins have admin permissions within their tenant
-        // They can manage their organization (add team members, manage clients, etc.)
-        // BUT they cannot manage the system itself (that's only for Super Admin)
-        const tenantAdmin = await isTenantAdmin();
-        
-        // Tenant admins have most permissions, except system management
-        if (tenantAdmin) {
-            // Tenant admins can do everything EXCEPT system management
-            // System management (manage_system) is ONLY for Super Admin
-            if (permission === 'manage_system') {
-                return false; // Only Super Admin can manage system
-            }
-            // All other permissions are allowed for tenant admins
-            return true;
+
+        // System management is ONLY for Super Admin
+        if (permission === 'manage_system') {
+            return false;
         }
         
-        // Regular team members: permissions based on their role.
-        // Tenant isolation: we do not perform cross-tenant DB lookups here.
-        const rolePermissions = await getRolePermissions(user.role);
+        // Tenant owners/admins do NOT get blanket permissions.
+        // Instead, they are evaluated using role permissions (DB or fallback).
+        // If a tenant owner doesn't have an explicit admin role in Clerk metadata,
+        // treat them as CEO for permission evaluation.
+        const tenantAdmin = await isTenantAdmin();
+        const roleForPermissions = tenantAdmin && !isTenantAdminRole(user.role) ? ROLE_CEO : user.role;
+
+        // Permissions are based on the user's effective role.
+        const rolePermissions = await getRolePermissions(roleForPermissions);
         return rolePermissions.includes(permission);
     } catch (error) {
         console.error('[Auth] Permission check failed:', {
-            message: (error as any)?.message,
-            name: (error as any)?.name
+            message: getErrorMessage(error),
+            name: error instanceof Error ? error.name : undefined,
         });
         return false;
     }
@@ -343,31 +387,7 @@ export async function canAccessResource(
     if (!organizationId) {
         throw new Error('Forbidden - Missing organization scope');
     }
-
-    const supabase = createClient();
-
-    const ensureExistsInOrg = async (table: string): Promise<boolean> => {
-        const res = await supabase
-            .from(table)
-            .select('id')
-            .eq('id', resourceId)
-            .eq('organization_id', organizationId)
-            .limit(1)
-            .maybeSingle();
-
-        const error = (res as any)?.error;
-        if ((error as any)?.code === '42703') {
-            return false;
-        }
-        if (error) {
-            return false;
-        }
-        return Boolean((res as any)?.data?.id);
-    };
     
-    // Tenant owners have admin permissions within their tenant
-    const tenantAdmin = await isTenantAdmin();
-
     // Implement resource-specific checks here
     // For example: users can only see their own tasks unless they're managers
     switch (resourceType) {
@@ -376,18 +396,20 @@ export async function canAccessResource(
             if (action === 'read') {
                 const hasCrmAccess = await hasPermission('view_crm');
                 if (!hasCrmAccess) return false;
-                if (tenantAdmin) {
-                    return await ensureExistsInOrg('nexus_tasks');
-                }
-                return await ensureExistsInOrg('nexus_tasks');
+                const row = await prisma.nexusTask.findFirst({
+                    where: { id: String(resourceId), organizationId: String(organizationId) },
+                    select: { id: true },
+                });
+                return Boolean(row?.id);
             }
             if (action === 'write') {
                 const hasCrmAccess = await hasPermission('view_crm');
                 if (!hasCrmAccess) return false;
-                if (tenantAdmin) {
-                    return await ensureExistsInOrg('nexus_tasks');
-                }
-                return await ensureExistsInOrg('nexus_tasks');
+                const row = await prisma.nexusTask.findFirst({
+                    where: { id: String(resourceId), organizationId: String(organizationId) },
+                    select: { id: true },
+                });
+                return Boolean(row?.id);
             }
             break;
         case 'user':
@@ -396,31 +418,42 @@ export async function canAccessResource(
                 if (resourceId === user.id) return true;
                 const canManage = await hasPermission('manage_team');
                 if (!canManage) return false;
-                if (tenantAdmin) {
-                    return await ensureExistsInOrg('nexus_users');
-                }
-                return await ensureExistsInOrg('nexus_users');
+
+                // Support both IDs: clerk user id (profiles) and nexus user id (uuid)
+                const byClerk = await prisma.profile.findFirst({
+                    where: { organizationId: String(organizationId), clerkUserId: String(resourceId) },
+                    select: { id: true },
+                });
+                if (byClerk?.id) return true;
+
+                const byNexusId = await prisma.nexusUser.findFirst({
+                    where: { id: String(resourceId), organizationId: String(organizationId) },
+                    select: { id: true },
+                });
+                return Boolean(byNexusId?.id);
             }
             break;
         case 'client':
             {
                 const canView = await hasPermission('view_crm');
                 if (!canView) return false;
-                if (tenantAdmin) {
-                    return await ensureExistsInOrg('nexus_clients');
-                }
-                return await ensureExistsInOrg('nexus_clients');
+                const row = await prisma.nexusClient.findFirst({
+                    where: { id: String(resourceId), organizationId: String(organizationId) },
+                    select: { id: true },
+                });
+                return Boolean(row?.id);
             }
         case 'asset':
             {
                 const canView = await hasPermission('view_assets');
                 if (!canView) return false;
-                const candidateTables = ['nexus_assets', 'misrad_client_assets'];
-                for (const table of candidateTables) {
-                    const ok = await ensureExistsInOrg(table);
-                    if (ok) return true;
-                }
-                return false;
+
+                // nexus_assets is not modeled in Prisma in this repo; check the modeled assets table.
+                const assetRow = await prisma.misradClientAsset.findFirst({
+                    where: { id: String(resourceId), organization_id: String(organizationId) },
+                    select: { id: true },
+                });
+                return Boolean(assetRow?.id);
             }
     }
     
@@ -430,7 +463,7 @@ export async function canAccessResource(
 /**
  * Filter sensitive data based on user permissions
  */
-export async function filterSensitiveData<T extends Record<string, any>>(
+export async function filterSensitiveData<T extends Record<string, unknown>>(
     data: T,
     dataType: 'user' | 'financial' | 'task'
 ): Promise<Partial<T>> {

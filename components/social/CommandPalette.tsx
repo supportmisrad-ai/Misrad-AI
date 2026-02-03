@@ -182,8 +182,8 @@ export default function CommandPalette() {
             dir="rtl"
           >
              {/* Header */}
-             <div className="p-6 border-b flex items-center gap-4 bg-gradient-to-l from-blue-50 to-white">
-               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isChatMode ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
+             <div className="p-6 border-b flex items-center gap-4 bg-gradient-to-l from-indigo-50 to-white">
+               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isChatMode ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-100 text-slate-500'}`}>
                  {isChatMode ? <MessageSquare size={24} /> : <Search size={24} />}
                </div>
                {!isChatMode ? (
@@ -207,7 +207,7 @@ export default function CommandPalette() {
                        setIsChatMode(true);
                        setQuery('');
                      }}
-                     className="px-4 py-2 bg-blue-600 text-white rounded-xl font-black text-sm hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-lg"
+                     className="px-4 py-2 bg-purple-600 text-white rounded-xl font-black text-sm hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-lg"
                      title="הפעל מצב צ'אט AI"
                    >
                      <Sparkles size={16} />
@@ -255,10 +255,10 @@ export default function CommandPalette() {
                           setChatInput('');
                           setQuery('');
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-blue-200/70 hover:text-slate-900 transition-all"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-purple-200/70 hover:text-slate-900 transition-all"
                         disabled={isLoading}
                       >
-                        <Sparkles size={14} className="text-blue-600" />
+                        <Sparkles size={14} className="text-purple-600" />
                         {s.text}
                       </button>
                     ))}
@@ -271,7 +271,7 @@ export default function CommandPalette() {
                       className="flex-1 flex items-center justify-center"
                     >
                       <div className="text-center max-w-md">
-                        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
+                        <div className="w-20 h-20 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-purple-500/20">
                           <Sparkles size={36} className="text-white" />
                         </div>
                         <p className="text-2xl font-black text-slate-800 mb-3">איך אוכל לעזור לך?</p>
@@ -291,7 +291,7 @@ export default function CommandPalette() {
                       }`}
                     >
                       {message.role === 'assistant' && (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
                           <Sparkles size={16} className="text-white" />
                         </div>
                       )}
@@ -299,7 +299,7 @@ export default function CommandPalette() {
                       <div
                         className={`relative px-5 py-4 rounded-3xl max-w-[80%] shadow-lg leading-relaxed transition-all duration-200 ${
                           message.role === 'user'
-                            ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-md shadow-blue-500/30'
+                            ? 'bg-gradient-to-br from-purple-600 to-purple-700 text-white rounded-tr-md shadow-purple-500/30'
                             : 'bg-white text-slate-800 rounded-tl-md shadow-slate-200/50 border border-slate-100'
                         }`}
                       >
@@ -308,8 +308,8 @@ export default function CommandPalette() {
                         </div>
                         {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
                           <div className="mt-3 space-y-2">
-                            <Skeleton className="h-3 w-40 rounded-xl bg-blue-200/60" />
-                            <Skeleton className="h-3 w-52 rounded-xl bg-blue-200/60" />
+                            <Skeleton className="h-3 w-40 rounded-xl bg-purple-200/60" />
+                            <Skeleton className="h-3 w-52 rounded-xl bg-purple-200/60" />
                           </div>
                         )}
 
@@ -332,7 +332,7 @@ export default function CommandPalette() {
                       animate={{ opacity: 1, y: 0 }}
                       className="flex items-end gap-3 flex-row"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg">
                         <Sparkles size={16} className="text-white" />
                       </div>
                       <div className="bg-white px-5 py-4 rounded-3xl rounded-tl-md shadow-lg shadow-slate-200/50 border border-slate-100">
@@ -362,10 +362,10 @@ export default function CommandPalette() {
                               setQuery('');
                               sendText(s.text);
                             }}
-                            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-blue-200/70 hover:text-slate-900 transition-all"
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/90 border border-slate-200/60 text-slate-700 text-xs font-black hover:bg-white hover:border-purple-200/70 hover:text-slate-900 transition-all"
                             disabled={isLoading}
                           >
-                            <Sparkles size={14} className="text-blue-600" />
+                            <Sparkles size={14} className="text-purple-600" />
                             {s.text}
                           </button>
                         ))}
@@ -381,7 +381,7 @@ export default function CommandPalette() {
                           <button 
                             key={c.id} 
                             onClick={() => handleSelectClient(c.id)} 
-                            className="w-full p-5 flex items-center gap-6 hover:bg-blue-50 rounded-3xl transition-all text-right group"
+                            className="w-full p-5 flex items-center gap-6 hover:bg-purple-50 rounded-3xl transition-all text-right group"
                           >
                             <Avatar
                               src={String(c.avatar || '')}
@@ -392,7 +392,7 @@ export default function CommandPalette() {
                               className="shadow-md"
                             />
                             <span className="font-black text-lg flex-1 text-slate-700">{c.companyName}</span>
-                            <span className="text-xs font-black text-blue-600 opacity-0 group-hover:opacity-100 flex items-center gap-2">
+                            <span className="text-xs font-black text-purple-600 opacity-0 group-hover:opacity-100 flex items-center gap-2">
                               ניהול לקוח <ArrowLeft size={16}/>
                             </span>
                           </button>
@@ -412,7 +412,7 @@ export default function CommandPalette() {
                           }} 
                           className="flex items-center gap-6 p-5 hover:bg-slate-50 rounded-3xl transition-all text-right group"
                         >
-                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-purple-600 group-hover:text-white transition-all">
                             <cmd.icon size={22}/>
                           </div>
                           <span className="font-black text-lg text-slate-700">{cmd.label}</span>
@@ -429,7 +429,7 @@ export default function CommandPalette() {
                         <p className="text-sm text-slate-400 mb-4">נסה לשאול אותי משהו במקום</p>
                         <button
                           onClick={() => setIsChatMode(true)}
-                          className="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+                          className="px-6 py-3 bg-purple-600 text-white rounded-2xl font-black hover:bg-purple-700 transition-colors flex items-center gap-2 mx-auto"
                         >
                           <Sparkles size={18} />
                           שאל את ה-AI
@@ -449,7 +449,7 @@ export default function CommandPalette() {
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       placeholder="שאל אותי משהו..."
-                      className="w-full bg-slate-100 rounded-2xl px-5 py-4 pr-14 font-semibold text-[15px] outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white transition-all duration-200 placeholder:text-slate-400 border border-transparent focus:border-blue-200"
+                      className="w-full bg-slate-100 rounded-2xl px-5 py-4 pr-14 font-semibold text-[15px] outline-none focus:ring-2 focus:ring-purple-500/40 focus:bg-white transition-all duration-200 placeholder:text-slate-400 border border-transparent focus:border-purple-200"
                       disabled={isLoading}
                       autoFocus
                     />
@@ -457,7 +457,7 @@ export default function CommandPalette() {
                   <button
                     type="submit"
                     disabled={isLoading || !chatInput.trim()}
-                    className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:from-blue-700 hover:to-blue-800 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40"
+                    className="w-14 h-14 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40"
                   >
                     {isLoading ? (
                       <span className="text-sm font-black">...</span>
@@ -483,13 +483,13 @@ export default function CommandPalette() {
                   </>
                 )}
                 {isChatMode && (
-                  <span className="flex items-center gap-2 text-blue-600">
+                  <span className="flex items-center gap-2 text-purple-600">
                     <Sparkles size={12} />
                     מצב צ'אט פעיל
                   </span>
                 )}
               </div>
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Social Search v1.3</p>
+              <p className="text-[10px] font-black text-purple-600 uppercase tracking-widest">Social Search v1.3</p>
             </div>
           </motion.div>
         </div>

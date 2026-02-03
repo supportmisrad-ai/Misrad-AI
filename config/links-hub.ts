@@ -40,7 +40,7 @@ export const LINKS_HUB: HubLink[] = [
   { id: 'legal-privacy', title: 'מדיניות פרטיות', href: '/legal/privacy', category: 'משפטי' },
 
   { id: 'auth-login', title: 'Login', href: '/login', category: 'Auth' },
-  { id: 'auth-signup', title: 'Sign Up', href: '/sign-up', category: 'Auth' },
+  { id: 'auth-signup', title: 'Sign Up', href: '/login?mode=sign-up', category: 'Auth' },
 
   { id: 'support-home', title: 'מרכז הידע (תמיכה)', href: '/support', category: 'תמיכה והדרכה' },
   { id: 'support-form', title: 'טופס תמיכה', href: '/support', category: 'תמיכה והדרכה' },

@@ -32,7 +32,8 @@ export async function enqueueEmployeeInviteEmail(job: EmployeeInviteEmailJob): P
   try {
     await redis.lpush(QUEUE_KEY, JSON.stringify(payload));
     return { queued: true };
-  } catch (e: any) {
-    return { queued: false, error: e?.message || 'Failed to enqueue' };
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '';
+    return { queued: false, error: message || 'Failed to enqueue' };
   }
 }

@@ -68,7 +68,7 @@ export default function AdminSupportSettingsPage() {
       <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-5 max-w-2xl">
         <label className="block text-xs font-black text-slate-500 uppercase tracking-widest">קישור להצטרפות לקבוצת הוואטסאפ</label>
         <div className="text-xs font-bold text-slate-400 mt-2">
-          הקישור יוצג בחלון התמיכה למשתמשים (כפתור "הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ").
+          הקישור יוצג בחלון התמיכה למשתמשים (כפתור &quot;הצטרפות לקבוצת תמיכה ועדכונים בוואטסאפ&quot;).
         </div>
 
         <Input

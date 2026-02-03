@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isSuperAdmin: boolean;
   isTenantAdmin: boolean;
+  organizationId: string | null;
   tenantId: string | null;
 }
 
@@ -59,7 +60,11 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
   const isLoading = !isClerkLoaded || nexusAuth.isLoadingCurrentUser;
   const isSuperAdmin = Boolean(nexusAuth.currentUser?.isSuperAdmin);
   const isTenantAdmin = Boolean(nexusAuth.currentUser?.isTenantAdmin);
-  const tenantId = (nexusAuth.currentUser?.tenantId as string | null) ?? null;
+  const organizationId =
+    (nexusAuth.currentUser?.organizationId as string | null) ??
+    (nexusAuth.currentUser?.tenantId as string | null) ??
+    null;
+  const tenantId = organizationId;
 
   const login = (role: UserRole) => {
     // In real auth, login is handled by Clerk
@@ -105,6 +110,7 @@ export const AuthProvider: React.FC<{ children: ReactNode; initialCurrentUser?: 
       isLoading,
       isSuperAdmin,
       isTenantAdmin,
+      organizationId,
       tenantId
     }}>
       {children}

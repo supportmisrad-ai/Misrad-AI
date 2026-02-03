@@ -49,7 +49,7 @@ export default function SystemOSLandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
               <button
-                onClick={() => router.push('/sign-up')}
+                onClick={() => router.push('/pricing')}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
               >
                 התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
@@ -360,7 +360,7 @@ export default function SystemOSLandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => router.push('/sign-up')}
+              onClick={() => router.push('/pricing')}
               className="px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105"
             >
               התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={20} className="rotate-180" />

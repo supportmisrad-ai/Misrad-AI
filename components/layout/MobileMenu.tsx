@@ -6,6 +6,7 @@ import { Mic, PenTool, Sun, Settings, Headphones, Sparkles, Home, CheckSquare, P
 import { NAV_ITEMS, getMobileGridStyles } from './layout.types';
 import OSAppSwitcher from '../shared/OSAppSwitcher';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
+import { PermissionId } from '@/types';
 
 interface MobileMenuProps {
   isPlusMenuOpen: boolean;
@@ -19,7 +20,7 @@ interface MobileMenuProps {
   toggleMobileMenu: () => void;
   filteredNavItems: typeof NAV_ITEMS;
   isActive: (path: string) => boolean;
-  hasPermission: (permission: string) => boolean;
+  hasPermission: (permission: PermissionId) => boolean;
   organization: {
     enabledModules: string[];
     systemFlags?: Record<string, string>;
@@ -29,6 +30,7 @@ interface MobileMenuProps {
   openSupport: () => void;
   startTutorial: () => void;
   navigate: (path: string, options?: any) => void;
+  plusGradient?: string;
 }
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({
@@ -50,6 +52,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   openSupport,
   startTutorial,
   navigate,
+  plusGradient,
 }) => {
   return (
     <>
@@ -277,6 +280,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
         onPlusClickAction={togglePlusMenu}
         plusAriaLabel={isPlusMenuOpen ? 'סגור תפריט' : 'פתח תפריט'}
         plusActive={isPlusMenuOpen}
+        plusGradient={plusGradient}
       />
     </>
   );

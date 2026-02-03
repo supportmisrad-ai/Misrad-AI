@@ -995,7 +995,7 @@ export const SaaSAdminView: React.FC = () => {
                                                         ) : (
                                                             socialTenantOptions.map((t: any) => (
                                                                 <option key={t.id} value={String(t.id)}>
-                                                                    {t.name || t.slug || t.id}
+                                                                    {t.name || t.subdomain || t.id}
                                                                 </option>
                                                             ))
                                                         )}
@@ -1012,7 +1012,7 @@ export const SaaSAdminView: React.FC = () => {
                                                             <h2 className="text-lg font-black text-slate-900 mb-1">סטטוס כללי</h2>
                                                             <p className="text-sm text-slate-600">
                                                                 {selectedSocialTenant
-                                                                    ? `טננט נבחר: ${selectedSocialTenant.name || selectedSocialTenant.slug || selectedSocialTenant.id}`
+                                                                    ? `טננט נבחר: ${selectedSocialTenant.name || selectedSocialTenant.subdomain || selectedSocialTenant.id}`
                                                                     : 'בחר טננט כדי לצפות בנתונים'}
                                                             </p>
                                                         </div>

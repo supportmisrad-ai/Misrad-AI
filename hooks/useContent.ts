@@ -1,15 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { ContentItem, ContentStage, PlatformDefinition } from '../types';
+import { ContentItem, ContentStage, Notification, PlatformDefinition, Toast, User } from '../types';
 import { DEFAULT_CONTENT_STAGES, DEFAULT_PLATFORMS } from '../constants';
 import { isCeoRole } from '@/lib/constants/roles';
 
+type ToastKind = Toast['type'];
+type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
+
 export const useContent = (
-    currentUser: any,
-    addNotification: (n: any) => void,
-    addToast: (m: string, t?: any) => void,
-    users: any[]
+    currentUser: User,
+    addNotification: (n: NotificationInput) => void,
+    addToast: (m: string, t?: ToastKind) => void,
+    users: User[]
 ) => {
     const [contentItems, setContentItems] = useState<ContentItem[]>([]);
     const [contentStages, setContentStages] = useState<ContentStage[]>(DEFAULT_CONTENT_STAGES);

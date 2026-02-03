@@ -21,26 +21,36 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [usePasskey, setUsePasskey] = useState(false);
   const [isPasskeySupported, setIsPasskeySupported] = useState(false);
+  const [step, setStep] = useState<'form' | 'verify'>('form');
 
   // Check if Passkeys/WebAuthn is supported
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const urlEmail = sp.get('email') || '';
+      if (urlEmail && !email) {
+        setEmail(String(urlEmail));
+      }
+
       setIsPasskeySupported(
         typeof window.PublicKeyCredential !== 'undefined' &&
         typeof navigator.credentials !== 'undefined' &&
         typeof navigator.credentials.create !== 'undefined'
       );
     }
-  }, []);
+  }, [email]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setIsLoading(true);
 
     if (!signInLoaded) {
@@ -56,7 +66,9 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       });
 
       if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
+        if (typeof setActive === 'function') {
+          await setActive({ session: result.createdSessionId });
+        }
         if (onSuccess) {
           onSuccess();
         } else {
@@ -77,6 +89,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
   const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     setIsLoading(true);
 
     if (!signUpLoaded) {
@@ -86,19 +99,78 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     }
 
     try {
+      const normalizedEmail = String(email || '').trim().toLowerCase();
       const result = await signUp.create({
-        emailAddress: email,
+        emailAddress: normalizedEmail,
         password: password,
       });
 
-      // Send verification email
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      if ((result as any)?.status === 'complete') {
+        const sessionId = (result as any)?.createdSessionId;
+        if (sessionId) {
+          if (typeof setActive === 'function') {
+            await setActive({ session: sessionId });
+          }
+        }
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push('/');
+        }
+        return;
+      }
 
-      // For now, we'll just show success - in production you'd show a code input
-      setError('נא לבדוק את האימייל שלך לאימות');
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setStep('verify');
+      setInfo('שלחנו קוד אימות לאימייל. הזן את הקוד כדי להשלים הרשמה.');
     } catch (err: any) {
       console.error('Sign up error:', err);
       const errorMsg = err.errors?.[0]?.message || 'שגיאה בהרשמה. נסה שוב.';
+      setError(translateClerkError(errorMsg));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyEmailCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setInfo('');
+    setIsLoading(true);
+
+    if (!signUpLoaded || !signUp) {
+      setError('מערכת ההרשמה עדיין לא מוכנה');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const code = String(verificationCode || '').trim();
+      if (!code) {
+        setError('נא להזין קוד אימות');
+        return;
+      }
+
+      const result = await signUp.attemptEmailAddressVerification({ code });
+      if ((result as any)?.status === 'complete') {
+        const sessionId = (result as any)?.createdSessionId;
+        if (sessionId) {
+          if (typeof setActive === 'function') {
+            await setActive({ session: sessionId });
+          }
+        }
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.push('/');
+        }
+        return;
+      }
+
+      setError('האימות לא הושלם. בדוק את הקוד ונסה שוב.');
+    } catch (err: any) {
+      console.error('Email verification error:', err);
+      const errorMsg = err.errors?.[0]?.message || 'שגיאה באימות האימייל. נסה שוב.';
       setError(translateClerkError(errorMsg));
     } finally {
       setIsLoading(false);
@@ -191,7 +263,12 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
   return (
     <div className="w-full max-w-md" dir="rtl">
-      <form onSubmit={isSignIn ? handleEmailSignIn : handleEmailSignUp} className="flex flex-col gap-6">
+      <form
+        onSubmit={
+          isSignIn ? handleEmailSignIn : step === 'verify' ? handleVerifyEmailCode : handleEmailSignUp
+        }
+        className="flex flex-col gap-6"
+      >
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -199,6 +276,16 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-bold"
           >
             {error}
+          </motion.div>
+        )}
+
+        {info && !error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl text-sm font-bold"
+          >
+            {info}
           </motion.div>
         )}
 
@@ -214,6 +301,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               required
+              disabled={!isSignIn && step === 'verify'}
               className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-12 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-right"
             />
           </div>
@@ -232,6 +320,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                disabled={!isSignIn && step === 'verify'}
                 className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-12 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-right"
               />
               <button
@@ -240,6 +329,56 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isSignIn && step === 'verify' && (
+          <div className="flex flex-col gap-3">
+            <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">
+              קוד אימות
+            </label>
+            <input
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+              placeholder="123456"
+              inputMode="numeric"
+              className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-5 py-4 text-lg font-bold outline-none focus:ring-4 ring-blue-50 transition-all text-center"
+            />
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={async () => {
+                  try {
+                    setError('');
+                    setInfo('');
+                    if (!signUpLoaded || !signUp) return;
+                    await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+                    setInfo('שלחנו קוד חדש לאימייל.');
+                  } catch (err: any) {
+                    const errorMsg = err.errors?.[0]?.message || 'שגיאה בשליחת קוד. נסה שוב.';
+                    setError(translateClerkError(errorMsg));
+                  }
+                }}
+                className="text-sm font-black text-blue-700 hover:text-blue-800 underline disabled:opacity-50"
+              >
+                שלח קוד מחדש
+              </button>
+
+              <button
+                type="button"
+                disabled={isLoading}
+                onClick={() => {
+                  setError('');
+                  setInfo('');
+                  setVerificationCode('');
+                  setStep('form');
+                }}
+                className="text-sm font-black text-slate-600 hover:text-slate-900 underline disabled:opacity-50"
+              >
+                חזרה
               </button>
             </div>
           </div>
@@ -283,14 +422,19 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
         <button
           type="submit"
-          disabled={isLoading || !email || (!usePasskey && !password)}
+          disabled={
+            isLoading ||
+            !email ||
+            (!usePasskey && !password) ||
+            (!isSignIn && step === 'verify' && !verificationCode)
+          }
           className="w-full bg-slate-900 text-white px-8 py-5 rounded-[24px] font-black text-lg shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <>{isSignIn ? 'מתחבר...' : 'נרשם...'}</>
+            <>{isSignIn ? 'מתחבר...' : step === 'verify' ? 'מאמת...' : 'נרשם...'}</>
           ) : (
             <>
-              {isSignIn ? 'התחבר' : 'הירשם'}
+              {isSignIn ? 'התחבר' : step === 'verify' ? 'אמת קוד' : 'הירשם'}
               <ArrowRight size={20} />
             </>
           )}
@@ -304,7 +448,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             <button
               onClick={() => {
                 // Clerk's password reset
-                router.push('/sign-in#/forgot-password');
+                router.push(`/reset-password${email ? `?email=${encodeURIComponent(email)}` : ''}`);
               }}
               className="text-blue-600 hover:text-blue-700 font-black underline"
             >

@@ -83,7 +83,7 @@ export default function NexusHeader({
         <button
           id="command-search-btn"
           onClick={() => openCommandPalette?.()}
-          className="p-2 rounded-full hover:bg-white/50 text-gray-600 transition-colors"
+          className="w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-white/50 text-gray-600 transition-colors"
           title="חיפוש (Cmd+K)"
           type="button"
         >
@@ -93,7 +93,7 @@ export default function NexusHeader({
         {showNotifications ? (
           <button
             id="notification-trigger"
-            className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+            className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
             aria-label="התראות"
             type="button"
           >

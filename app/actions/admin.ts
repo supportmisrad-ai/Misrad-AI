@@ -8,9 +8,16 @@ import { updateClinicClient } from '@/app/actions/client-clinic';
 import { requireSuperAdmin, requireAuditLogAccess } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
-function isMissingOrganizationIdColumnError(err: any): boolean {
-  const message = String(err?.message || '').toLowerCase();
-  const code = String((err as any)?.code || '').toLowerCase();
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function isMissingOrganizationIdColumnError(err: unknown): boolean {
+  const obj = asObject(err) ?? {};
+  const message = String(obj.message || '').toLowerCase();
+  const code = String(obj.code || '').toLowerCase();
   return code === '42703' || (message.includes('column') && message.includes('organization_id'));
 }
 
@@ -30,7 +37,7 @@ export async function getAdminClients(params?: {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -58,10 +65,11 @@ export async function getAdminClients(params?: {
       take: limit,
     });
 
-    const clients: AdminClientLite[] = (data || []).map((row: any) => {
-      const md = row?.metadata ?? {};
-      const companyName = (md.companyName || md.name || row.fullName || '').toString();
-      const email = (md.email || row.email || null) as string | null;
+    const clients: AdminClientLite[] = (data || []).map((row) => {
+      const md = asObject(row.metadata) ?? {};
+      const companyName = String(md.companyName || md.name || row.fullName || '');
+      const emailRaw = md.email ?? row.email ?? null;
+      const email = typeof emailRaw === 'string' ? emailRaw : emailRaw == null ? null : String(emailRaw);
       return {
         id: String(row.id),
         organizationId: row.organizationId ? String(row.organizationId) : null,
@@ -81,7 +89,11 @@ export async function getAdminClients(params?: {
 /**
  * Get global system metrics with trends
  */
-export async function getSystemMetrics(): Promise<{ success: boolean; data?: GlobalSystemMetrics & { trends?: any }; error?: string }> {
+export async function getSystemMetrics(): Promise<{
+  success: boolean;
+  data?: GlobalSystemMetrics & { trends?: { mrr: string; subscriptions: number; overdue: string } };
+  error?: string;
+}> {
   try {
     await requireSuperAdmin();
 
@@ -132,7 +144,7 @@ export async function getSystemMetrics(): Promise<{ success: boolean; data?: Glo
 
     const newClientsThisMonth = agg?.new_clients_this_month == null ? 0 : Number(agg.new_clients_this_month);
 
-    const metrics: GlobalSystemMetrics & { trends?: any } = {
+    const metrics: GlobalSystemMetrics & { trends?: { mrr: string; subscriptions: number; overdue: string } } = {
       totalMRR: currentMRR,
       activeSubscriptions,
       overdueInvoicesCount,
@@ -162,7 +174,7 @@ export async function updateClientStatus(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -176,10 +188,11 @@ export async function updateClientStatus(
       return createErrorResponse(new Error('Client not found'), 'שגיאה בעדכון סטטוס לקוח');
     }
 
-    const nextMetadata = { ...(clientRow as any).metadata, status };
+    const md = asObject(clientRow.metadata) ?? {};
+    const nextMetadata = { ...md, status };
     await updateClinicClient({
-      orgId: String((clientRow as any).organizationId),
-      clientId: String((clientRow as any).id),
+      orgId: String(clientRow.organizationId || ''),
+      clientId: String(clientRow.id),
       updates: { metadata: nextMetadata },
     });
 
@@ -199,7 +212,7 @@ export async function toggleClientAccess(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -215,10 +228,11 @@ export async function toggleClientAccess(
       return createErrorResponse(new Error('Client not found'), 'שגיאה בחסימת/שחרור לקוח');
     }
 
-    const nextMetadata = { ...(clientRow as any).metadata, status };
+    const md = asObject(clientRow.metadata) ?? {};
+    const nextMetadata = { ...md, status };
     await updateClinicClient({
-      orgId: String((clientRow as any).organizationId),
-      clientId: String((clientRow as any).id),
+      orgId: String(clientRow.organizationId || ''),
+      clientId: String(clientRow.id),
       updates: { metadata: nextMetadata },
     });
 
@@ -235,7 +249,7 @@ export async function refreshSystemData(): Promise<{ success: boolean; error?: s
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -309,11 +323,13 @@ async function measureLatency(url: string): Promise<number> {
   }
 }
 
-export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+type ApiHealthStatusRow = { name: string; status: string; latency: string };
+
+export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: ApiHealthStatusRow[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -336,7 +352,7 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: a
       return `${ms}ms`;
     };
 
-    const healthStatus = [
+    const healthStatus: ApiHealthStatusRow[] = [
       {
         name: 'ממשק מטא (פייסבוק/אינסטגרם)',
         status: integrations?.find(i => i.name === 'facebook')?.is_connected ? 'תקין' : 'לא מחובר',
@@ -376,11 +392,11 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: a
 export async function getSecurityAuditLog(params?: {
   limit?: number;
   offset?: number;
-}): Promise<{ success: boolean; data?: any[]; error?: string }> {
+}): Promise<{ success: boolean; data?: Array<{ action: string; user: string; time: string; timestamp: string | null }>; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireAuditLogAccess();
@@ -394,8 +410,8 @@ export async function getSecurityAuditLog(params?: {
       take: Math.min(limit, 20),
     });
 
-    const fallbackLogs = (syncLogs || []).map((log: any) => ({
-      action: `סנכרון ${log.integration_name || 'מערכת'}`,
+    const fallbackLogs = (syncLogs || []).map((log) => ({
+      action: `סנכרון ${String(log.integration_name || 'מערכת')}`,
       user: 'מערכת',
       time: log.completed_at ? new Date(log.completed_at).toLocaleString('he-IL') : '',
       timestamp: log.completed_at ? new Date(log.completed_at).toISOString() : null,
@@ -417,7 +433,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -432,7 +448,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
       return createErrorResponse(new Error('Client not found'), 'לקוח לא נמצא');
     }
 
-    const organizationId = (client as any)?.organizationId ? String((client as any).organizationId) : '';
+    const organizationId = client.organizationId ? String(client.organizationId) : '';
     if (!organizationId) {
       return createErrorResponse(null, 'Tenant Isolation lockdown: לקוח ללא organization_id לא ניתן להתחזות אליו');
     }
@@ -440,7 +456,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
     // Create impersonation session record
     // Note: in DB schema `token` is required (unique), and in some deployments the table name is `social_impersonation_sessions`.
     const token = randomUUID();
-    let session: any = null;
+    let session: { token: string } | null = null;
     try {
       session = await prisma.social_impersonation_sessions.create({
         data: {
@@ -449,16 +465,17 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
           token,
           expires_at: new Date(Date.now() + 60 * 60 * 1000),
         },
+        select: { token: true },
       });
-    } catch (sessionError: any) {
+    } catch (sessionError: unknown) {
       // If table doesn't exist / RLS / schema mismatch - still allow navigation, but return token for traceability.
       return createSuccessResponse({ impersonationToken: token });
     }
 
     // Log the impersonation action
     try {
-      const displayName =
-        (client as any)?.metadata?.companyName || (client as any)?.metadata?.name || (client as any)?.fullName || 'לקוח';
+      const md = asObject(client.metadata) ?? {};
+      const displayName = md.companyName || md.name || client.fullName || 'לקוח';
       void displayName;
     } catch (logError) {
       // Logging is optional

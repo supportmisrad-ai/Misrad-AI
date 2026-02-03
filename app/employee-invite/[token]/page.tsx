@@ -172,7 +172,7 @@ export default function EmployeeInvitePage() {
                 if (payload?.signupUrl) {
                     window.location.href = payload.signupUrl;
                 } else {
-                    router.push('/sign-up?email=' + encodeURIComponent(formData.email) + '&invited=true&employee=true');
+                    router.push('/login?mode=sign-up&email=' + encodeURIComponent(formData.email) + '&invited=true&employee=true');
                 }
             }, 2000);
 

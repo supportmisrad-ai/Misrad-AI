@@ -4,26 +4,62 @@ import React, { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { LifeBuoy, Send, ArrowRight, MessageCircle } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { getContentByKey } from '@/app/actions/site-content';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function unwrapData(value: unknown): unknown {
+  const obj = asObject(value);
+  const data = obj?.data;
+  if (data && typeof data === 'object') return data;
+  return value;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  if (!obj) return null;
+  const v = obj[key];
+  return typeof v === 'string' ? v : v == null ? null : String(v);
+}
 
 function SupportPageInner() {
   const searchParams = useSearchParams();
   const topic = searchParams?.get('topic') || '';
+
+  let isClerkLoaded = false;
+  let isSignedIn = false;
+  try {
+    const clerk = useUser();
+    isClerkLoaded = clerk.isLoaded;
+    isSignedIn = Boolean(clerk.isSignedIn);
+  } catch {
+    isClerkLoaded = true;
+    isSignedIn = false;
+  }
 
   const [backHref, setBackHref] = useState<string>('/');
   const [orgId, setOrgId] = useState<string | null>(null);
   const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
 
   React.useEffect(() => {
+    if (!isClerkLoaded) return;
+    if (!isSignedIn) return;
+
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch('/api/workspaces', { cache: 'no-store' });
         if (!res.ok) return;
-        const data = await res.json();
-        const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-        const first = Array.isArray((payload as any)?.workspaces) ? (payload as any).workspaces[0] : null;
-        const nextOrgId = first?.slug || first?.id;
+        const raw: unknown = await res.json().catch(() => null);
+        const payload = unwrapData(raw);
+        const payloadObj = asObject(payload);
+        const workspaces = payloadObj?.workspaces;
+        const first = Array.isArray(workspaces) && workspaces.length > 0 ? asObject(workspaces[0]) : null;
+        const nextOrgId = getStringProp(first, 'slug') || getStringProp(first, 'id');
         if (!nextOrgId) return;
         const href = `/w/${encodeURIComponent(String(nextOrgId))}/client`;
         if (!cancelled) setBackHref(href);
@@ -35,7 +71,7 @@ function SupportPageInner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isClerkLoaded, isSignedIn]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -93,7 +129,7 @@ function SupportPageInner() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(orgId ? { 'x-org-id': orgId } : {}),
+          ...(orgId ? { 'x-org-id': encodeURIComponent(String(orgId)) } : {}),
         },
         body: JSON.stringify({
           category,
@@ -103,13 +139,19 @@ function SupportPageInner() {
         }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+      const raw: unknown = await res.json().catch(() => null);
+      const payload = unwrapData(raw);
       if (!res.ok) {
-        throw new Error((data as any)?.error || (payload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
+        const msg =
+          getStringProp(asObject(raw), 'error') ||
+          getStringProp(asObject(payload), 'error') ||
+          'שגיאה ביצירת קריאת תמיכה';
+        throw new Error(msg);
       }
 
-      setSuccessId((payload as any)?.ticket?.id || (payload as any)?.ticket?.ticket_number || 'success');
+      const ticket = asObject(asObject(payload)?.ticket);
+      const id = getStringProp(ticket, 'id') || getStringProp(ticket, 'ticket_number') || 'success';
+      setSuccessId(id);
     } catch (err: any) {
       setError(err?.message || 'שגיאה ביצירת קריאת תמיכה');
     } finally {

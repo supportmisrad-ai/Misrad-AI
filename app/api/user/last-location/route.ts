@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
@@ -7,6 +7,12 @@ import { logAuditEvent } from '@/lib/audit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function getErrorStatus(error: unknown): number {
+  const obj = error && typeof error === 'object' && !Array.isArray(error) ? (error as Record<string, unknown>) : null;
+  const status = obj?.status;
+  return typeof status === 'number' ? status : 403;
+}
 type LastLocationPayload = {
   orgSlug?: string | null;
   module?: OSModuleKey | null;
@@ -15,33 +21,27 @@ type LastLocationPayload = {
 async function safeUpdateLastLocation({
   clerkUserId,
   orgSlug,
-  module,
+  moduleKey,
 }: {
   clerkUserId: string;
   orgSlug: string | null;
-  module: OSModuleKey | null;
+  moduleKey: OSModuleKey | null;
 }) {
-  const supabase = createClient();
-
-  const update: Record<string, any> = {
-    updated_at: new Date().toISOString(),
+  const updateData: Record<string, any> = {
+    updated_at: new Date(),
   };
 
-  if (orgSlug) update.last_org_slug = orgSlug;
-  if (module) update.last_module = module;
+  if (orgSlug) updateData.last_location_org = orgSlug;
+  if (moduleKey) updateData.last_module = moduleKey;
 
-  if (Object.keys(update).length === 1) {
+  if (Object.keys(updateData).length === 1) {
     return;
   }
 
-  const { error } = await supabase
-    .from('social_users')
-    .update(update as any)
-    .eq('clerk_user_id', clerkUserId);
-
-  if (error) {
-    throw error;
-  }
+  await prisma.social_users.update({
+    where: { clerk_user_id: clerkUserId },
+    data: updateData,
+  });
 }
 
 async function GETHandler() {
@@ -50,29 +50,22 @@ async function GETHandler() {
     return apiError('Unauthorized', { status: 401 });
   }
 
-  const supabase = createClient();
-
-  const { data, error } = await supabase
-    .from('social_users')
-    .select('last_org_slug, last_module')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
-
-  if (error) {
-    return apiError(error, { status: 500 });
-  }
+  const data = await prisma.social_users.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { last_location_org: true, last_module: true },
+  });
 
   await logAuditEvent('data.read', 'user.last-location', {
     details: {
       clerkUserId,
-      orgSlug: (data as any)?.last_org_slug ?? null,
-      module: ((data as any)?.last_module as OSModuleKey | null) ?? null,
+      orgSlug: data?.last_location_org ?? null,
+      module: (data?.last_module as OSModuleKey | null) ?? null,
     },
   });
 
   return apiSuccess({
-    orgSlug: (data as any)?.last_org_slug ?? null,
-    module: ((data as any)?.last_module as OSModuleKey | null) ?? null,
+    orgSlug: data?.last_location_org ?? null,
+    module: (data?.last_module as OSModuleKey | null) ?? null,
   });
 }
 
@@ -84,24 +77,24 @@ async function POSTHandler(req: NextRequest) {
 
   const body = (await req.json().catch(() => ({}))) as LastLocationPayload;
   const orgSlug = body?.orgSlug ? String(body.orgSlug) : null;
-  const module = (body?.module ?? null) as OSModuleKey | null;
+  const moduleKey = (body?.module ?? null) as OSModuleKey | null;
 
   if (orgSlug) {
     try {
       await getWorkspaceByOrgKeyOrThrow(orgSlug);
-    } catch (e: any) {
-      return apiError(e, { status: (e as any)?.status || 403 });
+    } catch (e: unknown) {
+      return apiError(e, { status: getErrorStatus(e) });
     }
   }
 
   try {
-    await safeUpdateLastLocation({ clerkUserId, orgSlug, module });
-  } catch (e: any) {
+    await safeUpdateLastLocation({ clerkUserId, orgSlug, moduleKey });
+  } catch (e) {
     return apiError(e, { status: 500, message: 'Failed to persist last location' });
   }
 
   await logAuditEvent('data.write', 'user.last-location', {
-    details: { clerkUserId, orgSlug, module },
+    details: { clerkUserId, orgSlug, moduleKey },
   });
 
   return apiSuccess({ ok: true });

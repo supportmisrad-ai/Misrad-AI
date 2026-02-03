@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -11,19 +11,12 @@ type GlobalBrandingValue = {
 
 async function GETHandler() {
   try {
-    const supabase = createClient();
+    const row = await prisma.social_system_settings.findUnique({
+      where: { key: GLOBAL_BRANDING_KEY },
+      select: { value: true },
+    });
 
-    const { data, error } = await supabase
-      .from('social_system_settings')
-      .select('value')
-      .eq('key', GLOBAL_BRANDING_KEY)
-      .maybeSingle();
-
-    if (error) {
-      return NextResponse.json({ defaultLogoUrl: null }, { status: 200 });
-    }
-
-    const value = (data?.value || {}) as GlobalBrandingValue;
+    const value = (((row as any)?.value || {}) as any) as GlobalBrandingValue;
 
     return NextResponse.json(
       {
@@ -43,25 +36,26 @@ async function PATCHHandler(request: NextRequest) {
     const body = (await request.json().catch(() => null)) as { defaultLogoUrl?: string | null } | null;
     const nextUrl = body?.defaultLogoUrl === null ? null : typeof body?.defaultLogoUrl === 'string' ? body.defaultLogoUrl.trim() : undefined;
 
-    const supabase = createClient();
-
     const value: GlobalBrandingValue = {
       defaultLogoUrl: nextUrl === undefined ? null : nextUrl,
     };
 
-    const { error } = await supabase
-      .from('social_system_settings')
-      .upsert(
-        {
+    try {
+      await prisma.social_system_settings.upsert({
+        where: { key: GLOBAL_BRANDING_KEY },
+        create: {
           key: GLOBAL_BRANDING_KEY,
-          value,
-          updated_at: new Date().toISOString(),
+          value: value as any,
+          updated_at: new Date(),
+          created_at: new Date(),
         } as any,
-        { onConflict: 'key' }
-      );
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+        update: {
+          value: value as any,
+          updated_at: new Date(),
+        } as any,
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, defaultLogoUrl: value.defaultLogoUrl ?? null }, { status: 200 });

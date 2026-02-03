@@ -7,28 +7,37 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : String(error ?? '');
+}
+
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 async function GETHandler(request: NextRequest) {
     try {
@@ -36,7 +45,7 @@ async function GETHandler(request: NextRequest) {
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch {
             return NextResponse.json({
                 connected: false
             });
@@ -50,51 +59,47 @@ async function GETHandler(request: NextRequest) {
             });
         }
 
-        let sb: any;
-        try {
-            sb = createClient();
-        } catch {
-            return NextResponse.json({
-                connected: false
-            });
-        }
-
-        const dbUserId = await selectDbUserId({ supabase: sb, workspaceId: String(workspaceId), email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: String(workspaceId), email: clerkUser.email });
         if (!dbUserId) {
             return NextResponse.json({ connected: false });
         }
 
-        // 3. Check if integration exists
-        let query = sb
-            .from('misrad_integrations')
-            .select('id, is_active, last_synced_at, metadata')
-            .eq('user_id', dbUserId)
-            .eq('organization_id', workspaceId)
-            .eq('service_type', 'green_invoice')
-            .eq('is_active', true);
-
         let integration: any = null;
-        let error: any = null;
-        ({ data: integration, error } = await query.single());
-        if (error?.code === '42703') {
-            return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
+        try {
+            integration = await prisma.scale_integrations.findFirst({
+                where: {
+                    user_id: String(dbUserId),
+                    tenant_id: String(workspaceId),
+                    service_type: 'green_invoice',
+                    is_active: true,
+                },
+                select: { id: true, is_active: true, last_synced_at: true, metadata: true },
+            });
+        } catch {
+            integration = null;
         }
 
-        if (error || !integration) {
+        if (!integration) {
             return NextResponse.json({
                 connected: false
             });
         }
 
+        const integrationObj = asObject(integration) ?? {};
+
         return NextResponse.json({
             connected: true,
-            lastSynced: integration.last_synced_at,
-            metadata: integration.metadata
+            lastSynced: integrationObj.last_synced_at,
+            metadata: integrationObj.metadata
         });
 
-    } catch (error: any) {
-        console.warn('[API] Error getting Green Invoice status (non-critical):', error.message);
+    } catch (error: unknown) {
+        console.warn('[API] Error getting Green Invoice status (non-critical):', getErrorMessage(error));
         if (error instanceof APIError) {
+            // Status endpoints are optional; on screens like /login we may not have workspace context.
+            if (error.status === 400) {
+                return NextResponse.json({ connected: false });
+            }
             return NextResponse.json({ connected: false }, { status: error.status });
         }
         return NextResponse.json({

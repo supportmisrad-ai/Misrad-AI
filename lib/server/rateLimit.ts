@@ -22,9 +22,17 @@ type RedisBucket = {
   pttl: number; // milliseconds
 };
 
-const globalBuckets: Map<string, InMemoryBucket> =
-  (globalThis as any).__MISRAD_RATE_LIMIT_BUCKETS__ ||
-  ((globalThis as any).__MISRAD_RATE_LIMIT_BUCKETS__ = new Map());
+type GlobalWithRateLimitBuckets = typeof globalThis & {
+  __MISRAD_RATE_LIMIT_BUCKETS__?: Map<string, InMemoryBucket>;
+};
+
+const globalBuckets: Map<string, InMemoryBucket> = (() => {
+  const g = globalThis as unknown as GlobalWithRateLimitBuckets;
+  if (g.__MISRAD_RATE_LIMIT_BUCKETS__) return g.__MISRAD_RATE_LIMIT_BUCKETS__;
+  const m = new Map<string, InMemoryBucket>();
+  g.__MISRAD_RATE_LIMIT_BUCKETS__ = m;
+  return m;
+})();
 
 export function getClientIpFromRequest(req: Request): string {
   const xf = req.headers.get('x-forwarded-for');

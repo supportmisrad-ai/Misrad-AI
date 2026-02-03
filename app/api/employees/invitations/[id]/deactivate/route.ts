@@ -7,68 +7,40 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
-import { createClient } from '../../../../../../lib/supabase';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function loadUserInWorkspaceByEmail(params: { supabase: any; workspaceId: string; email: string }) {
+async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id, role, is_super_admin')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: { email, organizationId: String(params.workspaceId) },
+        select: { id: true, role: true, isSuperAdmin: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data
-        ? { id: String(byOrg.data.id), role: String(byOrg.data.role || 'עובד'), isSuperAdmin: Boolean((byOrg.data as any).is_super_admin) }
+    return row
+        ? { id: String(row.id), role: String(row.role || 'עובד'), isSuperAdmin: Boolean((row as any).isSuperAdmin) }
         : null;
 }
 
-async function loadInvitationInWorkspace(params: { supabase: any; workspaceId: string; invitationId: string }) {
-    const byOrg = await params.supabase
-        .from('nexus_employee_invitation_links')
-        .select('*')
-        .eq('id', params.invitationId)
-        .eq('organization_id', params.workspaceId)
-        .single();
-
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_employee_invitation_links is missing organization_id');
-    }
-
-    return byOrg;
+async function loadInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
+    return (prisma as any).nexus_employee_invitation_links.findFirst({
+        where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
+    });
 }
 
-async function deactivateInvitationInWorkspace(params: { supabase: any; workspaceId: string; invitationId: string }) {
-    const patch = {
-        is_active: false,
-        updated_at: new Date().toISOString(),
-    };
-
-    const byOrg = await params.supabase
-        .from('nexus_employee_invitation_links')
-        .update(patch)
-        .eq('id', params.invitationId)
-        .eq('organization_id', params.workspaceId);
-
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_employee_invitation_links is missing organization_id');
-    }
-
-    return byOrg;
+async function deactivateInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
+    return (prisma as any).nexus_employee_invitation_links.updateMany({
+        where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
+        data: { is_active: false, updated_at: new Date() },
+    });
 }
 async function POSTHandler(
     request: NextRequest,
@@ -76,13 +48,6 @@ async function POSTHandler(
 ) {
     try {
         const { workspace } = await getWorkspaceOrThrow(request);
-
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
 
         // 1. Authenticate user
         let clerkUser;
@@ -97,7 +62,7 @@ async function POSTHandler(
         }
 
         // 2. Find user in database by email
-        const user = await loadUserInWorkspaceByEmail({ supabase, workspaceId: workspace.id, email: clerkUser.email });
+        const user = await loadUserInWorkspaceByEmail({ workspaceId: workspace.id, email: clerkUser.email });
 
         if (!user) {
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
@@ -106,11 +71,9 @@ async function POSTHandler(
         const { id } = await params;
 
         // 3. Check if invitation exists and get it
-        const invRes = await loadInvitationInWorkspace({ supabase, workspaceId: workspace.id, invitationId: id });
-        const invitation = (invRes as any)?.data;
-        const getError = (invRes as any)?.error;
+        const invitation = await loadInvitationInWorkspace({ workspaceId: workspace.id, invitationId: id });
 
-        if (getError || !invitation) {
+        if (!invitation) {
             return apiError('קישור הזמנה לא נמצא', { status: 404 });
         }
 
@@ -124,22 +87,12 @@ async function POSTHandler(
         try {
             const orgId = String(workspace.id || '');
             if (orgId) {
-                const { data: orgSeatsRow, error: orgSeatsError } = await supabase
-                    .from('organizations')
-                    .select('seats_allowed')
-                    .eq('id', orgId)
-                    .maybeSingle();
+                const orgSeatsRow = await (prisma as any).social_organizations.findUnique({
+                    where: { id: orgId },
+                    select: { seats_allowed: true },
+                });
 
-                if (!orgSeatsError) {
-                    seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
-                }
-
-                if (orgSeatsError?.message) {
-                    const msg = String(orgSeatsError.message).toLowerCase();
-                    if (msg.includes('column') && msg.includes('seats_allowed')) {
-                        seatsAllowedOverride = null;
-                    }
-                }
+                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
             }
         } catch {
             seatsAllowedOverride = null;
@@ -162,11 +115,8 @@ async function POSTHandler(
         }
 
         // 5. Deactivate invitation
-        const updateRes = await deactivateInvitationInWorkspace({ supabase, workspaceId: workspace.id, invitationId: id });
-        const updateError = (updateRes as any)?.error;
-        
-        if (updateError) {
-            console.error('[API] Error deactivating employee invitation:', updateError);
+        const updateRes = await deactivateInvitationInWorkspace({ workspaceId: workspace.id, invitationId: id });
+        if (!updateRes || typeof (updateRes as any).count !== 'number' || (updateRes as any).count < 1) {
             return apiError('שגיאה בביטול קישור הזמנה', { status: 500 });
         }
 

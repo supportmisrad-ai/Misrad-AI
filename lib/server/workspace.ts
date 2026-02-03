@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
@@ -75,6 +76,29 @@ function parseEnvCsv(value: string | undefined | null): string[] {
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
+}
+
+function decodeMaybeRepeatedly(value: string, maxRounds = 3): string {
+  let v = String(value || '');
+  for (let i = 0; i < maxRounds; i++) {
+    if (!v.includes('%')) return v;
+    try {
+      const next = decodeURIComponent(v);
+      if (next === v) return v;
+      v = next;
+    } catch {
+      return v;
+    }
+  }
+  return v;
+}
+
+function decodeOnce(value: string): string {
+  try {
+    return decodeURIComponent(String(value || ''));
+  } catch {
+    return String(value || '');
+  }
 }
 
 async function isClerkSuperAdmin(): Promise<boolean> {
@@ -259,7 +283,7 @@ export async function getOrganizationPackageEntitlements(
   // If socialUserId is provided, intersect with user's allowed modules.
   if (socialUserId) {
     const user = await prisma.social_users.findFirst({
-      where: { id: socialUserId },
+      where: { id: socialUserId, organization_id: organizationId },
       select: { allowed_modules: true, role: true },
     });
 
@@ -406,10 +430,19 @@ export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: s
   const normalizedClerkUserId = String(clerkUserId || '').trim();
   if (!normalizedClerkUserId) return null;
   try {
-    const row = await prisma.social_users.findUnique({
-      where: { clerk_user_id: normalizedClerkUserId },
-      select: { id: true, organization_id: true, role: true },
-    });
+    const row = await prisma.social_users.findUnique(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerk_user_id: normalizedClerkUserId },
+          select: { id: true, organization_id: true, role: true },
+        },
+        {
+          source: 'workspace_access',
+          organizationId: null,
+          suppressReporting: true,
+        }
+      )
+    );
 
     if (!row?.id) return null;
     return row;
@@ -499,7 +532,7 @@ export async function getOrganizationEntitlements(
     let user: { allowed_modules: string[] | null; role: string | null } | null = null;
     try {
       user = await prisma.social_users.findFirst({
-        where: { id: socialUserId },
+        where: { id: socialUserId, organization_id: organizationId },
         select: { allowed_modules: true, role: true },
       });
     } catch (error: unknown) {
@@ -576,12 +609,8 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     throw new Error('Missing orgSlug for workspace route');
   }
 
-  let decodedOrgSlug = orgSlug;
-  try {
-    decodedOrgSlug = decodeURIComponent(orgSlug);
-  } catch {
-    decodedOrgSlug = orgSlug;
-  }
+  const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
+  const decodedOnceOrgSlug = decodeOnce(orgSlug);
 
   let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
   try {
@@ -591,6 +620,82 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   }
 
   const clerkIsSuperAdmin = await isClerkSuperAdmin();
+
+  if (!socialUser?.id && !clerkIsSuperAdmin) {
+    try {
+      const profile = await prisma.profile.findFirst({
+        where: { clerkUserId: String(clerkUserId) },
+        select: { organizationId: true, email: true, fullName: true, avatarUrl: true, role: true },
+      });
+
+      const inferredOrgId = profile?.organizationId ? String(profile.organizationId) : '';
+      if (inferredOrgId) {
+        const now = new Date();
+        const emailLower = profile?.email ? String(profile.email).trim().toLowerCase() : null;
+
+        const existing = await prisma.social_users.findUnique({
+          where: { clerk_user_id: String(clerkUserId) },
+          select: { id: true, organization_id: true, role: true },
+        });
+
+        const su = existing?.id
+          ? await prisma.social_users.update({
+              where: { clerk_user_id: String(clerkUserId) },
+              data: {
+                email: emailLower,
+                full_name: profile?.fullName ? String(profile.fullName) : null,
+                avatar_url: profile?.avatarUrl ? String(profile.avatarUrl) : null,
+                organization_id: inferredOrgId,
+                ...(profile?.role ? { role: String(profile.role) } : {}),
+                updated_at: now,
+              },
+              select: { id: true, organization_id: true, role: true },
+            })
+          : await prisma.social_users.create({
+              data: {
+                clerk_user_id: String(clerkUserId),
+                email: emailLower,
+                full_name: profile?.fullName ? String(profile.fullName) : null,
+                avatar_url: profile?.avatarUrl ? String(profile.avatarUrl) : null,
+                organization_id: inferredOrgId,
+                role: profile?.role ? String(profile.role) : 'team_member',
+                created_at: now,
+                updated_at: now,
+              },
+              select: { id: true, organization_id: true, role: true },
+            });
+
+        socialUser = {
+          id: String(su.id),
+          organization_id: su.organization_id ? String(su.organization_id) : null,
+          role: su.role ? String(su.role) : null,
+        };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (socialUser?.id && !socialUser.organization_id) {
+    try {
+      const profile = await prisma.profile.findFirst({
+        where: { clerkUserId: String(clerkUserId) },
+        select: { organizationId: true },
+      });
+
+      const inferredOrgId = profile?.organizationId ? String(profile.organizationId) : '';
+      if (inferredOrgId) {
+        await prisma.social_users.update({
+          where: { clerk_user_id: String(clerkUserId) },
+          data: { organization_id: inferredOrgId, updated_at: new Date() },
+        });
+        socialUser = { ...socialUser, organization_id: inferredOrgId };
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   if (!socialUser?.id && !clerkIsSuperAdmin) {
     redirect('/sign-in');
   }
@@ -647,17 +752,29 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   // Resolve org by human slug first; if not found, attempt UUID id lookup (backwards compatible).
   let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
   try {
+    const slugCandidates = Array.from(
+      new Set(
+        [
+          organizationKey,
+          decodedOnceOrgSlug,
+          String(orgSlug || ''),
+          encodeURIComponent(organizationKey),
+        ]
+          .map((v) => String(v || '').trim())
+          .filter(Boolean)
+      )
+    );
+    const idCandidates = slugCandidates.filter((c) => isUuidLike(c));
+
     org = await prisma.social_organizations.findFirst({
-      where: { slug: organizationKey },
+      where: {
+        OR: [
+          ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
+          ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
+        ],
+      },
       select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
     });
-
-    if (!org?.id && isUuidLike(organizationKey)) {
-      org = await prisma.social_organizations.findFirst({
-        where: { id: organizationKey },
-        select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
-      });
-    }
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
     if (msg.includes('permission denied')) {
@@ -742,12 +859,8 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
     throw setErrorStatus(new Error('Unauthorized'), 401);
   }
 
-  let decodedOrgSlug = orgSlug;
-  try {
-    decodedOrgSlug = decodeURIComponent(orgSlug);
-  } catch {
-    decodedOrgSlug = orgSlug;
-  }
+  const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
+  const decodedOnceOrgSlug = decodeOnce(orgSlug);
 
   let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
   try {
@@ -775,17 +888,24 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
 
   let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
   try {
+    const slugCandidates = Array.from(
+      new Set(
+        [organizationKey, decodedOnceOrgSlug, String(orgSlug || ''), encodeURIComponent(organizationKey)]
+          .map((v) => String(v || '').trim())
+          .filter(Boolean)
+      )
+    );
+    const idCandidates = slugCandidates.filter((c) => isUuidLike(c));
+
     org = await prisma.social_organizations.findFirst({
-      where: { slug: organizationKey },
+      where: {
+        OR: [
+          ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
+          ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
+        ],
+      },
       select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
     });
-
-    if (!org?.id && isUuidLike(organizationKey)) {
-      org = await prisma.social_organizations.findFirst({
-        where: { id: organizationKey },
-        select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
-      });
-    }
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
     if (msg.includes('permission denied')) {
@@ -834,6 +954,11 @@ export async function enforceModuleAccessOrRedirect({
 }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
+  const bypassEntitlements = isBypassModuleEntitlementsEnabled();
+  if (bypassEntitlements) {
+    assertNoProdEntitlementsBypass('enforceModuleAccessOrRedirect');
+  }
+
   const clerkUserId = await getCurrentUserId();
   let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
   if (clerkUserId) {
@@ -845,10 +970,6 @@ export async function enforceModuleAccessOrRedirect({
   }
   const clerkIsSuperAdmin = await isClerkSuperAdmin();
   const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
-
-  const bypassEntitlements =
-    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
 
   if (workspace.entitlements[module]) {
     return workspace;
@@ -863,4 +984,24 @@ export async function enforceModuleAccessOrRedirect({
   }
 
   redirect(`/w/${encodeURIComponent(orgSlug)}/no-access?module=${encodeURIComponent(module)}`);
+}
+
+export function isE2eTestingEnv(): boolean {
+  const raw = String(process.env.IS_E2E_TESTING || '').trim().toLowerCase();
+  return raw === 'true' || raw === '1';
+}
+
+export function isBypassModuleEntitlementsEnabled(): boolean {
+  const raw = String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').trim().toLowerCase();
+  return raw === 'true' || raw === '1';
+}
+
+export function assertNoProdEntitlementsBypass(context: string): void {
+  if (!isBypassModuleEntitlementsEnabled()) return;
+  const isProd = process.env.NODE_ENV === 'production';
+  if (!isProd) return;
+  if (isE2eTestingEnv()) return;
+  throw new Error(
+    `[Security Risk] E2E_BYPASS_MODULE_ENTITLEMENTS cannot be enabled in production. Context: ${String(context || '')}`
+  );
 }

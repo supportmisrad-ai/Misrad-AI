@@ -8,17 +8,19 @@ const TENANT_KEYS = new Set(['tenantId', 'tenant_id']);
 type TenantIsolationContext = {
   suppressReporting?: boolean;
   source?: string;
+  organizationId?: string | null;
+  tenantId?: string | null;
 };
 
 const tenantIsolationAls = new AsyncLocalStorage<TenantIsolationContext>();
 
 const TENANT_ISOLATION_OVERRIDE = Symbol.for('misrad.prismaTenantIsolationOverride');
 
-export function withPrismaTenantIsolationOverride<T extends Record<string, any>>(
+export function withPrismaTenantIsolationOverride<T extends Record<string, unknown>>(
   args: T,
   ctx: TenantIsolationContext
 ): T {
-  (args as any)[TENANT_ISOLATION_OVERRIDE] = ctx;
+  (args as unknown as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] = ctx;
   return args;
 }
 
@@ -35,9 +37,16 @@ function shouldReportTenantIsolation(override?: TenantIsolationContext): boolean
   return tenantIsolationAls.getStore()?.suppressReporting !== true;
 }
 
+function normalizeScopeId(value: unknown): string | null {
+  const v = typeof value === 'string' ? value.trim() : '';
+  return v ? v : null;
+}
+
 type ScopeRequirements = {
   requiresOrg: boolean;
   requiresTenant: boolean;
+  orgField?: string;
+  tenantField?: string;
 };
 
 const modelScopeRequirements = new Map<string, ScopeRequirements>(
@@ -46,10 +55,20 @@ const modelScopeRequirements = new Map<string, ScopeRequirements>(
       const fieldNames = new Set(m.fields.map((f) => f.name));
       const requiresOrg = Array.from(ORG_KEYS).some((k) => fieldNames.has(k));
       const requiresTenant = Array.from(TENANT_KEYS).some((k) => fieldNames.has(k));
-      return [m.name, { requiresOrg, requiresTenant }] as const;
+      const orgField = requiresOrg ? Array.from(ORG_KEYS).find((k) => fieldNames.has(k)) : undefined;
+      const tenantField = requiresTenant ? Array.from(TENANT_KEYS).find((k) => fieldNames.has(k)) : undefined;
+      return [m.name, { requiresOrg, requiresTenant, orgField, tenantField }] as const;
     })
     .filter(([, req]) => req.requiresOrg || req.requiresTenant)
 );
+
+function getExpectedScope(override?: TenantIsolationContext): { organizationId: string | null; tenantId: string | null } {
+  const store = tenantIsolationAls.getStore();
+  return {
+    organizationId: normalizeScopeId(override?.organizationId ?? store?.organizationId),
+    tenantId: normalizeScopeId(override?.tenantId ?? store?.tenantId),
+  };
+}
 
 function captureTenantIsolation(params: {
   message: string;
@@ -102,6 +121,66 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
 }
 
+function valueMatchesScope(expected: string, v: unknown): boolean {
+  if (typeof v === 'string') return v.trim() === expected;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+
+  const obj = v as Record<string, unknown>;
+  const equals = obj.equals;
+  if (typeof equals === 'string') return equals.trim() === expected;
+
+  const inVal = obj.in;
+  if (Array.isArray(inVal)) {
+    const normalized = inVal.map((x) => (typeof x === 'string' ? x.trim() : '')).filter(Boolean);
+    return normalized.length === 1 && normalized[0] === expected;
+  }
+
+  return false;
+}
+
+function whereMatchesScope(where: unknown, keys: Set<string>, expected: string): boolean {
+  if (!where) return false;
+  if (Array.isArray(where)) return where.every((v) => whereMatchesScope(v, keys, expected));
+  if (!isPlainObject(where)) return true;
+
+  for (const [k, v] of Object.entries(where)) {
+    if (keys.has(k)) {
+      if (v == null) return false;
+      if (!valueMatchesScope(expected, v)) return false;
+      continue;
+    }
+    if (!whereMatchesScope(v, keys, expected)) return false;
+  }
+
+  return true;
+}
+
+function applyScopeToCreateData(params: {
+  action: string;
+  data: unknown;
+  field: string;
+  expected: string;
+}): unknown {
+  const { action, data, field, expected } = params;
+
+  if (action === 'createMany' || action === 'createManyAndReturn') {
+    if (!Array.isArray(data)) return data;
+    return data.map((row) => applyScopeToCreateData({ action: 'create', data: row, field, expected }));
+  }
+
+  if (!isPlainObject(data)) return data;
+
+  if (Object.prototype.hasOwnProperty.call(data, field)) {
+    const current = (data as Record<string, unknown>)[field];
+    if (current != null && !valueMatchesScope(expected, current)) {
+      return TENANT_ISOLATION_OVERRIDE;
+    }
+    return { ...(data as Record<string, unknown>), [field]: expected };
+  }
+
+  return { ...(data as Record<string, unknown>), [field]: expected };
+}
+
 function hasFilterForKeys(value: unknown, keys: Set<string>): boolean {
   if (!value || typeof value !== 'object') return false;
   if (Array.isArray(value)) return value.some((v) => hasFilterForKeys(v, keys));
@@ -119,10 +198,22 @@ function hasFilterForKeys(value: unknown, keys: Set<string>): boolean {
   return false;
 }
 
+ function hasScopedDataForCreateAction(action: string, data: unknown, keys: Set<string>): boolean {
+   // For createMany we must ensure EVERY record includes organization/tenant scope.
+   // hasFilterForKeys() treats arrays as `some(...)`, which is correct for nested payloads
+   // but unsafe for createMany.
+   if (action === 'createMany' || action === 'createManyAndReturn') {
+     if (Array.isArray(data)) {
+       return data.every((row) => hasFilterForKeys(row, keys));
+     }
+   }
+   return hasFilterForKeys(data, keys);
+ }
+
 function hasDirectScopedKey(where: Record<string, unknown>, keys: Set<string>): boolean {
   for (const k of Object.keys(where)) {
     if (!keys.has(k)) continue;
-    const v = (where as any)[k];
+    const v = where[k];
     if (v == null) return false;
     if (typeof v === 'string') return v.trim().length > 0;
     return true;
@@ -212,6 +303,29 @@ function validateNoUnscopedOr(where: unknown, keys: Set<string>, hasGlobalScope:
   return true;
 }
 
+function isEmployeeInvitationLookupByTokenUnscopedAllowed(params: {
+  model: string;
+  action: string;
+  args: Record<string, unknown>;
+}): boolean {
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'nexus_employee_invitation_links') return false;
+
+  const allowedActions = new Set(['findUnique', 'findFirst']);
+  if (!allowedActions.has(params.action)) return false;
+
+  const where = params.args?.where;
+  if (!where || typeof where !== 'object') return false;
+  if (hasDirectKey(where, 'OR')) return false;
+  if (!hasDirectKey(where, 'token')) return false;
+  if (isPlainObject(where)) {
+    const keys = Object.keys(where);
+    if (keys.length !== 1 || keys[0] !== 'token') return false;
+  }
+
+  return true;
+}
+
 function isWhereScoped(where: unknown, keys: Set<string>): boolean {
   if (!ensureTenantScopeIsGuaranteed(where, keys)) return false;
   return validateNoUnscopedOr(where, keys, false);
@@ -220,7 +334,7 @@ function isWhereScoped(where: unknown, keys: Set<string>): boolean {
 function hasDirectKey(where: unknown, key: string): boolean {
   if (!where || typeof where !== 'object') return false;
   if (Array.isArray(where)) return where.some((v) => hasDirectKey(v, key));
-  return Object.prototype.hasOwnProperty.call(where as any, key);
+  return Object.prototype.hasOwnProperty.call(where as Record<string, unknown>, key);
 }
 
 function isProfileLookupByClerkUserIdUnscopedAllowed(params: {
@@ -255,6 +369,51 @@ function isSocialUserLookupByClerkUserIdUnscopedAllowed(params: {
   return hasDirectKey(params.where, 'clerk_user_id') || hasDirectKey(params.where, 'clerkUserId');
 }
 
+function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params: {
+  model: string;
+  action: string;
+  where: unknown;
+}): boolean {
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'social_team_members' && modelLower !== 'socialteammembers') return false;
+  if (!params.where || typeof params.where !== 'object') return false;
+
+  const allowedActions = new Set(['findMany', 'findFirst', 'findFirstOrThrow', 'count', 'aggregate', 'groupBy']);
+  if (!allowedActions.has(params.action)) return false;
+
+  // Only allow direct lookup by user_id without OR branches.
+  // This supports resolving a user's org memberships during bootstrap.
+  if (hasDirectKey(params.where, 'OR')) return false;
+  return hasDirectKey(params.where, 'user_id') || hasDirectKey(params.where, 'userId');
+}
+
+function isNexusUserLookupByEmailUnscopedAllowed(params: {
+  model: string;
+  action: string;
+  args: Record<string, unknown>;
+}): boolean {
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'nexususer') return false;
+
+  const allowedActions = new Set(['findMany', 'findFirst']);
+  if (!allowedActions.has(params.action)) return false;
+
+  const where = params.args?.where;
+  if (!where || typeof where !== 'object') return false;
+  if (hasDirectKey(where, 'OR')) return false;
+
+  // Narrow allowlist: exact lookup by email only, for bootstrap flows.
+  if (!hasDirectKey(where, 'email')) return false;
+
+  const takeRaw = params.args?.take;
+  if (takeRaw !== undefined) {
+    const take = Number(takeRaw);
+    if (!Number.isFinite(take) || take > 2) return false;
+  }
+
+  return true;
+}
+
 export function installPrismaTenantGuard(
   prisma: PrismaClient,
   options?: {
@@ -281,10 +440,12 @@ export function installPrismaTenantGuard(
       return next(params);
     }
 
-    const args = (params.args ?? {}) as any;
-    const override = args?.[TENANT_ISOLATION_OVERRIDE] as TenantIsolationContext | undefined;
-    const where = args.where;
+    const args = (params.args ?? {}) as Record<string, unknown>;
+    const override = (args as unknown as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] as TenantIsolationContext | undefined;
+    const where = (args as { where?: unknown }).where;
     const action = params.action;
+
+    const expected = getExpectedScope(override);
 
     const actionsRequiringWhere = new Set([
       'findUnique',
@@ -304,11 +465,22 @@ export function installPrismaTenantGuard(
 
     if (actionsRequiringWhere.has(action)) {
       if (req.requiresOrg && !isWhereScoped(where, ORG_KEYS)) {
-        if (isProfileLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
-          return next(params);
-        }
-        if (isSocialUserLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
-          return next(params);
+        if (!expected.organizationId) {
+          if (isProfileLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
+            return next(params);
+          }
+          if (isSocialUserLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
+            return next(params);
+          }
+          if (isSocialTeamMembersLookupByUserIdUnscopedAllowed({ model, action, where })) {
+            return next(params);
+          }
+          if (isNexusUserLookupByEmailUnscopedAllowed({ model, action, args })) {
+            return next(params);
+          }
+          if (isEmployeeInvitationLookupByTokenUnscopedAllowed({ model, action, args })) {
+            return next(params);
+          }
         }
         if (process.env.NODE_ENV !== 'production' && model === 'social_users') {
           try {
@@ -326,16 +498,50 @@ export function installPrismaTenantGuard(
         reportTenantIsolationBlocked({ message, model, action, reason: 'missing_organizationId_where', override });
         throw new Error(message);
       }
+      if (req.requiresOrg && expected.organizationId && !whereMatchesScope(where, ORG_KEYS, expected.organizationId)) {
+        const message = `Tenant Guard Violation! Organization scope mismatch. (${model}.${action})`;
+        reportTenantIsolationBlocked({ message, model, action, reason: 'organizationId_mismatch_where', override });
+        throw new Error(message);
+      }
       if (req.requiresTenant && !isWhereScoped(where, TENANT_KEYS)) {
         const message = `Tenant Guard Violation! Missing Tenant ID. (${model}.${action})`;
         reportTenantIsolationBlocked({ message, model, action, reason: 'missing_tenantId_where', override });
         throw new Error(message);
       }
+      if (req.requiresTenant && expected.tenantId && !whereMatchesScope(where, TENANT_KEYS, expected.tenantId)) {
+        const message = `Tenant Guard Violation! Tenant scope mismatch. (${model}.${action})`;
+        reportTenantIsolationBlocked({ message, model, action, reason: 'tenantId_mismatch_where', override });
+        throw new Error(message);
+      }
     }
 
-    const actionsRequiringData = new Set(['create', 'createMany', 'upsert']);
+    const actionsRequiringData = new Set(['create', 'createMany', 'createManyAndReturn', 'upsert']);
     if (actionsRequiringData.has(action)) {
       if (action === 'upsert') {
+        if (req.requiresOrg && expected.organizationId && req.orgField) {
+          const nextCreate = applyScopeToCreateData({ action: 'create', data: args.create, field: req.orgField, expected: expected.organizationId });
+          const nextUpdate = applyScopeToCreateData({ action: 'create', data: args.update, field: req.orgField, expected: expected.organizationId });
+          if (nextCreate === TENANT_ISOLATION_OVERRIDE || nextUpdate === TENANT_ISOLATION_OVERRIDE) {
+            const message = `Tenant Guard Violation! Organization scope mismatch. (${model}.${action})`;
+            reportTenantIsolationBlocked({ message, model, action, reason: 'organizationId_mismatch_upsert_payload', override });
+            throw new Error(message);
+          }
+          args.create = nextCreate;
+          args.update = nextUpdate;
+        }
+
+        if (req.requiresTenant && expected.tenantId && req.tenantField) {
+          const nextCreate = applyScopeToCreateData({ action: 'create', data: args.create, field: req.tenantField, expected: expected.tenantId });
+          const nextUpdate = applyScopeToCreateData({ action: 'create', data: args.update, field: req.tenantField, expected: expected.tenantId });
+          if (nextCreate === TENANT_ISOLATION_OVERRIDE || nextUpdate === TENANT_ISOLATION_OVERRIDE) {
+            const message = `Tenant Guard Violation! Tenant scope mismatch. (${model}.${action})`;
+            reportTenantIsolationBlocked({ message, model, action, reason: 'tenantId_mismatch_upsert_payload', override });
+            throw new Error(message);
+          }
+          args.create = nextCreate;
+          args.update = nextUpdate;
+        }
+
         if (req.requiresOrg && (!hasFilterForKeys(args.create, ORG_KEYS) || !hasFilterForKeys(args.update, ORG_KEYS))) {
           const message = `Tenant Guard Violation! Missing Organization ID. (${model}.${action})`;
           reportTenantIsolationBlocked({ message, model, action, reason: 'missing_organizationId_upsert_payload', override });
@@ -347,13 +553,36 @@ export function installPrismaTenantGuard(
           throw new Error(message);
         }
       } else {
-        const data = args.data;
-        if (req.requiresOrg && !hasFilterForKeys(data, ORG_KEYS)) {
+        let data = args.data;
+
+        if (req.requiresOrg && expected.organizationId && req.orgField) {
+          const nextData = applyScopeToCreateData({ action, data, field: req.orgField, expected: expected.organizationId });
+          if (nextData === TENANT_ISOLATION_OVERRIDE) {
+            const message = `Tenant Guard Violation! Organization scope mismatch. (${model}.${action})`;
+            reportTenantIsolationBlocked({ message, model, action, reason: 'organizationId_mismatch_data', override });
+            throw new Error(message);
+          }
+          data = nextData;
+          args.data = data;
+        }
+
+        if (req.requiresTenant && expected.tenantId && req.tenantField) {
+          const nextData = applyScopeToCreateData({ action, data, field: req.tenantField, expected: expected.tenantId });
+          if (nextData === TENANT_ISOLATION_OVERRIDE) {
+            const message = `Tenant Guard Violation! Tenant scope mismatch. (${model}.${action})`;
+            reportTenantIsolationBlocked({ message, model, action, reason: 'tenantId_mismatch_data', override });
+            throw new Error(message);
+          }
+          data = nextData;
+          args.data = data;
+        }
+
+        if (req.requiresOrg && !hasScopedDataForCreateAction(action, data, ORG_KEYS)) {
           const message = `Tenant Guard Violation! Missing Organization ID. (${model}.${action})`;
           reportTenantIsolationBlocked({ message, model, action, reason: 'missing_organizationId_data', override });
           throw new Error(message);
         }
-        if (req.requiresTenant && !hasFilterForKeys(data, TENANT_KEYS)) {
+        if (req.requiresTenant && !hasScopedDataForCreateAction(action, data, TENANT_KEYS)) {
           const message = `Tenant Guard Violation! Missing Tenant ID. (${model}.${action})`;
           reportTenantIsolationBlocked({ message, model, action, reason: 'missing_tenantId_data', override });
           throw new Error(message);

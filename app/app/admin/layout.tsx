@@ -42,6 +42,14 @@ export default async function AdminLayout({
       morningBrief: true,
       soundEffects: false,
       marketing: true,
+      pushBehavior: 'vibrate_sound' as const,
+      pushCategories: {
+        alerts: true,
+        tasks: true,
+        events: true,
+        system: true,
+        marketing: false,
+      },
     },
   };
 

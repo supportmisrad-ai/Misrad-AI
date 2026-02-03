@@ -6,6 +6,7 @@ import { NotificationPreferences } from '../../types';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
+import { syncWebPushSubscription } from '@/lib/web-push-client';
 
 interface NotificationSettingsProps {
     onClose: () => void;
@@ -20,7 +21,15 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onCl
         browserPush: true,
         morningBrief: true,
         soundEffects: false,
-        marketing: false
+        marketing: false,
+        pushBehavior: 'vibrate_sound',
+        pushCategories: {
+            alerts: true,
+            tasks: true,
+            events: true,
+            system: true,
+            marketing: false
+        }
     });
 
     const togglePref = (key: keyof NotificationPreferences) => {
@@ -38,6 +47,12 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onCl
             if (!res.success) {
                 addToast(res.error || 'שגיאה בשמירת הגדרות התראות', 'error');
                 return;
+            }
+
+            try {
+                await syncWebPushSubscription({ orgSlug, prefs });
+            } catch {
+                // best-effort
             }
         }
         updateUser(currentUser.id, { notificationPreferences: prefs });
@@ -87,6 +102,74 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ onCl
                         </div>
                     </button>
                 ))}
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-3">
+                <div className="text-sm font-bold text-gray-900">התנהגות Push</div>
+                <div className="grid grid-cols-2 gap-2">
+                    {([
+                        { value: 'off', label: 'ללא פוש' },
+                        { value: 'vibrate', label: 'רטט בלבד' },
+                        { value: 'sound', label: 'צליל בלבד' },
+                        { value: 'vibrate_sound', label: 'רטט + צליל' },
+                    ] as const).map((opt) => {
+                        const active = (prefs.pushBehavior || 'vibrate_sound') === opt.value;
+                        return (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setPrefs((prev) => ({ ...prev, pushBehavior: opt.value }))}
+                                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+                                    active
+                                        ? 'bg-black text-white border-black'
+                                        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        );
+                    })}
+                </div>
+                <div className="text-[11px] text-gray-500 leading-relaxed">
+                    שים לב: ב-PWA הצליל נשלט בעיקר ע"י מערכת ההפעלה/דפדפן. "רטט" עובד טוב בעיקר באנדרואיד.
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-100 p-4 space-y-2">
+                <div className="text-sm font-bold text-gray-900">סוגי התראות ב-Push</div>
+                {([
+                    { key: 'alerts', label: 'התראות דחופות' },
+                    { key: 'tasks', label: 'משימות' },
+                    { key: 'events', label: 'אירועים' },
+                    { key: 'system', label: 'מערכת' },
+                    { key: 'marketing', label: 'שיווק/חדשות' },
+                ] as const).map((item) => {
+                    const isOn = Boolean(prefs.pushCategories?.[item.key]);
+                    return (
+                        <button
+                            key={item.key}
+                            type="button"
+                            onClick={() =>
+                                setPrefs((prev) => ({
+                                    ...prev,
+                                    pushCategories: {
+                                        ...(prev.pushCategories || {}),
+                                        [item.key]: !Boolean(prev.pushCategories?.[item.key]),
+                                    },
+                                }))
+                            }
+                            className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200"
+                        >
+                            <div className="text-right">
+                                <div className="text-sm font-bold text-gray-900">{item.label}</div>
+                            </div>
+
+                            <div className={`w-12 h-7 rounded-full p-1 transition-colors duration-300 ease-in-out relative ${isOn ? 'bg-green-500' : 'bg-gray-200'}`}>
+                                <div className={`w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-in-out ${isOn ? '-translate-x-5' : 'translate-x-0'}`} />
+                            </div>
+                        </button>
+                    );
+                })}
             </div>
 
             <div className="flex justify-end pt-4 border-t border-gray-100">

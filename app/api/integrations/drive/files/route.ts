@@ -14,28 +14,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { listDriveFiles, searchDriveFiles } from '../../../../../lib/integrations/google-drive';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string | null | undefined }): Promise<string | null> {
+async function selectDbUserId(params: { workspaceId: string; email: string | null | undefined }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 async function GETHandler(request: NextRequest) {
     try {
@@ -43,14 +39,7 @@ async function GETHandler(request: NextRequest) {
 
         const clerkUser = await getAuthenticatedUser();
 
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch {
-            return NextResponse.json({ files: [], nextPageToken: undefined });
-        }
-
-        const dbUserId = await selectDbUserId({ supabase, workspaceId: workspace.id, email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
         
         if (!dbUserId) {
             return NextResponse.json({ files: [], nextPageToken: undefined });

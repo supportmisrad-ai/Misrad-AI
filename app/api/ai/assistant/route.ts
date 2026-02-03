@@ -4,7 +4,7 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getContentByKey } from '@/app/actions/site-content';
 import { getAllDocsArticles, getDocsCategory } from '@/config/docs';
 import { getLinksHub } from '@/config/links-hub';
@@ -94,11 +94,13 @@ function ensureSalesCTA(text: string): string {
   const out = String(text || '').trim();
   if (!out) return out;
 
-  const lowered = out.toLowerCase();
+  const lowered = String(text || '').toLowerCase();
+
   const hasCta =
     lowered.includes('/pricing') ||
     lowered.includes('/subscribe') ||
-    lowered.includes('/sign-up') ||
+    lowered.includes('/login?mode=sign-up') ||
+    lowered.includes('/login') ||
     lowered.includes('/contact') ||
     lowered.includes('וואטסאפ') ||
     lowered.includes('whatsapp');
@@ -275,27 +277,36 @@ function buildDocsKnowledge(params: { orgSlug: string; moduleKey?: string | null
 async function getHelpVideoSuggestion(params: { organizationId: string; pathname: string; moduleKey?: string | null }) {
   const pathname = String(params.pathname || '/');
 
-  const supabase = createClient();
-  let q = supabase
-    .from('help_videos')
-    .select('id, module_key, title, video_url, order, route_prefix, duration')
-    .order('order', { ascending: true })
-    .order('created_at', { ascending: true });
-
   const mk = String(params.moduleKey || '').trim().toLowerCase();
-  if (mk && ['nexus', 'system', 'social', 'finance', 'client', 'operations'].includes(mk)) {
-    q = q.eq('module_key', mk);
+
+  type HelpVideoRow = {
+    id: string | number;
+    module_key: string;
+    title: string;
+    video_url: string;
+    order: number;
+    created_at: Date;
+    updated_at: Date;
+    route_prefix: string | null;
+    duration: string | number | null;
+  };
+
+  let rows: HelpVideoRow[] = [];
+  try {
+    rows = await prisma.help_videos.findMany({
+      where: mk && ['nexus', 'system', 'social', 'finance', 'client', 'operations'].includes(mk) ? { module_key: mk } : undefined,
+      select: { id: true, module_key: true, title: true, video_url: true, order: true, route_prefix: true, duration: true, created_at: true, updated_at: true },
+      orderBy: [{ order: 'asc' }, { created_at: 'asc' }],
+    });
+  } catch {
+    return null;
   }
 
-  const { data, error } = await q;
-  if (error) return null;
-
-  const rows: any[] = Array.isArray(data) ? data : [];
   if (rows.length === 0) return null;
 
-  let best: any | null = null;
+  let best: HelpVideoRow | null = null;
   let bestLen = -1;
-  let moduleDefault: any | null = null;
+  let moduleDefault: HelpVideoRow | null = null;
 
   const normalized = (() => {
     const match = pathname.match(/^\/w\/[^/]+(\/.*)?$/);
@@ -303,7 +314,7 @@ async function getHelpVideoSuggestion(params: { organizationId: string; pathname
   })();
 
   for (const row of rows) {
-    const rp = String((row as any)?.route_prefix ?? '').trim();
+    const rp = String(row.route_prefix ?? '').trim();
     if (!rp) {
       if (!moduleDefault) moduleDefault = row;
       continue;
@@ -321,12 +332,12 @@ async function getHelpVideoSuggestion(params: { organizationId: string; pathname
   if (!picked) return null;
 
   return {
-    id: String((picked as any)?.id || ''),
-    title: String((picked as any)?.title || ''),
-    videoUrl: String((picked as any)?.video_url || ''),
-    duration: (picked as any)?.duration == null ? null : String((picked as any)?.duration),
-    routePrefix: String((picked as any)?.route_prefix || ''),
-    moduleKey: String((picked as any)?.module_key || ''),
+    id: String(picked.id || ''),
+    title: String(picked.title || ''),
+    videoUrl: String(picked.video_url || ''),
+    duration: picked.duration == null ? null : String(picked.duration),
+    routePrefix: String(picked.route_prefix || ''),
+    moduleKey: String(picked.module_key || ''),
   };
 }
 

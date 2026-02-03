@@ -222,18 +222,134 @@ type _AssertMisradActivityLogCreateHasOrgId = _Assert<_HasSomeKey<_MisradActivit
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
   prismaTenantGuardInstalled: boolean | undefined;
+  prismaDatasourceUrl: string | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+function getEffectiveDatabaseUrlForPrisma(): string | null {
+  const envDatabaseUrl = String(process.env.DATABASE_URL || '').trim();
+  const envDirectUrl = String(process.env.DIRECT_URL || '').trim();
 
-const _rawQueryUnsafe = (prisma as any).$queryRawUnsafe?.bind(prisma);
-const _rawExecuteUnsafe = (prisma as any).$executeRawUnsafe?.bind(prisma);
-const _rawQuery = (prisma as any).$queryRaw?.bind(prisma);
-const _rawExecute = (prisma as any).$executeRaw?.bind(prisma);
+  const candidates = [
+    { name: 'DATABASE_URL', url: envDatabaseUrl },
+    { name: 'DIRECT_URL', url: envDirectUrl },
+  ].filter((c) => Boolean(c.url));
+
+  if (candidates.length === 0) return null;
+
+  const isPoolerLikeUrl = (value: string): boolean => {
+    try {
+      const u = new URL(value);
+      const host = String(u.hostname || '').toLowerCase();
+      const port = String(u.port || '').trim();
+      return host.includes('pooler') || port === '6543' || port === '6544';
+    } catch {
+      return false;
+    }
+  };
+
+  const poolerCandidate = candidates.find((c) => isPoolerLikeUrl(c.url));
+  const chosenRaw = (poolerCandidate?.url || envDatabaseUrl || envDirectUrl).trim();
+  if (!chosenRaw) return null;
+  if (process.env.NODE_ENV === 'production') return chosenRaw;
+
+  try {
+    const u = new URL(chosenRaw);
+    const host = String(u.hostname || '').toLowerCase();
+    const port = String(u.port || '').trim();
+    const isPoolerLike = host.includes('pooler') || port === '6543' || port === '6544';
+
+    if (!isPoolerLike) return chosenRaw;
+
+    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '1');
+    if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true');
+    if (!u.searchParams.has('statement_cache_size')) u.searchParams.set('statement_cache_size', '0');
+
+    return u.toString();
+  } catch {
+    return chosenRaw;
+  }
+}
+
+const _effectiveDatabaseUrl = getEffectiveDatabaseUrlForPrisma();
+
+if (!_effectiveDatabaseUrl) {
+  throw new Error(
+    'Missing required environment variable DATABASE_URL. Add DATABASE_URL to .env.local (or your hosting provider env vars) and restart the server.'
+  );
+}
+
+const _prismaClientOptions: Prisma.PrismaClientOptions = {
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  ...(_effectiveDatabaseUrl ? { datasources: { db: { url: _effectiveDatabaseUrl } } } : {}),
+};
+
+const _existingClient = globalForPrisma.prisma;
+const _existingUrl = globalForPrisma.prismaDatasourceUrl;
+
+// In development, HMR can keep a stale PrismaClient instance across reloads.
+// If DATABASE_URL changed (e.g. switching from direct DB to pooler), recreate the client.
+if (!_existingClient || _existingUrl !== _effectiveDatabaseUrl) {
+  if (_existingClient) {
+    _existingClient.$disconnect().catch(() => undefined);
+  }
+  globalForPrisma.prisma = new PrismaClient(_prismaClientOptions);
+  globalForPrisma.prismaDatasourceUrl = _effectiveDatabaseUrl;
+}
+
+export const prisma = globalForPrisma.prisma as PrismaClient;
+
+type RawQueryUnsafe = (query: string, ...args: unknown[]) => unknown;
+type RawExecuteUnsafe = (query: string, ...args: unknown[]) => unknown;
+type RawQuery = (...args: unknown[]) => unknown;
+type RawExecute = (...args: unknown[]) => unknown;
+
+type RawSqlClient = {
+  $queryRawUnsafe?: RawQueryUnsafe;
+  $executeRawUnsafe?: RawExecuteUnsafe;
+  $queryRaw?: RawQuery;
+  $executeRaw?: RawExecute;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asRawSqlClient(value: unknown): RawSqlClient | null {
+  return asObject(value) as RawSqlClient | null;
+}
+
+const prismaRaw = prisma as unknown as RawSqlClient;
+
+const _rawQueryUnsafeOriginal = (prismaRaw.$queryRawUnsafe as RawQueryUnsafe | undefined);
+const _rawExecuteUnsafeOriginal = (prismaRaw.$executeRawUnsafe as RawExecuteUnsafe | undefined);
+const _rawQueryOriginal = (prismaRaw.$queryRaw as RawQuery | undefined);
+const _rawExecuteOriginal = (prismaRaw.$executeRaw as RawExecute | undefined);
+
+function getQueryRawUnsafe(db: unknown): RawQueryUnsafe | undefined {
+  const client = asRawSqlClient(db);
+  if (!client) return undefined;
+
+  if (typeof _rawQueryUnsafeOriginal === 'function') {
+    return _rawQueryUnsafeOriginal.bind(db as unknown as PrismaClient);
+  }
+
+  const fn = client.$queryRawUnsafe;
+  return typeof fn === 'function' ? fn.bind(client) : undefined;
+}
+
+function getExecuteRawUnsafe(db: unknown): RawExecuteUnsafe | undefined {
+  const client = asRawSqlClient(db);
+  if (!client) return undefined;
+
+  if (typeof _rawExecuteUnsafeOriginal === 'function') {
+    return _rawExecuteUnsafeOriginal.bind(db as unknown as PrismaClient);
+  }
+
+  const fn = client.$executeRawUnsafe;
+  return typeof fn === 'function' ? fn.bind(client) : undefined;
+}
 
 function captureTenantIsolation(params: {
   message: string;
@@ -437,20 +553,21 @@ function assertRawScopeParams(params: {
   }
 }
 
-function assertSqlObject(sql: any): asserts sql is { sql: string; values: unknown[] } {
-  if (!sql || typeof sql !== 'object') {
+function assertSqlObject(sql: unknown): asserts sql is { sql: string; values: unknown[] } {
+  const obj = asObject(sql);
+  if (!obj) {
     throw new Error('[TenantIsolation] Raw SQL blocked: missing Prisma.Sql object');
   }
-  if (typeof (sql as any).sql !== 'string') {
+  if (typeof obj.sql !== 'string') {
     throw new Error('[TenantIsolation] Raw SQL blocked: Prisma.Sql missing .sql string');
   }
-  if (!Array.isArray((sql as any).values)) {
+  if (!Array.isArray(obj.values)) {
     throw new Error('[TenantIsolation] Raw SQL blocked: Prisma.Sql missing .values array');
   }
 }
 
 export async function queryRawOrgScopedSql<T>(
-  db: any,
+  db: unknown,
   params: { organizationId: string; reason: string; sql: Prisma.Sql }
 ): Promise<T> {
   assertSqlObject(params.sql);
@@ -463,7 +580,7 @@ export async function queryRawOrgScopedSql<T>(
 }
 
 export async function executeRawOrgScopedSql(
-  db: any,
+  db: unknown,
   params: { organizationId: string; reason: string; sql: Prisma.Sql }
 ): Promise<number> {
   assertSqlObject(params.sql);
@@ -476,7 +593,7 @@ export async function executeRawOrgScopedSql(
 }
 
 export async function queryRawTenantScopedSql<T>(
-  db: any,
+  db: unknown,
   params: { tenantId: string; reason: string; sql: Prisma.Sql }
 ): Promise<T> {
   assertSqlObject(params.sql);
@@ -489,7 +606,7 @@ export async function queryRawTenantScopedSql<T>(
 }
 
 export async function executeRawTenantScopedSql(
-  db: any,
+  db: unknown,
   params: { tenantId: string; reason: string; sql: Prisma.Sql }
 ): Promise<number> {
   assertSqlObject(params.sql);
@@ -502,7 +619,7 @@ export async function executeRawTenantScopedSql(
 }
 
 export async function queryRawScoped<T>(
-  db: any,
+  db: unknown,
   params: {
     scopeColumn: 'organization_id' | 'tenant_id';
     scopeId: string;
@@ -511,7 +628,7 @@ export async function queryRawScoped<T>(
     values: unknown[];
   }
 ): Promise<T> {
-  const queryFn = db === prisma ? _rawQueryUnsafe : (db as any)?.$queryRawUnsafe;
+  const queryFn = getQueryRawUnsafe(db);
   if (typeof queryFn !== 'function') {
     throwTenantIsolation({
       message: '[TenantIsolation] Raw SQL blocked: db client does not support $queryRawUnsafe.',
@@ -527,11 +644,46 @@ export async function queryRawScoped<T>(
     query: params.query,
     values: params.values,
   });
-  return queryFn(params.query, ...params.values);
+  return queryFn(params.query, ...params.values) as unknown as T;
+}
+
+export async function executeRawAllowlisted(
+  db: unknown,
+  params: {
+    reason: string;
+    query: string;
+    values: unknown[];
+  }
+): Promise<number> {
+  const execFn = getExecuteRawUnsafe(db);
+  if (typeof execFn !== 'function') {
+    throwTenantIsolation({
+      message: '[TenantIsolation] Raw SQL blocked: db client does not support $executeRawUnsafe.',
+      tags: { tenant_isolation_source: 'prisma_raw_sql' },
+    });
+  }
+
+  if (RAW_SQL_UNSCOPED_FORBIDDEN) {
+    throwTenantIsolation({
+      message:
+        '[TenantIsolation] Raw SQL blocked: unscoped raw SQL is forbidden in production. Use executeRawOrgScoped/executeRawTenantScoped only.',
+      tags: { tenant_isolation_source: 'prisma_raw_sql' },
+      extra: { reason: String(params?.reason || '').trim() || null },
+    });
+  }
+
+  assertUnscopedRawAllowed({ reason: params.reason, query: params.query, values: params.values });
+  auditRawSqlUsage({
+    kind: 'allowlisted_unscoped',
+    reason: params.reason,
+    query: params.query,
+    values: params.values,
+  });
+  return execFn(params.query, ...params.values) as unknown as number;
 }
 
 export async function executeRawScoped(
-  db: any,
+  db: unknown,
   params: {
     scopeColumn: 'organization_id' | 'tenant_id';
     scopeId: string;
@@ -540,7 +692,7 @@ export async function executeRawScoped(
     values: unknown[];
   }
 ): Promise<number> {
-  const execFn = db === prisma ? _rawExecuteUnsafe : (db as any)?.$executeRawUnsafe;
+  const execFn = getExecuteRawUnsafe(db);
   if (typeof execFn !== 'function') {
     throwTenantIsolation({
       message: '[TenantIsolation] Raw SQL blocked: db client does not support $executeRawUnsafe.',
@@ -556,11 +708,11 @@ export async function executeRawScoped(
     query: params.query,
     values: params.values,
   });
-  return execFn(params.query, ...params.values);
+  return execFn(params.query, ...params.values) as unknown as number;
 }
 
 export async function queryRawOrgScoped<T>(
-  db: any,
+  db: unknown,
   params: { organizationId: string; reason: string; query: string; values: unknown[] }
 ): Promise<T> {
   return queryRawScoped<T>(db, {
@@ -573,7 +725,7 @@ export async function queryRawOrgScoped<T>(
 }
 
 export async function executeRawOrgScoped(
-  db: any,
+  db: unknown,
   params: { organizationId: string; reason: string; query: string; values: unknown[] }
 ): Promise<number> {
   return executeRawScoped(db, {
@@ -586,7 +738,7 @@ export async function executeRawOrgScoped(
 }
 
 export async function queryRawTenantScoped<T>(
-  db: any,
+  db: unknown,
   params: { tenantId: string; reason: string; query: string; values: unknown[] }
 ): Promise<T> {
   return queryRawScoped<T>(db, {
@@ -599,7 +751,7 @@ export async function queryRawTenantScoped<T>(
 }
 
 export async function executeRawTenantScoped(
-  db: any,
+  db: unknown,
   params: { tenantId: string; reason: string; query: string; values: unknown[] }
 ): Promise<number> {
   return executeRawScoped(db, {
@@ -612,6 +764,40 @@ export async function executeRawTenantScoped(
 }
 
 const RAW_SQL_UNSCOPED_ALLOWLIST = new Map<string, RegExp[]>([
+  [
+    'e2e_rls_check_setup_role',
+    [
+      /\bset\s+local\s+role\s+authenticated\b/i,
+    ],
+  ],
+  [
+    'e2e_rls_check_setup_claims',
+    [
+      /\bset_config\(\s*'request\.jwt\.claims'\s*,\s*\$1\s*,\s*true\s*\)/i,
+    ],
+  ],
+  [
+    'health_db_check_table_exists',
+    [
+      /\bselect\s+1\s+from\s+[a-zA-Z0-9_]+\s+limit\s+1\b/i,
+    ],
+  ],
+  [
+    'health_db_count_table_records',
+    [
+      /\bselect\s+count\(\*\)::bigint\s+as\s+count\s+from\s+[a-zA-Z0-9_]+\b/i,
+    ],
+  ],
+  [
+    'e2e_rls_check_select',
+    [
+      /\bselect\b[\s\S]*\bpublic\.current_organization_id\(\)/i,
+      /\bfrom\s+public\.organizations\b/i,
+      /\bfrom\s+public\.client_clients\b/i,
+      /\bfrom\s+public\.system_leads\b/i,
+      /\bfrom\s+public\.social_posts\b/i,
+    ],
+  ],
   [
     'ops_portal_token_lookup',
     [
@@ -723,14 +909,14 @@ function assertUnscopedRawAllowed(params: { reason: string; query: string; value
 }
 
 export async function queryRawAllowlisted<T>(
-  db: any,
+  db: unknown,
   params: {
     reason: string;
     query: string;
     values: unknown[];
   }
 ): Promise<T> {
-  const queryFn = db === prisma ? _rawQueryUnsafe : (db as any)?.$queryRawUnsafe;
+  const queryFn = getQueryRawUnsafe(db);
   if (typeof queryFn !== 'function') {
     throwTenantIsolation({
       message: '[TenantIsolation] Raw SQL blocked: db client does not support $queryRawUnsafe.',
@@ -754,7 +940,7 @@ export async function queryRawAllowlisted<T>(
     query: params.query,
     values: params.values,
   });
-  return queryFn(params.query, ...params.values);
+  return queryFn(params.query, ...params.values) as unknown as T;
 }
 
 if (!globalForPrisma.prismaTenantGuardInstalled) {
@@ -763,34 +949,46 @@ if (!globalForPrisma.prismaTenantGuardInstalled) {
   globalForPrisma.prismaTenantGuardInstalled = true;
 }
 
-if (typeof _rawQueryUnsafe === 'function') {
-  (prisma as any).$queryRawUnsafe = (query: string, ...args: any[]) => {
-    const allowlist = [/^SELECT \* FROM "auth"."token"/i];
+if (typeof _rawQueryUnsafeOriginal === 'function') {
+  (prismaRaw as RawSqlClient).$queryRawUnsafe = function (this: unknown, query: string, ...args: unknown[]) {
+    const allowlist = [
+      /^SELECT \* FROM "auth"\."token"/i,
+      /\bset\s+local\s+role\s+authenticated\b/i,
+      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
+      /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
+      /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
+    ];
     if (allowlist.some((pattern) => pattern.test(query))) {
-      return _rawQueryUnsafe(query, ...args);
+      return (_rawQueryUnsafeOriginal as RawQueryUnsafe).call(this as unknown, query, ...args);
     }
     throw new Error('[TenantIsolation] Prisma $queryRawUnsafe is blocked. Use queryRawOrgScoped/queryRawTenantScoped.');
   };
 }
-if (typeof _rawExecuteUnsafe === 'function') {
-  (prisma as any).$executeRawUnsafe = (query: string, ...args: any[]) => {
-    const allowlist = [/^SELECT \* FROM "auth"."token"/i];
+if (typeof _rawExecuteUnsafeOriginal === 'function') {
+  (prismaRaw as RawSqlClient).$executeRawUnsafe = function (this: unknown, query: string, ...args: unknown[]) {
+    const allowlist = [
+      /^SELECT \* FROM "auth"\."token"/i,
+      /\bset\s+local\s+role\s+authenticated\b/i,
+      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
+      /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
+      /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
+    ];
     if (allowlist.some((pattern) => pattern.test(query))) {
-      return _rawExecuteUnsafe(query, ...args);
+      return (_rawExecuteUnsafeOriginal as RawExecuteUnsafe).call(this as unknown, query, ...args);
     }
     throw new Error('[TenantIsolation] Prisma $executeRawUnsafe is blocked. Use executeRawOrgScoped/executeRawTenantScoped.');
   };
 }
-if (typeof _rawQuery === 'function') {
-  (prisma as any).$queryRaw = () => {
+if (typeof _rawQueryOriginal === 'function') {
+  (prismaRaw as RawSqlClient).$queryRaw = () => {
     throwTenantIsolation({
       message: '[TenantIsolation] Prisma $queryRaw is blocked. Use queryRawOrgScoped/queryRawTenantScoped.',
       tags: { tenant_isolation_source: 'prisma_raw_sql' },
     });
   };
 }
-if (typeof _rawExecute === 'function') {
-  (prisma as any).$executeRaw = () => {
+if (typeof _rawExecuteOriginal === 'function') {
+  (prismaRaw as RawSqlClient).$executeRaw = () => {
     throwTenantIsolation({
       message: '[TenantIsolation] Prisma $executeRaw is blocked. Use executeRawOrgScoped/executeRawTenantScoped.',
       tags: { tenant_isolation_source: 'prisma_raw_sql' },

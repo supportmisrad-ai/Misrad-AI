@@ -7,29 +7,52 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../../lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: { email, organizationId: String(params.workspaceId) },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    return row?.id ? String(row.id) : null;
+}
+
+async function deactivateInvitation(params: { workspaceId: string; invitationId: string }) {
+    try {
+        const res = await prisma.$executeRaw(
+            Prisma.sql`
+                UPDATE system_invitation_links
+                SET is_active = false,
+                    updated_at = now()
+                WHERE id = ${String(params.invitationId)}
+                  AND organization_id = ${String(params.workspaceId)}
+            `
+        );
+        return Number(res || 0);
+    } catch (error: any) {
+        const code = String((error as any)?.code || (error as any)?.meta?.code || '');
+        if (code === '42703') {
+            const res = await prisma.$executeRaw(
+                Prisma.sql`
+                    UPDATE system_invitation_links
+                    SET is_active = false,
+                        updated_at = now()
+                    WHERE id = ${String(params.invitationId)}
+                `
+            );
+            return Number(res || 0);
+        }
+        throw error;
     }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
 }
 async function POSTHandler(
     request: NextRequest,
@@ -56,15 +79,8 @@ async function POSTHandler(
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        let supabaseClient: any;
-        try {
-            supabaseClient = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
-
         // 2. Find user in database by email
-        const dbUserId = await selectDbUserId({ supabase: supabaseClient, workspaceId: workspace.id, email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
 
         if (!dbUserId) {
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
@@ -74,24 +90,15 @@ async function POSTHandler(
 
         const { id } = await params;
 
-        const patch = {
-            is_active: false,
-            updated_at: new Date().toISOString()
-        };
-
-        const byOrg = await supabaseClient
-            .from('system_invitation_links')
-            .update(patch)
-            .eq('id', id)
-            .eq('organization_id', workspace.id);
-
-        let updateError = (byOrg as any)?.error;
-        if (updateError?.code === '42703') {
-            return apiError('[SchemaMismatch] system_invitation_links is missing organization_id', { status: 500 });
-        }
-        
-        if (updateError) {
+        let updatedCount = 0;
+        try {
+            updatedCount = await deactivateInvitation({ workspaceId: String(workspace.id), invitationId: String(id) });
+        } catch (updateError: any) {
             console.error('[API] Error deactivating invitation:', updateError);
+            return apiError('Failed to deactivate invitation', { status: 500 });
+        }
+
+        if (updatedCount < 1) {
             return apiError('Failed to deactivate invitation', { status: 500 });
         }
 

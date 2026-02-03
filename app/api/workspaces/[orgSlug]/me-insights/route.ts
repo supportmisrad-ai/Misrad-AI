@@ -1,6 +1,5 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
-import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
@@ -9,20 +8,37 @@ import { queryRawOrgScoped } from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
-function asString(v: any): string {
+function asObject(v: unknown): Record<string, unknown> | null {
+  if (!v || typeof v !== 'object') return null;
+  if (Array.isArray(v)) return null;
+  return v as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : String(error ?? '');
+}
+
+function asString(v: unknown): string {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
 }
 
-function parseCommitments(rating: any): Array<{ who: string; what: string; due: string }> {
-  const commitments = rating?.commitments;
+function parseCommitments(rating: unknown): Array<{ who: string; what: string; due: string }> {
+  const ratingObj = asObject(rating) ?? {};
+  const commitments = ratingObj.commitments;
   if (!Array.isArray(commitments)) return [];
   return commitments
-    .map((c: any) => ({
-      who: asString(c?.who || '').trim(),
-      what: asString(c?.what || '').trim(),
-      due: asString(c?.due || '').trim(),
-    }))
-    .filter((c) => c.who || c.what || c.due);
+    .map((c) => {
+      const cObj = asObject(c) ?? {};
+      return {
+        who: asString(cObj.who || '').trim(),
+        what: asString(cObj.what || '').trim(),
+        due: asString(cObj.due || '').trim(),
+      };
+    })
+    .filter((c): boolean => Boolean(c.who || c.what || c.due));
 }
 
 async function GETHandler(
@@ -45,8 +61,6 @@ async function GETHandler(
     const { workspace } = await getWorkspaceContextOrThrow(req, { params });
     const url = new URL(req.url);
     const moduleId = String(url.searchParams.get('module') || '').trim().toLowerCase();
-
-    const supabase = createClient();
 
     if (moduleId === 'system') {
       const [totalLeads, hotLeads] = await Promise.all([
@@ -72,23 +86,27 @@ async function GETHandler(
 
       const hottest = hotLeads[0] || null;
 
-      const { count: indexedLeadsCount } = await supabase
-        .from('ai_embeddings')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', workspace.id)
-        .eq('module_id', 'system')
-        .like('doc_key', 'system:system_leads:%');
+      const indexedLeadsCount = await prisma.ai_embeddings.count({
+        where: {
+          organization_id: workspace.id,
+          module_id: 'system',
+          doc_key: { startsWith: 'system:system_leads:' },
+        },
+      });
 
       const docKeys = hotLeads.map((l) => `system:system_leads:${l.id}`);
-      const { data: embeddedKeys } = await supabase
-        .from('ai_embeddings')
-        .select('doc_key')
-        .eq('organization_id', workspace.id)
-        .eq('module_id', 'system')
-        .in('doc_key', docKeys)
-        .limit(200);
 
-      const embeddedKeySet = new Set((embeddedKeys || []).map((r: any) => String(r.doc_key || '')));
+      const embeddedKeys = await prisma.ai_embeddings.findMany({
+        where: {
+          organization_id: workspace.id,
+          module_id: 'system',
+          doc_key: { in: docKeys },
+        },
+        select: { doc_key: true },
+        take: 200,
+      });
+
+      const embeddedKeySet = new Set((embeddedKeys || []).map((r) => String(r.doc_key || '')));
 
       const leadsOut = hotLeads.map((l) => ({
         id: l.id,
@@ -154,15 +172,18 @@ async function GETHandler(
       const warmthValues: number[] = [];
 
       const meetingDocKeys = analyses.map((a) => `client:meeting:${a.meeting_id}`);
-      const { data: embeddedMeetings } = await supabase
-        .from('ai_embeddings')
-        .select('doc_key')
-        .eq('organization_id', workspace.id)
-        .eq('module_id', 'client')
-        .in('doc_key', meetingDocKeys)
-        .limit(500);
 
-      const embeddedMeetingSet = new Set((embeddedMeetings || []).map((r: any) => String(r.doc_key || '')));
+      const embeddedMeetings = await prisma.ai_embeddings.findMany({
+        where: {
+          organization_id: workspace.id,
+          module_id: 'client',
+          doc_key: { in: meetingDocKeys },
+        },
+        select: { doc_key: true },
+        take: 500,
+      });
+
+      const embeddedMeetingSet = new Set((embeddedMeetings || []).map((r) => String(r.doc_key || '')));
 
       let lastCommitment: {
         meetingId: string;
@@ -176,18 +197,18 @@ async function GETHandler(
       } | null = null;
 
       for (const a of analyses) {
-        const rating: any = a.rating || {};
-        const warmthRaw = rating?.relationshipWarmth;
+        const ratingObj = asObject(a.rating) ?? {};
+        const warmthRaw = ratingObj.relationshipWarmth;
         const warmthNum = typeof warmthRaw === 'number' ? warmthRaw : Number(warmthRaw);
         if (Number.isFinite(warmthNum)) warmthValues.push(warmthNum);
 
-        const commitments = parseCommitments(rating);
+        const commitments = parseCommitments(a.rating);
         for (const c of commitments) {
           const row = {
             meetingId: String(a.meeting_id),
-            clientName: (a as any)?.client?.name ? String((a as any).client.name) : null,
-            meetingTitle: (a as any)?.meeting?.title ? String((a as any).meeting.title) : null,
-            createdAt: new Date(a.created_at as any).toISOString(),
+            clientName: a.client?.name ? String(a.client.name) : null,
+            meetingTitle: a.meeting?.title ? String(a.meeting.title) : null,
+            createdAt: new Date(a.created_at).toISOString(),
             who: c.who,
             what: c.what,
             due: c.due,
@@ -203,12 +224,14 @@ async function GETHandler(
       const avgWarmth = warmthValues.length ? Math.round((warmthValues.reduce((s, v) => s + v, 0) / warmthValues.length) * 10) / 10 : null;
       const lastWarmth = warmthValues.length ? warmthValues[0] : null;
 
-      const { count: indexedMeetingsCount } = await supabase
-        .from('ai_embeddings')
-        .select('id', { count: 'exact', head: true })
-        .eq('organization_id', workspace.id)
-        .eq('module_id', 'client')
-        .like('doc_key', 'client:meeting:%');
+
+      const indexedMeetingsCount = await prisma.ai_embeddings.count({
+        where: {
+          organization_id: workspace.id,
+          module_id: 'client',
+          doc_key: { startsWith: 'client:meeting:' },
+        },
+      });
 
       return apiSuccess({
         moduleId: 'client',
@@ -229,9 +252,9 @@ async function GETHandler(
     }
 
     if (moduleId === 'finance') {
-      const isMissingRelationError = (error: any): boolean => {
-        const message = String(error?.message || '').toLowerCase();
-        const code = String((error as any)?.code || '').toLowerCase();
+      const isMissingRelationError = (error: unknown): boolean => {
+        const message = getErrorMessage(error).toLowerCase();
+        const code = String(asObject(error)?.code || '').toLowerCase();
         return code === '42p01' || message.includes('does not exist') || message.includes('relation') || message.includes('table');
       };
 
@@ -239,7 +262,7 @@ async function GETHandler(
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-      const toNumberSafe = (v: any): number => {
+      const toNumberSafe = (v: unknown): number => {
         if (v == null) return 0;
         if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
         if (typeof v === 'bigint') return Number(v);
@@ -247,15 +270,17 @@ async function GETHandler(
           const n = Number(v);
           return Number.isFinite(n) ? n : 0;
         }
-        if (typeof (v as any)?.toNumber === 'function') {
-          const n = (v as any).toNumber();
+        const obj = asObject(v);
+        const toNumber = obj?.toNumber;
+        if (typeof toNumber === 'function') {
+          const n = toNumber.call(v);
           return Number.isFinite(n) ? n : 0;
         }
         const n = Number(v);
         return Number.isFinite(n) ? n : 0;
       };
 
-      const [weightedPipelineRow] = await queryRawOrgScoped<Array<{ weighted_pipeline: any }>>(prisma, {
+      const [weightedPipelineRow] = await queryRawOrgScoped<Array<{ weighted_pipeline: unknown }>>(prisma, {
         organizationId: workspace.id,
         reason: 'me_insights_finance_weighted_pipeline',
         query: `
@@ -274,7 +299,7 @@ async function GETHandler(
 
       const weightedPipeline = toNumberSafe(weightedPipelineRow?.weighted_pipeline);
 
-      const [systemInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: any }>>(prisma, {
+      const [systemInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
         organizationId: workspace.id,
         reason: 'me_insights_finance_system_invoices_open',
         query: `
@@ -297,7 +322,7 @@ async function GETHandler(
 
       const systemInvoicesOpen = toNumberSafe(systemInvoicesOpenRow?.open_sum);
 
-      const [misradInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: any }>>(prisma, {
+      const [misradInvoicesOpenRow] = await queryRawOrgScoped<Array<{ open_sum: unknown }>>(prisma, {
         organizationId: workspace.id,
         reason: 'me_insights_finance_misrad_invoices_open',
         query: `
@@ -324,15 +349,21 @@ async function GETHandler(
       const misradInvoicesOpenThisMonth = toNumberSafe(misradInvoicesOpenRow?.open_sum);
 
       let recurringMonthly = 0;
-      const billing = await supabase.from('nexus_billing_items').select('cadence,amount').eq('organization_id', workspace.id).limit(500);
-      if (billing.error) {
-        if (!isMissingRelationError(billing.error)) {
-          throw new Error(billing.error.message);
+
+      try {
+        const billingRows = await prisma.nexus_billing_items.findMany({
+          where: { organization_id: workspace.id },
+          select: { cadence: true, amount: true },
+          take: 500,
+        });
+
+        recurringMonthly = (billingRows || [])
+          .filter((r) => String(r.cadence || '').toLowerCase() === 'monthly')
+          .reduce((sum, r) => sum + toNumberSafe(r.amount), 0);
+      } catch (e: unknown) {
+        if (!isMissingRelationError(e)) {
+          throw e;
         }
-      } else if (Array.isArray(billing.data)) {
-        recurringMonthly = billing.data
-          .filter((r: any) => String(r.cadence || '').toLowerCase() === 'monthly')
-          .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
       }
 
       const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;
@@ -351,11 +382,11 @@ async function GETHandler(
     }
 
     return apiSuccess({ moduleId: moduleId || null, organizationId: workspace.id });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });
     }
-    const msg = String(e?.message || e);
+    const msg = getErrorMessage(e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
     return apiError(e, { status });
   }

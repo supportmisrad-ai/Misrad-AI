@@ -1,5 +1,5 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
@@ -40,17 +40,11 @@ async function GETHandler(
     }
 
     const { workspace } = await getWorkspaceContextOrThrow(_req, { params });
-    const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', workspace.id)
-      .maybeSingle();
-
-    if (error) {
-      return apiError(error, { status: 500 });
-    }
+    const data = await prisma.organization_settings.findUnique({
+      where: { organization_id: String(workspace.id) },
+      select: { ai_dna: true },
+    });
 
     await logAuditEvent('data.read', 'organization_settings.ai_dna', {
       details: {
@@ -104,23 +98,18 @@ async function PUTHandler(
       return apiError('aiDna must be a JSON object', { status: 400 });
     }
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
-
-    const { error } = await supabase
-      .from('organization_settings')
-      .upsert(
-        {
-          organization_id: workspace.id,
-          ai_dna: aiDna,
-          updated_at: now,
-        } as Record<string, unknown>,
-        { onConflict: 'organization_id' }
-      );
-
-    if (error) {
-      return apiError(error, { status: 500 });
-    }
+    await prisma.organization_settings.upsert({
+      where: { organization_id: String(workspace.id) },
+      create: {
+        organization_id: String(workspace.id),
+        ai_dna: aiDna as any,
+        updated_at: new Date(),
+      },
+      update: {
+        ai_dna: aiDna as any,
+        updated_at: new Date(),
+      },
+    });
 
     try {
       const ai = AIService.getInstance();

@@ -72,24 +72,26 @@ export function SharedHeader({
   return (
     <header className={`h-20 md:h-24 flex items-center justify-between px-4 md:px-8 z-40 sticky top-0 ${className || ''}`}>
       <div className="flex items-center gap-2 md:hidden flex-1 min-w-0">
-        {mobileLeadingSlot ? mobileLeadingSlot : <div className="w-9 h-9" aria-hidden="true" />}
-        <div className="relative w-8 h-8 rounded-xl shrink-0 flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">
-          {mobileBrand.logoUrl && !mobileBrandLogoFailed ? (
-            <img
-              src={mobileBrand.logoUrl}
-              alt="Logo"
-              className="w-full h-full object-cover"
-              onError={() => setMobileBrandLogoFailed(true)}
-            />
-          ) : (
-            mobileBrand.fallbackIcon || null
-          )}
+        {mobileLeadingSlot ? <div className="shrink-0">{mobileLeadingSlot}</div> : null}
+        <div className="relative w-8 h-8 rounded-xl shrink-0">
+          <div className="absolute inset-0 rounded-xl flex items-center justify-center bg-[color:var(--os-header-mobile-logo-surface,#ffffff)] overflow-hidden border border-[color:var(--os-header-mobile-logo-border,#f3f4f6)] shadow-sm">
+            {mobileBrand.logoUrl && !mobileBrandLogoFailed ? (
+              <img
+                src={mobileBrand.logoUrl}
+                alt="Logo"
+                className="w-full h-full object-cover"
+                onError={() => setMobileBrandLogoFailed(true)}
+              />
+            ) : (
+              mobileBrand.fallbackIcon || null
+            )}
+          </div>
           {mobileBrand.badgeModuleKey ? (
-            <div className="absolute -bottom-1 -left-1">
+            <div className="absolute -bottom-1 -left-1 z-10">
               <OSModuleSquircleIcon moduleKey={mobileBrand.badgeModuleKey} boxSize={16} iconSize={10} className="shadow-none" />
             </div>
           ) : mobileBrand.badgeIcon ? (
-            <div className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+            <div className="absolute -bottom-1 -left-1 z-10 w-4 h-4 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
               {mobileBrand.badgeIcon}
             </div>
           ) : null}
@@ -105,6 +107,10 @@ export function SharedHeader({
       </div>
 
       <div className="flex items-center gap-1 md:gap-5 relative bg-[color:var(--os-header-actions-surface,rgba(255,255,255,0.40))] backdrop-blur-xl p-1 pr-1.5 md:p-2 rounded-full border border-[color:var(--os-header-actions-border,rgba(255,255,255,0.60))] shadow-[0_4px_20px_rgba(0,0,0,0.03)] shrink-0 ml-2">
+        {switcherSlot ? <div className="hidden md:contents">{switcherSlot}</div> : null}
+
+        <AttendanceMiniStatus />
+
         <button
           id="command-search-btn"
           onClick={() => onOpenCommandPaletteAction?.()}
@@ -126,11 +132,7 @@ export function SharedHeader({
           <Headphones size={18} />
         </button>
 
-        {actionsSlot !== undefined ? actionsSlot : mobileBrand.badgeModuleKey ? <ModuleHelpVideos moduleKey={mobileBrand.badgeModuleKey} /> : null}
-
-        {switcherSlot ? <div className="hidden md:flex items-center gap-2 empty:hidden">{switcherSlot}</div> : null}
-
-        <AttendanceMiniStatus />
+        {actionsSlot !== undefined ? actionsSlot : null}
 
         {notificationsSlot ?? (
           <button
@@ -190,6 +192,12 @@ export function SharedHeader({
           </button>
         )}
       </div>
+
+      {mobileBrand.badgeModuleKey ? (
+        <div className="hidden">
+          <ModuleHelpVideos moduleKey={mobileBrand.badgeModuleKey} />
+        </div>
+      ) : null}
     </header>
   );
 }

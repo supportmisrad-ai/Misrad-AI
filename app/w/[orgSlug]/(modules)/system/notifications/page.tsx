@@ -12,5 +12,5 @@ export default async function SystemNotificationsPage({
 
   const initialNotifications = await getSystemNotifications({ orgSlug, limit: 200 });
 
-  return <NotificationsView orgSlug={orgSlug} initialNotifications={initialNotifications as any} />;
+  return <NotificationsView orgSlug={orgSlug} initialNotifications={initialNotifications} />;
 }

@@ -1,6 +1,6 @@
 'use server';
 
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -29,7 +29,7 @@ async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: 
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   const organizationId = requireOrganizationId('requireOrganizationOwner', workspace.id);
 
-  const userResult = await getOrCreateSupabaseUserAction(params.clerkUserId);
+  const userResult = await getOrCreateSocialSupabaseUserAction(params.clerkUserId);
   if (!userResult.success || !userResult.userId) {
     throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
   }
@@ -216,7 +216,7 @@ export async function getIntegrationStatus(integrationName: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -287,7 +287,7 @@ export async function saveGoogleTokens(
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -347,7 +347,7 @@ export async function syncGoogleCalendar() {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -425,7 +425,7 @@ export async function syncGoogleDrive(clientId?: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -496,7 +496,7 @@ export async function disconnectIntegration(integrationName: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -537,7 +537,7 @@ export async function triggerWebhookEvent(params: {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -623,7 +623,7 @@ export async function saveWebhookConfig(
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -686,7 +686,7 @@ export async function saveMorningCredentials(apiKey: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -748,7 +748,7 @@ export async function getMorningApiKey(): Promise<string | null> {
       return null;
     }
 
-    const userResult = await getOrCreateSupabaseUserAction(userId);
+    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       return null;
     }

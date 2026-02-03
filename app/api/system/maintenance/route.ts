@@ -1,34 +1,27 @@
 import { NextResponse } from 'next/server';
-import { createClient, createServiceRoleClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { requireSuperAdmin } from '@/lib/auth';
 
 async function GETHandler() {
   try {
-    const supabase = createClient();
-
     // Primary source of truth: system_settings.maintenance_mode (global)
-    const { data: sysRow, error: sysErr } = await supabase
-      .from('system_settings')
-      .select('maintenance_mode')
-      .is('tenant_id', null)
-      .maybeSingle();
+    const sysRow = await prisma.system_settings.findFirst({
+      where: { tenant_id: null },
+      orderBy: { updated_at: 'desc' },
+      select: { maintenance_mode: true },
+    });
 
-    if (!sysErr && sysRow && typeof (sysRow as any).maintenance_mode === 'boolean') {
+    if (sysRow && typeof (sysRow as any).maintenance_mode === 'boolean') {
       return NextResponse.json({ maintenanceMode: Boolean((sysRow as any).maintenance_mode) }, { status: 200 });
     }
 
     // Fallback: legacy feature_flags in social_system_settings
-    const { data: row, error } = await supabase
-      .from('social_system_settings')
-      .select('*')
-      .eq('key', 'feature_flags')
-      .maybeSingle();
-
-    if (error) {
-      return NextResponse.json({ maintenanceMode: false }, { status: 200 });
-    }
+    const row = await prisma.social_system_settings.findUnique({
+      where: { key: 'feature_flags' },
+      select: { value: true, maintenance_mode: true },
+    });
 
     const rawValue = (row as any)?.value;
     let parsedValue: any = null;
@@ -67,20 +60,29 @@ async function PATCHHandler(request: Request) {
       await requireSuperAdmin();
     }
 
-    const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'system_maintenance_mode_update' });
-    const { error } = await supabase
-      .from('system_settings')
-      .upsert(
-        {
-          tenant_id: null,
-          maintenance_mode: maintenanceMode,
-          updated_at: new Date().toISOString(),
-        } as any,
-        { onConflict: 'tenant_id' }
-      );
+    const existing = await prisma.system_settings.findFirst({
+      where: { tenant_id: null },
+      orderBy: { updated_at: 'desc' },
+      select: { id: true },
+    });
 
-    if (error) {
-      return NextResponse.json({ error: 'Failed to update maintenance mode' }, { status: 500 });
+    if (existing?.id) {
+      await prisma.system_settings.update({
+        where: { id: String(existing.id) },
+        data: {
+          maintenance_mode: maintenanceMode,
+          updated_at: new Date(),
+        },
+      });
+    } else {
+      await prisma.system_settings.create({
+        data: {
+          maintenance_mode: maintenanceMode,
+          system_flags: {},
+          created_at: new Date(),
+          updated_at: new Date(),
+        } as any,
+      });
     }
 
     return NextResponse.json({ success: true, maintenanceMode }, { status: 200 });

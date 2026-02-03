@@ -1,10 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getBaseUrl } from '@/lib/utils';
 import { sendAbandonedSignupFollowupEmail } from '@/lib/email';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const dynamic = 'force-dynamic';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+  const obj = asObject(value);
+  const fn = obj?.[name];
+  return typeof fn === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+type LegacyDelegate = {
+  findMany?: (args: Record<string, unknown>) => Promise<Array<Record<string, unknown>>>;
+  create?: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
+};
+
+function getLegacyDelegate(name: string): LegacyDelegate {
+  const clientObj = asObject(prisma as unknown);
+  const delegate = clientObj?.[name];
+  if (!asObject(delegate)) {
+    throw new Error(`Prisma delegate ${name} is unavailable`);
+  }
+  return delegate as unknown as LegacyDelegate;
+}
 
 function safeString(value: unknown): string {
   return String(value ?? '').trim();
@@ -33,30 +66,33 @@ async function POSTHandler(req: NextRequest) {
     const cutoffCreatedAt = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
     const dedupeCutoff = new Date(Date.now() - dedupeDays * 24 * 60 * 60 * 1000).toISOString();
 
-    const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'cron_abandoned_signups_followup' });
-
-    const usersRes = await supabase
-      .from('social_users')
-      .select('id, clerk_user_id, email, full_name, created_at, organization_id')
-      .not('organization_id', 'is', null)
-      .not('created_at', 'is', null)
-      .gte('created_at', cutoffCreatedAt)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (usersRes.error) {
+    let usersRows: Array<Record<string, unknown>> = [];
+    try {
+      const delegate = getLegacyDelegate('social_users');
+      const findMany = delegate.findMany;
+      if (typeof findMany !== 'function') throw new Error('Prisma delegate social_users.findMany is unavailable');
+      usersRows = await findMany({
+        where: {
+          organization_id: { not: null },
+          created_at: { not: null, gte: new Date(cutoffCreatedAt) },
+        },
+        select: { id: true, clerk_user_id: true, email: true, full_name: true, created_at: true, organization_id: true },
+        orderBy: { created_at: 'desc' },
+        take: limit,
+      });
+    } catch (e: unknown) {
       return NextResponse.json(
-        { ok: false, error: usersRes.error.message || 'Failed to query social_users' },
+        { ok: false, error: getErrorMessage(e) || 'Failed to query social_users' },
         { status: 500 }
       );
     }
 
-    const candidates = (usersRes.data || []).map((u: any) => ({
+    const candidates = (usersRows || []).map((u) => ({
       socialUserId: safeString(u.id),
       clerkUserId: safeString(u.clerk_user_id),
       email: safeString(u.email),
       fullName: safeString(u.full_name),
-      createdAt: safeString(u.created_at),
+      createdAt: u.created_at ? new Date(String(u.created_at)).toISOString() : '',
       organizationId: safeString(u.organization_id),
     }));
 
@@ -65,16 +101,21 @@ async function POSTHandler(req: NextRequest) {
       return NextResponse.json({ ok: true, dryRun, total: 0, sent: 0, skipped: 0, reasons: {} });
     }
 
-    const orgOwnersRes = await supabase
-      .from('organizations')
-      .select('id, owner_id')
-      .in('id', orgIds);
-
     const ownerByOrgId = new Map<string, string>();
-    if (!orgOwnersRes.error && orgOwnersRes.data) {
-      for (const row of orgOwnersRes.data as any[]) {
+    try {
+      const delegate = getLegacyDelegate('social_organizations');
+      const findMany = delegate.findMany;
+      if (typeof findMany !== 'function') throw new Error('Prisma delegate social_organizations.findMany is unavailable');
+      const orgRows = await findMany({
+        where: { id: { in: orgIds } },
+        select: { id: true, owner_id: true },
+      });
+
+      for (const row of orgRows) {
         ownerByOrgId.set(safeString(row.id), safeString(row.owner_id));
       }
+    } catch {
+      // ignore - treat as no owners
     }
 
     const ownerCandidates = candidates.filter((c) => {
@@ -87,21 +128,27 @@ async function POSTHandler(req: NextRequest) {
       return NextResponse.json({ ok: true, dryRun, total: 0, sent: 0, skipped: candidates.length, reasons: { not_owner: candidates.length } });
     }
 
-    const activeSubsRes = await supabase
-      .from('subscriptions')
-      .select('organization_id')
-      .in('organization_id', ownerOrgIds)
-      .eq('status', 'active')
-      .gt('current_period_end', new Date().toISOString());
-
-    if (activeSubsRes.error) {
+    let activeSubsRows: Array<Record<string, unknown>> = [];
+    try {
+      const delegate = getLegacyDelegate('subscriptions');
+      const findMany = delegate.findMany;
+      if (typeof findMany !== 'function') throw new Error('Prisma delegate subscriptions.findMany is unavailable');
+      activeSubsRows = await findMany({
+        where: {
+          organization_id: { in: ownerOrgIds },
+          status: 'active',
+          current_period_end: { gt: new Date() },
+        },
+        select: { organization_id: true },
+      });
+    } catch (e: unknown) {
       return NextResponse.json(
-        { ok: false, error: activeSubsRes.error.message || 'Failed to query subscriptions' },
+        { ok: false, error: getErrorMessage(e) || 'Failed to query subscriptions' },
         { status: 500 }
       );
     }
 
-    const activeOrgIds = new Set((activeSubsRes.data || []).map((r: any) => safeString(r.organization_id)).filter(Boolean));
+    const activeOrgIds = new Set((activeSubsRows || []).map((r) => safeString(r.organization_id)).filter(Boolean));
 
     const notActiveSub = ownerCandidates.filter((c) => !activeOrgIds.has(c.organizationId));
     if (notActiveSub.length === 0) {
@@ -111,20 +158,27 @@ async function POSTHandler(req: NextRequest) {
     const relevantOrgIds = Array.from(new Set(notActiveSub.map((c) => c.organizationId).filter(Boolean)));
     const relevantClerkIds = Array.from(new Set(notActiveSub.map((c) => c.clerkUserId).filter(Boolean)));
 
-    const dedupeRes = await supabase
-      .from('billing_events')
-      .select('organization_id, actor_clerk_user_id, occurred_at')
-      .eq('event_type', 'abandoned_signup_followup_sent')
-      .gte('occurred_at', dedupeCutoff)
-      .in('organization_id', relevantOrgIds)
-      .in('actor_clerk_user_id', relevantClerkIds);
-
     const alreadySent = new Set<string>();
-    if (!dedupeRes.error && dedupeRes.data) {
-      for (const row of dedupeRes.data as any[]) {
+    try {
+      const delegate = getLegacyDelegate('billing_events');
+      const findMany = delegate.findMany;
+      if (typeof findMany !== 'function') throw new Error('Prisma delegate billing_events.findMany is unavailable');
+      const dedupeRows = await findMany({
+        where: {
+          event_type: 'abandoned_signup_followup_sent',
+          occurred_at: { gte: new Date(dedupeCutoff) },
+          organization_id: { in: relevantOrgIds },
+          actor_clerk_user_id: { in: relevantClerkIds },
+        },
+        select: { organization_id: true, actor_clerk_user_id: true },
+      });
+
+      for (const row of dedupeRows) {
         const key = `${safeString(row.organization_id)}::${safeString(row.actor_clerk_user_id)}`;
         if (key !== '::') alreadySent.add(key);
       }
+    } catch {
+      // ignore
     }
 
     const baseUrl = getBaseUrl(req);
@@ -137,7 +191,7 @@ async function POSTHandler(req: NextRequest) {
       already_sent_recently: 0,
     };
 
-    const results: any[] = [];
+    const results: Array<Record<string, unknown>> = [];
 
     for (const row of notActiveSub) {
       const dedupeKey = `${row.organizationId}::${row.clerkUserId}`;
@@ -173,21 +227,22 @@ async function POSTHandler(req: NextRequest) {
       }
 
       try {
-        const scopedWrite = createServiceRoleClientScoped({
-          reason: 'cron_abandoned_signups_followup_write',
-          scopeColumn: 'organization_id',
-          scopeId: row.organizationId,
-        });
-        await scopedWrite.from('billing_events').insert({
-          organization_id: row.organizationId,
-          event_type: 'abandoned_signup_followup_sent',
-          occurred_at: new Date().toISOString(),
-          actor_clerk_user_id: row.clerkUserId || null,
-          payload: {
-            email: row.email,
-            created_at: row.createdAt,
+        const delegate = getLegacyDelegate('billing_events');
+        const create = delegate.create;
+        if (typeof create !== 'function') throw new Error('Prisma delegate billing_events.create is unavailable');
+        await create({
+          data: {
+            organization_id: String(row.organizationId),
+            event_type: 'abandoned_signup_followup_sent',
+            occurred_at: new Date(),
+            actor_clerk_user_id: row.clerkUserId || null,
+            payload: {
+              email: row.email,
+              created_at: row.createdAt,
+            },
+            created_at: new Date(),
           },
-        } as any);
+        });
       } catch {
         // ignore
       }
@@ -207,8 +262,8 @@ async function POSTHandler(req: NextRequest) {
       checkoutUrl,
       results,
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'Unknown error' }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Unknown error' }, { status: 500 });
   }
 }
 

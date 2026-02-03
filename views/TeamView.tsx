@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Status, User, RoleDefinition } from '../types';
 import { Settings, UserPlus, Trophy, X, Shield, Building2, Users, Lock, Calendar, CalendarDays, BarChart3, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname, useNexusNavigation, useNexusSoloMode } from '@/lib/os/nexus-routing';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { CustomSelect } from '../components/CustomSelect';
 import { TeamMemberModal } from '../components/nexus/team/TeamMemberModal';
@@ -35,8 +35,11 @@ export const TeamView: React.FC = () => {
   const [availableRoles, setAvailableRoles] = useState<RoleDefinition[]>(roleDefinitions || []);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const lastAllUsersRef = useRef<User[] | null>(null);
+  const handledNewEmployeeRef = useRef(false);
   const { navigate, pathname } = useNexusNavigation();
   const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname), [pathname]);
+  const teamSize = Array.isArray(allUsers) ? allUsers.length : (Array.isArray(users) ? users.length : null);
+  const { isSoloMode } = useNexusSoloMode(orgSlug, teamSize);
 
   // HIERARCHY LOGIC
   // Super Admin: system admin, sees everything across all tenants
@@ -110,17 +113,24 @@ export const TeamView: React.FC = () => {
 
   useEffect(() => {
       if (typeof window === 'undefined') return;
+      if (handledNewEmployeeRef.current) return;
       const url = new URL(window.location.href);
       if (url.searchParams.get('newEmployee') !== '1') return;
 
-      setEditingUser(undefined);
-      setModalMode('add');
-      setIsMemberModalOpen(true);
+      handledNewEmployeeRef.current = true;
+
+      if (isSoloMode) {
+          addToast('מצב סולו פעיל — ניהול צוות מוסתר.', 'info');
+      } else {
+          setEditingUser(undefined);
+          setModalMode('add');
+          setIsMemberModalOpen(true);
+      }
 
       url.searchParams.delete('newEmployee');
       const nextSearch = url.searchParams.toString();
       window.history.replaceState({}, '', `${url.pathname}${nextSearch ? `?${nextSearch}` : ''}${url.hash}`);
-  }, []);
+  }, [isSoloMode, addToast]);
 
   useEffect(() => {
       const loadRoles = async () => {
@@ -312,7 +322,7 @@ export const TeamView: React.FC = () => {
       }
   };
 
-  const canManageTeam = hasPermission('manage_team');
+  const canManageTeam = hasPermission('manage_team') && !isSoloMode;
   const canSwitchUser = isGlobalAdmin;
 
   const canEditUser = (targetUser: User) => {
@@ -509,6 +519,15 @@ export const TeamView: React.FC = () => {
           setAssigningToUserId(null);
       }
   };
+
+  useEffect(() => {
+      if (typeof window === 'undefined') return;
+      const url = new URL(window.location.href);
+      const tab = url.searchParams.get('tab');
+      if (tab === 'leave' || tab === 'events' || tab === 'invitations' || tab === 'workload') {
+          setActiveTab(tab);
+      }
+  }, []);
 
   return (
     <div className="w-full flex gap-4 md:gap-6 h-auto md:h-[calc(100vh-140px)] overflow-visible md:overflow-hidden pb-12 md:pb-0" style={{ touchAction: 'pan-y' }}>

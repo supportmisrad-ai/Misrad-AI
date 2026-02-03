@@ -6,7 +6,7 @@ import { Building2, Users, Kanban, Zap, Copy, Archive, Rocket, Lightbulb, Shield
 import { motion, AnimatePresence } from 'framer-motion';
 import { ScreenGuard } from '../components/ScreenGuard';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { getNexusBasePath, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
 
 // Import Tabs
 import { OrganizationTab } from '../components/settings/OrganizationTab';
@@ -31,6 +31,7 @@ export const SettingsView: React.FC = () => {
   const basePath = getNexusBasePath(pathname);
 
   const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname || ''), [pathname]);
+  const { isSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
   const [canManageBranding, setCanManageBranding] = useState(false);
   const [isLoadingBrandingAccess, setIsLoadingBrandingAccess] = useState(false);
 
@@ -127,6 +128,10 @@ export const SettingsView: React.FC = () => {
       // 1. Check System Flag
       const flag = organization.systemFlags?.[tab.screenId];
       if (flag === 'hidden') return false;
+
+      if (isSoloMode && (tab.id === 'team' || tab.id === 'departments' || tab.id === 'roles')) {
+          return false;
+      }
 
       if (tab.id === 'organization' && !canManageBranding && !isLoadingBrandingAccess) {
           return false;

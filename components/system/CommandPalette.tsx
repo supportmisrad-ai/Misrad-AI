@@ -53,7 +53,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
     }
   }, [isOpen]);
 
-  // Nexus Brain Logic
+  // AI Brain Logic
   useEffect(() => {
       if (query.length < 3) {
           return;
@@ -118,11 +118,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-4 p-5 border-b border-slate-100 bg-white relative">
-            <Search className={`transition-colors ${isThinking ? 'text-indigo-500 animate-pulse' : 'text-slate-400'}`} size={24} />
+            <Search className={`transition-colors ${isThinking ? 'text-rose-600 animate-pulse' : 'text-slate-400'}`} size={24} />
             <input 
                 ref={inputRef}
                 type="text" 
-                placeholder="שאל את Nexus או חפש..."
+                placeholder="שאל את Misrad AI או חפש..."
                 className="flex-1 bg-transparent text-xl focus:outline-none text-slate-800 placeholder:text-slate-300 font-medium h-10"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
@@ -130,9 +130,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
             <div className="flex items-center gap-2">
                 {isThinking && (
                     <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></span>
-                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
-                        <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
+                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce"></span>
+                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></span>
+                        <span className="w-1.5 h-1.5 bg-rose-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></span>
                     </div>
                 )}
                 <div className="hidden md:flex items-center gap-1 bg-slate-100 px-2 py-1 rounded-lg text-[10px] font-bold text-slate-500 uppercase border border-slate-200">
@@ -154,26 +154,26 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                       setQuery('');
                     }}
                     disabled={isThinking}
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 border border-slate-200/60 text-slate-700 text-xs font-bold hover:bg-white hover:border-indigo-200/60 hover:text-slate-900 transition-all"
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/80 border border-slate-200/60 text-slate-700 text-xs font-bold hover:bg-white hover:border-rose-200/60 hover:text-slate-900 transition-all"
                   >
-                    <Sparkles size={14} className="text-indigo-500" />
+                    <Sparkles size={14} className="text-rose-600" />
                     {s.text}
                   </button>
                 ))}
               </div>
             </div>
             
-            {/* NEXUS AI ANSWER */}
+            {/* AI ANSWER */}
             {aiResponse && (
                 <div className="mb-4 mx-2 mt-2 animate-slide-down">
                     <div className="bg-slate-900 rounded-xl p-4 text-white shadow-lg relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-2xl"></div>
                         <div className="relative z-10 flex gap-3">
-                            <div className="p-2 bg-indigo-600 rounded-lg h-fit shadow-md shadow-indigo-900/20">
+                            <div className="p-2 bg-rose-600 rounded-lg h-fit shadow-md shadow-rose-900/20">
                                 <Sparkles size={18} className="text-yellow-300" />
                             </div>
                             <div>
-                                <div className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider mb-1">Nexus Intelligence</div>
+                                <div className="text-[10px] font-bold text-rose-300 uppercase tracking-wider mb-1">Misrad AI</div>
                                 <div className="text-sm font-medium leading-relaxed">{aiResponse.text}</div>
                                 {Array.isArray((aiResponse as any).sources) && (aiResponse as any).sources.length ? (
                                   <ChatSources sources={(aiResponse as any).sources} />
@@ -197,7 +197,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                                 className="w-full text-right px-4 py-3 rounded-xl bg-white hover:shadow-sm border border-transparent hover:border-slate-200 flex items-center justify-between group transition-all"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg shadow-sm">
+                                    <div className="p-2 bg-rose-50 text-rose-600 rounded-lg shadow-sm">
                                         <Link size={16} />
                                     </div>
                                     <span className="font-bold text-slate-700">{asset.label}</span>
@@ -240,14 +240,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                                     className="w-full text-right px-4 py-3 rounded-xl hover:bg-white hover:shadow-sm hover:ring-1 hover:ring-slate-200 flex items-center justify-between group transition-all"
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg group-hover:bg-indigo-50 group-hover:border-indigo-100 group-hover:text-indigo-600 transition-colors shadow-sm">
+                                        <div className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg group-hover:bg-rose-50 group-hover:border-rose-100 group-hover:text-rose-700 transition-colors shadow-sm">
                                             <Icon size={16} />
                                         </div>
                                         <span className="font-bold text-slate-700 group-hover:text-slate-900">{item.label}</span>
                                     </div>
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all transform group-hover:-translate-x-1">
                                         <span className="text-[10px] font-bold text-slate-300 uppercase">עבור</span>
-                                        <ArrowRight size={14} className="text-indigo-500" />
+                                        <ArrowRight size={14} className="text-rose-600" />
                                     </div>
                                 </button>
                             );
@@ -273,12 +273,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                                     <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs border transition-colors shadow-sm ${
                                         lead.status === 'won' 
                                         ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                        : 'bg-white text-slate-500 border-slate-200 group-hover:border-indigo-200 group-hover:text-indigo-600'
+                                        : 'bg-white text-slate-500 border-slate-200 group-hover:border-rose-200 group-hover:text-rose-700'
                                     }`}>
                                         {lead.name.charAt(0)}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-800 text-sm group-hover:text-indigo-700">{lead.name}</div>
+                                        <div className="font-bold text-slate-800 text-sm group-hover:text-rose-700">{lead.name}</div>
                                         <div className="text-xs text-slate-400 flex items-center gap-1.5">
                                             <span>{lead.company || 'לקוח פרטי'}</span>
                                             {lead.isHot && <span className="text-amber-500">🔥</span>}
@@ -322,8 +322,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                  <span className="flex items-center gap-1"><kbd className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-sans font-bold text-slate-500">↵</kbd> לבחירה</span>
                  <span className="flex items-center gap-1"><kbd className="bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5 font-sans font-bold text-slate-500">↑↓</kbd> לניווט</span>
              </div>
-             <div className="flex items-center gap-1 text-indigo-400 font-bold">
-                 <Sparkles size={10} /> Nexus AI Active
+             <div className="flex items-center gap-1 text-rose-600 font-bold">
+                 <Sparkles size={10} /> Misrad AI Active
              </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { randomUUID } from 'crypto';
-import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
+import { isCeoRole } from '@/lib/constants/roles';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -14,7 +15,7 @@ function isUUID(id: string) {
 function templateTasks(templateKey: string): Array<{ title: string; priority: string; tags: string[] }> {
   if (templateKey === 'deliverables_package') {
     return [
-      { title: 'איפיון חבילת דליברבלס חודשית', priority: 'High', tags: ['Onboarding', 'Deliverables'] },
+      { title: 'איפיון חבילת תוצרים חודשית', priority: 'High', tags: ['Onboarding', 'Deliverables'] },
       { title: 'הגדרת תהליך אישורים מול הלקוח', priority: 'High', tags: ['Onboarding', 'Deliverables'] },
       { title: 'בניית לוח תוכן/משימות לחודש', priority: 'Medium', tags: ['Onboarding', 'Deliverables'] },
       { title: 'הקמת תיקיית נכסים ותיוגים', priority: 'Low', tags: ['Onboarding', 'Deliverables'] },
@@ -36,9 +37,12 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { workspace } = await getWorkspaceOrThrow(request);
+    const user = await getAuthenticatedUser();
+    if (!isCeoRole(user.role) && !user.isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
-    const supabase = createClient();
+    const { workspace } = await getWorkspaceOrThrow(request);
 
     const body = await request.json();
     const templateKey = String(body?.templateKey || '').trim();
@@ -47,70 +51,58 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid templateKey' }, { status: 400 });
     }
 
-    const user = await getAuthenticatedUser();
-
     let dbUserId: string | null = null;
     if (user?.email) {
       const email = String(user.email).trim().toLowerCase();
-      const byOrg = await supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', workspace.id)
-        .limit(1)
-        .maybeSingle();
 
-      let idCandidate = byOrg.data?.id ? String(byOrg.data.id) : null;
-      if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-      }
+      const byOrg = await prisma.nexusUser.findFirst({
+        where: {
+          organizationId: workspace.id,
+          email: { equals: email, mode: 'insensitive' },
+        },
+        select: { id: true },
+      });
 
-      if (idCandidate && isUUID(idCandidate)) {
-        dbUserId = idCandidate;
-      }
+      const idCandidate = byOrg?.id ? String(byOrg.id) : null;
+      if (idCandidate && isUUID(idCandidate)) dbUserId = idCandidate;
     }
 
     if (!dbUserId) {
       return NextResponse.json({ error: 'User not found in database. Please sync your account first.' }, { status: 400 });
     }
 
-    const now = new Date().toISOString();
     const rows = templateTasks(templateKey).map((t) => ({
       id: randomUUID(),
-      organization_id: workspace.id,
+      organizationId: workspace.id,
       title: t.title,
       description: null,
       status: 'Todo',
       priority: t.priority,
-      assignee_ids: [dbUserId],
-      assignee_id: dbUserId,
-      creator_id: dbUserId,
+      assigneeIds: [dbUserId],
+      assigneeId: dbUserId,
+      creatorId: dbUserId,
       tags: ['Auto', 'NexusOnboarding', ...t.tags],
-      created_at: now,
-      updated_at: now,
-      due_date: null,
-      due_time: null,
-      time_spent: 0,
-      estimated_time: null,
-      approval_status: null,
-      is_timer_running: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      dueDate: null,
+      dueTime: null,
+      timeSpent: 0,
+      estimatedTime: null,
+      approvalStatus: null,
+      isTimerRunning: false,
       messages: [],
-      client_id: null,
-      is_private: false,
-      audio_url: null,
-      snooze_count: 0,
-      is_focus: false,
-      completion_details: null,
+      clientId: null,
+      isPrivate: false,
+      audioUrl: null,
+      snoozeCount: 0,
+      isFocus: false,
+      completionDetails: null,
       department: user?.role || null,
     }));
 
-    const { data, error } = await supabase.from('nexus_tasks').insert(rows).select('id');
+    await prisma.nexusTask.createMany({ data: rows as any });
 
-    if (error) {
-      return NextResponse.json({ error: error.message || 'Failed to create onboarding tasks' }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true, createdTaskIds: (data || []).map((r: any) => r.id) });
+    return NextResponse.json({ ok: true, createdTaskIds: rows.map((r) => r.id) });
   } catch (error: any) {
     if (error instanceof APIError) {
       return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });

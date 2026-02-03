@@ -9,12 +9,12 @@ import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink
 import { Status, Priority, LeadStatus, User as UserType } from '../types';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
-import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
+import { getWorkspaceOrgSlugFromPathname, useNexusNavigation, useNexusSoloMode } from '@/lib/os/nexus-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
 import { Skeleton } from '@/components/ui/skeletons';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { isCeoRole } from '@/lib/constants/roles';
-import { listNexusUsers } from '@/app/actions/nexus';
+import { listNexusUsers, updateNexusMyTargets } from '@/app/actions/nexus';
 
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
@@ -46,13 +46,7 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
 };
 
 export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initialOwnerDashboard }) => {
-    const renderCountRef = useRef(0);
-    renderCountRef.current += 1;
-    if (renderCountRef.current === 1 || renderCountRef.current % 10 === 0) {
-        console.log('[Nexus][DashboardView] render', { count: renderCountRef.current });
-    }
-
-    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
+    const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, updateUser, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial, users: contextUsers } = useData();
     const [users, setUsers] = useState<UserType[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { navigate, pathname } = useNexusNavigation();
@@ -67,14 +61,10 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
     const [showTourPrompt, setShowTourPrompt] = useState(false);
 
-    const showExtraQuickActions = false;
+    const teamSize = (Array.isArray(users) && users.length > 0 ? users.length : (Array.isArray(contextUsers) ? contextUsers.length : null));
+    const { isSoloMode } = useNexusSoloMode(workspaceOrgSlug, teamSize);
 
-    useEffect(() => {
-        console.log('[Nexus][DashboardView] mount');
-        return () => {
-            console.log('[Nexus][DashboardView] unmount');
-        };
-    }, []);
+    const showExtraQuickActions = false;
 
     useEffect(() => {
         if (!isHomeDashboard.current) return;
@@ -155,6 +145,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const [elapsed, setElapsed] = useState('00:00:00');
     const [isEditingGoals, setIsEditingGoals] = useState(false);
     const [tempGoals, setTempGoals] = useState(monthlyGoals);
+    const [isPersonalTargetModalOpen, setIsPersonalTargetModalOpen] = useState(false);
+    const [tempPersonalTarget, setTempPersonalTarget] = useState(0);
+    const [isSavingPersonalTarget, setIsSavingPersonalTarget] = useState(false);
     
     // Onboarding State
     const [showOnboarding, setShowOnboarding] = useState(true);
@@ -164,6 +157,8 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const [onboardingTemplate, setOnboardingTemplate] = useState<string | null>(null);
     const [isLoadingOnboardingTemplate, setIsLoadingOnboardingTemplate] = useState(false);
     const [isApplyingOnboardingTemplate, setIsApplyingOnboardingTemplate] = useState(false);
+
+    const canManageOnboardingTemplate = isCeoRole(currentUser.role) || currentUser.isSuperAdmin;
 
     const [billingItems, setBillingItems] = useState<any[] | null>(null);
     const [isLoadingBillingItems, setIsLoadingBillingItems] = useState(false);
@@ -527,6 +522,42 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const myPersonalTarget = currentUser.targets?.tasksMonth || 0;
     const myProgressPercentage = myPersonalTarget > 0 ? Math.min((myCompletedTasksThisMonth / myPersonalTarget) * 100, 100) : 0;
 
+    const openPersonalTargetModal = () => {
+        setTempPersonalTarget(myPersonalTarget || 0);
+        setIsPersonalTargetModalOpen(true);
+    };
+
+    const savePersonalTarget = async () => {
+        const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (!orgSlug) {
+            addToast('לא ניתן לזהות סביבת עבודה (org). נסה לרענן.', 'error');
+            return;
+        }
+
+        const next = Number(tempPersonalTarget);
+        if (!Number.isFinite(next) || next < 0) {
+            addToast('נא להזין יעד תקין (מספר 0 ומעלה).', 'error');
+            return;
+        }
+
+        setIsSavingPersonalTarget(true);
+        try {
+            const updated = await updateNexusMyTargets({
+                orgId: orgSlug,
+                targets: {
+                    ...(currentUser.targets || { tasksMonth: 0 }),
+                    tasksMonth: Math.max(0, Math.floor(next)),
+                },
+            });
+            updateUser(currentUser.id, { targets: updated.targets });
+            setIsPersonalTargetModalOpen(false);
+        } catch (e: any) {
+            addToast(e?.message || 'שגיאה בעדכון יעד אישי', 'error');
+        } finally {
+            setIsSavingPersonalTarget(false);
+        }
+    };
+
     const handleSaveGoals = () => { updateMonthlyGoals(tempGoals); setIsEditingGoals(false); };
     const formatCurrency = (amount: number) => new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS', maximumFractionDigits: 0 }).format(amount);
 
@@ -546,6 +577,30 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                 <div><label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד השלמת משימות (%)</label><input type="number" value={tempGoals.tasksCompletion} onChange={(e) => setTempGoals({...tempGoals, tasksCompletion: Number(e.target.value)})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 font-bold text-lg" max="100" /></div>
                             </div>
                             <div className="flex justify-end gap-3 mt-6"><button onClick={() => setIsEditingGoals(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm">ביטול</button><button onClick={handleSaveGoals} className="px-6 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm shadow-lg"><Check size={16} /> שמור יעדים</button></div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {isPersonalTargetModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!isSavingPersonalTarget) setIsPersonalTargetModalOpen(false); }} />
+                        <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 flex flex-col p-6">
+                            <div className="flex justify-between items-center mb-6"><h3 className="font-bold text-lg text-gray-900">יעד משימות אישי לחודש</h3><button onClick={() => { if (!isSavingPersonalTarget) setIsPersonalTargetModalOpen(false); }} className="text-gray-400 hover:text-gray-600" disabled={isSavingPersonalTarget}><X size={20} /></button></div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">יעד (כמות משימות)</label>
+                                    <input type="number" min={0} value={tempPersonalTarget} onChange={(e) => setTempPersonalTarget(Number(e.target.value))} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-gray-400 font-bold text-lg" />
+                                    <div className="text-xs text-gray-500 mt-2">טיפ: יעד ריאלי בדרך כלל 10-40 משימות בחודש, תלוי בתפקיד.</div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button onClick={() => setIsPersonalTargetModalOpen(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-50 rounded-xl transition-colors text-sm" disabled={isSavingPersonalTarget}>ביטול</button>
+                                <button onClick={savePersonalTarget} className="px-6 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors flex items-center gap-2 text-sm shadow-lg disabled:opacity-60 disabled:cursor-not-allowed" disabled={isSavingPersonalTarget}>
+                                    <Check size={16} /> שמור יעד
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}
@@ -660,7 +715,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             </AnimatePresence>
 
             <AnimatePresence>
-                {!isLoadingOnboardingTemplate && !onboardingTemplate && (
+                {!isLoadingOnboardingTemplate && !onboardingTemplate && canManageOnboardingTemplate && (
                     <motion.div
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -704,7 +759,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         }`}
                                         type="button"
                                     >
-                                        חבילת דליברבלס
+                                        חבילת תוצרים
                                     </button>
                                 </div>
                             </div>
@@ -1111,18 +1166,20 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                 <div className="mt-1 text-[10px] font-bold text-slate-500">התחלה מהירה</div>
                             </button>
 
-                            <button
-                                onClick={() => navigate('/team?newEmployee=1')}
-                                type="button"
-                                className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
-                                aria-label="עובד חדש"
-                            >
-                                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform">
-                                    <Users size={18} />
-                                </div>
-                                <div className="font-black text-sm text-slate-900">עובד חדש</div>
-                                <div className="mt-1 text-[10px] font-bold text-slate-500">הזמנה / הוספה</div>
-                            </button>
+                            {!isSoloMode && (
+                                <button
+                                    onClick={() => navigate('/team?newEmployee=1')}
+                                    type="button"
+                                    className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
+                                    aria-label="עובד חדש"
+                                >
+                                    <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform">
+                                        <Users size={18} />
+                                    </div>
+                                    <div className="font-black text-sm text-slate-900">עובד חדש</div>
+                                    <div className="mt-1 text-[10px] font-bold text-slate-500">הזמנה / הוספה</div>
+                                </button>
+                            )}
 
                             {showExtraQuickActions && (
                                 <>
@@ -1262,6 +1319,15 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         <div className="text-sm font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded-lg inline-block">{formatCurrency(revenueGoal)}</div>
                                     </div>
                                 </div>
+                                <div className="mb-4">
+                                    <div className="flex justify-between text-xs font-bold mb-2"><span className="text-gray-500 uppercase tracking-wider">יעד משימות אישי</span><span className="text-gray-900">{myCompletedTasksThisMonth} / {myPersonalTarget}</span></div>
+                                    <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden shadow-inner">
+                                        <motion.div initial={{ width: 0 }} animate={{ width: `${myProgressPercentage}%` }} transition={{ duration: 1.2, ease: "easeOut" }} className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full shadow-lg" />
+                                    </div>
+                                    {myPersonalTarget <= 0 ? (
+                                        <button onClick={openPersonalTargetModal} className="mt-2 bg-amber-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-amber-700 active:scale-95 transition-all" aria-label="הגדר יעד אישי">הגדר יעד אישי</button>
+                                    ) : null}
+                                </div>
                                 <div className="-mx-4 -mb-4 opacity-50 group-hover:opacity-100 transition-opacity"><TrendChart data={revenueHistory} color="text-blue-500" /></div>
                             </div>
                         </>
@@ -1278,10 +1344,16 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         <motion.div initial={{ width: 0 }} animate={{ width: `${myProgressPercentage}%` }} transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }} className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full shadow-lg" />
                                     </div>
                                 </div>
-                                {myProgressPercentage >= 100 ? (
+                                {myPersonalTarget <= 0 ? (
+                                    <div className="flex flex-col gap-2 bg-amber-50 border border-amber-100 p-3 rounded-2xl shadow-sm">
+                                        <div className="flex items-center gap-2 text-sm font-bold text-amber-800"><Target size={16} /> לא הוגדר יעד חודשי</div>
+                                        <div className="text-xs text-amber-700">כדי שהמדד יהיה אמיתי ותראה התקדמות, הגדר יעד אישי.</div>
+                                        <button onClick={openPersonalTargetModal} className="mt-1 bg-amber-600 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-amber-700 active:scale-95 transition-all w-fit" aria-label="הגדר יעד אישי">הגדר יעד</button>
+                                    </div>
+                                ) : myProgressPercentage >= 100 ? (
                                     <div className="flex items-center gap-2 text-sm font-bold text-green-700 bg-green-50 p-3 rounded-2xl animate-pulse shadow-sm border border-green-100"><Trophy size={16} /> עמדת ביעד החודשי!</div>
                                 ) : (
-                                    <div className="flex items-center gap-2 text-sm font-bold text-blue-700 bg-blue-50 p-3 rounded-2xl shadow-sm border border-blue-100"><ThumbsUp size={16} /> קצב מצוין!</div>
+                                    <div className="flex items-center gap-2 text-sm font-bold text-blue-700 bg-blue-50 p-3 rounded-2xl shadow-sm border border-blue-100"><ThumbsUp size={16} /> קצב טוב. המשך כך.</div>
                                 )}
                             </div>
                         </>

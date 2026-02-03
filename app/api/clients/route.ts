@@ -5,15 +5,13 @@
  */
 
 import { NextRequest } from 'next/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser, hasPermission, canAccessResource, requirePermission as requirePermissionFromAuth } from '../../../lib/auth';
 import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
 import { Client } from '../../../types';
 import { getClientOsClients as getClientOsClientsHandler } from '@/lib/server/clientOsClients';
-import { createClient } from '@/lib/supabase';
+import prisma, { executeRawOrgScoped } from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { safeWritePayload, type DbWritePayload } from '@/lib/tenant-isolation';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -50,35 +48,32 @@ function coerceClientStatus(value: unknown): Client['status'] {
     return isClientStatus(s) ? s : 'Onboarding';
 }
 
-async function selectCrmManagerIdsInWorkspace(params: { supabase: SupabaseClient; workspaceId: string }): Promise<string[]> {
+async function selectCrmManagerIdsInWorkspace(params: { workspaceId: string }): Promise<string[]> {
     const roles = ['מנכ״ל', 'מנכ"ל', 'מנכל', 'אדמין'];
 
-    const [superAdminsRes, tenantAdminsRes, crmRes] = await Promise.all([
-        params.supabase
-            .from('nexus_users')
-            .select('id')
-            .eq('organization_id', params.workspaceId)
-            .eq('is_super_admin', true),
-        params.supabase
-            .from('nexus_users')
-            .select('id')
-            .eq('organization_id', params.workspaceId)
-            .in('role', roles),
-        params.supabase
-            .from('nexus_users')
-            .select('id')
-            .eq('organization_id', params.workspaceId)
-            .or('role.ilike.%crm%,role.ilike.%מכירות%'),
+    const [superAdmins, tenantAdmins, crmUsers] = await Promise.all([
+        prisma.nexusUser.findMany({
+            where: { organizationId: params.workspaceId, isSuperAdmin: true },
+            select: { id: true },
+        }),
+        prisma.nexusUser.findMany({
+            where: { organizationId: params.workspaceId, role: { in: roles } },
+            select: { id: true },
+        }),
+        prisma.nexusUser.findMany({
+            where: {
+                organizationId: params.workspaceId,
+                OR: [
+                    { role: { contains: 'crm', mode: 'insensitive' } },
+                    { role: { contains: 'מכירות', mode: 'insensitive' } },
+                ],
+            },
+            select: { id: true },
+        }),
     ]);
 
-    const rows = [
-        ...(Array.isArray(superAdminsRes.data) ? superAdminsRes.data : []),
-        ...(Array.isArray(tenantAdminsRes.data) ? tenantAdminsRes.data : []),
-        ...(Array.isArray(crmRes.data) ? crmRes.data : []),
-    ];
-
     const ids = new Set<string>();
-    for (const r of rows) {
+    for (const r of [...superAdmins, ...tenantAdmins, ...crmUsers]) {
         if (r?.id) ids.add(String(r.id));
     }
     return Array.from(ids);
@@ -128,36 +123,31 @@ async function GETHandler(request: NextRequest) {
         const clientId = searchParams.get('id');
         const status = searchParams.get('status');
         const searchTerm = searchParams.get('search');
-        
-        const supabase = createClient();
 
         // 5. Fetch clients from database (scoped)
         let clients: Client[] = [];
         try {
-            let query = supabase
-                .from('nexus_clients')
-                .select('*')
-                .eq('organization_id', workspace.id);
-
+            const where: any = { organizationId: workspace.id };
             if (clientId) {
-                query = query.eq('id', clientId).limit(1);
+                where.id = String(clientId);
             }
-
             if (searchTerm) {
-                const term = String(searchTerm).toLowerCase();
-                query = query.or(`name.ilike.%${term}%,company_name.ilike.%${term}%,email.ilike.%${term}%`);
-            }
-
-            const { data, error } = clientId ? await query.maybeSingle() : await query.limit(500);
-            if (error) {
-                console.error('[API] Error fetching clients from Supabase:', error);
-                return apiError('Failed to fetch clients', { status: 500 });
+                const term = String(searchTerm).trim();
+                if (term) {
+                    where.OR = [
+                        { name: { contains: term, mode: 'insensitive' } },
+                        { companyName: { contains: term, mode: 'insensitive' } },
+                        { email: { contains: term, mode: 'insensitive' } },
+                    ];
+                }
             }
 
             if (clientId) {
-                clients = data ? [mapClientRow(data)] : [];
+                const row = await prisma.nexusClient.findFirst({ where });
+                clients = row ? [mapClientRow(row)] : [];
             } else {
-                clients = (Array.isArray(data) ? data : []).map(mapClientRow);
+                const rows = await prisma.nexusClient.findMany({ where, take: 500, orderBy: { createdAt: 'desc' } });
+                clients = (Array.isArray(rows) ? rows : []).map(mapClientRow);
             }
         } catch (dbError: unknown) {
             console.error('[API] Error fetching clients from database:', dbError);
@@ -233,9 +223,6 @@ async function POSTHandler(request: NextRequest) {
         if (!name || !companyName) {
             return apiError('Name and company name are required', { status: 400 });
         }
-        
-        const supabase = createClient();
-        const nowIso = new Date().toISOString();
 
         // Create client in database
         const clientData: Omit<Client, 'id'> = {
@@ -252,29 +239,34 @@ async function POSTHandler(request: NextRequest) {
             source: getString(bodyObj, 'source') || 'manual'
         };
 
-        const insertPayload: Record<string, unknown> = {
-            name: clientData.name,
-            company_name: clientData.companyName,
-            avatar: clientData.avatar,
-            package: clientData.package ?? null,
-            status: clientData.status ?? null,
-            contact_person: clientData.contactPerson ?? null,
-            email: clientData.email ?? null,
-            phone: clientData.phone ?? null,
-            joined_at: clientData.joinedAt ?? nowIso,
-            assets_folder_url: clientData.assetsFolderUrl ?? null,
-            source: clientData.source ?? 'manual',
-            organization_id: workspace.id,
-            created_at: nowIso,
-            updated_at: nowIso,
-        };
+        const joinedAtDate = (() => {
+            try {
+                const d = new Date(String(clientData.joinedAt || ''));
+                if (!Number.isFinite(d.getTime())) return new Date();
+                return d;
+            } catch {
+                return new Date();
+            }
+        })();
 
-        const insertRes = await supabase.from('nexus_clients').insert(insertPayload).select('*').single();
-        if (insertRes.error || !insertRes.data) {
-            return apiError(insertRes.error?.message || 'Failed to create client', { status: 500 });
-        }
+        const created = await prisma.nexusClient.create({
+            data: {
+                organizationId: workspace.id,
+                name: clientData.name,
+                companyName: clientData.companyName,
+                avatar: clientData.avatar || null,
+                package: clientData.package || null,
+                status: clientData.status,
+                contactPerson: clientData.contactPerson,
+                email: clientData.email,
+                phone: clientData.phone,
+                joinedAt: joinedAtDate,
+                assetsFolderUrl: clientData.assetsFolderUrl || null,
+                source: clientData.source || null,
+            } as any,
+        });
 
-        const newClient = mapClientRow(insertRes.data);
+        const newClient = mapClientRow(created);
         
         await logAuditEvent('data.write', 'client', {
             resourceId: newClient.id,
@@ -285,46 +277,60 @@ async function POSTHandler(request: NextRequest) {
         try {
             const actorName = typeof user?.firstName === 'string' && user.firstName.trim() ? String(user.firstName).trim() : 'מערכת';
 
-            const crmManagerIds = await selectCrmManagerIdsInWorkspace({ supabase, workspaceId: workspace.id });
+            const crmManagerIds = await selectCrmManagerIdsInWorkspace({ workspaceId: workspace.id });
 
             if (crmManagerIds.length > 0) {
-                const notifications: DbWritePayload[] = crmManagerIds.map((managerId: string) => ({
-                    organization_id: workspace.id,
-                    recipient_id: String(managerId),
-                    type: 'client_created',
-                    text: `לקוח חדש נוסף: ${newClient.companyName}`,
-                    actor_id: user.id,
-                    actor_name: actorName,
-                    related_id: newClient.id,
-                    is_read: false,
-                    metadata: {
-                        clientId: newClient.id,
-                        clientName: newClient.companyName,
-                        contactPerson: newClient.contactPerson,
-                        package: newClient.package,
-                        status: newClient.status,
-                    },
-                    created_at: new Date().toISOString(),
-                }));
+                const nowIso = new Date().toISOString();
+                for (const managerId of crmManagerIds) {
+                    const text = `לקוח חדש נוסף: ${newClient.companyName}`;
 
-                const safeNotifications = notifications.map((n: DbWritePayload) =>
-                    safeWritePayload({
-                        context: 'api.clients.POST',
-                        table: 'misrad_notifications',
-                        mode: 'insert',
-                        organizationId: workspace.id,
-                        payload: n,
-                    })
-                );
-
-                const { error: notifError } = await supabase
-                    .from('misrad_notifications')
-                    .insert(safeNotifications as unknown as Record<string, unknown>[]);
-                if (notifError) {
-                    if (notifError.code !== '42P01' && !String(notifError.message || '').includes('does not exist')) {
-                        throw new Error(`[SchemaMismatch] misrad_notifications insert failed: ${notifError.message}`);
+                    try {
+                        await executeRawOrgScoped(prisma, {
+                            organizationId: String(workspace.id),
+                            reason: 'api_clients_create_notification_full',
+                            query: `
+                                insert into misrad_notifications
+                                  (organization_id, recipient_id, type, text, actor_name, related_id, is_read, created_at, updated_at)
+                                values
+                                  ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::uuid, false, $7::timestamptz, $7::timestamptz)
+                            `,
+                            values: [
+                                String(workspace.id),
+                                String(managerId),
+                                'client_created',
+                                String(text),
+                                String(actorName),
+                                String(newClient.id),
+                                nowIso,
+                            ],
+                        });
+                    } catch {
+                        try {
+                            await executeRawOrgScoped(prisma, {
+                                organizationId: String(workspace.id),
+                                reason: 'api_clients_create_notification_min',
+                                query: `
+                                    insert into misrad_notifications
+                                      (organization_id, recipient_id, type, text, is_read, created_at, updated_at)
+                                    values
+                                      ($1::uuid, $2::uuid, $3::text, $4::text, false, $5::timestamptz, $5::timestamptz)
+                                `,
+                                values: [
+                                    String(workspace.id),
+                                    String(managerId),
+                                    'client_created',
+                                    String(text),
+                                    nowIso,
+                                ],
+                            });
+                        } catch (e: unknown) {
+                            const msg = getErrorMessage(e);
+                            if (String(msg || '').includes('[SchemaMismatch]')) {
+                                throw e instanceof Error ? e : new Error(msg);
+                            }
+                            console.warn('[API] Could not create client notification (ignored):', msg);
+                        }
                     }
-                    console.warn('[API] Could not create client notifications:', notifError);
                 }
             }
         } catch (notifError: unknown) {
@@ -364,30 +370,33 @@ async function PATCHHandler(request: NextRequest) {
         if (!canAccess) {
             return apiError('Forbidden', { status: 403 });
         }
-        
-        const supabase = createClient();
 
-        const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        const patch: Record<string, unknown> = {};
         if (updatesObj['name'] !== undefined) patch.name = updatesObj['name'];
-        if (updatesObj['companyName'] !== undefined) patch.company_name = updatesObj['companyName'];
+        if (updatesObj['companyName'] !== undefined) patch.companyName = updatesObj['companyName'];
         if (updatesObj['avatar'] !== undefined) patch.avatar = updatesObj['avatar'];
         if (updatesObj['package'] !== undefined) patch.package = updatesObj['package'];
         if (updatesObj['status'] !== undefined) patch.status = updatesObj['status'];
-        if (updatesObj['contactPerson'] !== undefined) patch.contact_person = updatesObj['contactPerson'];
+        if (updatesObj['contactPerson'] !== undefined) patch.contactPerson = updatesObj['contactPerson'];
         if (updatesObj['email'] !== undefined) patch.email = updatesObj['email'];
         if (updatesObj['phone'] !== undefined) patch.phone = updatesObj['phone'];
-        if (updatesObj['joinedAt'] !== undefined) patch.joined_at = updatesObj['joinedAt'];
-        if (updatesObj['assetsFolderUrl'] !== undefined) patch.assets_folder_url = updatesObj['assetsFolderUrl'];
+        if (updatesObj['joinedAt'] !== undefined) {
+            try {
+                const d = new Date(String(updatesObj['joinedAt']));
+                if (Number.isFinite(d.getTime())) patch.joinedAt = d;
+            } catch {
+                // ignore
+            }
+        }
+        if (updatesObj['assetsFolderUrl'] !== undefined) patch.assetsFolderUrl = updatesObj['assetsFolderUrl'];
         if (updatesObj['source'] !== undefined) patch.source = updatesObj['source'];
 
-        const { error: updateError } = await supabase
-            .from('nexus_clients')
-            .update(patch)
-            .eq('id', clientId)
-            .eq('organization_id', workspace.id);
-
-        if (updateError) {
-            return apiError(updateError.message || 'Failed to update client', { status: 500 });
+        const res = await prisma.nexusClient.updateMany({
+            where: { id: clientId, organizationId: workspace.id },
+            data: patch as any,
+        });
+        if (!res || typeof (res as any).count !== 'number' || (res as any).count < 1) {
+            return apiError('Failed to update client', { status: 500 });
         }
         
         await logAuditEvent('data.write', 'client', {

@@ -3,7 +3,7 @@
 import { clerkClient } from '@clerk/nextjs/server';
 import { sendInvitationEmail } from './email';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
@@ -71,26 +71,22 @@ export async function inviteTeamMember(
 
     const clerkUserId = await getCurrentUserId();
     if (clerkUserId) {
-      const supabase = createClient();
-      const { data: socialUser } = await supabase
-        .from('social_users')
-        .select('id')
-        .eq('clerk_user_id', clerkUserId)
-        .maybeSingle();
+      const socialUser = await prisma.social_users.findUnique({
+        where: { clerk_user_id: clerkUserId },
+        select: { id: true },
+      });
 
-      const socialUserObj = asObject(socialUser);
-      const socialUserIdRaw = socialUserObj?.id;
-      const socialUserId = socialUserIdRaw ? String(socialUserIdRaw) : null;
+      const socialUserId = socialUser?.id ? String(socialUser.id) : null;
       if (socialUserId) {
-        const { data: tm } = await supabase
-          .from('social_team_members')
-          .select('subscription_status')
-          .eq('user_id', socialUserId)
-          .eq('organization_id', ws.id)
-          .maybeSingle();
+        const tm = await prisma.social_team_members.findFirst({
+          where: {
+            user_id: String(socialUserId),
+            organization_id: String(ws.id),
+          },
+          select: { subscription_status: true },
+        });
 
-        const tmObj = asObject(tm);
-        const subscriptionStatusRaw = tmObj?.subscription_status;
+        const subscriptionStatusRaw = tm?.subscription_status;
         const subscriptionStatus = subscriptionStatusRaw ? String(subscriptionStatusRaw) : 'trial';
         const isTrial = subscriptionStatus === 'trial';
 
@@ -134,7 +130,7 @@ export async function inviteTeamMember(
     // We can also send a custom email with a link to sign-in
     const baseUrl = getBaseUrl();
     const lobbyRedirect = orgSlug ? `${baseUrl}/w/${encodeURIComponent(orgSlug)}/lobby` : `${baseUrl}/`;
-    const invitationLink = `${baseUrl}/sign-up?redirect_url=${encodeURIComponent('/workspaces/onboarding')}`;
+    const invitationLink = `${baseUrl}/login?mode=sign-up&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
     
     // Send custom invitation email
     const emailResult = await sendTeamInvitationEmail({

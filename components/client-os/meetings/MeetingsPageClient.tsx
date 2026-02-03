@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Meeting, Client, MeetingAnalysisResult } from '@/components/client-os-full/types';
 import { MeetingResultDashboard } from './MeetingResultDashboard';
 import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
 import { createClinicSession, createClinicClient } from '@/app/actions/client-clinic';
 import { useAuth } from '@clerk/nextjs';
-import { createBrowserClientWithClerk } from '@/lib/supabase-client';
+import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -55,6 +55,16 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
   const [isLiveActive, setIsLiveActive] = useState(false);
   const [liveTranscription, setLiveTranscription] = useState('');
   const [liveInsight, setLiveInsight] = useState('ממתין לתחילת השיחה...');
+  const [isLiveFinalizing, setIsLiveFinalizing] = useState(false);
+
+  const liveCoachEnabled = process.env.NEXT_PUBLIC_LIVE_COACH_ENABLED === 'true';
+
+  const liveRecorderRef = useRef<MediaRecorder | null>(null);
+  const liveStreamRef = useRef<MediaStream | null>(null);
+  const liveTranscribeInFlightRef = useRef(false);
+  const liveInsightInFlightRef = useRef(false);
+  const lastInsightAtRef = useRef(0);
+  const lastInsightTranscriptLenRef = useRef(0);
 
   // Add Meeting State
   const [newMeetingDate, setNewMeetingDate] = useState<string>('');
@@ -75,16 +85,163 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
   }
 
   const startLiveSession = async () => {
-      window.dispatchEvent(
-        new CustomEvent('nexus-toast', {
-          detail: { message: 'Live Coach מושבת לערב השקה (עובד רק דרך שרת).', type: 'info' },
-        })
-      );
+      if (!liveCoachEnabled) {
+        window.dispatchEvent(
+          new CustomEvent('nexus-toast', {
+            detail: { message: 'Live Coach מושבת לערב השקה (עובד רק דרך שרת).', type: 'info' },
+          })
+        );
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        liveStreamRef.current = stream;
+
+        let recorder: MediaRecorder;
+        const preferred = 'audio/webm;codecs=opus';
+        if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(preferred)) {
+          recorder = new MediaRecorder(stream, { mimeType: preferred });
+        } else {
+          recorder = new MediaRecorder(stream);
+        }
+        liveRecorderRef.current = recorder;
+
+        lastInsightAtRef.current = 0;
+        lastInsightTranscriptLenRef.current = 0;
+        setIsLiveActive(true);
+        setIsLiveFinalizing(false);
+        setLiveTranscription('');
+        setLiveInsight('ממתין לתחילת השיחה...');
+        setActiveView('LIVE');
+
+        recorder.ondataavailable = async (ev: BlobEvent) => {
+          try {
+            if (!ev.data || ev.data.size === 0) return;
+            if (liveTranscribeInFlightRef.current) return;
+            liveTranscribeInFlightRef.current = true;
+
+            const mimeType = recorder.mimeType || ev.data.type || 'audio/webm';
+            const form = new FormData();
+            form.append('orgId', String(orgId));
+            form.append('mimeType', mimeType);
+            form.append('audio', new File([ev.data], `live-${Date.now()}.webm`, { type: mimeType }));
+
+            const res = await fetch('/api/client-os/meetings/live/transcribe', {
+              method: 'POST',
+              body: form,
+            });
+
+            if (!res.ok) return;
+            const data = (await res.json().catch(() => ({}))) as any;
+            const text = String(data?.text || data?.data?.text || '').trim();
+            if (!text) return;
+
+            let nextTranscript = '';
+            setLiveTranscription((prev) => {
+              nextTranscript = prev ? `${prev}\n${text}` : text;
+              return nextTranscript;
+            });
+
+            const now = Date.now();
+            const minMs = 6500;
+            const minCharsDelta = 220;
+
+            if (
+              !liveInsightInFlightRef.current &&
+              now - lastInsightAtRef.current >= minMs &&
+              nextTranscript.length - lastInsightTranscriptLenRef.current >= minCharsDelta
+            ) {
+              liveInsightInFlightRef.current = true;
+              lastInsightAtRef.current = now;
+              lastInsightTranscriptLenRef.current = nextTranscript.length;
+
+              void (async () => {
+                try {
+                  const insightRes = await fetch('/api/client-os/meetings/live/insight', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ orgId, transcript: nextTranscript }),
+                  });
+                  if (!insightRes.ok) return;
+                  const insightJson = (await insightRes.json().catch(() => ({}))) as any;
+                  const insight = String(insightJson?.insight || insightJson?.data?.insight || '').trim();
+                  if (insight) setLiveInsight(insight);
+                } finally {
+                  liveInsightInFlightRef.current = false;
+                }
+              })();
+            }
+          } finally {
+            liveTranscribeInFlightRef.current = false;
+          }
+        };
+
+        recorder.start(2000);
+      } catch (e: any) {
+        window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפעלת Live', type: 'error' } }));
+        setIsLiveActive(false);
+        setActiveView('LIST');
+      }
   };
 
   const stopLiveSession = () => {
-      setIsLiveActive(false);
-      setActiveView('LIST');
+      try {
+        setIsLiveActive(false);
+        setIsLiveFinalizing(true);
+        setLiveInsight('מפיק דוח...');
+
+        const rec = liveRecorderRef.current;
+        if (rec && rec.state !== 'inactive') {
+          try {
+            rec.stop();
+          } catch {
+            // ignore
+          }
+        }
+
+        const stream = liveStreamRef.current;
+        if (stream) {
+          for (const t of stream.getTracks()) {
+            try {
+              t.stop();
+            } catch {
+              // ignore
+            }
+          }
+        }
+      } finally {
+        liveRecorderRef.current = null;
+        liveStreamRef.current = null;
+      }
+
+      void (async () => {
+        try {
+          const transcript = String(liveTranscription || '').trim();
+          if (!transcript) throw new Error('אין מספיק תמלול להפקת דוח');
+
+          const res = await fetch('/api/client-os/meetings/analyze-transcript', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ orgId, transcript }),
+          });
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({} as any));
+            throw new Error(err?.error || 'Failed to analyze');
+          }
+          const json = (await res.json().catch(() => ({} as any))) as any;
+          const analysis = (json?.analysis || json?.data?.analysis) as MeetingAnalysisResult | undefined;
+          if (!analysis) throw new Error('Missing analysis');
+
+          setAnalysisResult(analysis);
+          setActiveView('RESULT');
+        } catch (e: any) {
+          window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message: e?.message || 'שגיאה בהפקת דוח Live', type: 'error' } }));
+          setActiveView('LIST');
+        } finally {
+          setIsLiveFinalizing(false);
+        }
+      })();
   };
 
   const handleAddClient = async () => {
@@ -425,7 +582,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
              </div>
           )}
 
-          {activeView === 'LIVE' && (
+          {activeView === 'LIVE' && liveCoachEnabled && (
               <div className="h-full flex flex-col gap-8 animate-in zoom-in-95 duration-500">
                   <div className="bg-nexus-primary rounded-[3rem] p-12 text-white relative overflow-hidden shadow-luxury">
                       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
@@ -441,7 +598,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                               <h2 className="text-4xl font-black tracking-tight">Nexus Live Coach</h2>
                               <p className="text-slate-400 text-lg max-w-md mx-auto">מערכת ה-AI מאזינה ומנתחת את השיחה בזמן אמת כדי לספק תובנות והתראות.</p>
                           </div>
-                          <button onClick={stopLiveSession} className="bg-red-500 hover:bg-red-600 px-12 py-4 rounded-2xl font-black text-lg transition-all flex items-center gap-3 shadow-xl shadow-red-500/20 active:scale-[0.95]">
+                          <button onClick={stopLiveSession} disabled={isLiveFinalizing} className="bg-red-500 hover:bg-red-600 px-12 py-4 rounded-2xl font-black text-lg transition-all flex items-center gap-3 shadow-xl shadow-red-500/20 active:scale-[0.95] disabled:opacity-50">
                               <MicOff size={22} /> סיים שיחה והפק דוח
                           </button>
                       </div>
@@ -479,6 +636,18 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                       </div>
                   </div>
               </div>
+          )}
+
+          {activeView === 'LIVE' && !liveCoachEnabled && (
+            <div className="ui-card p-10 bg-white text-center">
+              <p className="text-slate-600 font-bold">Live Coach מושבת כרגע.</p>
+              <button
+                onClick={() => setActiveView('LIST')}
+                className="mt-6 px-6 py-3 rounded-2xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all"
+              >
+                חזור
+              </button>
+            </div>
           )}
 
           {activeView === 'PROCESSING' && (

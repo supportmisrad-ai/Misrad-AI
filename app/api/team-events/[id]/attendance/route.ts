@@ -6,80 +6,106 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
-import { createClient } from '../../../../../lib/supabase';
+import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapNexusUserRow(row: any) {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type NexusTeamEventsDelegate = {
+    findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+};
+
+type NexusEventAttendanceDelegate = {
+    findMany: (args: { where: Record<string, unknown>; orderBy?: Record<string, unknown> }) => Promise<Array<Record<string, unknown>>>;
+    upsert: (args: {
+        where: Record<string, unknown>;
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+    }) => Promise<Record<string, unknown>>;
+};
+
+function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
+    const obj = asObject(prisma as unknown);
+    const delegate = obj?.['nexus_team_events'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst')) {
+        throw new Error('Prisma delegate nexus_team_events is unavailable');
+    }
+    return delegate as unknown as NexusTeamEventsDelegate;
+}
+
+function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
+    const obj = asObject(prisma as unknown);
+    const delegate = obj?.['nexus_event_attendance'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'findMany') || !hasFunction(delegate, 'upsert')) {
+        throw new Error('Prisma delegate nexus_event_attendance is unavailable');
+    }
+    return delegate as unknown as NexusEventAttendanceDelegate;
+}
+
+function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
+    const v = obj?.[key];
+    return typeof v === 'string' ? v : v == null ? fallback : String(v);
+}
+
+function mapNexusUserRow(row: unknown) {
+    const obj = asObject(row);
     return {
-        id: String(row?.id ?? ''),
-        name: String(row?.name ?? row?.full_name ?? row?.email ?? ''),
-        role: String(row?.role ?? 'עובד'),
-        isSuperAdmin: Boolean(row?.is_super_admin ?? false),
-        tenantId: row?.organization_id ?? undefined,
+        id: obj ? getString(obj, 'id') : '',
+        name: obj ? getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))) : '',
+        role: obj ? getString(obj, 'role', 'עובד') : 'עובד',
+        isSuperAdmin: Boolean(obj?.['is_super_admin'] ?? obj?.['isSuperAdmin'] ?? false),
+        tenantId: (obj?.['organization_id'] ?? obj?.['organizationId']) ?? undefined,
     };
 }
 
-async function selectUserByEmailAndWorkspace(params: { supabase: any; email: string; workspaceId: string }) {
+async function selectUserByEmailAndWorkspace(params: { email: string; workspaceId: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('*')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
-
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    if (byOrg.error || !byOrg.data) return null;
-    return mapNexusUserRow(byOrg.data);
+    const row = await prisma.nexusUser.findFirst({
+        where: { organizationId: params.workspaceId, email },
+    });
+    if (!row?.id) return null;
+    return mapNexusUserRow(row);
 }
 
-async function selectUsersByIdsInWorkspace(params: { supabase: any; workspaceId: string; userIds: string[] }) {
+async function selectUsersByIdsInWorkspace(params: { workspaceId: string; userIds: string[] }) {
     const ids = Array.from(new Set((params.userIds || []).filter(Boolean)));
-    if (ids.length === 0) return [] as any[];
+    if (ids.length === 0) return [];
 
-    const out: any[] = [];
-    const chunkSize = 500;
-    for (let i = 0; i < ids.length; i += chunkSize) {
-        const chunk = ids.slice(i, i + chunkSize);
-        const byOrg = await params.supabase
-            .from('nexus_users')
-            .select('id, name, full_name, email, organization_id')
-            .in('id', chunk)
-            .eq('organization_id', params.workspaceId);
+    const rows = await prisma.nexusUser.findMany({
+        where: { organizationId: params.workspaceId, id: { in: ids } },
+        select: { id: true, name: true, email: true, role: true, isSuperAdmin: true, organizationId: true },
+    });
 
-        if ((byOrg as any)?.error?.code === '42703') {
-            throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-        }
-
-        const rows = Array.isArray(byOrg.data) ? byOrg.data : [];
-        out.push(...rows.map(mapNexusUserRow));
-    }
-
-    return out;
+    return (Array.isArray(rows) ? rows : []).map(mapNexusUserRow);
 }
 
-async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const res = await params.supabaseClient
-        .from('nexus_team_events')
-        .select('*')
-        .eq('id', params.eventId)
-        .eq('organization_id', params.workspaceId)
-        .single();
-
-    if ((res as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
-    }
-
-    return res;
+async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
+    return getNexusTeamEventsDelegate().findFirst({
+        where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
+    });
 }
 async function GETHandler(
     request: NextRequest,
@@ -88,17 +114,15 @@ async function GETHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const supabaseClient = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events/[id]/attendance');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -115,51 +139,50 @@ async function GETHandler(
             return apiError('User email not found', { status: 400 });
         }
 
-        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
+        const dbUser = await selectUserByEmailAndWorkspace({ email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
             return apiError('User not found in database', { status: 404 });
         }
 
         // Get event to check permissions
-        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
-        const event = (eventRes as any).data;
-        const eventError = (eventRes as any).error;
-
-        if (eventError || !event) {
+        const event = await loadTeamEventInWorkspace({ eventId, workspaceId: workspace.id });
+        if (!event) {
             return apiError('אירוע לא נמצא', { status: 404 });
         }
 
+        const eventObj = asObject(event) ?? {};
+        const organizerId = String(eventObj.organizer_id ?? '');
+        const requiredAttendees = Array.isArray(eventObj.required_attendees)
+            ? (eventObj.required_attendees as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+        const optionalAttendees = Array.isArray(eventObj.optional_attendees)
+            ? (eventObj.optional_attendees as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+
         // Check if user can view attendance (organizer, admin, or invited user)
-        const isOrganizer = event.organizer_id === dbUser.id;
+        const isOrganizer = organizerId === dbUser.id;
         const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
         const isInvited = 
-            (event.required_attendees && event.required_attendees.includes(dbUser.id)) ||
-            (event.optional_attendees && event.optional_attendees.includes(dbUser.id));
+            requiredAttendees.includes(dbUser.id) ||
+            optionalAttendees.includes(dbUser.id);
 
         if (!isOrganizer && !isAdmin && !isInvited) {
             return apiError('אין הרשאה לצפות בנוכחות', { status: 403 });
         }
 
         // Get all attendance records for this event
-        const { data: attendance, error } = await supabaseClient
-            .from('nexus_event_attendance')
-            .select('*')
-            .eq('event_id', eventId)
-            .eq('organization_id', workspace.id)
-            .order('created_at', { ascending: true });
-
-        if (error) {
-            console.error('[API] Error fetching attendance:', error);
-            return apiError('שגיאה בטעינת נוכחות', { status: 500 });
-        }
+        const attendance = await getNexusEventAttendanceDelegate().findMany({
+            where: { event_id: String(eventId), organizationId: String(workspace.id) },
+            orderBy: { created_at: 'asc' },
+        });
 
         // Enrich with user names (batch)
-        const attendeeIds = (attendance || []).map((att: any) => String(att?.user_id ?? '')).filter(Boolean);
-        const attendees = await selectUsersByIdsInWorkspace({ supabase: supabaseClient, workspaceId: workspace.id, userIds: attendeeIds });
-        const nameById = new Map(attendees.map((u: any) => [String(u.id), String(u.name || 'משתמש לא ידוע')]));
+        const attendeeIds = (attendance || []).map((att) => String(att?.user_id ?? '')).filter(Boolean);
+        const attendees = await selectUsersByIdsInWorkspace({ workspaceId: workspace.id, userIds: attendeeIds });
+        const nameById = new Map(attendees.map((u) => [String(u.id), String(u.name || 'משתמש לא ידוע')]));
 
-        const enrichedAttendance = (attendance || []).map((att: any) => ({
+        const enrichedAttendance = (attendance || []).map((att) => ({
             ...att,
             userId: att.user_id,
             userName: nameById.get(String(att.user_id)) || 'משתמש לא ידוע',
@@ -167,14 +190,15 @@ async function GETHandler(
 
         return apiSuccess({ attendance: enrichedAttendance }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/team-events/[id]/attendance GET:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
+        const msg = getErrorMessage(error);
         return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בטעינת נוכחות',
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה בטעינת נוכחות',
         });
     }
 }
@@ -186,17 +210,15 @@ async function POSTHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const supabaseClient = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events/[id]/attendance#post');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -213,69 +235,82 @@ async function POSTHandler(
             return apiError('User email not found', { status: 400 });
         }
 
-        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
+        const dbUser = await selectUserByEmailAndWorkspace({ email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
             return apiError('User not found in database', { status: 404 });
         }
 
         // Get event (must belong to workspace)
-        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
-        const event = (eventRes as any).data;
-        const eventError = (eventRes as any).error;
-
-        if (eventError || !event) {
+        const event = await loadTeamEventInWorkspace({ eventId, workspaceId: workspace.id });
+        if (!event) {
             return apiError('אירוע לא נמצא', { status: 404 });
         }
 
-        const body = await request.json();
-        const { status, notes } = body;
+        const eventObj = asObject(event) ?? {};
+        const requiredAttendees = Array.isArray(eventObj.required_attendees)
+            ? (eventObj.required_attendees as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+        const optionalAttendees = Array.isArray(eventObj.optional_attendees)
+            ? (eventObj.optional_attendees as unknown[]).map((x) => String(x)).filter(Boolean)
+            : [];
+
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const statusRaw = bodyObj.status;
+        const status = typeof statusRaw === 'string' ? statusRaw : String(statusRaw ?? '');
+        const notesRaw = bodyObj.notes;
+        const notes = notesRaw == null ? null : String(notesRaw);
 
         if (!status || !['attending', 'not_attending'].includes(status)) {
             return apiError('סטטוס לא תקין. צריך להיות attending או not_attending', { status: 400 });
         }
 
         // Check if user is invited
-        const isInvited = 
-            (event.required_attendees && event.required_attendees.includes(dbUser.id)) ||
-            (event.optional_attendees && event.optional_attendees.includes(dbUser.id));
+        const isInvited = requiredAttendees.includes(dbUser.id) || optionalAttendees.includes(dbUser.id);
 
         if (!isInvited) {
             return apiError('אתה לא מוזמן לאירוע זה', { status: 403 });
         }
 
         // Upsert attendance record
-        const { data: attendance, error } = await supabaseClient
-            .from('nexus_event_attendance')
-            .upsert({
-                organization_id: workspace.id,
-                event_id: eventId,
-                user_id: dbUser.id,
-                status,
-                rsvp_at: new Date().toISOString(),
-                notes: notes || null
-            }, {
-                onConflict: 'event_id,user_id',
-                ignoreDuplicates: false
-            })
-            .select()
-            .single();
+        const now = new Date();
+        const row = await getNexusEventAttendanceDelegate().upsert({
+            where: {
+                event_id_user_id: {
+                    event_id: String(eventId),
+                    user_id: String(dbUser.id),
+                },
+            },
+            create: {
+                organizationId: workspace.id,
+                event_id: String(eventId),
+                user_id: String(dbUser.id),
+                status: String(status),
+                rsvp_at: now,
+                notes: notes || null,
+                created_at: now,
+                updated_at: now,
+            },
+            update: {
+                status: String(status),
+                rsvp_at: now,
+                notes: notes || null,
+                updated_at: now,
+            },
+        });
 
-        if (error) {
-            console.error('[API] Error creating/updating attendance:', error);
-            return apiError('שגיאה בשמירת אישור הגעה', { status: 500 });
-        }
+        return apiSuccess({ attendance: row, message: 'אישור הגעה נשמר בהצלחה' }, { status: 200 });
 
-        return apiSuccess({ attendance, message: 'אישור הגעה נשמר בהצלחה' }, { status: 200 });
-
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/team-events/[id]/attendance POST:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
+        const msg = getErrorMessage(error);
         return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בשמירת אישור הגעה',
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה בשמירת אישור הגעה',
         });
     }
 }

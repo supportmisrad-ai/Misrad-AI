@@ -1,0 +1,98 @@
+import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { getCurrentUserId } from '@/lib/server/authHelper';
+import { APIError, getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { AIService } from '@/lib/services/ai/AIService';
+import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import { Type } from '@google/genai';
+
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+export const runtime = 'nodejs';
+
+function asString(value: unknown): string {
+  return value == null ? '' : String(value);
+}
+
+async function POSTHandler(req: Request) {
+  try {
+    await getAuthenticatedUser();
+
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return apiError('Unauthorized', { status: 401 });
+    }
+
+    const body = (await req.json().catch(() => ({}))) as { orgId?: string; transcript?: string };
+
+    let orgKey = asString(body.orgId).trim();
+    if (!orgKey) {
+      try {
+        orgKey = getOrgKeyOrThrow(req);
+      } catch {
+        orgKey = '';
+      }
+    }
+
+    const transcript = asString(body.transcript).trim();
+
+    if (!orgKey) return apiError('orgId is required', { status: 400 });
+    if (!transcript) return apiSuccessCompat({ insight: 'ממתין לתחילת השיחה...' });
+
+    const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+
+    const abuse = await enforceAiAbuseGuard({
+      req,
+      namespace: 'ai.client_os.meetings.live_insight',
+      organizationId: workspace.id,
+      userId: clerkUserId,
+      limits: {
+        ipMin: { limit: 20, windowMs: 60_000, label: 'ip-min' },
+        userMin: { limit: 15, windowMs: 60_000, label: 'user-min' },
+      },
+    });
+
+    if (!abuse.ok) {
+      return apiError('Rate limit exceeded', { status: 429, headers: abuse.headers });
+    }
+
+    const ai = AIService.getInstance();
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        insight: { type: Type.STRING },
+      },
+      required: ['insight'],
+    };
+
+    const truncated = transcript.length > 4000 ? transcript.slice(-4000) : transcript;
+
+    const aiOut = await withAiLoadIsolation({
+      namespace: 'ai.generate_json',
+      organizationId: workspace.id,
+      task: async () => {
+        return await ai.generateJson<{ insight: string }>({
+          featureKey: 'client_os.meetings.live_insight',
+          organizationId: workspace.id,
+          userId: clerkUserId,
+          prompt: truncated,
+          systemInstruction: `אתה מאמן שיחה (Live Coach) לפגישות B2B.
+תן תובנה אחת קצרה, בעברית, עד 15 מילים.
+התמקדות: מה לומר עכשיו / שאלה הבאה / סיכון.
+החזר JSON בלבד.`,
+          responseSchema,
+        });
+      },
+    });
+
+    const insight = asString(aiOut.result?.insight).trim() || 'המשך להקשיב, עדיין אין מספיק הקשר.';
+    return apiSuccessCompat({ insight }, { headers: abuse.headers });
+  } catch (e: any) {
+    if (e instanceof APIError) {
+      return apiError(e.message || 'Forbidden', { status: e.status });
+    }
+    return apiError(e, { status: 500, message: 'Live insight failed' });
+  }
+}
+
+export const POST = shabbatGuard(POSTHandler);

@@ -9,7 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { RoleDefinition, PermissionId } from '../../../../types';
 import { logAuditEvent } from '../../../../lib/audit';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -74,25 +74,21 @@ async function PATCHHandler(
             );
         }
 
-        const supabase = createClient();
-
         const dbUpdates: any = {};
         if (allowedUpdates.name !== undefined) dbUpdates.name = allowedUpdates.name;
         if (allowedUpdates.permissions !== undefined) dbUpdates.permissions = allowedUpdates.permissions;
         if ((allowedUpdates as any).description !== undefined) dbUpdates.description = (allowedUpdates as any).description;
+        dbUpdates.updated_at = new Date();
 
-        const { data, error } = await supabase
-            .from('misrad_roles')
-            .update(dbUpdates)
-            .eq('id', roleId)
-            .select('*')
-            .single();
+        const data = await prisma.scale_roles.update({
+            where: { id: String(roleId) },
+            data: dbUpdates,
+        });
 
-        if (error) {
-            throw error;
-        }
-
-        const updatedRole = mapRoleRow(data);
+        const updatedRole = mapRoleRow({
+            ...data,
+            is_system: (data as any)?.is_system,
+        });
         
         await logAuditEvent('role.update', 'role', {
             resourceId: updatedRole.id,
@@ -133,31 +129,21 @@ async function DELETEHandler(
         
         const { id: roleId } = await params;
 
-        const supabase = createClient();
-
         // Check if role is system role
-        const { data: roleRow, error: fetchError } = await supabase
-            .from('misrad_roles')
-            .select('is_system')
-            .eq('id', roleId)
-            .single();
+        const roleRow = await prisma.scale_roles.findUnique({
+            where: { id: String(roleId) },
+            select: { is_system: true },
+        });
 
-        if (fetchError) {
-            throw fetchError;
+        if (!roleRow) {
+            return NextResponse.json({ error: 'Role not found' }, { status: 404 });
         }
 
         if ((roleRow as any)?.is_system) {
             throw new Error('Cannot delete system role');
         }
 
-        const { error: deleteError } = await supabase
-            .from('misrad_roles')
-            .delete()
-            .eq('id', roleId);
-
-        if (deleteError) {
-            throw deleteError;
-        }
+        await prisma.scale_roles.delete({ where: { id: String(roleId) } });
         
         await logAuditEvent('role.delete', 'role', {
             resourceId: roleId,

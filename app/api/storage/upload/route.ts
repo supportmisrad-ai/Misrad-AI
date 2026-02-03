@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient, createServiceRoleClient } from '@/lib/supabase';
+import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -50,7 +50,7 @@ async function POSTHandler(request: NextRequest) {
             String(bucket || '').trim() === 'attachments' &&
             (normalizedFolder === 'global-branding' || normalizedFolder.startsWith('global-branding/'));
 
-        let supabase = createClient();
+        let supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'storage_upload_default' });
         let filePath = '';
 
         if (isGlobalBranding) {
@@ -83,6 +83,12 @@ async function POSTHandler(request: NextRequest) {
             const userSegment = userId ? `users/${String(userId)}` : '';
             const parts = [orgPrefix, userSegment, normalizedFolder].filter(Boolean);
             filePath = parts.length ? `${parts.join('/')}/` : '';
+
+            supabase = createServiceRoleClientScoped({
+                reason: 'storage_upload_org_scoped',
+                scopeColumn: 'organization_id',
+                scopeId: String(workspace.id),
+            });
         }
 
         const timestamp = Date.now();

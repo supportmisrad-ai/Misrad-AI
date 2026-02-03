@@ -88,7 +88,25 @@ type SupportLink = {
   icon: React.ComponentType<{ size?: number }>;
 };
 
-function getModuleSupportContent(moduleKey: OSModuleKey, orgSlug: string) {
+type SupportFlow = {
+  title: string;
+  items: string[];
+};
+
+type ModuleSupportContent = {
+  heroTitle: string;
+  heroSubtitle: string;
+  videoHeadline: string;
+  stepsHeadline: string;
+  faqHeadline: string;
+  quickLinksHeadline: string;
+  quickLinks: SupportLink[];
+  steps: SupportStep[];
+  faqs: SupportFaq[];
+  flow: SupportFlow | null;
+};
+
+function getModuleSupportContent(moduleKey: OSModuleKey, orgSlug: string): ModuleSupportContent {
   if (moduleKey === 'finance') {
     const base = `/w/${encodeURIComponent(orgSlug)}/finance`;
     return {
@@ -343,7 +361,7 @@ function getModuleSupportContent(moduleKey: OSModuleKey, orgSlug: string) {
     ] as SupportLink[],
     steps: [] as SupportStep[],
     faqs: [] as SupportFaq[],
-    flow: null as any,
+    flow: null,
   };
 }
 
@@ -590,7 +608,7 @@ export default async function WorkspaceSupportModulePage({
               <div className="rounded-3xl border border-white/60 bg-white/70 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.06)] overflow-hidden">
                 <div className="p-6 border-b border-white/60">
                   <div className="text-sm font-black text-slate-900">{content.flow.title}</div>
-                  <div className="mt-1 text-xs font-bold text-slate-600">מסלול פעולה מהיר, כדי להבין "מה הולך לאן".</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600">מסלול פעולה מהיר, כדי להבין &quot;מה הולך לאן&quot;.</div>
                 </div>
                 <div className="p-6">
                   <div

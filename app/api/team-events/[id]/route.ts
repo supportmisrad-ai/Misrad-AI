@@ -6,57 +6,134 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient } from '../../../../lib/supabase';
-import { TeamEvent } from '../../../../types';
+import { TeamEvent, TeamEventStatus, TeamEventType } from '../../../../types';
+import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapNexusUserRow(row: any) {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type NexusTeamEventsDelegate = {
+    findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+    updateMany: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<{ count: number }>;
+    deleteMany: (args: { where: Record<string, unknown> }) => Promise<{ count: number }>;
+};
+
+function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
+    const obj = asObject(prisma as unknown);
+    const delegate = obj?.['nexus_team_events'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst') || !hasFunction(delegate, 'updateMany') || !hasFunction(delegate, 'deleteMany')) {
+        throw new Error('Prisma delegate nexus_team_events is unavailable');
+    }
+    return delegate as unknown as NexusTeamEventsDelegate;
+}
+
+function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
+    const v = obj?.[key];
+    return typeof v === 'string' ? v : v == null ? fallback : String(v);
+}
+
+function toIsoOrEmpty(value: unknown): string {
+    const s = String(value ?? '').trim();
+    if (!s) return '';
+    try {
+        const d = new Date(s);
+        if (Number.isFinite(d.getTime())) return d.toISOString();
+    } catch {
+        // ignore
+    }
+    return s;
+}
+
+function mapNexusUserRow(row: unknown) {
+    const obj = asObject(row);
     return {
-        id: String(row?.id ?? ''),
-        name: String(row?.name ?? row?.full_name ?? row?.email ?? ''),
-        role: String(row?.role ?? 'עובד'),
-        isSuperAdmin: Boolean(row?.is_super_admin ?? false),
-        tenantId: row?.organization_id ?? undefined,
+        id: obj ? getString(obj, 'id') : '',
+        name: obj ? getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))) : '',
+        role: obj ? getString(obj, 'role', 'עובד') : 'עובד',
+        isSuperAdmin: Boolean(obj?.['is_super_admin'] ?? obj?.['isSuperAdmin'] ?? false),
+        tenantId: (obj?.['organization_id'] ?? obj?.['organizationId']) ?? undefined,
     };
 }
 
-async function selectUserByEmailAndWorkspace(params: { supabase: any; email: string; workspaceId: string }) {
+const TEAM_EVENT_TYPES: readonly TeamEventType[] = ['training', 'fun_day', 'group_meeting', 'enrichment', 'company_event', 'other'] as const;
+const TEAM_EVENT_STATUSES: readonly TeamEventStatus[] = ['draft', 'scheduled', 'in_progress', 'completed', 'cancelled'] as const;
+
+function normalizeTeamEventType(input: unknown): TeamEventType {
+    const v = String(input ?? '').trim();
+    return (TEAM_EVENT_TYPES as readonly string[]).includes(v) ? (v as TeamEventType) : 'other';
+}
+
+function normalizeTeamEventStatus(input: unknown): TeamEventStatus {
+    const v = String(input ?? '').trim();
+    return (TEAM_EVENT_STATUSES as readonly string[]).includes(v) ? (v as TeamEventStatus) : 'scheduled';
+}
+
+function mapTeamEventRow(row: unknown): TeamEvent {
+    const obj = asObject(row) ?? {};
+    return {
+        id: String(obj.id ?? ''),
+        tenantId: obj.tenant_id ? String(obj.tenant_id) : undefined,
+        title: String(obj.title ?? ''),
+        description: obj.description == null ? undefined : String(obj.description),
+        eventType: normalizeTeamEventType(obj.event_type),
+        startDate: obj.start_date ? new Date(String(obj.start_date)).toISOString() : '',
+        endDate: obj.end_date ? new Date(String(obj.end_date)).toISOString() : '',
+        allDay: Boolean(obj.all_day ?? false),
+        location: obj.location == null ? undefined : String(obj.location),
+        organizerId: obj.organizer_id ? String(obj.organizer_id) : undefined,
+        requiredAttendees: Array.isArray(obj.required_attendees) ? obj.required_attendees.map((x) => String(x)).filter(Boolean) : [],
+        optionalAttendees: Array.isArray(obj.optional_attendees) ? obj.optional_attendees.map((x) => String(x)).filter(Boolean) : [],
+        status: normalizeTeamEventStatus(obj.status),
+        requiresApproval: Boolean(obj.requires_approval ?? false),
+        approvedBy: obj.approved_by ? String(obj.approved_by) : undefined,
+        approvedAt: obj.approved_at ? toIsoOrEmpty(obj.approved_at) : undefined,
+        notificationSent: Boolean(obj.notification_sent ?? false),
+        reminderSent: Boolean(obj.reminder_sent ?? false),
+        reminderDaysBefore: typeof obj.reminder_days_before === 'number' ? obj.reminder_days_before : Number(obj.reminder_days_before ?? 1) || 1,
+        metadata: asObject(obj.metadata) ?? {},
+        createdAt: obj.created_at ? toIsoOrEmpty(obj.created_at) : '',
+        createdBy: obj.created_by ? String(obj.created_by) : undefined,
+        updatedAt: obj.updated_at ? toIsoOrEmpty(obj.updated_at) : '',
+    };
+}
+
+async function selectUserByEmailAndWorkspace(params: { email: string; workspaceId: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('*')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
-
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    if (byOrg.error || !byOrg.data) return null;
-    return mapNexusUserRow(byOrg.data);
+    const row = await prisma.nexusUser.findFirst({
+        where: { organizationId: params.workspaceId, email },
+    });
+    if (!row?.id) return null;
+    return mapNexusUserRow(row);
 }
 
-async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const res = await params.supabaseClient
-        .from('nexus_team_events')
-        .select('*')
-        .eq('id', params.eventId)
-        .eq('organization_id', params.workspaceId)
-        .single();
-
-    if ((res as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
-    }
-
-    return res;
+async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
+    return getNexusTeamEventsDelegate().findFirst({
+        where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
+    });
 }
 
 async function PATCHHandler(
@@ -66,17 +143,15 @@ async function PATCHHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const supabaseClient = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events/[id]');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -89,55 +164,62 @@ async function PATCHHandler(
         }
 
         // Get existing event (must belong to workspace)
-        const existingRes = await loadTeamEventInWorkspace({ supabaseClient, eventId: id, workspaceId: workspace.id });
-        const existingEvent = (existingRes as any).data;
-        const getError = (existingRes as any).error;
-
-        if (getError || !existingEvent) {
+        const existingEvent = await loadTeamEventInWorkspace({ eventId: id, workspaceId: workspace.id });
+        if (!existingEvent) {
             return apiError('אירוע לא נמצא', { status: 404 });
         }
+
+        const existingObj = asObject(existingEvent) ?? {};
 
         // Get user from database
         if (!user.email) {
             return apiError('User email not found', { status: 400 });
         }
-        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
+        const dbUser = await selectUserByEmailAndWorkspace({ email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
             return apiError('User not found in database', { status: 404 });
         }
 
         // Check permissions: organizer or admin
-        const isOrganizer = existingEvent.organizer_id === dbUser.id;
+        const isOrganizer = String(existingObj.organizer_id || '') === String(dbUser.id);
         const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
 
         if (!isOrganizer && !isAdmin) {
             return apiError('אין הרשאה לעדכן אירוע זה', { status: 403 });
         }
 
-        const body = await request.json();
-        const updateData: any = {};
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const updateData: Record<string, unknown> = {};
 
         // Allowed fields to update
-        if (body.title !== undefined) updateData.title = body.title;
-        if (body.description !== undefined) updateData.description = body.description;
-        if (body.eventType !== undefined) updateData.event_type = body.eventType;
-        if (body.startDate !== undefined) updateData.start_date = body.startDate;
-        if (body.endDate !== undefined) updateData.end_date = body.endDate;
-        if (body.allDay !== undefined) updateData.all_day = body.allDay;
-        if (body.location !== undefined) updateData.location = body.location;
-        if (body.requiredAttendees !== undefined) updateData.required_attendees = body.requiredAttendees;
-        if (body.optionalAttendees !== undefined) updateData.optional_attendees = body.optionalAttendees;
-        if (body.status !== undefined) updateData.status = body.status;
-        if (body.metadata !== undefined) updateData.metadata = body.metadata;
+        if (bodyObj.title !== undefined) updateData.title = bodyObj.title;
+        if (bodyObj.description !== undefined) updateData.description = bodyObj.description;
+        if (bodyObj.eventType !== undefined) updateData.event_type = bodyObj.eventType;
+        if (bodyObj.startDate !== undefined) {
+            const d = new Date(String(bodyObj.startDate));
+            if (Number.isFinite(d.getTime())) updateData.start_date = d;
+        }
+        if (bodyObj.endDate !== undefined) {
+            const d = new Date(String(bodyObj.endDate));
+            if (Number.isFinite(d.getTime())) updateData.end_date = d;
+        }
+        if (bodyObj.allDay !== undefined) updateData.all_day = bodyObj.allDay;
+        if (bodyObj.location !== undefined) updateData.location = bodyObj.location;
+        if (bodyObj.requiredAttendees !== undefined) updateData.required_attendees = bodyObj.requiredAttendees;
+        if (bodyObj.optionalAttendees !== undefined) updateData.optional_attendees = bodyObj.optionalAttendees;
+        if (bodyObj.status !== undefined) updateData.status = bodyObj.status;
+        if (bodyObj.metadata !== undefined) updateData.metadata = bodyObj.metadata;
+        if (bodyObj.requiresApproval !== undefined) updateData.requires_approval = Boolean(bodyObj.requiresApproval);
 
         // Approval handling (only admins/managers)
         if (isAdmin) {
-            if (body.approved !== undefined) {
-                if (body.approved) {
+            if (bodyObj.approved !== undefined) {
+                if (Boolean(bodyObj.approved)) {
                     updateData.approved_by = dbUser.id;
-                    updateData.approved_at = new Date().toISOString();
-                    if (existingEvent.status === 'draft') {
+                    updateData.approved_at = new Date();
+                    if (String(existingObj.status || '') === 'draft') {
                         updateData.status = 'scheduled';
                     }
                 } else {
@@ -145,35 +227,38 @@ async function PATCHHandler(
                     updateData.approved_at = null;
                 }
             }
+            if (bodyObj.approvedBy !== undefined) {
+                const approvedBy = String(bodyObj.approvedBy || '').trim();
+                if (approvedBy) {
+                    updateData.approved_by = approvedBy;
+                    updateData.approved_at = new Date();
+                    updateData.requires_approval = false;
+                }
+            }
         }
 
-        const { data: updatedEvent, error } = await supabaseClient
-            .from('nexus_team_events')
-            .update(updateData)
-            .eq('id', id)
-            .eq('organization_id', workspace.id)
-            .select()
-            .single();
+        updateData.updated_at = new Date();
 
-        if ((error as any)?.code === '42703') {
-            return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
-        }
-
-        if (error) {
-            console.error('[API] Error updating team event:', error);
+        const res = await getNexusTeamEventsDelegate().updateMany({
+            where: { id: String(id), organizationId: String(workspace.id) },
+            data: updateData,
+        });
+        if (!res || typeof res.count !== 'number' || res.count < 1) {
             return apiError('שגיאה בעדכון אירוע', { status: 500 });
         }
 
-        return apiSuccess({ event: updatedEvent, message: 'אירוע עודכן בהצלחה' }, { status: 200 });
+        const updatedRow = await loadTeamEventInWorkspace({ eventId: id, workspaceId: workspace.id });
+        return apiSuccess({ event: updatedRow ? mapTeamEventRow(updatedRow) : null, message: 'אירוע עודכן בהצלחה' }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/team-events/[id] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
+        const msg = getErrorMessage(error);
         return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בעדכון אירוע',
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה בעדכון אירוע',
         });
     }
 }
@@ -185,17 +270,15 @@ async function DELETEHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const supabaseClient = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events/[id]#delete');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -208,11 +291,8 @@ async function DELETEHandler(
         }
 
         // Get existing event (must belong to workspace)
-        const existingRes = await loadTeamEventInWorkspace({ supabaseClient, eventId: id, workspaceId: workspace.id });
-        const existingEvent = (existingRes as any).data;
-        const getError = (existingRes as any).error;
-
-        if (getError || !existingEvent) {
+        const existingEvent = await loadTeamEventInWorkspace({ eventId: id, workspaceId: workspace.id });
+        if (!existingEvent) {
             return apiError('אירוע לא נמצא', { status: 404 });
         }
 
@@ -220,7 +300,7 @@ async function DELETEHandler(
         if (!user.email) {
             return apiError('User email not found', { status: 400 });
         }
-        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
+        const dbUser = await selectUserByEmailAndWorkspace({ email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
             return apiError('User not found in database', { status: 404 });
@@ -235,32 +315,25 @@ async function DELETEHandler(
         }
 
         // Delete event (cascade will delete attendance records)
-        const byTenantDelete = await supabaseClient
-            .from('nexus_team_events')
-            .delete()
-            .eq('id', id)
-            .eq('organization_id', workspace.id);
+        const del = await getNexusTeamEventsDelegate().deleteMany({
+            where: { id: String(id), organizationId: String(workspace.id) },
+        });
 
-        const deleteError = (byTenantDelete as any)?.error;
-        if (deleteError?.code === '42703') {
-            return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
-        }
-
-        if (deleteError) {
-            console.error('[API] Error deleting team event:', deleteError);
+        if (!del || typeof del.count !== 'number' || del.count < 1) {
             return apiError('שגיאה במחיקת אירוע', { status: 500 });
         }
 
         return apiSuccess({ message: 'אירוע נמחק בהצלחה' }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/team-events/[id] DELETE:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
+        const msg = getErrorMessage(error);
         return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה במחיקת אירוע',
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה במחיקת אירוע',
         });
     }
 }

@@ -6,6 +6,20 @@
 
 import { supabase } from './supabase';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
 export interface UploadResult {
     url: string;
     signedUrl?: string;
@@ -37,20 +51,17 @@ export async function uploadFile(
     }
 
     try {
+        const ctx = typeof userId === 'object' && userId !== null ? asObject(userId) : null;
+
         const userIdValue =
-            typeof userId === 'object' && userId !== null
-                ? String((userId as any).userId || '').trim() || undefined
-                : userId
-                  ? String(userId).trim() || undefined
-                  : undefined;
-        const organizationId =
-            typeof userId === 'object' && userId !== null
-                ? String((userId as any).organizationId || '').trim() || undefined
-                : undefined;
-        const orgSlug =
-            typeof userId === 'object' && userId !== null
-                ? String((userId as any).orgSlug || '').trim() || undefined
-                : undefined;
+            typeof userId === 'string'
+                ? String(userId).trim() || undefined
+                : typeof ctx?.userId === 'string'
+                    ? ctx.userId.trim() || undefined
+                    : undefined;
+
+        const organizationId = typeof ctx?.organizationId === 'string' ? ctx.organizationId.trim() || undefined : undefined;
+        const orgSlug = typeof ctx?.orgSlug === 'string' ? ctx.orgSlug.trim() || undefined : undefined;
 
         // Generate unique filename
         const timestamp = Date.now();
@@ -78,7 +89,7 @@ export async function uploadFile(
         const fileData = new Uint8Array(arrayBuffer);
 
         // Upload to Supabase Storage
-        const { data, error } = await supabase.storage
+        const { error } = await supabase.storage
             .from(bucket)
             .upload(filePath, fileData, {
                 contentType: file instanceof File ? file.type : 'application/octet-stream',
@@ -112,12 +123,12 @@ export async function uploadFile(
             error: undefined
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Storage] Upload exception:', error);
         return {
             url: '',
             path: '',
-            error: error.message || 'Upload failed'
+            error: getErrorMessage(error) || 'Upload failed'
         };
     }
 }

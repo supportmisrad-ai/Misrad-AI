@@ -1,7 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import prisma from '@/lib/prisma';
 
 export interface Campaign {
   id: string;
@@ -35,37 +35,34 @@ export async function getCampaigns(
   orgId?: string
 ): Promise<{ success: boolean; data?: Campaign[]; error?: string }> {
   try {
-    const supabase = createClient();
     const organizationId = orgId ? (await requireWorkspaceAccessByOrgSlug(orgId))?.id : null;
 
     if (!organizationId) {
       return { success: false, error: 'חסר orgSlug לטעינת קמפיינים' };
     }
 
-    const clientsTable = 'clients';
-    const campaignsTable = 'campaigns';
-
     let allowedClientIds: string[] | null = null;
     {
-      const { data: clients, error: clientsError } = await supabase
-        .from(clientsTable)
-        .select('id')
-        .eq('organization_id', organizationId);
-
-      if (clientsError) {
+      let clients: Array<{ id: string }> = [];
+      try {
+        clients = await prisma.clients.findMany({
+          where: { organization_id: String(organizationId) },
+          select: { id: true },
+        });
+      } catch (clientsError: any) {
         if (isMissingTableError(clientsError)) {
           return { success: false, error: 'טבלת clients לא קיימת במסד הנתונים (מצב חירום: אין Fallback)' };
         }
         const errInfo = {
-          message: clientsError.message,
-          code: (clientsError as any).code,
-          details: (clientsError as any).details,
-          hint: (clientsError as any).hint,
+          message: clientsError?.message,
+          code: (clientsError as any)?.code,
+          details: (clientsError as any)?.details,
+          hint: (clientsError as any)?.hint,
         };
         console.error('Error fetching campaigns clients:', errInfo);
         return {
           success: false,
-          error: clientsError.message || 'שגיאה בטעינת לקוחות לקמפיינים',
+          error: clientsError?.message || 'שגיאה בטעינת לקוחות לקמפיינים',
         };
       }
 
@@ -76,46 +73,48 @@ export async function getCampaigns(
       }
     }
 
-    let query = supabase.from(campaignsTable).select('*').order('created_at', { ascending: false });
+    let data: any[] = [];
+    try {
+      const where: any = {};
+      if (allowedClientIds) {
+        where.client_id = { in: allowedClientIds };
+      }
+      if (clientId) {
+        where.client_id = String(clientId);
+      }
 
-    if (allowedClientIds) {
-      query = query.in('client_id', allowedClientIds);
-    }
-
-    if (clientId) {
-      query = query.eq('client_id', clientId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
+      data = await prisma.social_campaigns.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+      });
+    } catch (error: any) {
       if (isMissingTableError(error)) {
         return { success: false, error: 'טבלת campaigns לא קיימת במסד הנתונים (מצב חירום: אין Fallback)' };
       }
       const errInfo = {
-        message: error.message,
-        code: (error as any).code,
-        details: (error as any).details,
-        hint: (error as any).hint,
+        message: error?.message,
+        code: (error as any)?.code,
+        details: (error as any)?.details,
+        hint: (error as any)?.hint,
       };
       console.error('Error fetching campaigns:', errInfo);
       return {
         success: false,
-        error: error.message || 'שגיאה בטעינת קמפיינים',
+        error: error?.message || 'שגיאה בטעינת קמפיינים',
       };
     }
 
     const campaigns: Campaign[] = (data || []).map((campaign: any) => ({
-      id: campaign.id,
-      clientId: campaign.client_id,
-      name: campaign.name,
-      status: campaign.status,
-      objective: campaign.objective,
+      id: String(campaign.id),
+      clientId: String(campaign.client_id),
+      name: String(campaign.name),
+      status: (campaign.status ? String(campaign.status) : 'active') as any,
+      objective: (campaign.objective ? String(campaign.objective) : 'awareness') as any,
       budget: Number(campaign.budget) || 0,
       spent: Number(campaign.spent) || 0,
       roas: Number(campaign.roas) || 0,
-      impressions: campaign.impressions,
-      clicks: campaign.clicks,
+      impressions: campaign.impressions == null ? undefined : Number(campaign.impressions),
+      clicks: campaign.clicks == null ? undefined : Number(campaign.clicks),
     }));
 
     return {

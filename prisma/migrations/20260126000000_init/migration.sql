@@ -2006,7 +2006,7 @@ CREATE TABLE "social_business_metrics" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "business_metrics_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "social_business_metrics_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -2076,7 +2076,7 @@ CREATE TABLE "social_client_dna" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "client_dna_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "social_client_dna_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -2401,7 +2401,7 @@ CREATE TABLE "social_platform_credentials" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "platform_credentials_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "social_platform_credentials_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -2414,7 +2414,7 @@ CREATE TABLE "social_platform_quotas" (
     "created_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "platform_quotas_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "social_platform_quotas_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -4001,7 +4001,7 @@ CREATE UNIQUE INDEX "clients_portal_token_key" ON "social_clients"("portal_token
 CREATE INDEX "clients_invitationToken_idx" ON "social_clients"("invitation_token");
 
 -- CreateIndex
-CREATE INDEX "idx_clients_organization_id" ON "social_clients"("organization_id");
+CREATE INDEX "idx_social_clients_organization_id" ON "social_clients"("organization_id");
 
 -- CreateIndex
 CREATE INDEX "idx_clients_plan" ON "social_clients"("plan");

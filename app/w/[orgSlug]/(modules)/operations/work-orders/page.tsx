@@ -6,6 +6,7 @@ import { getOperationsProjectOptions, getOperationsWorkOrdersData } from '@/app/
 import WorkOrdersSmartSortClient from '@/components/operations/WorkOrdersSmartSortClient';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
+import type { OperationsWorkOrderStatus } from '@/lib/services/operations/types';
 
 function formatStatus(status: string): { label: string; className: string } {
   switch (status) {
@@ -54,9 +55,16 @@ export default async function OperationsWorkOrdersPage({
   const projectId = Array.isArray(projectIdRaw) ? projectIdRaw[0] : projectIdRaw;
   const onlyMine = String(Array.isArray(onlyMineRaw) ? onlyMineRaw[0] : onlyMineRaw) === '1';
 
-  const status = statusParam
-    ? (String(statusParam) as any)
-    : ('OPEN' as const);
+  function parseStatus(value: unknown): 'OPEN' | 'ALL' | OperationsWorkOrderStatus {
+    const v = String(value || '').trim().toUpperCase();
+    if (v === 'ALL') return 'ALL';
+    if (v === 'NEW') return 'NEW';
+    if (v === 'IN_PROGRESS') return 'IN_PROGRESS';
+    if (v === 'DONE') return 'DONE';
+    return 'OPEN';
+  }
+
+  const status = parseStatus(statusParam);
 
   const [workOrdersRes, projectOptionsRes] = await Promise.all([
     getOperationsWorkOrdersData({

@@ -1,6 +1,5 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { createHash } from 'crypto';
-import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { logAuditEvent } from '@/lib/audit';
@@ -280,7 +279,8 @@ function ensureSalesCTA(text: string): string {
   const hasCta =
     lowered.includes('/pricing') ||
     lowered.includes('/subscribe') ||
-    lowered.includes('/sign-up') ||
+    lowered.includes('/login?mode=sign-up') ||
+    lowered.includes('/login') ||
     lowered.includes('/contact') ||
     lowered.includes('וואטסאפ') ||
     lowered.includes('whatsapp');
@@ -366,22 +366,18 @@ async function getHelpVideoSuggestion(params: { organizationId: string; pathname
   const pathname = String(params.pathname || '/');
   const normalized = normalizeRoute(pathname);
 
-  const supabase = createClient();
-  let q = supabase
-    .from('help_videos')
-    .select('id, module_key, title, video_url, order, route_prefix, duration')
-    .order('order', { ascending: true })
-    .order('created_at', { ascending: true });
-
+  const where: any = {};
   const mk = String(params.moduleKey || '').trim().toLowerCase();
   if (mk && ['nexus', 'system', 'social', 'finance', 'client', 'operations'].includes(mk)) {
-    q = q.eq('module_key', mk);
+    where.module_key = mk;
   }
 
-  const { data, error } = await q;
-  if (error) return null;
+  const rows = await prisma.help_videos.findMany({
+    where,
+    orderBy: [{ order: 'asc' }, { created_at: 'asc' }],
+    select: { id: true, module_key: true, title: true, video_url: true, order: true, route_prefix: true, duration: true },
+  });
 
-  const rows: unknown[] = Array.isArray(data) ? (data as unknown[]) : [];
   if (rows.length === 0) return null;
 
   let best: unknown | null = null;
@@ -748,7 +744,6 @@ async function POSTHandler(req: Request) {
 
             moduleSnapshotText = safeJsonStringify({ lastCommitment }, 2500);
           } else if (memoryModuleId === 'finance') {
-            const supabase = createClient();
             const now = new Date();
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
             const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -817,12 +812,14 @@ async function POSTHandler(req: Request) {
             const misradInvoicesOpenThisMonth = Number(misradInvoicesAgg._sum?.amount || 0);
 
             let recurringMonthly = 0;
-            const billing = await supabase.from('nexus_billing_items').select('cadence,amount').eq('organization_id', organizationId).limit(500);
-            if (!billing.error && Array.isArray(billing.data)) {
-              recurringMonthly = billing.data
-                .filter((r) => isRecord(r) && String(r.cadence || '').toLowerCase() === 'monthly')
-                .reduce((sum: number, r) => (isRecord(r) ? sum + Number(r.amount || 0) : sum), 0);
-            }
+            const billingRows = await prisma.nexus_billing_items.findMany({
+              where: { organization_id: organizationId },
+              select: { cadence: true, amount: true },
+              take: 500,
+            });
+            recurringMonthly = (billingRows || [])
+              .filter((r: any) => String((r as any).cadence || '').toLowerCase() === 'monthly')
+              .reduce((sum: number, r: any) => sum + Number((r as any).amount || 0), 0);
 
             const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;
             moduleSnapshotText = safeJsonStringify(

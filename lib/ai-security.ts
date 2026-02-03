@@ -8,6 +8,12 @@ import { PermissionId } from '../types';
 import { hasPermission, filterSensitiveData } from './auth';
 import { logAuditEvent } from './audit';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
 // Fields that should NEVER be sent to AI
 const SENSITIVE_FIELDS = [
     'hourlyRate',
@@ -26,8 +32,8 @@ const SENSITIVE_FIELDS = [
 /**
  * Sanitize data before sending to AI
  */
-export function sanitizeForAI<T extends Record<string, any>>(data: T): Partial<T> {
-    const sanitized: any = {};
+export function sanitizeForAI<T extends Record<string, unknown>>(data: T): Partial<T> {
+    const sanitized: Record<string, unknown> = {};
     
     for (const [key, value] of Object.entries(data)) {
         // Skip sensitive fields
@@ -37,17 +43,19 @@ export function sanitizeForAI<T extends Record<string, any>>(data: T): Partial<T
         
         // Recursively sanitize nested objects
         if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
-            sanitized[key] = sanitizeForAI(value);
+            sanitized[key] = sanitizeForAI(value as Record<string, unknown>);
         } else if (Array.isArray(value)) {
             sanitized[key] = value.map(item => 
-                typeof item === 'object' ? sanitizeForAI(item) : item
+                item && typeof item === 'object' && !Array.isArray(item) && !(item instanceof Date)
+                    ? sanitizeForAI(item as Record<string, unknown>)
+                    : item
             );
         } else {
             sanitized[key] = value;
         }
     }
     
-    return sanitized;
+    return sanitized as Partial<T>;
 }
 
 /**
@@ -57,13 +65,13 @@ export async function prepareAIContext(
     userRole: string,
     isManager: boolean,
     rawData: {
-        users?: any[];
-        tasks?: any[];
-        clients?: any[];
-        assets?: any[];
-        financials?: any;
+        users?: unknown[];
+        tasks?: unknown[];
+        clients?: unknown[];
+        assets?: unknown[];
+        financials?: unknown;
     }
-): Promise<any> {
+): Promise<Record<string, unknown>> {
     // Log AI access
     await logAuditEvent('ai.query', 'intelligence', {
         details: {
@@ -73,7 +81,7 @@ export async function prepareAIContext(
         }
     });
     
-    const context: any = {
+    const context: Record<string, unknown> = {
         userRole,
         isManager,
         currentDate: new Date().toLocaleDateString('he-IL'),
@@ -84,20 +92,21 @@ export async function prepareAIContext(
     // For now, we'll use rawData.users if provided, but filter it
     if (rawData.users && rawData.users.length > 0) {
         const canViewFinancials = await hasPermission('view_financials');
-        context.team = rawData.users.map((user: any) => {
-            const safeUser: any = {
-                id: user.id,
-                name: user.name,
-                role: user.role,
-                capacity: user.capacity,
+        context.team = rawData.users.map((user) => {
+            const userObj = asObject(user) ?? {};
+            const safeUser: Record<string, unknown> = {
+                id: userObj.id,
+                name: userObj.name,
+                role: userObj.role,
+                capacity: userObj.capacity,
             };
             
             // Only include financial data if user has permission
             if (canViewFinancials) {
-                safeUser.targets = user.targets;
+                safeUser.targets = userObj.targets;
             } else {
                 // Remove all sensitive fields
-                const sanitized = sanitizeForAI(user);
+                const sanitized = sanitizeForAI(userObj);
                 Object.assign(safeUser, sanitized);
             }
             
@@ -113,13 +122,18 @@ export async function prepareAIContext(
     if (rawData.tasks) {
         const canViewCrm = await hasPermission('view_crm');
         if (canViewCrm) {
-            context.tasksStructure = rawData.tasks.slice(0, 50).map(task => ({
-                title: task.title,
-                status: task.status,
-                priority: task.priority,
+            context.tasksStructure = rawData.tasks.slice(0, 50).map((task) => {
+                const taskObj = asObject(task) ?? {};
+                const assigneeIdsValue = taskObj.assigneeIds;
+                const assigneeIds = Array.isArray(assigneeIdsValue) ? assigneeIdsValue : [];
+                return {
+                title: taskObj.title,
+                status: taskObj.status,
+                priority: taskObj.priority,
                 // Don't include assignee details unless manager
-                assignee: isManager ? task.assigneeIds?.[0] : 'Hidden'
-            }));
+                assignee: isManager ? assigneeIds[0] : 'Hidden'
+                };
+            });
         }
     }
     
@@ -127,11 +141,14 @@ export async function prepareAIContext(
     if (rawData.clients) {
         const canViewCrm = await hasPermission('view_crm');
         if (canViewCrm) {
-            context.clients = rawData.clients.map(client => ({
-                name: client.companyName,
-                status: client.status,
+            context.clients = rawData.clients.map((client) => {
+                const clientObj = asObject(client) ?? {};
+                return {
+                name: clientObj.companyName,
+                status: clientObj.status,
                 // Don't include contact details
-            }));
+                };
+            });
         } else {
             context.clients = [];
         }
@@ -139,22 +156,26 @@ export async function prepareAIContext(
     
     // Filter assets - sanitize URLs
     if (rawData.assets) {
-        context.assets = rawData.assets.map(asset => ({
-            title: asset.title,
-            type: asset.type,
-            tags: asset.tags,
+        context.assets = rawData.assets.map((asset) => {
+            const assetObj = asObject(asset) ?? {};
+            return {
+            title: assetObj.title,
+            type: assetObj.type,
+            tags: assetObj.tags,
             // Don't include actual URLs or credentials
-        }));
+            };
+        });
     }
     
     // Financial data - only if manager
     if (rawData.financials && isManager) {
         const canViewFinancials = await hasPermission('view_financials');
         if (canViewFinancials) {
+            const financialsObj = asObject(rawData.financials) ?? {};
             context.financials = {
                 // Only include aggregated data, not individual salaries
-                totalRevenue: rawData.financials.totalRevenue,
-                target: rawData.financials.target,
+                totalRevenue: financialsObj.totalRevenue,
+                target: financialsObj.target,
                 // Don't include individual employee salaries
             };
         }
@@ -167,7 +188,7 @@ export async function prepareAIContext(
 /**
  * Validate AI response doesn't contain sensitive data
  */
-export function validateAIResponse(response: any): boolean {
+export function validateAIResponse(response: unknown): boolean {
     const responseStr = JSON.stringify(response).toLowerCase();
     
     // Check for sensitive patterns

@@ -1,7 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -41,32 +41,24 @@ export async function buildAiBrainExport(params: {
   const organizationId = String(params.organizationId || '').trim();
   if (!organizationId) throw new Error('organizationId is required');
 
-  const supabase = createClient();
+  const org = await prisma.social_organizations.findUnique({
+    where: { id: organizationId },
+    select: { id: true, name: true, slug: true },
+  });
 
-  const { data: org, error: orgErr } = await supabase
-    .from('organizations')
-    .select('id, name, slug')
-    .eq('id', organizationId)
-    .maybeSingle();
-
-  if (orgErr) throw new Error(orgErr.message);
   if (!org?.id) throw new Error('Organization not found');
 
-  const { data: settingsRow, error: settingsErr } = await supabase
-    .from('organization_settings')
-    .select('ai_dna')
-    .eq('organization_id', organizationId)
-    .maybeSingle();
+  const settingsRow = await prisma.organization_settings.findUnique({
+    where: { organization_id: organizationId },
+    select: { ai_dna: true },
+  });
 
-  if (settingsErr) throw new Error(settingsErr.message);
-
-  const { data: featureRows, error: fsErr } = await supabase
-    .from('ai_feature_settings')
-    .select('*')
-    .or(`organization_id.is.null,organization_id.eq.${organizationId}`)
-    .order('feature_key', { ascending: true });
-
-  if (fsErr) throw new Error(fsErr.message);
+  const featureRows = await prisma.ai_feature_settings.findMany({
+    where: {
+      OR: [{ organization_id: null }, { organization_id: organizationId }],
+    },
+    orderBy: { feature_key: 'asc' },
+  });
 
   const nowIso = new Date().toISOString();
   const safeSlug = String(org.slug || '').trim() || String(org.name || '').trim().toLowerCase().replace(/[^a-z0-9\u0590-\u05FF]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 48) || org.id;

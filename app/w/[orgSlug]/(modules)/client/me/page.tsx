@@ -1,5 +1,5 @@
 import { currentUser } from '@clerk/nextjs/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getCurrentUserInfo } from '@/app/actions/users';
 import { redirect } from 'next/navigation';
@@ -8,6 +8,19 @@ import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import ClientModuleEntryClient from '../ClientModuleEntryClient';
 
 export const dynamic = 'force-dynamic';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getRoleFromMetadata(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  const obj = asObject(value);
+  const role = obj?.role;
+  return typeof role === 'string' ? role : null;
+}
 
 export default async function ClientMePage({
   params,
@@ -24,7 +37,6 @@ export default async function ClientMePage({
   }
 
   const clerkUser = await currentUser();
-  const supabase = createClient();
   const userInfo = await getCurrentUserInfo();
 
   const fallbackUser = userInfo.success
@@ -34,22 +46,26 @@ export default async function ClientMePage({
       }
     : null;
 
-  const { data: user } = await supabase
-    .from('social_users')
-    .select('organization_id, role')
-    .eq('clerk_user_id', clerkUserId)
-    .maybeSingle();
+  const user = await prisma.social_users.findFirst({
+    where: { clerk_user_id: clerkUserId },
+    select: { organization_id: true, role: true },
+  });
 
+  const clerkObj = asObject(clerkUser) ?? {};
+  const publicMd = asObject(clerkObj.publicMetadata);
+  const privateMd = asObject(clerkObj.privateMetadata);
+  const unsafeMd = asObject(clerkObj.unsafeMetadata);
   const roleFromClerk =
-    (clerkUser as any)?.publicMetadata?.role ??
-    (clerkUser as any)?.privateMetadata?.role ??
-    (clerkUser as any)?.unsafeMetadata?.role;
-  const normalizedRoleFromClerk = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? null;
+    getRoleFromMetadata(publicMd?.role) ??
+    getRoleFromMetadata(privateMd?.role) ??
+    getRoleFromMetadata(unsafeMd?.role) ??
+    null;
+  const normalizedRoleFromClerk = roleFromClerk;
   const KNOWN_ROLES = new Set(['super_admin', 'owner', 'team_member', 'admin']);
   const safeRoleFromClerk =
     typeof normalizedRoleFromClerk === 'string' && KNOWN_ROLES.has(normalizedRoleFromClerk) ? normalizedRoleFromClerk : null;
 
-  const role = ((fallbackUser as any)?.role ?? safeRoleFromClerk ?? (user as any)?.role ?? null) as string | null;
+  const role = (fallbackUser?.role ?? safeRoleFromClerk ?? user?.role ?? null) as string | null;
   const isAdmin = role === 'admin' || role === 'super_admin' || role === 'owner';
 
   const organizationId = String(workspace?.id || '');
@@ -62,12 +78,11 @@ export default async function ClientMePage({
       }
     | null = null;
 
-  const { data: org } = await supabase
-    .from('organizations')
-    .select('id, name, has_client')
-    .eq('id', organizationId)
-    .maybeSingle();
-  organization = org ? { ...org, logo: null } : null;
+  const org = await prisma.social_organizations.findUnique({
+    where: { id: organizationId },
+    select: { id: true, name: true, logo: true, has_client: true },
+  });
+  organization = org ? { ...org } : null;
 
   const hasClient = organization?.has_client === true;
   const canAccess = hasClient || isAdmin;

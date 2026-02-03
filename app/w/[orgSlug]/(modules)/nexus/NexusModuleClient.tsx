@@ -1,6 +1,7 @@
 'use client';
 
 import { NexusWorkspaceApp } from '@/components/nexus/NexusWorkspaceApp';
+import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
 
 export default function NexusModuleClient({
   initialCurrentUser,
@@ -12,10 +13,12 @@ export default function NexusModuleClient({
   initialOwnerDashboard?: any;
 }) {
   return (
-    <NexusWorkspaceApp
-      initialCurrentUser={initialCurrentUser}
-      initialOrganization={initialOrganization}
-      initialOwnerDashboard={initialOwnerDashboard}
-    />
+    <ReactQueryProvider>
+      <NexusWorkspaceApp
+        initialCurrentUser={initialCurrentUser}
+        initialOrganization={initialOrganization}
+        initialOwnerDashboard={initialOwnerDashboard}
+      />
+    </ReactQueryProvider>
   );
 }

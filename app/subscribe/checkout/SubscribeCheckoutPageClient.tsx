@@ -169,7 +169,7 @@ function SubscribeCheckoutContent({
       if (partnerReferralCode.trim()) checkoutQs.set('partner', partnerReferralCode.trim());
 
       const redirectUrl = `/subscribe/checkout?${checkoutQs.toString()}`;
-      router.push(`/sign-up?redirect_url=${encodeURIComponent(redirectUrl)}`);
+      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
       return;
     }
 
@@ -494,7 +494,7 @@ function SubscribeCheckoutContent({
                             />
                           </div>
                           <div className="text-xs text-slate-500">
-                            אם ה־iframe נחסם, השתמש בכפתור "פתח עמוד תשלום".
+                            אם ה־iframe נחסם, השתמש בכפתור ״פתח עמוד תשלום״.
                           </div>
                         </>
                       ) : (
@@ -542,7 +542,7 @@ function SubscribeCheckoutContent({
                       </button>
 
                       <div className="text-xs text-slate-400">
-                        אחרי הלחיצה ההזמנה תסומן כ־"ממתין לאימות" ותופיע אצלך באדמין.
+                        אחרי הלחיצה ההזמנה תסומן כ־״ממתין לאימות״ ותופיע אצלך באדמין.
                       </div>
                     </>
                   ) : (

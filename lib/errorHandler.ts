@@ -4,18 +4,25 @@
  */
 
 import { translateError } from './errorTranslations';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
-export interface ActionResult<T = any> {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+export interface ActionResult<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-  errors?: any;
+  errors?: unknown;
 }
 
 /**
  * Standard error response format
  */
-export function createErrorResponse(error: unknown, defaultMessage: string = 'שגיאה לא צפויה'): ActionResult {
+export function createErrorResponse<T = unknown>(error: unknown, defaultMessage: string = 'שגיאה לא צפויה'): ActionResult<T> {
   let errorMessage = defaultMessage;
   
   if (error instanceof Error) {
@@ -23,7 +30,9 @@ export function createErrorResponse(error: unknown, defaultMessage: string = 'ש
   } else if (typeof error === 'string') {
     errorMessage = translateError(error) || error || defaultMessage;
   } else if (error && typeof error === 'object' && 'message' in error) {
-    errorMessage = String((error as any).message) || defaultMessage;
+    const obj = asObject(error);
+    const msg = String(obj?.message || '').trim();
+    errorMessage = translateError(msg) || msg || defaultMessage;
   }
 
   return {
@@ -54,7 +63,7 @@ export async function handleServerAction<T>(
     return createSuccessResponse(data);
   } catch (error) {
     console.error('Server Action Error:', error);
-    return createErrorResponse(error, errorMessage);
+    return createErrorResponse<T>(error, errorMessage);
   }
 }
 
@@ -80,7 +89,7 @@ export async function requireAuth(): Promise<ActionResult<{ userId: string }> & 
       userId, // For backward compatibility
     };
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בבדיקת אימות');
+    return createErrorResponse<{ userId: string }>(error, 'שגיאה בבדיקת אימות');
   }
 }
 
@@ -88,8 +97,6 @@ export async function requireAuth(): Promise<ActionResult<{ userId: string }> & 
  * Check if Supabase is configured
  */
 export function requireSupabase(): { success: false; error: string } | { success: true } {
-  const { isSupabaseConfigured } = require('@/lib/supabase');
-  
   if (!isSupabaseConfigured()) {
     return {
       success: false,

@@ -5,6 +5,29 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 
+type DeviceLoginResponse = {
+  success?: boolean;
+  error?: string;
+  signInToken?: string;
+  organizationId?: string | null;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toDeviceLoginResponse(value: unknown): DeviceLoginResponse {
+  const obj = asObject(value) ?? {};
+  return {
+    success: typeof obj.success === 'boolean' ? obj.success : Boolean(obj.success),
+    error: obj.error == null ? undefined : String(obj.error),
+    signInToken: obj.signInToken == null ? undefined : String(obj.signInToken),
+    organizationId: obj.organizationId == null ? null : String(obj.organizationId),
+  };
+}
+
 function extractToken(text: string): string {
   const raw = String(text || '').trim();
   if (!raw) return '';
@@ -55,7 +78,8 @@ function KioskScanPageClient() {
           body: JSON.stringify({ token: cleaned }),
         });
 
-        const data = await res.json().catch(() => ({} as any));
+        const raw: unknown = await res.json().catch(() => null);
+        const data = toDeviceLoginResponse(raw);
         if (!res.ok || !data?.success) {
           setError(data?.error || 'שגיאה בהתחברות');
           setIsBusy(false);
@@ -70,7 +94,10 @@ function KioskScanPageClient() {
           return;
         }
 
-        const result = await signIn.create({ strategy: 'ticket', ticket: String(data.signInToken) } as any);
+        const result = await signIn.create({
+          strategy: 'ticket',
+          ticket: String(data.signInToken),
+        } as unknown as Parameters<NonNullable<typeof signIn>['create']>[0]);
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId });
           if (orgId) {
@@ -124,7 +151,8 @@ function KioskScanPageClient() {
     return () => {
       cancelled = true;
       try {
-        (reader as any)?.reset?.();
+        const maybeReset = (reader as unknown as { reset?: () => void }).reset;
+        if (typeof maybeReset === 'function') maybeReset();
       } catch {
       }
     };

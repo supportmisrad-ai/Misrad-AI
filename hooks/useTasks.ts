@@ -24,6 +24,50 @@ type ToastKind = 'success' | 'error' | 'info' | 'warning';
 
 type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
 
+function getTaskTimerStorageKey(orgSlug: string): string {
+    return `nexus_task_timers_v1:${orgSlug}`;
+}
+
+function readTaskTimerStarts(orgSlug: string): Record<string, number> {
+    if (typeof window === 'undefined') return {};
+    try {
+        const raw = window.sessionStorage.getItem(getTaskTimerStorageKey(orgSlug));
+        if (!raw) return {};
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+        const obj = parsed as Record<string, unknown>;
+        const out: Record<string, number> = {};
+        for (const [k, v] of Object.entries(obj)) {
+            if (typeof v === 'number' && Number.isFinite(v) && v > 0) {
+                out[String(k)] = v;
+            }
+        }
+        return out;
+    } catch {
+        return {};
+    }
+}
+
+function writeTaskTimerStarts(orgSlug: string, starts: Record<string, number>) {
+    if (typeof window === 'undefined') return;
+    try {
+        window.sessionStorage.setItem(getTaskTimerStorageKey(orgSlug), JSON.stringify(starts));
+    } catch {
+        // ignore
+    }
+}
+
+function getOrgSlugFromBrowser(): string | null {
+    if (typeof window === 'undefined') return null;
+    const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+    return orgSlug ? String(orgSlug) : null;
+}
+
+function computeElapsedSeconds(startMs: number, endMs: number): number {
+    const delta = Math.max(0, endMs - startMs);
+    return Math.floor(delta / 1000);
+}
+
 export const useTasks = (
     currentUser: User, 
     addNotification: (n: NotificationInput) => void, 
@@ -53,22 +97,32 @@ export const useTasks = (
         const checkCalendarStatus = async () => {
             try {
                 const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                if (!orgSlug) {
+                    if (mounted) {
+                        setIsCalendarConnected(false);
+                    }
+                    return;
+                }
                 const response = await fetch('/api/integrations/google/status?service=calendar', {
                     headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 });
                 if (mounted && response.ok) {
                     const data: unknown = await response.json();
+
                     const dataObj = asObject(data);
                     const payload = asObject(dataObj?.data) ?? dataObj ?? data;
                     const payloadObj = asObject(payload) ?? {};
                     const statusObj = asObject(payloadObj.status) ?? {};
                     const calendarObj = asObject(statusObj.calendar) ?? {};
                     setIsCalendarConnected(Boolean(calendarObj.connected));
+                } else if (mounted) {
+                    setIsCalendarConnected(false);
                 }
             } catch (error: unknown) {
                 // Silently fail - integration is optional
                 if (mounted) {
                     setIsCalendarConnected(false);
+
                 }
             }
         };
@@ -76,26 +130,28 @@ export const useTasks = (
         return () => { mounted = false; };
     }, []);
 
-    // Timer Interval
     useEffect(() => {
-        const interval = setInterval(() => {
-            setTasks(prev => {
-                if (!prev.some(t => t.isTimerRunning)) {
-                    return prev;
-                }
-                let changed = false;
-                const next = prev.map(t => {
-                    if (t.isTimerRunning) {
-                        changed = true;
-                        return { ...t, timeSpent: (t.timeSpent || 0) + 1 };
-                    }
-                    return t;
-                });
-                return changed ? next : prev;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+        const orgSlug = getOrgSlugFromBrowser();
+        if (!orgSlug) return;
+        if (!Array.isArray(tasks) || tasks.length === 0) return;
+
+        const running = tasks.filter((t) => Boolean(t?.id) && Boolean(t?.isTimerRunning));
+        if (running.length === 0) return;
+
+        const starts = readTaskTimerStarts(orgSlug);
+        let changed = false;
+        const now = Date.now();
+        for (const t of running) {
+            const id = String(t.id);
+            if (!starts[id]) {
+                starts[id] = now;
+                changed = true;
+            }
+        }
+        if (changed) {
+            writeTaskTimerStarts(orgSlug, starts);
+        }
+    }, [tasks]);
 
     const addTask = (task: Task, options?: { silent?: boolean }) => {
         setTasks(prev => [task, ...prev]);
@@ -307,42 +363,71 @@ export const useTasks = (
         const task = tasks.find(t => t.id === taskId);
         if (!task) return;
 
-        const newTimerState = !task.isTimerRunning;
+        const orgSlug = getOrgSlugFromBrowser();
+        const nowMs = Date.now();
+        const nextIsRunning = !task.isTimerRunning;
 
-        // Optimistic update
-        setTasks(prev => prev.map(t => {
-            if (t.id === taskId) {
-                return { ...t, isTimerRunning: newTimerState };
+        let startedAtBeforeStop: number | null = null;
+        if (!nextIsRunning && orgSlug) {
+            const starts = readTaskTimerStarts(orgSlug);
+            const startedAt = starts[String(taskId)];
+            startedAtBeforeStop = typeof startedAt === 'number' && Number.isFinite(startedAt) ? startedAt : null;
+        }
+
+        if (orgSlug) {
+            const starts = readTaskTimerStarts(orgSlug);
+            if (nextIsRunning) {
+                starts[String(taskId)] = nowMs;
             }
-            return t;
-        }));
+            writeTaskTimerStarts(orgSlug, starts);
+        }
+
+        setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, isTimerRunning: nextIsRunning } : t)));
 
         if (typeof window !== 'undefined') {
             window.dispatchEvent(
                 new CustomEvent('nexusTaskUpdated', {
-                    detail: { taskId, updates: { isTimerRunning: newTimerState } },
+                    detail: { taskId, updates: { isTimerRunning: nextIsRunning } },
                 })
             );
         }
 
-        // Save to database via API
         try {
-            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             if (!orgSlug) {
                 throw new Error('לא ניתן לעדכן טיימר: חסר מזהה ארגון (orgSlug).');
             }
-            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates: { isTimerRunning: newTimerState } });
-            setTasks(prev => prev.map(t =>
-                t.id === taskId ? { ...t, ...updated } : t
-            ));
-        } catch (error: unknown) {
-            // Revert on error
-            setTasks(prev => prev.map(t => {
-                if (t.id === taskId) {
-                    return { ...t, isTimerRunning: task.isTimerRunning };
+
+            const updates: Partial<Task> = { isTimerRunning: nextIsRunning };
+
+            if (!nextIsRunning) {
+                const starts = readTaskTimerStarts(orgSlug);
+                const startedAt = starts[String(taskId)];
+                if (typeof startedAt === 'number' && Number.isFinite(startedAt) && startedAt > 0) {
+                    const deltaSeconds = computeElapsedSeconds(startedAt, nowMs);
+                    const baseSeconds = Number(task.timeSpent ?? 0) || 0;
+                    updates.timeSpent = baseSeconds + deltaSeconds;
+                    delete starts[String(taskId)];
+                    writeTaskTimerStarts(orgSlug, starts);
                 }
-                return t;
-            }));
+            }
+
+            const updated = await updateNexusTask({ orgId: orgSlug, taskId, updates });
+            setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updated } : t)));
+        } catch (error: unknown) {
+            // rollback UI state
+            setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, isTimerRunning: task.isTimerRunning } : t)));
+
+            // rollback local timer starts
+            if (orgSlug) {
+                const starts = readTaskTimerStarts(orgSlug);
+                if (nextIsRunning) {
+                    delete starts[String(taskId)];
+                } else if (startedAtBeforeStop) {
+                    starts[String(taskId)] = startedAtBeforeStop;
+                }
+                writeTaskTimerStarts(orgSlug, starts);
+            }
+
             console.error('[Tasks] Failed to update timer', { message: getErrorMessage(error) });
             addToast(getErrorMessage(error) || 'שגיאה בעדכון הטיימר', 'error');
 

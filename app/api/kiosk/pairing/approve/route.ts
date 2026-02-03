@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
-import { createServiceRoleClientScoped } from '@/lib/supabase';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import prisma from '@/lib/prisma';
 
 async function POSTHandler(request: NextRequest) {
   try {
@@ -33,25 +33,16 @@ async function POSTHandler(request: NextRequest) {
       return apiError('Missing code/approvedForUserId', { status: 400 });
     }
 
-    const supabase = createServiceRoleClientScoped({
-      reason: 'kiosk_pairing_approve',
-      scopeColumn: 'organization_id',
-      scopeId: String(workspace.id),
+    const tokenRow = await prisma.devicePairingToken.findFirst({
+      where: { code: String(code), organizationId: String(workspace.id) },
     });
-
-  const { data: tokenRow } = await supabase
-    .from('device_pairing_tokens')
-    .select('*')
-    .eq('code', code)
-    .eq('organization_id', workspace.id)
-    .maybeSingle();
 
   if (!tokenRow?.id) {
     return apiError('קוד לא נמצא', { status: 404 });
   }
 
   const now = new Date();
-  const expiresAt = tokenRow.expires_at ? new Date(String(tokenRow.expires_at)) : null;
+  const expiresAt = tokenRow.expiresAt ? new Date(String(tokenRow.expiresAt)) : null;
   if (expiresAt && expiresAt.getTime() <= now.getTime()) {
     return apiError('הקוד פג תוקף', { status: 400 });
   }
@@ -61,12 +52,10 @@ async function POSTHandler(request: NextRequest) {
     return apiError('הקוד כבר טופל', { status: 400 });
   }
 
-  const { data: approvedForUser } = await supabase
-    .from('nexus_users')
-    .select('id, email, organization_id')
-    .eq('id', approvedForUserId)
-    .eq('organization_id', workspace.id)
-    .maybeSingle();
+  const approvedForUser = await prisma.nexusUser.findFirst({
+    where: { id: String(approvedForUserId), organizationId: String(workspace.id) },
+    select: { id: true, email: true, organizationId: true },
+  });
 
   const email = String((approvedForUser as any)?.email || '').trim();
   if (!email) {
@@ -109,19 +98,18 @@ async function POSTHandler(request: NextRequest) {
     return apiError('שגיאה ביצירת sign-in token', { status: 500 });
   }
 
-  await supabase
-    .from('device_pairing_tokens')
-    .update({
+  await prisma.devicePairingToken.update({
+    where: { id: String(tokenRow.id) },
+    data: {
       status: 'APPROVED',
-      organization_id: workspace.id,
-      approved_by_user_id: approvingClerkUserId,
-      approved_for_user_id: approvedForUserId,
-      approved_for_clerk_user_id: targetClerkUserId,
-      sign_in_token: signInToken,
-      approved_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    } as any)
-    .eq('id', tokenRow.id);
+      organizationId: String(workspace.id),
+      approvedByUserId: String(approvingClerkUserId),
+      approvedForUserId: String(approvedForUserId),
+      approvedForClerkId: String(targetClerkUserId),
+      signInToken: String(signInToken),
+      approvedAt: now,
+    },
+  });
 
     return apiSuccess({});
   } catch (e: any) {

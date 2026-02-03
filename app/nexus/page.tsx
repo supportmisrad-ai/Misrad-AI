@@ -9,7 +9,7 @@ export default function NexusMarketingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
-      <main className="pt-24">
+      <main className="pt-20">
         <section className="relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-slate-200/50 rounded-full blur-[130px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-indigo-200/15 rounded-full blur-[160px] pointer-events-none" />
@@ -47,7 +47,7 @@ export default function NexusMarketingPage() {
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
-                href="/sign-up"
+                href="/pricing"
                 className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10"
               >
                 התחל חינם

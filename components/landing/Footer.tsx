@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import { getSystemIconUrl } from '@/lib/metadata';
+import { ArrowUpRight, Mail, MessageCircle, Sparkles } from 'lucide-react';
 
 export const Footer = () => {
     const router = useRouter();
@@ -32,85 +34,157 @@ export const Footer = () => {
         };
     }, []);
 
-    const scrollToSection = (id: string) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        } else {
-            router.push('/');
-            setTimeout(() => {
-                const el = document.getElementById(id);
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }, 100);
-        }
-    };
+    const linkClasses = "group flex items-center gap-1.5 text-slate-400 hover:text-white transition-all duration-200";
+    const arrowClasses = "w-0 opacity-0 group-hover:w-4 group-hover:opacity-100 transition-all duration-200";
 
     return (
-        <footer className="border-t border-slate-200 bg-white pt-12 md:pt-16 pb-8 px-4 sm:px-6 relative z-10 font-sans overflow-hidden" dir="rtl">
-            <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white pointer-events-none"></div>
-            <div className="absolute -top-24 -right-24 w-[420px] h-[420px] bg-slate-200/25 rounded-full blur-[110px] pointer-events-none"></div>
-            <div className="absolute -bottom-32 -left-24 w-[520px] h-[520px] bg-indigo-200/20 rounded-full blur-[130px] pointer-events-none"></div>
-            <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
-                <div className="col-span-1 sm:col-span-2 md:col-span-1">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-8 overflow-hidden flex items-center justify-center shrink-0">
-                            {logoSrc ? (
-                                <img src={logoSrc} alt="MISRAD" className="w-full h-full object-contain" />
-                            ) : (
-                                <Image
-                                    src={getSystemIconUrl('misrad')}
-                                    alt="MISRAD"
-                                    width={32}
-                                    height={32}
-                                    className="w-full h-full object-contain"
-                                />
-                            )}
-                        </div>
-                        <span className="text-lg font-bold text-slate-900">{logoText || 'MISRAD AI'}</span>
-                    </div>
-                    <p className="text-slate-600 text-sm">
-                        מערכת מודרנית לעסקים בצמיחה.
-                    </p>
-                </div>
-
-                <div>
-                    <h4 className="text-slate-900 font-bold mb-3 sm:mb-4 text-sm sm:text-base">מוצר</h4>
-                    <ul className="space-y-2 text-sm text-slate-600">
-                        <li><button onClick={() => scrollToSection('features')} className="hover:text-slate-900 transition-colors">פיצ׳רים</button></li>
-                        <li><button onClick={() => scrollToSection('pricing')} className="hover:text-slate-900 transition-colors">מחירים</button></li>
-                        <li><button onClick={() => router.push('/blog')} className="hover:text-slate-900 transition-colors">עדכונים</button></li>
-                        <li><button onClick={() => window.open('https://api.nexus-os.co/docs', '_blank')} className="hover:text-slate-900 transition-colors">API</button></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 className="text-slate-900 font-bold mb-3 sm:mb-4 text-sm sm:text-base">חברה</h4>
-                    <ul className="space-y-2 text-sm text-slate-600">
-                        <li><button onClick={() => router.push('/about')} className="hover:text-slate-900 transition-colors">אודות</button></li>
-                        <li><button onClick={() => router.push('/careers')} className="hover:text-slate-900 transition-colors">קריירה</button></li>
-                        <li><button onClick={() => router.push('/blog')} className="hover:text-slate-900 transition-colors">בלוג</button></li>
-                        <li><button onClick={() => router.push('/contact')} className="hover:text-slate-900 transition-colors">צור קשר</button></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 className="text-slate-900 font-bold mb-3 sm:mb-4 text-sm sm:text-base">משפטי</h4>
-                    <ul className="space-y-2 text-sm text-slate-600">
-                        <li><button onClick={() => router.push('/privacy')} className="hover:text-slate-900 transition-colors">פרטיות</button></li>
-                        <li><button onClick={() => router.push('/terms')} className="hover:text-slate-900 transition-colors">תנאי שימוש</button></li>
-                        <li><button onClick={() => router.push('/refund-policy')} className="hover:text-slate-900 transition-colors">מדיניות החזרים</button></li>
-                        <li><button onClick={() => router.push('/accessibility')} className="hover:text-slate-900 transition-colors">נגישות</button></li>
-                        <li><button onClick={() => router.push('/security')} className="hover:text-slate-900 transition-colors">אבטחת מידע</button></li>
-                    </ul>
-                </div>
+        <footer className="relative bg-[#0a0a0f] overflow-hidden" dir="rtl">
+            {/* Background Effects */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[120px]" />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px]" />
             </div>
 
-            <div className="max-w-7xl mx-auto border-t border-slate-200 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs">
-                <p className="text-center sm:text-right text-slate-600">&copy; {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.</p>
-                <div className="flex gap-3 sm:gap-4 flex-wrap justify-center sm:justify-start">
-                    <span className="text-slate-600 hover:text-slate-900 cursor-pointer transition-colors whitespace-nowrap">טוויטר</span>
-                    <span className="text-slate-600 hover:text-slate-900 cursor-pointer transition-colors whitespace-nowrap">לינקדאין</span>
-                    <span className="text-slate-600 hover:text-slate-900 cursor-pointer transition-colors whitespace-nowrap">אינסטגרם</span>
+            {/* Top Border Glow */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" />
+
+            {/* Main Content */}
+            <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-8">
+                {/* Top Section - Brand + CTA */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 pb-12 border-b border-white/10">
+                    {/* Brand */}
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 flex items-center justify-center">
+                            {logoSrc ? (
+                                <img src={logoSrc} alt="MISRAD" className="w-14 h-14 object-contain" />
+                            ) : (
+                                <svg viewBox="0 0 64 64" fill="none" className="w-14 h-14">
+                                    <path 
+                                        fill="#0F172A" 
+                                        stroke="url(#footerGradient)" 
+                                        strokeWidth="2.5"
+                                        d="M32 4l20 9v17c0 14.5-8.5 27.5-20 30C20.5 57.5 12 44.5 12 30V13L32 4z"
+                                    />
+                                    <path fill="#FFFFFF" d="M22 24h4.8l5.2 9.2 5.2-9.2H42v16h-4.5V31l-4.7 8h-1.6l-4.7-8v9H22v-16z"/>
+                                    <defs>
+                                        <linearGradient id="footerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stopColor="#818CF8" />
+                                            <stop offset="100%" stopColor="#A855F7" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            )}
+                        </div>
+                        <div>
+                            <Link href="/" className="text-xl font-black text-white tracking-tight hover:text-white/90 transition-colors">
+                                {logoText || 'MISRAD AI'}
+                            </Link>
+                            <p className="text-xs text-slate-500 mt-0.5">מערכת הפעלה לעסקים</p>
+                        </div>
+                    </div>
+
+                    {/* CTA */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <button
+                            onClick={() => router.push('/pricing')}
+                            className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                        >
+                            <Sparkles size={18} />
+                            התחל ניסיון חינם
+                            <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                        </button>
+                        <a
+                            href="mailto:support@misrad-ai.com"
+                            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors"
+                        >
+                            <Mail size={16} />
+                            support@misrad-ai.com
+                        </a>
+                    </div>
+                </div>
+
+                {/* Links Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8 py-12">
+                    {/* מוצרים */}
+                    <div>
+                        <h4 className="text-white font-bold text-sm mb-5 flex items-center gap-2">
+                            <span className="w-8 h-0.5 bg-gradient-to-r from-indigo-500 to-transparent rounded-full" />
+                            מוצרים
+                        </h4>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href="/system" className={linkClasses}>ניהול עסק<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/nexus" className={linkClasses}>נקסוס<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/social" className={linkClasses}>סושיאל<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/client" className={linkClasses}>פורטל לקוחות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/finance-landing" className={linkClasses}>פיננסים<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/operations" className={linkClasses}>תפעול<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                        </ul>
+                    </div>
+
+                    {/* חבילות */}
+                    <div>
+                        <h4 className="text-white font-bold text-sm mb-5 flex items-center gap-2">
+                            <span className="w-8 h-0.5 bg-gradient-to-r from-purple-500 to-transparent rounded-full" />
+                            חבילות
+                        </h4>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href="/pricing" className={linkClasses}>כל החבילות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/solo" className={linkClasses}>Solo<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-closer" className={linkClasses}>The Closer<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-authority" className={linkClasses}>The Authority<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-operator" className={linkClasses}>The Operator<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-empire" className={linkClasses}>The Empire<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                        </ul>
+                    </div>
+
+                    {/* משאבים */}
+                    <div>
+                        <h4 className="text-white font-bold text-sm mb-5 flex items-center gap-2">
+                            <span className="w-8 h-0.5 bg-gradient-to-r from-emerald-500 to-transparent rounded-full" />
+                            משאבים
+                        </h4>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href="/support" className={linkClasses}>תמיכה<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li>
+                                <a href="https://api.nexus-os.co/docs" target="_blank" rel="noreferrer" className={linkClasses}>
+                                    API Docs<ArrowUpRight size={14} className={arrowClasses} />
+                                </a>
+                            </li>
+                            <li><Link href="/security" className={linkClasses}>אבטחת מידע<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/save-time" className={linkClasses}>חוסכים זמן<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/contact" className={linkClasses}>צור קשר<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                        </ul>
+                    </div>
+
+                    {/* חברה + משפטי */}
+                    <div>
+                        <h4 className="text-white font-bold text-sm mb-5 flex items-center gap-2">
+                            <span className="w-8 h-0.5 bg-gradient-to-r from-amber-500 to-transparent rounded-full" />
+                            חברה ומשפטי
+                        </h4>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href="/about" className={linkClasses}>אודות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/privacy" className={linkClasses}>פרטיות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/terms" className={linkClasses}>תנאי שימוש<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/refund-policy" className={linkClasses}>מדיניות החזרים<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/accessibility" className={linkClasses}>נגישות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                        </ul>
+                    </div>
+                </div>
+
+                {/* Bottom Bar */}
+                <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+                            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                            <span className="text-xs font-bold text-emerald-400">Online</span>
+                        </div>
+                        <span className="text-xs text-slate-500">מערכת ישראלית</span>
+                    </div>
+
+                    <p className="text-xs text-slate-500">
+                        &copy; {new Date().getFullYear()} MISRAD AI. כל הזכויות שמורות.
+                    </p>
                 </div>
             </div>
         </footer>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -18,14 +18,12 @@ async function POSTHandler(request: NextRequest) {
     const { workspaceId } = await getWorkspaceOrThrow(request);
 
     if (clientId && clientId !== 'all') {
-      const supabase = createClient();
-      const { data: client } = await supabase
-        .from('client_clients')
-        .select('id, organization_id')
-        .eq('id', clientId)
-        .single();
+      const client = await prisma.clientClient.findUnique({
+        where: { id: String(clientId) },
+        select: { id: true, organizationId: true },
+      });
 
-      if (!client?.id || client.organization_id !== workspaceId) {
+      if (!client?.id || String(client.organizationId) !== String(workspaceId)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }

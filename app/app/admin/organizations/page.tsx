@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminOrganizationsPage() {
   const res = await getOrganizations({ limit: 200 });
-  const orgs = res.success ? (res.data as any[]) : [];
+  const orgs = res.success ? res.data ?? [] : [];
 
   return (
     <div>

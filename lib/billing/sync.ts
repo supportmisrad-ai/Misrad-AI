@@ -1,6 +1,6 @@
 import 'server-only';
-
-import { createClient } from '@/lib/supabase';
+import { Prisma } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 type OrgModuleFlags = {
   has_nexus: boolean;
@@ -11,18 +11,37 @@ type OrgModuleFlags = {
   has_operations: boolean;
 };
 
-function isMissingColumnError(error: any, columnName: string): boolean {
-  const msg = String(error?.message || '').toLowerCase();
+type SubscriptionItemRow = Prisma.subscription_itemsGetPayload<{
+  select: {
+    kind: true;
+    module_key: true;
+    quantity: true;
+    status: true;
+    start_at: true;
+    end_at: true;
+  };
+}>;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function isMissingColumnError(error: unknown, columnName: string): boolean {
+  const obj = asObject(error);
+  const msg = String(obj?.message || '').toLowerCase();
   return msg.includes('column') && msg.includes(String(columnName).toLowerCase());
 }
 
-function isMissingRelationError(error: any): boolean {
-  const message = String(error?.message || '').toLowerCase();
-  const code = String((error as any)?.code || '').toLowerCase();
+function isMissingRelationError(error: unknown): boolean {
+  const obj = asObject(error);
+  const message = String(obj?.message || '').toLowerCase();
+  const code = String(obj?.code || '').toLowerCase();
   return code === '42p01' || message.includes('does not exist') || message.includes('relation') || message.includes('table');
 }
 
-function normalizeQuantity(q: any): number | null {
+function normalizeQuantity(q: unknown): number | null {
   const n = Number.isFinite(Number(q)) ? Math.floor(Number(q)) : null;
   return n && n > 0 ? n : null;
 }
@@ -40,114 +59,89 @@ function computeOrgFlagsFromModules(activeModules: Set<string>): OrgModuleFlags 
 
 async function safeUpdateOrganization(params: {
   organizationId: string;
-  patch: Record<string, any>;
+  patch: Record<string, unknown>;
 }): Promise<void> {
-  const supabase = createClient();
-
-  const attempt = await supabase
-    .from('organizations')
-    .update(params.patch)
-    .eq('id', params.organizationId);
-
-  if (!attempt.error) return;
-
   const patch = { ...params.patch };
-
-  if (isMissingColumnError(attempt.error, 'seats_allowed')) {
-    delete patch.seats_allowed;
+  try {
+    type SocialOrganizationsUpdateData = Parameters<typeof prisma.social_organizations.update>[0]['data'];
+    const data: SocialOrganizationsUpdateData = {
+      has_nexus: Boolean(patch.has_nexus),
+      has_system: Boolean(patch.has_system),
+      has_social: Boolean(patch.has_social),
+      has_finance: Boolean(patch.has_finance),
+      has_client: Boolean(patch.has_client),
+      has_operations: Boolean(patch.has_operations),
+      seats_allowed: patch.seats_allowed == null ? null : Number(patch.seats_allowed),
+      updated_at: patch.updated_at ? new Date(String(patch.updated_at)) : new Date(),
+    };
+    await prisma.social_organizations.update({
+      where: { id: params.organizationId },
+      data,
+    });
+  } catch (e: unknown) {
+    const obj = asObject(e);
+    const code = String(obj?.code || '');
+    const msg = String(obj?.message || '');
+    if (code === 'P2022') {
+      // Best-effort: retry without missing columns.
+      type SocialOrganizationsUpdateData = Parameters<typeof prisma.social_organizations.update>[0]['data'];
+      const retryPatch: SocialOrganizationsUpdateData = {
+        has_nexus: Boolean(patch.has_nexus),
+        has_system: Boolean(patch.has_system),
+        has_social: Boolean(patch.has_social),
+        has_finance: Boolean(patch.has_finance),
+        has_client: Boolean(patch.has_client),
+        updated_at: patch.updated_at ? new Date(String(patch.updated_at)) : new Date(),
+      };
+      if (!msg.toLowerCase().includes('seats_allowed')) {
+        retryPatch.seats_allowed = patch.seats_allowed == null ? null : Number(patch.seats_allowed);
+      }
+      if (!msg.toLowerCase().includes('has_operations')) {
+        retryPatch.has_operations = Boolean(patch.has_operations);
+      }
+      await prisma.social_organizations.update({
+        where: { id: params.organizationId },
+        data: retryPatch,
+      });
+      return;
+    }
+    throw e;
   }
-  if (isMissingColumnError(attempt.error, 'has_operations')) {
-    delete patch.has_operations;
-  }
-
-  const retry = await supabase
-    .from('organizations')
-    .update(patch)
-    .eq('id', params.organizationId);
-
-  if (retry.error) throw retry.error;
 }
 
 async function safeReadOrganizationEntitlements(params: {
   organizationId: string;
 }): Promise<{ seatsAllowed: number; entitlements: OrgModuleFlags }> {
-  const supabase = createClient();
+  try {
+    const org = await prisma.social_organizations.findUnique({
+      where: { id: params.organizationId },
+      select: {
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+        seats_allowed: true,
+      },
+    });
 
-  const attempt = await supabase
-    .from('organizations')
-    .select('has_nexus,has_system,has_social,has_finance,has_client,has_operations,seats_allowed')
-    .eq('id', params.organizationId)
-    .maybeSingle();
-
-  if (!attempt.error) {
-    const row: any = attempt.data || {};
     const entitlements: OrgModuleFlags = {
-      has_nexus: Boolean(row.has_nexus),
-      has_system: Boolean(row.has_system),
-      has_social: Boolean(row.has_social),
-      has_finance: Boolean(row.has_finance),
-      has_client: Boolean(row.has_client),
-      has_operations: Boolean(row.has_operations),
+      has_nexus: Boolean(org?.has_nexus),
+      has_system: Boolean(org?.has_system),
+      has_social: Boolean(org?.has_social),
+      has_finance: Boolean(org?.has_finance),
+      has_client: Boolean(org?.has_client),
+      has_operations: Boolean(org?.has_operations),
     };
-    const seatsFromOrg = normalizeQuantity((row as any).seats_allowed);
+
+    const seatsFromOrg = normalizeQuantity(org?.seats_allowed);
     const seatsAllowed = seatsFromOrg ?? 1;
     return { seatsAllowed, entitlements };
-  }
-
-  // Best-effort: retry without missing columns.
-  const msg = String(attempt.error?.message || '').toLowerCase();
-  const hasSeats = !(msg.includes('column') && msg.includes('seats_allowed'));
-  const hasOps = !(msg.includes('column') && msg.includes('has_operations'));
-
-  const columns = [
-    'has_nexus',
-    'has_system',
-    'has_social',
-    'has_finance',
-    'has_client',
-    hasOps ? 'has_operations' : null,
-    hasSeats ? 'seats_allowed' : null,
-  ].filter(Boolean);
-
-  const retry = await supabase
-    .from('organizations')
-    .select(columns.join(','))
-    .eq('id', params.organizationId)
-    .maybeSingle();
-
-  const row: any = retry.data || {};
-  const entitlements: OrgModuleFlags = {
-    has_nexus: Boolean(row.has_nexus),
-    has_system: Boolean(row.has_system),
-    has_social: Boolean(row.has_social),
-    has_finance: Boolean(row.has_finance),
-    has_client: Boolean(row.has_client),
-    has_operations: Boolean((row as any).has_operations),
-  };
-  const seatsFromOrg = normalizeQuantity((row as any).seats_allowed);
-  const seatsAllowed = seatsFromOrg ?? 1;
-  return { seatsAllowed, entitlements };
-}
-
-export async function syncOrganizationAccessFromBilling(params: {
-  organizationId: string;
-  actorClerkUserId?: string | null;
-}): Promise<{ seatsAllowed: number; entitlements: OrgModuleFlags }> {
-  const supabase = createClient();
-  const organizationId = String(params.organizationId || '').trim();
-  if (!organizationId) throw new Error('organizationId missing');
-
-  const nowIso = new Date().toISOString();
-  const now = new Date(nowIso);
-
-  const { data: items, error: itemsError } = await supabase
-    .from('subscription_items')
-    .select('kind,module_key,quantity,status,start_at,end_at')
-    .eq('organization_id', organizationId)
-    .eq('status', 'active');
-
-  if (itemsError) {
-    if (isMissingRelationError(itemsError)) {
+  } catch (e: unknown) {
+    // Preserve previous fallback behavior if schema is missing.
+    const obj = asObject(e);
+    if (String(obj?.code || '') === 'P2021' || String(obj?.code || '') === 'P2022') {
       return {
         seatsAllowed: 1,
         entitlements: {
@@ -160,7 +154,53 @@ export async function syncOrganizationAccessFromBilling(params: {
         },
       };
     }
-    throw new Error(itemsError.message);
+    throw e;
+  }
+}
+
+export async function syncOrganizationAccessFromBilling(params: {
+  organizationId: string;
+  actorClerkUserId?: string | null;
+}): Promise<{ seatsAllowed: number; entitlements: OrgModuleFlags }> {
+  const organizationId = String(params.organizationId || '').trim();
+  if (!organizationId) throw new Error('organizationId missing');
+
+  const nowIso = new Date().toISOString();
+  const now = new Date(nowIso);
+
+  let items: SubscriptionItemRow[] = [];
+  try {
+    items = await prisma.subscription_items.findMany({
+      where: {
+        organization_id: organizationId,
+        status: 'active',
+      },
+      select: {
+        kind: true,
+        module_key: true,
+        quantity: true,
+        status: true,
+        start_at: true,
+        end_at: true,
+      },
+      take: 2000,
+    });
+  } catch (e: unknown) {
+    const obj = asObject(e);
+    if (String(obj?.code || '') === 'P2021' || isMissingRelationError(e)) {
+      return {
+        seatsAllowed: 1,
+        entitlements: {
+          has_nexus: false,
+          has_system: false,
+          has_social: false,
+          has_finance: false,
+          has_client: false,
+          has_operations: false,
+        },
+      };
+    }
+    throw e;
   }
 
   // If billing layer exists but no items were created yet, do not override legacy org flags.
@@ -172,20 +212,20 @@ export async function syncOrganizationAccessFromBilling(params: {
   let seatsQty: number | null = null;
 
   for (const row of items || []) {
-    const startAtRaw = (row as any)?.start_at ? new Date(String((row as any).start_at)) : null;
-    const endAtRaw = (row as any)?.end_at ? new Date(String((row as any).end_at)) : null;
+    const startAtRaw = row.start_at instanceof Date ? row.start_at : row.start_at ? new Date(String(row.start_at)) : null;
+    const endAtRaw = row.end_at instanceof Date ? row.end_at : row.end_at ? new Date(String(row.end_at)) : null;
     if (startAtRaw && !Number.isNaN(startAtRaw.getTime()) && startAtRaw > now) continue;
     if (endAtRaw && !Number.isNaN(endAtRaw.getTime()) && endAtRaw <= now) continue;
 
-    const kind = String((row as any)?.kind || '');
+    const kind = String(row.kind || '');
     if (kind === 'module') {
-      const mk = String((row as any)?.module_key || '').trim();
+      const mk = String(row.module_key || '').trim();
       if (mk) activeModules.add(mk);
       continue;
     }
 
     if (kind === 'seats') {
-      const q = normalizeQuantity((row as any)?.quantity);
+      const q = normalizeQuantity(row.quantity);
       if (q) seatsQty = seatsQty == null ? q : Math.max(seatsQty, q);
     }
   }
@@ -204,21 +244,23 @@ export async function syncOrganizationAccessFromBilling(params: {
   });
 
   try {
-    await supabase.from('billing_events').insert({
-      organization_id: organizationId,
-      event_type: 'org_access_synced',
-      occurred_at: nowIso,
-      actor_clerk_user_id: params.actorClerkUserId ?? null,
-      payload: {
-        has_nexus: flags.has_nexus,
-        has_system: flags.has_system,
-        has_social: flags.has_social,
-        has_finance: flags.has_finance,
-        has_client: flags.has_client,
-        has_operations: flags.has_operations,
-        seats_allowed: seatsAllowed,
+    await prisma.billing_events.create({
+      data: {
+        organization_id: organizationId,
+        event_type: 'org_access_synced',
+        occurred_at: new Date(nowIso),
+        actor_clerk_user_id: params.actorClerkUserId ?? null,
+        payload: {
+          has_nexus: flags.has_nexus,
+          has_system: flags.has_system,
+          has_social: flags.has_social,
+          has_finance: flags.has_finance,
+          has_client: flags.has_client,
+          has_operations: flags.has_operations,
+          seats_allowed: seatsAllowed,
+        } as Prisma.InputJsonValue,
       },
-    } as any);
+    });
   } catch {
     // ignore
   }

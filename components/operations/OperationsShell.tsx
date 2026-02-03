@@ -18,6 +18,7 @@ import { useRoomBranding } from '@/hooks/useRoomBranding';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { getOSModule } from '@/types/os-modules';
 
 function buildTitle(pathname: string, basePath: string): string {
   const relative = pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname;
@@ -281,6 +282,7 @@ export default function OperationsShell({
         onPlusClickAction={togglePlusMenu}
         plusAriaLabel={isPlusMenuOpen ? 'סגור פעולות' : 'פעולה חדשה'}
         plusActive={isPlusMenuOpen}
+        plusGradient={getOSModule('operations')?.gradient}
       />
 
       <AnimatePresence>

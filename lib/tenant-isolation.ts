@@ -32,7 +32,7 @@ export const ORG_SCOPED_TABLES = {
 
 export type OrgScopedTableName = keyof typeof ORG_SCOPED_TABLES;
 
-export type DbWritePayload = Record<string, any> & {
+export type DbWritePayload = Record<string, unknown> & {
   organization_id?: string;
   organizationId?: string;
 };

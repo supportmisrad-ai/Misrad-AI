@@ -1,6 +1,27 @@
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function getErrorName(error: unknown): string {
+  if (error instanceof Error) return error.name;
+  const obj = asObject(error);
+  const name = obj?.name;
+  return typeof name === 'string' ? name : '';
+}
+
 /**
  * Creates a Google OAuth2 client
  */
@@ -37,8 +58,8 @@ export async function getAuthenticatedGoogleClient(
       return { client: oauth2Client, newAccessToken: credentials.access_token };
     } catch (error) {
       console.error('Error refreshing Google token:', {
-        message: (error as any)?.message,
-        name: (error as any)?.name,
+        message: getErrorMessage(error),
+        name: getErrorName(error),
       });
     }
   }

@@ -1,9 +1,11 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import type { ActionResult } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 type ProfileRecord = {
   id: string;
@@ -40,106 +42,165 @@ function getUnknownErrorMessage(error: unknown): string | null {
   return typeof msg === 'string' ? msg : null;
 }
 
-function normalizeJson(value: unknown): Record<string, unknown> {
+function normalizeJson(value: unknown): Prisma.InputJsonValue {
+  if (value == null) return {} as Prisma.InputJsonValue;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value;
+
+  if (Array.isArray(value)) {
+    return value as unknown as Prisma.InputJsonValue;
+  }
+
   const obj = asObject(value);
-  return obj ?? {};
+  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
 }
 
-async function getMyProfileRow(params: { orgSlug: string; clerkUserId: string }) {
-  const supabase = createClient();
+function getWorkspaceId(workspace: unknown): string {
+  const obj = asObject(workspace) ?? {};
+  const id = obj.id;
+  return typeof id === 'string' || typeof id === 'number' ? String(id) : '';
+}
+
+function toStringOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return null;
+}
+
+function toBooleanOrNull(value: unknown): boolean | null {
+  if (value == null) return null;
+  if (typeof value === 'boolean') return value;
+  return null;
+}
+
+function toProfileRecord(row: unknown): ProfileRecord {
+  const r = asObject(row) ?? {};
+  return {
+    id: String(r.id || ''),
+    organization_id: String(r.organizationId || ''),
+    clerk_user_id: String(r.clerkUserId || ''),
+    email: toStringOrNull(r.email),
+    full_name: toStringOrNull(r.fullName),
+    role: toStringOrNull(r.role),
+    avatar_url: toStringOrNull(r.avatarUrl),
+    phone: toStringOrNull(r.phone),
+    location: toStringOrNull(r.location),
+    bio: toStringOrNull(r.bio),
+    notification_preferences: r.notificationPreferences ?? {},
+    two_factor_enabled: toBooleanOrNull(r.twoFactorEnabled),
+    ui_preferences: r.uiPreferences ?? {},
+    social_profile: r.socialProfile ?? {},
+    billing_info: r.billingInfo ?? {},
+    created_at: r.createdAt instanceof Date ? r.createdAt.toISOString() : r.createdAt ? String(r.createdAt) : null,
+    updated_at: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : r.updatedAt ? String(r.updatedAt) : null,
+  };
+}
+
+async function getMyProfileRow(params: {
+  orgSlug: string;
+  clerkUserId: string;
+}): Promise<ActionResult<{ profile: ProfileRecord; workspace: { id: string } }>> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  const workspaceId = getWorkspaceId(workspace);
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('organization_id', workspace.id)
-    .eq('clerk_user_id', params.clerkUserId)
-    .maybeSingle();
+  try {
+    const row = await prisma.profile.findFirst({
+      where: {
+        organizationId: String(workspaceId),
+        clerkUserId: String(params.clerkUserId),
+      },
+    });
 
-  if (error) {
+    const profile = row ? toProfileRecord(row) : ({} as ProfileRecord);
+    return createSuccessResponse({ profile, workspace: { id: String(workspaceId || '') } });
+  } catch (error: unknown) {
     const msg = getUnknownErrorMessage(error);
     if (msg && (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles'))) {
-      return createErrorResponse(
+      return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
         error,
         'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
       );
     }
-    return createErrorResponse(error, error.message || 'שגיאה בטעינת פרופיל');
+    return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה בטעינת פרופיל');
   }
-
-  return createSuccessResponse({ profile: (asObject(data) ?? ({} as Record<string, unknown>)) as unknown as ProfileRecord, workspace });
 }
 
-async function bootstrapProfile(params: { orgSlug: string; clerkUserId: string }) {
-  const supabase = createClient();
+async function bootstrapProfile(params: {
+  orgSlug: string;
+  clerkUserId: string;
+}): Promise<ActionResult<{ profile: ProfileRecord; workspace: { id: string } }>> {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+  const workspaceId = getWorkspaceId(workspace);
 
-  const { data: socialUser } = await supabase
-    .from('social_users')
-    .select('email, full_name, avatar_url')
-    .eq('clerk_user_id', params.clerkUserId)
-    .maybeSingle();
+  let socialUser: unknown = null;
+  try {
+    socialUser = await prisma.social_users.findUnique({
+      where: { clerk_user_id: String(params.clerkUserId) },
+      select: { email: true, full_name: true, avatar_url: true },
+    });
+  } catch {
+    socialUser = null;
+  }
 
-  const socialUserObj = asObject(socialUser);
-  const email = socialUserObj?.email == null ? null : String(socialUserObj.email);
+  const socialUserObj = asObject(socialUser) ?? {};
+
+  const email = socialUserObj.email == null ? null : String(socialUserObj.email);
 
   let nexusUser: unknown = null;
   if (email) {
-    const res = await supabase
-      .from('nexus_users')
-      .select('phone, location, bio, notification_preferences, two_factor_enabled, billing_info, ui_preferences')
-      .eq('email', email)
-      .maybeSingle();
-    // nexus_users might not exist / not accessible in some deployments; best-effort only.
-    if (!res.error) {
-      nexusUser = res.data;
+    try {
+      nexusUser = await prisma.nexusUser.findFirst({
+        where: { email: String(email) },
+        select: {
+          phone: true,
+          location: true,
+          bio: true,
+          notificationPreferences: true,
+          twoFactorEnabled: true,
+          billingInfo: true,
+          uiPreferences: true,
+        },
+      });
+    } catch {
+      nexusUser = null;
     }
   }
 
   const nexusUserObj = asObject(nexusUser) ?? {};
 
-  const insertRow: Record<string, unknown> = {
-    organization_id: workspace.id,
-    clerk_user_id: params.clerkUserId,
-    email: email,
-    full_name: socialUserObj?.full_name == null ? null : String(socialUserObj.full_name),
-    role: null,
-    avatar_url: socialUserObj?.avatar_url == null ? null : String(socialUserObj.avatar_url),
-    phone: nexusUserObj.phone == null ? null : String(nexusUserObj.phone),
-    location: nexusUserObj.location == null ? null : String(nexusUserObj.location),
-    bio: nexusUserObj.bio == null ? null : String(nexusUserObj.bio),
-    notification_preferences: normalizeJson(nexusUserObj.notification_preferences),
-    two_factor_enabled: nexusUserObj.two_factor_enabled == null ? false : Boolean(nexusUserObj.two_factor_enabled),
-    ui_preferences: normalizeJson(nexusUserObj.ui_preferences),
-    social_profile: {},
-    billing_info: normalizeJson(nexusUserObj.billing_info),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  try {
+    const created = await prisma.profile.create({
+      data: {
+        organizationId: String(workspaceId),
+        clerkUserId: String(params.clerkUserId),
+        email: email,
+        fullName: socialUserObj.full_name == null ? null : String(socialUserObj.full_name),
+        avatarUrl: socialUserObj.avatar_url == null ? null : String(socialUserObj.avatar_url),
+        role: null,
+        phone: nexusUserObj.phone == null ? null : String(nexusUserObj.phone),
+        location: nexusUserObj.location == null ? null : String(nexusUserObj.location),
+        bio: nexusUserObj.bio == null ? null : String(nexusUserObj.bio),
+        notificationPreferences: normalizeJson(nexusUserObj.notificationPreferences),
+        twoFactorEnabled: nexusUserObj.twoFactorEnabled == null ? false : Boolean(nexusUserObj.twoFactorEnabled),
+        uiPreferences: normalizeJson(nexusUserObj.uiPreferences),
+        socialProfile: {},
+        billingInfo: normalizeJson(nexusUserObj.billingInfo),
+      },
+    });
 
-  let created: unknown = null;
-  let createError: unknown = null;
-
-  const attemptInsert = async (row: Record<string, unknown>) => {
-    const res = await supabase.from('profiles').insert(row).select('*').single();
-    created = res.data;
-    createError = res.error;
-  };
-
-  await attemptInsert(insertRow);
-
-  if (createError) {
-    const msg = String(getUnknownErrorMessage(createError) || '').toLowerCase();
+    return createSuccessResponse({ profile: toProfileRecord(created), workspace: { id: String(workspaceId || '') } });
+  } catch (error: unknown) {
+    const msg = String(getUnknownErrorMessage(error) || '').toLowerCase();
     if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles')) {
-      return createErrorResponse(
-        createError,
+      return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
+        error,
         'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
       );
     }
-    return createErrorResponse(createError, 'שגיאה ביצירת פרופיל');
+    return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה ביצירת פרופיל');
   }
-
-  return createSuccessResponse({ profile: (asObject(created) ?? ({} as Record<string, unknown>)) as unknown as ProfileRecord, workspace });
 }
 
 export async function getMyProfile(params: { orgSlug: string }): Promise<{
@@ -155,7 +216,7 @@ export async function getMyProfile(params: { orgSlug: string }): Promise<{
     }
 
     const existing = await getMyProfileRow({ orgSlug: params.orgSlug, clerkUserId });
-    if (!existing.success) return existing;
+    if (!existing.success) return { success: false, error: existing.error };
 
     const existingObj = asObject(existing.data) ?? {};
     const existingProfile = (existingObj.profile as ProfileRecord | null) ?? null;
@@ -164,7 +225,7 @@ export async function getMyProfile(params: { orgSlug: string }): Promise<{
     }
 
     const boot = await bootstrapProfile({ orgSlug: params.orgSlug, clerkUserId });
-    if (!boot.success) return boot;
+    if (!boot.success) return { success: false, error: boot.error };
 
     const bootObj = asObject(boot.data) ?? {};
     return { success: true, data: { profile: bootObj.profile as ProfileRecord }, migrated: true };
@@ -202,47 +263,44 @@ export async function upsertMyProfile(params: {
     }
 
     const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    const supabase = createClient();
 
-    const updateRow: Record<string, unknown> = {
-      updated_at: new Date().toISOString(),
-    };
+    const patch: Record<string, unknown> = {};
+    if (typeof params.updates.fullName !== 'undefined') patch.fullName = params.updates.fullName;
+    if (typeof params.updates.role !== 'undefined') patch.role = params.updates.role;
+    if (typeof params.updates.avatarUrl !== 'undefined') patch.avatarUrl = params.updates.avatarUrl;
+    if (typeof params.updates.phone !== 'undefined') patch.phone = params.updates.phone;
+    if (typeof params.updates.location !== 'undefined') patch.location = params.updates.location;
+    if (typeof params.updates.bio !== 'undefined') patch.bio = params.updates.bio;
+    if (typeof params.updates.twoFactorEnabled !== 'undefined') patch.twoFactorEnabled = params.updates.twoFactorEnabled;
+    if (typeof params.updates.notificationPreferences !== 'undefined') patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
+    if (typeof params.updates.uiPreferences !== 'undefined') patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
+    if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
+    if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
 
-    if (typeof params.updates.fullName !== 'undefined') updateRow.full_name = params.updates.fullName;
-    if (typeof params.updates.role !== 'undefined') updateRow.role = params.updates.role;
-    if (typeof params.updates.avatarUrl !== 'undefined') updateRow.avatar_url = params.updates.avatarUrl;
-    if (typeof params.updates.phone !== 'undefined') updateRow.phone = params.updates.phone;
-    if (typeof params.updates.location !== 'undefined') updateRow.location = params.updates.location;
-    if (typeof params.updates.bio !== 'undefined') updateRow.bio = params.updates.bio;
-    if (typeof params.updates.twoFactorEnabled !== 'undefined') updateRow.two_factor_enabled = params.updates.twoFactorEnabled;
-    if (typeof params.updates.notificationPreferences !== 'undefined') updateRow.notification_preferences = normalizeJson(params.updates.notificationPreferences);
-    if (typeof params.updates.uiPreferences !== 'undefined') updateRow.ui_preferences = normalizeJson(params.updates.uiPreferences);
-    if (typeof params.updates.socialProfile !== 'undefined') updateRow.social_profile = normalizeJson(params.updates.socialProfile);
-    if (typeof params.updates.billingInfo !== 'undefined') updateRow.billing_info = normalizeJson(params.updates.billingInfo);
-
-    let data: unknown = null;
-    let error: unknown = null;
-
-    const attemptUpdate = async (row: Record<string, unknown>) => {
-      const res = await supabase
-        .from('profiles')
-        .update(row)
-        .eq('id', profileId)
-        .eq('organization_id', workspace.id)
-        .eq('clerk_user_id', clerkUserId)
-        .select('*')
-        .single();
-      data = res.data;
-      error = res.error;
-    };
-
-    await attemptUpdate(updateRow);
-
-    if (error) {
-      return createErrorResponse(error, 'שגיאה בעדכון פרופיל');
+    const updatedCount = await prisma.profile.updateMany({
+      where: {
+        id: String(profileId),
+        organizationId: String(workspace.id),
+        clerkUserId: String(clerkUserId),
+      },
+      data: patch,
+    });
+    if (!updatedCount.count) {
+      return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
     }
 
-    return createSuccessResponse({ profile: (asObject(data) ?? ({} as Record<string, unknown>)) as unknown as ProfileRecord });
+    const updated = await prisma.profile.findFirst({
+      where: {
+        id: String(profileId),
+        organizationId: String(workspace.id),
+        clerkUserId: String(clerkUserId),
+      },
+    });
+    if (!updated) {
+      return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
+    }
+
+    return createSuccessResponse({ profile: toProfileRecord(updated) });
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בעדכון פרופיל');
   }

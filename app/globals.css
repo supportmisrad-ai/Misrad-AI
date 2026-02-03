@@ -94,80 +94,6 @@
   --theme-border: color-mix(in srgb, var(--theme-accent) 12%, transparent);
 }
 
-#main-scroll-container {
-  scrollbar-gutter: stable;
-}
-
-.sidebar {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-left: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-.nav-item-active {
-  background: var(--nexus-gradient);
-  color: white;
-  border-radius: 1rem; /* 2xl ב-Tailwind */
-  box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--theme-accent) 18%, transparent);
-}
-
-.hero-cockpit {
-  background-color: #09090B;
-  border-radius: 48px;
-  position: relative;
-  overflow: hidden;
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* בועות אור (Blobs) */
-.blob-rose {
-  position: absolute;
-  top: -20%;
-  right: -10%;
-  width: 600px;
-  height: 600px;
-  background: rgba(162, 29, 60, 0.3);
-  border-radius: 50%;
-  filter: blur(140px);
-  animation: pulseSoft 4s ease-in-out infinite;
-  pointer-events: none;
-}
-
-.blob-indigo {
-  position: absolute;
-  bottom: -20%;
-  left: -10%;
-  width: 400px;
-  height: 400px;
-  background: rgba(55, 48, 163, 0.2);
-  border-radius: 50%;
-  filter: blur(100px);
-}
-
-/* מסך התחברות */
-.login-screen {
-  background: #09090B;
-  background-image: radial-gradient(at 0% 0%, rgba(55, 48, 163, 0.1) 0px, transparent 50%),
-                    radial-gradient(at 100% 0%, rgba(162, 29, 60, 0.1) 0px, transparent 50%);
-}
-
-/* תיבת לוגו (Squircle Logo) */
-.logo-box {
-  background: var(--nexus-gradient);
-  border-radius: 18px; /* מראה ה-Squircle */
-  box-shadow: 0 10px 25px color-mix(in srgb, var(--theme-accent) 24%, transparent);
-}
-
-/* גרדיאנט Nexus - גיבוי ל-Tailwind */
-.bg-nexus-gradient {
-  background: linear-gradient(135deg, #A21D3C 0%, #3730A3 100%);
-  background-image: var(--nexus-gradient);
-}
-
-/* --- 3. הגדרות בסיס --- */
-
 body {
   background-color: #F8FAFC;
   background-image: 
@@ -181,13 +107,13 @@ body {
   font-family: var(--font-sans);
   direction: rtl;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
 }
 
-/* Hide scrollbars but keep scroll functionality */
 * {
   scrollbar-width: none;
 }
+
 *::-webkit-scrollbar {
   display: none;
 }
@@ -196,12 +122,39 @@ html,
 body {
   -ms-overflow-style: none;
   overflow-x: hidden;
+  overflow-y: auto;
   scroll-behavior: smooth;
+}
+
+#main-scroll-container {
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: none;
+}
+
+.sidebar {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 /* Avoid browser default black focus outlines; rely on component focus rings */
 *:focus-visible {
   outline: none;
+}
+
+html.high-contrast {
+  filter: contrast(1.25);
+}
+
+html.high-contrast body {
+  background-image: none;
+  background-attachment: initial;
+}
+
+html.high-contrast *:focus-visible {
+  outline: 2px solid #0F172A;
+  outline-offset: 2px;
 }
 
 /* Client OS Admin utilities */

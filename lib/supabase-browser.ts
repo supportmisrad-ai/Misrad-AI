@@ -4,6 +4,12 @@ type ClerkTokenProvider = () => Promise<string | null | undefined>;
 
 const ORG_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 function decodeBase64UrlToUtf8(input: string): string {
   const b64 = String(input || '')
     .replace(/-/g, '+')
@@ -27,14 +33,15 @@ function assertClerkSupabaseJwtHasOrganizationId(token: string, context: string)
   const parts = t.split('.');
   if (parts.length < 2) return;
 
-  let payload: any = null;
+  let payload: unknown = null;
   try {
-    payload = JSON.parse(decodeBase64UrlToUtf8(parts[1]));
+    payload = JSON.parse(decodeBase64UrlToUtf8(parts[1])) as unknown;
   } catch {
     payload = null;
   }
 
-  const orgId = String(payload?.organization_id || payload?.org_id || payload?.orgId || '').trim();
+  const obj = asObject(payload);
+  const orgId = String(obj?.organization_id || obj?.org_id || obj?.orgId || '').trim();
   if (!orgId || !ORG_UUID_REGEX.test(orgId)) {
     throw new Error(
       `[Supabase] חסר/לא תקין organization_id ב-JWT של Clerk שנשלח ל-Supabase (client). Context: ${context}`

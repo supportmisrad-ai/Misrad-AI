@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createHash } from 'crypto';
-import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { logAuditEvent } from '@/lib/audit';
@@ -38,17 +37,41 @@ type CachedChatResponse = {
 
 type CacheEntry = { expiresAt: number; value: CachedChatResponse };
 
-const responseCache: Map<string, CacheEntry> =
-  (globalThis as any).__MISRAD_CHAT_API_RESPONSE_CACHE__ ||
-  ((globalThis as any).__MISRAD_CHAT_API_RESPONSE_CACHE__ = new Map());
+type GlobalStore = Record<string, unknown>;
 
-const inflightByKey: Map<string, Promise<CachedChatResponse>> =
-  (globalThis as any).__MISRAD_CHAT_API_INFLIGHT__ ||
-  ((globalThis as any).__MISRAD_CHAT_API_INFLIGHT__ = new Map());
+function globalMap<K, V>(key: string): Map<K, V> {
+  const g = globalThis as unknown as GlobalStore;
+  const existing = g[key];
+  if (existing instanceof Map) {
+    return existing as Map<K, V>;
+  }
+  const created = new Map<K, V>();
+  g[key] = created;
+  return created;
+}
 
-const localOrgInFlight: Map<string, number> =
-  (globalThis as any).__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__ ||
-  ((globalThis as any).__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__ = new Map());
+const responseCache: Map<string, CacheEntry> = globalMap<string, CacheEntry>('__MISRAD_CHAT_API_RESPONSE_CACHE__');
+const inflightByKey: Map<string, Promise<CachedChatResponse>> = globalMap<string, Promise<CachedChatResponse>>('__MISRAD_CHAT_API_INFLIGHT__');
+const localOrgInFlight: Map<string, number> = globalMap<string, number>('__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__');
+
+type OverloadedError = Error & { status: number; retryAfterSeconds: number };
+
+function overloadedError(): OverloadedError {
+  return Object.assign(new Error('Overloaded'), { status: 503, retryAfterSeconds: 3 });
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
 
 function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
@@ -96,10 +119,7 @@ async function withLoadIsolation<T>(params: { organizationId?: string | null; ta
   const localKey = orgId || '__no_org__';
   const localCount = localOrgInFlight.get(localKey) ?? 0;
   if (localCount >= maxPerOrg) {
-    const err: any = new Error('Overloaded');
-    err.status = 503;
-    err.retryAfterSeconds = 3;
-    throw err;
+    throw overloadedError();
   }
 
   localOrgInFlight.set(localKey, localCount + 1);
@@ -114,10 +134,7 @@ async function withLoadIsolation<T>(params: { organizationId?: string | null; ta
       if (globalCount === 1) await redis.pexpire(globalKey, ttlMs);
       if (globalCount > maxGlobal) {
         await redis.decr(globalKey).catch(() => null);
-        const err: any = new Error('Overloaded');
-        err.status = 503;
-        err.retryAfterSeconds = 3;
-        throw err;
+        throw overloadedError();
       }
 
       if (orgKey) {
@@ -126,10 +143,7 @@ async function withLoadIsolation<T>(params: { organizationId?: string | null; ta
         if (orgCount > maxPerOrg) {
           await redis.decr(orgKey).catch(() => null);
           await redis.decr(globalKey).catch(() => null);
-          const err: any = new Error('Overloaded');
-          err.status = 503;
-          err.retryAfterSeconds = 3;
-          throw err;
+          throw overloadedError();
         }
       }
 
@@ -189,8 +203,8 @@ async function enforceRateLimit(params: { namespace: string; key: string; limit:
 }
 
 function extractText(msg: IncomingMessage): string {
-  if (typeof (msg as any)?.content === 'string') return String((msg as any).content);
-  if (typeof (msg as any)?.text === 'string') return String((msg as any).text);
+  if (typeof msg.content === 'string') return String(msg.content);
+  if (typeof msg.text === 'string') return String(msg.text);
   const parts = Array.isArray(msg.parts) ? msg.parts : [];
   return parts
     .filter((p) => p && p.type === 'text')
@@ -420,9 +434,9 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
           if (compact.length > 0) {
             memoryBlock = `\n\nMemory snippets (from organizational knowledge base):\n${JSON.stringify(compact).slice(0, 12000)}`;
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.warn('[chat] semantic memory skipped/failed (non-fatal)', {
-            message: String(e?.message || e),
+            message: getErrorMessage(e) || String(e ?? ''),
           });
         }
 
@@ -448,13 +462,24 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     } finally {
       inflightByKey.delete(cacheKey);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }
-    const msg = e?.message || 'Internal server error';
-    const status = msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    const obj = asObject(e);
+    const statusFromError = obj?.status;
+    const retryAfterSeconds = obj?.retryAfterSeconds;
+    const msg = getErrorMessage(e) || 'Internal server error';
+    const status = typeof statusFromError === 'number'
+      ? statusFromError
+      : msg.toLowerCase().includes('unauthorized')
+        ? 401
+        : 500;
+    const headers: Record<string, string> = {};
+    if (typeof retryAfterSeconds === 'number' && retryAfterSeconds > 0) {
+      headers['Retry-After'] = String(Math.floor(retryAfterSeconds));
+    }
+    return NextResponse.json({ error: msg }, { status, headers });
   }
 }
 

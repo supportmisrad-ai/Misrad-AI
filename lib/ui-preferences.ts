@@ -63,7 +63,7 @@ export function setUIPreference(key: keyof UIPreferences, value: boolean): void 
 export async function syncUIPreferencesToDB(
     userId: string,
     preferences: UIPreferences,
-    updateUserAPI: (userId: string, updates: any) => Promise<any>
+    updateUserAPI: (userId: string, updates: Record<string, unknown>) => Promise<unknown>
 ): Promise<void> {
     try {
         await updateUserAPI(userId, { uiPreferences: preferences });

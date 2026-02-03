@@ -5,6 +5,18 @@ import { getNexusOwnerDashboardData } from '@/lib/services/nexus-service';
 
 export const dynamic = 'force-dynamic';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getStringFromMetadata(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  const obj = asObject(value);
+  const role = obj?.role;
+  return typeof role === 'string' ? role : null;
+}
 
 export default async function NexusModuleHome({
   params,
@@ -17,12 +29,17 @@ export default async function NexusModuleHome({
   const initialOwnerDashboard = await getNexusOwnerDashboardData(orgSlug);
 
   const clerk = await currentUser();
+  const clerkObj = asObject(clerk) ?? {};
+  const publicMd = asObject(clerkObj.publicMetadata);
+  const privateMd = asObject(clerkObj.privateMetadata);
+  const unsafeMd = asObject(clerkObj.unsafeMetadata);
   const roleFromClerk =
-    (clerk as any)?.publicMetadata?.role ??
-    (clerk as any)?.privateMetadata?.role ??
-    (clerk as any)?.unsafeMetadata?.role ??
+    getStringFromMetadata(publicMd?.role) ??
+    getStringFromMetadata(privateMd?.role) ??
+    getStringFromMetadata(unsafeMd?.role) ??
     null;
-  const normalizedRole = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? 'עובד';
+  const normalizedRole = roleFromClerk || 'עובד';
+  const isSuperAdmin = Boolean(publicMd?.isSuperAdmin);
 
   const initialCurrentUser = {
     id: clerk?.id || '',
@@ -32,7 +49,7 @@ export default async function NexusModuleHome({
     online: true,
     capacity: 0,
     email: clerk?.primaryEmailAddress?.emailAddress || '',
-    isSuperAdmin: Boolean((clerk as any)?.publicMetadata?.isSuperAdmin),
+    isSuperAdmin,
     tenantId: workspace.id,
   };
 

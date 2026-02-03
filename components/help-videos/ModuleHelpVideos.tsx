@@ -213,7 +213,7 @@ export function ModuleHelpVideos(props: { moduleKey: OSModuleKey }) {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="p-2 rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
+        className="w-10 h-10 inline-flex items-center justify-center rounded-full hover:bg-[color:var(--os-header-action-hover,rgba(255,255,255,0.50))] text-[color:var(--os-header-action-icon,#4b5563)] transition-colors"
         title="הדרכה"
         aria-label="הדרכה"
       >

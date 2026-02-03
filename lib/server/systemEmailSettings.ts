@@ -2,6 +2,12 @@ import 'server-only';
 
 import prisma from '@/lib/prisma';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 export type SystemEmailSettings = {
   supportEmail: string | null;
   migrationEmail: string | null;
@@ -16,16 +22,18 @@ export async function getSystemEmailSettingsUnsafe(): Promise<SystemEmailSetting
       where: { key: 'system_email_settings' },
     });
 
-    const rawValue = (row as any)?.value;
-    let parsedValue: any = null;
+    const rawValue: unknown = row?.value;
+    let parsedValue: unknown = null;
     if (rawValue && typeof rawValue === 'string') {
-      parsedValue = JSON.parse(rawValue);
+      parsedValue = JSON.parse(rawValue) as unknown;
     } else if (rawValue && typeof rawValue === 'object') {
       parsedValue = rawValue;
     }
 
-    const supportEmailRaw = (parsedValue?.supportEmail ?? supportEmailFallback);
-    const migrationEmailRaw = (parsedValue?.migrationEmail ?? migrationEmailFallback);
+    const parsedObj = asObject(parsedValue);
+
+    const supportEmailRaw = (parsedObj?.supportEmail ?? supportEmailFallback);
+    const migrationEmailRaw = (parsedObj?.migrationEmail ?? migrationEmailFallback);
 
     const supportEmail = String(supportEmailRaw ?? '').trim() || null;
     const migrationEmail = String(migrationEmailRaw ?? '').trim() || null;

@@ -1,23 +1,43 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { OrganizationProfile, MonthlyGoals, AnalysisReport, SystemUpdate, FeatureRequest, ModuleId, SystemScreenStatus, UserApprovalRequest, Tenant, RoleDefinition } from '../types';
+import { AnalysisReport, FeatureRequest, ModuleId, MonthlyGoals, Notification, OrganizationProfile, RoleDefinition, SystemScreenStatus, SystemUpdate, Toast, User, UserApprovalRequest } from '../types';
 import { SYSTEM_SCREENS, DEFAULT_ROLE_DEFINITIONS } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
+type ToastKind = Toast['type'];
+type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function getRoleId(role: RoleDefinition): string | undefined {
+    return typeof role.id === 'string' && role.id ? role.id : undefined;
+}
+
 export const useAdmin = (
-    currentUser: any,
-    addNotification: (n: any) => void,
-    addToast: (m: string, t?: any) => void,
+    currentUser: User,
+    addNotification: (n: NotificationInput) => void,
+    addToast: (m: string, t?: ToastKind) => void,
     initialOrganization?: Partial<OrganizationProfile>
 ) => {
     // Default enabled modules for the demo organization
     const [organization, setOrganization] = useState<OrganizationProfile>({ 
         name: initialOrganization?.name ?? 'Misrad', 
         logo: initialOrganization?.logo ?? '', 
-        primaryColor: (initialOrganization as any)?.primaryColor ?? '#000000',
-        enabledModules: (initialOrganization as any)?.enabledModules ?? ['crm', 'ai'],
-        systemFlags: (initialOrganization as any)?.systemFlags ?? SYSTEM_SCREENS.reduce((acc, screen) => ({ ...acc, [screen.id]: 'active' }), {})
+        primaryColor: initialOrganization?.primaryColor ?? '#000000',
+        enabledModules: initialOrganization?.enabledModules ?? ['crm', 'ai'],
+        systemFlags: initialOrganization?.systemFlags ?? SYSTEM_SCREENS.reduce((acc, screen) => ({ ...acc, [screen.id]: 'active' }), {})
     });
     const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals>({ revenue: 100000, tasksCompletion: 90 });
     const [departments, setDepartments] = useState<string[]>(['הנהלה', 'מכירות', 'תפעול', 'כספים', 'שיווק', 'חיצוני']);
@@ -43,6 +63,13 @@ export const useAdmin = (
     const [showMorningBrief, setShowMorningBrief] = useState(false);
     const [isCommandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
+    const systemFlagsPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const systemFlagsInFlightRef = useRef(false);
+    const systemFlagsFailureCountRef = useRef(0);
+
+    const aiHistoryPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const aiHistoryLastPayloadRef = useRef<string>('');
+
     // Load enabled modules from DB (organizations.has_*) via /api/workspaces.
     // This keeps module visibility in sync with the admin panel toggles.
     useEffect(() => {
@@ -61,7 +88,7 @@ export const useAdmin = (
                 if (!ws) return;
 
                 const financeEnabled = Boolean(ws.entitlements?.finance);
-                const operationsEnabled = Boolean((ws.entitlements as any)?.operations);
+                const operationsEnabled = Boolean(ws.entitlements?.operations);
 
                 const teamEnabled = Boolean(ws.capabilities?.isTeamManagementEnabled);
 
@@ -89,12 +116,14 @@ export const useAdmin = (
             try {
                 const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/roles', {
-                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                    headers: orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : undefined
                 });
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.roles && Array.isArray(data.roles)) {
-                        setRoleDefinitions(data.roles);
+                    const data: unknown = await response.json();
+                    const dataObj = asObject(data) ?? {};
+                    const rolesValue = dataObj.roles;
+                    if (Array.isArray(rolesValue)) {
+                        setRoleDefinitions(rolesValue as RoleDefinition[]);
                     }
                 } else {
                     console.warn('[Admin] Could not load roles from API, using defaults');
@@ -110,41 +139,91 @@ export const useAdmin = (
 
     // Load system flags from API on mount (all users need this for ScreenGuard)
     useEffect(() => {
-        const loadSystemFlags = async () => {
-            // All users need system flags to see maintenance/hidden screens
-            if (!currentUser?.id) {
-                return; // Wait for user to load
+        let cancelled = false;
+
+        const clearScheduled = () => {
+            if (systemFlagsPollTimeoutRef.current) {
+                clearTimeout(systemFlagsPollTimeoutRef.current);
+                systemFlagsPollTimeoutRef.current = null;
             }
-            
+        };
+
+        const scheduleNext = (delayMs: number) => {
+            clearScheduled();
+            systemFlagsPollTimeoutRef.current = setTimeout(() => {
+                void loadSystemFlags();
+            }, delayMs);
+        };
+
+        const loadSystemFlags = async () => {
+            if (cancelled) return;
+            if (!currentUser?.id) return;
+            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+                scheduleNext(60_000);
+                return;
+            }
+
+            if (systemFlagsInFlightRef.current) {
+                scheduleNext(30_000);
+                return;
+            }
+
+            systemFlagsInFlightRef.current = true;
             try {
                 const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
                 const response = await fetch('/api/system/flags', {
-                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                    headers: orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : undefined
                 });
+
                 if (response.ok) {
-                    const data = await response.json();
-                    if (data.systemFlags) {
+                    const data: unknown = await response.json();
+                    const dataObj = asObject(data) ?? {};
+                    const flagsValue = dataObj.systemFlags;
+                    if (flagsValue && typeof flagsValue === 'object') {
                         setOrganization(prev => ({
                             ...prev,
-                            systemFlags: data.systemFlags // Replace completely, not merge
+                            systemFlags: flagsValue as Record<string, SystemScreenStatus>
                         }));
                     }
+                    systemFlagsFailureCountRef.current = 0;
+                    scheduleNext(5 * 60 * 1000);
                 } else {
-                    console.warn('[Admin] Could not load system flags from API, using defaults');
+                    systemFlagsFailureCountRef.current += 1;
+                    const base = 5 * 60 * 1000;
+                    const next = Math.min(30 * 60 * 1000, base * Math.pow(2, systemFlagsFailureCountRef.current));
+                    scheduleNext(next);
                 }
-            } catch (error) {
-                console.error('[Admin] Error loading system flags:', error);
+            } catch {
+                systemFlagsFailureCountRef.current += 1;
+                const base = 5 * 60 * 1000;
+                const next = Math.min(30 * 60 * 1000, base * Math.pow(2, systemFlagsFailureCountRef.current));
+                scheduleNext(next);
+            } finally {
+                systemFlagsInFlightRef.current = false;
             }
         };
-        
-        // Load immediately
-        loadSystemFlags();
-        
-        // Poll periodically to get updates from other users/admins
-        const interval = setInterval(loadSystemFlags, 5 * 60 * 1000);
-        
-        return () => clearInterval(interval);
-    }, [currentUser?.id]); // Reload when user changes
+
+        void loadSystemFlags();
+
+        const onVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                systemFlagsFailureCountRef.current = 0;
+                void loadSystemFlags();
+            }
+        };
+
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', onVisibility);
+        }
+
+        return () => {
+            cancelled = true;
+            clearScheduled();
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', onVisibility);
+            }
+        };
+    }, [currentUser?.id]);
 
     // Load AI history from DB (and perform one-time migration from legacy localStorage)
     useEffect(() => {
@@ -165,7 +244,7 @@ export const useAdmin = (
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                 const filteredServer = serverHistory.filter(item => {
-                    const d = new Date((item as any)?.date);
+                    const d = new Date(item.date);
                     return !isNaN(d.getTime()) && d > thirtyDaysAgo;
                 });
 
@@ -195,16 +274,34 @@ export const useAdmin = (
 
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const filtered = (analysisHistory || []).filter((item: any) => {
-            const d = new Date(item?.date);
+        const filtered = (analysisHistory || []).filter((item) => {
+            const d = new Date(item.date);
             return !isNaN(d.getTime()) && d > thirtyDaysAgo;
         });
 
-        fetch('/api/system/ai-history', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
-            body: JSON.stringify({ history: filtered }),
-        }).catch(() => null);
+        const payload = JSON.stringify({ history: filtered });
+        if (payload === aiHistoryLastPayloadRef.current) return;
+
+        if (aiHistoryPersistTimeoutRef.current) {
+            clearTimeout(aiHistoryPersistTimeoutRef.current);
+            aiHistoryPersistTimeoutRef.current = null;
+        }
+
+        aiHistoryPersistTimeoutRef.current = setTimeout(() => {
+            aiHistoryLastPayloadRef.current = payload;
+            fetch('/api/system/ai-history', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'x-org-id': orgSlug },
+                body: payload,
+            }).catch(() => null);
+        }, 1500);
+
+        return () => {
+            if (aiHistoryPersistTimeoutRef.current) {
+                clearTimeout(aiHistoryPersistTimeoutRef.current);
+                aiHistoryPersistTimeoutRef.current = null;
+            }
+        };
     }, [analysisHistory]);
 
     const updateOrganization = (updates: Partial<OrganizationProfile>) => {
@@ -225,9 +322,9 @@ export const useAdmin = (
         addToast('יעדים חודשיים עודכנו ופורסמו לצוות', 'success');
     };
 
-    const updateSettings = (key: string, value: any) => {
-        if (key === 'departments') setDepartments(value);
-        if (key === 'roleDefinitions') setRoleDefinitions(value);
+    const updateSettings = (key: string, value: unknown) => {
+        if (key === 'departments') setDepartments(value as string[]);
+        if (key === 'roleDefinitions') setRoleDefinitions(value as RoleDefinition[]);
         
         addNotification({
             recipientId: 'all',
@@ -248,17 +345,22 @@ export const useAdmin = (
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה ביצירת התפקיד');
+                const errorData: unknown = await response.json().catch(() => ({}));
+                const errorObj = asObject(errorData) ?? {};
+                throw new Error(typeof errorObj.error === 'string' ? errorObj.error : 'שגיאה ביצירת התפקיד');
             }
             
-            const data = await response.json();
-            setRoleDefinitions(prev => [...prev, data.role]);
+            const data: unknown = await response.json();
+            const dataObj = asObject(data) ?? {};
+            const roleValue = dataObj.role;
+            if (roleValue) {
+                setRoleDefinitions(prev => [...prev, roleValue as RoleDefinition]);
+            }
             addToast(`תפקיד "${role.name}" נוצר בהצלחה`, 'success');
-            return data.role;
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה ביצירת התפקיד', 'error');
-            throw error;
+            return roleValue as RoleDefinition;
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה ביצירת התפקיד', 'error');
+            throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'שגיאה ביצירת התפקיד');
         }
     };
 
@@ -272,17 +374,22 @@ export const useAdmin = (
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה בעדכון התפקיד');
+                const errorData: unknown = await response.json().catch(() => ({}));
+                const errorObj = asObject(errorData) ?? {};
+                throw new Error(typeof errorObj.error === 'string' ? errorObj.error : 'שגיאה בעדכון התפקיד');
             }
             
-            const data = await response.json();
-            setRoleDefinitions(prev => prev.map(r => (r as any).id === roleId ? data.role : r));
+            const data: unknown = await response.json();
+            const dataObj = asObject(data) ?? {};
+            const roleValue = dataObj.role;
+            if (roleValue) {
+                setRoleDefinitions(prev => prev.map(r => getRoleId(r) === roleId ? (roleValue as RoleDefinition) : r));
+            }
             addToast('תפקיד עודכן בהצלחה', 'success');
-            return data.role;
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בעדכון התפקיד', 'error');
-            throw error;
+            return roleValue as RoleDefinition;
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה בעדכון התפקיד', 'error');
+            throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'שגיאה בעדכון התפקיד');
         }
     };
 
@@ -290,11 +397,11 @@ export const useAdmin = (
         try {
             // Find role by name to get ID
             const role = roleDefinitions.find(r => r.name === roleName);
-            if (!role || !(role as any).id) {
+            const roleId = role ? getRoleId(role) : undefined;
+            if (!roleId) {
                 throw new Error('תפקיד לא נמצא');
             }
-            
-            const roleId = (role as any).id;
+
             const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
             const response = await fetch(`/api/roles/${roleId}`, {
                 method: 'DELETE',
@@ -302,15 +409,16 @@ export const useAdmin = (
             });
             
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'שגיאה במחיקת התפקיד');
+                const errorData: unknown = await response.json().catch(() => ({}));
+                const errorObj = asObject(errorData) ?? {};
+                throw new Error(typeof errorObj.error === 'string' ? errorObj.error : 'שגיאה במחיקת התפקיד');
             }
             
             setRoleDefinitions(prev => prev.filter(r => r.name !== roleName));
             addToast(`תפקיד "${roleName}" נמחק בהצלחה`, 'success');
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה במחיקת התפקיד', 'error');
-            throw error;
+        } catch (error: unknown) {
+            addToast(getErrorMessage(error) || 'שגיאה במחיקת התפקיד', 'error');
+            throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'שגיאה במחיקת התפקיד');
         }
     };
 
@@ -390,6 +498,7 @@ export const useAdmin = (
     };
 
     const updateSystemFlag = async (screenId: string, status: SystemScreenStatus) => {
+        let prevStatus: SystemScreenStatus = organization.systemFlags?.[screenId] || 'active';
         try {
             // Update local state immediately for responsive UI
             setOrganization(prev => ({
@@ -409,30 +518,19 @@ export const useAdmin = (
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'שגיאה בעדכון מצב תחזוקה');
+                const errorData: unknown = await response.json().catch(() => ({}));
+                const errorObj = asObject(errorData) ?? {};
+                throw new Error(typeof errorObj.error === 'string' ? errorObj.error : 'שגיאה בעדכון מצב תחזוקה');
             }
 
-            const result = await response.json();
-            
-            // Reload system flags from API to ensure consistency
-            // This ensures all users see the updated state
-            try {
-                const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
-                const flagsResponse = await fetch('/api/system/flags', {
-                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
-                });
-                if (flagsResponse.ok) {
-                    const flagsData = await flagsResponse.json();
-                    if (flagsData.systemFlags) {
-                        setOrganization(prev => ({
-                            ...prev,
-                            systemFlags: flagsData.systemFlags
-                        }));
-                    }
-                }
-            } catch (reloadError) {
-                console.warn('[Admin] Could not reload system flags after update:', reloadError);
+            const result: unknown = await response.json().catch(() => null);
+            const resultObj = asObject(result) ?? {};
+            const nextFlags = resultObj.systemFlags;
+            if (nextFlags && typeof nextFlags === 'object') {
+                setOrganization(prev => ({
+                    ...prev,
+                    systemFlags: nextFlags as Record<string, SystemScreenStatus>
+                }));
             }
             
             // Notify user
@@ -443,16 +541,16 @@ export const useAdmin = (
             } else {
                 addToast(`מסך ${screenId} הופעל`, 'success');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[Admin] Error updating system flag:', error);
-            addToast(error.message || 'שגיאה בעדכון מצב תחזוקה', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה בעדכון מצב תחזוקה', 'error');
             
             // Revert local state on error
             setOrganization(prev => ({
                 ...prev,
                 systemFlags: {
                     ...prev.systemFlags,
-                    [screenId]: prev.systemFlags?.[screenId] || 'active'
+                    [screenId]: prevStatus
                 }
             }));
         }

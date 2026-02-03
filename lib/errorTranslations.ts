@@ -76,6 +76,7 @@ export function translateError(errorMessage: string): string {
     'Not found': 'לא נמצא',
     'Unauthorized': 'אין הרשאה',
     'Forbidden': 'גישה נדחתה',
+    'permission denied': 'אין לך הרשאה לבצע פעולה זו',
     'Not configured': 'לא מוגדר',
     'Not initialized': 'לא אותחל',
     'An unexpected error occurred': 'אירעה שגיאה בלתי צפויה',

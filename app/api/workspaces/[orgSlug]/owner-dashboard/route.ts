@@ -1,10 +1,27 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { createClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function getErrorStatus(error: unknown, fallback = 403): number {
+  const status = asObject(error)?.status;
+  return typeof status === 'number' ? status : fallback;
+}
 type OwnerDashboardAction = {
   id: string;
   source: 'nexus' | 'system' | 'social' | 'finance' | 'client';
@@ -22,17 +39,15 @@ async function GETHandler(
   let workspace;
   try {
     workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-  } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : 403;
-    return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+  } catch (e: unknown) {
+    const status = getErrorStatus(e, 403);
+    return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status });
   }
   const entitlements = workspace.entitlements;
 
-  const supabase = createClient();
-
   const actions: OwnerDashboardAction[] = [];
 
-  const kpis: any = {
+  const kpis: Record<string, unknown> = {
     entitlements,
     generatedAt: new Date().toISOString(),
   };
@@ -41,29 +56,26 @@ async function GETHandler(
   // Nexus (Tasks)
   // -----------------------------
   if (entitlements.nexus) {
-    const { data: tasks } = await supabase
-      .from('nexus_tasks')
-      .select('id,title,status,priority,due_date,created_at')
-      .eq('organization_id', workspace.id)
-      .order('due_date', { ascending: true })
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const list = await prisma.nexusTask.findMany({
+      where: { organizationId: String(workspace.id) },
+      select: { id: true, title: true, status: true, priority: true, dueDate: true, createdAt: true },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      take: 200,
+    });
 
-    const list = Array.isArray(tasks) ? tasks : [];
-
-    const open = list.filter((t: any) => {
+    const open = list.filter((t) => {
       const s = String(t.status || '').toLowerCase();
       return s !== 'done' && s !== 'completed' && s !== 'canceled' && s !== 'cancelled';
     });
 
-    const urgent = open.filter((t: any) => String(t.priority || '').toLowerCase() === 'urgent');
+    const urgent = open.filter((t) => String(t.priority || '').toLowerCase() === 'urgent');
 
     kpis.nexus = {
       tasksOpen: open.length,
       tasksUrgent: urgent.length,
     };
 
-    urgent.slice(0, 4).forEach((t: any) => {
+    urgent.slice(0, 4).forEach((t) => {
       actions.push({
         id: `nexus-task-${t.id}`,
         source: 'nexus',
@@ -86,8 +98,8 @@ async function GETHandler(
     });
 
     const total = leads.length;
-    const hot = leads.filter((l) => Boolean((l as any).isHot)).length;
-    const incoming = leads.filter((l) => String((l as any).status || '').toLowerCase() === 'incoming').length;
+    const hot = leads.filter((l) => Boolean(asObject(l as unknown)?.isHot)).length;
+    const incoming = leads.filter((l) => String(asObject(l as unknown)?.status || '').toLowerCase() === 'incoming').length;
 
     kpis.system = {
       leadsTotal: total,
@@ -96,14 +108,15 @@ async function GETHandler(
     };
 
     leads
-      .filter((l) => Boolean((l as any).isHot))
+      .filter((l) => Boolean(asObject(l as unknown)?.isHot))
       .slice(0, 3)
       .forEach((l) => {
-        const leadId = String((l as any).id);
+        const lo = asObject(l as unknown) ?? {};
+        const leadId = String(lo.id ?? '');
         actions.push({
           id: `system-lead-${leadId}`,
           source: 'system',
-          title: `${(l as any).name || 'ליד חם'}${(l as any).company ? ` · ${(l as any).company}` : ''}`,
+          title: `${String(lo.name || 'ליד חם')}${lo.company ? ` · ${String(lo.company)}` : ''}`,
           subtitle: 'System · ליד חם',
           href: `/w/${encodeURIComponent(orgSlug)}/system?leadId=${encodeURIComponent(leadId)}`,
           priority: 'high',
@@ -115,15 +128,15 @@ async function GETHandler(
   // Social (Posts)
   // -----------------------------
   if (entitlements.social) {
-    const { data: posts } = await supabase
-      .from('social_posts')
-      .select('id,status,scheduled_at,published_at,organization_id')
-      .eq('organization_id', workspace.id)
-      .order('created_at', { ascending: false })
-      .limit(500);
+    const posts = await prisma.socialPost.findMany({
+      where: { organizationId: String(workspace.id) },
+      select: { id: true, status: true, scheduled_at: true, published_at: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
 
     const list = Array.isArray(posts) ? posts : [];
-    const statusCount = (s: string) => list.filter((p: any) => String(p.status || '').toLowerCase() === s).length;
+    const statusCount = (s: string) => list.filter((p) => String(p.status || '').toLowerCase() === s).length;
 
     kpis.social = {
       postsTotal: list.length,
@@ -134,9 +147,9 @@ async function GETHandler(
 
     // If there are scheduled posts, surface as next actions
     list
-      .filter((p: any) => String(p.status || '').toLowerCase() === 'scheduled')
+      .filter((p) => String(p.status || '').toLowerCase() === 'scheduled')
       .slice(0, 2)
-      .forEach((p: any) => {
+      .forEach((p) => {
         actions.push({
           id: `social-post-${p.id}`,
           source: 'social',
@@ -155,14 +168,14 @@ async function GETHandler(
     const canViewFinancials = await hasPermission('view_financials');
 
     if (canViewFinancials) {
-      const { data: entries } = await supabase
-        .from('nexus_time_entries')
-        .select('id,duration_minutes')
-        .eq('organization_id', workspace.id)
-        .limit(1000);
+      const entries = await prisma.nexusTimeEntry.findMany({
+        where: { organizationId: String(workspace.id) },
+        select: { id: true, durationMinutes: true },
+        take: 1000,
+      });
 
       const entriesList = Array.isArray(entries) ? entries : [];
-      const totalMinutes = entriesList.reduce((sum: number, e: any) => sum + Number(e.duration_minutes || 0), 0);
+      const totalMinutes = entriesList.reduce((sum: number, e) => sum + Number(e.durationMinutes || 0), 0);
 
       kpis.finance = {
         totalMinutes,

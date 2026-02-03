@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
-import { isSupabaseConfigured, createServiceRoleClient } from '../../../../../lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '../../../../../lib/auth';
+import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-async function POSTHandler() {
+async function POSTHandler(request: NextRequest) {
 
     try {
         await requireSuperAdmin();
@@ -11,21 +12,15 @@ async function POSTHandler() {
         return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required', success: false }, { status: 403 });
     }
 
-    if (!isSupabaseConfigured()) {
-        return NextResponse.json({
-            error: 'Supabase not configured',
-            success: false
-        }, { status: 500 });
-    }
-
-    let supabase: any;
+    let workspaceId = '';
     try {
-        supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'health_check_test_write' });
-    } catch {
-        return NextResponse.json({
-            error: 'Supabase service role is not configured',
-            success: false,
-        }, { status: 500 });
+        const ws = await getWorkspaceOrThrow(request);
+        workspaceId = String(ws.workspaceId || '').trim();
+    } catch (e: any) {
+        if (e instanceof APIError) {
+            return NextResponse.json({ success: false, error: e.message || 'Missing x-org-id header' }, { status: e.status });
+        }
+        return NextResponse.json({ success: false, error: 'Missing x-org-id header' }, { status: 400 });
     }
 
     const testResults: Record<string, { success: boolean; error?: string; id?: string }> = {};
@@ -33,32 +28,24 @@ async function POSTHandler() {
     // Test 1: Create a test client
     try {
         const testClient = {
+            organizationId: workspaceId,
             name: 'Test Health Check',
-            company_name: 'Health Check Company',
-            contact_person: 'Test User',
+            companyName: 'Health Check Company',
+            contactPerson: 'Test User',
             email: 'test@healthcheck.local',
             phone: '050-0000000',
             package: 'Basic',
             status: 'Active',
             avatar: 'https://ui-avatars.com/api/?name=Test&background=6366f1&color=fff',
-            joined_at: new Date().toISOString(),
+            joinedAt: new Date(),
             source: 'health_check'
         };
 
-        const { data: clientData, error: clientError } = await supabase
-            .from('nexus_clients')
-            .insert(testClient)
-            .select()
-            .single();
+        const clientData = await prisma.nexusClient.create({ data: testClient as any });
+        testResults.clients = { success: true, id: String((clientData as any).id) };
 
-        if (clientError) {
-            testResults.clients = { success: false, error: clientError.message };
-        } else {
-            testResults.clients = { success: true, id: clientData.id };
-            
-            // Clean up - delete the test record
-            await supabase.from('nexus_clients').delete().eq('id', clientData.id);
-        }
+        // Clean up - delete the test record
+        await prisma.nexusClient.delete({ where: { id: (clientData as any).id } });
     } catch (error: any) {
         testResults.clients = { success: false, error: error.message };
     }
@@ -66,31 +53,23 @@ async function POSTHandler() {
     // Test 2: Create a test task
     try {
         const testTask = {
+            organizationId: workspaceId,
             title: 'Health Check Task',
             description: 'This is a test task for health check',
             status: 'pending',
             priority: 'Low',
-            assignee_id: null,
-            creator_id: null,
-            due_date: null,
+            assigneeId: null,
+            creatorId: null,
+            dueDate: null,
             tags: ['health_check'],
             messages: []
         };
 
-        const { data: taskData, error: taskError } = await supabase
-            .from('nexus_tasks')
-            .insert(testTask)
-            .select()
-            .single();
+        const taskData = await prisma.nexusTask.create({ data: testTask as any });
+        testResults.tasks = { success: true, id: String((taskData as any).id) };
 
-        if (taskError) {
-            testResults.tasks = { success: false, error: taskError.message };
-        } else {
-            testResults.tasks = { success: true, id: taskData.id };
-            
-            // Clean up - delete the test record
-            await supabase.from('nexus_tasks').delete().eq('id', taskData.id);
-        }
+        // Clean up - delete the test record
+        await prisma.nexusTask.delete({ where: { id: (taskData as any).id } });
     } catch (error: any) {
         testResults.tasks = { success: false, error: error.message };
     }

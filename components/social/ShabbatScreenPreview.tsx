@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Sparkles } from 'lucide-react';
 import { formatShabbatTime, formatCountdown, calculateShabbatTimes } from '@/lib/shabbat';
+import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const SHABBAT_MESSAGES = [
   "אנו מאמינים שמקור הברכה בפרנסה הוא דווקא יום המנוחה בשבת - רוגע ומרפא לנפש כדי שנוכל להתחיל שבוע מלא באנרגיות",
@@ -121,41 +122,25 @@ export default function ShabbatScreenPreview() {
     timeUntilEnd: shabbatTimes.shabbatEnd.getTime() - new Date().getTime(),
   };
   
-  const [currentMessage, setCurrentMessage] = useState(0);
-  const [countdown, setCountdown] = useState('');
+  const now = useSecondTicker(true);
 
-   const timeUntilEnd = useMemo(() => {
-     if (!previewTimes.isShabbat) return null;
-     if (previewTimes.timeUntilEnd <= 0) return null;
-     return formatCountdown(previewTimes.timeUntilEnd);
-   }, [previewTimes.isShabbat, previewTimes.timeUntilEnd]);
+  const timeUntilEnd = useMemo(() => {
+    if (!previewTimes.isShabbat) return null;
+    const msLeft = previewTimes.shabbatEnd.getTime() - now;
+    if (msLeft <= 0) return null;
+    return formatCountdown(msLeft);
+  }, [now, previewTimes.isShabbat, previewTimes.shabbatEnd]);
 
-  useEffect(() => {
-    // Rotate messages every 10 seconds
-    const messageInterval = setInterval(() => {
-      setCurrentMessage((prev) => (prev + 1) % SHABBAT_MESSAGES.length);
-    }, 10000);
+  const countdown = useMemo(() => {
+    const msLeft = previewTimes.shabbatEnd.getTime() - now;
+    if (msLeft <= 0) return '';
+    return formatCountdown(msLeft);
+  }, [now, previewTimes.shabbatEnd]);
 
-    // Update countdown every second
-    const countdownInterval = setInterval(() => {
-      const newTimes = calculateShabbatTimes();
-      const timeUntilEnd = newTimes.shabbatEnd.getTime() - new Date().getTime();
-      if (timeUntilEnd > 0) {
-        setCountdown(formatCountdown(timeUntilEnd));
-      }
-    }, 1000);
-
-    // Initial countdown
-    const timeUntilEnd = previewTimes.shabbatEnd.getTime() - new Date().getTime();
-    if (timeUntilEnd > 0) {
-      setCountdown(formatCountdown(timeUntilEnd));
-    }
-
-    return () => {
-      clearInterval(messageInterval);
-      clearInterval(countdownInterval);
-    };
-  }, []);
+  const currentMessage = useMemo(() => {
+    const idx = Math.floor(now / 10_000) % SHABBAT_MESSAGES.length;
+    return idx;
+  }, [now]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#05060B] via-[#0B1022] to-[#05060B] text-[#F8F1D6]" dir="rtl">

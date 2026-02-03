@@ -5,6 +5,8 @@ import { PRIORITY_COLORS, PRIORITY_LABELS, STATUS_COLORS as DEFAULT_STATUS_COLOR
 import { CheckCircle2, Circle, AlertCircle, SignalHigh, SignalMedium, SignalLow, CalendarDays, User as UserIcon, Clock, Play, Pause, Mic, Target, MoreHorizontal } from 'lucide-react';
 import { useData } from '../../context/DataContext';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useSecondTicker } from '../../hooks/useSecondTicker';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface TaskItemProps {
   task: Task;
@@ -38,9 +40,33 @@ const formatTime = (seconds: number) => {
     return `${m} דק׳`;
 };
 
+const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
+  const base = Number(task.timeSpent ?? 0) || 0;
+  if (!task.isTimerRunning) return base;
+  if (typeof window === 'undefined') return base;
+
+  const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+  if (!orgSlug) return base;
+
+  try {
+    const raw = window.sessionStorage.getItem(`nexus_task_timers_v1:${orgSlug}`);
+    if (!raw) return base;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return base;
+    const startedAt = (parsed as Record<string, unknown>)[String(task.id)];
+    if (typeof startedAt !== 'number' || !Number.isFinite(startedAt) || startedAt <= 0) return base;
+    const deltaSeconds = Math.floor(Math.max(0, nowMs - startedAt) / 1000);
+    return base + deltaSeconds;
+  } catch {
+    return base;
+  }
+};
+
 export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick, toggleTimer: toggleTimerProp }) => {
   const { toggleTimer: contextToggleTimer, workflowStages } = useData();
   const toggleTimer = toggleTimerProp || contextToggleTimer;
+  const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
+  const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
   const isExplicitlyUnassigned = (task as any).assigneeId === null;
   const effectiveAssigneeIds: string[] = (() => {
     if (Array.isArray(task.assigneeIds) && task.assigneeIds.length > 0) return task.assigneeIds.map(String);
@@ -182,7 +208,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({ task, users, onClick, toggle
       <div className="flex items-center justify-between md:justify-end gap-6 mt-2 md:mt-0 md:w-auto">
         <div className="flex items-center gap-3 min-w-[100px] justify-end">
             <div className={`text-xs font-medium font-mono ${task.isTimerRunning ? 'text-green-600 font-bold' : 'text-gray-400'}`}>
-                {formatTime(task.timeSpent || 0)}
+                {formatTime(liveTimeSpent || 0)}
             </div>
             <button 
                 type="button"

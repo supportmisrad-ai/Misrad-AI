@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Task, Notification } from '../types';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommandPalette from './CommandPalette';
 import { useData } from '../context/DataContext';
-import { getNexusBasePath, toNexusPath, getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { getNexusBasePath, toNexusPath, getWorkspaceOrgSlugFromPathname, useNexusSoloMode } from '@/lib/os/nexus-routing';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { listNexusTasks } from '@/app/actions/nexus';
 import { ToastContainer } from './ToastContainer';
@@ -34,57 +34,61 @@ export const Layout = ({ children }: LayoutProps) => {
   const basePath: string = getNexusBasePath(pathname);
   const moduleDef = useMemo(() => getModuleDefinition('nexus'), []);
   const location = useMemo(() => ({ pathname: pathname || '/' }) as any, [pathname]);
-  const navigate = (path: string) => {
-    const raw = String(path || '/');
-    const [rawPath, rawQuery] = raw.split('?');
-    const query = new URLSearchParams(rawQuery || '');
-
-    const from = pathname || toNexusPath(basePath, '/');
-
-    // Normalize Nexus profile/settings navigation so the unified hub can provide
-    // correct back behavior without changing every call site.
-    if (rawPath === '/settings') {
-      if (!query.has('origin')) query.set('origin', 'nexus');
-      if (!query.has('drawer')) query.set('drawer', 'ai');
-      if (!query.has('from')) query.set('from', from);
-    }
-
-    if (rawPath === '/me' && systemIdentity?.needsProfileCompletion && !query.has('edit')) {
-      query.set('edit', 'profile');
-    }
-
-    const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
-
-    if (finalPath === '/operations') {
-      const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
-      if (workspaceOrgSlug) {
-        router.push(`/w/${encodeURIComponent(workspaceOrgSlug)}/operations`);
-        return;
-      }
-    }
-
-    const target = toNexusPath(basePath, finalPath);
-    router.push(target);
-  };
   const mainScrollRef = useRef<HTMLElement>(null);
-  const { showMorningBrief, setShowMorningBrief, notifications, lastDeletedTask, undoDelete, currentUser, isCreateTaskOpen, openCreateTask, closeCreateTask, incomingCall, dismissCall, toasts, removeToast, openedTaskId, closeTask, tasks, hasPermission, setCommandPaletteOpen, isCommandPaletteOpen, organization, taskToComplete, isSupportModalOpen, openSupport, activeCelebration, startTutorial, leads } = useData();
+  const { showMorningBrief, setShowMorningBrief, notifications, lastDeletedTask, undoDelete, currentUser, users, isCreateTaskOpen, openCreateTask, closeCreateTask, incomingCall, dismissCall, toasts, removeToast, openedTaskId, closeTask, tasks, hasPermission, setCommandPaletteOpen, isCommandPaletteOpen, organization, taskToComplete, isSupportModalOpen, openSupport, activeCelebration, startTutorial, leads } = useData();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isVoiceRecorderOpen, setIsVoiceRecorderOpen] = useState(false);
-  const notificationsInFlightRef = useRef(false);
-  const notificationsFailureCountRef = useRef(0);
+  const urgentLeavePushShownRef = useRef<Set<string>>(new Set());
   
   const [isPlusMenuOpen, setIsPlusMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState<string>('טוען...');
   const [isMounted, setIsMounted] = useState(false);
   const orgSlug = useMemo(() => getWorkspaceOrgSlugFromPathname(pathname || ''), [pathname]);
+  const { isSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
 
-  const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
+  const { identity: workspaceSystemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
     name: (currentUser as any)?.name ?? null,
     role: (currentUser as any)?.role ?? null,
     avatarUrl: (currentUser as any)?.avatar ?? null,
   });
+
+  const navigate = useCallback(
+    (path: string) => {
+      const raw = String(path || '/');
+      const [rawPath, rawQuery] = raw.split('?');
+      const query = new URLSearchParams(rawQuery || '');
+
+      const from = pathname || toNexusPath(basePath, '/');
+
+      // Normalize Nexus profile/settings navigation so the unified hub can provide
+      // correct back behavior without changing every call site.
+      if (rawPath === '/settings') {
+        if (!query.has('origin')) query.set('origin', 'nexus');
+        if (!query.has('drawer')) query.set('drawer', 'ai');
+        if (!query.has('from')) query.set('from', from);
+      }
+
+      if (rawPath === '/me' && workspaceSystemIdentity?.needsProfileCompletion && !query.has('edit')) {
+        query.set('edit', 'profile');
+      }
+
+      const finalPath = query.toString() ? `${rawPath}?${query.toString()}` : rawPath;
+
+      if (finalPath === '/operations') {
+        const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
+        if (workspaceOrgSlug) {
+          router.push(`/w/${encodeURIComponent(workspaceOrgSlug)}/operations`);
+          return;
+        }
+      }
+
+      const target = toNexusPath(basePath, finalPath);
+      router.push(target);
+    },
+    [basePath, pathname, router, workspaceSystemIdentity?.needsProfileCompletion]
+  );
 
   const allowMorningBrief = useMemo(() => {
     // Only on Nexus home dashboard
@@ -158,77 +162,38 @@ export const Layout = ({ children }: LayoutProps) => {
       };
   }, []);
 
-  // Request notification permission and load notifications from DB
   useEffect(() => {
       if (typeof window === 'undefined' || typeof document === 'undefined' || !currentUser?.id) return;
 
-      // If the API is failing repeatedly, stop polling to avoid spamming Vercel.
-      if (notificationsFailureCountRef.current >= 3) return;
-
-      // Request notification permission
+      // Ask once per session; actual polling happens in useNotifications (DataContext)
       requestNotificationPermission();
-
-      // Load notifications from database
-      const controller = new AbortController();
-      const loadNotifications = async () => {
-          if (controller.signal.aborted) return;
-          if (notificationsInFlightRef.current) return;
-          notificationsInFlightRef.current = true;
-          try {
-              const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
-              const response = await fetch('/api/notifications', {
-                signal: controller.signal,
-                headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
-              });
-              if (response.ok) {
-                  const data = await response.json();
-                  const userNotifications = data.notifications || [];
-                  notificationsFailureCountRef.current = 0;
-                  
-                  // Check for urgent leave requests and show push notification
-                  userNotifications.forEach((notif: any) => {
-                      if (notif.type === 'leave_request' && 
-                          notif.metadata?.isUrgent && 
-                          notif.metadata?.requiresPushNotification &&
-                          !notif.is_read) {
-                          const metadata = notif.metadata;
-                          showUrgentLeaveRequestNotification(
-                              metadata.employeeName || 'עובד',
-                              metadata.leaveType || 'other',
-                              metadata.startDate || '',
-                              metadata.endDate || ''
-                          );
-                      }
-                  });
-              }
-          } catch (error: any) {
-              if (controller.signal.aborted) return;
-              if (error?.name === 'AbortError') return;
-              if (String(error?.message || '').toLowerCase().includes('aborted')) return;
-              // Silently handle network errors - don't spam console
-              if (error?.name !== 'TypeError' || !error?.message?.includes('fetch')) {
-              console.error('[Layout] Error loading notifications:', error);
-              }
-              notificationsFailureCountRef.current += 1;
-          }
-          finally {
-              notificationsInFlightRef.current = false;
-          }
-      };
-
-      loadNotifications();
-      
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(loadNotifications, 30000);
-      return () => {
-        try {
-          controller.abort();
-        } catch {
-          // ignore
-        }
-        clearInterval(interval);
-      };
   }, [currentUser?.id]);
+
+  useEffect(() => {
+      if (typeof window === 'undefined' || typeof document === 'undefined' || !currentUser?.id) return;
+      if (!Array.isArray(notifications) || notifications.length === 0) return;
+
+      notifications.forEach((notif) => {
+          if (notif.serverType !== 'leave_request') return;
+          const metadata = notif.metadata as Record<string, unknown> | undefined;
+          if (!metadata) return;
+
+          if (!metadata.isUrgent) return;
+          if (!metadata.requiresPushNotification) return;
+          if (notif.read) return;
+
+          const key = String(notif.id);
+          if (urgentLeavePushShownRef.current.has(key)) return;
+          urgentLeavePushShownRef.current.add(key);
+
+          showUrgentLeaveRequestNotification(
+              typeof metadata.employeeName === 'string' ? metadata.employeeName : 'עובד',
+              typeof metadata.leaveType === 'string' ? metadata.leaveType : 'other',
+              typeof metadata.startDate === 'string' ? metadata.startDate : '',
+              typeof metadata.endDate === 'string' ? metadata.endDate : ''
+          );
+      });
+  }, [currentUser?.id, notifications]);
 
   // Celebration Effect
   useEffect(() => {
@@ -292,13 +257,16 @@ export const Layout = ({ children }: LayoutProps) => {
       };
   }, [currentUser?.isSuperAdmin, router, setCommandPaletteOpen]);
 
-  const isActive = (path: string) => {
-    if (path === '/operations') {
-      if (!orgSlug) return false;
-      return location.pathname === `/w/${encodeURIComponent(orgSlug)}/operations`;
-    }
-    return location.pathname === toNexusPath(basePath, path);
-  };
+  const isActive = useCallback(
+    (path: string) => {
+      if (path === '/operations') {
+        if (!orgSlug) return false;
+        return location.pathname === `/w/${encodeURIComponent(orgSlug)}/operations`;
+      }
+      return location.pathname === toNexusPath(basePath, path);
+    },
+    [basePath, location.pathname, orgSlug]
+  );
   
   // Filter notifications for current user only
   const hasUnread = notifications
@@ -309,11 +277,11 @@ export const Layout = ({ children }: LayoutProps) => {
     const base: any = currentUser || { name: 'משתמש', role: '' };
     return {
       ...base,
-      name: systemIdentity?.name || base.name || 'משתמש',
-      role: systemIdentity?.role || base.role || '',
-      avatar: systemIdentity?.avatarUrl || base.avatar || '',
+      name: workspaceSystemIdentity?.name || base.name || 'משתמש',
+      role: workspaceSystemIdentity?.role || base.role || '',
+      avatar: workspaceSystemIdentity?.avatarUrl || base.avatar || '',
     };
-  }, [currentUser, systemIdentity?.avatarUrl, systemIdentity?.name, systemIdentity?.role]);
+  }, [currentUser, workspaceSystemIdentity?.avatarUrl, workspaceSystemIdentity?.name, workspaceSystemIdentity?.role]);
 
   const togglePlusMenu = () => { setIsMobileMenuOpen(false); setIsPlusMenuOpen(!isPlusMenuOpen); };
   const toggleMobileMenu = () => { setIsPlusMenuOpen(false); setIsMobileMenuOpen(!isMobileMenuOpen); };
@@ -328,7 +296,13 @@ export const Layout = ({ children }: LayoutProps) => {
     }
   };
   const handleTaskClick = () => { setIsPlusMenuOpen(false); openCreateTask(); };
-  const handleNavClick = (path: string) => { setIsMobileMenuOpen(false); navigate(path); };
+  const handleNavClick = useCallback(
+    (path: string) => {
+      setIsMobileMenuOpen(false);
+      navigate(path);
+    },
+    [navigate]
+  );
 
   // Get task from tasks array, or fetch from API if not found
   const [currentOpenedTask, setCurrentOpenedTask] = useState<Task | null>(null);
@@ -397,6 +371,8 @@ export const Layout = ({ children }: LayoutProps) => {
   // IMPORTANT: Filter Nav Items based on Permissions AND Enabled Modules AND System Flags
   const filteredNavItems = useMemo(() => {
     return NAV_ITEMS.filter(item => {
+        if (isSoloMode && item.path === '/team') return false;
+
         // 0. Check System Flags (Global Override)
         if (item.screenId) {
             const flag = organization.systemFlags?.[item.screenId];
@@ -419,7 +395,7 @@ export const Layout = ({ children }: LayoutProps) => {
             default: return true; 
         }
     });
-  }, [hasPermission, organization.enabledModules, organization.systemFlags]);
+  }, [hasPermission, organization.enabledModules, organization.systemFlags, isSoloMode]);
 
   // Allow opening Voice Recorder from any main-content component without prop drilling.
   // Trigger: window.dispatchEvent(new CustomEvent('nexus:open-voice-recorder'))
@@ -464,12 +440,12 @@ export const Layout = ({ children }: LayoutProps) => {
   // Command Palette handlers
   const commandPaletteNavItems = useMemo(
     () =>
-      NAV_ITEMS.map((item) => ({
+      filteredNavItems.map((item) => ({
         id: item.path,
         label: item.label,
         icon: item.icon,
       })),
-    []
+    [filteredNavItems]
   );
 
   const handleNavigate = (href: string) => {
@@ -513,6 +489,7 @@ export const Layout = ({ children }: LayoutProps) => {
           onSelectLead={handleSelectLead}
           leads={[]}
           navItems={commandPaletteNavItems}
+          moduleKey={moduleDef.key}
           hideLeads
           hideAssets
         />
@@ -601,6 +578,7 @@ export const Layout = ({ children }: LayoutProps) => {
             openSupport={openSupport}
             startTutorial={startTutorial}
             navigate={navigate}
+            plusGradient={moduleDef.theme.gradient}
           />
         )}
       </main>

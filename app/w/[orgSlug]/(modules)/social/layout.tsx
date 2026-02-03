@@ -7,7 +7,6 @@ import SocialShell from '@/components/social/SocialShell';
 import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/services/social-service';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
-import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -65,7 +64,6 @@ export default async function SocialModuleLayout({
         >
           {children}
         </SocialShell>
-        <RouteVideoHelp />
       </div>
     </div>
   );

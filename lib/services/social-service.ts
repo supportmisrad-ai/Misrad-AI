@@ -232,21 +232,42 @@ export async function getSocialActivity(params: { orgSlug: string; limit?: numbe
 }
 
 async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: string }) {
-  const rows = await prisma.social_tasks.findMany({
-    where: { organizationId: params.organizationId },
-    select: {
-      id: true,
-      client_id: true,
-      assigned_to: true,
-      title: true,
-      description: true,
-      due_date: true,
-      priority: true,
-      status: true,
-      type: true,
-    },
-    orderBy: { due_date: 'asc' },
-  });
+  let rows:
+    | {
+        id: string;
+        client_id: string | null;
+        assigned_to: string | null;
+        title: string;
+        description: string | null;
+        due_date: Date;
+        priority: string | null;
+        status: string | null;
+        type: string | null;
+      }[]
+    | null = null;
+  try {
+    rows = await prisma.social_tasks.findMany({
+      where: { organizationId: params.organizationId },
+      select: {
+        id: true,
+        client_id: true,
+        assigned_to: true,
+        title: true,
+        description: true,
+        due_date: true,
+        priority: true,
+        status: true,
+        type: true,
+      },
+      orderBy: { due_date: 'asc' },
+    });
+  } catch (error: unknown) {
+    const message = String((error as any)?.message || '');
+    if (message.includes('social_tasks.organization_id') && message.toLowerCase().includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 
   return (rows || []).map((task): SocialTask => ({
     id: String(task.id),
@@ -262,21 +283,42 @@ async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: s
 }
 
 async function getSocialConversationsForOrg(params: { orgSlug: string; organizationId: string }) {
-  const rows = await prisma.social_conversations.findMany({
-    where: { organizationId: params.organizationId },
-    select: {
-      id: true,
-      client_id: true,
-      platform: true,
-      user_name: true,
-      user_avatar: true,
-      last_message: true,
-      unread_count: true,
-      created_at: true,
-      updated_at: true,
-    },
-    orderBy: { updated_at: 'desc' },
-  });
+  let rows:
+    | {
+        id: string;
+        client_id: string;
+        platform: unknown;
+        user_name: string | null;
+        user_avatar: string | null;
+        last_message: string | null;
+        unread_count: number | null;
+        created_at: Date | null;
+        updated_at: Date | null;
+      }[]
+    | null = null;
+  try {
+    rows = await prisma.social_conversations.findMany({
+      where: { organizationId: params.organizationId },
+      select: {
+        id: true,
+        client_id: true,
+        platform: true,
+        user_name: true,
+        user_avatar: true,
+        last_message: true,
+        unread_count: true,
+        created_at: true,
+        updated_at: true,
+      },
+      orderBy: { updated_at: 'desc' },
+    });
+  } catch (error: unknown) {
+    const message = String((error as any)?.message || '');
+    if (message.includes('social_conversations.organization_id') && message.toLowerCase().includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 
   return (rows || []).map((conv): Conversation => ({
     id: String(conv.id),
@@ -292,11 +334,30 @@ async function getSocialConversationsForOrg(params: { orgSlug: string; organizat
 }
 
 async function getSocialClientRequestsForOrg(params: { organizationId: string }) {
-  const rows = await prisma.social_client_requests.findMany({
-    where: { organizationId: params.organizationId },
-    select: { id: true, client_id: true, type: true, content: true, media_url: true, status: true, created_at: true },
-    orderBy: { created_at: 'desc' },
-  });
+  let rows:
+    | {
+        id: string;
+        client_id: string;
+        type: unknown;
+        content: string | null;
+        media_url: string | null;
+        status: unknown;
+        created_at: Date | null;
+      }[]
+    | null = null;
+  try {
+    rows = await prisma.social_client_requests.findMany({
+      where: { organizationId: params.organizationId },
+      select: { id: true, client_id: true, type: true, content: true, media_url: true, status: true, created_at: true },
+      orderBy: { created_at: 'desc' },
+    });
+  } catch (error: unknown) {
+    const message = String((error as any)?.message || '');
+    if (message.includes('social_client_requests.organization_id') && message.toLowerCase().includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 
   return (rows || []).map((req): ClientRequest => ({
     id: String(req.id),
@@ -310,20 +371,40 @@ async function getSocialClientRequestsForOrg(params: { organizationId: string })
 }
 
 async function getSocialManagerRequestsForOrg(params: { organizationId: string }) {
-  const rows = await prisma.social_manager_requests.findMany({
-    where: { organizationId: params.organizationId },
-    select: {
-      id: true,
-      client_id: true,
-      title: true,
-      description: true,
-      type: true,
-      status: true,
-      feedback_from_client: true,
-      created_at: true,
-    },
-    orderBy: { created_at: 'desc' },
-  });
+  let rows:
+    | {
+        id: string;
+        client_id: string;
+        title: string | null;
+        description: string | null;
+        type: unknown;
+        status: unknown;
+        feedback_from_client: string | null;
+        created_at: Date | null;
+      }[]
+    | null = null;
+  try {
+    rows = await prisma.social_manager_requests.findMany({
+      where: { organizationId: params.organizationId },
+      select: {
+        id: true,
+        client_id: true,
+        title: true,
+        description: true,
+        type: true,
+        status: true,
+        feedback_from_client: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  } catch (error: unknown) {
+    const message = String((error as any)?.message || '');
+    if (message.includes('social_manager_requests.organization_id') && message.toLowerCase().includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 
   return (rows || []).map((req): ManagerRequest => ({
     id: String(req.id),
@@ -338,11 +419,27 @@ async function getSocialManagerRequestsForOrg(params: { organizationId: string }
 }
 
 async function getSocialIdeasForOrg(params: { organizationId: string }) {
-  const rows = await prisma.social_ideas.findMany({
-    where: { organizationId: params.organizationId },
-    select: { id: true, client_id: true, text: true, created_at: true },
-    orderBy: { created_at: 'desc' },
-  });
+  let rows:
+    | {
+        id: string;
+        client_id: string;
+        text: string | null;
+        created_at: Date | null;
+      }[]
+    | null = null;
+  try {
+    rows = await prisma.social_ideas.findMany({
+      where: { organizationId: params.organizationId },
+      select: { id: true, client_id: true, text: true, created_at: true },
+      orderBy: { created_at: 'desc' },
+    });
+  } catch (error: unknown) {
+    const message = String((error as any)?.message || '');
+    if (message.includes('social_ideas.organization_id') && message.toLowerCase().includes('does not exist')) {
+      return [];
+    }
+    throw error;
+  }
 
   return (rows || []).map((idea): Idea => ({
     id: String(idea.id),

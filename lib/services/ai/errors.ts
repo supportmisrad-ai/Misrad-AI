@@ -18,7 +18,7 @@ export class AIProviderError extends Error {
     this.provider = params.provider;
     this.status = params.status;
     if (params.cause) {
-      (this as any).cause = params.cause;
+      (this as unknown as { cause?: unknown }).cause = params.cause;
     }
   }
 }

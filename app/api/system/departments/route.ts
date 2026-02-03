@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -19,9 +19,21 @@ type DepartmentHistory = {
   changedBy: string;
 };
 
-function readAiDnaObject(input: any): Record<string, any> {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
-  return input as Record<string, any>;
+function asObject(input: unknown): Record<string, unknown> | null {
+  if (!input || typeof input !== 'object') return null;
+  if (Array.isArray(input)) return null;
+  return input as Record<string, unknown>;
+}
+
+function readAiDnaObject(input: unknown): Record<string, unknown> {
+  return asObject(input) ?? {};
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
 }
 
 async function GETHandler(request: NextRequest) {
@@ -32,19 +44,13 @@ async function GETHandler(request: NextRequest) {
     await getAuthenticatedUser();
 
     const { workspace } = await getWorkspaceOrThrow(request);
-    const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', workspace.id)
-      .maybeSingle();
+    const data = await prisma.organization_settings.findUnique({
+      where: { organization_id: String(workspace.id) },
+      select: { ai_dna: true },
+    });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const aiDna = readAiDnaObject((data as any)?.ai_dna);
+    const aiDna = readAiDnaObject(data?.ai_dna);
 
     const departments = Array.isArray(aiDna?.[FLAG_KEY_DEPARTMENTS]) ? aiDna[FLAG_KEY_DEPARTMENTS] : [];
     const history = Array.isArray(aiDna?.[FLAG_KEY_DEPARTMENT_HISTORY]) ? aiDna[FLAG_KEY_DEPARTMENT_HISTORY] : [];
@@ -57,11 +63,11 @@ async function GETHandler(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }
-    return NextResponse.json({ error: e?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) || 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -83,38 +89,29 @@ async function PATCHHandler(request: NextRequest) {
     const departments = Array.isArray(body?.departments) ? body?.departments : undefined;
     const history = Array.isArray(body?.history) ? body?.history : undefined;
 
-    const supabase = createClient();
-    const { data: existing, error: existingError } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', workspace.id)
-      .maybeSingle();
+    const existing = await prisma.organization_settings.findUnique({
+      where: { organization_id: String(workspace.id) },
+      select: { ai_dna: true },
+    });
 
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 });
-    }
-
-    const currentAiDna = readAiDnaObject((existing as any)?.ai_dna);
-    const nextAiDna: any = { ...currentAiDna };
+    const currentAiDna = readAiDnaObject(existing?.ai_dna);
+    const nextAiDna: Record<string, unknown> = { ...currentAiDna };
 
     if (departments !== undefined) nextAiDna[FLAG_KEY_DEPARTMENTS] = departments;
     if (history !== undefined) nextAiDna[FLAG_KEY_DEPARTMENT_HISTORY] = history.slice(0, 200);
 
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from('organization_settings')
-      .upsert(
-        {
-          organization_id: workspace.id,
-          ai_dna: nextAiDna,
-          updated_at: now,
-        } as any,
-        { onConflict: 'organization_id' }
-      );
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    await prisma.organization_settings.upsert({
+      where: { organization_id: String(workspace.id) },
+      create: {
+        organization_id: String(workspace.id),
+        ai_dna: nextAiDna as any,
+        updated_at: new Date(),
+      },
+      update: {
+        ai_dna: nextAiDna as any,
+        updated_at: new Date(),
+      },
+    });
 
     return NextResponse.json(
       {
@@ -125,8 +122,8 @@ async function PATCHHandler(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (e: any) {
-    const msg = e?.message || 'Forbidden';
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e) || 'Forbidden';
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }

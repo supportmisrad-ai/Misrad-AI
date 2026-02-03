@@ -7,7 +7,7 @@
 
 import { useState, useCallback } from 'react';
 import { useData } from '../context/DataContext';
-import { Task, Client, Tenant, RoleDefinition, User } from '../types';
+import { Toast, Task, Client, Tenant, RoleDefinition, User } from '../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import {
     createNexusTask,
@@ -42,7 +42,7 @@ function getApiErrorMessage(payload: unknown, raw: unknown, fallback: string): s
 /**
  * Handle 401 errors by redirecting to login
  */
-const handleUnauthorized = (message: string, addToast?: (message: string, type?: unknown) => void) => {
+const handleUnauthorized = (message: string, addToast?: (message: string, type?: Toast['type']) => void) => {
     // Show toast first if available
     if (addToast) {
         addToast('הסשן פג תוקף - מפנה להתחברות מחדש...', 'error');
@@ -86,8 +86,8 @@ export function useSecureAPI() {
         const userObj = asObject(currentUser) ?? {};
 
         const fallbackFromUser =
-            userObj.tenantId ??
             userObj.organizationId ??
+            userObj.tenantId ??
             userObj.organization_id ??
             null;
 
@@ -98,7 +98,7 @@ export function useSecureAPI() {
         const orgSlug = orgSlugOverride ?? getOrgSlugFromBrowser();
         const headers = new Headers(init?.headers || undefined);
         if (orgSlug && !headers.has('x-org-id')) {
-            headers.set('x-org-id', orgSlug);
+            headers.set('x-org-id', encodeURIComponent(orgSlug));
         }
         return fetch(input, { ...init, headers });
     }, [getOrgSlugFromBrowser]);

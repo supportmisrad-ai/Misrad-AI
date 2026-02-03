@@ -13,7 +13,8 @@ export async function countOrganizationActiveUsers(organizationId: string): Prom
       },
     });
     return Number(count || 0);
-  } catch (e: any) {
-    throw new Error(e?.message || 'Failed to count active users');
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : '';
+    throw new Error(message || 'Failed to count active users');
   }
 }

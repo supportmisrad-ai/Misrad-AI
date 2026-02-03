@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Sparkles, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
+import { LogOut, LayoutGrid, Menu, X, Zap, Search, CalendarDays, PhoneCall, Coffee, Megaphone, UserPlus, Kanban, ClipboardList, Map, Bot, Target, Webhook, Settings, Users, ChartBar, Bell, ChevronDown, Home, Briefcase, Plus, MoreHorizontal, Terminal, Activity, Cpu, Server, ChevronRight, User, FileText, CreditCard, Play, Phone, ShieldCheck, HeartPulse } from 'lucide-react';
 import { Lead, PipelineStage, Activity as LeadActivity, WebhookLog, CalendarEvent, Task, ContentItem, Student, HandoverData, Campaign, Invoice } from '../types';
 import { NAV_ITEMS, NAV_GROUPS, INITIAL_LEADS, INITIAL_CAMPAIGNS, INITIAL_AGENTS, INITIAL_TASKS, INITIAL_CONTENT, INITIAL_STUDENTS, INITIAL_INVOICES } from '../constants';
+
 import LeadModal from './system/LeadModal';
 import NewLeadModal from './system/NewLeadModal';
 import HandoverDialog from './system/HandoverDialog';
@@ -347,18 +348,6 @@ const SystemOSApp = () => {
               </ErrorBoundary>
           </div>
       </main>
-
-      {/* Proactive AI Pilot Button - Floating */}
-      <motion.button 
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => setIsCommandPaletteOpen(true)}
-        className="fixed bottom-32 right-6 z-[60] w-14 h-14 bg-white text-indigo-600 rounded-full shadow-2xl flex items-center justify-center border-2 border-indigo-100 hover:border-indigo-400 transition-all group"
-        aria-label="פתח עוזר חכם"
-      >
-          <div className="absolute inset-0 bg-indigo-500/10 rounded-full animate-ping group-hover:hidden"></div>
-          <Sparkles size={24} className="group-hover:opacity-80" />
-      </motion.button>
 
       {/* Mobile Bottom Navigation - Rounded Icons */}
       <MobileBottomNav

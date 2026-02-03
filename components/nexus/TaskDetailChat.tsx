@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Task, User } from '../../types';
 import { Send, Paperclip, Mic, MessageSquare, Play, X, Check, CheckCheck, Trash2, Edit2, ChevronDown, FileText, Download, Copy } from 'lucide-react';
@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeletons';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { isAdminRole } from '@/lib/constants/roles';
+import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 interface TaskDetailChatProps {
     task: Task;
@@ -38,13 +39,21 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [isRecordingComment, setIsRecordingComment] = useState(false);
     const [isTranscribing, setIsTranscribing] = useState(false);
-    const [recordingDuration, setRecordingDuration] = useState(0);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
-    const recordingInterval = useRef<number | null>(null);
+    const recordingStartedAtMsRef = useRef<number | null>(null);
+    const transcribeInFlightRef = useRef(false);
+
+    const now = useSecondTicker(isRecordingComment);
+    const recordingDurationSeconds = useMemo(() => {
+        const startedAt = recordingStartedAtMsRef.current;
+        if (!startedAt) return 0;
+        const delta = Math.floor(Math.max(0, now - startedAt) / 1000);
+        return delta;
+    }, [now]);
 
     const roleStr = String(currentUser.role || '');
     const isManager = roleStr.includes('מנכ') || roleStr.includes('סמנכ') || isAdminRole(roleStr);
@@ -160,10 +169,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
 
             mediaRecorderRef.current.start();
             setIsRecordingComment(true);
-            setRecordingDuration(0);
-            recordingInterval.current = window.setInterval(() => {
-                setRecordingDuration(prev => prev + 1);
-            }, 1000);
+            recordingStartedAtMsRef.current = Date.now();
         } catch (err) {
             console.error("Microphone access denied", err);
             alert("לא ניתן לגשת למיקרופון. אנא בדוק הרשאות דפדפן.");
@@ -174,30 +180,53 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
         if (mediaRecorderRef.current && isRecordingComment) {
             mediaRecorderRef.current.stop();
             mediaRecorderRef.current.onstop = async () => {
-                if (recordingInterval.current) clearInterval(recordingInterval.current);
                 setIsRecordingComment(false);
+                recordingStartedAtMsRef.current = null;
                 setIsTranscribing(true);
 
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 
                 try {
-                    // Marketing-safe: no client-side transcription.
-                    // Save the recording as a voice note placeholder and let server-side transcription be added post-launch.
-                    setTimeout(() => {
+                    if (!orgSlug) {
                         setMessageText(prev => prev + (prev ? ' ' : '') + '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]');
                         setIsTranscribing(false);
-                    }, 600);
-                    void audioBlob;
+                        return;
+                    }
+
+                    if (transcribeInFlightRef.current) return;
+                    transcribeInFlightRef.current = true;
+
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'recording.webm');
+
+                    const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/ai/transcribe`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const json = await res.json().catch(() => null as any);
+                    if (!res.ok || !json?.success) {
+                        throw new Error(String(json?.error || 'Transcription failed'));
+                    }
+
+                    const transcriptText = String(json?.data?.transcriptText || '').trim();
+                    if (transcriptText) {
+                        setMessageText(prev => prev + (prev ? ' ' : '') + transcriptText);
+                    } else {
+                        setMessageText(prev => prev + (prev ? ' ' : '') + '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]');
+                    }
+
+                    setIsTranscribing(false);
                 } catch (e) {
                     console.error("Transcription failed", e);
-                    alert("שגיאה בתמלול ההודעה.");
+                    setMessageText(prev => prev + (prev ? ' ' : '') + '🎤 [הודעה קולית נשמרה - תמלול יתווסף בהמשך]');
                     setIsTranscribing(false);
                 } finally {
+                    transcribeInFlightRef.current = false;
                     mediaRecorderRef.current?.stream.getTracks().forEach(t => t.stop());
                 }
             };
         } else {
-            if (recordingInterval.current) clearInterval(recordingInterval.current);
             setIsRecordingComment(false);
         }
     };
@@ -207,9 +236,8 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
             mediaRecorderRef.current.stop();
             mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
         }
-        if (recordingInterval.current) clearInterval(recordingInterval.current);
         setIsRecordingComment(false);
-        setRecordingDuration(0);
+        recordingStartedAtMsRef.current = null;
     };
 
     const formatDuration = (seconds: number) => {
@@ -393,7 +421,7 @@ export const TaskDetailChat: React.FC<TaskDetailChatProps> = ({ task, activeTab 
                     <div className="flex items-center gap-2">
                         <div className="flex-1 bg-white text-red-600 rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm border border-red-100">
                             <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
-                            <span className="font-mono font-bold text-sm">{formatDuration(recordingDuration)}</span>
+                            <span className="font-mono font-bold text-sm">{formatDuration(recordingDurationSeconds)}</span>
                         </div>
                         <button onClick={stopAndTranscribe} className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors shadow-sm"><Check size={20} /></button>
                         <button onClick={cancelRecording} className="p-3 bg-white text-gray-600 rounded-full hover:bg-gray-100 transition-colors shadow-sm"><X size={20} /></button>

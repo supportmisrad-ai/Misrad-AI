@@ -1,14 +1,12 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import {
+  enforceModuleAccessOrRedirect,
   persistCurrentUserLastLocation,
-  requireWorkspaceAccessByOrgSlugUi,
 } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import OperationsShell from '@/components/operations/OperationsShell';
-import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -23,12 +21,9 @@ export default async function OperationsModuleLayout({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
-  if (!workspace.entitlements.operations) {
-    redirect(`/w/${encodeURIComponent(orgSlug)}/no-access?module=${encodeURIComponent('operations')}`);
-  }
-
-  persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
+  const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });
+  const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'operations' }).catch(() => undefined);
+  await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);
 
   const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
   const def = getModuleDefinition('operations');
@@ -58,7 +53,6 @@ export default async function OperationsModuleLayout({
       >
         {children}
       </OperationsShell>
-      <RouteVideoHelp />
     </div>
   );
 }

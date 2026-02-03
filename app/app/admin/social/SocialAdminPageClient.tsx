@@ -84,7 +84,9 @@ export default function SocialAdminPageClient() {
     if (selectedTenantId) return;
     const first = tenantOptions[0];
     if (first?.id) {
-      setSelectedTenantId(String(first.id));
+      const nextId = String(first.id);
+      const t = setTimeout(() => setSelectedTenantId(nextId), 0);
+      return () => clearTimeout(t);
     }
   }, [selectedTenantId, tenantOptions]);
 
@@ -126,7 +128,7 @@ export default function SocialAdminPageClient() {
                 ) : (
                   tenantOptions.map((t: any) => (
                     <option key={t.id} value={String(t.id)}>
-                      {t.name || t.slug || t.id}
+                      {t.name || t.subdomain || t.id}
                     </option>
                   ))
                 )}
@@ -145,7 +147,7 @@ export default function SocialAdminPageClient() {
                 <div className="text-lg font-black text-slate-900 mb-1">סטטוס כללי</div>
                 <div className="text-sm text-slate-600">
                   {selectedTenant
-                    ? `טננט נבחר: ${selectedTenant.name || selectedTenant.slug || selectedTenant.id}`
+                    ? `טננט נבחר: ${selectedTenant.name || selectedTenant.subdomain || selectedTenant.id}`
                     : 'בחר טננט כדי לצפות בנתונים'}
                 </div>
               </div>

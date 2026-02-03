@@ -7,6 +7,11 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
 import { sendOrganizationWelcomeEmail } from '@/lib/email';
 
+type SocialOrganizationsCreateData = Parameters<typeof prisma.social_organizations.create>[0]['data'];
+type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.social_organizations.updateMany>[0]['data'];
+type SocialUsersUpdateManyData = Parameters<typeof prisma.social_users.updateMany>[0]['data'];
+type OrgSignupInvitationCreateData = Parameters<typeof prisma.organization_signup_invitations.create>[0]['data'];
+
 export type OrganizationRecord = {
   id: string;
   name: string;
@@ -21,11 +26,11 @@ export type OrganizationRecord = {
   has_operations: boolean | null;
   subscription_status: string | null;
   subscription_plan: string | null;
-  trial_start_date: string | null;
+  trial_start_date: string | Date | null;
   trial_days: number | null;
-  subscription_start_date: string | null;
-  created_at: string | null;
-  updated_at: string | null;
+  subscription_start_date: string | Date | null;
+  created_at: string | Date | null;
+  updated_at: string | Date | null;
 };
 
 export type SocialUserLite = {
@@ -42,8 +47,18 @@ export type OrganizationWithOwner = OrganizationRecord & {
   membersCount?: number;
 };
 
+function getUnknownErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = (error as { message?: unknown }).message;
+    return typeof msg === 'string' ? msg : 'שגיאה לא צפויה';
+  }
+  return 'שגיאה לא צפויה';
+}
+
 function normalizeSlug(input: string): string {
-  return String((input as any) ?? '')
+  return String(input ?? '')
     .trim()
     .toLowerCase()
     .replace(/['\"`]/g, '')
@@ -130,19 +145,27 @@ export async function getOrganizations(params?: {
       take: limit,
     });
 
-    const ownerIds = Array.from(new Set((orgs || []).map((o: any) => o.owner_id).filter(Boolean)));
+    const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
 
-    const ownersById: Record<string, any> = {};
+    const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
     if (ownerIds.length) {
       const owners = await prisma.social_users.findMany({
         where: { id: { in: ownerIds } },
         select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
       });
 
-      for (const o of owners || []) ownersById[(o as any).id] = o;
+      for (const o of owners || []) {
+        ownersById[String(o.id)] = {
+          id: String(o.id),
+          email: o.email == null ? null : String(o.email),
+          full_name: o.full_name == null ? null : String(o.full_name),
+          clerk_user_id: String(o.clerk_user_id),
+          role: o.role == null ? null : String(o.role),
+        };
+      }
     }
 
-    const orgIds = (orgs || []).map((o: any) => o.id);
+    const orgIds = (orgs || []).map((o) => o.id);
 
     const membersCountByOrg: Record<string, number> = {};
     if (orgIds.length) {
@@ -153,14 +176,38 @@ export async function getOrganizations(params?: {
       });
 
       for (const g of group || []) {
-        const key = String((g as any).organization_id || '');
+        const key = String(g.organization_id || '');
         if (!key) continue;
-        membersCountByOrg[key] = Number((g as any)?._count?._all || 0);
+        membersCountByOrg[key] = Number(g._count._all || 0);
       }
     }
 
-    const enriched: OrganizationWithOwner[] = (orgs || []).map((o: any) => ({
-      ...o,
+    function toIsoOrNull(value: unknown): string | null {
+      if (!value) return null;
+      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+      const d = new Date(String(value));
+      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+    }
+
+    const enriched: OrganizationWithOwner[] = (orgs || []).map((o) => ({
+      id: String(o.id),
+      name: String(o.name),
+      slug: o.slug == null ? null : String(o.slug),
+      logo: o.logo == null ? null : String(o.logo),
+      owner_id: String(o.owner_id),
+      has_nexus: o.has_nexus,
+      has_social: o.has_social,
+      has_system: o.has_system,
+      has_finance: o.has_finance,
+      has_client: o.has_client,
+      has_operations: o.has_operations,
+      subscription_status: o.subscription_status == null ? null : String(o.subscription_status),
+      subscription_plan: o.subscription_plan == null ? null : String(o.subscription_plan),
+      trial_start_date: toIsoOrNull(o.trial_start_date),
+      trial_days: o.trial_days == null ? null : Number(o.trial_days),
+      subscription_start_date: toIsoOrNull(o.subscription_start_date),
+      created_at: toIsoOrNull(o.created_at),
+      updated_at: toIsoOrNull(o.updated_at),
       owner: ownersById[o.owner_id] || null,
       membersCount: membersCountByOrg[o.id] || 0,
     }));
@@ -262,13 +309,13 @@ export async function createOrganization(input: {
         trial_days: input.trial_days ?? 7,
         created_at: now,
         updated_at: now,
-      } as any,
+      } satisfies SocialOrganizationsCreateData,
       select: { id: true },
     });
 
     await prisma.social_users.updateMany({
       where: { id: ownerUserId },
-      data: { organization_id: createdOrg.id, updated_at: now } as any,
+      data: { organization_id: createdOrg.id, updated_at: now } satisfies SocialUsersUpdateManyData,
     });
 
     // Best-effort: send welcome email with portal link
@@ -314,14 +361,14 @@ export async function createOrganizationOrInviteOwner(input: {
     if (!guard.success) return guard;
 
     const name = (input.name || '').trim();
-    if (!name) return createErrorResponse(null, 'שם ארגון חובה') as any;
+    if (!name) return { success: false, error: createErrorResponse(null, 'שם ארגון חובה').error || 'שם ארגון חובה' };
 
     const desiredSlug = normalizeSlug(input.slug || '');
-    if (!desiredSlug) return createErrorResponse(null, 'Slug לא תקין') as any;
+    if (!desiredSlug) return { success: false, error: createErrorResponse(null, 'Slug לא תקין').error || 'Slug לא תקין' };
 
     const ownerEmail = normalizeEmail(input.ownerEmail || '');
     if (!ownerEmail || !ownerEmail.includes('@')) {
-      return createErrorResponse(null, 'אימייל בעלים לא תקין') as any;
+      return { success: false, error: createErrorResponse(null, 'אימייל בעלים לא תקין').error || 'אימייל בעלים לא תקין' };
     }
 
     const existingOrgBySlug = await prisma.social_organizations.findFirst({
@@ -329,7 +376,9 @@ export async function createOrganizationOrInviteOwner(input: {
       select: { id: true },
     });
 
-    if (existingOrgBySlug?.id) return createErrorResponse(null, 'Slug כבר תפוס') as any;
+    if (existingOrgBySlug?.id) {
+      return { success: false, error: createErrorResponse(null, 'Slug כבר תפוס').error || 'Slug כבר תפוס' };
+    }
 
     const existingOwner = await prisma.social_users.findFirst({
       where: { email: ownerEmail },
@@ -356,13 +405,13 @@ export async function createOrganizationOrInviteOwner(input: {
           trial_days: 7,
           created_at: now,
           updated_at: now,
-        } as any,
+        } satisfies SocialOrganizationsCreateData,
         select: { id: true },
       });
 
       await prisma.social_users.updateMany({
         where: { id: String(existingOwner.id) },
-        data: { organization_id: createdOrg.id, updated_at: now } as any,
+        data: { organization_id: createdOrg.id, updated_at: now } satisfies SocialUsersUpdateManyData,
       });
 
       try {
@@ -381,7 +430,7 @@ export async function createOrganizationOrInviteOwner(input: {
         // ignore
       }
 
-      return createSuccessResponse({ kind: 'organization', organizationId: createdOrg.id }) as any;
+      return { success: true, data: { kind: 'organization', organizationId: createdOrg.id } };
     }
 
     const token = await generateUniqueOrgInviteToken();
@@ -400,11 +449,11 @@ export async function createOrganizationOrInviteOwner(input: {
         updated_at: now,
         expires_at: expiresAt,
         metadata: {},
-      } as any,
+      } satisfies OrgSignupInvitationCreateData,
     });
 
     const baseUrl = getBaseUrl();
-    const claimUrl = `${baseUrl}/sign-up?invite=${encodeURIComponent(token)}&redirect_url=${encodeURIComponent('/workspaces/onboarding')}`;
+    const claimUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
     const { sendTenantInvitationEmail } = await import('@/lib/email');
     try {
       await sendTenantInvitationEmail(ownerEmail, name, claimUrl, { ownerName: null });
@@ -412,9 +461,10 @@ export async function createOrganizationOrInviteOwner(input: {
       // ignore
     }
 
-    return createSuccessResponse({ kind: 'invitation', token, signupUrl: claimUrl }) as any;
-  } catch (error: any) {
-    return createErrorResponse(error, error?.message || 'שגיאה ביצירת הזמנה') as any;
+    return { success: true, data: { kind: 'invitation', token, signupUrl: claimUrl } };
+  } catch (error: unknown) {
+    const msg = getUnknownErrorMessage(error);
+    return { success: false, error: createErrorResponse(error, msg || 'שגיאה ביצירת הזמנה').error || msg || 'שגיאה ביצירת הזמנה' };
   }
 }
 
@@ -439,7 +489,7 @@ export async function updateOrganization(input: {
     const organizationId = (input.organizationId || '').trim();
     if (!organizationId) return createErrorResponse(null, 'organizationId חסר');
 
-    const patch: any = { updated_at: new Date() };
+    const patch = { updated_at: new Date() } as unknown as SocialOrganizationsUpdateManyData;
 
     if (input.name !== undefined) patch.name = String(input.name).trim();
 
@@ -461,10 +511,12 @@ export async function updateOrganization(input: {
       patch.slug = desired;
     }
 
-    const boolFields: Array<keyof typeof input> = ['has_nexus', 'has_social', 'has_system', 'has_finance', 'has_client', 'has_operations'];
-    for (const f of boolFields) {
-      if (input[f] !== undefined) patch[f] = input[f];
-    }
+    if (input.has_nexus !== undefined) patch.has_nexus = input.has_nexus;
+    if (input.has_social !== undefined) patch.has_social = input.has_social;
+    if (input.has_system !== undefined) patch.has_system = input.has_system;
+    if (input.has_finance !== undefined) patch.has_finance = input.has_finance;
+    if (input.has_client !== undefined) patch.has_client = input.has_client;
+    if (input.has_operations !== undefined) patch.has_operations = input.has_operations;
 
     if (input.subscription_status !== undefined) patch.subscription_status = input.subscription_status;
     if (input.subscription_plan !== undefined) patch.subscription_plan = input.subscription_plan;
@@ -498,12 +550,12 @@ export async function setOrganizationOwner(input: {
 
     await prisma.social_organizations.updateMany({
       where: { id: organizationId },
-      data: { owner_id: ownerUserId, updated_at: now } as any,
+      data: { owner_id: ownerUserId, updated_at: now } satisfies SocialOrganizationsUpdateManyData,
     });
 
     await prisma.social_users.updateMany({
       where: { id: ownerUserId },
-      data: { organization_id: organizationId, updated_at: now } as any,
+      data: { organization_id: organizationId, updated_at: now } satisfies SocialUsersUpdateManyData,
     });
 
     return createSuccessResponse(true);
@@ -527,7 +579,7 @@ export async function setUserOrganization(input: {
 
     await prisma.social_users.updateMany({
       where: { id: userId },
-      data: { organization_id: organizationId, updated_at: new Date() } as any,
+      data: { organization_id: organizationId, updated_at: new Date() } satisfies SocialUsersUpdateManyData,
     });
 
     return createSuccessResponse(true);

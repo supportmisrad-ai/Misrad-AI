@@ -6,7 +6,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createServiceRoleClient } from '../../../../../lib/supabase';
+import prisma from '@/lib/prisma';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
@@ -38,22 +38,30 @@ async function GETHandler(
             });
         }
 
-        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'employee_invite_token_lookup' });
-
-        // Get invitation
-        const { data: invitation, error } = await supabase
-            .from('nexus_employee_invitation_links')
-            .select(
-                'id, token, employee_email, employee_name, employee_phone, department, role, payment_type, hourly_rate, monthly_salary, commission_pct, start_date, notes, created_at, expires_at, used_at, is_used, is_active, metadata'
-            )
-            .eq('token', token)
-            .limit(1)
-            .maybeSingle();
-
-        if (error) {
-            console.error('[API] Error fetching invitation:', error);
-            return apiError('שגיאה בטעינת הקישור', { status: 500 });
-        }
+        const invitation = await (prisma as any).nexus_employee_invitation_links.findUnique({
+            where: { token: String(token) },
+            select: {
+                id: true,
+                token: true,
+                employee_email: true,
+                employee_name: true,
+                employee_phone: true,
+                department: true,
+                role: true,
+                payment_type: true,
+                hourly_rate: true,
+                monthly_salary: true,
+                commission_pct: true,
+                start_date: true,
+                notes: true,
+                created_at: true,
+                expires_at: true,
+                used_at: true,
+                is_used: true,
+                is_active: true,
+                metadata: true,
+            },
+        });
 
         if (!invitation) {
             return apiError('קישור הזמנה לא נמצא', { status: 404 });

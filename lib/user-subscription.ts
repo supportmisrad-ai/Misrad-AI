@@ -8,6 +8,27 @@
 import { DEFAULT_OS_MODULE_PRIORITY, isOSModuleKey } from '@/lib/os/modules/registry';
 import { OSModule, OS_MODULES } from '../types/os-modules';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorName(error: unknown): string {
+  if (error instanceof Error) return error.name;
+  const obj = asObject(error);
+  const name = obj?.name;
+  return typeof name === 'string' ? name : '';
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
 function resolveOrgSlug(orgSlug?: string | null): string | null {
   if (orgSlug) return String(orgSlug);
   if (typeof window === 'undefined') return null;
@@ -88,10 +109,11 @@ export async function getUserPurchasedModules(userId: string, orgSlug?: string |
     const validModules: OSModule[] = modules.filter((m: unknown): m is OSModule => isOSModuleKey(m));
 
     return validModules;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle network errors gracefully (common in development)
-    const isNetworkError = error?.name === 'TypeError' && 
-                          (error?.message?.includes('fetch') || error?.message?.includes('Failed to fetch'));
+    const name = getErrorName(error);
+    const message = getErrorMessage(error);
+    const isNetworkError = name === 'TypeError' && (message.includes('fetch') || message.includes('Failed to fetch'));
     
     if (isNetworkError) {
       // Network errors are common in dev - don't spam console
@@ -133,8 +155,8 @@ export function getFirstAvailableOSRoute(purchasedModules: OSModule[]): string |
   
   for (const moduleId of priorityOrder) {
     if (purchasedModules.includes(moduleId)) {
-      const module = OS_MODULES.find(m => m.id === moduleId);
-      const route = module?.route || null;
+      const moduleDef = OS_MODULES.find(m => m.id === moduleId);
+      const route = moduleDef?.route || null;
       if (!route) return null;
       if (route.includes('[orgSlug]')) return null;
       return route;

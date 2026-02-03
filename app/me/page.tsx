@@ -12,8 +12,8 @@ export default async function MePage() {
 
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-    const module = last.module && workspace.entitlements?.[last.module] ? last.module : 'nexus';
-    redirect(`/w/${encodeURIComponent(orgSlug)}/${encodeURIComponent(String(module))}/me`);
+    const moduleKey = last.module && workspace.entitlements?.[last.module] ? last.module : 'nexus';
+    redirect(`/w/${encodeURIComponent(orgSlug)}/${encodeURIComponent(String(moduleKey))}/me`);
   } catch {
     redirect(`/w/${encodeURIComponent(String(organizationId))}/nexus/me`);
   }

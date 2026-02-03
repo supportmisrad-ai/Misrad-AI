@@ -3,7 +3,8 @@ import { useData } from '@/context/DataContext';
 import { Lead } from '@/types';
 import { NAV_ITEMS, QUICK_ASSETS } from '@/constants';
 import { CommandPaletteMode } from './command-palette.types';
-import { useAIModuleChat } from './useAIModuleChat';
+import { useAIModuleChat, type AIModuleId } from './useAIModuleChat';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 
 export function useCommandPalette(
   isOpen: boolean,
@@ -12,6 +13,7 @@ export function useCommandPalette(
     navItems?: any[];
     hideLeads?: boolean;
     hideAssets?: boolean;
+    moduleKey?: OSModuleKey;
   }
 ) {
   const { addToast } = useData();
@@ -28,7 +30,7 @@ export function useCommandPalette(
     isLoading: isThinking,
     error,
     sendText,
-  } = useAIModuleChat({ moduleOverride: 'nexus' });
+  } = useAIModuleChat({ moduleOverride: ((options?.moduleKey ?? 'nexus') as unknown as AIModuleId) });
 
   useEffect(() => {
     if (error) {
@@ -131,11 +133,6 @@ export function useCommandPalette(
         sendText(query);
         setQuery('');
         lastQueryRef.current = '';
-      }
-    } else {
-      if (query.trim().length >= 2 && query !== lastQueryRef.current) {
-        lastQueryRef.current = query;
-        sendText(query);
       }
     }
   };

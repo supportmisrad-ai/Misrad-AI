@@ -5,7 +5,10 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
   "/sign-in(.*)",
+  "/sign-out(.*)",
+  "/logout(.*)",
   "/sign-up(.*)",
+  "/reset-password(.*)",
   "/maintenance(.*)",
   "/api/webhooks/clerk",
 ]);
@@ -184,7 +187,9 @@ export default clerkMiddleware(async (auth, req) => {
       pathname === "/sign-in" ||
       pathname.startsWith("/sign-in/") ||
       pathname === "/sign-up" ||
-      pathname.startsWith("/sign-up/");
+      pathname.startsWith("/sign-up/") ||
+      pathname === "/reset-password" ||
+      pathname.startsWith("/reset-password/");
 
     const isStatic =
       pathname.startsWith("/_next") ||

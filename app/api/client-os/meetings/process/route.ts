@@ -1,4 +1,4 @@
-import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
@@ -216,7 +216,7 @@ async function POSTHandler(req: Request) {
       // ignore
     }
 
-    return apiSuccess({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
+    return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
   } catch (e: any) {
     return apiError(e, { status: 500, message: 'Processing failed' });
   } finally {

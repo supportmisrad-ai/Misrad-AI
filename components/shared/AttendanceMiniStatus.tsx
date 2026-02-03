@@ -5,6 +5,7 @@ import { Clock, LogOut } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { getNexusMe, listNexusTimeEntries, updateNexusTimeEntry } from '@/app/actions/nexus';
+import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
 
@@ -27,8 +28,10 @@ export default function AttendanceMiniStatus() {
   const [startTime, setStartTime] = useState<string | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [now, setNow] = useState(() => Date.now());
   const [isBusy, setIsBusy] = useState(false);
+
+  const now = useSecondTicker(Boolean(startTime));
+  const loadInFlightRef = React.useRef(false);
 
   useEffect(() => {
     const loadEntitlements = async () => {
@@ -83,6 +86,9 @@ export default function AttendanceMiniStatus() {
 
   const loadActiveShift = useCallback(async () => {
     if (!orgSlug) return;
+    if (loadInFlightRef.current) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadInFlightRef.current = true;
     try {
       const dateFrom = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       const dateTo = new Date().toISOString().split('T')[0];
@@ -111,6 +117,8 @@ export default function AttendanceMiniStatus() {
       }
     } catch {
       // ignore
+    } finally {
+      loadInFlightRef.current = false;
     }
   }, [broadcast, orgSlug, userId]);
 
@@ -153,14 +161,6 @@ export default function AttendanceMiniStatus() {
     if (entryId) return;
     loadActiveShift();
   }, [entryId, loadActiveShift, orgSlug, startTime]);
-
-  useEffect(() => {
-    if (!startTime) return;
-    const tick = () => setNow(Date.now());
-    tick();
-    const interval = window.setInterval(tick, 1000);
-    return () => window.clearInterval(interval);
-  }, [startTime]);
 
   const clockOutQuick = useCallback(async () => {
     if (!entryId || !orgSlug) return;

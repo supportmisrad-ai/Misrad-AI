@@ -27,7 +27,7 @@ export default async function OperationsModuleHome({
 
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
   const currentUser = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
-  const technicianId = String((currentUser as any)?.profileId || currentUser.id || '').trim();
+  const technicianId = String(currentUser.profileId || currentUser.id || '').trim();
 
   async function quickAddStockAction(formData: FormData) {
     'use server';

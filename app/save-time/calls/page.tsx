@@ -33,7 +33,7 @@ export default async function SaveTimeCallsLandingPage() {
           desc: 'שומרים תוצאות כדי לחזור לשיחות ולראות מה השתנה לאורך זמן.',
         },
       ]}
-      ctaPrimaryHref="/sign-up"
+      ctaPrimaryHref="/login?mode=sign-up&plan=the_closer"
       ctaPrimaryLabel="התחל ניסיון חינם (בלי כרטיס)"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה מחירים"

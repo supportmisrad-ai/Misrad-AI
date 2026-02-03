@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -13,22 +13,35 @@ async function GETHandler(req: Request) {
     const q = (url.searchParams.get('q') || '').trim();
     const limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 200)));
 
-    const supabase = createClient();
+    const organizations = await prisma.social_organizations.findMany({
+      where: q
+        ? {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { slug: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+        : undefined,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        owner_id: true,
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        subscription_status: true,
+        subscription_plan: true,
+        created_at: true,
+        updated_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+      take: limit,
+    });
 
-    let query = supabase
-      .from('organizations')
-      .select('id, name, slug, owner_id, has_nexus, has_system, has_social, has_finance, has_client, subscription_status, subscription_plan, created_at, updated_at')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (q) {
-      query = query.or(`name.ilike.%${q}%,slug.ilike.%${q}%`);
-    }
-
-    const { data, error } = await query;
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    return NextResponse.json({ success: true, organizations: data || [] });
+    return NextResponse.json({ success: true, organizations: organizations || [] });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;

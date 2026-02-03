@@ -6,6 +6,7 @@ import SocialFrame from '@/components/social/SocialFrame';
 import { useShabbat } from '@/hooks/useShabbat';
 
 import { AppProvider } from '@/contexts/AppContext';
+import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
 import { AuthProvider } from '@/components/system/contexts/AuthContext';
 import { ToastProvider } from '@/components/system/contexts/ToastContext';
 import { BrandProvider } from '@/components/system/contexts/BrandContext';
@@ -42,30 +43,32 @@ export default function SocialShellClient({
   }
 
   return (
-    <AppProvider initialSocialData={initialSocialData}>
-      <AuthProvider>
-        <ToastProvider>
-          <BrandProvider>
-            <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-              <SocialSessionProvider>
-                <SocialUIProvider>
-                  <SocialDataProvider>
-                    <SocialFrame
-                      basePath={basePath}
-                      orgSlug={orgSlug}
-                      isTeamEnabled={isTeamEnabled}
-                      initialOrganization={initialOrganization}
-                      initialCurrentUser={initialCurrentUser}
-                    >
-                      {children}
-                    </SocialFrame>
-                  </SocialDataProvider>
-                </SocialUIProvider>
-              </SocialSessionProvider>
-            </DataProvider>
-          </BrandProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </AppProvider>
+    <ReactQueryProvider>
+      <AppProvider initialSocialData={initialSocialData}>
+        <AuthProvider>
+          <ToastProvider>
+            <BrandProvider>
+              <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+                <SocialSessionProvider>
+                  <SocialUIProvider>
+                    <SocialDataProvider>
+                      <SocialFrame
+                        basePath={basePath}
+                        orgSlug={orgSlug}
+                        isTeamEnabled={isTeamEnabled}
+                        initialOrganization={initialOrganization}
+                        initialCurrentUser={initialCurrentUser}
+                      >
+                        {children}
+                      </SocialFrame>
+                    </SocialDataProvider>
+                  </SocialUIProvider>
+                </SocialSessionProvider>
+              </DataProvider>
+            </BrandProvider>
+          </ToastProvider>
+        </AuthProvider>
+      </AppProvider>
+    </ReactQueryProvider>
   );
 }

@@ -8,28 +8,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { createInvoice } from '@/lib/integrations/green-invoice';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : String(error ?? '');
+}
+
+type InvoiceItemInput = {
+    description: string;
+    quantity: number;
+    price: number;
+    vatRate?: number;
+};
+
+type GreenInvoicePaymentMethod = 'cash' | 'bank_transfer' | 'credit_card' | 'check';
+
+type InvoiceDesignInput = {
+    templateId?: number;
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+    fontFamily?: string;
+    headerText?: string;
+    footerText?: string;
+};
+
+type InvoiceCreateInput = {
+    clientName: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    clientId?: string;
+    items: InvoiceItemInput[];
+    currency?: string;
+    paymentMethod?: GreenInvoicePaymentMethod;
+    dueDate?: string;
+    notes?: string;
+    design?: InvoiceDesignInput;
+};
+
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 
 async function POSTHandler(request: NextRequest) {
@@ -38,7 +79,7 @@ async function POSTHandler(request: NextRequest) {
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -54,10 +95,8 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        const supabase = createClient();
-
         // 2. Find user in database
-        const dbUserId = await selectDbUserId({ supabase, workspaceId: String(workspaceId), email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: String(workspaceId), email: clerkUser.email });
         if (!dbUserId) {
             return NextResponse.json(
                 { error: 'User not found in database. Please sync your account first.' },
@@ -69,47 +108,39 @@ async function POSTHandler(request: NextRequest) {
         // Rule: In trial, allow up to 2 invoices total. Block the 3rd.
         let isTrial = false;
         let integrationIdForUsage: string | null = null;
-        let integrationMetadataForUsage: any = null;
+        let integrationMetadataForUsage: Record<string, unknown> = {};
         try {
-            const { data: socialUser, error: socialUserError } = await supabase
-                .from('social_users')
-                .select('id')
-                .eq('clerk_user_id', String(clerkUser.id))
-                .maybeSingle();
-
-            if (socialUserError?.code === '42703') {
-                throw new Error('[SchemaMismatch] social_users is missing expected columns');
-            }
-
+            const socialUser = await (prisma as any).social_users.findUnique({
+                where: { clerk_user_id: String(clerkUser.id) },
+                select: { id: true },
+            });
             const socialUserId = (socialUser as any)?.id ? String((socialUser as any).id) : null;
             if (socialUserId && workspaceId) {
-                const { data: tm, error: tmError } = await supabase
-                    .from('social_team_members')
-                    .select('subscription_status')
-                    .eq('user_id', socialUserId)
-                    .eq('organization_id', String(workspaceId))
-                    .maybeSingle();
+                const tm = await prisma.social_team_members.findFirst({
+                    where: {
+                        user_id: String(socialUserId),
+                        organization_id: String(workspaceId),
+                    },
+                    select: { subscription_status: true },
+                });
 
-                if (tmError?.code === '42703') {
-                    throw new Error('[SchemaMismatch] social_team_members is missing organization_id');
-                }
-
-                const subscriptionStatus = (tm as any)?.subscription_status ? String((tm as any).subscription_status) : 'trial';
+                const subscriptionStatus = tm?.subscription_status ? String(tm.subscription_status) : 'trial';
                 isTrial = subscriptionStatus === 'trial';
 
                 if (isTrial) {
-                    const { data: integration } = await supabase
-                        .from('misrad_integrations')
-                        .select('id, metadata')
-                        .eq('organization_id', String(workspaceId))
-                        .eq('user_id', String(dbUserId))
-                        .eq('service_type', 'green_invoice')
-                        .eq('is_active', true)
-                        .maybeSingle();
+                    const integration = await prisma.scale_integrations.findFirst({
+                        where: {
+                            tenant_id: String(workspaceId),
+                            user_id: String(dbUserId),
+                            service_type: 'green_invoice',
+                            is_active: true,
+                        },
+                        select: { id: true, metadata: true },
+                    });
 
-                    integrationIdForUsage = (integration as any)?.id ? String((integration as any).id) : null;
-                    integrationMetadataForUsage = (integration as any)?.metadata || {};
-                    const totalTrialInvoices = Number((integrationMetadataForUsage as any)?.total_trial_invoices || 0);
+                    integrationIdForUsage = integration?.id ? String(integration.id) : null;
+                    integrationMetadataForUsage = asObject((integration as any)?.metadata) ?? {};
+                    const totalTrialInvoices = Number(integrationMetadataForUsage.total_trial_invoices ?? 0);
 
                     if (totalTrialInvoices >= 2) {
                         return NextResponse.json(
@@ -127,30 +158,65 @@ async function POSTHandler(request: NextRequest) {
                     }
                 }
             }
-        } catch (e: any) {
-            if (String(e?.message || '').includes('[SchemaMismatch]')) {
+        } catch (e: unknown) {
+            if (getErrorMessage(e).includes('[SchemaMismatch]')) {
                 throw e;
             }
             // Best-effort: do not block invoice creation if paywall check fails
         }
 
         // 3. Parse request body
-        const body = await request.json();
-        const {
-            clientName,
-            clientEmail,
-            clientPhone,
-            clientId, // Optional: Green Invoice client ID
-            items, // Array of { description, quantity, price, vatRate? }
-            currency,
-            paymentMethod,
-            dueDate,
-            notes,
-            design // Optional: Custom design options { templateId?, primaryColor?, secondaryColor?, logoUrl?, fontFamily?, headerText?, footerText? }
-        } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+
+        const clientName = String(bodyObj.clientName ?? '').trim();
+        const clientEmailRaw = bodyObj.clientEmail;
+        const clientEmail = typeof clientEmailRaw === 'string' ? clientEmailRaw : clientEmailRaw == null ? undefined : String(clientEmailRaw);
+        const clientPhoneRaw = bodyObj.clientPhone;
+        const clientPhone = typeof clientPhoneRaw === 'string' ? clientPhoneRaw : clientPhoneRaw == null ? undefined : String(clientPhoneRaw);
+        const clientIdRaw = bodyObj.clientId;
+        const clientId = typeof clientIdRaw === 'string' ? clientIdRaw : clientIdRaw == null ? undefined : String(clientIdRaw);
+
+        const itemsRaw = bodyObj.items;
+        const itemsArray = Array.isArray(itemsRaw) ? itemsRaw : [];
+
+        const currencyRaw = bodyObj.currency;
+        const currency = typeof currencyRaw === 'string' ? currencyRaw : currencyRaw == null ? undefined : String(currencyRaw);
+        const paymentMethodRaw = bodyObj.paymentMethod;
+        const paymentMethodCandidate =
+            typeof paymentMethodRaw === 'string'
+                ? paymentMethodRaw
+                : paymentMethodRaw == null
+                    ? undefined
+                    : String(paymentMethodRaw);
+
+        const paymentMethod: GreenInvoicePaymentMethod | undefined =
+            paymentMethodCandidate === 'cash' ||
+            paymentMethodCandidate === 'bank_transfer' ||
+            paymentMethodCandidate === 'credit_card' ||
+            paymentMethodCandidate === 'check'
+                ? paymentMethodCandidate
+                : undefined;
+        const dueDateRaw = bodyObj.dueDate;
+        const dueDate = typeof dueDateRaw === 'string' ? dueDateRaw : dueDateRaw == null ? undefined : String(dueDateRaw);
+        const notesRaw = bodyObj.notes;
+        const notes = typeof notesRaw === 'string' ? notesRaw : notesRaw == null ? undefined : String(notesRaw);
+
+        const designObj = asObject(bodyObj.design);
+        const design: InvoiceDesignInput | undefined = designObj
+            ? {
+                templateId: designObj.templateId === undefined ? undefined : Number(designObj.templateId),
+                primaryColor: designObj.primaryColor === undefined ? undefined : String(designObj.primaryColor),
+                secondaryColor: designObj.secondaryColor === undefined ? undefined : String(designObj.secondaryColor),
+                logoUrl: designObj.logoUrl === undefined ? undefined : String(designObj.logoUrl),
+                fontFamily: designObj.fontFamily === undefined ? undefined : String(designObj.fontFamily),
+                headerText: designObj.headerText === undefined ? undefined : String(designObj.headerText),
+                footerText: designObj.footerText === undefined ? undefined : String(designObj.footerText),
+            }
+            : undefined;
 
         // Validate required fields
-        if (!clientName || !items || !Array.isArray(items) || items.length === 0) {
+        if (!clientName || !Array.isArray(itemsArray) || itemsArray.length === 0) {
             return NextResponse.json(
                 { 
                     error: 'Missing required fields',
@@ -161,17 +227,43 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // Validate items
-        for (const item of items) {
-            if (!item.description || item.quantity === undefined || item.price === undefined) {
+        const items: InvoiceItemInput[] = [];
+        for (const item of itemsArray) {
+            const itemObj = asObject(item);
+            if (!itemObj) {
                 return NextResponse.json(
                     { error: 'Each item must have description, quantity, and price' },
                     { status: 400 }
                 );
             }
+
+            const description = String(itemObj.description ?? '').trim();
+            const quantityRaw = itemObj.quantity;
+            const priceRaw = itemObj.price;
+
+            if (!description || quantityRaw === undefined || priceRaw === undefined) {
+                return NextResponse.json(
+                    { error: 'Each item must have description, quantity, and price' },
+                    { status: 400 }
+                );
+            }
+
+            const quantity = Number(quantityRaw);
+            const price = Number(priceRaw);
+
+            const vatRateRaw = itemObj.vatRate;
+            const vatRate = vatRateRaw === undefined ? undefined : Number(vatRateRaw);
+
+            items.push({
+                description,
+                quantity,
+                price,
+                vatRate,
+            });
         }
 
         // 4. Create invoice via Green Invoice API
-        const result = await createInvoice(dbUserId, {
+        const invoiceInput: InvoiceCreateInput = {
             clientName,
             clientEmail,
             clientPhone,
@@ -181,25 +273,28 @@ async function POSTHandler(request: NextRequest) {
             paymentMethod,
             dueDate,
             notes,
-            design // Pass design options if provided
-        }, String(workspaceId));
+            design,
+        };
+
+        const result = await createInvoice(dbUserId, invoiceInput, String(workspaceId));
 
         // 4.5 Paywall usage tracking: increment total trial invoices (no migration)
         if (isTrial && integrationIdForUsage) {
             try {
-                const prevTotal = Number((integrationMetadataForUsage as any)?.total_trial_invoices || 0);
+                const prevTotal = Number(integrationMetadataForUsage.total_trial_invoices ?? 0);
                 const nextTotal = prevTotal + 1;
 
-                await supabase
-                    .from('misrad_integrations')
-                    .update({
+                await prisma.scale_integrations.update({
+                    where: { id: String(integrationIdForUsage) },
+                    data: {
                         metadata: {
-                            ...((integrationMetadataForUsage as any) || {}),
+                            ...(integrationMetadataForUsage || {}),
                             total_trial_invoices: nextTotal,
-                        },
-                        last_synced_at: new Date().toISOString(),
-                    } as any)
-                    .eq('id', String(integrationIdForUsage));
+                        } as any,
+                        last_synced_at: new Date(),
+                        updated_at: new Date(),
+                    },
+                });
             } catch {
                 // ignore
             }
@@ -210,13 +305,14 @@ async function POSTHandler(request: NextRequest) {
             invoice: result
         }, { status: 201 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error creating invoice:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'Failed to create invoice' },
+            { error: message || 'Failed to create invoice' },
             { status: 500 }
         );
     }

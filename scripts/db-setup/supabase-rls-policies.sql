@@ -22,6 +22,23 @@ grant usage on schema public to anon, authenticated, service_role;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 grant usage, select on all sequences in schema public to authenticated;
 
+do $$
+begin
+  if to_regclass('public.system_settings') is not null then
+    execute 'grant select on table public.system_settings to anon';
+  end if;
+  if to_regclass('public.social_system_settings') is not null then
+    execute 'grant select on table public.social_system_settings to anon';
+  end if;
+  if to_regclass('public.help_videos') is not null then
+    execute 'grant select on table public.help_videos to anon';
+  end if;
+  if to_regclass('public.global_settings') is not null then
+    execute 'grant select on table public.global_settings to anon';
+  end if;
+end
+$$;
+
 -- Keep defaults for future tables.
 alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
 alter default privileges in schema public grant usage, select on sequences to authenticated;
@@ -590,6 +607,30 @@ begin
   execute 'create policy deny_all on public._prisma_migrations for all to authenticated using (false) with check (false)';
   execute 'revoke all on table public._prisma_migrations from anon, authenticated';
   execute 'revoke all on table public._prisma_migrations from public';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.ai_provider_keys') is null then
+    return;
+  end if;
+
+  execute 'alter table public.ai_provider_keys enable row level security';
+  execute 'alter table public.ai_provider_keys force row level security';
+
+  execute 'drop policy if exists org_isolation_all on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_select_all on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_write_requires_org on public.ai_provider_keys';
+  execute 'drop policy if exists super_admin_write_all on public.ai_provider_keys';
+
+  execute 'drop policy if exists deny_all on public.ai_provider_keys';
+  execute 'create policy deny_all on public.ai_provider_keys for all to authenticated using (false) with check (false)';
+
+  execute 'revoke all on table public.ai_provider_keys from anon, authenticated';
+  execute 'revoke all on table public.ai_provider_keys from public';
+
+  execute 'grant select, insert, update, delete on table public.ai_provider_keys to service_role';
 end
 $$;
 

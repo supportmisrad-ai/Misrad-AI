@@ -148,16 +148,14 @@ export default async function OperationsInventoryPage({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-sm font-black text-slate-900 truncate">{i.itemName}</div>
-                          <div className="text-xs text-slate-500 mt-1">מק\"ט: {i.sku ? i.sku : '—'}</div>
+                          <div className="text-xs text-slate-500 mt-1">מק&quot;ט: {i.sku ? i.sku : '—'}</div>
                         </div>
                         <div className={low ? 'text-sm font-black text-rose-700' : 'text-sm font-black text-slate-700'}>
                           {i.onHand}
                         </div>
                       </div>
 
-                      <div className="mt-3 text-xs font-bold text-slate-600">
-                        מינימום: {i.minLevel}
-                      </div>
+                      <div className="mt-3 text-xs font-bold text-slate-600">מינימום: {i.minLevel}</div>
                     </div>
                   );
                 })
@@ -173,7 +171,7 @@ export default async function OperationsInventoryPage({
                 <thead>
                   <tr className="text-right text-slate-500">
                     <th className="pb-3 font-bold">שם פריט</th>
-                    <th className="pb-3 font-bold">מק\"ט</th>
+                    <th className="pb-3 font-bold">מק&quot;ט</th>
                     <th className="pb-3 font-bold">כמות במלאי</th>
                     <th className="pb-3 font-bold">כמות מינימום</th>
                   </tr>

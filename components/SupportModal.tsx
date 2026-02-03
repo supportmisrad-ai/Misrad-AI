@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass } from 'lucide-react';
+import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass, Video } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getContentByKey } from '@/app/actions/site-content';
@@ -45,13 +45,18 @@ export const SupportModal: React.FC = () => {
         setError(null);
 
         try {
-            const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const orgSlugFromPath = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+            const orgKey =
+                orgSlugFromPath ||
+                (currentUser as any)?.tenantId ||
+                (currentUser as any)?.organizationId ||
+                null;
 
             const response = await fetch('/api/support', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+                    ...(orgKey ? { 'x-org-id': encodeURIComponent(String(orgKey)) } : {}),
                 },
                 body: JSON.stringify({
                     category: supportDraft.category,
@@ -103,6 +108,16 @@ export const SupportModal: React.FC = () => {
         setTimeout(() => startTutorial(), 300);
     }
 
+    const handleOpenHelpVideos = () => {
+        try {
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('os:open-help-videos'));
+            }
+        } catch {
+            // ignore
+        }
+    };
+
     if (!isSupportModalOpen) return null;
 
     const hasWhatsAppGroup = Boolean(whatsappGroupUrl && whatsappGroupUrl.trim());
@@ -145,8 +160,8 @@ export const SupportModal: React.FC = () => {
                             className="p-8 flex flex-col h-full overflow-y-auto custom-scrollbar"
                         >
                             <div className="mb-6">
-                                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4">
-                                    <MessageSquare size={24} />
+                                <div className="w-14 h-14 bg-slate-900 text-white rounded-2xl flex items-center justify-center mb-4">
+                                    <MessageSquare size={26} />
                                 </div>
                                 <h2 className="text-2xl font-black text-gray-900">פתיחת קריאת שירות</h2>
                                 <p className="text-gray-500 mt-1 text-sm">הצוות שלנו זמין ויחזור אליך בהקדם האפשרי.</p>
@@ -172,7 +187,7 @@ export const SupportModal: React.FC = () => {
                                         ))}
                                     </div>
                                     {/* SLA Badge */}
-                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded w-fit">
+                                    <div className="flex items-center gap-1.5 mt-2 text-xs text-slate-600 font-bold bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
                                         <Clock size={12} />
                                         זמן מענה משוער: {activeCategory?.sla}
                                     </div>
@@ -209,7 +224,7 @@ export const SupportModal: React.FC = () => {
                                 <button 
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full py-4 bg-black text-white rounded-xl font-bold text-sm shadow-lg hover:bg-gray-800 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm shadow-lg hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSubmitting ? (
                                         <>
@@ -223,6 +238,26 @@ export const SupportModal: React.FC = () => {
                                     )}
                                 </button>
                             </form>
+
+                            <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                                        <Video size={18} />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-black text-slate-900">לפני שפותחים קריאה — כדאי לראות סרטון הדרכה</div>
+                                        <div className="mt-1 text-xs font-bold text-slate-600">בדרך כלל זה פותר את הבעיה תוך דקה וחוסך זמן לשני הצדדים.</div>
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenHelpVideos}
+                                            className="mt-3 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-800 text-sm font-black hover:bg-slate-100 transition-colors"
+                                        >
+                                            <Video size={16} />
+                                            פתח סרטוני הדרכה
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
 
                             {/* Self Service & Urgent Links */}
                             <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-3">
@@ -254,7 +289,7 @@ export const SupportModal: React.FC = () => {
                             animate={{ opacity: 1, scale: 1 }}
                             className="p-8 text-center flex flex-col items-center justify-center min-h-[400px]"
                         >
-                            <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6 animate-[bounce_1s_infinite]">
+                            <div className="w-20 h-20 bg-emerald-600 text-white rounded-full flex items-center justify-center mb-6 animate-[bounce_1s_infinite]">
                                 <CheckCircle2 size={40} />
                             </div>
                             <h2 className="text-2xl font-black text-gray-900 mb-2">תודה על הפידבק!</h2>

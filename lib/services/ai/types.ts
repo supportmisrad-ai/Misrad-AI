@@ -45,9 +45,9 @@ export type AIGenerateJsonParams = {
   organizationId?: string;
   userId?: string;
   prompt: string;
-  responseSchema?: any;
+  responseSchema?: unknown;
   systemInstruction?: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 };
 
 export type AIGenerateTextParams = {
@@ -56,7 +56,7 @@ export type AIGenerateTextParams = {
   userId?: string;
   prompt: string;
   systemInstruction?: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 };
 
 export type AITranscribeParams = {
@@ -65,10 +65,10 @@ export type AITranscribeParams = {
   userId?: string;
   audioBuffer: ArrayBuffer;
   mimeType: string;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 };
 
-export type AIGenerateJsonResult<T = any> = {
+export type AIGenerateJsonResult<T = unknown> = {
   result: T;
   provider: AIProviderName;
   model: string;

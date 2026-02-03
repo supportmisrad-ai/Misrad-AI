@@ -8,6 +8,16 @@ import { getPackageModules } from '@/lib/server/workspace';
 import type { PackageType } from '@/lib/server/workspace';
 import { syncOrganizationAccessFromBilling } from '@/lib/billing/sync';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.social_organizations.updateMany>[0]['data'];
+type SubscriptionsCreateData = Parameters<typeof prisma.subscriptions.create>[0]['data'];
+type SubscriptionsUpdateData = Parameters<typeof prisma.subscriptions.update>[0]['data'];
+type SubscriptionItemsCreateData = Parameters<typeof prisma.subscription_items.create>[0]['data'];
+type SubscriptionItemsDeleteManyWhere = Prisma.subscription_itemsDeleteManyArgs['where'];
+type ChargesCreateData = Parameters<typeof prisma.charges.create>[0]['data'];
+type BillingEventsCreateData = Parameters<typeof prisma.billing_events.create>[0]['data'];
+type SocialSyncLogsCreateData = Parameters<typeof prisma.social_sync_logs.create>[0]['data'];
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object') {
@@ -56,6 +66,16 @@ function addYears(date: Date, years: number): Date {
   return addMonths(d, years * 12);
 }
 
+function toJson(value: unknown): Prisma.InputJsonValue {
+  if (value == null) return {} as Prisma.InputJsonValue;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  const obj = asObject(value);
+  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
+}
+
 async function requireSuperAdmin(): Promise<{ success: true } | { success: false; error: string }> {
   const authCheck = await requireAuth();
   if (!authCheck.success) {
@@ -102,7 +122,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     const orderId = String(input.orderId || '').trim();
     if (!orderId) return createErrorResponse(null, 'orderId חסר');
 
-    let order: any = null;
+    let order: unknown = null;
     try {
       order = await prisma.subscription_orders.findFirst({
         where: { id: orderId },
@@ -142,9 +162,10 @@ export async function adminMarkSubscriptionOrderPaid(input: {
       }
     }
 
-    if (!order?.id) return createErrorResponse(null, 'שגיאה בטעינת הזמנה');
+    const orderObjRaw = asObject(order);
+    if (!orderObjRaw?.id) return createErrorResponse(null, 'שגיאה בטעינת הזמנה');
 
-    const orderObj = asObject(order) ?? {};
+    const orderObj = orderObjRaw ?? {};
 
     const organizationId = orderObj.organization_id ? String(orderObj.organization_id) : '';
     const packageType = orderObj.package_type ? (String(orderObj.package_type) as PackageType) : null;
@@ -169,7 +190,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     const seatsNormalized = Number.isFinite(Number(seatsRaw)) ? Math.floor(Number(seatsRaw)) : null;
     const seatsAllowed = seatsNormalized && seatsNormalized > 0 ? seatsNormalized : null;
 
-    const orgUpdatePayload: Record<string, unknown> = {
+    const orgUpdatePayloadBase: Record<string, unknown> = {
       ...flags,
       subscription_status: 'active',
       subscription_plan: packageType,
@@ -177,21 +198,21 @@ export async function adminMarkSubscriptionOrderPaid(input: {
       updated_at: now,
     };
     if (seatsAllowed) {
-      orgUpdatePayload.seats_allowed = seatsAllowed;
+      orgUpdatePayloadBase.seats_allowed = seatsAllowed;
     }
 
     try {
       await prisma.social_organizations.updateMany({
         where: { id: organizationId },
-        data: orgUpdatePayload as any,
+        data: orgUpdatePayloadBase as unknown as SocialOrganizationsUpdateManyData,
       });
     } catch (orgUpdateError: unknown) {
       if (seatsAllowed && isMissingColumnError(orgUpdateError, 'seats_allowed')) {
         try {
-          delete (orgUpdatePayload as any).seats_allowed;
+          delete orgUpdatePayloadBase.seats_allowed;
           await prisma.social_organizations.updateMany({
             where: { id: organizationId },
-            data: orgUpdatePayload as any,
+            data: orgUpdatePayloadBase as unknown as SocialOrganizationsUpdateManyData,
           });
         } catch (retryError) {
           return createErrorResponse(retryError, 'שגיאה בעדכון הרשאות הארגון');
@@ -227,8 +248,8 @@ export async function adminMarkSubscriptionOrderPaid(input: {
             current_period_end: periodEnd,
             created_at: now,
             updated_at: now,
-            metadata: { source: 'subscription_orders', order_id: orderId } as any,
-          } as any,
+            metadata: toJson({ source: 'subscription_orders', order_id: orderId }),
+          } satisfies SubscriptionsCreateData,
           select: { id: true },
         });
         subId = String(created.id);
@@ -241,7 +262,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
             current_period_start: periodStart,
             current_period_end: periodEnd,
             updated_at: now,
-          } as any,
+          } satisfies SubscriptionsUpdateData,
         });
       }
 
@@ -252,7 +273,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
 
       for (const m of modules) {
         await prisma.subscription_items.deleteMany({
-          where: { subscription_id: subId, kind: 'module', module_key: String(m) } as any,
+          where: { subscription_id: subId, kind: 'module', module_key: String(m) } satisfies SubscriptionItemsDeleteManyWhere,
         });
         await prisma.subscription_items.create({
           data: {
@@ -266,13 +287,13 @@ export async function adminMarkSubscriptionOrderPaid(input: {
             end_at: null,
             created_at: now,
             updated_at: now,
-          } as any,
+          } satisfies SubscriptionItemsCreateData,
         });
       }
 
       if (seatsAllowed) {
         await prisma.subscription_items.deleteMany({
-          where: { subscription_id: subId, kind: 'seats' } as any,
+          where: { subscription_id: subId, kind: 'seats' } satisfies SubscriptionItemsDeleteManyWhere,
         });
         await prisma.subscription_items.create({
           data: {
@@ -286,8 +307,8 @@ export async function adminMarkSubscriptionOrderPaid(input: {
             end_at: null,
             created_at: now,
             updated_at: now,
-            metadata: { source: 'subscription_orders', order_id: orderId } as any,
-          } as any,
+            metadata: toJson({ source: 'subscription_orders', order_id: orderId }),
+          } satisfies SubscriptionItemsCreateData,
         });
       }
 
@@ -302,8 +323,8 @@ export async function adminMarkSubscriptionOrderPaid(input: {
           external_id: orderId,
           created_at: now,
           updated_at: now,
-          metadata: { source: 'subscription_orders', order_id: orderId } as any,
-        } as any,
+          metadata: toJson({ source: 'subscription_orders', order_id: orderId }),
+        } satisfies ChargesCreateData,
       });
 
       await prisma.billing_events.create({
@@ -313,9 +334,9 @@ export async function adminMarkSubscriptionOrderPaid(input: {
           event_type: 'subscription_order_paid',
           occurred_at: now,
           actor_clerk_user_id: actorClerkUserId,
-          payload: { order_id: orderId, package_type: packageType, seats_allowed: seatsAllowed } as any,
+          payload: toJson({ order_id: orderId, package_type: packageType, seats_allowed: seatsAllowed }),
           created_at: now,
-        } as any,
+        } satisfies BillingEventsCreateData,
       });
 
       await syncOrganizationAccessFromBilling({
@@ -372,8 +393,8 @@ export async function adminMarkSubscriptionOrderPaid(input: {
             items_synced: 1,
             started_at: new Date(),
             completed_at: new Date(),
-            metadata: { orderId } as any,
-          },
+            metadata: toJson({ orderId }),
+          } satisfies SocialSyncLogsCreateData,
         });
       }
     } catch {
@@ -381,7 +402,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     }
 
     return createSuccessResponse(true);
-  } catch (e) {
+  } catch (e: unknown) {
     return createErrorResponse(e, 'שגיאה באישור תשלום');
   }
 }

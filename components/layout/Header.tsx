@@ -63,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
       <button
         id="notification-trigger"
         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-        className={`relative p-2 rounded-full transition-colors ${isNotificationsOpen ? 'bg-black text-white' : 'hover:bg-white/50 text-gray-600'}`}
+        className={`relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors ${isNotificationsOpen ? 'bg-black text-white' : 'hover:bg-white/50 text-gray-600'}`}
         aria-label={isHydrated && hasUnread ? 'התראות - יש התראות חדשות' : 'התראות'}
         type="button"
       >

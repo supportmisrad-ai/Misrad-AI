@@ -6,46 +6,52 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
-import { createClient } from '../../../../../lib/supabase';
+import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function loadUserInWorkspaceByEmail(params: { supabase: any; workspaceId: string; email: string }) {
+function toIso(input: any): string | null {
+    if (!input) return null;
+    if (input instanceof Date) return input.toISOString();
+    if (typeof input === 'string') return input;
+    return null;
+}
+
+function normalizeAttendanceRow(row: any) {
+    return {
+        id: row?.id,
+        organization_id: row?.organizationId ?? row?.organization_id,
+        event_id: row?.event_id,
+        user_id: row?.user_id,
+        status: row?.status,
+        rsvp_at: toIso(row?.rsvp_at),
+        attended_at: toIso(row?.attended_at),
+        notes: row?.notes ?? null,
+        created_at: toIso(row?.created_at),
+        updated_at: toIso(row?.updated_at),
+    };
+}
+
+async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id, role, is_super_admin')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const byOrg = await prisma.nexusUser.findFirst({
+        where: { email, organizationId: String(params.workspaceId) },
+        select: { id: true, role: true, isSuperAdmin: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data
-        ? { id: byOrg.data.id, role: byOrg.data.role, isSuperAdmin: Boolean((byOrg.data as any).is_super_admin) }
+    return byOrg
+        ? { id: String(byOrg.id), role: String(byOrg.role || ''), isSuperAdmin: Boolean((byOrg as any).isSuperAdmin) }
         : null;
 }
 
-async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const res = await params.supabaseClient
-        .from('nexus_team_events')
-        .select('*')
-        .eq('id', params.eventId)
-        .eq('organization_id', params.workspaceId)
-        .single();
-
-    if ((res as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
-    }
-
-    return res;
+async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
+    return prisma.nexus_team_events.findFirst({
+        where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
+    });
 }
 
 async function GETHandler(
@@ -54,16 +60,6 @@ async function GETHandler(
 ) {
     try {
         const user = await getAuthenticatedUser();
-
-        let supabaseClient: any;
-        try {
-            supabaseClient = createClient();
-        } catch {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
@@ -84,7 +80,7 @@ async function GETHandler(
             );
         }
 
-        const dbUser = await loadUserInWorkspaceByEmail({ supabase: supabaseClient, workspaceId: workspace.id, email: user.email });
+        const dbUser = await loadUserInWorkspaceByEmail({ workspaceId: workspace.id, email: user.email });
 
         if (!dbUser) {
             return NextResponse.json(
@@ -94,11 +90,9 @@ async function GETHandler(
         }
 
         // Get event to check permissions
-        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
-        const event = (eventRes as any).data;
-        const eventError = (eventRes as any).error;
+        const event = await loadTeamEventInWorkspace({ eventId, workspaceId: workspace.id });
 
-        if (eventError || !event) {
+        if (!event) {
             return NextResponse.json(
                 { error: 'אירוע לא נמצא' },
                 { status: 404 }
@@ -120,22 +114,12 @@ async function GETHandler(
         }
 
         // Get all attendance records for this event
-        const { data: attendance, error } = await supabaseClient
-            .from('nexus_event_attendance')
-            .select('*')
-            .eq('event_id', eventId)
-            .eq('organization_id', workspace.id)
-            .order('created_at', { ascending: true });
+        const attendanceRows = await prisma.nexus_event_attendance.findMany({
+            where: { event_id: String(eventId), organizationId: String(workspace.id) },
+            orderBy: { created_at: 'asc' },
+        });
 
-        if (error) {
-            console.error('[API] Error fetching attendance:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בטעינת נוכחות' },
-                { status: 500 }
-            );
-        }
-
-        return NextResponse.json({ attendance: attendance || [] }, { status: 200 });
+        return NextResponse.json({ attendance: (attendanceRows || []).map(normalizeAttendanceRow) }, { status: 200 });
 
     } catch (error: any) {
         console.error('[API] Error in /api/events/[id]/attendance GET:', error);
@@ -156,16 +140,6 @@ async function POSTHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        let supabaseClient: any;
-        try {
-            supabaseClient = createClient();
-        } catch {
-            return NextResponse.json(
-                { error: 'Database not configured' },
-                { status: 500 }
-            );
-        }
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
         const { id: eventId } = await params;
@@ -185,7 +159,7 @@ async function POSTHandler(
             );
         }
 
-        const dbUser = await loadUserInWorkspaceByEmail({ supabase: supabaseClient, workspaceId: workspace.id, email: user.email });
+        const dbUser = await loadUserInWorkspaceByEmail({ workspaceId: workspace.id, email: user.email });
 
         if (!dbUser) {
             return NextResponse.json(
@@ -195,11 +169,9 @@ async function POSTHandler(
         }
 
         // Get event
-        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
-        const event = (eventRes as any).data;
-        const eventError = (eventRes as any).error;
+        const event = await loadTeamEventInWorkspace({ eventId, workspaceId: workspace.id });
 
-        if (eventError || !event) {
+        if (!event) {
             return NextResponse.json(
                 { error: 'אירוע לא נמצא' },
                 { status: 404 }
@@ -228,60 +200,37 @@ async function POSTHandler(
             );
         }
 
-        // Upsert attendance record
-        const nowIso = new Date().toISOString();
-        const existingRes = await supabaseClient
-            .from('nexus_event_attendance')
-            .select('id')
-            .eq('event_id', eventId)
-            .eq('user_id', dbUser.id)
-            .eq('organization_id', workspace.id)
-            .limit(1)
-            .maybeSingle();
+        const now = new Date();
 
-        if (existingRes.error) {
-            console.error('[API] Error checking existing attendance:', existingRes.error);
-            return NextResponse.json(
-                { error: 'שגיאה בשמירת אישור הגעה' },
-                { status: 500 }
-            );
-        }
+        const existing = await prisma.nexus_event_attendance.findFirst({
+            where: { event_id: String(eventId), user_id: String(dbUser.id), organizationId: String(workspace.id) },
+            select: { id: true },
+        });
 
-        const { data: attendance, error } = existingRes.data
-            ? await supabaseClient
-                  .from('nexus_event_attendance')
-                  .update({
+        const attendance = existing?.id
+            ? await prisma.nexus_event_attendance.update({
+                  where: { id: String(existing.id) },
+                  data: {
                       status,
-                      rsvp_at: nowIso,
+                      rsvp_at: now,
                       notes: notes || null,
-                  })
-                  .eq('id', existingRes.data.id)
-                  .eq('organization_id', workspace.id)
-                  .select()
-                  .single()
-            : await supabaseClient
-                  .from('nexus_event_attendance')
-                  .insert({
-                      organization_id: workspace.id,
-                      event_id: eventId,
-                      user_id: dbUser.id,
+                      updated_at: now,
+                  },
+              })
+            : await prisma.nexus_event_attendance.create({
+                  data: {
+                      organizationId: String(workspace.id),
+                      event_id: String(eventId),
+                      user_id: String(dbUser.id),
                       status,
-                      rsvp_at: nowIso,
-                      notes: notes || null
-                  })
-                  .select()
-                  .single();
-
-        if (error) {
-            console.error('[API] Error creating/updating attendance:', error);
-            return NextResponse.json(
-                { error: 'שגיאה בשמירת אישור הגעה' },
-                { status: 500 }
-            );
-        }
+                      rsvp_at: now,
+                      notes: notes || null,
+                      updated_at: now,
+                  },
+              });
 
         return NextResponse.json(
-            { attendance, message: 'אישור הגעה נשמר בהצלחה' },
+            { attendance: normalizeAttendanceRow(attendance), message: 'אישור הגעה נשמר בהצלחה' },
             { status: 200 }
         );
 

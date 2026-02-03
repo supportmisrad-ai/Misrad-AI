@@ -42,6 +42,7 @@ import {
 import { createClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import prisma from '@/lib/prisma';
 
 // Legacy actions are intentionally kept and re-exported for features
 // we haven't migrated to client_* yet.
@@ -521,24 +522,13 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
       return null;
     }
 
-    const supabase = createClient();
-
-    const { data, error } = await supabase
-      .from('client_clients')
-      .select('id, email, full_name')
-      .eq('organization_id', workspace.id)
-      .ilike('email', email)
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[getClientIdByClerkEmail] supabase error', {
-        message: error.message,
-        code: (error as any).code,
-        details: (error as any).details,
-      });
-      return null;
-    }
+    const data = await prisma.clientClient.findFirst({
+      where: {
+        organizationId: String(workspace.id),
+        email: { equals: email, mode: 'insensitive' },
+      },
+      select: { id: true, email: true, fullName: true },
+    });
 
     if (!data?.id) {
       console.warn('[getClientIdByClerkEmail] no client found with matching email', {
@@ -550,7 +540,7 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
 
     console.debug('[getClientIdByClerkEmail] found client', {
       clientId: data.id,
-      clientName: data.full_name,
+      clientName: (data as any).fullName,
     });
 
     return { clientId: data.id };

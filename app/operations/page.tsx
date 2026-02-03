@@ -27,7 +27,7 @@ export default function OperationsMarketingPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900 overflow-x-hidden" dir="rtl">
       <Navbar />
-      <main className="pt-24">
+      <main className="pt-20">
         <section className="relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[560px] h-[560px] bg-amber-200/35 rounded-full blur-[140px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[640px] h-[640px] bg-rose-200/20 rounded-full blur-[170px] pointer-events-none" />
@@ -53,7 +53,7 @@ export default function OperationsMarketingPage() {
 
                 <div className="mt-10 flex flex-col sm:flex-row gap-3">
                   <Link
-                    href="/sign-up"
+                    href="/pricing"
                     className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-onyx-900 text-white font-bold shadow-xl shadow-onyx-900/10 hover:bg-black"
                   >
                     התחל ניסיון חינם (בלי כרטיס)
@@ -136,7 +136,7 @@ export default function OperationsMarketingPage() {
                         <Mic size={18} />
                       </div>
                       <div>
-                        <div className="text-sm font-black text-slate-900">"חשבונית ליוסי על 500"</div>
+                        <div className="text-sm font-black text-slate-900">&quot;חשבונית ליוסי על 500&quot;</div>
                         <div className="text-xs text-slate-600 mt-1">המערכת יוצרת מסמך ומכינה שליחה.</div>
                       </div>
                     </div>
@@ -244,7 +244,7 @@ export default function OperationsMarketingPage() {
                   ראה חבילות <ArrowRight size={16} className="rotate-180" />
                 </Link>
                 <Link
-                  href="/sign-up"
+                  href="/pricing"
                   className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
                 >
                   התחל ניסיון חינם

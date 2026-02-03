@@ -6,7 +6,7 @@ import {
     UploadCloud, FileAudio, X, Activity, 
     MessageSquare, CheckCircle, AlertTriangle, Target, 
     ListTodo, ThumbsUp, ThumbsDown, MessageCircle, 
-    Play, Pause, Mic, User, Fingerprint, Clock, FileText,
+    Play, Pause, Mic, MicOff, Zap, User, Fingerprint, Clock, FileText,
     ListChecks, Heart, Smile, History, Trash2, ArrowRight,
     Edit2, Link as LinkIcon, StickyNote
 } from 'lucide-react';
@@ -34,14 +34,32 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         loadFromHistory,
         deleteFromHistory,
         updateHistoryItem,
+        analyzeTranscriptText,
         creditsModal,
         closeCreditsModal,
     } = useCallAnalysis();
+
     const { addToast } = useToast();
     const { user } = useAuth();
     const pathname = usePathname();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
+
+    const [isLiveOpen, setIsLiveOpen] = useState(false);
+    const [isLiveActive, setIsLiveActive] = useState(false);
+    const [isLiveFinalizing, setIsLiveFinalizing] = useState(false);
+    const [liveTranscriptText, setLiveTranscriptText] = useState('');
+    const [liveInsight, setLiveInsight] = useState('ממתין לתחילת השיחה...');
+
+    const liveCoachEnabled = process.env.NEXT_PUBLIC_LIVE_COACH_ENABLED === 'true';
+
+    const liveRecorderRef = useRef<MediaRecorder | null>(null);
+    const liveStreamRef = useRef<MediaStream | null>(null);
+    const liveChunksRef = useRef<Blob[]>([]);
+    const liveTranscribeInFlightRef = useRef(false);
+    const liveInsightInFlightRef = useRef(false);
+    const lastInsightAtRef = useRef(0);
+    const lastInsightTranscriptLenRef = useRef(0);
 
     // Editing States
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -169,7 +187,259 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         }
     };
 
+    useEffect(() => {
+        return () => {
+            try {
+                const rec = liveRecorderRef.current;
+                if (rec && rec.state !== 'inactive') {
+                    try {
+                        rec.stop();
+                    } catch {
+                        // ignore
+                    }
+                }
+                const stream = liveStreamRef.current;
+                if (stream) {
+                    for (const t of stream.getTracks()) {
+                        try {
+                            t.stop();
+                        } catch {
+                            // ignore
+                        }
+                    }
+                }
+            } finally {
+                liveRecorderRef.current = null;
+                liveStreamRef.current = null;
+            }
+        };
+    }, []);
+
+    const startLiveSession = async () => {
+        if (!liveCoachEnabled) {
+            addToast('Live Coach מושבת כרגע', 'info');
+            return;
+        }
+
+        const orgSlug = orgSlugFromPathname();
+        if (!orgSlug) {
+            addToast('לא ניתן להתחיל Live (orgSlug חסר)', 'error');
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            liveStreamRef.current = stream;
+            liveChunksRef.current = [];
+
+            let recorder: MediaRecorder;
+            const preferred = 'audio/webm;codecs=opus';
+            if (typeof MediaRecorder !== 'undefined' && (MediaRecorder as any).isTypeSupported?.(preferred)) {
+                recorder = new MediaRecorder(stream, { mimeType: preferred });
+            } else {
+                recorder = new MediaRecorder(stream);
+            }
+            liveRecorderRef.current = recorder;
+
+            lastInsightAtRef.current = 0;
+            lastInsightTranscriptLenRef.current = 0;
+            setIsLiveOpen(true);
+            setIsLiveFinalizing(false);
+            setIsLiveActive(true);
+            setLiveTranscriptText('');
+            setLiveInsight('ממתין לתחילת השיחה...');
+
+            recorder.ondataavailable = async (ev: BlobEvent) => {
+                try {
+                    if (!ev.data || ev.data.size === 0) return;
+                    liveChunksRef.current.push(ev.data);
+
+                    if (liveTranscribeInFlightRef.current) return;
+                    liveTranscribeInFlightRef.current = true;
+
+                    const mimeType = recorder.mimeType || ev.data.type || 'audio/webm';
+                    const fd = new FormData();
+                    fd.append('file', new File([ev.data], `live-${Date.now()}.webm`, { type: mimeType }));
+
+                    const transcribeRes = await fetch(
+                        `/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/transcribe`,
+                        {
+                            method: 'POST',
+                            body: fd,
+                        }
+                    );
+
+                    if (!transcribeRes.ok) return;
+                    const json = (await transcribeRes.json().catch(() => ({} as any))) as any;
+                    const text = String(json?.data?.transcriptText || json?.transcriptText || '').trim();
+                    if (!text) return;
+
+                    let nextTranscript = '';
+                    setLiveTranscriptText((prev) => {
+                        nextTranscript = prev ? `${prev}\n${text}` : text;
+                        return nextTranscript;
+                    });
+
+                    const now = Date.now();
+                    const minMs = 6500;
+                    const minCharsDelta = 220;
+
+                    if (
+                        !liveInsightInFlightRef.current &&
+                        now - lastInsightAtRef.current >= minMs &&
+                        nextTranscript.length - lastInsightTranscriptLenRef.current >= minCharsDelta
+                    ) {
+                        liveInsightInFlightRef.current = true;
+                        lastInsightAtRef.current = now;
+                        lastInsightTranscriptLenRef.current = nextTranscript.length;
+
+                        void (async () => {
+                            try {
+                                const insightRes = await fetch(
+                                    `/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/live/insight`,
+                                    {
+                                        method: 'POST',
+                                        headers: { 'content-type': 'application/json' },
+                                        body: JSON.stringify({ transcriptText: nextTranscript }),
+                                    }
+                                );
+
+                                if (!insightRes.ok) return;
+                                const insightJson = (await insightRes.json().catch(() => ({} as any))) as any;
+                                const insight = String(insightJson?.data?.insight || insightJson?.insight || '').trim();
+                                if (insight) setLiveInsight(insight);
+                            } finally {
+                                liveInsightInFlightRef.current = false;
+                            }
+                        })();
+                    }
+                } finally {
+                    liveTranscribeInFlightRef.current = false;
+                }
+            };
+
+            recorder.start(2000);
+        } catch (e: any) {
+            console.error(e);
+            addToast(e?.message || 'שגיאה בהפעלת Live', 'error');
+            setIsLiveOpen(false);
+            setIsLiveActive(false);
+        }
+    };
+
+    const stopLiveSession = () => {
+        setIsLiveActive(false);
+        setIsLiveFinalizing(true);
+        setLiveInsight('מפיק דוח...');
+
+        try {
+            const rec = liveRecorderRef.current;
+            if (rec && rec.state !== 'inactive') {
+                try {
+                    rec.stop();
+                } catch {
+                    // ignore
+                }
+            }
+
+            const stream = liveStreamRef.current;
+            if (stream) {
+                for (const t of stream.getTracks()) {
+                    try {
+                        t.stop();
+                    } catch {
+                        // ignore
+                    }
+                }
+            }
+        } finally {
+            liveRecorderRef.current = null;
+            liveStreamRef.current = null;
+        }
+
+        const transcript = String(liveTranscriptText || '').trim();
+        if (!transcript) {
+            addToast('אין מספיק תמלול להפקת דוח', 'error');
+            setIsLiveOpen(false);
+            setIsLiveFinalizing(false);
+            return;
+        }
+
+        const blob = new Blob(liveChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = blob.size > 0 ? URL.createObjectURL(blob) : '';
+        const fileName = `Live-${new Date().toISOString().slice(0, 16).replace(':', '-')}.webm`;
+
+        setIsLiveOpen(false);
+        analyzeTranscriptText(transcript, {
+            title: 'שיחה חיה',
+            fileName,
+            audioUrl,
+        });
+
+        setIsLiveFinalizing(false);
+    };
+
     // --- RENDER STATES ---
+
+    if (isLiveOpen) {
+        return (
+            <div className="h-full flex flex-col p-4 md:p-8 animate-fade-in gap-6 overflow-y-auto custom-scrollbar">
+                <AiOutOfCreditsModal
+                    open={creditsModal.open}
+                    onCloseAction={closeCreditsModal}
+                    checkoutHref="/subscribe/checkout"
+                    outputsCount={creditsModal.outputsCount}
+                    savedHours={creditsModal.savedHours}
+                />
+
+                <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+                                <Mic size={22} />
+                            </div>
+                            <div>
+                                <div className="text-xl font-black text-slate-900">Live Coach</div>
+                                <div className="text-sm text-slate-500 font-medium">תמלול ותובנות בזמן אמת</div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={stopLiveSession}
+                            disabled={isLiveFinalizing}
+                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-2xl font-black transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <MicOff size={18} /> סיים והפק דוח
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col min-h-[420px]">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">תמלול חי</div>
+                            <div className="text-xs font-bold text-slate-500 flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${isLiveActive ? 'bg-red-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                                {isLiveActive ? 'מקליט' : 'מושהה'}
+                            </div>
+                        </div>
+                        <div className="flex-1 overflow-y-auto text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                            {liveTranscriptText || 'התחל לדבר...'}
+                        </div>
+                    </div>
+
+                    <div className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 shadow-sm flex flex-col min-h-[420px]">
+                        <div className="flex items-center gap-2 text-indigo-700 font-black text-sm mb-4">
+                            <Zap size={16} /> תובנה עכשיו
+                        </div>
+                        <div className="bg-white border border-indigo-100 rounded-2xl p-4 text-sm font-bold text-slate-800">
+                            {liveInsight}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     // 1. Upload State + History
     if (!state.isProcessing && !state.result) {
@@ -182,6 +452,16 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     outputsCount={creditsModal.outputsCount}
                     savedHours={creditsModal.savedHours}
                 />
+
+                <div className="flex items-center justify-center">
+                    <button
+                        type="button"
+                        onClick={startLiveSession}
+                        className="flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                    >
+                        <Mic size={20} /> התחל שיחה חיה
+                    </button>
+                </div>
                 
                 {/* Upload Zone */}
                 <div className="flex flex-col items-center justify-center">

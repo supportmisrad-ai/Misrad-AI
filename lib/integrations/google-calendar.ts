@@ -8,7 +8,7 @@
  */
 
 import { calendar_v3, google } from 'googleapis';
-import { supabase } from '../supabase';
+import prisma from '@/lib/prisma';
 import { refreshAccessToken } from './google-oauth';
 import { Task } from '../../types';
 
@@ -23,29 +23,22 @@ export async function getCalendarClient(
     userId: string,
     tenantId?: string
 ): Promise<calendar_v3.Calendar | null> {
-    if (!supabase) {
-        console.error('[Calendar] Supabase not configured');
-        return null;
-    }
-
     if (!tenantId) {
         console.error('[Calendar] Missing tenantId/organizationId (Tenant Isolation lockdown)');
         return null;
     }
 
     // Find integration
-    let query = (supabase as any)
-        .from('misrad_integrations')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('organization_id', tenantId)
-        .eq('service_type', 'google_calendar')
-        .eq('is_active', true)
-        .single();
+    const integration = await prisma.scale_integrations.findFirst({
+        where: {
+            user_id: String(userId),
+            tenant_id: String(tenantId),
+            service_type: 'google_calendar',
+            is_active: true,
+        },
+    });
 
-    const { data: integration, error } = await query;
-
-    if (error || !integration) {
+    if (!integration) {
         console.warn('[Calendar] Integration not found for user:', userId);
         return null;
     }
@@ -60,16 +53,15 @@ export async function getCalendarClient(
             accessToken = refreshed.accessToken;
 
             // Update database with new token
-            await (supabase as any)
-                .from('misrad_integrations')
-                .update({
+            await prisma.scale_integrations.update({
+                where: { id: String(integration.id) },
+                data: {
                     access_token: refreshed.accessToken,
-                    expires_at: refreshed.expiresAt.toISOString(),
+                    expires_at: refreshed.expiresAt,
                     refresh_token: refreshed.refreshToken || integration.refresh_token,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', integration.id)
-                .eq('organization_id', tenantId);
+                    updated_at: new Date(),
+                },
+            });
         } catch (error) {
             console.error('[Calendar] Failed to refresh token:', error);
             return null;
@@ -102,7 +94,8 @@ export async function syncTaskToCalendar(
     userId: string,
     tenantId?: string
 ): Promise<string | null> {
-    if (!task.dueDate) {
+    const dueDateValue = (task as any).dueDate ?? (task as any).due_date;
+    if (!dueDateValue) {
         return null; // No date to sync
     }
 
@@ -113,7 +106,7 @@ export async function syncTaskToCalendar(
 
     try {
         // Parse due date
-        const dueDate = new Date(task.dueDate);
+        const dueDate = new Date(dueDateValue);
         if (isNaN(dueDate.getTime())) {
             return null;
         }
@@ -122,8 +115,8 @@ export async function syncTaskToCalendar(
         const existingEventId = (task as any).googleCalendarEventId;
 
         const eventData: calendar_v3.Schema$Event = {
-            summary: task.title,
-            description: task.description || '',
+            summary: String((task as any).title || ''),
+            description: String((task as any).description || ''),
             start: {
                 dateTime: dueDate.toISOString(),
                 timeZone: 'Asia/Jerusalem'
@@ -161,23 +154,26 @@ export async function syncTaskToCalendar(
         }
 
         // Log sync
-        if (supabase) {
-            const { data: integrationRow } = await (supabase as any)
-                .from('misrad_integrations')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('organization_id', tenantId)
-                .eq('service_type', 'google_calendar')
-                .eq('is_active', true)
-                .maybeSingle();
+        if (tenantId) {
+            const integrationRow = await prisma.scale_integrations.findFirst({
+                where: {
+                    user_id: String(userId),
+                    tenant_id: String(tenantId),
+                    service_type: 'google_calendar',
+                    is_active: true,
+                },
+                select: { id: true },
+            });
 
-            await (supabase as any).from('misrad_calendar_sync_log').insert({
-                integration_id: integrationRow?.id ?? null,
-                event_id: eventId,
-                action: existingEventId ? 'updated' : 'created',
-                direction: 'to_google',
-                status: 'success',
-                metadata: { taskId: task.id, organizationId: tenantId }
+            await prisma.scale_calendar_sync_log.create({
+                data: {
+                    integration_id: integrationRow?.id ?? null,
+                    event_id: eventId,
+                    action: existingEventId ? 'updated' : 'created',
+                    direction: 'to_google',
+                    status: 'success',
+                    metadata: { taskId: (task as any).id, organizationId: tenantId } as any,
+                },
             });
         }
 
@@ -231,14 +227,19 @@ export async function syncCalendarToTasks(
         // and creating new tasks for events that don't
 
         // Update last sync time
-        if (supabase) {
-            await (supabase as any)
-                .from('misrad_integrations')
-                .update({ last_synced_at: new Date().toISOString() })
-                .eq('user_id', userId)
-                .eq('organization_id', tenantId)
-                .eq('service_type', 'google_calendar')
-                .eq('is_active', true);
+        if (tenantId) {
+            await prisma.scale_integrations.updateMany({
+                where: {
+                    user_id: String(userId),
+                    tenant_id: String(tenantId),
+                    service_type: 'google_calendar',
+                    is_active: true,
+                },
+                data: {
+                    last_synced_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
         }
 
         return syncedIds;

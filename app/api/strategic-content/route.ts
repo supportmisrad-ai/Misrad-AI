@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const dynamic = 'force-dynamic';
@@ -14,29 +14,16 @@ async function GETHandler(req: Request) {
   }
 
   try {
-    const supabase = createClient();
+    const items = await prisma.strategic_content.findMany({
+      where: {
+        module_id: String(moduleId),
+        ...(category ? { category: String(category) } : {}),
+      },
+      select: { id: true, category: true, title: true, content: true, module_id: true },
+      orderBy: [{ category: 'asc' }, { title: 'asc' }],
+    });
 
-    let query = supabase
-      .from('strategic_content')
-      .select('id, category, title, content, module_id')
-      .eq('module_id', moduleId)
-      .order('category', { ascending: true })
-      .order('title', { ascending: true });
-
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      if (error.code === '42P01') {
-        return NextResponse.json({ items: [] });
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ items: data || [] });
+    return NextResponse.json({ items: items || [] });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
   }

@@ -35,6 +35,7 @@ import { Skeleton } from '@/components/ui/skeletons';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { getOSModule } from '@/types/os-modules';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useSocialData } from '@/contexts/SocialDataContext';
@@ -214,7 +215,7 @@ export default function SocialFrame({
   const notificationsSlot = (
     <button
       onClick={() => setIsNotificationCenterOpen(true)}
-      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
       aria-label="התראות"
       type="button"
     >
@@ -486,6 +487,7 @@ export default function SocialFrame({
         onPlusClickAction={handlePlusClick}
         plusAriaLabel="יצירת פוסט"
         plusActive={isActive('/machine')}
+        plusGradient={getOSModule('social')?.gradient}
       />
 
       <ToastContainer />

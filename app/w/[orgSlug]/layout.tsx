@@ -4,6 +4,14 @@ import WorkspaceCanonicalRedirect from './WorkspaceCanonicalRedirect';
 
 export const dynamic = 'force-dynamic';
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 
 export default async function WorkspaceLayout({
   children,
@@ -13,15 +21,16 @@ export default async function WorkspaceLayout({
   params: Promise<{ orgSlug: string }>;
 }) {
   const { orgSlug } = await params;
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  const decodedOrgSlug = safeDecodeURIComponent(orgSlug);
+  const workspace = await requireWorkspaceAccessByOrgSlug(decodedOrgSlug);
 
   return (
     <div
       data-workspace-id={workspace.id}
-      data-workspace-slug={orgSlug}
+      data-workspace-slug={decodedOrgSlug}
       className="min-h-screen"
     >
-      <WorkspaceCanonicalRedirect currentOrgSlug={orgSlug} canonicalSlug={(workspace as any).slug ?? null} />
+      <WorkspaceCanonicalRedirect currentOrgSlug={decodedOrgSlug} canonicalSlug={(workspace as any).slug ?? null} />
       {children}
     </div>
   );

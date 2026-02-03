@@ -181,11 +181,13 @@ export async function getUserRole(
       
       return role;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[getUserRole] Error getting user role:', error);
+    const message = error instanceof Error ? error.message : '';
+    const stack = error instanceof Error ? error.stack : undefined;
     console.error('[getUserRole] Error details:', {
-      message: error?.message,
-      stack: error?.stack,
+      message,
+      stack,
     });
     // Default to least privileged role instead of trying client-side (which will fail)
     return 'team_member';

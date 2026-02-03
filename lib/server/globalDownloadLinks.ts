@@ -1,6 +1,7 @@
 import 'server-only';
 
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
@@ -9,10 +10,34 @@ export type GlobalDownloadLinks = {
 
 const LEGACY_KEY = 'global_download_links';
 
-function isMissingRelationError(error: any): boolean {
-  const message = String(error?.message || '').toLowerCase();
-  const code = String((error as any)?.code || '').toLowerCase();
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function isMissingRelationError(error: unknown): boolean {
+  const obj = asObject(error);
+  const message = String(obj?.message || '').toLowerCase();
+  const code = String(obj?.code || '').toLowerCase();
   return code === '42p01' || message.includes('does not exist') || message.includes('relation') || message.includes('table');
+}
+
+function safeJsonParseObject(value: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(value);
+    return asObject(parsed);
+  } catch {
+    return null;
+  }
 }
 
 function fallbackFromEnv(): GlobalDownloadLinks {
@@ -32,8 +57,8 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     });
 
     if (row) {
-      const windowsDownloadUrl = String((row as any)?.windows_download_url ?? '').trim() || null;
-      const androidDownloadUrl = String((row as any)?.android_download_url ?? '').trim() || null;
+      const windowsDownloadUrl = String(row.windows_download_url ?? '').trim() || null;
+      const androidDownloadUrl = String(row.android_download_url ?? '').trim() || null;
       if (windowsDownloadUrl || androidDownloadUrl) {
         return { windowsDownloadUrl, androidDownloadUrl };
       }
@@ -43,14 +68,19 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     // Fallback: legacy key-value storage
     const legacy = await prisma.social_system_settings
       .findUnique({ where: { key: LEGACY_KEY }, select: { value: true } })
-      .catch((e: any) => {
+      .catch((e: unknown) => {
         if (isMissingRelationError(e)) return null;
         throw e;
       });
 
-    const value = (legacy as any)?.value;
-    const windowsDownloadUrl = String(value?.windowsDownloadUrl ?? value?.windows_download_url ?? '').trim() || null;
-    const androidDownloadUrl = String(value?.androidDownloadUrl ?? value?.android_download_url ?? '').trim() || null;
+    const legacyValueRaw = legacy?.value;
+    const legacyValue =
+      typeof legacyValueRaw === 'string' ? safeJsonParseObject(legacyValueRaw) : asObject(legacyValueRaw);
+
+    const windowsDownloadUrl =
+      String(legacyValue?.windowsDownloadUrl ?? legacyValue?.windows_download_url ?? '').trim() || null;
+    const androidDownloadUrl =
+      String(legacyValue?.androidDownloadUrl ?? legacyValue?.android_download_url ?? '').trim() || null;
     if (windowsDownloadUrl || androidDownloadUrl) {
       return { windowsDownloadUrl, androidDownloadUrl };
     }
@@ -92,7 +122,7 @@ export async function setGlobalDownloadLinksUnsafe(input: {
         updated_at: now,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (isMissingRelationError(error)) {
       // Fallback: legacy storage
       await prisma.social_system_settings.upsert({
@@ -101,22 +131,22 @@ export async function setGlobalDownloadLinksUnsafe(input: {
           value: {
             windowsDownloadUrl: next.windowsDownloadUrl,
             androidDownloadUrl: next.androidDownloadUrl,
-          } as any,
-          updated_at: now as any,
-        } as any,
+          } as Prisma.InputJsonValue,
+          updated_at: now,
+        },
         create: {
           key: LEGACY_KEY,
           value: {
             windowsDownloadUrl: next.windowsDownloadUrl,
             androidDownloadUrl: next.androidDownloadUrl,
-          } as any,
-          updated_at: now as any,
-        } as any,
+          } as Prisma.InputJsonValue,
+          updated_at: now,
+        },
       });
 
       return next;
     }
-    throw error instanceof Error ? error : new Error(String((error as any)?.message || 'Failed to update global download links'));
+    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to update global download links');
   }
 
   return next;

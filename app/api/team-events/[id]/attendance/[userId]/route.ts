@@ -6,56 +6,92 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../../lib/auth';
-import { createClient } from '../../../../../../lib/supabase';
+import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapNexusUserRow(row: any) {
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+type NexusTeamEventsDelegate = {
+    findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+};
+
+type NexusEventAttendanceDelegate = {
+    updateMany: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<{ count: number }>;
+    create: (args: { data: Record<string, unknown> }) => Promise<Record<string, unknown>>;
+    findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+};
+
+function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
+    const obj = asObject(prisma as unknown);
+    const delegate = obj?.['nexus_team_events'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst')) {
+        throw new Error('Prisma delegate nexus_team_events is unavailable');
+    }
+    return delegate as unknown as NexusTeamEventsDelegate;
+}
+
+function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
+    const obj = asObject(prisma as unknown);
+    const delegate = obj?.['nexus_event_attendance'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'updateMany') || !hasFunction(delegate, 'create') || !hasFunction(delegate, 'findFirst')) {
+        throw new Error('Prisma delegate nexus_event_attendance is unavailable');
+    }
+    return delegate as unknown as NexusEventAttendanceDelegate;
+}
+
+function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
+    const v = obj?.[key];
+    return typeof v === 'string' ? v : v == null ? fallback : String(v);
+}
+
+function mapNexusUserRow(row: unknown) {
+    const obj = asObject(row);
     return {
-        id: String(row?.id ?? ''),
-        name: String(row?.name ?? row?.full_name ?? row?.email ?? ''),
-        role: String(row?.role ?? 'עובד'),
-        isSuperAdmin: Boolean(row?.is_super_admin ?? false),
-        tenantId: row?.organization_id ?? undefined,
+        id: obj ? getString(obj, 'id') : '',
+        name: obj ? getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))) : '',
+        role: obj ? getString(obj, 'role', 'עובד') : 'עובד',
+        isSuperAdmin: Boolean(obj?.['is_super_admin'] ?? obj?.['isSuperAdmin'] ?? false),
+        tenantId: (obj?.['organization_id'] ?? obj?.['organizationId']) ?? undefined,
     };
 }
 
-async function selectUserByEmailAndWorkspace(params: { supabase: any; email: string; workspaceId: string }) {
+async function selectUserByEmailAndWorkspace(params: { email: string; workspaceId: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('*')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
-
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    if (byOrg.error || !byOrg.data) return null;
-    return mapNexusUserRow(byOrg.data);
+    const row = await prisma.nexusUser.findFirst({
+        where: { organizationId: params.workspaceId, email },
+    });
+    if (!row?.id) return null;
+    return mapNexusUserRow(row);
 }
 
-async function loadTeamEventInWorkspace(params: { supabaseClient: any; eventId: string; workspaceId: string }) {
-    const res = await params.supabaseClient
-        .from('nexus_team_events')
-        .select('*')
-        .eq('id', params.eventId)
-        .eq('organization_id', params.workspaceId)
-        .single();
-
-    if ((res as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_team_events is missing organization_id');
-    }
-
-    return res;
+async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: string }) {
+    return getNexusTeamEventsDelegate().findFirst({
+        where: { id: String(params.eventId), organizationId: String(params.workspaceId) },
+    });
 }
 async function PATCHHandler(
     request: NextRequest,
@@ -64,17 +100,15 @@ async function PATCHHandler(
     try {
         const user = await getAuthenticatedUser();
 
-        const supabaseClient = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events/[id]/attendance/[userId]');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -91,93 +125,105 @@ async function PATCHHandler(
             return apiError('User email not found', { status: 400 });
         }
 
-        const dbUser = await selectUserByEmailAndWorkspace({ supabase: supabaseClient, email: user.email, workspaceId: workspace.id });
+        const dbUser = await selectUserByEmailAndWorkspace({ email: user.email, workspaceId: workspace.id });
 
         if (!dbUser) {
             return apiError('User not found in database', { status: 404 });
         }
 
         // Get event to check if user is organizer
-        const eventRes = await loadTeamEventInWorkspace({ supabaseClient, eventId, workspaceId: workspace.id });
-        const event = (eventRes as any).data;
-        const eventError = (eventRes as any).error;
-
-        if (eventError || !event) {
+        const event = await loadTeamEventInWorkspace({ eventId, workspaceId: workspace.id });
+        if (!event) {
             return apiError('אירוע לא נמצא', { status: 404 });
         }
 
+        const eventObj = asObject(event) ?? {};
+        const organizerId = String(eventObj.organizer_id ?? '');
+
         // Check permissions: only organizer or admin can update attendance
-        const isOrganizer = event.organizer_id === dbUser.id;
+        const isOrganizer = organizerId === dbUser.id;
         const isAdmin = dbUser.isSuperAdmin || isTenantAdminRole(dbUser.role);
 
         if (!isOrganizer && !isAdmin) {
             return apiError('רק מארגן האירוע יכול לעדכן נוכחות', { status: 403 });
         }
 
-        const body = await request.json();
-        const { status, notes } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const statusRaw = bodyObj.status;
+        const status = typeof statusRaw === 'string' ? statusRaw : String(statusRaw ?? '');
+        const notesRaw = bodyObj.notes;
+        const notes = notesRaw == null ? undefined : String(notesRaw);
 
         if (!status || !['attended', 'absent'].includes(status)) {
             return apiError('סטטוס לא תקין. צריך להיות attended או absent', { status: 400 });
         }
 
-        // Update attendance record
-        const updateData: any = {
+        const now = new Date();
+        const attendedAt = status === 'attended' ? now : null;
+        const updateData: Record<string, unknown> = {
             status,
-            attended_at: status === 'attended' ? new Date().toISOString() : null
+            attended_at: attendedAt,
+            ...(notes !== undefined ? { notes } : {}),
+            updated_at: now,
         };
 
-        if (notes !== undefined) {
-            updateData.notes = notes;
-        }
+        const updated = await getNexusEventAttendanceDelegate().updateMany({
+            where: {
+                organizationId: String(workspace.id),
+                event_id: String(eventId),
+                user_id: String(userId),
+            },
+            data: updateData,
+        });
 
-        const { data: attendance, error } = await supabaseClient
-            .from('nexus_event_attendance')
-            .update(updateData)
-            .eq('event_id', eventId)
-            .eq('user_id', userId)
-            .eq('organization_id', workspace.id)
-            .select()
-            .single();
-
-        if (error) {
-            // If record doesn't exist, create it
-            if (error.code === 'PGRST116') {
-                const { data: newAttendance, error: createError } = await supabaseClient
-                    .from('nexus_event_attendance')
-                    .insert({
-                        organization_id: workspace.id,
-                        event_id: eventId,
-                        user_id: userId,
-                        status,
-                        attended_at: status === 'attended' ? new Date().toISOString() : null,
-                        notes: notes || null
-                    })
-                    .select()
-                    .single();
-
-                if (createError) {
-                    console.error('[API] Error creating attendance:', createError);
-                    return apiError('שגיאה בעדכון נוכחות', { status: 500 });
-                }
-
-                return apiSuccess({ attendance: newAttendance, message: 'נוכחות עודכנה בהצלחה' }, { status: 200 });
-            }
-
-            console.error('[API] Error updating attendance:', error);
+        if (!updated || typeof updated.count !== 'number') {
             return apiError('שגיאה בעדכון נוכחות', { status: 500 });
         }
 
+        if (updated.count < 1) {
+            try {
+                await getNexusEventAttendanceDelegate().create({
+                    data: {
+                        organizationId: String(workspace.id),
+                        event_id: String(eventId),
+                        user_id: String(userId),
+                        status,
+                        attended_at: attendedAt,
+                        ...(notes !== undefined ? { notes } : {}),
+                        created_at: now,
+                        updated_at: now,
+                    },
+                });
+            } catch (e: unknown) {
+                // If row already exists due to race, ignore.
+                const code = String(asObject(e)?.code || '');
+                if (code !== 'P2002') {
+                    console.error('[API] Error creating attendance:', e);
+                    return apiError('שגיאה בעדכון נוכחות', { status: 500 });
+                }
+            }
+        }
+
+        const attendance = await getNexusEventAttendanceDelegate().findFirst({
+            where: {
+                organizationId: String(workspace.id),
+                event_id: String(eventId),
+                user_id: String(userId),
+            },
+        });
+
         return apiSuccess({ attendance, message: 'נוכחות עודכנה בהצלחה' }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
+        const msg = getErrorMessage(error);
         return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בעדכון נוכחות',
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: msg || 'שגיאה בעדכון נוכחות',
         });
     }
 }

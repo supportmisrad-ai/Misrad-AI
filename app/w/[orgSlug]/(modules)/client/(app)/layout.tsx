@@ -1,7 +1,7 @@
 import { currentUser } from '@clerk/nextjs/server';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getCurrentUserInfo } from '@/app/actions/users';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
@@ -34,7 +34,6 @@ export default async function ClientAppLayout({
   const clerkIsSuperAdmin =
     Boolean((clerkUser as any)?.publicMetadata?.isSuperAdmin) ||
     String((clerkUser as any)?.publicMetadata?.role || '').toLowerCase() === 'super_admin';
-  let supabase = createClient();
   const userInfo = await getCurrentUserInfo();
 
   const fallbackUser = userInfo.success
@@ -46,12 +45,10 @@ export default async function ClientAppLayout({
 
   let user: any = null;
   try {
-    const res = await supabase
-      .from('social_users')
-      .select('organization_id, role')
-      .eq('clerk_user_id', clerkUserId)
-      .maybeSingle();
-    user = res?.data ?? null;
+    user = await prisma.social_users.findFirst({
+      where: { clerk_user_id: clerkUserId },
+      select: { organization_id: true, role: true },
+    });
   } catch {
     user = null;
   }

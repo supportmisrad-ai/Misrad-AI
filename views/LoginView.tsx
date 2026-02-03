@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, Zap, Globe, Cpu, Eye, EyeOff, Smartphone, Fingerprint } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import type { OSModule } from '@/types/os-modules';
@@ -24,6 +24,8 @@ export const LoginView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordText, setShowPasswordText] = useState(false);
+  const [showKioskOptions, setShowKioskOptions] = useState(false);
+  const [isPasskeySupported, setIsPasskeySupported] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +57,22 @@ export const LoginView: React.FC = () => {
 
     setTargetModule(resolved);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    setIsPasskeySupported(
+      typeof window.PublicKeyCredential !== 'undefined' &&
+        typeof navigator.credentials !== 'undefined' &&
+        typeof navigator.credentials.get !== 'undefined'
+    );
+  }, []);
+
+  const getLoginReturnUrl = () => {
+    if (typeof window === 'undefined') return '/login';
+    const search = window.location.search || '';
+    return `/login${search}`;
+  };
 
   const theme = (() => {
     if (targetModule === 'social') {
@@ -128,61 +146,87 @@ export const LoginView: React.FC = () => {
     setError('');
 
     try {
-      const init = await signIn.create({
-        identifier: normalizedEmail,
-      });
-
-      if (init.status === 'complete') {
-        await setActive({ session: init.createdSessionId });
-        router.push('/');
-        router.refresh();
-        return;
-      }
-
-      if (init.status === 'needs_first_factor') {
-        const supported = (init as any)?.supportedFirstFactors;
-        const supportsPassword = Array.isArray(supported)
-          ? supported.some((f: any) => String(f?.strategy || '').toLowerCase() === 'password')
-          : true;
-
-        if (!supportsPassword) {
-          setError('למשתמש הזה אין סיסמה מוגדרת. נסה להתחבר עם Google או בצע "שכחתי סיסמה" כדי להגדיר סיסמה.');
-          return;
-        }
-
-        const result = await signIn.attemptFirstFactor({
-          strategy: 'password',
+      try {
+        const direct = await signIn.create({
+          identifier: normalizedEmail,
           password,
         });
 
-        if (result.status === 'complete') {
-          await setActive({ session: result.createdSessionId });
-          router.push('/');
+        if (direct.status === 'complete') {
+          await setActive({ session: direct.createdSessionId });
+          router.replace(getLoginReturnUrl());
           router.refresh();
           return;
         }
 
-        const status = (result as any)?.status;
+        const status = (direct as any)?.status;
         const msg =
           status === 'needs_second_factor'
             ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
             : status === 'needs_new_password'
               ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
-              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+              : status === 'needs_first_factor'
+                ? 'נדרש גורם התחברות נוסף כדי להשלים התחברות. נסה שוב או השתמש בשיטה אחרת.'
+                : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
         setError(msg);
         return;
-      }
+      } catch {
+        const init = await signIn.create({
+          identifier: normalizedEmail,
+        });
 
-      const status = (init as any)?.status;
-      const msg =
-        status === 'needs_second_factor'
-          ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
-          : status === 'needs_identifier'
-            ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
-            : status === 'needs_new_password'
-              ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
-              : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
-      setError(msg);
+        if (init.status === 'complete') {
+          await setActive({ session: init.createdSessionId });
+          router.replace(getLoginReturnUrl());
+          router.refresh();
+          return;
+        }
+
+        if (init.status === 'needs_first_factor') {
+          const supported = (init as any)?.supportedFirstFactors;
+          const supportsPassword = Array.isArray(supported)
+            ? supported.some((f: any) => String(f?.strategy || '').toLowerCase() === 'password')
+            : true;
+
+          if (!supportsPassword) {
+            setError('למשתמש הזה אין סיסמה מוגדרת. נסה להתחבר עם Google או בצע "שכחתי סיסמה" כדי להגדיר סיסמה.');
+            return;
+          }
+
+          const result = await signIn.attemptFirstFactor({
+            strategy: 'password',
+            password,
+          });
+
+          if (result.status === 'complete') {
+            await setActive({ session: result.createdSessionId });
+            router.replace(getLoginReturnUrl());
+            router.refresh();
+            return;
+          }
+
+          const status = (result as any)?.status;
+          const msg =
+            status === 'needs_second_factor'
+              ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+              : status === 'needs_new_password'
+                ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+                : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+          setError(msg);
+          return;
+        }
+
+        const status = (init as any)?.status;
+        const msg =
+          status === 'needs_second_factor'
+            ? 'נדרש אימות דו-שלבי כדי להשלים התחברות (2FA). נסה להתחבר עם שיטה אחרת או השלם את האימות הנוסף.'
+            : status === 'needs_identifier'
+              ? 'נדרש אימייל/מזהה כדי להמשיך. נסה להזין את האימייל מחדש.'
+              : status === 'needs_new_password'
+                ? 'נדרש להגדיר סיסמה חדשה כדי להמשיך. נסה להתחבר ולבחור איפוס סיסמה.'
+                : `ההתחברות לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב או השתמש בשיטה אחרת.`;
+        setError(msg);
+      }
     } catch (err: any) {
       const clerkError = err?.errors?.[0];
       const errType = typeof err;
@@ -227,6 +271,46 @@ export const LoginView: React.FC = () => {
     }
   };
 
+  const handlePasskeyLogin = async () => {
+    if (!isPasskeySupported) {
+      setError('התחברות עם Face ID / Touch ID לא נתמכת במכשיר/דפדפן הזה');
+      return;
+    }
+
+    if (!isLoaded) {
+      setError('המערכת עדיין נטענת, אנא נסה שוב');
+      return;
+    }
+
+    if (!signIn) {
+      setError('שגיאה בטעינת מערכת ההתחברות. נא לרענן את הדף.');
+      return;
+    }
+
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const result = await signIn.authenticateWithPasskey({});
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.replace(getLoginReturnUrl());
+        router.refresh();
+        return;
+      }
+
+      const status = (result as any)?.status;
+      setError(`ההתחברות עם זיהוי ביומטרי לא הושלמה (סטטוס: ${String(status || 'unknown')}). נסה שוב.`);
+    } catch (err: any) {
+      const clerkError = err?.errors?.[0];
+      const errorKey = clerkError?.code || clerkError?.message || err?.message || String(err || '');
+      setError(translateClerkError(errorKey || 'שגיאה בהתחברות עם זיהוי ביומטרי'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     if (!isLoaded) {
       setError('המערכת עדיין נטענת, אנא נסה שוב');
@@ -242,13 +326,14 @@ export const LoginView: React.FC = () => {
     setError('');
 
     const origin = window.location.origin;
+    const loginReturnUrl = `${origin}${getLoginReturnUrl()}`;
 
     try {
       // ניסוי ראשון: Redirect (העדפה כי זה ה-flow המלא)
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `${origin}/`,
-        redirectUrlComplete: `${origin}/app`,
+        redirectUrl: loginReturnUrl,
+        redirectUrlComplete: loginReturnUrl,
       });
       // אם ה-redirect מצליח, לא נגיע לכאן כי הדפדפן ינותב.
     } catch (errRedirect: any) {
@@ -257,13 +342,13 @@ export const LoginView: React.FC = () => {
         // ניסוי שני: Popup
         const result = (await signIn.authenticateWithPopup({
           strategy: 'oauth_google',
-          redirectUrl: `${origin}/login`,
-          redirectUrlComplete: `${origin}/`,
+          redirectUrl: loginReturnUrl,
+          redirectUrlComplete: loginReturnUrl,
           popup: window,
         })) as any;
         if (result?.createdSessionId) {
           await setActive({ session: result.createdSessionId });
-          router.push('/app');
+          router.replace(getLoginReturnUrl());
           router.refresh();
         } else {
           setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');
@@ -361,11 +446,20 @@ export const LoginView: React.FC = () => {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-4"
                             >
+                                {error && (
+                                  <motion.p
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="text-xs text-red-500 font-bold"
+                                  >
+                                    {error}
+                                  </motion.p>
+                                )}
                                 {/* Google Login - Moved to top */}
                                 <button
                                   type="button"
                                   onClick={handleGoogleLogin}
-                                  disabled={!isLoaded}
+                                  disabled={!isLoaded || isLoading}
                                   className="w-full bg-white text-gray-700 font-medium py-3.5 rounded-xl border border-gray-300 hover:border-gray-400 hover:shadow-md transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
                                   {/* Google Logo SVG */}
@@ -380,6 +474,18 @@ export const LoginView: React.FC = () => {
                                   <span className="text-gray-700 font-medium">המשך עם Google</span>
                                 </button>
 
+                                {isPasskeySupported && (
+                                  <button
+                                    type="button"
+                                    onClick={handlePasskeyLogin}
+                                    disabled={!isLoaded || isLoading}
+                                    className="w-full bg-white text-gray-700 font-medium py-3.5 rounded-xl border border-gray-300 hover:border-gray-400 hover:shadow-md transition-all active:scale-[0.98] shadow-sm flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                                  >
+                                    <Fingerprint size={18} className="text-gray-700" />
+                                    <span className="text-gray-700 font-medium">התחבר עם Face ID / Touch ID</span>
+                                  </button>
+                                )}
+
                                 {/* Divider */}
                                 <div className="flex items-center gap-3 my-2">
                                   <div className="flex-1 h-px bg-gray-200" />
@@ -388,20 +494,9 @@ export const LoginView: React.FC = () => {
                                 </div>
 
                                 <label className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-4 block">הזן כתובת אימייל</label>
-                                <div className="relative group">
-                                    <input 
-                                        ref={emailInputRef}
-                                        type="email"
-                                        value={email}
-                                        onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                                        className={`w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pr-4 pl-4 outline-none focus:ring-4 transition-all font-bold text-gray-900 placeholder:text-gray-400 ${theme.focusRing}`}
-                                        placeholder="your@email.com"
-                                        dir="ltr"
-                                        style={{ textAlign: 'left' }}
-                                    />
-                                </div>
-                                <button
-                                    onClick={() => {
+                                <form
+                                    onSubmit={(e) => {
+                                        e.preventDefault();
                                         if (email && email.includes('@')) {
                                             setShowPassword(true);
                                             setError('');
@@ -409,26 +504,55 @@ export const LoginView: React.FC = () => {
                                             setError('נא להזין כתובת אימייל תקינה');
                                         }
                                     }}
-                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                    className="space-y-4"
                                 >
-                                    המשך <ArrowLeft size={18} />
-                                </button>
+                                    <div className="relative group">
+                                        <input 
+                                            ref={emailInputRef}
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                                            className={`w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pr-4 pl-4 outline-none focus:ring-4 transition-all font-bold text-gray-900 placeholder:text-gray-400 ${theme.focusRing}`}
+                                            placeholder="your@email.com"
+                                            dir="ltr"
+                                            style={{ textAlign: 'left' }}
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                    >
+                                        המשך <ArrowLeft size={18} />
+                                    </button>
+                                </form>
 
-                                <div className="mt-3 grid grid-cols-1 gap-2">
+                                <div className="mt-3">
                                   <button
                                     type="button"
-                                    onClick={() => router.push('/kiosk-scan')}
-                                    className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                    onClick={() => setShowKioskOptions((v) => !v)}
+                                    className="w-full text-center text-sm font-bold text-gray-600 hover:text-gray-900 underline"
                                   >
-                                    כניסה למסופון (סריקת QR) <Smartphone size={18} />
+                                    כניסה למסופון
                                   </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => router.push('/kiosk-login')}
-                                    className="w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
-                                  >
-                                    <Smartphone size={18} /> הצג קוד ידני
-                                  </button>
+
+                                  {showKioskOptions && (
+                                    <div className="mt-3 grid grid-cols-1 gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => router.push('/kiosk-scan')}
+                                        className="w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
+                                      >
+                                        כניסה במסופון (סריקת QR) <Smartphone size={18} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => router.push('/kiosk-login')}
+                                        className="w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                      >
+                                        <Smartphone size={18} /> הצג קוד ידני
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                             </motion.div>
                         ) : (
@@ -508,22 +632,6 @@ export const LoginView: React.FC = () => {
                                                 כניסה למערכת <ArrowLeft size={18} />
                                             </>
                                         )}
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => router.push('/kiosk-login')}
-                                      className="mt-3 w-full bg-white text-gray-900 border border-gray-200 py-3.5 rounded-xl text-sm font-black flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
-                                    >
-                                      <Smartphone size={18} /> כניסה למסופון (Kiosk)
-                                    </button>
-
-                                    <button
-                                      type="button"
-                                      onClick={() => router.push('/kiosk-scan')}
-                                      className="mt-2 w-full bg-black text-white font-bold py-4 rounded-xl hover:bg-gray-800 transition-all active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
-                                    >
-                                      כניסה למסופון (סריקת QR) <Smartphone size={18} />
                                     </button>
                                 </form>
                             </motion.div>

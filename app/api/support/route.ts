@@ -6,20 +6,74 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { createClient } from '../../../lib/supabase';
-import { SupportTicket } from '../../../types';
+import { Priority, SupportTicket, SupportTicketCategory, SupportTicketStatus } from '../../../types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import prisma from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function toIsoString(input: any): string | undefined {
+    if (!input) return undefined;
+    if (input instanceof Date) return input.toISOString();
+    if (typeof input === 'string') return input;
+    return undefined;
+}
+
+function normalizeMetadata(input: any): Record<string, unknown> | undefined {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+    return input as Record<string, unknown>;
+}
+
+const SUPPORT_TICKET_CATEGORIES: SupportTicketCategory[] = ['Tech', 'Account', 'Billing', 'Feature'];
+const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+
+function normalizeCategory(input: any): SupportTicketCategory {
+    return SUPPORT_TICKET_CATEGORIES.includes(input) ? input : 'Tech';
+}
+
+function normalizeStatus(input: any): SupportTicketStatus {
+    return SUPPORT_TICKET_STATUSES.includes(input) ? input : 'open';
+}
+
+function normalizePriority(input: any): Priority {
+    if (input === Priority.LOW || input === 'low') return Priority.LOW;
+    if (input === Priority.MEDIUM || input === 'medium') return Priority.MEDIUM;
+    if (input === Priority.HIGH || input === 'high') return Priority.HIGH;
+    if (input === Priority.URGENT || input === 'urgent') return Priority.URGENT;
+    return Priority.MEDIUM;
+}
+
+function normalizeTicket(ticket: any): SupportTicket {
+    return {
+        id: String(ticket.id),
+        user_id: String(ticket.user_id),
+        tenant_id: ticket.tenant_id ? String(ticket.tenant_id) : undefined,
+        category: normalizeCategory(ticket.category),
+        subject: String(ticket.subject || ''),
+        message: String(ticket.message || ''),
+        ticket_number: String(ticket.ticket_number || ''),
+        status: normalizeStatus(ticket.status),
+        priority: normalizePriority(ticket.priority),
+        assigned_to: ticket.assigned_to ? String(ticket.assigned_to) : undefined,
+        resolved_by: ticket.resolved_by ? String(ticket.resolved_by) : undefined,
+        created_at: toIsoString(ticket.created_at) || new Date().toISOString(),
+        updated_at: toIsoString(ticket.updated_at),
+        resolved_at: toIsoString(ticket.resolved_at),
+        closed_at: toIsoString(ticket.closed_at),
+        admin_response: ticket.admin_response ? String(ticket.admin_response) : undefined,
+        resolution_notes: ticket.resolution_notes ? String(ticket.resolution_notes) : undefined,
+        metadata: normalizeMetadata(ticket.metadata) ?? {},
+    };
+}
+
 async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
-
-        const supabase = createClient();
 
         const searchParams = request.nextUrl.searchParams;
         const ticketId = searchParams.get('id');
@@ -29,59 +83,34 @@ async function GETHandler(request: NextRequest) {
         // Check if user is admin
         const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
-        let query = supabase
-            .from('misrad_support_tickets')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        query = query.eq('tenant_id', workspaceId);
+        const where: any = {
+            tenant_id: String(workspaceId),
+        };
 
         // If not admin, only show user's own tickets
         if (!isAdmin) {
-            query = query.eq('user_id', user.id);
+            where.user_id = String(user.id);
         } else if (userId) {
             // Admin can filter by specific user
-            query = query.eq('user_id', userId);
+            where.user_id = String(userId);
         }
 
         // Filter by ticket ID
         if (ticketId) {
-            query = query.eq('id', ticketId).limit(1);
+            where.id = String(ticketId);
         }
 
         // Filter by status
         if (status) {
-            query = query.eq('status', status);
+            where.status = String(status);
         }
 
-        const { data: tickets, error } = await query;
+        const tickets = await prisma.scale_support_tickets.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+        });
 
-        if (error) {
-            console.error('[API] Error fetching support tickets:', error);
-            return apiError('שגיאה בטעינת קריאות תמיכה', { status: 500 });
-        }
-
-        // Transform to match TypeScript interface
-        const transformedTickets: SupportTicket[] = (tickets || []).map((ticket: any) => ({
-            id: ticket.id,
-            user_id: ticket.user_id,
-            tenant_id: ticket.tenant_id,
-            category: ticket.category,
-            subject: ticket.subject,
-            message: ticket.message,
-            ticket_number: ticket.ticket_number,
-            status: ticket.status,
-            priority: ticket.priority,
-            assigned_to: ticket.assigned_to,
-            resolved_by: ticket.resolved_by,
-            created_at: ticket.created_at,
-            updated_at: ticket.updated_at,
-            resolved_at: ticket.resolved_at,
-            closed_at: ticket.closed_at,
-            admin_response: ticket.admin_response,
-            resolution_notes: ticket.resolution_notes,
-            metadata: ticket.metadata || {}
-        }));
+        const transformedTickets: SupportTicket[] = (tickets || []).map(normalizeTicket);
 
         if (ticketId) {
             return apiSuccess(transformedTickets[0] || null);
@@ -106,7 +135,6 @@ async function POSTHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
-        const supabase = createClient();
         
         const body = await request.json();
         const { category, subject, message, priority } = body;
@@ -131,41 +159,15 @@ async function POSTHandler(request: NextRequest) {
             message: message.trim(),
             priority: priority || 'medium',
             status: 'open',
-            metadata: {}
+            metadata: {},
+            ticket_number: `TKT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${randomUUID().slice(0, 8)}`
         };
 
-        const { data: ticket, error: createError } = await supabase
-            .from('misrad_support_tickets')
-            .insert(ticketData)
-            .select()
-            .single();
+        const ticket = await prisma.scale_support_tickets.create({
+            data: ticketData as any,
+        });
 
-        if (createError) {
-            console.error('[API] Error creating support ticket:', createError);
-            return apiError('שגיאה ביצירת קריאת תמיכה', { status: 500 });
-        }
-
-        // Transform response
-        const transformedTicket: SupportTicket = {
-            id: ticket.id,
-            user_id: ticket.user_id,
-            tenant_id: ticket.tenant_id,
-            category: ticket.category,
-            subject: ticket.subject,
-            message: ticket.message,
-            ticket_number: ticket.ticket_number,
-            status: ticket.status,
-            priority: ticket.priority,
-            assigned_to: ticket.assigned_to,
-            resolved_by: ticket.resolved_by,
-            created_at: ticket.created_at,
-            updated_at: ticket.updated_at,
-            resolved_at: ticket.resolved_at,
-            closed_at: ticket.closed_at,
-            admin_response: ticket.admin_response,
-            resolution_notes: ticket.resolution_notes,
-            metadata: ticket.metadata || {}
-        };
+        const transformedTicket: SupportTicket = normalizeTicket(ticket);
 
         return apiSuccess(
             {

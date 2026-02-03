@@ -1,14 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Client, Lead, Asset, Invoice, Product, Tenant, LeadStatus } from '../types';
+import { Asset, Client, Invoice, Lead, LeadStatus, Notification, Tenant, Toast, User, Product } from '../types';
 import { DEFAULT_PRODUCTS } from '../constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
+type ToastKind = Toast['type'];
+type NotificationInput = Omit<Notification, 'id' | 'time' | 'read'>;
+
+type IncomingCall = {
+    id: string;
+    callerName: string;
+    phoneNumber: string;
+    company: string;
+    isClient: boolean;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
 export const useCRM = (
-    currentUser: any,
-    addNotification: (n: any) => void,
-    addToast: (m: string, t?: any) => void,
+    currentUser: User,
+    addNotification: (n: NotificationInput) => void,
+    addToast: (m: string, t?: ToastKind) => void,
     applyTemplate: (templateId: string, clientId?: string, clientName?: string) => void // NEW DEPENDENCY
 ) => {
     const [clients, setClients] = useState<Client[]>([]);
@@ -24,10 +48,10 @@ export const useCRM = (
     const [trashClients, setTrashClients] = useState<Client[]>([]);
     const [trashLeads, setTrashLeads] = useState<Lead[]>([]);
     const [trashAssets, setTrashAssets] = useState<Asset[]>([]);
-
+    
     // External Integration State
     const [isGreenInvoiceConnected, setIsGreenInvoiceConnected] = useState(false);
-    const [incomingCall, setIncomingCall] = useState<any>(null);
+    const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
 
     // --- Client Logic ---
     const addClient = (client: Client) => {
@@ -203,13 +227,19 @@ export const useCRM = (
                 // Check if response is JSON before parsing
                 const contentType = response.headers.get('content-type');
                 if (contentType && contentType.includes('application/json')) {
-                    const error = await response.json();
-                    if (response.status === 402 && (error as any)?.code === 'UPGRADE_REQUIRED') {
-                        const pkg = (error as any)?.paywall?.recommendedPackageType || 'the_operator';
+                    const errorPayload: unknown = await response.json();
+                    const errorObj = asObject(errorPayload) ?? {};
+                    const code = typeof errorObj.code === 'string' ? errorObj.code : '';
+                    if (response.status === 402 && code === 'UPGRADE_REQUIRED') {
+                        const paywallObj = asObject(errorObj.paywall) ?? {};
+                        const pkg = typeof paywallObj.recommendedPackageType === 'string'
+                            ? paywallObj.recommendedPackageType
+                            : 'the_operator';
                         window.location.href = `/subscribe/checkout?billing=monthly&package=${encodeURIComponent(String(pkg))}`;
                         return;
                     }
-                    throw new Error(error.error || 'Failed to create invoice');
+                    const apiError = typeof errorObj.error === 'string' ? errorObj.error : 'Failed to create invoice';
+                    throw new Error(apiError);
                 } else {
                     // Response is HTML (error page)
                     const text = await response.text();
@@ -237,9 +267,9 @@ export const useCRM = (
             };
             setInvoices(prev => [newInvoice, ...prev]);
             addToast('חשבונית הופקה ונשלחה ללקוח', 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[CRM] Error generating invoice:', error);
-            addToast(error.message || 'שגיאה ביצירת חשבונית', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה ביצירת חשבונית', 'error');
         }
     };
 
@@ -298,7 +328,7 @@ export const useCRM = (
         try {
             // Redirect to OAuth authorization (real Google OAuth, not demo)
             window.location.href = '/api/integrations/google/authorize?service=calendar';
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[CRM] Error connecting Google Calendar:', error);
             addToast('שגיאה בחיבור ל-Google Calendar', 'error');
         }
@@ -310,8 +340,14 @@ export const useCRM = (
         const checkGreenInvoiceStatus = async () => {
             try {
                 const orgSlug = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
+                if (!orgSlug) {
+                    if (mounted) {
+                        setIsGreenInvoiceConnected(false);
+                    }
+                    return;
+                }
                 const response = await fetch('/api/integrations/green-invoice/status', {
-                    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
+                    headers: orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : undefined
                 });
                 if (!mounted) return;
                 
@@ -352,7 +388,7 @@ export const useCRM = (
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+                    ...(orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : {}),
                 },
                 body: JSON.stringify({ apiKey })
             });
@@ -372,24 +408,34 @@ export const useCRM = (
 
             setIsGreenInvoiceConnected(true);
             addToast('חשבונית ירוקה חוברה בהצלחה', 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[CRM] Error connecting Green Invoice:', error);
-            addToast(error.message || 'שגיאה בחיבור למורנינג', 'error');
+            addToast(getErrorMessage(error) || 'שגיאה בחיבור למורנינג', 'error');
         }
     };
 
     // --- CRITICAL FIX: AUTO-ONBOARDING LOGIC ---
-    const onboardClientFromWebhook = (data: any) => {
+    const onboardClientFromWebhook = (data: unknown) => {
+        const root = asObject(data) ?? {};
+        const contact = asObject(root.contact_person) ?? {};
+        const dealDetails = asObject(root.deal_details) ?? {};
+
+        const companyName = typeof root.company_name === 'string' ? root.company_name : '';
+        const contactName = typeof contact.name === 'string' ? contact.name : '';
+        const contactEmail = typeof contact.email === 'string' ? contact.email : '';
+        const contactPhone = typeof contact.phone === 'string' ? contact.phone : '';
+        const packageTypeRaw = typeof dealDetails.package_type === 'string' ? dealDetails.package_type : '';
+
         const newClient: Client = {
             id: `C-${Date.now()}`,
-            name: data.contact_person?.name || data.company_name,
-            companyName: data.company_name,
-            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.company_name)}&background=random`,
-            package: data.deal_details?.package_type || 'Unknown',
+            name: contactName || companyName,
+            companyName,
+            avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(companyName)}&background=random`,
+            package: packageTypeRaw || 'Unknown',
             status: 'Onboarding',
-            contactPerson: data.contact_person?.name || 'Unknown',
-            email: data.contact_person?.email || '',
-            phone: data.contact_person?.phone || '',
+            contactPerson: contactName || 'Unknown',
+            email: contactEmail,
+            phone: contactPhone,
             joinedAt: new Date().toISOString(),
             assetsFolderUrl: '#'
         };
@@ -406,7 +452,7 @@ export const useCRM = (
         });
         
         // 3. AUTO-START PLAYBOOK (Trigger Tasks)
-        const packageType = (data.deal_details?.package_type || '').toLowerCase();
+        const packageType = String(packageTypeRaw || '').toLowerCase();
         let templateId = '';
 
         if (packageType.includes('premium') || packageType.includes('vip')) {

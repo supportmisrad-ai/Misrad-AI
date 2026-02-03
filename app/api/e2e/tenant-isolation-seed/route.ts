@@ -9,14 +9,45 @@ function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function formatSupabaseError(err: any) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function formatSupabaseError(err: unknown) {
   if (!err) return null;
+  const obj = isRecord(err) ? err : null;
+  if (!obj) return null;
   return {
-    message: err?.message ?? null,
-    code: err?.code ?? null,
-    details: err?.details ?? null,
-    hint: err?.hint ?? null,
+    message: 'message' in obj ? obj.message ?? null : null,
+    code: 'code' in obj ? obj.code ?? null : null,
+    details: 'details' in obj ? obj.details ?? null : null,
+    hint: 'hint' in obj ? obj.hint ?? null : null,
   };
+}
+
+function decodeJwtPayload(token: string): unknown | null {
+  try {
+    const t = String(token || '').trim();
+    const parts = t.split('.');
+    if (parts.length !== 3) return null;
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), '=');
+    const json = Buffer.from(padded, 'base64').toString('utf8');
+    return JSON.parse(json) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function coerceRowWithId(data: unknown): { id: string } & Record<string, unknown> {
+  if (!isRecord(data)) {
+    throw new Error('Invalid Supabase response: expected object row');
+  }
+  const id = safeString(data.id);
+  if (!id) {
+    throw new Error('Invalid Supabase response: missing id');
+  }
+  return { ...data, id };
 }
 
 export async function POST(req: Request) {
@@ -42,6 +73,53 @@ export async function POST(req: Request) {
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true') {
+      try {
+        const host = (() => {
+          try {
+            return new URL(String(supabaseUrl)).host;
+          } catch {
+            return String(supabaseUrl || '');
+          }
+        })();
+
+        const payload = serviceKey ? decodeJwtPayload(String(serviceKey)) : null;
+        const payloadObj = isRecord(payload) ? payload : null;
+        const role = payloadObj && payloadObj.role != null ? safeString(payloadObj.role) : null;
+        const iss = payloadObj && payloadObj.iss != null ? safeString(payloadObj.iss) : null;
+        const ref = payloadObj && payloadObj.ref != null ? safeString(payloadObj.ref) : null;
+        const aud = payloadObj && payloadObj.aud != null ? safeString(payloadObj.aud) : null;
+
+        const dbUrl = String(process.env.DATABASE_URL || '').trim();
+        const directUrl = String(process.env.DIRECT_URL || '').trim();
+        const dbHost = (() => {
+          try {
+            return new URL(dbUrl).host;
+          } catch {
+            return dbUrl ? '(invalid DATABASE_URL)' : '(missing DATABASE_URL)';
+          }
+        })();
+        const directHost = (() => {
+          try {
+            return new URL(directUrl).host;
+          } catch {
+            return directUrl ? '(invalid DIRECT_URL)' : '(missing DIRECT_URL)';
+          }
+        })();
+
+        console.warn('[E2E][tenant-isolation-seed] supabase host:', host);
+        console.warn('[E2E][tenant-isolation-seed] service role key is jwt:', Boolean(payload));
+        console.warn('[E2E][tenant-isolation-seed] service role key role claim:', role);
+        console.warn('[E2E][tenant-isolation-seed] service role key iss claim:', iss);
+        console.warn('[E2E][tenant-isolation-seed] service role key ref claim:', ref);
+        console.warn('[E2E][tenant-isolation-seed] service role key aud claim:', aud);
+        console.warn('[E2E][tenant-isolation-seed] DATABASE_URL host:', dbHost);
+        console.warn('[E2E][tenant-isolation-seed] DIRECT_URL host:', directHost);
+      } catch {
+        // ignore
+      }
+    }
 
     if (!supabaseUrl || !serviceKey) {
       return NextResponse.json({ ok: false, error: 'Supabase not configured' }, { status: 500 });
@@ -78,10 +156,10 @@ export async function POST(req: Request) {
           throw Object.assign(new Error(existing.error.message), { supabase: formatSupabaseError(existing.error) });
         }
 
-        return existing.data as any;
+        return coerceRowWithId(existing.data);
       }
 
-      return insertRes.data as any;
+      return coerceRowWithId(insertRes.data);
     };
 
     const victimSocialUser = await createSocialUser({
@@ -121,13 +199,15 @@ export async function POST(req: Request) {
         .single();
 
       if (insertRes.error) {
-        const err = insertRes.error as any;
-        const code = String(err?.code || '');
-        const details = String(err?.details || '');
+        const err = insertRes.error as unknown;
+        const errObj = isRecord(err) ? err : {};
+        const code = safeString(errObj.code);
+        const details = safeString(errObj.details);
+        const message = safeString(errObj.message);
 
         // This DB enforces 1 organization per owner (unique owner_id).
         // Make the seed idempotent by reusing the existing org.
-        if (code === '23505' && (details.includes('(owner_id)') || String(err?.message || '').includes('organizations_owner_id_key'))) {
+        if (code === '23505' && (details.includes('(owner_id)') || message.includes('organizations_owner_id_key'))) {
           const existing = await admin
             .from('organizations')
             .select('id, slug, name')
@@ -140,13 +220,13 @@ export async function POST(req: Request) {
             });
           }
 
-          return existing.data as any;
+          return coerceRowWithId(existing.data);
         }
 
-        throw Object.assign(new Error(err?.message || 'Failed to create organization'), { supabase: formatSupabaseError(err) });
+        throw Object.assign(new Error(message || 'Failed to create organization'), { supabase: formatSupabaseError(err) });
       }
 
-      return insertRes.data as any;
+      return coerceRowWithId(insertRes.data);
     };
 
     const orgTarget = await createOrg({
@@ -200,7 +280,7 @@ export async function POST(req: Request) {
         throw Object.assign(new Error(res.error.message), { supabase: formatSupabaseError(res.error) });
       }
 
-      return res.data as any;
+      return coerceRowWithId(res.data);
     };
 
     const victimClient = await createClientClient({
@@ -244,7 +324,7 @@ export async function POST(req: Request) {
         throw Object.assign(new Error(res.error.message), { supabase: formatSupabaseError(res.error) });
       }
 
-      return res.data as any;
+      return coerceRowWithId(res.data);
     };
 
     const victimCrmClient = await createCrmClient({
@@ -276,7 +356,8 @@ export async function POST(req: Request) {
         throw Object.assign(new Error(orgRes.error.message), { supabase: formatSupabaseError(orgRes.error) });
       }
 
-      const organizationId = (orgRes.data as any)?.organization_id ? String((orgRes.data as any).organization_id) : '';
+      const orgData = isRecord(orgRes.data) ? orgRes.data : null;
+      const organizationId = orgData && orgData.organization_id != null ? safeString(orgData.organization_id) : '';
       if (!organizationId) {
         throw new Error('Missing organization_id for seeded social post client');
       }
@@ -298,7 +379,7 @@ export async function POST(req: Request) {
         throw Object.assign(new Error(res.error.message), { supabase: formatSupabaseError(res.error) });
       }
 
-      return res.data as any;
+      return coerceRowWithId(res.data);
     };
 
     const victimSocialPost = await createSocialPost({
@@ -338,7 +419,7 @@ export async function POST(req: Request) {
         throw Object.assign(new Error(res.error.message), { supabase: formatSupabaseError(res.error) });
       }
 
-      return res.data as any;
+      return coerceRowWithId(res.data);
     };
 
     const victimLead = await createSystemLead({
@@ -370,9 +451,12 @@ export async function POST(req: Request) {
       victim: { clerkUserId: victimClerkUserId, socialUserId: String(victimSocialUser.id) },
       attacker: { clerkUserId: attackerClerkUserId, socialUserId: String(attackerSocialUser.id) },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const errObj = isRecord(e) ? e : null;
+    const message = typeof errObj?.message === 'string' ? errObj.message : 'Seed failed';
+    const supabase = errObj && 'supabase' in errObj ? errObj.supabase ?? null : null;
     return NextResponse.json(
-      { ok: false, error: e?.message || 'Seed failed', supabase: e?.supabase ?? null },
+      { ok: false, error: message || 'Seed failed', supabase },
       { status: 500 }
     );
   }

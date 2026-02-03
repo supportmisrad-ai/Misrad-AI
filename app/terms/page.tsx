@@ -15,7 +15,7 @@ export default async function TermsPage() {
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
-      <main className="pt-24">
+      <main className="pt-20">
         <section className="relative overflow-hidden">
           <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-rose-200/25 rounded-full blur-[120px] pointer-events-none" />
           <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-amber-200/20 rounded-full blur-[140px] pointer-events-none" />

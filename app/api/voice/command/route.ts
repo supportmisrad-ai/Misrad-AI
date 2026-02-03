@@ -8,18 +8,33 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const runtime = 'nodejs';
 
+type VoiceAction =
+  | 'create_lead'
+  | 'create_task'
+  | 'create_work_order'
+  | 'quick_invoice_draft'
+  | 'navigate'
+  | 'unknown';
+
 type VoiceCommandPayload = {
-  action:
-    | 'create_lead'
-    | 'create_task'
-    | 'create_work_order'
-    | 'quick_invoice_draft'
-    | 'navigate'
-    | 'unknown';
-  data?: any;
+  action: VoiceAction;
+  data?: unknown;
 };
 
-function safeJsonParse(text: string): any {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function safeJsonParse(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {
@@ -27,14 +42,14 @@ function safeJsonParse(text: string): any {
   }
 }
 
-function normalizePhone(input: any): string {
+function normalizePhone(input: unknown): string {
   return String(input || '')
     .trim()
     .replace(/\s+/g, '')
     .replace(/[^0-9+]/g, '');
 }
 
-function normalizeAmountIls(input: any): number | null {
+function normalizeAmountIls(input: unknown): number | null {
   const raw = String(input ?? '').trim();
   if (!raw) return null;
   const cleaned = raw.replace(/[^0-9.]/g, '');
@@ -87,8 +102,9 @@ async function transcribeWithOpenAI(params: { apiKey: string; file: File }): Pro
     throw new Error(`OpenAI transcription error (${res.status}): ${txt}`);
   }
 
-  const json: any = await res.json();
-  const text = json?.text ? String(json.text) : '';
+  const json: unknown = await res.json();
+  const jsonObj = asObject(json) ?? {};
+  const text = typeof jsonObj.text === 'string' ? String(jsonObj.text) : '';
   if (!text.trim()) throw new Error('תמלול ריק');
   return text.trim();
 }
@@ -196,21 +212,28 @@ async function extractCommandWithOpenAI(params: {
     throw new Error(`OpenAI error (${res.status}): ${txt}`);
   }
 
-  const json: any = await res.json();
-  const text = json?.choices?.[0]?.message?.content ? String(json.choices[0].message.content) : '';
+  const json: unknown = await res.json();
+  const jsonObj = asObject(json) ?? {};
+  const choices = Array.isArray(jsonObj.choices) ? jsonObj.choices : [];
+  const firstChoiceObj = asObject(choices[0]) ?? {};
+  const messageObj = asObject(firstChoiceObj.message) ?? {};
+  const text = typeof messageObj.content === 'string' ? String(messageObj.content) : '';
+
   const parsed = safeJsonParse(text);
-  if (!parsed || typeof parsed !== 'object') {
+  const parsedObj = asObject(parsed);
+  if (!parsedObj) {
     throw new Error('פענוח פקודה נכשל');
   }
 
-  const action = String((parsed as any).action || 'unknown');
-  const data = (parsed as any).data ?? null;
+  const rawAction = typeof parsedObj.action === 'string' ? parsedObj.action : 'unknown';
+  const data = parsedObj.data ?? null;
 
-  if (!['create_lead', 'create_task', 'create_work_order', 'quick_invoice_draft', 'navigate', 'unknown'].includes(action)) {
-    return { action: 'unknown', data: { originalAction: action, data } };
+  const allowed: readonly VoiceAction[] = ['create_lead', 'create_task', 'create_work_order', 'quick_invoice_draft', 'navigate', 'unknown'] as const;
+  if (!allowed.includes(rawAction as VoiceAction)) {
+    return { action: 'unknown', data: { originalAction: rawAction, data } };
   }
 
-  return { action: action as any, data };
+  return { action: rawAction as VoiceAction, data };
 }
 
 async function executeCommand(params: {
@@ -219,11 +242,11 @@ async function executeCommand(params: {
   actorUserId: string;
   actorEmail: string;
   command: VoiceCommandPayload;
-}): Promise<{ message: string; actionResult?: any }> {
+}): Promise<{ message: string; actionResult?: unknown }> {
   if (params.command.action === 'create_lead') {
-    const data = params.command.data ?? {};
-    const name = String(data?.name || '').trim();
-    const phone = normalizePhone(data?.phone);
+    const data = asObject(params.command.data) ?? {};
+    const name = String(data.name ?? '').trim();
+    const phone = normalizePhone(data.phone);
 
     if (!name || !phone) {
       const missing: string[] = [];
@@ -259,14 +282,15 @@ async function executeCommand(params: {
       },
     });
 
-    const city = String(data?.city || '').trim();
-    const note = String(data?.note || '').trim();
+    const city = String(data.city ?? '').trim();
+    const note = String(data.note ?? '').trim();
     const noteParts = [city ? `עיר: ${city}` : '', note].filter(Boolean);
     const noteText = noteParts.join('\n');
 
     if (noteText) {
       await prisma.systemLeadActivity.create({
         data: {
+          organizationId: params.workspaceId,
           leadId: leadRow.id,
           type: 'note',
           content: noteText,
@@ -276,8 +300,8 @@ async function executeCommand(params: {
       });
     }
 
-    const nextActionDate = data?.next_action_date ? String(data.next_action_date).trim() : '';
-    const nextActionNote = data?.next_action_note ? String(data.next_action_note).trim() : note || null;
+    const nextActionDate = data.next_action_date ? String(data.next_action_date).trim() : '';
+    const nextActionNote = data.next_action_note ? String(data.next_action_note).trim() : note || null;
 
     if (nextActionDate) {
       const dt = new Date(nextActionDate);
@@ -299,10 +323,10 @@ async function executeCommand(params: {
   }
 
   if (params.command.action === 'create_task') {
-    const data = params.command.data ?? {};
-    const title = String(data?.title || '').trim();
-    const description = String(data?.description || '').trim();
-    const dueDateRaw = data?.due_date ? String(data.due_date).trim() : '';
+    const data = asObject(params.command.data) ?? {};
+    const title = String(data.title ?? '').trim();
+    const description = String(data.description ?? '').trim();
+    const dueDateRaw = data.due_date ? String(data.due_date).trim() : '';
 
     if (!title) {
       return {
@@ -338,12 +362,12 @@ async function executeCommand(params: {
   }
 
   if (params.command.action === 'create_work_order') {
-    const data = params.command.data ?? {};
-    const title = String(data?.title || '').trim();
-    const description = String(data?.description || '').trim();
-    const clientName = String(data?.client_name || '').trim();
-    const address = String(data?.address || '').trim();
-    const scheduledStartRaw = data?.scheduled_start ? String(data.scheduled_start).trim() : '';
+    const data = asObject(params.command.data) ?? {};
+    const title = String(data.title ?? '').trim();
+    const description = String(data.description ?? '').trim();
+    const clientName = String(data.client_name ?? '').trim();
+    const address = String(data.address ?? '').trim();
+    const scheduledStartRaw = data.scheduled_start ? String(data.scheduled_start).trim() : '';
 
     if (!title) {
       return {
@@ -415,10 +439,11 @@ async function executeCommand(params: {
   }
 
   if (params.command.action === 'quick_invoice_draft') {
-    const data = params.command.data ?? {};
-    const clientName = String(data?.client_name || '').trim();
-    const amount = typeof data?.amount_ils === 'number' ? Math.round(Number(data.amount_ils)) : normalizeAmountIls(data?.amount_ils);
-    const description = String(data?.description || '').trim();
+    const data = asObject(params.command.data) ?? {};
+    const clientName = String(data.client_name ?? '').trim();
+    const amountRaw = data.amount_ils;
+    const amount = typeof amountRaw === 'number' ? Math.round(Number(amountRaw)) : normalizeAmountIls(amountRaw);
+    const description = String(data.description ?? '').trim();
 
     const missing: string[] = [];
     if (!clientName) missing.push('client_name');
@@ -515,9 +540,9 @@ async function executeCommand(params: {
   }
 
   if (params.command.action === 'navigate') {
-    const data = params.command.data ?? {};
-    const target = String(data?.target || '').trim();
-    const urlRaw = data?.url ? String(data.url).trim() : '';
+    const data = asObject(params.command.data) ?? {};
+    const target = String(data.target ?? '').trim();
+    const urlRaw = data.url ? String(data.url).trim() : '';
 
     const base = `/w/${encodeURIComponent(params.orgSlug)}`;
     const map: Record<string, string> = {
@@ -575,8 +600,11 @@ async function POSTHandler(req: Request) {
     const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgSlug);
 
     const ctx = await resolveWorkspaceCurrentUserForApi(orgSlug);
-    const actorUserId = String((ctx as any)?.user?.id || '');
-    const actorEmail = String((ctx as any)?.clerkUser?.email || '').trim();
+    const ctxObj = asObject(ctx) ?? {};
+    const userObj = asObject(ctxObj.user) ?? {};
+    const clerkObj = asObject(ctxObj.clerkUser) ?? {};
+    const actorUserId = typeof userObj.id === 'string' ? String(userObj.id) : '';
+    const actorEmail = typeof clerkObj.email === 'string' ? String(clerkObj.email).trim() : '';
     if (!actorUserId) {
       return NextResponse.json({ ok: false, message: 'User not resolved' }, { status: 401 });
     }
@@ -610,8 +638,8 @@ async function POSTHandler(req: Request) {
       actionResult: exec.actionResult ?? null,
       organizationId: workspace.id,
     });
-  } catch (e: any) {
-    const msg = String(e?.message || 'שגיאה כללית');
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e) || 'שגיאה כללית';
     return NextResponse.json({ ok: false, message: msg }, { status: 500 });
   }
 }

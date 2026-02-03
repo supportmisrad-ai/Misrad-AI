@@ -25,7 +25,7 @@ export default function PricingPageClient() {
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center">
               <div className="text-xs font-black text-slate-500">השוואה מהירה</div>
-              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">למה זה לא "עוד מערכת"</h2>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">למה זה לא &quot;עוד מערכת&quot;</h2>
             </div>
 
             <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-hidden">

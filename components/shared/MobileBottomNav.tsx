@@ -18,6 +18,8 @@ export default function MobileBottomNav({
   onPlusClickAction,
   plusAriaLabel,
   plusActive,
+  plusGradient,
+  plusClassName,
   className,
 }: {
   rightItems: [MobileBottomNavItem, MobileBottomNavItem];
@@ -25,9 +27,13 @@ export default function MobileBottomNav({
   onPlusClickAction: () => void;
   plusAriaLabel?: string;
   plusActive?: boolean;
+  plusGradient?: string;
+  plusClassName?: string;
   className?: string;
 }) {
   const baseHeight = 65;
+
+  const resolvedPlusGradient = plusGradient || 'from-slate-900 to-slate-700';
 
   const renderItem = (item: MobileBottomNavItem) => {
     const Icon = item.icon;
@@ -73,7 +79,7 @@ export default function MobileBottomNav({
               onClick={onPlusClickAction}
               aria-label={plusAriaLabel || 'פעולה חדשה'}
               type="button"
-              className="w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[6px] border-transparent bg-gradient-to-br from-slate-900 to-slate-700"
+              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[6px] border-transparent bg-gradient-to-br ${resolvedPlusGradient} ${plusClassName || ''}`}
             >
               <Plus
                 size={32}

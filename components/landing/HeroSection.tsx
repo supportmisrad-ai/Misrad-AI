@@ -54,7 +54,7 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={() => isAuthenticated ? window.location.href = '/app' : router.push('/sign-up')}
+              onClick={() => isAuthenticated ? window.location.href = '/app' : router.push('/login')}
               className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-sm flex items-center justify-center gap-2"
             >
               {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם (בלי כרטיס)'} <ArrowRight size={20} className="rotate-180" />

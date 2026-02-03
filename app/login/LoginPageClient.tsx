@@ -3,12 +3,12 @@
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { LoginView } from "../../views/LoginView";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import CustomAuth from '@/components/social/CustomAuth';
 
 export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
   const router = useRouter();
-  const [showLogin, setShowLogin] = useState(true);
 
   const resolveFirstOrgSlug = async (): Promise<string | null> => {
     try {
@@ -97,7 +97,6 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
       }
     } else {
       // Show login view when Clerk is loaded and user is not signed in
-      setShowLogin(true);
     }
   }, [isSignedIn, isLoaded, userId, router]);
 
@@ -118,8 +117,33 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
     return null;
   }
 
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const mode = (searchParams.get('mode') || '').toLowerCase();
+  const isSignUpMode = mode === 'sign-up' || mode === 'signup' || mode === 'register';
+
+  if (isSignUpMode) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6" dir="rtl">
+        <div className="w-full max-w-md rounded-3xl border border-white/70 bg-white/70 backdrop-blur px-6 py-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
+          <div className="text-2xl font-black text-slate-900">הרשמה</div>
+          <div className="mt-2 text-sm text-slate-600 font-bold">צור חשבון כדי להמשיך</div>
+
+          <div className="mt-6">
+            <CustomAuth mode="sign-up" onSuccess={() => router.refresh()} />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push('/login')}
+            className="mt-6 w-full bg-white text-slate-900 border border-slate-200 py-3.5 rounded-xl text-sm font-black hover:bg-slate-50 active:scale-[0.98] transition-all"
+          >
+            כבר יש לך חשבון? כניסה
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Show login view
-  return (
-    <LoginView />
-  );
+  return <LoginView />;
 }

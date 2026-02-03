@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 import { getAuthenticatedUser } from '@/lib/auth';
 import type { PackageType } from '@/lib/server/workspace';
@@ -50,16 +50,19 @@ export async function getSubscriptionPaymentConfigs(): Promise<{
     const guard = await requireSuperAdmin();
     if (!guard.success) return guard;
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('subscription_payment_configs')
-      .select('package_type, title, qr_image_url, instructions_text, payment_method, external_payment_url')
-      .order('package_type', { ascending: true });
+    const rows = await prisma.subscription_payment_configs.findMany({
+      select: {
+        package_type: true,
+        title: true,
+        qr_image_url: true,
+        instructions_text: true,
+        payment_method: true,
+        external_payment_url: true,
+      },
+      orderBy: { package_type: 'asc' },
+    });
 
-    if (error) return createErrorResponse(error, 'שגיאה בטעינת הגדרות תשלום');
-
-    const rows = Array.isArray(data) ? data : [];
-    const mapped: PaymentConfig[] = rows.map((r) => {
+    const mapped: PaymentConfig[] = (Array.isArray(rows) ? rows : []).map((r: any) => {
       const obj = asObject(r) ?? {};
       return {
         package_type: String(obj.package_type ?? '') as PackageType,
@@ -89,24 +92,32 @@ export async function upsertSubscriptionPaymentConfig(input: {
     const guard = await requireSuperAdmin();
     if (!guard.success) return guard;
 
-    const supabase = createClient();
-    const now = new Date().toISOString();
+    const now = new Date();
 
-    const payload: Record<string, unknown> = {
-      package_type: input.packageType,
+    const createData: any = {
+      package_type: String(input.packageType),
       title: input.title !== undefined ? String(input.title).trim() : null,
       qr_image_url: input.qrImageUrl !== undefined ? String(input.qrImageUrl).trim() : null,
       instructions_text: input.instructionsText !== undefined ? String(input.instructionsText).trim() : null,
+      payment_method: input.paymentMethod !== undefined ? input.paymentMethod : null,
+      external_payment_url: input.externalPaymentUrl !== undefined ? String(input.externalPaymentUrl).trim() : null,
+      updated_at: now,
+    };
+
+    const updateData: any = {
+      title: input.title !== undefined ? String(input.title).trim() : undefined,
+      qr_image_url: input.qrImageUrl !== undefined ? String(input.qrImageUrl).trim() : undefined,
+      instructions_text: input.instructionsText !== undefined ? String(input.instructionsText).trim() : undefined,
       payment_method: input.paymentMethod !== undefined ? input.paymentMethod : undefined,
       external_payment_url: input.externalPaymentUrl !== undefined ? String(input.externalPaymentUrl).trim() : undefined,
       updated_at: now,
     };
 
-    const { error } = await supabase
-      .from('subscription_payment_configs')
-      .upsert(payload, { onConflict: 'package_type' });
-
-    if (error) return createErrorResponse(error, 'שגיאה בשמירת הגדרות תשלום');
+    await prisma.subscription_payment_configs.upsert({
+      where: { package_type: String(input.packageType) },
+      create: createData,
+      update: updateData,
+    });
 
     return createSuccessResponse(true);
   } catch (e) {
@@ -121,14 +132,17 @@ export async function getSubscriptionPaymentConfigForCheckout(input: {
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('subscription_payment_configs')
-      .select('package_type, title, qr_image_url, instructions_text, payment_method, external_payment_url')
-      .eq('package_type', input.packageType)
-      .maybeSingle();
-
-    if (error) return createErrorResponse(error, 'שגיאה בטעינת פרטי תשלום');
+    const data = await prisma.subscription_payment_configs.findUnique({
+      where: { package_type: String(input.packageType) },
+      select: {
+        package_type: true,
+        title: true,
+        qr_image_url: true,
+        instructions_text: true,
+        payment_method: true,
+        external_payment_url: true,
+      },
+    });
 
     if (!data) return createSuccessResponse(null);
     const obj = asObject(data) ?? {};

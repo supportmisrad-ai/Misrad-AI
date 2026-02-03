@@ -71,7 +71,6 @@ const nextConfig: NextConfig = {
   // Transpile Supabase to fix ESM import issues
   transpilePackages: ['@supabase/supabase-js'],
   experimental: {
-    forceSwcTransforms: true,
     serverActions: {
       allowedOrigins: ['localhost:3000', 'localhost:4000', 'localhost:5000', 'misrad-ai.com']
     }

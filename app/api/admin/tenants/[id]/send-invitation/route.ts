@@ -7,7 +7,7 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
-import { createServiceRoleClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { sendTenantInvitationEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
@@ -44,36 +44,26 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
             return apiError('Tenant ID is required', { status: 400 });
         }
 
-        const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'tenants_update_metadata' });
+        const tenant = await prisma.nexusTenant.findUnique({
+            where: { id: String(tenantId) },
+            select: { id: true, name: true, ownerEmail: true, subdomain: true },
+        });
 
-        const { data: tenantsRaw, error: getError } = await supabase
-            .from('nexus_tenants')
-            .select('*')
-            .eq('id', tenantId)
-            .limit(1);
-
-        if (getError) {
-            console.error('[API] Error fetching tenant:', getError);
-            return apiError('שגיאה בטעינת Tenant', { status: 500 });
-        }
-
-        const tenants = Array.isArray(tenantsRaw) ? (tenantsRaw as unknown[]) : [];
-        if (tenants.length === 0) {
+        if (!tenant) {
             return apiError('Tenant לא נמצא', { status: 404 });
         }
 
-        const tenantObj = asObject(tenants[0]) ?? {};
-        const ownerEmail = getNullableString(tenantObj, 'owner_email') || getNullableString(tenantObj, 'ownerEmail');
+        const ownerEmail = tenant.ownerEmail ? String(tenant.ownerEmail) : null;
 
         if (!ownerEmail) {
             return apiError('Tenant אין אימייל בעלים', { status: 400 });
         }
 
         const baseUrl = getBaseUrl(request);
-        const signupUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(ownerEmail)}&tenant=${encodeURIComponent(tenantId)}&invited=true`;
+        const signupUrl = `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(ownerEmail)}&tenant=${encodeURIComponent(tenantId)}&invited=true`;
 
-        const tenantName = getNullableString(tenantObj, 'name') || 'Tenant';
-        const subdomain = getNullableString(tenantObj, 'subdomain');
+        const tenantName = tenant.name ? String(tenant.name) : 'Tenant';
+        const subdomain = tenant.subdomain ? String(tenant.subdomain) : null;
 
         const emailResult = await sendTenantInvitationEmail(ownerEmail, tenantName, signupUrl, {
             ownerName: null,
@@ -90,15 +80,13 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
         }
 
         try {
-            const existingMeta = asObject(tenantObj.metadata) ?? {};
             const metadata = {
-                ...existingMeta,
                 invitationSent: true,
                 invitationSentAt: new Date().toISOString(),
                 invitationSentBy: user.id,
             };
 
-            await supabase.from('nexus_tenants').update({ metadata }).eq('id', tenantId);
+            await prisma.$executeRaw`update nexus_tenants set metadata = coalesce(metadata, '{}'::jsonb) || ${metadata as any} where id = ${tenantId}::uuid`;
         } catch (updateError: unknown) {
             console.error('[API] Error updating tenant metadata:', { message: getErrorMessage(updateError) });
         }
@@ -107,7 +95,7 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
             message: 'הזמנה נשלחה בהצלחה',
             signupUrl,
             tenant: {
-                id: getNullableString(tenantObj, 'id') || tenantId,
+                id: tenant.id ? String(tenant.id) : tenantId,
                 name: tenantName,
                 ownerEmail,
             },

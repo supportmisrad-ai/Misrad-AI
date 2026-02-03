@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireSuperAdmin } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
@@ -18,32 +18,24 @@ async function GETHandler() {
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const supabase = createClient();
+    const user = await prisma.social_users.findUnique({
+      where: { clerk_user_id: String(clerkUserId) },
+      select: { organization_id: true },
+    });
 
-    const { data: user, error: userError } = await supabase
-      .from('social_users')
-      .select('organization_id')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
-
-    if (userError) {
-      return apiError('Forbidden', { status: 403 });
-    }
-
-    const organizationId = user?.organization_id;
+    const organizationId = (user as any)?.organization_id;
     if (!organizationId) {
       return apiError('Forbidden', { status: 403 });
     }
 
     await getWorkspaceByOrgKeyOrThrow(String(organizationId));
 
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('has_nexus, has_social, has_system, has_finance, has_client')
-      .eq('id', organizationId)
-      .single();
+    const org = await prisma.social_organizations.findUnique({
+      where: { id: String(organizationId) },
+      select: { has_nexus: true, has_social: true, has_system: true, has_finance: true, has_client: true },
+    });
 
-    if (!orgError && org) {
+    if (org) {
       await logAuditEvent('data.read', 'os.rooms', {
         details: {
           organizationId,
@@ -66,11 +58,6 @@ async function GETHandler() {
         } as Record<OSRoomId, boolean>,
       });
     }
-
-    if (orgError) {
-      return apiError(orgError.message || 'Failed to load organization rooms', { status: 500 });
-    }
-
     return apiError('Organization not found', { status: 404 });
   } catch (error: any) {
     try {
@@ -103,29 +90,24 @@ async function POSTHandler(req: NextRequest) {
       ? (Object.fromEntries((body.enable as string[]).map((k) => [k, true])) as RoomsPayload)
       : {});
 
-    let supabase: ReturnType<typeof createClient>;
-    supabase = createClient();
+    const user = await prisma.social_users.findUnique({
+      where: { clerk_user_id: String(clerkUserId) },
+      select: { id: true, organization_id: true, full_name: true, email: true },
+    });
 
-    const { data: user, error: userError } = await supabase
-      .from('social_users')
-      .select('id, organization_id, full_name, email')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
-
-    if (userError || !user?.id) {
-      return apiError(userError?.message || 'User not found', { status: 400 });
+    if (!user?.id) {
+      return apiError('User not found', { status: 400 });
     }
 
-    let organizationId: string | null = user.organization_id || null;
+    let organizationId: string | null = (user as any).organization_id || null;
 
     if (!organizationId) {
-      const orgName = user.full_name || user.email || 'Organization';
+      const orgName = (user as any).full_name || (user as any).email || 'Organization';
 
-      const { data: createdOrg, error: createOrgError } = await supabase
-        .from('organizations')
-        .insert({
-          name: orgName,
-          owner_id: user.id,
+      const createdOrg = await prisma.social_organizations.create({
+        data: {
+          name: String(orgName),
+          owner_id: String(user.id),
           has_nexus: true,
           has_system: false,
           has_social: false,
@@ -134,49 +116,21 @@ async function POSTHandler(req: NextRequest) {
           has_operations: false,
           subscription_status: 'trial',
           subscription_plan: null,
-          trial_start_date: new Date().toISOString(),
+          trial_start_date: new Date(),
           trial_days: 7,
-        } as any)
-        .select('id')
-        .single();
+        },
+        select: { id: true },
+      });
 
-      if (createOrgError || !createdOrg?.id) {
-        const { data: createdOrgFallback, error: createOrgFallbackError } = await supabase
-          .from('organizations')
-          .insert({
-            name: orgName,
-            owner_id: user.id,
-            has_nexus: true,
-            has_system: false,
-            has_social: false,
-            has_finance: false,
-            has_client: false,
-            has_operations: false,
-            subscription_status: 'trial',
-            subscription_plan: null,
-            trial_start_date: new Date().toISOString(),
-            trial_days: 7,
-          } as any)
-          .select('id')
-          .single();
-
-        if (createOrgFallbackError || !createdOrgFallback?.id) {
-          return apiError(createOrgError?.message || createOrgFallbackError?.message || 'Failed to create organization', { status: 500 });
-        }
-
-        organizationId = createdOrgFallback.id;
-      } else {
-        organizationId = createdOrg.id;
+      organizationId = createdOrg?.id ? String(createdOrg.id) : null;
+      if (!organizationId) {
+        return apiError('Failed to create organization', { status: 500 });
       }
 
-      const { error: linkError } = await supabase
-        .from('social_users')
-        .update({ organization_id: organizationId } as any)
-        .eq('id', user.id);
-
-      if (linkError) {
-        return apiError(linkError.message || 'Failed to link organization', { status: 500 });
-      }
+      await prisma.social_users.updateMany({
+        where: { id: String(user.id) },
+        data: { organization_id: organizationId },
+      });
     }
 
     await getWorkspaceByOrgKeyOrThrow(String(organizationId));
@@ -190,14 +144,10 @@ async function POSTHandler(req: NextRequest) {
     }
 
     if (Object.keys(update).length > 0) {
-      const { error: updateError } = await supabase
-        .from('organizations')
-        .update(update as any)
-        .eq('id', organizationId);
-
-      if (updateError) {
-        return apiError(updateError.message || 'Failed to update organization rooms', { status: 500 });
-      }
+      await prisma.social_organizations.update({
+        where: { id: String(organizationId) },
+        data: update as any,
+      });
     }
 
     await logAuditEvent('data.write', 'os.rooms', {

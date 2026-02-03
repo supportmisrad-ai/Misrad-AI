@@ -30,7 +30,7 @@ export default function FinanceExpensesClient(props: { expenses: FinanceExpenses
               <div className="text-3xl font-black text-slate-900 mt-2">₪{Math.round(expenses.totalDirectExpenses || 0).toLocaleString('he-IL')}</div>
             </div>
             <div className="bg-white border border-slate-200 rounded-2xl p-5">
-              <div className="text-xs font-black text-slate-500">סה"כ הוצאות</div>
+              <div className="text-xs font-black text-slate-500">סה״כ הוצאות</div>
               <div className="text-3xl font-black text-slate-900 mt-2">₪{Math.round(expenses.totalExpenses || 0).toLocaleString('he-IL')}</div>
             </div>
           </div>

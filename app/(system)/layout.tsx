@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getSystemMetadata } from '@/lib/metadata';
 import React from 'react';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 
@@ -29,25 +29,22 @@ export default async function SystemLayout({
   try {
     const clerkUserId = await getCurrentUserId();
     if (clerkUserId) {
-      const supabase = createClient();
-      const { data: user } = await supabase
-        .from('social_users')
-        .select('organization_id')
-        .eq('clerk_user_id', clerkUserId)
-        .single();
+      const user = await prisma.social_users.findUnique({
+        where: { clerk_user_id: clerkUserId },
+        select: { organization_id: true },
+      });
 
       const organizationId = user?.organization_id;
       if (!organizationId) {
         redirect('/subscribe/checkout');
       }
 
-      const { data: org, error: orgError } = await supabase
-        .from('organizations')
-        .select('has_system')
-        .eq('id', organizationId)
-        .single();
+      const org = await prisma.social_organizations.findUnique({
+        where: { id: String(organizationId) },
+        select: { has_system: true },
+      });
 
-      if (!orgError && org && org.has_system === false) {
+      if (org && org.has_system === false) {
         redirect('/subscribe/checkout');
       }
     }

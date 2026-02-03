@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Link2, Power, ShieldCheck } from 'lucide-react';
 import { disconnectSocialIntegration, getSocialIntegrations } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/types';
 
 type ProviderKey = 'facebook' | 'instagram' | 'whatsapp';
 
@@ -32,7 +33,7 @@ export function IntegrationsTab({
   addToast,
 }: {
   tenantId: string | null;
-  addToast: (message: string, type?: string) => void;
+  addToast: (message: string, type?: Toast['type']) => void;
 }) {
   const [rows, setRows] = useState<IntegrationStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);

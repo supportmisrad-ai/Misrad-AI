@@ -9,7 +9,7 @@ import NexusMasterLayout from '@/components/shared/NexusMasterLayout';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
-import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
+import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 
 const GLOBAL_STARTERS = [
   {
@@ -82,8 +82,11 @@ export default function LobbyClient({
   const clientMetric = kpis?.client?.clientsTotal ?? null;
   const operationsMetric = kpis?.operations?.activeProjects ?? null;
 
+  const globalChatGradient = 'from-slate-900 via-slate-800 to-slate-900';
+  const globalChatAccent = '#0f172a';
+
   return (
-    <NexusMasterLayout title="מפקדה" workspace={workspace} user={user} profileHref={profileHref}>
+    <NexusMasterLayout title="לובי" workspace={workspace} user={user} profileHref={profileHref}>
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <div className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">Lobby</div>
@@ -96,9 +99,19 @@ export default function LobbyClient({
         <div className="text-sm font-black text-slate-700 mb-4">Power Tiles</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <NexusCard
+            title={modulesRegistry.nexus.label}
+            subtitle={modulesRegistry.nexus.labelHe}
+            iconSlot={<OSModuleIcon moduleKey="nexus" size={44} className="block" />}
+            metric={null}
+            metricLabel={null}
+            onClickAction={() => openModule('nexus')}
+            className="min-h-[132px]"
+          />
+
+          <NexusCard
             title={modulesRegistry.system.label}
             subtitle={modulesRegistry.system.labelHe}
-            iconSlot={<OSModuleSquircleIcon moduleKey="system" boxSize={44} iconSize={18} />}
+            iconSlot={<OSModuleIcon moduleKey="system" size={44} className="block" />}
             metric={systemMetric}
             metricLabel="לידים"
             onClickAction={() => openModule('system')}
@@ -108,7 +121,7 @@ export default function LobbyClient({
           <NexusCard
             title={modulesRegistry.operations.label}
             subtitle={modulesRegistry.operations.labelHe}
-            iconSlot={<OSModuleSquircleIcon moduleKey="operations" boxSize={44} iconSize={18} />}
+            iconSlot={<OSModuleIcon moduleKey="operations" size={44} className="block" />}
             metric={operationsMetric}
             metricLabel={kpis?.operations?.locked ? 'אין הרשאה' : 'פרויקטים'}
             onClickAction={() => openModule('operations')}
@@ -118,7 +131,7 @@ export default function LobbyClient({
           <NexusCard
             title={modulesRegistry.finance.label}
             subtitle={modulesRegistry.finance.labelHe}
-            iconSlot={<OSModuleSquircleIcon moduleKey="finance" boxSize={44} iconSize={18} />}
+            iconSlot={<OSModuleIcon moduleKey="finance" size={44} className="block" />}
             metric={financeMetric}
             metricLabel={kpis?.finance?.locked ? 'אין הרשאה' : 'שעות'}
             onClickAction={() => openModule('finance')}
@@ -128,7 +141,7 @@ export default function LobbyClient({
           <NexusCard
             title={modulesRegistry.client.label}
             subtitle={modulesRegistry.client.labelHe}
-            iconSlot={<OSModuleSquircleIcon moduleKey="client" boxSize={44} iconSize={18} />}
+            iconSlot={<OSModuleIcon moduleKey="client" size={44} className="block" />}
             metric={clientMetric}
             metricLabel="לקוחות"
             onClickAction={() => openModule('client')}
@@ -138,7 +151,7 @@ export default function LobbyClient({
           <NexusCard
             title={modulesRegistry.social.label}
             subtitle={modulesRegistry.social.labelHe}
-            iconSlot={<OSModuleSquircleIcon moduleKey="social" boxSize={44} iconSize={18} />}
+            iconSlot={<OSModuleIcon moduleKey="social" size={44} className="block" />}
             metric={socialMetric}
             metricLabel="מתוזמנים"
             onClickAction={() => openModule('social')}
@@ -163,6 +176,8 @@ export default function LobbyClient({
             sendText={(text: string) => sendText(text)}
             starters={GLOBAL_STARTERS}
             onKeyDown={handleKeyDown}
+            moduleGradient={globalChatGradient}
+            moduleAccent={globalChatAccent}
           />
         </div>
       </div>

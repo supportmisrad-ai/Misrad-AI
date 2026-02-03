@@ -1,0 +1,6 @@
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "postgres", schema "public" at "aws-1-ap-northeast-2.pooler.supabase.com:5432"
+
+9 migrations found in prisma/migrations
+
+Database schema is up to date!

@@ -229,7 +229,7 @@ export async function getSocialTeam(tenantId: string): Promise<{ success: boolea
       )
     );
 
-    let nexusUsersByEmail = new Map<string, { name?: string | null; email?: string | null }>();
+    const nexusUsersByEmail = new Map<string, { name?: string | null; email?: string | null }>();
 
     if (emails.length > 0) {
       const nexusUsers = await prisma.nexusUser.findMany({

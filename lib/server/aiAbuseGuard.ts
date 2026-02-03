@@ -100,6 +100,13 @@ async function enforceRateLimit(params: { namespace: string; key: string; limit:
   };
 }
 
+function createOverloadedError(): Error & { status: number; retryAfterSeconds: number } {
+  const err = new Error('Overloaded') as Error & { status: number; retryAfterSeconds: number };
+  err.status = 503;
+  err.retryAfterSeconds = 3;
+  return err;
+}
+
 function mergeHeaders(parts: Array<Record<string, string> | undefined | null>): Record<string, string> {
   const out: Record<string, string> = {};
   for (const p of parts) {
@@ -211,10 +218,7 @@ export async function withAiLoadIsolation<T>(params: {
 
   const bucket = localConcurrency.get(localKey)!;
   if (bucket.count >= maxPerOrg) {
-    const err: any = new Error('Overloaded');
-    err.status = 503;
-    err.retryAfterSeconds = 3;
-    throw err;
+    throw createOverloadedError();
   }
 
   bucket.count += 1;
@@ -226,10 +230,7 @@ export async function withAiLoadIsolation<T>(params: {
     bucket.count = Math.max(0, bucket.count - 1);
     localConcurrency.set(localKey, bucket);
 
-    const err: any = new Error('Overloaded');
-    err.status = 503;
-    err.retryAfterSeconds = 3;
-    throw err;
+    throw createOverloadedError();
   }
 
   localInFlight.set(localInFlightKey, inflightCount + 1);
@@ -246,10 +247,7 @@ export async function withAiLoadIsolation<T>(params: {
       if (globalCount === 1) await redis.pexpire(globalKey, ttlMs);
       if (globalCount > maxGlobal) {
         await redis.decr(globalKey).catch(() => null);
-        const err: any = new Error('Overloaded');
-        err.status = 503;
-        err.retryAfterSeconds = 3;
-        throw err;
+        throw createOverloadedError();
       }
 
       if (orgKey) {
@@ -258,10 +256,7 @@ export async function withAiLoadIsolation<T>(params: {
         if (orgCount > maxPerOrg) {
           await redis.decr(orgKey).catch(() => null);
           await redis.decr(globalKey).catch(() => null);
-          const err: any = new Error('Overloaded');
-          err.status = 503;
-          err.retryAfterSeconds = 3;
-          throw err;
+          throw createOverloadedError();
         }
       }
 

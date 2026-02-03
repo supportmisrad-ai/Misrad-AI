@@ -6,6 +6,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
 model MisradClient {
@@ -832,6 +833,7 @@ model NexusUser {
   department              String?
   avatar                  String?
   online                  Boolean?  @default(false)
+  lastSeenAt              DateTime? @map("last_seen_at") @db.Timestamptz(6)
   capacity                Int?      @default(0)
   email                   String?
   phone                   String?
@@ -862,6 +864,7 @@ model NexusUser {
   @@index([department], map: "idx_nexus_users_department")
   @@index([email], map: "idx_nexus_users_email")
   @@index([role], map: "idx_nexus_users_role")
+  @@index([lastSeenAt], map: "idx_nexus_users_last_seen_at")
   @@map("nexus_users")
 }
 
@@ -1520,7 +1523,7 @@ model SystemLead {
 
 model SystemLeadActivity {
   id        String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String? @map("organization_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
   leadId    String     @map("lead_id") @db.Uuid
   type      String
   content   String
@@ -1538,7 +1541,7 @@ model SystemLeadActivity {
 
 model SystemLeadHandover {
   id                  String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId      String?    @map("organization_id") @db.Uuid
+  organizationId      String     @map("organization_id") @db.Uuid
   leadId              String     @unique @map("lead_id") @db.Uuid
   nonStandardPromises String     @map("non_standard_promises")
   biggestPain         String     @map("biggest_pain")
@@ -1591,7 +1594,7 @@ model SystemTask {
 
 model SystemInvoice {
   id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String?   @map("organization_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
   leadId       String?     @map("lead_id") @db.Uuid
   client       String
   amount       Decimal     @db.Decimal(10, 2)
@@ -1612,7 +1615,7 @@ model SystemInvoice {
 
 model SystemCalendarEvent {
   id           String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String?   @map("organization_id") @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
   leadId       String?     @map("lead_id") @db.Uuid
   title        String
   leadName     String      @map("lead_name")
@@ -1723,13 +1726,12 @@ model SystemWebhookLog {
 
 model SystemCallAnalysis {
   id         String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String? @map("organization_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
   leadId     String?     @map("lead_id") @db.Uuid
   fileName   String      @map("file_name")
   title      String
   audioUrl   String      @map("audio_url")
   date       String
-  callAt      DateTime?   @map("call_at") @db.Timestamptz(6)
   duration   String
   summary    String
   score      Int?        @default(0)
@@ -1740,6 +1742,7 @@ model SystemCallAnalysis {
   feedback   Json?       @default("{}")
   createdAt  DateTime?   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime?   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  callAt     DateTime?   @map("call_at") @db.Timestamptz(6)
   lead       SystemLead? @relation(fields: [leadId], references: [id], onUpdate: NoAction)
 
   @@index([date], map: "idx_system_call_analyses_date")
@@ -1836,7 +1839,7 @@ model SystemAsset {
 
 model SystemPortalApproval {
   id        String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String? @map("organization_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
   leadId    String     @map("lead_id") @db.Uuid
   type      String
   title     String
@@ -1854,7 +1857,7 @@ model SystemPortalApproval {
 
 model SystemPortalTask {
   id         String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String? @map("organization_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
   leadId     String     @map("lead_id") @db.Uuid
   title      String
   type       String
@@ -1898,7 +1901,7 @@ model DevicePairingToken {
 
 model SystemSupportTicket {
   id        String     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  organizationId String? @map("organization_id") @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
   leadId    String     @map("lead_id") @db.Uuid
   category  String
   subject   String
@@ -2375,8 +2378,8 @@ model social_clients {
   updated_at             DateTime?             @default(now()) @db.Timestamptz(6)
   deleted_at             DateTime?             @db.Timestamptz(6)
   deleted_by             String?               @db.Uuid
-  organization_id        String?               @db.Uuid
-  social_organizations   social_organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
+  organization_id        String                @db.Uuid
+  social_organizations   social_organizations  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "clients_organization_id_fkey")
 
   @@index([invitation_token], map: "clients_invitationToken_idx")
   @@index([organization_id], map: "clients_organization_id_idx")
@@ -2606,7 +2609,7 @@ model social_organizations {
   name                             String
   slug                             String?
   logo                             String?
-  owner_id                         String                             @unique @db.Uuid
+  owner_id                         String                             @db.Uuid
   partnerId                        String?                            @map("partner_id") @db.Uuid
   has_nexus                        Boolean?                           @default(false)
   has_social                       Boolean?                           @default(false)
@@ -2623,6 +2626,7 @@ model social_organizations {
   ai_credits_balance_cents         BigInt                             @default(0)
   seats_allowed                    Int?
   has_operations                   Boolean                            @default(false)
+  owner                            social_users                       @relation("OrganizationOwner", fields: [owner_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "organizations_owner_id_fkey")
   partner                          Partner?                           @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   ai_embeddings                    ai_embeddings[]
   ai_feature_settings              ai_feature_settings[]
@@ -2915,12 +2919,12 @@ model social_team_members {
   trial_days                 Int?                         @default(30)
   subscription_status        String?
   subscription_start_date    DateTime?                    @db.Timestamptz(6)
-  organization_id            String?                      @db.Uuid
+  organization_id            String                       @db.Uuid
   social_activity_logs       social_activity_logs[]
   social_post_comments       social_post_comments[]
   social_team_comments       social_team_comments[]
   social_team_member_clients social_team_member_clients[]
-  social_organizations       social_organizations?        @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
+  social_organizations       social_organizations         @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_members_organization_id_fkey")
 
   @@index([email], map: "idx_team_members_email")
   @@index([subscription_status], map: "idx_team_members_subscription_status")
@@ -2944,7 +2948,7 @@ model social_user_update_views {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model social_users {
-  id                   String                @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                   String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   clerk_user_id        String                @unique(map: "users_clerk_user_id_key")
   email                String?
   full_name            String?
@@ -2957,6 +2961,7 @@ model social_users {
   last_location_org  String?               @map("last_org_slug")
   last_module        String?
   social_organizations social_organizations? @relation(fields: [organization_id], references: [id], onUpdate: NoAction, map: "users_organization_id_fkey")
+  owned_organizations   social_organizations[] @relation("OrganizationOwner")
 
   @@index([clerk_user_id], map: "idx_social_users_clerk_user_id")
   @@index([organization_id], map: "users_organization_id_idx")
@@ -2979,7 +2984,7 @@ model Profile {
   socialProfile           Json                 @default("{}") @map("social_profile")
   billingInfo             Json                 @default("{}") @map("billing_info")
   createdAt               DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt               DateTime             @default(now()) @map("updated_at") @db.Timestamptz(6)
+  updatedAt               DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   role                    String?
   organization            social_organizations @relation(fields: [organizationId], references: [id], onUpdate: NoAction)
 
@@ -2987,6 +2992,26 @@ model Profile {
   @@index([organizationId])
   @@index([clerkUserId])
   @@map("profiles")
+}
+
+model WebPushSubscription {
+  id             String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  clerkUserId    String   @map("clerk_user_id")
+  email          String   @map("email")
+  endpoint       String
+  p256dh         String
+  auth           String
+  expirationTime DateTime? @map("expiration_time") @db.Timestamptz(6)
+  userAgent      String?  @map("user_agent")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, email, endpoint], map: "uniq_web_push_subscriptions_user_endpoint")
+  @@index([organizationId])
+  @@index([clerkUserId])
+  @@index([email])
+  @@map("web_push_subscriptions")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

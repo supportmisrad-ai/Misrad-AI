@@ -5,9 +5,6 @@ import { motion } from 'framer-motion';
 import { DollarSign, MessageCircle, Mail, Bot, ShieldAlert, Lock, Trash2, Plus } from 'lucide-react';
 import { AutomationRule } from '@/types/social';
 
-interface AutomationTabProps {
-}
-
 const CustomToggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () => void }) => (
   <button
     onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -21,7 +18,7 @@ const CustomToggle = ({ enabled, onToggle }: { enabled: boolean, onToggle: () =>
   </button>
 );
 
-export default function AutomationTab({}: AutomationTabProps) {
+export default function AutomationTab() {
   const [rules, setRules] = useState<AutomationRule[]>([]);
 
   const toggleRule = (id: string) => {

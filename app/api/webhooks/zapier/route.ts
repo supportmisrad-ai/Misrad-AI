@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
-import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
 
@@ -56,19 +55,21 @@ async function POSTHandler(request: NextRequest) {
       );
     }
 
-    // Get Supabase user - use Server Action
-    const userResult = await getOrCreateSupabaseUserAction(userId);
-    if (!userResult.success || !userResult.userId) {
-      return NextResponse.json(
-        { error: userResult.error || 'User not found' },
-        { status: 404 }
-      );
+    const resolvedUserId = String(userId || '').trim();
+    let socialUserId: string | null = isUuidLike(resolvedUserId) ? resolvedUserId : null;
+    if (!socialUserId) {
+      const userResult = await getOrCreateSocialSupabaseUserAction(resolvedUserId);
+      if (!userResult.success || !userResult.userId) {
+        return NextResponse.json(
+          { error: userResult.error || 'User not found' },
+          { status: 404 }
+        );
+      }
+      socialUserId = userResult.userId;
     }
-    const supabaseUserId = userResult.userId;
-    const supabase = createClient();
 
     const webhookOwner = await prisma.social_users.findFirst({
-      where: { id: supabaseUserId },
+      where: { id: socialUserId },
       select: { organization_id: true },
     });
     const ownerOrganizationId = webhookOwner?.organization_id ? String(webhookOwner.organization_id) : null;
@@ -77,13 +78,14 @@ async function POSTHandler(request: NextRequest) {
     }
 
     // Get webhook config
-    const { data: webhookConfig } = await supabase
-      .from('webhook_configs')
-      .select('*')
-      .eq('user_id', supabaseUserId)
-      .eq('integration_name', 'zapier')
-      .eq('is_active', true)
-      .single();
+    const webhookConfig = await prisma.social_webhook_configs.findFirst({
+      where: {
+        user_id: socialUserId,
+        integration_name: 'zapier',
+        is_active: true,
+      },
+      select: { id: true },
+    });
 
     if (!webhookConfig) {
       return NextResponse.json(
@@ -93,10 +95,10 @@ async function POSTHandler(request: NextRequest) {
     }
 
     // Update last triggered
-    await supabase
-      .from('webhook_configs')
-      .update({ last_triggered_at: new Date().toISOString() })
-      .eq('id', webhookConfig.id);
+    await prisma.social_webhook_configs.updateMany({
+      where: { id: webhookConfig.id },
+      data: { last_triggered_at: new Date(), updated_at: new Date() },
+    });
 
     // Process webhook based on event type
     const eventType = body.event_type || 'unknown';

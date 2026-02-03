@@ -8,7 +8,7 @@
  */
 
 import { drive_v3, google } from 'googleapis';
-import { supabase } from '../supabase';
+import prisma from '@/lib/prisma';
 import { refreshAccessToken } from './google-oauth';
 
 /**
@@ -22,29 +22,22 @@ export async function getDriveClient(
     userId: string,
     tenantId?: string
 ): Promise<drive_v3.Drive | null> {
-    if (!supabase) {
-        console.error('[Drive] Supabase not configured');
-        return null;
-    }
-
     if (!tenantId) {
         console.error('[Drive] Missing tenantId/organizationId (Tenant Isolation lockdown)');
         return null;
     }
 
     // Find integration
-    let query = (supabase as any)
-        .from('misrad_integrations')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('organization_id', tenantId)
-        .eq('service_type', 'google_drive')
-        .eq('is_active', true)
-        .single();
+    const integration = await prisma.scale_integrations.findFirst({
+        where: {
+            user_id: String(userId),
+            tenant_id: String(tenantId),
+            service_type: 'google_drive',
+            is_active: true,
+        },
+    });
 
-    const { data: integration, error } = await query;
-
-    if (error || !integration) {
+    if (!integration) {
         console.warn('[Drive] Integration not found for user:', userId);
         return null;
     }
@@ -59,16 +52,15 @@ export async function getDriveClient(
             accessToken = refreshed.accessToken;
 
             // Update database with new token
-            await (supabase as any)
-                .from('misrad_integrations')
-                .update({
+            await prisma.scale_integrations.update({
+                where: { id: String(integration.id) },
+                data: {
                     access_token: refreshed.accessToken,
-                    expires_at: refreshed.expiresAt.toISOString(),
+                    expires_at: refreshed.expiresAt,
                     refresh_token: refreshed.refreshToken || integration.refresh_token,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', integration.id)
-                .eq('organization_id', tenantId);
+                    updated_at: new Date(),
+                },
+            });
         } catch (error) {
             console.error('[Drive] Failed to refresh token:', error);
             return null;
@@ -137,14 +129,19 @@ export async function listDriveFiles(
         }));
 
         // Update last sync time
-        if (supabase) {
-            await (supabase as any)
-                .from('misrad_integrations')
-                .update({ last_synced_at: new Date().toISOString() })
-                .eq('user_id', userId)
-                .eq('organization_id', tenantId)
-                .eq('service_type', 'google_drive')
-                .eq('is_active', true);
+        if (tenantId) {
+            await prisma.scale_integrations.updateMany({
+                where: {
+                    user_id: String(userId),
+                    tenant_id: String(tenantId),
+                    service_type: 'google_drive',
+                    is_active: true,
+                },
+                data: {
+                    last_synced_at: new Date(),
+                    updated_at: new Date(),
+                },
+            });
         }
 
         return {

@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Crown, Sparkles } from 'lucide-react';
 import { useShabbat } from '@/hooks/useShabbat';
-import { formatShabbatTime, formatCountdown, calculateShabbatTimes } from '@/lib/shabbat';
+import { formatShabbatTime, formatCountdown } from '@/lib/shabbat';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const SHABBAT_MESSAGES = [
   "אנו מאמינים שמקור הברכה בפרנסה הוא דווקא יום המנוחה בשבת - רוגע ומרפא לנפש כדי שנוכל להתחיל שבוע מלא באנרגיות",
@@ -137,43 +138,26 @@ function ShabbatTableIllustration() {
 
 export default function ShabbatScreen() {
   const { shabbatTimes, isLoading } = useShabbat();
-  const [currentMessage, setCurrentMessage] = useState(0);
-  const [countdown, setCountdown] = useState('');
+  const now = useSecondTicker(Boolean(shabbatTimes));
 
   const timeUntilEnd = useMemo(() => {
     if (!shabbatTimes?.isShabbat) return null;
-    if (shabbatTimes.timeUntilEnd <= 0) return null;
-    return formatCountdown(shabbatTimes.timeUntilEnd);
-  }, [shabbatTimes]);
+    const msLeft = shabbatTimes.shabbatEnd.getTime() - now;
+    if (msLeft <= 0) return null;
+    return formatCountdown(msLeft);
+  }, [now, shabbatTimes]);
 
-  useEffect(() => {
-    if (!shabbatTimes) return;
+  const countdown = useMemo(() => {
+    if (!shabbatTimes?.isShabbat) return '';
+    const msLeft = shabbatTimes.shabbatEnd.getTime() - now;
+    if (msLeft <= 0) return '';
+    return formatCountdown(msLeft);
+  }, [now, shabbatTimes]);
 
-    // Rotate messages every 10 seconds
-    const messageInterval = setInterval(() => {
-      setCurrentMessage((prev) => (prev + 1) % SHABBAT_MESSAGES.length);
-    }, 10000);
-
-    // Update countdown every second
-    const countdownInterval = setInterval(() => {
-      if (shabbatTimes.isShabbat && shabbatTimes.timeUntilEnd > 0) {
-        const newTimes = calculateShabbatTimes();
-        if (newTimes.isShabbat) {
-          setCountdown(formatCountdown(newTimes.timeUntilEnd));
-        }
-      }
-    }, 1000);
-
-    // Initial countdown
-    if (shabbatTimes.isShabbat && shabbatTimes.timeUntilEnd > 0) {
-      setCountdown(formatCountdown(shabbatTimes.timeUntilEnd));
-    }
-
-    return () => {
-      clearInterval(messageInterval);
-      clearInterval(countdownInterval);
-    };
-  }, [shabbatTimes]);
+  const currentMessage = useMemo(() => {
+    const idx = Math.floor(now / 10_000) % SHABBAT_MESSAGES.length;
+    return idx;
+  }, [now]);
 
   if (isLoading || !shabbatTimes) {
     return (

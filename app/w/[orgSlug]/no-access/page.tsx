@@ -12,7 +12,7 @@ export default async function NoAccessPage({
 }) {
   const { orgSlug } = await params;
   const sp = await searchParams;
-  const module = sp?.module ? String(sp.module) : null;
+  const requestedModule = sp?.module ? String(sp.module) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white" dir="rtl">
@@ -27,8 +27,8 @@ export default async function NoAccessPage({
                 <h1 className="text-2xl md:text-3xl font-black tracking-tight">אין לך גישה לחדר הזה</h1>
                 <p className="mt-2 text-sm text-white/70 leading-relaxed">
                   ניסית להיכנס למודול שאינו מורשה עבורך במרחב העבודה הזה.
-                  {module ? (
-                    <span className="block mt-2">מודול מבוקש: <span className="font-bold text-white">{module}</span></span>
+                  {requestedModule ? (
+                    <span className="block mt-2">מודול מבוקש: <span className="font-bold text-white">{requestedModule}</span></span>
                   ) : null}
                 </p>
               </div>

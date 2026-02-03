@@ -1,6 +1,7 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase';
 import { getNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 export type NexusBillingCadence = 'monthly' | 'ad_hoc';
 
@@ -18,10 +19,78 @@ export type NexusBillingItemsPayload = {
   updatedAt?: string;
 };
 
-function isMissingRelationError(error: any): boolean {
-  const message = String(error?.message || '').toLowerCase();
-  const code = String((error as any)?.code || '').toLowerCase();
+type NexusBillingItemRow = Prisma.nexus_billing_itemsGetPayload<{
+  select: { item_key: true; title: true; cadence: true; amount: true; currency: true; updated_at: true };
+}>;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function decimalToNumber(value: unknown): number {
+  const obj = asObject(value);
+  const toNumber = obj?.toNumber;
+  if (typeof toNumber === 'function') {
+    return Number((toNumber as () => unknown)());
+  }
+  return Number(value);
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function isTemplateKey(value: unknown): value is NexusBillingItemsPayload['templateKey'] {
+  return value === 'retainer_fixed' || value === 'deliverables_package';
+}
+
+function coerceBillingItemsPayload(value: unknown): NexusBillingItemsPayload | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+
+  const templateKey = isTemplateKey(obj.templateKey) ? obj.templateKey : null;
+  if (!templateKey) return null;
+
+  const itemsRaw = (obj as Record<string, unknown>).items;
+  if (!Array.isArray(itemsRaw)) return null;
+
+  const items: NexusBillingItem[] = itemsRaw
+    .map((it): NexusBillingItem | null => {
+      const itObj = asObject(it);
+      if (!itObj) return null;
+      const key = String(itObj.key || '').trim();
+      const title = String(itObj.title || '').trim();
+      const cadenceRaw = String(itObj.cadence || '').trim();
+      const cadence: NexusBillingCadence = cadenceRaw === 'monthly' ? 'monthly' : 'ad_hoc';
+      const amount = itObj.amount == null ? null : Number(itObj.amount);
+      const currency = String(itObj.currency || 'ILS');
+      if (!key || !title) return null;
+      return { key, title, cadence, amount: Number.isFinite(amount as number) ? amount : null, currency };
+    })
+    .filter((x): x is NexusBillingItem => Boolean(x));
+
+  const updatedAt = obj.updatedAt == null ? undefined : String(obj.updatedAt);
+  return { templateKey, items, updatedAt };
+}
+
+function isMissingRelationError(error: unknown): boolean {
+  const obj = asObject(error);
+  const message = String(obj?.message || '').toLowerCase();
+  const code = String(obj?.code || '').toLowerCase();
   return code === '42p01' || message.includes('does not exist') || message.includes('relation') || message.includes('table');
+}
+
+function isMissingPrismaRelationError(error: unknown): boolean {
+  const obj = asObject(error);
+  const code = String(obj?.code || '');
+  const message = String(obj?.message || '').toLowerCase();
+  return code === 'P2021' || message.includes('does not exist') || message.includes('relation') || message.includes('table');
 }
 
 export function getNexusBillingItemsSettingsKey(workspaceId: string): string {
@@ -33,7 +102,7 @@ export function buildNexusBillingItemsForTemplate(templateKey: 'retainer_fixed' 
     return [
       {
         key: 'deliverables_monthly_package',
-        title: 'חבילת דליברבלס חודשית',
+        title: 'חבילת תוצרים חודשית',
         cadence: 'monthly',
         amount: null,
         currency: 'ILS',
@@ -67,60 +136,56 @@ export function buildNexusBillingItemsForTemplate(templateKey: 'retainer_fixed' 
 }
 
 export async function getNexusBillingItems(workspaceId: string): Promise<NexusBillingItemsPayload | null> {
-  const supabase = createClient();
+  try {
+    const rows: NexusBillingItemRow[] = await prisma.nexus_billing_items.findMany({
+      where: { organization_id: workspaceId },
+      orderBy: { created_at: 'asc' },
+      select: { item_key: true, title: true, cadence: true, amount: true, currency: true, updated_at: true },
+      take: 500,
+    });
 
-  const { data: rows, error: tableError } = await supabase
-    .from('nexus_billing_items')
-    .select('item_key,title,cadence,amount,currency,updated_at')
-    .eq('organization_id', workspaceId)
-    .order('created_at', { ascending: true });
+    if (Array.isArray(rows) && rows.length > 0) {
+      const onboarding = await getNexusOnboardingTemplate(workspaceId).catch(() => null);
+      const templateKey = (onboarding?.key === 'retainer_fixed' || onboarding?.key === 'deliverables_package')
+        ? onboarding.key
+        : 'retainer_fixed';
 
-  if (tableError && !isMissingRelationError(tableError)) {
-    throw new Error(tableError.message);
-  }
+      const items: NexusBillingItem[] = rows.map((r) => ({
+        key: String(r.item_key),
+        title: String(r.title),
+        cadence: String(r.cadence) === 'monthly' ? 'monthly' : 'ad_hoc',
+        amount: r.amount == null ? null : decimalToNumber(r.amount),
+        currency: String(r.currency || 'ILS'),
+      }));
 
-  if (!tableError && Array.isArray(rows) && rows.length > 0) {
-    const onboarding = await getNexusOnboardingTemplate(workspaceId).catch(() => null);
-    const templateKey = (onboarding?.key === 'retainer_fixed' || onboarding?.key === 'deliverables_package')
-      ? onboarding.key
-      : 'retainer_fixed';
+      const updatedAt = rows.reduce<string | undefined>((acc, r) => {
+        const ts = r.updated_at ? new Date(r.updated_at).toISOString() : undefined;
+        if (!ts) return acc;
+        if (!acc) return ts;
+        return acc > ts ? acc : ts;
+      }, undefined);
 
-    const items: NexusBillingItem[] = rows.map((r: any) => ({
-      key: String(r.item_key),
-      title: String(r.title),
-      cadence: String(r.cadence) === 'monthly' ? 'monthly' : 'ad_hoc',
-      amount: r.amount == null ? null : Number(r.amount),
-      currency: String(r.currency || 'ILS'),
-    }));
-
-    const updatedAt = rows.reduce<string | undefined>((acc, r: any) => {
-      const ts = r?.updated_at ? String(r.updated_at) : undefined;
-      if (!ts) return acc;
-      if (!acc) return ts;
-      return acc > ts ? acc : ts;
-    }, undefined);
-
-    return {
-      templateKey,
-      items,
-      updatedAt,
-    };
+      return {
+        templateKey,
+        items,
+        updatedAt,
+      };
+    }
+  } catch (tableError: unknown) {
+    if (!isMissingPrismaRelationError(tableError) && !isMissingRelationError(tableError)) {
+      throw new Error(getErrorMessage(tableError) || String(tableError));
+    }
   }
 
   // Fallback: legacy storage
   const key = getNexusBillingItemsSettingsKey(workspaceId);
-  const { data, error } = await supabase
-    .from('social_system_settings')
-    .select('value')
-    .eq('key', key)
-    .maybeSingle();
+  const legacy = await prisma.social_system_settings.findUnique({
+    where: { key },
+    select: { value: true },
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data?.value) return null;
-  return data.value as any;
+  if (!legacy?.value) return null;
+  return coerceBillingItemsPayload(legacy.value);
 }
 
 export async function setNexusBillingItems(params: {
@@ -128,8 +193,6 @@ export async function setNexusBillingItems(params: {
   templateKey: 'retainer_fixed' | 'deliverables_package';
   items: NexusBillingItem[];
 }): Promise<void> {
-  const supabase = createClient();
-
   const now = new Date().toISOString();
   const rows = params.items.map((i) => ({
     organization_id: params.workspaceId,
@@ -138,39 +201,61 @@ export async function setNexusBillingItems(params: {
     cadence: i.cadence,
     amount: i.amount,
     currency: i.currency || 'ILS',
-    updated_at: now,
+    updated_at: new Date(now),
   }));
 
-  const { error: upsertError } = await supabase
-    .from('nexus_billing_items')
-    .upsert(rows as any, { onConflict: 'organization_id,item_key' });
-
-  if (upsertError && !isMissingRelationError(upsertError)) {
-    throw new Error(upsertError.message);
-  }
-
-  if (!upsertError) {
+  try {
+    await prisma.$transaction(
+      rows.map((r) =>
+        prisma.nexus_billing_items.upsert({
+          where: {
+            organization_id_item_key: {
+              organization_id: r.organization_id,
+              item_key: r.item_key,
+            },
+          },
+          update: {
+            title: r.title,
+            cadence: r.cadence,
+            amount: r.amount,
+            currency: r.currency,
+            updated_at: r.updated_at,
+          },
+          create: {
+            ...r,
+            created_at: new Date(),
+          },
+        })
+      )
+    );
     return;
+  } catch (upsertError: unknown) {
+    if (!isMissingPrismaRelationError(upsertError) && !isMissingRelationError(upsertError)) {
+      throw new Error(getErrorMessage(upsertError) || String(upsertError));
+    }
   }
 
   // Fallback: legacy storage
   const key = getNexusBillingItemsSettingsKey(params.workspaceId);
-  const { error } = await supabase
-    .from('social_system_settings')
-    .upsert(
-      {
-        key,
-        value: {
-          templateKey: params.templateKey,
-          items: params.items,
-          updatedAt: now,
-        },
-        updated_at: now,
-      } as any,
-      { onConflict: 'key' }
-    );
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await prisma.social_system_settings.upsert({
+    where: { key },
+    update: {
+      value: {
+        templateKey: params.templateKey,
+        items: params.items,
+        updatedAt: now,
+      } as Prisma.InputJsonValue,
+      updated_at: new Date(now),
+    },
+    create: {
+      key,
+      value: {
+        templateKey: params.templateKey,
+        items: params.items,
+        updatedAt: now,
+      } as Prisma.InputJsonValue,
+      updated_at: new Date(now),
+      created_at: new Date(now),
+    },
+  });
 }

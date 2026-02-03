@@ -5,12 +5,91 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient } from '../../../../lib/supabase';
-import { FeatureRequest } from '../../../../types';
+import { FeatureRequest, FeatureRequestStatus, FeatureRequestType, Priority } from '../../../../types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as UnknownRecord;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function toIsoString(input: unknown): string | undefined {
+    if (!input) return undefined;
+    if (input instanceof Date) return input.toISOString();
+    if (typeof input === 'string') return input;
+    return undefined;
+}
+
+function normalizeMetadata(input: unknown): Record<string, unknown> | undefined {
+    const obj = asObject(input);
+    return obj ?? undefined;
+}
+
+function normalizeVotes(input: unknown): string[] {
+    if (Array.isArray(input)) return input.map((x) => String(x)).filter(Boolean);
+    return [];
+}
+
+const FEATURE_REQUEST_TYPES: readonly FeatureRequestType[] = ['feature', 'bug', 'improvement', 'integration'] as const;
+const FEATURE_REQUEST_STATUSES: readonly FeatureRequestStatus[] = ['pending', 'under_review', 'planned', 'in_progress', 'completed', 'rejected'] as const;
+
+function normalizeType(input: unknown): FeatureRequestType {
+    const v = String(input ?? '').trim();
+    return (FEATURE_REQUEST_TYPES as readonly string[]).includes(v) ? (v as FeatureRequestType) : 'feature';
+}
+
+function normalizeStatus(input: unknown): FeatureRequestStatus {
+    const v = String(input ?? '').trim();
+    return (FEATURE_REQUEST_STATUSES as readonly string[]).includes(v) ? (v as FeatureRequestStatus) : 'pending';
+}
+
+function normalizePriority(input: unknown): Priority {
+    const v = String(input ?? '').trim().toLowerCase();
+    if (v === 'low' || v === String(Priority.LOW).toLowerCase()) return Priority.LOW;
+    if (v === 'high' || v === String(Priority.HIGH).toLowerCase()) return Priority.HIGH;
+    if (v === 'urgent' || v === String(Priority.URGENT).toLowerCase()) return Priority.URGENT;
+    return Priority.MEDIUM;
+}
+
+function normalizeFeatureRequestRow(row: unknown): FeatureRequest {
+    const r = asObject(row) ?? {};
+    return {
+        id: String(r.id),
+        user_id: String(r.user_id),
+        tenant_id: r.tenant_id ? String(r.tenant_id) : undefined,
+        title: String(r.title || ''),
+        description: String(r.description || ''),
+        type: normalizeType(r.type),
+        status: normalizeStatus(r.status),
+        priority: normalizePriority(r.priority),
+        votes: normalizeVotes(r.votes),
+        creatorId: String(r.user_id),
+        createdAt: toIsoString(r.created_at) || new Date().toISOString(),
+        updated_at: toIsoString(r.updated_at),
+        assigned_to: r.assigned_to ? String(r.assigned_to) : undefined,
+        reviewed_by: r.reviewed_by ? String(r.reviewed_by) : undefined,
+        reviewed_at: toIsoString(r.reviewed_at),
+        completed_at: toIsoString(r.completed_at),
+        admin_notes: r.admin_notes ? String(r.admin_notes) : undefined,
+        rejection_reason: r.rejection_reason ? String(r.rejection_reason) : undefined,
+        metadata: normalizeMetadata(r.metadata) ?? {},
+    };
+}
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -19,8 +98,6 @@ async function PATCHHandler(
         const user = await getAuthenticatedUser();
 
         const { workspace } = await getWorkspaceOrThrow(request);
-
-        const supabase = createClient();
         
         const { id: requestId } = await params;
 
@@ -32,14 +109,12 @@ async function PATCHHandler(
         }
 
         // Get existing request
-        const { data: existingRequest, error: getError } = await supabase
-            .from('misrad_feature_requests')
-            .select('*')
-            .eq('id', requestId)
-            .eq('tenant_id', workspace.id)
-            .single();
+        const existingRequest = await prisma.scale_feature_requests.findUnique({
+            where: { id: String(requestId) },
+        });
 
-        if (getError || !existingRequest) {
+        const existingObj = asObject(existingRequest) ?? {};
+        if (!existingRequest || String(existingObj.tenant_id || '') !== String(workspace.id)) {
             return NextResponse.json(
                 { error: 'בקשת פיצ\'ר לא נמצאה' },
                 { status: 404 }
@@ -54,19 +129,19 @@ async function PATCHHandler(
         const { status, priority, assigned_to, admin_notes, rejection_reason, vote } = body;
 
         // Build update data
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
 
         // Handle voting (any authenticated user can vote)
         if (vote !== undefined) {
-            const currentVotes = Array.isArray(existingRequest.votes) ? existingRequest.votes : [];
-            const userVoteIndex = currentVotes.indexOf(user.id);
+            const currentVotes = normalizeVotes(existingObj.votes);
+            const userVoteIndex = currentVotes.indexOf(String(user.id));
             
             if (vote === true && userVoteIndex === -1) {
                 // Add vote
-                updateData.votes = [...currentVotes, user.id];
+                updateData.votes = [...currentVotes, String(user.id)];
             } else if (vote === false && userVoteIndex !== -1) {
                 // Remove vote
-                updateData.votes = currentVotes.filter((id: string) => id !== user.id);
+                updateData.votes = currentVotes.filter((id) => id !== String(user.id));
             }
         }
 
@@ -111,45 +186,24 @@ async function PATCHHandler(
             );
         }
 
-        // Update request
-        const { data: updatedRequest, error: updateError } = await supabase
-            .from('misrad_feature_requests')
-            .update(updateData)
-            .eq('id', requestId)
-            .eq('tenant_id', workspace.id)
-            .select()
-            .single();
-
-        if (updateError) {
-            console.error('[API] Error updating feature request:', updateError);
+        let updatedRequest: any;
+        try {
+            updatedRequest = await prisma.scale_feature_requests.update({
+                where: { id: String(requestId) },
+                data: {
+                    ...updateData,
+                    updated_at: new Date(),
+                },
+            });
+        } catch (e: unknown) {
+            console.error('[API] Error updating feature request:', e);
             return NextResponse.json(
                 { error: 'שגיאה בעדכון בקשת פיצ\'ר' },
                 { status: 500 }
             );
         }
 
-        // Transform response
-        const transformedRequest: FeatureRequest = {
-            id: updatedRequest.id,
-            user_id: updatedRequest.user_id,
-            tenant_id: updatedRequest.tenant_id,
-            title: updatedRequest.title,
-            description: updatedRequest.description,
-            type: updatedRequest.type,
-            status: updatedRequest.status,
-            priority: updatedRequest.priority,
-            votes: Array.isArray(updatedRequest.votes) ? updatedRequest.votes : [],
-            creatorId: updatedRequest.user_id,
-            createdAt: updatedRequest.created_at,
-            updated_at: updatedRequest.updated_at,
-            assigned_to: updatedRequest.assigned_to,
-            reviewed_by: updatedRequest.reviewed_by,
-            reviewed_at: updatedRequest.reviewed_at,
-            completed_at: updatedRequest.completed_at,
-            admin_notes: updatedRequest.admin_notes,
-            rejection_reason: updatedRequest.rejection_reason,
-            metadata: updatedRequest.metadata || {}
-        };
+        const transformedRequest: FeatureRequest = normalizeFeatureRequestRow(updatedRequest);
 
         return NextResponse.json({
             success: true,
@@ -157,14 +211,15 @@ async function PATCHHandler(
             message: 'בקשת פיצ\'ר עודכנה בהצלחה'
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/features/[id] PATCH:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'שגיאה בעדכון בקשת פיצ\'ר' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: message || 'שגיאה בעדכון בקשת פיצ\'ר' },
+            { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }

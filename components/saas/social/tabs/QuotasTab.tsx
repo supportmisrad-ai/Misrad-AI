@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Save, SlidersHorizontal } from 'lucide-react';
 import { getSocialQuotas, updateSocialQuotas } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/types';
 
 type SocialQuotas = {
   maxPostsPerMonth: number;
@@ -15,7 +16,7 @@ export function QuotasTab({
   addToast,
 }: {
   tenantId: string | null;
-  addToast: (message: string, type?: string) => void;
+  addToast: (message: string, type?: Toast['type']) => void;
 }) {
   const initial = useMemo<SocialQuotas>(() => ({ maxPostsPerMonth: 0, maxConnectedAccounts: 0, maxTeamMembers: 0 }), []);
   const [form, setForm] = useState<SocialQuotas>(initial);

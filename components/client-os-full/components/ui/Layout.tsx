@@ -19,6 +19,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { getOSModule } from '@/types/os-modules';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -348,7 +349,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
   const notificationsSlot = (
     <button
       onClick={() => setIsNotificationsOpen(true)}
-      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
       aria-label="התראות"
       type="button"
     >
@@ -502,6 +503,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeView, onNavigate }) => 
         ]}
         onPlusClickAction={plusConfig.onClick}
         plusAriaLabel={plusConfig.ariaLabel}
+        plusGradient={getOSModule('client')?.gradient}
       />
 
       {/* DRAWER */}

@@ -9,6 +9,13 @@ import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserF
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
 async function POSTHandler(req: Request) {
   // Get the Svix headers for verification
   const headerPayload = await headers();
@@ -68,21 +75,31 @@ async function POSTHandler(req: Request) {
         return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
       }
 
-      const userData = evt.data as any;
-      const id = userData.id;
-      const email_addresses = userData.email_addresses || [];
-      const first_name = userData.first_name;
-      const last_name = userData.last_name;
-      const image_url = userData.image_url;
-      const publicMetadata = userData.public_metadata || {};
+      const userObj = asObject(evt.data);
+      if (!userObj) {
+        return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
+      }
 
-      const primaryEmail = email_addresses?.[0]?.email_address ? String(email_addresses[0].email_address) : undefined;
+      const id = typeof userObj.id === 'string' ? userObj.id : null;
+      if (!id) {
+        return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
+      }
 
-      let orgSignupInvite: any = null;
+      const emailAddressesValue = userObj.email_addresses;
+      const emailAddresses = Array.isArray(emailAddressesValue) ? emailAddressesValue : [];
+      const firstEmailObj = asObject(emailAddresses[0]) ?? {};
+      const primaryEmail = typeof firstEmailObj.email_address === 'string' ? String(firstEmailObj.email_address) : undefined;
+
+      const first_name = typeof userObj.first_name === 'string' ? userObj.first_name : undefined;
+      const last_name = typeof userObj.last_name === 'string' ? userObj.last_name : undefined;
+      const image_url = typeof userObj.image_url === 'string' ? userObj.image_url : undefined;
+      const publicMetadata = asObject(userObj.public_metadata) ?? {};
+
+      let orgSignupInvite: Record<string, unknown> | null = null;
 
       // Preferred org can be provided by app flow via Clerk public metadata.
       // Fallback for employee-invite flow: infer org by matching a recently completed invite for this email.
-      let preferredOrgKey = publicMetadata?.orgSlug ? String(publicMetadata.orgSlug) : undefined;
+      let preferredOrgKey = typeof publicMetadata.orgSlug === 'string' ? String(publicMetadata.orgSlug) : undefined;
       if (!preferredOrgKey && primaryEmail) {
         const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_invite_lookup' });
         const nowIso = new Date().toISOString();
@@ -100,9 +117,11 @@ async function POSTHandler(req: Request) {
             .limit(1)
             .maybeSingle();
 
-          if (!inviteError && inviteRow?.token) {
-            orgSignupInvite = inviteRow;
-            preferredOrgKey = `invite:${String(inviteRow.token)}`;
+          const inviteObj = asObject(inviteRow);
+          const inviteToken = typeof inviteObj?.token === 'string' ? inviteObj.token : null;
+          if (!inviteError && inviteToken) {
+            orgSignupInvite = inviteObj;
+            preferredOrgKey = `invite:${String(inviteToken)}`;
           }
         } catch {
           // ignore
@@ -120,8 +139,9 @@ async function POSTHandler(req: Request) {
           .limit(1)
           .maybeSingle();
 
-        const activeInviteOrgId = (activeInviteRow as any)?.organization_id as string | null;
-        const activeInviteToken = (activeInviteRow as any)?.token as string | null;
+        const activeInviteObj = asObject(activeInviteRow) ?? {};
+        const activeInviteOrgId = typeof activeInviteObj.organization_id === 'string' ? activeInviteObj.organization_id : null;
+        const activeInviteToken = typeof activeInviteObj.token === 'string' ? activeInviteObj.token : null;
         if (activeInviteOrgId && activeInviteToken) {
           preferredOrgKey = `employee-invite:${String(activeInviteToken)}`;
         }
@@ -139,8 +159,9 @@ async function POSTHandler(req: Request) {
             .limit(1)
             .maybeSingle();
 
-          const usedInviteOrgId = (usedInviteRow as any)?.organization_id as string | null;
-          const usedInviteToken = (usedInviteRow as any)?.token as string | null;
+          const usedInviteObj = asObject(usedInviteRow) ?? {};
+          const usedInviteOrgId = typeof usedInviteObj.organization_id === 'string' ? usedInviteObj.organization_id : null;
+          const usedInviteToken = typeof usedInviteObj.token === 'string' ? usedInviteObj.token : null;
           if (usedInviteOrgId && usedInviteToken) {
             preferredOrgKey = `employee-invite:${String(usedInviteToken)}`;
           }
@@ -177,11 +198,12 @@ async function POSTHandler(req: Request) {
         const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_team_member_sync' });
 
         // If we have a pending org signup invite for this email, create/link org with exact name+slug
-        if (orgSignupInvite?.token) {
+        const orgInviteToken = typeof orgSignupInvite?.token === 'string' ? orgSignupInvite.token : null;
+        if (orgInviteToken) {
           try {
             const nowIso = new Date().toISOString();
-            const desiredSlug = orgSignupInvite?.desired_slug ? String(orgSignupInvite.desired_slug) : null;
-            const orgName = orgSignupInvite?.organization_name ? String(orgSignupInvite.organization_name) : null;
+            const desiredSlug = typeof orgSignupInvite?.desired_slug === 'string' ? String(orgSignupInvite.desired_slug) : null;
+            const orgName = typeof orgSignupInvite?.organization_name === 'string' ? String(orgSignupInvite.organization_name) : null;
 
             if (desiredSlug && orgName) {
               const { data: socialUserRow } = await supabase
@@ -190,7 +212,8 @@ async function POSTHandler(req: Request) {
                 .eq('id', result.userId)
                 .maybeSingle();
 
-              let orgId: string | null = (socialUserRow as any)?.organization_id ?? null;
+              const socialUserObj = asObject(socialUserRow) ?? {};
+              let orgId: string | null = typeof socialUserObj.organization_id === 'string' ? socialUserObj.organization_id : null;
 
               if (!orgId) {
                 const { data: existingOrgRow, error: existingOrgError } = await supabase
@@ -218,12 +241,11 @@ async function POSTHandler(req: Request) {
                     has_client: false,
                     has_operations: false,
                     subscription_status: 'trial',
-                    subscription_plan: null,
                     trial_start_date: nowIso,
                     trial_days: 7,
                     created_at: nowIso,
                     updated_at: nowIso,
-                  } as any)
+                  } satisfies Record<string, unknown>)
                   .select('id')
                   .single();
 
@@ -241,7 +263,7 @@ async function POSTHandler(req: Request) {
 
                 await scoped
                   .from('social_users')
-                  .update({ organization_id: orgId, updated_at: nowIso } as any)
+                  .update({ organization_id: orgId, updated_at: nowIso } satisfies Record<string, unknown>)
                   .eq('id', result.userId);
 
                 await supabase
@@ -253,8 +275,8 @@ async function POSTHandler(req: Request) {
                     used_by_clerk_user_id: id,
                     organization_id: orgId,
                     updated_at: nowIso,
-                  } as any)
-                  .eq('token', String(orgSignupInvite.token));
+                  } satisfies Record<string, unknown>)
+                  .eq('token', String(orgInviteToken));
 
                 try {
                   await ensureProfileForClerkUserInOrganizationAction({
@@ -283,7 +305,8 @@ async function POSTHandler(req: Request) {
           .eq('user_id', result.userId)
           .maybeSingle();
 
-        const teamOrgId = (teamRow as any)?.organization_id ? String((teamRow as any).organization_id).trim() : '';
+        const teamRowObj = asObject(teamRow) ?? {};
+        const teamOrgId = typeof teamRowObj.organization_id === 'string' ? String(teamRowObj.organization_id).trim() : '';
         const teamScoped = teamOrgId
           ? createServiceRoleClientScoped({
               reason: 'clerk_webhook_team_member_sync_scoped',
@@ -295,17 +318,17 @@ async function POSTHandler(req: Request) {
         const memberUpdate = {
           avatar: image_url || undefined,
           name: first_name && last_name ? `${first_name} ${last_name}` : first_name || undefined,
-          email: email_addresses?.[0]?.email_address || undefined,
+          email: primaryEmail,
           updated_at: nowIsoTeam,
-        } as any;
+        } satisfies Record<string, unknown>;
 
         const baseTeamUpdate = teamScoped ? teamScoped.from('social_team_members') : supabase.from('social_team_members');
-        let teamUpdateQuery = baseTeamUpdate.update(memberUpdate).eq('user_id', result.userId);
+        const baseTeamUpdateQuery = baseTeamUpdate.update(memberUpdate).eq('user_id', result.userId);
         if (!teamScoped && teamOrgId) {
-          teamUpdateQuery = (teamUpdateQuery as any).eq('organization_id', teamOrgId);
+          await baseTeamUpdateQuery.eq('organization_id', teamOrgId);
+        } else {
+          await baseTeamUpdateQuery;
         }
-
-        await (teamUpdateQuery as any);
       }
 
       return NextResponse.json({ ok: true }, { status: 200 });
@@ -322,8 +345,11 @@ async function POSTHandler(req: Request) {
         return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
       }
 
-      const userData = evt.data as any;
-      const clerkUserId = userData.id;
+      const userObj = asObject(evt.data);
+      const clerkUserId = typeof userObj?.id === 'string' ? userObj.id : null;
+      if (!clerkUserId) {
+        return NextResponse.json({ error: 'Invalid webhook data' }, { status: 400 });
+      }
       const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_user_deleted' });
       const nowIso = new Date().toISOString();
 
@@ -338,8 +364,9 @@ async function POSTHandler(req: Request) {
         throw new Error(socialUserError.message);
       }
 
-      const socialUserId = (socialUserRow as any)?.id ? String((socialUserRow as any).id) : null;
-      const orgId = (socialUserRow as any)?.organization_id ? String((socialUserRow as any).organization_id).trim() : '';
+      const socialUserObj = asObject(socialUserRow) ?? {};
+      const socialUserId = typeof socialUserObj.id === 'string' ? String(socialUserObj.id) : null;
+      const orgId = typeof socialUserObj.organization_id === 'string' ? String(socialUserObj.organization_id).trim() : '';
       const scoped = orgId
         ? createServiceRoleClientScoped({
             reason: 'clerk_webhook_user_deleted_scoped',
@@ -352,34 +379,41 @@ async function POSTHandler(req: Request) {
       const baseUserUpdate = scoped ? scoped.from('social_users') : supabase.from('social_users');
 
       let attempt = baseUserUpdate
-        .update({ is_active: false, updated_at: nowIso, role: 'deleted', organization_id: null } as any)
+        .update({ is_active: false, updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)
         .eq('clerk_user_id', clerkUserId);
 
       if (!scoped && orgId) {
-        attempt = (attempt as any).eq('organization_id', orgId);
+        attempt = attempt.eq('organization_id', orgId);
       }
 
-      const attemptRes = await (attempt as any);
+      const attemptRes = await attempt;
+      const attemptObj = asObject(attemptRes) ?? {};
+      const attemptErrorObj = asObject(attemptObj.error);
 
-      if (attemptRes.error) {
-        const code = String((attemptRes.error as any)?.code || '');
+      if (attemptErrorObj) {
+        const code = typeof attemptErrorObj.code === 'string' ? String(attemptErrorObj.code) : String(attemptErrorObj.code ?? '');
         if (code === '42703') {
           const baseFallback = scoped ? scoped.from('social_users') : supabase.from('social_users');
           let fallbackQuery = baseFallback
-            .update({ updated_at: nowIso, role: 'deleted', organization_id: null } as any)
+            .update({ updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)
             .eq('clerk_user_id', clerkUserId);
 
           if (!scoped && orgId) {
-            fallbackQuery = (fallbackQuery as any).eq('organization_id', orgId);
+            fallbackQuery = fallbackQuery.eq('organization_id', orgId);
           }
 
-          const fallback = await (fallbackQuery as any);
+          const fallback = await fallbackQuery;
 
-          if (fallback.error) {
-            throw new Error(fallback.error.message);
+          const fallbackObj = asObject(fallback) ?? {};
+          const fallbackErr = asObject(fallbackObj.error);
+          if (fallbackErr && typeof fallbackErr.message === 'string') {
+            throw new Error(fallbackErr.message);
           }
         } else {
-          throw new Error(attemptRes.error.message);
+          if (typeof attemptErrorObj.message === 'string') {
+            throw new Error(attemptErrorObj.message);
+          }
+          throw new Error('Error handling webhook');
         }
       }
 
@@ -387,13 +421,14 @@ async function POSTHandler(req: Request) {
         const baseMembershipDelete = scoped ? scoped.from('social_team_members') : supabase.from('social_team_members');
         let membershipDeleteQuery = baseMembershipDelete.delete().eq('user_id', socialUserId);
         if (!scoped && orgId) {
-          membershipDeleteQuery = (membershipDeleteQuery as any).eq('organization_id', orgId);
+          membershipDeleteQuery = membershipDeleteQuery.eq('organization_id', orgId);
         }
 
-        const membershipDelete = await (membershipDeleteQuery as any);
-
-        if ((membershipDelete as any)?.error) {
-          throw new Error((membershipDelete as any).error.message);
+        const membershipDelete = await membershipDeleteQuery;
+        const membershipObj = asObject(membershipDelete) ?? {};
+        const membershipErr = asObject(membershipObj.error);
+        if (membershipErr && typeof membershipErr.message === 'string') {
+          throw new Error(membershipErr.message);
         }
       }
 

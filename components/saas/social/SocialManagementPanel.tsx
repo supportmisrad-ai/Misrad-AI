@@ -140,7 +140,7 @@ export function SocialManagementPanel() {
           </div>
 
           <div className="text-xs font-bold text-slate-500">
-            {selectedTenant ? `טננט: ${selectedTenant.name || selectedTenant.slug || selectedTenant.id}` : 'בחר טננט'}
+            {selectedTenant ? `טננט: ${selectedTenant.name || selectedTenant.subdomain || selectedTenant.id}` : 'בחר טננט'}
           </div>
         </div>
 

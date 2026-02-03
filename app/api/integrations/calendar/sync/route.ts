@@ -13,29 +13,25 @@
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { syncTaskToCalendar, syncCalendarToTasks } from '../../../../../lib/integrations/google-calendar';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string | null | undefined }): Promise<string | null> {
+async function selectDbUserId(params: { workspaceId: string; email: string | null | undefined }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 async function POSTHandler(request: NextRequest) {
     try {
@@ -43,8 +39,7 @@ async function POSTHandler(request: NextRequest) {
 
         const clerkUser = await getAuthenticatedUser();
 
-        const supabase = createClient();
-        const dbUserId = await selectDbUserId({ supabase, workspaceId: workspace.id, email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
         
         if (!dbUserId) {
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
@@ -60,17 +55,14 @@ async function POSTHandler(request: NextRequest) {
         if (direction === 'to_google' || direction === 'bidirectional') {
             if (taskId) {
                 // Sync specific task (scoped by org when provided)
-                const supabase = createClient();
-                const query = supabase
-                          .from('nexus_tasks')
-                          .select('*')
-                          .eq('id', String(taskId))
-                          .eq('organization_id', workspace.id)
-                          .limit(1)
-                          .maybeSingle();
+                const row = await prisma.nexusTask.findFirst({
+                    where: {
+                        id: String(taskId),
+                        organizationId: String(workspace.id),
+                    },
+                });
 
-                const { data: row, error } = await query;
-                if (!error && row) {
+                if (row) {
                     const eventId = await syncTaskToCalendar(row as any, dbUserId, workspace.id);
                     return apiSuccess({
                         eventId,
@@ -81,20 +73,17 @@ async function POSTHandler(request: NextRequest) {
                 }
             } else {
                 // Sync all tasks (limited to recent ones)
-                const supabase = createClient();
-                const query = supabase
-                          .from('nexus_tasks')
-                          .select('*')
-                          .not('due_date', 'is', null)
-                          .eq('organization_id', workspace.id)
-                          .order('due_date', { ascending: true })
-                          .limit(50);
-
-                const { data } = await query;
-                const recentTasks = (data || []) as any[];
+                const recentTasks = await prisma.nexusTask.findMany({
+                    where: {
+                        organizationId: String(workspace.id),
+                        dueDate: { not: null },
+                    },
+                    orderBy: { dueDate: 'asc' },
+                    take: 50,
+                });
                 
                 const results = await Promise.all(
-                    recentTasks.map(task => syncTaskToCalendar(task, dbUserId, workspace.id))
+                    recentTasks.map((task) => syncTaskToCalendar(task as any, dbUserId, workspace.id))
                 );
 
                 return apiSuccess({

@@ -2,7 +2,6 @@
 
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { createClient } from '@/lib/supabase';
 import { createClientForWorkspace } from '@/app/actions/clients';
 import { auth } from '@clerk/nextjs/server';
 import { AIService } from '@/lib/services/ai/AIService';
@@ -134,7 +133,6 @@ async function upsertCanonicalClientByEmail(params: {
   companyName: string;
   phone?: string | null;
 }): Promise<{ canonicalClientId: string | null }> {
-  const supabase = createClient();
   const organizationId = params.organizationId;
   const normalizedEmail = String(params.email || '').trim().toLowerCase();
 
@@ -142,20 +140,29 @@ async function upsertCanonicalClientByEmail(params: {
     return { canonicalClientId: null };
   }
 
-  const { data: existing, error: findError } = await supabase
-    .from('clients')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .ilike('email', normalizedEmail)
-    .limit(1)
-    .maybeSingle();
+  let existing: { id?: string } | null = null;
+  let findError: unknown = null;
+  try {
+    existing = await prisma.clients.findFirst({
+      where: {
+        organization_id: String(organizationId),
+        email: {
+          equals: normalizedEmail,
+          mode: 'insensitive',
+        },
+      },
+      select: { id: true },
+    });
+  } catch (e: unknown) {
+    findError = e;
+  }
 
   if (findError) {
     const findErrorObj = asObject(findError);
     const code = findErrorObj?.code;
     const details = findErrorObj?.details;
     console.error('[system-leads] failed to find existing canonical client', {
-      message: findError.message,
+      message: findError instanceof Error ? findError.message : String(findErrorObj?.message || ''),
       code: typeof code === 'string' ? code : undefined,
       details: typeof details === 'string' ? details : undefined,
     });
@@ -453,6 +460,7 @@ export async function createSystemCalendarEvent(params: {
 
     const created = await prisma.systemCalendarEvent.create({
       data: {
+        organizationId: workspace.id,
         leadId,
         title,
         leadName,
@@ -949,6 +957,7 @@ export async function createSystemLeadActivity(params: {
 
     const row = await prisma.systemLeadActivity.create({
       data: {
+        organizationId: workspace.id,
         leadId,
         type,
         content,

@@ -1,9 +1,65 @@
 'use server';
 
 import { NextRequest } from 'next/server';
-import { createClient as createSupabaseClient } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getErrorStatus(error: unknown): number | null {
+  const obj = asObject(error);
+  const status = obj?.status;
+  return typeof status === 'number' && Number.isFinite(status) ? status : null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+type MisradClientRow = Prisma.MisradClientGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    industry: true;
+    employeeCount: true;
+    logoInitials: true;
+    healthScore: true;
+    healthStatus: true;
+    status: true;
+    type: true;
+    tags: true;
+    monthlyRetainer: true;
+    profitMargin: true;
+    lifetimeValue: true;
+    hoursLogged: true;
+    internalHourlyRate: true;
+    directExpenses: true;
+    profitabilityVerdict: true;
+    lastContact: true;
+    nextRenewal: true;
+    mainContact: true;
+    mainContactRole: true;
+    strengths: true;
+    weaknesses: true;
+    sentimentTrend: true;
+    referralStatus: true;
+    cancellationDate: true;
+    cancellationReason: true;
+    cancellationNote: true;
+    healthBreakdown: true;
+    engagementMetrics: true;
+  };
+}>;
 
 export async function getClientOsClients(request: NextRequest) {
   try {
@@ -12,28 +68,56 @@ export async function getClientOsClients(request: NextRequest) {
       return apiSuccess({ clients: [] });
     }
 
+    let workspace;
     try {
-      await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
-    } catch (e: any) {
-      const status = typeof e?.status === 'number' ? e.status : 403;
-      return apiError(e, { status, message: e?.message || 'Forbidden' });
+      workspace = await requireWorkspaceAccessByOrgSlugApi(orgIdFromHeader);
+    } catch (e: unknown) {
+      const status = getErrorStatus(e) ?? 403;
+      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
     }
 
-    const supabaseClient = createSupabaseClient();
+    const organizationId = String(workspace.id);
 
-    const { data, error } = await supabaseClient
-      .from('misrad_clients')
-      .select('*')
-      .eq('organization_id', orgIdFromHeader)
-      .order('created_at', { ascending: false });
+    const data = await prisma.misradClient.findMany({
+      where: { organizationId },
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        industry: true,
+        employeeCount: true,
+        logoInitials: true,
+        healthScore: true,
+        healthStatus: true,
+        status: true,
+        type: true,
+        tags: true,
+        monthlyRetainer: true,
+        profitMargin: true,
+        lifetimeValue: true,
+        hoursLogged: true,
+        internalHourlyRate: true,
+        directExpenses: true,
+        profitabilityVerdict: true,
+        lastContact: true,
+        nextRenewal: true,
+        mainContact: true,
+        mainContactRole: true,
+        strengths: true,
+        weaknesses: true,
+        sentimentTrend: true,
+        referralStatus: true,
+        cancellationDate: true,
+        cancellationReason: true,
+        cancellationNote: true,
+        healthBreakdown: true,
+        engagementMetrics: true,
+      },
+    });
 
-    if (error) {
-      return apiSuccess({ clients: [] });
-    }
-
-    const clients = (data || []).map((row: any) => {
-      const healthBreakdown = row.health_breakdown ?? row.healthBreakdown ?? { financial: 0, engagement: 0, sentiment: 0 };
-      const engagementMetrics = row.engagement_metrics ?? row.engagementMetrics ?? {
+    const clients = (data || []).map((row: MisradClientRow) => {
+      const healthBreakdown = row.healthBreakdown ?? { financial: 0, engagement: 0, sentiment: 0 };
+      const engagementMetrics = row.engagementMetrics ?? {
         daysSinceLastLogin: 0,
         unopenedEmails: 0,
         lastReportDownloadDate: null,
@@ -44,44 +128,44 @@ export async function getClientOsClients(request: NextRequest) {
         id: row.id,
         name: row.name ?? '',
         industry: row.industry ?? '',
-        employeeCount: row.employee_count ?? row.employeeCount ?? 0,
-        logoInitials: row.logo_initials ?? row.logoInitials ?? '',
-        healthScore: row.health_score ?? row.healthScore ?? 0,
-        healthStatus: row.health_status ?? row.healthStatus ?? 'STABLE',
+        employeeCount: row.employeeCount ?? 0,
+        logoInitials: row.logoInitials ?? '',
+        healthScore: row.healthScore ?? 0,
+        healthStatus: row.healthStatus ?? 'STABLE',
         status: row.status ?? 'ACTIVE',
         type: row.type ?? 'RETAINER',
         tags: row.tags ?? [],
-        monthlyRetainer: row.monthly_retainer ?? row.monthlyRetainer ?? 0,
-        profitMargin: row.profit_margin ?? row.profitMargin ?? 0,
-        lifetimeValue: row.lifetime_value ?? row.lifetimeValue ?? 0,
-        hoursLogged: row.hours_logged ?? row.hoursLogged ?? 0,
-        internalHourlyRate: row.internal_hourly_rate ?? row.internalHourlyRate ?? 0,
-        directExpenses: row.direct_expenses ?? row.directExpenses ?? 0,
-        profitabilityVerdict: row.profitability_verdict ?? row.profitabilityVerdict ?? '',
-        lastContact: row.last_contact ?? row.lastContact ?? '',
-        nextRenewal: row.next_renewal ?? row.nextRenewal ?? '',
-        mainContact: row.main_contact ?? row.mainContact ?? '',
-        mainContactRole: row.main_contact_role ?? row.mainContactRole ?? '',
+        monthlyRetainer: row.monthlyRetainer ?? 0,
+        profitMargin: row.profitMargin ?? 0,
+        lifetimeValue: row.lifetimeValue ?? 0,
+        hoursLogged: row.hoursLogged ?? 0,
+        internalHourlyRate: row.internalHourlyRate ?? 0,
+        directExpenses: row.directExpenses ?? 0,
+        profitabilityVerdict: row.profitabilityVerdict ?? '',
+        lastContact: row.lastContact ?? '',
+        nextRenewal: row.nextRenewal ?? '',
+        mainContact: row.mainContact ?? '',
+        mainContactRole: row.mainContactRole ?? '',
         strengths: row.strengths ?? [],
         weaknesses: row.weaknesses ?? [],
-        sentimentTrend: row.sentiment_trend ?? row.sentimentTrend ?? [],
-        referralStatus: row.referral_status ?? row.referralStatus ?? 'LOCKED',
-        cancellationDate: row.cancellation_date ?? row.cancellationDate ?? null,
-        cancellationReason: row.cancellation_reason ?? row.cancellationReason ?? null,
-        cancellationNote: row.cancellation_note ?? row.cancellationNote ?? null,
+        sentimentTrend: row.sentimentTrend ?? [],
+        referralStatus: row.referralStatus ?? 'LOCKED',
+        cancellationDate: row.cancellationDate ?? null,
+        cancellationReason: row.cancellationReason ?? null,
+        cancellationNote: row.cancellationNote ?? null,
         healthBreakdown,
         engagementMetrics,
-        journeyStages: row.journey_stages ?? row.journeyStages ?? [],
-        opportunities: row.opportunities ?? [],
-        successGoals: row.success_goals ?? row.successGoals ?? [],
-        handoff: row.handoff ?? null,
-        roiRecords: row.roi_records ?? row.roiRecords ?? [],
-        pendingActions: row.pending_actions ?? row.pendingActions ?? [],
-        assignedForms: row.assigned_forms ?? row.assignedForms ?? [],
-        assets: row.assets ?? [],
-        deliverables: row.deliverables ?? [],
-        transformations: row.transformations ?? [],
-        stakeholders: row.stakeholders ?? [],
+        journeyStages: [],
+        opportunities: [],
+        successGoals: [],
+        handoff: null,
+        roiRecords: [],
+        pendingActions: [],
+        assignedForms: [],
+        assets: [],
+        deliverables: [],
+        transformations: [],
+        stakeholders: [],
       };
     });
 

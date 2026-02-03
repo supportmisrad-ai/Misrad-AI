@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { usePathname, useRouter } from 'next/navigation';
@@ -73,6 +73,10 @@ export default function Header() {
   const basePath = getSocialBasePath(pathname);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  const unreadPollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unreadInFlightRef = useRef(false);
+  const unreadFailureCountRef = useRef(0);
+
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(workspaceInfo.orgSlug || null, {
     name: user?.fullName ?? user?.username ?? null,
     role: null,
@@ -106,30 +110,91 @@ export default function Header() {
     }
   }, [user?.imageUrl]);
 
-  useEffect(() => {
-    if (isSignedIn) {
-      loadUnreadCount();
-      // Refresh every 5 minutes
-      const interval = setInterval(loadUnreadCount, 5 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [isSignedIn]);
+  const loadUnreadCount = useCallback(async () => {
+    if (!isSignedIn) return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (unreadInFlightRef.current) return;
+    unreadInFlightRef.current = true;
 
-  const loadUnreadCount = async () => {
     try {
       const result = await getUnreadUpdatesCount();
       if (result.success && result.count !== undefined) {
         setUnreadCount(result.count);
       }
+      unreadFailureCountRef.current = 0;
     } catch (error: any) {
+      unreadFailureCountRef.current += 1;
       // Silently handle network errors (common during dev server restarts)
       // Only log if it's not a network/fetch error
       if (error?.message && !error.message.includes('Failed to fetch') && !error.message.includes('fetch')) {
         console.error('Error loading unread count:', error);
       }
       // Keep current count on error, don't reset to 0
+    } finally {
+      unreadInFlightRef.current = false;
     }
-  };
+  }, [isSignedIn]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+
+    let cancelled = false;
+
+    const clearScheduled = () => {
+      if (unreadPollTimeoutRef.current) {
+        clearTimeout(unreadPollTimeoutRef.current);
+        unreadPollTimeoutRef.current = null;
+      }
+    };
+
+    const computeDelayMs = () => {
+      const base = 5 * 60 * 1000;
+      const backoff = Math.min(30 * 60 * 1000, base * Math.pow(2, unreadFailureCountRef.current));
+      return Math.max(base, backoff);
+    };
+
+    const scheduleNext = (delayMs: number) => {
+      clearScheduled();
+      unreadPollTimeoutRef.current = setTimeout(() => {
+        void tick();
+      }, delayMs);
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+
+      await loadUnreadCount();
+      if (cancelled) return;
+
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        scheduleNext(60_000);
+        return;
+      }
+
+      scheduleNext(computeDelayMs());
+    };
+
+    void tick();
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        unreadFailureCountRef.current = 0;
+        void tick();
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+
+    return () => {
+      cancelled = true;
+      clearScheduled();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+    };
+  }, [isSignedIn, loadUnreadCount]);
 
   const currentDate = useMemo(() => {
     if (!hasMounted) return '';
@@ -164,7 +229,7 @@ export default function Header() {
     <>
       <button
         onClick={() => setIsNotificationCenterOpen(true)}
-        className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+        className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
         aria-label="התראות"
         type="button"
       >

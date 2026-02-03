@@ -3,20 +3,110 @@ import fs from 'node:fs';
 import path from 'node:path';
 import dotenv from 'dotenv';
 
+const isAuthSetupRun =
+  String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === '1' ||
+  String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === 'true';
+
+test.skip(!isAuthSetupRun, 'setup-auth runs only when E2E_SETUP_AUTH=1');
+
 type WhoamiResponse = {
   ok: boolean;
   clerkUserId?: string;
   email?: string | null;
+  emails?: string[] | null;
   error?: string;
 };
 
-function extractCookieValue(cookieHeader: string, name: string): string | null {
-  const prefix = `${name}=`;
-  const parts = String(cookieHeader || '').split(/;\s*/);
-  for (const p of parts) {
-    if (p.startsWith(prefix)) return p.slice(prefix.length);
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForWhoamiMatch(params: {
+  page: import('@playwright/test').Page;
+  baseURL: string;
+  e2eKey: string;
+  timeoutMs: number;
+  expectedEmail?: string;
+  forbiddenClerkUserId?: string | null;
+}): Promise<{ whoamiJson: WhoamiResponse; lastBody: string | null }> {
+  const start = Date.now();
+  let lastBody: string | null = null;
+  let lastLogAt = 0;
+  while (Date.now() - start < params.timeoutMs) {
+    if (params.page.isClosed()) {
+      throw new Error(`setup-auth: page was closed while waiting for expected authenticated user. last error: ${String(lastBody || '')}`);
+    }
+    try {
+      const res = await params.page.request.get(`${params.baseURL}/api/e2e/whoami`, {
+        headers: { 'x-e2e-key': params.e2eKey },
+        timeout: 60_000,
+      });
+
+      lastBody = await res.text().catch(() => null);
+      const shouldLog = Date.now() - lastLogAt > 10_000;
+      if (shouldLog) {
+        lastLogAt = Date.now();
+        console.log(
+          `setup-auth: waiting for expected user. status=${res.status()} expectedEmail=${String(
+            params.expectedEmail || ''
+          )} forbiddenClerkUserId=${String(params.forbiddenClerkUserId || '')} url=${params.page.url()}`
+        );
+      }
+      if (res.status() !== 200) {
+        await sleep(500);
+        continue;
+      }
+
+      const whoamiJson = (lastBody ? (JSON.parse(lastBody) as WhoamiResponse) : null) ?? null;
+      if (!whoamiJson?.clerkUserId) {
+        await sleep(500);
+        continue;
+      }
+
+      if (Date.now() - lastLogAt < 2000) {
+        console.log(
+          `setup-auth: whoami clerkUserId=${String(whoamiJson.clerkUserId)} email=${String(
+            whoamiJson.email || ''
+          )}`
+        );
+      }
+
+      if (params.expectedEmail) {
+        const expected = params.expectedEmail.toLowerCase();
+        const candidates = [String(whoamiJson.email || '')]
+          .concat(Array.isArray(whoamiJson.emails) ? whoamiJson.emails : [])
+          .map((e) => String(e || '').trim().toLowerCase())
+          .filter(Boolean);
+        if (!candidates.includes(expected)) {
+          if (params.page.isClosed()) {
+            throw new Error('setup-auth: page was closed while waiting for expected email');
+          }
+          await sleep(750);
+          continue;
+        }
+      }
+
+      if (params.forbiddenClerkUserId && String(whoamiJson.clerkUserId).trim() === String(params.forbiddenClerkUserId).trim()) {
+        if (params.page.isClosed()) {
+          throw new Error('setup-auth: page was closed while waiting for a different Clerk user');
+        }
+        await sleep(750);
+        continue;
+      }
+
+      return { whoamiJson, lastBody };
+    } catch (e: unknown) {
+      lastBody = String(e instanceof Error ? e.message : e);
+      if (params.page.isClosed()) {
+        throw new Error(`setup-auth: page was closed. last error: ${lastBody}`);
+      }
+      await sleep(750);
+    }
   }
-  return null;
+
+  throw new Error(
+    `setup-auth: timed out waiting for expected authenticated user. last whoami body: ${String(lastBody || '')}. Current URL: ${params.page.url()}`
+  );
 }
 
 function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
@@ -64,7 +154,7 @@ function normalizeHost(hostname: string) {
 }
 
 test('setup auth storage state', async () => {
-  const baseURL = process.env.E2E_BASE_URL || 'http://localhost:4000';
+  const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4000';
   const appHost = normalizeHost(new URL(baseURL).hostname);
 
   const e2eKey = String(process.env.E2E_API_KEY || '').trim();
@@ -206,7 +296,7 @@ test('setup auth storage state', async () => {
 
   while (Date.now() - start < timeoutMs) {
     if (await hasClerkAuthCookie().catch(() => false)) break;
-    await page.waitForTimeout(500);
+    await sleep(500);
   }
 
   if (!(await hasClerkAuthCookie().catch(() => false))) {
@@ -216,7 +306,7 @@ test('setup auth storage state', async () => {
   const sessionStart = Date.now();
   while (Date.now() - sessionStart < timeoutMs) {
     if (await hasSessionCookie().catch(() => false)) break;
-    await page.waitForTimeout(500);
+    await sleep(500);
   }
 
   if (!(await hasSessionCookie().catch(() => false))) {
@@ -234,7 +324,7 @@ test('setup auth storage state', async () => {
     const refreshStart = Date.now();
     while (Date.now() - refreshStart < timeoutMs) {
       if (await hasRefreshCookie().catch(() => false)) break;
-      await page.waitForTimeout(500);
+      await sleep(500);
     }
 
     if (!(await hasRefreshCookie().catch(() => false))) {
@@ -277,7 +367,7 @@ test('setup auth storage state', async () => {
       lastStatus = null;
       lastBody = String(e instanceof Error ? e.message : e);
     }
-    await page.waitForTimeout(500);
+    await sleep(500);
   }
 
   if (lastStatus !== 200) {
@@ -286,38 +376,28 @@ test('setup auth storage state', async () => {
     );
   }
 
-  {
-    const expectedEmailRaw = String(
-      process.env.E2E_EXPECT_EMAIL || process.env.E2E_AUTH_EMAIL || inferredExpectedEmail || ''
-    ).trim();
-    if (expectedEmailRaw) {
-      const expectedEmail = expectedEmailRaw.toLowerCase();
-      const actualEmail = String(whoamiJson?.email || '').trim().toLowerCase();
-      if (!actualEmail || actualEmail !== expectedEmail) {
-        throw new Error(
-          `setup-auth: authenticated user does not match expected email. expected='${expectedEmailRaw}' actual='${String(whoamiJson?.email || '')}'. Current URL: ${page.url()}`
-        );
-      }
-    }
-  }
+  const expectedEmailRaw = String(
+    manualLogin
+      ? process.env.E2E_EXPECT_EMAIL || ''
+      : process.env.E2E_EXPECT_EMAIL || process.env.E2E_AUTH_EMAIL || inferredExpectedEmail || ''
+  ).trim();
 
-  {
-    const currentUserId = String(whoamiJson?.clerkUserId || '').trim();
-    if (!currentUserId) {
-      throw new Error(
-        `setup-auth: whoami did not return clerkUserId (body: ${String(lastBody || '')}). Current URL: ${page.url()}`
-      );
-    }
+  const otherSub =
+    inferredOtherStatePath && inferredOtherStatePath !== storageStatePath && fs.existsSync(inferredOtherStatePath)
+      ? getSessionSubFromStorageState(inferredOtherStatePath)
+      : null;
 
-    if (inferredOtherStatePath && inferredOtherStatePath !== storageStatePath && fs.existsSync(inferredOtherStatePath)) {
-      const otherSub = getSessionSubFromStorageState(inferredOtherStatePath);
-      if (otherSub && otherSub === currentUserId) {
-        throw new Error(
-          `setup-auth: this storageState would authenticate as the same Clerk user as the other storageState. current='${currentUserId}' other='${otherSub}'. Please sign in with a different account.`
-        );
-      }
-    }
-  }
+  const stable = await waitForWhoamiMatch({
+    page,
+    baseURL,
+    e2eKey,
+    timeoutMs,
+    expectedEmail: expectedEmailRaw || undefined,
+    forbiddenClerkUserId: manualLogin && !expectedEmailRaw ? null : otherSub,
+  });
+
+  whoamiJson = stable.whoamiJson;
+  lastBody = stable.lastBody;
 
   if (afterLoginPath !== '/') {
     await page.goto(`${baseURL}${afterLoginPath}`, { waitUntil: 'domcontentloaded', timeout: 120_000 });

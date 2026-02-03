@@ -28,7 +28,7 @@ export default async function SoloLandingPage() {
           desc: 'כשתרצה — מוסיפים עוד מודולים בלחיצת כפתור.',
         },
       ]}
-      ctaPrimaryHref="/sign-up"
+      ctaPrimaryHref="/login?mode=sign-up&plan=solo"
       ctaPrimaryLabel="התחל ניסיון חינם (בלי כרטיס)"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

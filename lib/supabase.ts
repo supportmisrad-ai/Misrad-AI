@@ -34,17 +34,17 @@ const SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENABLED =
   process.env.SUPABASE_PRISMA_FIRST_RUNTIME_GUARD !== 'false' &&
   process.env.SUPABASE_PRISMA_FIRST_ALLOW_UNSAFE_DB !== 'true';
 
-const SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE =
-  process.env.NODE_ENV === 'production' || process.env.SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_DEV === 'true';
+const SUPABASE_PRISMA_FIRST_RUNTIME_GUARD_ENFORCE = true;
 
-const SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV = process.env.SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV === 'true';
+const SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV =
+  process.env.SUPABASE_PRISMA_FIRST_REPORT_BLOCKED_IN_DEV !== 'false' && process.env.NODE_ENV !== 'production';
 
 function supabaseDebugLog(...args: unknown[]) {
   if (DEBUG_SUPABASE) console.log(...args);
 }
 
 function supabaseDebugWarn(...args: unknown[]) {
-  if (DEBUG_SUPABASE) console.warn(...args);
+  if (DEBUG_SUPABASE || String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true') console.warn(...args);
 }
 
 function supabaseErrorLog(message: string, meta?: unknown, error?: unknown) {
@@ -155,10 +155,17 @@ export function assertClerkSupabaseJwtHasOrganizationId(token: string, context: 
   const orgId = extractOrganizationIdFromJwtClaims(payload);
 
   if (!orgId) {
-    throw new Error(
+    const msg =
       `[Supabase] חסר/לא תקין organization_id ב-JWT של Clerk שנשלח ל-Supabase. ` +
-        `ה-RLS תלוי בזה (current_organization_id()). Context: ${context}`
-    );
+      `ה-RLS תלוי בזה (current_organization_id()). Context: ${context}`;
+
+    // In E2E we allow DB-based fallback resolution (e.g., via social_users/profiles by clerk_user_id).
+    if (String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true') {
+      supabaseDebugWarn(msg);
+      return;
+    }
+
+    throw new Error(msg);
   }
 }
 
@@ -356,7 +363,7 @@ function extractCallerFileFromStack(stack: string | undefined, selfFileHint: str
 
 function isAllowedSupabaseDbCaller(file: string | null): boolean {
   const f = normalizeStackPath(String(file || ''));
-  if (!f) return true;
+  if (!f) return !IS_PROD;
 
   const allow = [
     '/app/api/e2e/',
@@ -365,6 +372,58 @@ function isAllowedSupabaseDbCaller(file: string | null): boolean {
   if (allow.some((x) => f.includes(x))) return true;
 
   return false;
+}
+
+function isAllowedSupabaseDbStack(stack: string | undefined): boolean {
+  const s = String(stack || '');
+  if (!s) return !IS_PROD;
+
+  const allow = [
+    '/app/api/e2e/',
+    '/app/api/webhooks/',
+  ];
+
+  const lines = s.split('\n').map((x) => x.trim()).filter(Boolean);
+  for (const line of lines) {
+    const mParen = line.match(/\((.*?):\d+:\d+\)$/);
+    const mBare = line.match(/at\s+([^\s]+?):\d+:\d+$/);
+    const fileRaw = mParen?.[1] ?? mBare?.[1];
+    if (!fileRaw) continue;
+    const file = normalizeStackPath(fileRaw);
+    if (!file) continue;
+    if (allow.some((x) => file.includes(x))) return true;
+  }
+
+  return false;
+}
+
+function wrapServiceRoleStorageOnly(client: SupabaseClient, reason: string): SupabaseClient {
+  const originalFrom = (client as unknown as { from?: unknown }).from;
+  const originalRpc = (client as unknown as { rpc?: unknown }).rpc;
+
+  return new Proxy(client as unknown as object, {
+    get(target, prop, receiver) {
+      if (prop === 'from' && typeof originalFrom === 'function') {
+        return (table: string) => {
+          throw new Error(
+            '[Supabase] Service Role blocked (Storage-only outside webhooks/e2e): ' +
+              `Caller not allowed. reason=${String(reason)} table=${String(table || '')}`
+          );
+        };
+      }
+
+      if (prop === 'rpc' && typeof originalRpc === 'function') {
+        return (fn: string) => {
+          throw new Error(
+            '[Supabase] Service Role blocked (Storage-only outside webhooks/e2e): ' +
+              `Caller not allowed. reason=${String(reason)} rpc=${String(fn || '')}`
+          );
+        };
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as SupabaseClient;
 }
 
 async function reportBlockedDbAccess(params: {
@@ -476,36 +535,48 @@ function createRawServiceRoleClient(): SupabaseClient {
     throw error;
   }
 
-  const fetchWithClerkJwt: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  try {
+    const urlHost = (() => {
+      try {
+        return new URL(String(url)).host;
+      } catch {
+        return null;
+      }
+    })();
+
+    let roleClaim: string | null = null;
     try {
-      const headers = new Headers(init?.headers);
-      if (!headers.has('apikey')) {
-        headers.set('apikey', serviceRoleKey);
-      }
-
-      if (!headers.has('Authorization')) {
-        const { auth } = await import('@clerk/nextjs/server');
-        const authRes = await auth();
-        const tokenFn =
-          authRes &&
-          typeof authRes === 'object' &&
-          'getToken' in authRes &&
-          typeof (authRes as { getToken?: unknown }).getToken === 'function'
-            ? ((authRes as { getToken: (opts?: { template?: string }) => Promise<string | null> }).getToken)
-            : null;
-        if (tokenFn) {
-          const template = process.env.CLERK_SUPABASE_JWT_TEMPLATE;
-          const token = template ? await tokenFn({ template }) : await tokenFn();
-          if (token && String(token).length > 0) {
-            headers.set('Authorization', `Bearer ${token}`);
-          }
-        }
-      }
-
-      return fetch(input, { ...init, headers });
+      const payload = asObject(parseJwtPayload(String(serviceRoleKey)));
+      const role = payload?.role;
+      if (role !== undefined && role !== null) roleClaim = String(role);
     } catch {
-      return fetch(input, init);
+      roleClaim = null;
     }
+
+    if (urlHost) {
+      supabaseDebugWarn('[Supabase] Service Role client configured for host:', urlHost);
+    }
+
+    if (!roleClaim) {
+      supabaseDebugWarn('[Supabase] SUPABASE_SERVICE_ROLE_KEY does not look like a JWT with a role claim');
+      if (String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true') {
+        throw new Error('[Supabase] Invalid SUPABASE_SERVICE_ROLE_KEY for E2E: expected a JWT with role=service_role');
+      }
+    } else {
+      supabaseDebugWarn('[Supabase] SUPABASE_SERVICE_ROLE_KEY role claim:', roleClaim);
+      if (roleClaim !== 'service_role') {
+        throw new Error(`[Supabase] Invalid SUPABASE_SERVICE_ROLE_KEY: expected role=service_role, got role=${roleClaim}`);
+      }
+    }
+  } catch (e) {
+    throw e;
+  }
+
+  const fetchWithClerkJwt: typeof fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    headers.set('apikey', serviceRoleKey);
+    headers.set('Authorization', `Bearer ${serviceRoleKey}`);
+    return fetch(input, { ...init, headers });
   };
 
   return createSupabaseClient(url, serviceRoleKey, {
@@ -538,7 +609,12 @@ export function createServiceRoleClient(params: { reason: string; allowUnscoped:
   void reportServiceRoleUsage({ kind: 'unscoped', reason: String(params.reason) });
 
   supabaseDebugWarn('[Supabase] Creating GLOBAL Service Role client (RLS bypassed):', String(params.reason));
-  return createRawServiceRoleClient();
+  const client = createRawServiceRoleClient();
+  const ok = isAllowedSupabaseDbStack(new Error().stack);
+  if (!ok) {
+    return wrapServiceRoleStorageOnly(client, String(params.reason));
+  }
+  return client;
 }
 
 function wrapScopedBuilder(params: {
@@ -701,6 +777,10 @@ export function createServiceRoleClientScoped(params: ServiceRoleClientScopedPar
   });
 
   const client = createRawServiceRoleClient();
+  const ok = isAllowedSupabaseDbStack(new Error().stack);
+  if (!ok) {
+    return wrapServiceRoleStorageOnly(client, reason);
+  }
   const clientObj = client as unknown as { from?: unknown; rpc?: unknown };
   const originalFrom = typeof clientObj.from === 'function' ? (clientObj.from as (table: string) => unknown).bind(client) : null;
   if (typeof originalFrom !== 'function') return client;
@@ -806,7 +886,11 @@ export function createClient(options?: CreateClientOptions): SupabaseClient {
             headers.set('apikey', key);
           }
 
-          if (!headers.has('Authorization')) {
+          // NOTE: supabase-js sets Authorization=Bearer <anonKey> by default.
+          // For RLS to work with Clerk, we must override that header with the Clerk Supabase JWT.
+          const existingAuth = headers.get('Authorization');
+          const shouldTryInjectClerk = !useServiceRole && (!existingAuth || existingAuth.trim() === `Bearer ${key}`);
+          if (shouldTryInjectClerk) {
             const { auth } = await import('@clerk/nextjs/server');
             const authRes = await auth();
             const tokenFn =

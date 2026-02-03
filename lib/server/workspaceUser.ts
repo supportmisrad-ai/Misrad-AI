@@ -40,7 +40,16 @@ function isPrismaMissingRelationError(err: unknown): boolean {
   const obj = asObject(err);
   const code = String(getStringProp(obj, 'code') || '');
   const msg = String(getStringProp(obj, 'message') || '').toLowerCase();
-  return code === 'P2021' || msg.includes('does not exist') || msg.includes('relation');
+  // P2022 is a missing-column error; avoid treating it as a missing table/relation.
+  if (code === 'P2022') return false;
+  return code === 'P2021' || (msg.includes('relation') && msg.includes('does not exist'));
+}
+
+function isPrismaMissingColumnError(err: unknown): boolean {
+  const obj = asObject(err);
+  const code = String(getStringProp(obj, 'code') || '');
+  const msg = String(getStringProp(obj, 'message') || '').toLowerCase();
+  return code === 'P2022' || (msg.includes('the column') && msg.includes('does not exist'));
 }
 
 function throwMissingProfilesTableDevError(params: { phase: string; error: unknown }) {
@@ -62,6 +71,17 @@ function throwMissingNexusUsersTableDevError(params: { phase: string; error: unk
     "טבלת public.nexus_users לא קיימת (או שלא נטענה ל-schema cache של Supabase/PostgREST).\n" +
     "כדי לתקן: ודא שהמיגרציות רצות על אותו פרויקט Supabase (prisma/migrations/* או scripts/db-setup/*),\n" +
     "ואז רענן את ה-API (לעיתים מספיק להמתין דקה/Restart ל-dev server).";
+  throw new Error(`[DB][nexus_users][${params.phase}] ${hint} (code=${code || 'n/a'} message=${raw})`);
+}
+
+function throwMissingNexusUsersColumnDevError(params: { phase: string; error: unknown }) {
+  const errorObj = asObject(params.error);
+  const code = String(getStringProp(errorObj, 'code') || '');
+  const raw = String(getStringProp(errorObj, 'message') || '');
+  const hint =
+    "עמודה public.nexus_users.last_seen_at לא קיימת בבסיס הנתונים.\n" +
+    "כדי לתקן: הרץ Prisma migrations על אותו DB שמוגדר ב-DATABASE_URL/DIRECT_URL (למשל prisma/migrations/20260202001000_nexus_user_presence),\n" +
+    "ואז ריסטארט ל-dev server.";
   throw new Error(`[DB][nexus_users][${params.phase}] ${hint} (code=${code || 'n/a'} message=${raw})`);
 }
 
@@ -181,8 +201,13 @@ async function findNexusUserByEmail(params: {
 
     return rows[0] ?? null;
   } catch (error: unknown) {
-    if (isNonProd && isPrismaMissingRelationError(error)) {
-      throwMissingNexusUsersTableDevError({ phase: 'select', error });
+    if (isNonProd) {
+      if (isPrismaMissingColumnError(error)) {
+        throwMissingNexusUsersColumnDevError({ phase: 'select', error });
+      }
+      if (isPrismaMissingRelationError(error)) {
+        throwMissingNexusUsersTableDevError({ phase: 'select', error });
+      }
     }
     throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load nexus user');
   }
@@ -216,11 +241,19 @@ async function ensureNexusUserRow(params: {
     ...(params.organizationId ? { organizationId: params.organizationId } : {}),
   };
 
+  // Prisma Client might be outdated locally; set lastSeenAt without relying on generated types.
+  (insertRow as unknown as Record<string, unknown>)['lastSeenAt'] = new Date();
+
   try {
     return await prisma.nexusUser.create({ data: insertRow });
   } catch (error: unknown) {
-    if (isNonProd && isPrismaMissingRelationError(error)) {
-      throwMissingNexusUsersTableDevError({ phase: 'insert', error });
+    if (isNonProd) {
+      if (isPrismaMissingColumnError(error)) {
+        throwMissingNexusUsersColumnDevError({ phase: 'insert', error });
+      }
+      if (isPrismaMissingRelationError(error)) {
+        throwMissingNexusUsersTableDevError({ phase: 'insert', error });
+      }
     }
 
     const errorObj = asObject(error);
@@ -298,6 +331,7 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
     email: nexusEmail,
     phone: resolvedPhone,
     isSuperAdmin: nexusIsSuperAdmin,
+    organizationId: workspaceId,
     tenantId: workspaceId,
   };
 }

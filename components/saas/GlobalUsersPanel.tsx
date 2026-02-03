@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, UserPlus, Search, Filter, Mail, Building2, Globe, Edit, Trash2, Eye, CheckCircle2, XCircle, Shield } from 'lucide-react';
-import { User, Tenant } from '../../types';
+import { Toast, User, Tenant } from '../../types';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
 import Image from 'next/image';
 import { getAdminUsersPage } from '@/app/actions/admin-users';
@@ -9,9 +9,19 @@ import { deleteAdminUser } from '@/app/actions/admin-users';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
 
+function getUnknownErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object' && 'message' in error) {
+        const msg = (error as { message?: unknown }).message;
+        return typeof msg === 'string' ? msg : 'שגיאה לא צפויה';
+    }
+    return 'שגיאה לא צפויה';
+}
+
 interface GlobalUsersPanelProps {
     tenants: Tenant[];
-    addToast: (message: string, type?: string) => void;
+    addToast: (message: string, type?: Toast['type']) => void;
     hideHeader?: boolean;
 }
 
@@ -51,11 +61,22 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
                 if (!result.success || !result.data) {
                     throw new Error(result.error || 'Failed to load users');
                 }
-                setUsers(result.data.items || []);
+                const mapped: User[] = (result.data.items || []).map((row) => ({
+                    id: String(row.id),
+                    name: String(row.name || ''),
+                    role: String(row.role || 'user'),
+                    avatar: String(row.avatar || ''),
+                    online: false,
+                    capacity: 0,
+                    email: row.email ? String(row.email) : undefined,
+                    isSuperAdmin: false,
+                    tenantId: null,
+                }));
+                setUsers(mapped);
                 setTotal(result.data.total || 0);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('[GlobalUsersPanel] Error loading users:', error);
-                addToast(error.message || 'שגיאה בטעינת משתמשים', 'error');
+                addToast(getUnknownErrorMessage(error) || 'שגיאה בטעינת משתמשים', 'error');
             } finally {
                 setIsLoading(false);
             }
@@ -98,9 +119,9 @@ export const GlobalUsersPanel: React.FC<GlobalUsersPanelProps> = ({ tenants, add
 
             setUsers(prev => prev.filter(u => u.id !== userId));
             addToast('משתמש נמחק בהצלחה', 'success');
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[GlobalUsersPanel] Error deleting user:', error);
-            addToast(error.message || 'שגיאה במחיקת משתמש', 'error');
+            addToast(getUnknownErrorMessage(error) || 'שגיאה במחיקת משתמש', 'error');
         }
     };
 

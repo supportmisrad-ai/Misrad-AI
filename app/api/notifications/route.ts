@@ -9,14 +9,28 @@ import { getAuthenticatedUser } from '../../../lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma, { queryRawOrgScoped } from '@/lib/prisma';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const rows = await queryRawOrgScoped<any[]>(prisma, {
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
         organizationId: params.workspaceId,
         reason: 'notifications_resolve_user_id',
         query: `
@@ -31,7 +45,8 @@ async function selectDbUserId(params: { workspaceId: string; email: string }): P
     });
 
     const row = Array.isArray(rows) ? rows[0] : null;
-    return row?.id ? String(row.id) : null;
+    const rowObj = asObject(row);
+    return rowObj?.id ? String(rowObj.id) : null;
 }
 
 async function GETHandler(request: NextRequest) {
@@ -40,13 +55,13 @@ async function GETHandler(request: NextRequest) {
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/notifications');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -62,7 +77,7 @@ async function GETHandler(request: NextRequest) {
             return apiSuccess({ notifications: [] }, { status: 200 });
         }
 
-        const tenantNotifications = await queryRawOrgScoped<any[]>(prisma, {
+        const tenantNotifications = await queryRawOrgScoped<unknown[]>(prisma, {
             organizationId: workspaceId,
             reason: 'notifications_list_tenant',
             query: `
@@ -77,24 +92,30 @@ async function GETHandler(request: NextRequest) {
         });
 
         const combined = (Array.isArray(tenantNotifications) ? tenantNotifications : [])
-            .filter((n: any) => n && n.id)
-            .sort((a: any, b: any) => {
-                const aa = String(a?.created_at || '');
-                const bb = String(b?.created_at || '');
+            .filter((n) => {
+                const obj = asObject(n);
+                return Boolean(obj && obj.id);
+            })
+            .sort((a, b) => {
+                const aa = String(asObject(a)?.created_at || '');
+                const bb = String(asObject(b)?.created_at || '');
                 return bb.localeCompare(aa);
             })
             .slice(0, 100);
 
         return apiSuccess({ notifications: combined }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error in /api/notifications GET:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            return apiSuccess({ notifications: [] }, { status: 200 });
         }
-        const isUnauthorized = Boolean(error?.message && String(error.message).includes('Unauthorized'));
+        const message = getErrorMessage(error);
+        const isUnauthorized = Boolean(message && message.includes('Unauthorized'));
         if (isUnauthorized) {
-            return apiError('Unauthorized', { status: 401 });
+            // Notifications are non-blocking. Returning 200 avoids noisy client errors
+            // during auth initialization / navigation.
+            return apiSuccess({ notifications: [] }, { status: 200 });
         }
         return apiSuccess({ notifications: [] }, { status: 200 });
     }

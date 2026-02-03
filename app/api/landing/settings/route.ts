@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -14,21 +14,18 @@ type LandingSettings = {
 };
 
 async function readCurrentSettings(supabase: any): Promise<LandingSettings> {
-  const { data, error } = await supabase
-    .from('social_system_settings')
-    .select('value')
-    .eq('key', LANDING_SETTINGS_KEY)
-    .maybeSingle();
+  const row = await prisma.social_system_settings.findUnique({
+    where: { key: LANDING_SETTINGS_KEY },
+    select: { value: true },
+  });
 
-  if (error) return {};
-  const value = (data?.value || {}) as any;
+  const value = ((row as any)?.value || {}) as any;
   return value && typeof value === 'object' && !Array.isArray(value) ? (value as LandingSettings) : {};
 }
 
 async function GETHandler() {
   try {
-    const supabase = createClient();
-    const current = await readCurrentSettings(supabase);
+    const current = await readCurrentSettings(null as any);
 
     return NextResponse.json(
       {
@@ -48,8 +45,7 @@ async function PATCHHandler(request: NextRequest) {
   try {
     await requireSuperAdmin();
 
-    const supabase = createClient();
-    const current = await readCurrentSettings(supabase);
+    const current = await readCurrentSettings(null as any);
 
     const body = (await request.json().catch(() => null)) as Partial<LandingSettings> | null;
 
@@ -73,19 +69,22 @@ async function PATCHHandler(request: NextRequest) {
       next.videos = Array.isArray(body.videos) ? body.videos : null;
     }
 
-    const { error } = await supabase
-      .from('social_system_settings')
-      .upsert(
-        {
+    try {
+      await prisma.social_system_settings.upsert({
+        where: { key: LANDING_SETTINGS_KEY },
+        create: {
           key: LANDING_SETTINGS_KEY,
-          value: next,
-          updated_at: new Date().toISOString(),
+          value: next as any,
+          updated_at: new Date(),
+          created_at: new Date(),
         } as any,
-        { onConflict: 'key' }
-      );
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+        update: {
+          value: next as any,
+          updated_at: new Date(),
+        } as any,
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
     }
 
     return NextResponse.json(

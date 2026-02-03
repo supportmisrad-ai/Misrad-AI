@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Save, Sparkles } from 'lucide-react';
 import { getSocialAutomation, updateSocialAutomation } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/types';
 
 type AutomationState = {
   enableAutoReplySystem: boolean;
@@ -14,7 +15,7 @@ export function AutomationTab({
   addToast,
 }: {
   tenantId: string | null;
-  addToast: (message: string, type?: string) => void;
+  addToast: (message: string, type?: Toast['type']) => void;
 }) {
   const [form, setForm] = useState<AutomationState>({
     enableAutoReplySystem: false,

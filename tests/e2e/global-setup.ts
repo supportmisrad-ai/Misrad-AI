@@ -22,15 +22,61 @@ function getJwtExp(jwt: string): number | null {
   }
 }
 
+function normalizeHost(host: string): string {
+  return String(host || '')
+    .trim()
+    .replace(/:\d+$/, '')
+    .replace(/^\./, '')
+    .toLowerCase();
+}
+
+function isSameHost(a: string, b: string): boolean {
+  const aa = normalizeHost(a);
+  const bb = normalizeHost(b);
+  if (!aa || !bb) return false;
+  if (aa === bb) return true;
+  // Treat localhost and 127.0.0.1 as the same host in local dev/E2E.
+  const localhostAliases = new Set(['localhost', '127.0.0.1']);
+  return localhostAliases.has(aa) && localhostAliases.has(bb);
+}
+
+function pickClerkSessionCookie(cookies: Array<Record<string, unknown>>): Record<string, unknown> | undefined {
+  const sessionCookies = cookies
+    .filter((c) => {
+      const name = String(c?.name || '');
+      const value = String(c?.value || '');
+      return Boolean(value) && (name === '__session' || name.startsWith('__session_'));
+    })
+    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+
+  if (!sessionCookies.length) return undefined;
+
+  const activeContext = cookies.find((c) => String(c?.name || '') === 'clerk_active_context');
+  const activeContextValue = activeContext ? String(activeContext.value || '') : '';
+  if (activeContextValue) {
+    const matched = sessionCookies.find((c) => {
+      const name = String(c.name || '');
+      return name.startsWith('__session_') && activeContextValue.includes(name.replace('__session_', ''));
+    });
+    if (matched) return matched;
+  }
+
+  const specific = sessionCookies.find((c) => String(c.name || '').startsWith('__session_'));
+  return specific || sessionCookies[0];
+}
+
 async function globalSetup(config: FullConfig) {
   const isAuthSetupRun =
     String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === '1' ||
     String(process.env.E2E_SETUP_AUTH || '').toLowerCase() === 'true';
-  if (isAuthSetupRun) {
+  const argv = Array.isArray(process.argv) ? process.argv.map((a) => String(a || '').toLowerCase()) : [];
+  const isSetupAuthSpecRun = argv.some((a) => a.includes('setup-auth.spec.ts'));
+
+  if (isAuthSetupRun || isSetupAuthSpecRun) {
     return;
   }
 
-  const baseURL = process.env.E2E_BASE_URL || 'http://localhost:4000';
+  const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4000';
   const appHost = new URL(baseURL).hostname;
   const e2eKey = process.env.E2E_API_KEY;
   const email = process.env.E2E_EMAIL;
@@ -60,7 +106,7 @@ async function globalSetup(config: FullConfig) {
       const hasClerkAuthCookie = cookies.some((c: unknown) => {
         if (!isRecord(c)) return false;
         const domain = String(c.domain || '').replace(/^\./, '');
-        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+        const isAppCookie = isSameHost(domain, appHost);
         if (!isAppCookie) return false;
         const value = String(c.value || '');
         if (!value) return false;
@@ -72,20 +118,21 @@ async function globalSetup(config: FullConfig) {
       const hasRefreshCookie = cookies.some((c: unknown) => {
         if (!isRecord(c)) return false;
         const domain = String(c.domain || '').replace(/^\./, '');
-        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+        const isAppCookie = isSameHost(domain, appHost);
         if (!isAppCookie) return false;
         const name = String(c.name || '');
         const value = String(c.value || '');
-        return name.startsWith('__refresh_') && Boolean(value);
+        return (name.startsWith('__refresh_') || name === '__client_uat' || name.startsWith('__client_uat_')) && Boolean(value);
       });
 
-      const sessionCookie = cookies.find((c: unknown) => {
-        if (!isRecord(c)) return false;
-        const domain = String(c.domain || '').replace(/^\./, '');
-        const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
-        if (!isAppCookie) return false;
-        return String(c.name || '') === '__session' && Boolean(String(c.value || ''));
-      }) as Record<string, unknown> | undefined;
+      const appCookies = cookies
+        .filter((c: unknown) => {
+          if (!isRecord(c)) return false;
+          const domain = String(c.domain || '').replace(/^\./, '');
+          return isSameHost(domain, appHost);
+        })
+        .map((c) => c as Record<string, unknown>);
+      const sessionCookie = pickClerkSessionCookie(appCookies);
 
       const sessionJwt = sessionCookie ? String(sessionCookie.value || '') : '';
       const exp = sessionJwt ? getJwtExp(sessionJwt) : null;
@@ -97,13 +144,16 @@ async function globalSetup(config: FullConfig) {
           return;
         }
 
+        const hasSpecificSessionCookie = appCookies.some((c) => String(c.name || '').startsWith('__session_'));
         const cookieHeader = cookies
           .filter((c: unknown) => {
             if (!isRecord(c)) return false;
             const domain = String(c.domain || '').replace(/^\./, '');
-            const isAppCookie = domain === String(appHost || '').replace(/^\./, '');
+            const isAppCookie = isSameHost(domain, appHost);
             if (!isAppCookie) return false;
-            return Boolean(String(c.name || '')) && Boolean(String(c.value || ''));
+            const name = String(c.name || '');
+            if (hasSpecificSessionCookie && name === '__session') return false;
+            return Boolean(name) && Boolean(String(c.value || ''));
           })
           .map((c: unknown) => {
             const rc = c as Record<string, unknown>;
@@ -132,9 +182,7 @@ async function globalSetup(config: FullConfig) {
     }
   }
 
-  if (!refreshStorageState) {
-    // If storageState is missing/expired, prefer self-healing login rather than failing before tests run.
-    // This avoids Playwright reporting "1 error was not a part of any test".
+  if (!skipLogin && !refreshStorageState) {
     refreshStorageState = true;
   }
 
@@ -220,7 +268,7 @@ async function globalSetup(config: FullConfig) {
         const cookies = await page.context().cookies();
         return cookies.some((c) => {
           const domain = String(c.domain || '').replace(/^\./, '');
-          const isAppCookie = domain === appHost;
+          const isAppCookie = isSameHost(domain, appHost);
           if (!isAppCookie) return false;
           if (!c.value) return false;
           return c.name === '__session' || c.name === '__clerk_db_jwt' || c.name.startsWith('__clerk_db_jwt_');
@@ -231,7 +279,7 @@ async function globalSetup(config: FullConfig) {
         const cookies = await page.context().cookies();
         return cookies.some((c) => {
           const domain = String(c.domain || '').replace(/^\./, '');
-          return domain === appHost && c.name === '__session' && Boolean(c.value);
+          return isSameHost(domain, appHost) && c.name === '__session' && Boolean(c.value);
         });
       };
 
@@ -394,6 +442,8 @@ async function globalSetup(config: FullConfig) {
 
   try {
     if (skipLogin) {
+      let skipLoginDebug = '';
+      let skipLoginReason = '';
       if (fs.existsSync(storageStatePath)) {
         const size = fs.statSync(storageStatePath).size;
         if (size > 20) {
@@ -402,11 +452,44 @@ async function globalSetup(config: FullConfig) {
             const parsed: unknown = JSON.parse(raw || '{}');
             const cookiesValue = isRecord(parsed) ? parsed.cookies : undefined;
             const cookies = Array.isArray(cookiesValue) ? cookiesValue : [];
+
+            const appCookies = cookies
+              .filter((c: unknown) => {
+                if (!isRecord(c)) return false;
+                const domain = String(c.domain || '').replace(/^\./, '');
+                return isSameHost(domain, appHost);
+              })
+              .map((c) => c as Record<string, unknown>);
+
+            const cookieNames = cookies
+              .map((c: unknown) => (isRecord(c) ? String(c.name || '') : ''))
+              .map((n) => n.trim())
+              .filter(Boolean);
+            const cookieDomains = cookies
+              .map((c: unknown) => (isRecord(c) ? String(c.domain || '') : ''))
+              .map((d) => d.replace(/^\./, '').trim())
+              .filter(Boolean);
+
+            const appCookieNames = cookies
+              .filter((c: unknown) => {
+                if (!isRecord(c)) return false;
+                const domain = String(c.domain || '').replace(/^\./, '');
+                return isSameHost(domain, appHost);
+              })
+              .map((c: unknown) => (isRecord(c) ? String(c.name || '') : ''))
+              .map((n) => n.trim())
+              .filter(Boolean);
+
+            const uniq = (arr: string[]) => Array.from(new Set(arr));
+            skipLoginDebug =
+              `storageState size=${size}, cookies=${cookies.length}, allCookieNames=[${uniq(cookieNames).join(', ')}], ` +
+              `allCookieDomains=[${uniq(cookieDomains).join(', ')}], appCookieNames=[${uniq(appCookieNames).join(', ')}]`;
+
             const hasClerkAuthCookie = cookies.some(
               (c: unknown) => {
                 if (!isRecord(c)) return false;
                 const domain = String(c.domain || '').replace(/^\./, '');
-                const isAppCookie = domain === appHost;
+                const isAppCookie = isSameHost(domain, appHost);
                 if (!isAppCookie) return false;
                 const value = String(c.value || '');
                 if (!value) return false;
@@ -414,19 +497,127 @@ async function globalSetup(config: FullConfig) {
                 return name === '__session' || name === '__clerk_db_jwt' || name.startsWith('__clerk_db_jwt_');
               }
             );
+            const nowSec = Math.floor(Date.now() / 1000);
+            const hasRefreshCookie = cookies.some((c: unknown) => {
+              if (!isRecord(c)) return false;
+              const domain = String(c.domain || '').replace(/^\./, '');
+              const isAppCookie = isSameHost(domain, appHost);
+              if (!isAppCookie) return false;
+              const name = String(c.name || '');
+              const value = String(c.value || '');
+              return (name.startsWith('__refresh_') || name === '__client_uat' || name.startsWith('__client_uat_')) && Boolean(value);
+            });
+            const sessionCookie = pickClerkSessionCookie(appCookies);
+            const sessionJwt = sessionCookie ? String(sessionCookie.value || '') : '';
+            const exp = sessionJwt ? getJwtExp(sessionJwt) : null;
+            const hasValidSession = Boolean((exp && exp > nowSec + 60) || hasRefreshCookie);
+
             if (hasClerkAuthCookie) {
-              await browser.close();
-              return;
+              const key = String(e2eKey || '').trim();
+              if (!key) {
+                skipLoginReason = 'Missing E2E_API_KEY (needed to validate storageState via /api/e2e/whoami)';
+              } else {
+                const hasSpecificSessionCookie = appCookies.some((c) => String(c.name || '').startsWith('__session_'));
+                const cookieHeader = cookies
+                  .filter((c: unknown) => {
+                    if (!isRecord(c)) return false;
+                    const domain = String(c.domain || '').replace(/^\./, '');
+                    const isAppCookie = isSameHost(domain, appHost);
+                    if (!isAppCookie) return false;
+                    const name = String(c.name || '');
+                    if (hasSpecificSessionCookie && name === '__session') return false;
+                    return Boolean(name) && Boolean(String(c.value || ''));
+                  })
+                  .map((c: unknown) => {
+                    const rc = c as Record<string, unknown>;
+                    return `${String(rc.name)}=${String(rc.value)}`;
+                  })
+                  .join('; ');
+
+                try {
+                  const res = await fetch(`${baseURL}/api/e2e/whoami`, {
+                    headers: {
+                      'x-e2e-key': key,
+                      ...(cookieHeader ? { cookie: cookieHeader } : {}),
+                    },
+                  });
+
+                  if (res.status === 200) {
+                    await browser.close();
+                    return;
+                  }
+
+                  const hasClientUatCookie = cookies.some((c: unknown) => {
+                    if (!isRecord(c)) return false;
+                    const domain = String(c.domain || '').replace(/^\./, '');
+                    const isAppCookie = isSameHost(domain, appHost);
+                    if (!isAppCookie) return false;
+                    const name = String(c.name || '');
+                    const value = String(c.value || '');
+                    if (!value) return false;
+                    return name === '__client_uat' || name.startsWith('__client_uat_');
+                  });
+
+                  if (hasClientUatCookie) {
+                    const refreshContext = await browser.newContext({ storageState: storageStatePath });
+                    const refreshPage = await refreshContext.newPage();
+                    await refreshPage.goto(baseURL, { waitUntil: 'domcontentloaded', timeout: 120_000 }).catch(() => undefined);
+                    await refreshPage.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => undefined);
+                    await refreshPage.waitForTimeout(1_000).catch(() => undefined);
+
+                    const refreshedCookies = await refreshContext.cookies().catch(() => []);
+                    const hasSpecificSessionCookieAfterRefresh = refreshedCookies.some((c) =>
+                      isSameHost(String(c.domain || '').replace(/^\./, ''), appHost) && String(c.name || '').startsWith('__session_')
+                    );
+                    const refreshedCookieHeader = refreshedCookies
+                      .filter((c) => {
+                        const domain = String(c.domain || '').replace(/^\./, '');
+                        const isAppCookie = isSameHost(domain, appHost);
+                        if (!isAppCookie) return false;
+                        const name = String(c.name || '');
+                        if (hasSpecificSessionCookieAfterRefresh && name === '__session') return false;
+                        return Boolean(name) && Boolean(String(c.value || ''));
+                      })
+                      .map((c) => `${String(c.name)}=${String(c.value)}`)
+                      .join('; ');
+
+                    const res2 = await fetch(`${baseURL}/api/e2e/whoami`, {
+                      headers: {
+                        'x-e2e-key': key,
+                        ...(refreshedCookieHeader ? { cookie: refreshedCookieHeader } : {}),
+                      },
+                    }).catch(() => undefined);
+
+                    await refreshContext.close().catch(() => undefined);
+
+                    if (res2 && res2.status === 200) {
+                      await browser.close();
+                      return;
+                    }
+                  }
+
+                  skipLoginReason = `whoami status=${res.status} (expected 200)`;
+                } catch (err) {
+                  skipLoginReason = `whoami request failed: ${String((err as Error)?.message || err || '')}`;
+                }
+              }
+
+              if (!hasValidSession) {
+                const expPart = `exp=${String(exp)}, now=${String(nowSec)}, hasRefreshCookie=${String(Boolean(hasRefreshCookie))}`;
+                skipLoginReason = skipLoginReason
+                  ? `${skipLoginReason}; session invalid (${expPart})`
+                  : `session invalid (${expPart})`;
+              }
             }
-          } catch {
-            // fall through to error below
+          } catch (err) {
+            skipLoginReason = `Failed to parse/read storageState: ${String((err as Error)?.message || err || '')}`;
           }
         }
       }
 
       await browser.close();
       throw new Error(
-        `E2E_SKIP_LOGIN=1 אך לא נמצא storageState תקין בנתיב: ${storageStatePath}. הרץ פעם אחת עם E2E_MANUAL_LOGIN=1 כדי להתחבר וליצור storageState ואז הרץ שוב עם E2E_SKIP_LOGIN=1.`
+        `E2E_SKIP_LOGIN=1 אך לא נמצא storageState תקין בנתיב: ${storageStatePath}. ${skipLoginDebug || skipLoginReason ? `Debug: ${[skipLoginDebug, skipLoginReason].filter(Boolean).join(' | ')}. ` : ''}הרץ פעם אחת עם E2E_MANUAL_LOGIN=1 כדי להתחבר וליצור storageState ואז הרץ שוב עם E2E_SKIP_LOGIN=1.`
       );
     }
 
@@ -457,7 +648,12 @@ async function globalSetup(config: FullConfig) {
         .catch(() => '');
       throw new Error(errMsg || 'Login did not redirect');
     }
-  } catch {
+  } catch (error) {
+    if (skipLogin) {
+      await browser.close().catch(() => undefined);
+      throw error;
+    }
+
     const alertText = await page
       .locator(
         'role=alert, text=/ההתחברות נכשלה|שגיאה בהתחברות|נא לבדוק את הפרטים|נדרשת סיסמה|נדרש אימות|אימות דו-שלבי|ההתחברות לא הושלמה|סטטוס:/i'
@@ -472,10 +668,17 @@ async function globalSetup(config: FullConfig) {
       .map((n) => `${n.status} ${n.method} ${n.url}`)
       .join('\n');
 
-    await page.screenshot({ path: 'test-results/global-setup-login-failed.png', fullPage: true });
+    const currentUrl = page.isClosed() ? '(page closed)' : page.url();
+    try {
+      if (!page.isClosed()) {
+        await page.screenshot({ path: 'test-results/global-setup-login-failed.png', fullPage: true });
+      }
+    } catch {
+      // ignore
+    }
 
     throw new Error(
-      `Login failed or did not redirect. Current URL: ${page.url()} Alert: ${alertText}. Screenshot: test-results/global-setup-login-failed.png\n\nConsole errors (last 30):\n${consoleDetails || '(none)'}\n\nNetwork errors 4xx/5xx (last 40):\n${networkDetails || '(none)'}`
+      `Login failed or did not redirect. Current URL: ${currentUrl} Alert: ${alertText}. Screenshot: test-results/global-setup-login-failed.png\n\nConsole errors (last 30):\n${consoleDetails || '(none)'}\n\nNetwork errors 4xx/5xx (last 40):\n${networkDetails || '(none)'}`
     );
   }
 

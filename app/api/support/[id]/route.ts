@@ -5,13 +5,68 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient } from '../../../../lib/supabase';
-import { SupportTicket } from '../../../../types';
+import prisma from '@/lib/prisma';
+import { Priority, SupportTicket, SupportTicketCategory, SupportTicketStatus } from '../../../../types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+function toIsoString(input: any): string | undefined {
+    if (!input) return undefined;
+    if (input instanceof Date) return input.toISOString();
+    if (typeof input === 'string') return input;
+    return undefined;
+}
+
+function normalizeMetadata(input: any): Record<string, unknown> | undefined {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
+    return input as Record<string, unknown>;
+}
+
+const SUPPORT_TICKET_CATEGORIES: SupportTicketCategory[] = ['Tech', 'Account', 'Billing', 'Feature'];
+const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = ['open', 'in_progress', 'resolved', 'closed'];
+
+function normalizeCategory(input: any): SupportTicketCategory {
+    return SUPPORT_TICKET_CATEGORIES.includes(input) ? input : 'Tech';
+}
+
+function normalizeStatus(input: any): SupportTicketStatus {
+    return SUPPORT_TICKET_STATUSES.includes(input) ? input : 'open';
+}
+
+function normalizePriority(input: any): Priority {
+    if (input === Priority.LOW || input === 'low') return Priority.LOW;
+    if (input === Priority.MEDIUM || input === 'medium') return Priority.MEDIUM;
+    if (input === Priority.HIGH || input === 'high') return Priority.HIGH;
+    if (input === Priority.URGENT || input === 'urgent') return Priority.URGENT;
+    return Priority.MEDIUM;
+}
+
+function normalizeTicket(ticket: any): SupportTicket {
+    return {
+        id: String(ticket.id),
+        user_id: String(ticket.user_id),
+        tenant_id: ticket.tenant_id ? String(ticket.tenant_id) : undefined,
+        category: normalizeCategory(ticket.category),
+        subject: String(ticket.subject || ''),
+        message: String(ticket.message || ''),
+        ticket_number: String(ticket.ticket_number || ''),
+        status: normalizeStatus(ticket.status),
+        priority: normalizePriority(ticket.priority),
+        assigned_to: ticket.assigned_to ? String(ticket.assigned_to) : undefined,
+        resolved_by: ticket.resolved_by ? String(ticket.resolved_by) : undefined,
+        created_at: toIsoString(ticket.created_at) || new Date().toISOString(),
+        updated_at: toIsoString(ticket.updated_at),
+        resolved_at: toIsoString(ticket.resolved_at),
+        closed_at: toIsoString(ticket.closed_at),
+        admin_response: ticket.admin_response ? String(ticket.admin_response) : undefined,
+        resolution_notes: ticket.resolution_notes ? String(ticket.resolution_notes) : undefined,
+        metadata: normalizeMetadata(ticket.metadata) ?? {},
+    };
+}
+
 async function PATCHHandler(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
@@ -21,8 +76,6 @@ async function PATCHHandler(
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
 
-        const supabase = createClient();
-
         const { id: ticketId } = await params;
 
         if (!ticketId) {
@@ -30,13 +83,11 @@ async function PATCHHandler(
         }
 
         // Get existing ticket
-        const { data: existingTicket, error: getError } = await supabase
-            .from('misrad_support_tickets')
-            .select('*')
-            .eq('id', ticketId)
-            .single();
+        const existingTicket = await prisma.scale_support_tickets.findUnique({
+            where: { id: String(ticketId) },
+        });
 
-        if (getError || !existingTicket) {
+        if (!existingTicket) {
             return apiError('קריאת תמיכה לא נמצאה', { status: 404 });
         }
 
@@ -99,39 +150,12 @@ async function PATCHHandler(
         }
 
         // Update ticket
-        const { data: updatedTicket, error: updateError } = await supabase
-            .from('misrad_support_tickets')
-            .update(updateData)
-            .eq('id', ticketId)
-            .select()
-            .single();
+        const updatedTicket = await prisma.scale_support_tickets.update({
+            where: { id: String(ticketId) },
+            data: updateData,
+        });
 
-        if (updateError) {
-            console.error('[API] Error updating support ticket:', updateError);
-            return apiError('שגיאה בעדכון קריאת תמיכה', { status: 500 });
-        }
-
-        // Transform response
-        const transformedTicket: SupportTicket = {
-            id: updatedTicket.id,
-            user_id: updatedTicket.user_id,
-            tenant_id: updatedTicket.tenant_id,
-            category: updatedTicket.category,
-            subject: updatedTicket.subject,
-            message: updatedTicket.message,
-            ticket_number: updatedTicket.ticket_number,
-            status: updatedTicket.status,
-            priority: updatedTicket.priority,
-            assigned_to: updatedTicket.assigned_to,
-            resolved_by: updatedTicket.resolved_by,
-            created_at: updatedTicket.created_at,
-            updated_at: updatedTicket.updated_at,
-            resolved_at: updatedTicket.resolved_at,
-            closed_at: updatedTicket.closed_at,
-            admin_response: updatedTicket.admin_response,
-            resolution_notes: updatedTicket.resolution_notes,
-            metadata: updatedTicket.metadata || {}
-        };
+        const transformedTicket: SupportTicket = normalizeTicket(updatedTicket);
 
         return apiSuccess({
             ticket: transformedTicket,

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminDashboardPage() {
   const res = await getAdminGodView();
-  const data = res.success ? (res.data as any) : null;
+  const data = res.success ? res.data ?? null : null;
   const kpis = data?.kpis || null;
   const recentOrgs = Array.isArray(data?.recentOrganizations) ? data.recentOrganizations : [];
   const alerts = Array.isArray(data?.alerts) ? data.alerts : [];

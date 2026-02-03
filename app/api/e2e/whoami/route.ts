@@ -76,10 +76,17 @@ export async function GET(req: Request) {
   }
 
   const clerk = await currentUser();
+  const emails = Array.isArray(clerk?.emailAddresses)
+    ? clerk.emailAddresses
+        .map((e) => (e ? String(e.emailAddress || '') : ''))
+        .map((e) => e.trim())
+        .filter(Boolean)
+    : [];
 
   return NextResponse.json({
     ok: true,
     clerkUserId: userId,
     email: clerk?.primaryEmailAddress?.emailAddress ?? null,
+    emails,
   });
 }

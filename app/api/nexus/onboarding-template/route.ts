@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getNexusOnboardingTemplate, setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { isCeoRole } from '@/lib/constants/roles';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -29,6 +31,11 @@ async function POSTHandler(request: NextRequest) {
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await getAuthenticatedUser();
+    if (!isCeoRole(user.role) && !user.isSuperAdmin) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const { workspace } = await getWorkspaceOrThrow(request);

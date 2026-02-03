@@ -7,7 +7,6 @@
 
 import { NextRequest } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
-import { createClient } from '../../../../lib/supabase';
 import { getBaseUrl } from '../../../../lib/utils';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
@@ -15,37 +14,32 @@ import { isTenantAdminRole } from '@/lib/constants/roles';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function loadUserInWorkspaceByEmail(params: { supabase: any; workspaceId: string; email: string }) {
+async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id, name, email, role, is_super_admin')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: { email, organizationId: String(params.workspaceId) },
+        select: { id: true, name: true, email: true, role: true, isSuperAdmin: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data ? { ...byOrg.data, isSuperAdmin: Boolean((byOrg.data as any).is_super_admin) } : null;
+    return row
+        ? {
+              id: String(row.id),
+              name: row.name,
+              email: row.email,
+              role: row.role,
+              isSuperAdmin: Boolean((row as any).isSuperAdmin),
+          }
+        : null;
 }
 async function GETHandler(request: NextRequest) {
     try {
         const { workspace } = await getWorkspaceOrThrow(request);
-
-        let supabase: any;
-        try {
-            supabase = createClient();
-        } catch {
-            return apiError('Database not configured', { status: 500 });
-        }
 
         // 1. Authenticate user
         const clerkUser = await getAuthenticatedUser();
@@ -55,7 +49,7 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 2. Find user in database
-        const user = await loadUserInWorkspaceByEmail({ supabase, workspaceId: workspace.id, email: clerkUser.email });
+        const user = await loadUserInWorkspaceByEmail({ workspaceId: workspace.id, email: clerkUser.email });
 
         if (!user) {
             return apiError('User not found in database', { status: 404 });
@@ -71,24 +65,14 @@ async function GETHandler(request: NextRequest) {
 
             let seatsAllowedOverride: number | null = null;
             try {
-                const { data: orgSeatsRow, error: orgSeatsError } = await supabase
-                    .from('organizations')
-                    .select('seats_allowed')
-                    .eq('id', workspace.id)
-                    .maybeSingle();
+                const orgSeatsRow = await (prisma as any).social_organizations.findUnique({
+                    where: { id: String(workspace.id) },
+                    select: { seats_allowed: true },
+                });
 
-                if (orgSeatsError?.code === '42703') {
-                    throw new Error('[SchemaMismatch] organizations is missing seats_allowed');
-                }
-
-                if (!orgSeatsError) {
-                    seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
-                }
+                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
 
             } catch (e: any) {
-                if (String(e?.message || '').includes('[SchemaMismatch]')) {
-                    throw e;
-                }
                 seatsAllowedOverride = null;
             }
 
@@ -107,28 +91,13 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 4. Build query
-        let query = supabase
-            .from('nexus_employee_invitation_links')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        query = query.eq('organization_id', workspace.id);
-
-        // If not admin, only show own invitations
-        if (!isAdmin) {
-            query = query.eq('created_by', user.id);
-        }
-
-        const { data: invitations, error } = await query;
-
-        if (error?.code === '42703') {
-            return apiError('[SchemaMismatch] nexus_employee_invitation_links is missing organization_id', { status: 500 });
-        }
-
-        if (error) {
-            console.error('[API] Error fetching employee invitations:', error);
-            return apiError('שגיאה בטעינת קישורי הזמנה', { status: 500 });
-        }
+        const invitations = await (prisma as any).nexus_employee_invitation_links.findMany({
+            where: {
+                organizationId: String(workspace.id),
+                ...(isAdmin ? {} : { created_by: String(user.id) }),
+            },
+            orderBy: { created_at: 'desc' },
+        });
 
         // 5. Generate URLs for each invitation
         const baseUrl = getBaseUrl(request);
@@ -136,7 +105,7 @@ async function GETHandler(request: NextRequest) {
         const invitationsWithUrls = (invitations || []).map((inv: any) => ({
             id: inv.id,
             token: inv.token,
-            url: `${baseUrl}/sign-up?email=${encodeURIComponent(String(inv.employee_email || ''))}&invited=true&employee=true&redirect_url=${encodeURIComponent(`${baseUrl}/employee-invite/${encodeURIComponent(String(inv.token))}/finalize`)}`,
+            url: `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(String(inv.employee_email || ''))}&invited=true&employee=true&redirect=${encodeURIComponent(`/employee-invite/${encodeURIComponent(String(inv.token))}/finalize`)}`,
             employeeEmail: inv.employee_email,
             employeeName: inv.employee_name,
             employeePhone: inv.employee_phone,

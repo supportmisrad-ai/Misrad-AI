@@ -13,6 +13,7 @@ import {
   setOperationsTechnicianActiveVehicle,
 } from '@/app/actions/operations';
 import { redirect } from 'next/navigation';
+import type { OperationsHolderStockRow } from '@/lib/services/operations/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,17 @@ export default async function OperationsMePage({
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
   const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
 
-  const technicianId = String((user as any)?.profileId || '').trim();
+  const initialCurrentUser = {
+    ...user,
+    phone: user.phone ?? undefined,
+  };
+
+  const initialOrganization = {
+    ...workspace,
+    logo: workspace.logo ?? undefined,
+  };
+
+  const technicianId = String(user.profileId || '').trim();
 
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
@@ -51,15 +62,15 @@ export default async function OperationsMePage({
   const vehicles = vehiclesRes.success ? vehiclesRes.data ?? [] : [];
   const activeVehicleId = activeVehicleRes.success ? activeVehicleRes.data?.vehicleId ?? null : null;
 
-  const vehicleStockRes = activeVehicleId
-    ? await getOperationsVehicleStockBalances({ orgSlug, vehicleId: String(activeVehicleId) })
-    : { success: true, data: [] as any[] };
-  const vehicleStock = vehicleStockRes.success ? ((vehicleStockRes.data as any[]) ?? []) : [];
+  type VehicleStockRes = Awaited<ReturnType<typeof getOperationsVehicleStockBalances>>;
+  const emptyVehicleStockRes: VehicleStockRes = { success: true, data: [] };
 
-  const vehicleStockError =
-    !vehicleStockRes.success && 'error' in vehicleStockRes
-      ? (vehicleStockRes as any).error
-      : undefined;
+  const vehicleStockRes: VehicleStockRes = activeVehicleId
+    ? await getOperationsVehicleStockBalances({ orgSlug, vehicleId: String(activeVehicleId) })
+    : emptyVehicleStockRes;
+  const vehicleStock: OperationsHolderStockRow[] = vehicleStockRes.success ? (vehicleStockRes.data ?? []) : [];
+
+  const vehicleStockError = !vehicleStockRes.success ? vehicleStockRes.error : undefined;
 
   let inventoryCritical = 0;
   let inventoryLow = 0;
@@ -94,7 +105,7 @@ export default async function OperationsMePage({
 
   return (
     <PremiumFrame moduleLabel="Operations" title="אזור אישי" subtitle="תפעול, מלאי ושטח">
-      <DataProvider initialCurrentUser={user} initialOrganization={workspace}>
+      <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
         <MeView
           basePathOverride={`/w/${encodeURIComponent(orgSlug)}/operations`}
           moduleCards={[
@@ -160,7 +171,7 @@ export default async function OperationsMePage({
               <div className="mt-3 text-sm text-rose-800">{vehicleStockError || 'שגיאה בטעינת מלאי רכב'}</div>
             ) : vehicleStock.length ? (
               <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
-                {vehicleStock.map((row: any) => (
+                {vehicleStock.map((row) => (
                   <div
                     key={String(row.itemId)}
                     className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"

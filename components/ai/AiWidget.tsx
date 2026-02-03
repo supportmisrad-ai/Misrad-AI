@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Maximize2, MessageCircle, Minimize2, Send, X } from 'lucide-react';
+import { Maximize2, MessageCircle, Minimize2, Send, X, Bot, Sparkles } from 'lucide-react';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
@@ -151,7 +151,7 @@ export function AiWidget() {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            ...(orgSlug ? { 'x-org-id': orgSlug } : {}),
+            ...(orgSlug ? { 'x-org-id': encodeURIComponent(String(orgSlug)) } : {}),
           },
           body: JSON.stringify({
             featureKey: 'ai.chat',
@@ -217,40 +217,65 @@ export function AiWidget() {
       ) : null}
 
       {open ? (
-        <div className={`${panelSize} rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden flex flex-col`}>
-          <div className="h-12 flex items-center justify-between px-3 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-slate-900 text-white flex items-center justify-center">
-                <MessageCircle size={16} />
+        <div className={`${panelSize} rounded-3xl bg-white border border-slate-200 shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25)] overflow-hidden flex flex-col`}>
+          <div className="h-14 flex items-center justify-between px-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 via-white to-purple-50">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center">
+                <Bot size={20} />
               </div>
-              <div className="text-sm font-black text-slate-900">{title}</div>
+              <div>
+                <div className="text-sm font-black text-slate-900">MISRAD AI</div>
+                <div className="text-[10px] font-bold text-slate-500">{title}</div>
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setIsMedium((v) => !v)}
-                className="h-8 w-8 rounded-xl hover:bg-slate-200 flex items-center justify-center"
+                className="h-8 w-8 rounded-xl hover:bg-white/80 flex items-center justify-center transition-colors"
                 aria-label={isMedium ? 'הקטן חלון' : 'הרחב חלון'}
               >
-                {isMedium ? <Minimize2 size={18} className="text-slate-700" /> : <Maximize2 size={18} className="text-slate-700" />}
+                {isMedium ? <Minimize2 size={18} className="text-slate-600" /> : <Maximize2 size={18} className="text-slate-600" />}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="h-8 w-8 rounded-xl hover:bg-slate-200 flex items-center justify-center"
+                className="h-8 w-8 rounded-xl hover:bg-white/80 flex items-center justify-center transition-colors"
                 aria-label="סגור"
               >
-                <X size={18} className="text-slate-700" />
+                <X size={18} className="text-slate-600" />
               </button>
             </div>
           </div>
 
           <div ref={listRef} className="flex-1 overflow-y-auto p-3 bg-white">
             {messages.length === 0 ? (
-              <div className="text-sm text-slate-600 leading-relaxed">
-                {marketing
-                  ? 'שלום! רוצה שאעזור לך לבחור חבילה ולראות אם זה מתאים לך?'
-                  : 'שלום! איך אפשר לעזור לך לבצע פעולה במערכת?'}
+              <div className="flex flex-col items-center justify-center py-8 px-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/20">
+                  <Bot size={32} className="text-white" />
+                </div>
+                <div className="text-lg font-black text-slate-900 mb-1">שלום! 👋</div>
+                <div className="text-sm text-slate-500 text-center mb-6">
+                  {marketing
+                    ? 'איך אפשר לעזור לך לבחור את החבילה המתאימה?'
+                    : 'איך אפשר לעזור לך היום?'}
+                </div>
+                <div className="w-full space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => void sendText(marketing ? 'מה ההבדל בין החבילות?' : 'איך מוסיפים לקוח חדש?')}
+                    className="w-full text-right px-4 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-700 transition-colors"
+                  >
+                    {marketing ? '💎 מה ההבדל בין החבילות?' : '➕ איך מוסיפים לקוח חדש?'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void sendText(marketing ? 'כמה עולה המערכת?' : 'איך יוצרים משימה?')}
+                    className="w-full text-right px-4 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-700 transition-colors"
+                  >
+                    {marketing ? '💰 כמה עולה המערכת?' : '✅ איך יוצרים משימה?'}
+                  </button>
+                </div>
               </div>
             ) : null}
 
@@ -290,9 +315,9 @@ export function AiWidget() {
               e.preventDefault();
               void sendText(input);
             }}
-            className="p-3 border-t border-slate-200 bg-white"
+            className="p-4 border-t border-slate-100 bg-gradient-to-r from-slate-50/50 to-white"
           >
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-3">
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -304,17 +329,17 @@ export function AiWidget() {
                 }}
                 rows={1}
                 dir="rtl"
-                placeholder={marketing ? 'כתוב הודעה...' : 'איך אפשר לעזור?'}
-                className="flex-1 resize-none rounded-2xl border border-slate-200 px-3 py-2 text-[15px] font-semibold focus:outline-none focus:ring-2 focus:ring-slate-300"
+                placeholder={marketing ? 'שאל אותי איך לבצע פעולה במערכת...' : 'איך אפשר לעזור?'}
+                className="flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[15px] font-semibold focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="h-10 w-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center disabled:opacity-50"
+                className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 disabled:opacity-50 transition-colors"
                 aria-label="שלח"
               >
-                <Send size={16} />
+                <Send size={18} className="-rotate-90" />
               </button>
             </div>
           </form>
@@ -326,10 +351,10 @@ export function AiWidget() {
             setOpen(true);
             setShowNudge(false);
           }}
-          className="h-14 w-14 rounded-2xl bg-slate-900 text-white shadow-2xl flex items-center justify-center hover:bg-slate-800 transition-colors"
+          className="group h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-500/30 flex items-center justify-center hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-200"
           aria-label="צ'אט AI"
         >
-          <MessageCircle size={22} />
+          <Bot size={24} className="group-hover:scale-110 transition-transform" />
         </button>
       )}
     </div>

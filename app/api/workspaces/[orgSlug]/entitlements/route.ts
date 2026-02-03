@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled } from '@/lib/server/workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(
@@ -8,11 +9,9 @@ async function GETHandler(
 ) {
   const { orgSlug } = await params;
 
-  const bypassEntitlementsE2e =
-    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-    String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
-
+  const bypassEntitlementsE2e = isBypassModuleEntitlementsEnabled();
   if (bypassEntitlementsE2e) {
+    assertNoProdEntitlementsBypass('api/workspaces/[orgSlug]/entitlements');
     return NextResponse.json({ entitlements: {} }, { status: 200 });
   }
 

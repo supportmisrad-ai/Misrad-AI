@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation';
 
 import { auth, currentUser } from '@clerk/nextjs/server';
 
-import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
+import type { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,16 +68,11 @@ export default async function EmployeeInviteFinalizePage({
     return <div>User email not found</div>;
   }
 
-  const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'employee_invite_finalize' });
+  const inviteRow = await prisma.nexus_employee_invitation_links.findUnique({
+    where: { token: normalizedToken },
+  });
 
-  const { data: inviteRow, error: inviteError } = await supabase
-    .from('nexus_employee_invitation_links')
-    .select('*')
-    .eq('token', normalizedToken)
-    .limit(1)
-    .maybeSingle();
-
-  if (inviteError || !inviteRow) {
+  if (!inviteRow) {
     return <div>קישור הזמנה לא נמצא</div>;
   }
 
@@ -104,37 +100,30 @@ export default async function EmployeeInviteFinalizePage({
     return <div>האימייל לא תואם להזמנה</div>;
   }
 
-  const organizationId = getString(inviteObj.organization_id);
+  const organizationId = getString(inviteRow.organizationId ?? inviteObj.organization_id);
   if (!organizationId) {
     return <div>הזמנה לא משויכת לארגון</div>;
   }
 
-  const orgScoped = createServiceRoleClientScoped({
-    reason: 'employee_invite_finalize_org',
-    scopeColumn: 'organization_id',
-    scopeId: String(organizationId),
-  });
-
   // Load org module flags (with backwards compatibility for missing columns)
   let org: Record<string, unknown> | null = null;
   try {
-    const orgRes = await orgScoped
-      .from('organizations')
-      .select('id, slug, has_nexus, has_system, has_social, has_finance, has_client, has_operations, seats_allowed')
-      .eq('id', organizationId)
-      .maybeSingle();
-
-    if (orgRes.error?.code === '42703') {
-      throw new Error('[SchemaMismatch] organizations is missing expected columns');
-    }
-    if (orgRes.error) {
-      throw new Error(orgRes.error.message || 'Failed to load organization');
-    }
-    org = asObject(orgRes.data);
+    const orgRow = await prisma.social_organizations.findUnique({
+      where: { id: organizationId },
+      select: {
+        id: true,
+        slug: true,
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+        seats_allowed: true,
+      },
+    });
+    org = asObject(orgRow);
   } catch (e: unknown) {
-    if (String((e instanceof Error ? e.message : '') || '').includes('[SchemaMismatch]')) {
-      throw e;
-    }
     org = null;
   }
 
@@ -178,24 +167,23 @@ export default async function EmployeeInviteFinalizePage({
     return <div>{syncRes.error || 'Failed to sync user'}</div>;
   }
 
-  if (syncRes.userId) {
-    const { data: socialUserRow } = await orgScoped
-      .from('social_users')
-      .select('id, organization_id')
-      .eq('id', syncRes.userId)
-      .maybeSingle();
+  {
+    const socialUserRow = await prisma.social_users.findUnique({
+      where: { clerk_user_id: userId },
+      select: { id: true, organization_id: true },
+    });
 
-    const socialUserObj = asObject(socialUserRow);
-    const currentOrgId = socialUserObj?.organization_id ? String(socialUserObj.organization_id) : null;
+    const socialUserId = socialUserRow?.id ? String(socialUserRow.id) : null;
+    const currentOrgId = socialUserRow?.organization_id ? String(socialUserRow.organization_id) : null;
     if (currentOrgId && currentOrgId !== organizationId) {
       return <div>המשתמש כבר משויך לארגון אחר</div>;
     }
 
-    if (!currentOrgId) {
-      await orgScoped
-        .from('social_users')
-        .update({ organization_id: organizationId } as unknown as Record<string, unknown>)
-        .eq('id', syncRes.userId);
+    if (socialUserId && !currentOrgId) {
+      await prisma.social_users.update({
+        where: { clerk_user_id: userId },
+        data: { organization_id: organizationId },
+      });
     }
   }
 
@@ -216,47 +204,53 @@ export default async function EmployeeInviteFinalizePage({
     is_super_admin: false,
   };
 
-  const { data: existingUserRow, error: existingUserError } = await orgScoped
-    .from('nexus_users')
-    .select('id')
-    .eq('email', invitedEmail)
-    .limit(1)
-    .maybeSingle();
+  const existing = await prisma.nexusUser.findFirst({
+    where: { organizationId, email: invitedEmail },
+    select: { id: true },
+  });
 
-  if (existingUserError?.code === '42703') {
-    throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-  }
-  if (existingUserError) {
-    return <div>{existingUserError.message || 'Failed to load nexus user'}</div>;
-  }
+  const nexusPayload: Prisma.NexusUserUncheckedCreateInput & Prisma.NexusUserUncheckedUpdateInput = {
+    organizationId,
+    name: getString(inviteObj.employee_name) || fullName || invitedEmail,
+    email: invitedEmail,
+    phone: getString(inviteObj.employee_phone),
+    department: getString(inviteObj.department),
+    role: getString(inviteObj.role) || 'עובד',
+    paymentType: getString(inviteObj.payment_type),
+    hourlyRate: getNumber(inviteObj.hourly_rate),
+    monthlySalary: getNumber(inviteObj.monthly_salary),
+    commissionPct: getNumber(inviteObj.commission_pct),
+    managerId: getString(inviteObj.created_by),
+    isSuperAdmin: false,
+    updatedAt: new Date(),
+  };
 
-  const payload = { ...baseNexusUserPayload, organization_id: organizationId };
-  const existingObj = asObject(existingUserRow);
-  const existingId = existingObj?.id ? String(existingObj.id) : null;
-
-  const upsertResult = existingId
-    ? await orgScoped.from('nexus_users').update(payload).eq('id', existingId)
-    : await orgScoped.from('nexus_users').insert(payload).select('id').single();
-
-  const upsertErrorObj = asObject((upsertResult as { error?: unknown }).error);
-  if (upsertErrorObj?.code === '42703') {
-    throw new Error(`[SchemaMismatch] nexus_users upsert failed: ${String(upsertErrorObj?.message || 'missing column')}`);
-  }
-  if ((upsertResult as { error?: unknown }).error) {
-    return <div>{String(upsertErrorObj?.message || 'Failed to upsert nexus user')}</div>;
+  if (existing?.id) {
+    await prisma.nexusUser.update({
+      where: { id: String(existing.id) },
+      data: nexusPayload,
+    });
+  } else {
+    await prisma.nexusUser.create({
+      data: {
+        ...nexusPayload,
+        createdAt: new Date(),
+      },
+    });
   }
 
   // Mark invite as used (idempotent)
   if (!getBoolean(inviteObj.is_used)) {
-    await orgScoped
-      .from('nexus_employee_invitation_links')
-      .update({
+    await prisma.nexus_employee_invitation_links.update({
+      where: { id: String(inviteRow.id) },
+      data: {
         is_used: true,
-        used_at: new Date().toISOString(),
+        used_at: new Date(),
         employee_name: getString(inviteObj.employee_name) || fullName || getString(inviteObj.employee_email),
         employee_phone: getString(inviteObj.employee_phone),
-      })
-      .eq('id', String(inviteObj.id || ''));
+        updated_at: new Date(),
+      },
+    });
   }
 
   const orgKey = String((org?.slug as unknown) || organizationId);

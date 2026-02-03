@@ -40,9 +40,10 @@ export default function RootLayout({
 
   const signInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/login';
   const signInUrl = signInUrlRaw.startsWith('/sign-in') ? '/login' : signInUrlRaw;
-  const signUpUrl = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up';
-  const afterSignInUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/';
-  const afterSignUpUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/';
+  const signUpUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/login?mode=sign-up';
+  const signUpUrl = signUpUrlRaw.startsWith('/sign-up') ? '/login?mode=sign-up' : signUpUrlRaw;
+  const signInFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL || '/';
+  const signUpFallbackRedirectUrl = process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL || '/';
 
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
@@ -54,8 +55,8 @@ export default function RootLayout({
               publishableKey={clerkPublishableKey}
               signInUrl={signInUrl}
               signUpUrl={signUpUrl}
-              afterSignInUrl={afterSignInUrl}
-              afterSignUpUrl={afterSignUpUrl}
+              signInFallbackRedirectUrl={signInFallbackRedirectUrl}
+              signUpFallbackRedirectUrl={signUpFallbackRedirectUrl}
             >
               {children}
               <ClientOnlyClerkWidgets />

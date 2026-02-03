@@ -26,6 +26,7 @@ export interface RoleDefinition {
     name: string;
     permissions: PermissionId[];
     isSystem?: boolean;
+    description?: string;
 }
 
 export interface OrganizationProfile {
@@ -104,7 +105,8 @@ export interface User {
     isTenantAdmin?: boolean;
     managerId?: string | null; // NEW: Hierarchy - ID of the user's manager
     managedDepartment?: string | null; // NEW: Department this user manages (if they are a department manager)
-    tenantId?: string | null; // NEW: Tenant ID for multi-tenant support
+    organizationId?: string | null;
+    tenantId?: string | null; // Legacy alias (maps to organizationId)
     billingInfo?: {
         last4Digits: string;
         cardType: string;
@@ -119,6 +121,14 @@ export interface NotificationPreferences {
     morningBrief: boolean;
     soundEffects: boolean;
     marketing: boolean;
+    pushBehavior?: 'off' | 'vibrate' | 'sound' | 'vibrate_sound';
+    pushCategories?: {
+        alerts?: boolean;
+        tasks?: boolean;
+        events?: boolean;
+        system?: boolean;
+        marketing?: boolean;
+    };
 }
 
 export interface UIPreferences {
@@ -325,6 +335,8 @@ export interface Notification {
     actorName?: string;
     actorAvatar?: string;
     taskId?: string;
+    serverType?: string;
+    metadata?: Record<string, unknown>;
 }
 
 export interface Toast {
@@ -441,6 +453,7 @@ export interface FeatureRequest {
     id: string;
     user_id: string;
     tenant_id?: string;
+    organization_id?: string;
     title: string;
     description: string;
     type: FeatureRequestType;
@@ -466,6 +479,7 @@ export interface SupportTicket {
     id: string;
     user_id: string;
     tenant_id?: string;
+    organization_id?: string;
     category: SupportTicketCategory;
     subject: string;
     message: string;
@@ -508,6 +522,7 @@ export interface UserApprovalRequest {
     email: string;
     name?: string;
     tenantId?: string; // Which tenant they're requesting access to
+    organizationId?: string;
     requestedAt: string;
     status: 'pending' | 'approved' | 'rejected';
     approvedBy?: string; // Admin user ID who approved/rejected
@@ -612,6 +627,7 @@ export type AttendanceStatus = 'invited' | 'attending' | 'not_attending' | 'atte
 export interface TeamEvent {
     id: string;
     tenantId?: string;
+    organizationId?: string;
     title: string;
     description?: string;
     eventType: TeamEventType;
@@ -638,6 +654,7 @@ export interface TeamEvent {
 export interface LeaveRequest {
     id: string;
     tenantId?: string;
+    organizationId?: string;
     employeeId: string;
     leaveType: LeaveRequestType;
     startDate: string; // Date string

@@ -18,6 +18,7 @@ import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { getOSModule } from '@/types/os-modules';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -216,7 +217,7 @@ function SystemShellGateClientCore({
   const notificationsSlot = (
     <button
       onClick={() => router.push(`${basePath}/notifications`)}
-      className="relative p-2 rounded-full transition-colors hover:bg-white/50 text-gray-600"
+      className="relative w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors hover:bg-white/50 text-gray-600"
       aria-label="התראות"
       type="button"
     >
@@ -484,6 +485,7 @@ function SystemShellGateClientCore({
                             : 'תפריט'
                   }
                   plusActive={isPlusFanOpen || isCalendarPlusOpen}
+                  plusGradient={getOSModule('system')?.gradient}
                 />
               </div>
             </BrandProvider>

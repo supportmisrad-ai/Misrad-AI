@@ -3,6 +3,17 @@ import { MeetingAnalysisResult } from "../types";
 
 // Fix: Removed global initialization of GoogleGenAI to ensure it's created per-call with the latest API key.
 
+const getOrgIdFromClientOsContext = (): string | null => {
+  try {
+    if (typeof window === 'undefined') return null;
+    const raw = (window as any).__CLIENT_OS_USER__ as { organizationId?: string | null } | undefined;
+    const orgId = raw?.organizationId ? String(raw.organizationId) : null;
+    return orgId || null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Nexus Intelligence Core
  * Handles specific prompt engineering for Speaker Diarization.
@@ -10,15 +21,16 @@ import { MeetingAnalysisResult } from "../types";
 export const analyzeMeetingTranscript = async (transcript: string): Promise<MeetingAnalysisResult> => {
   // 1. Mock Fallback
   try {
-    const res = await fetch('/api/client-os/meetings/process', {
+    const orgId = getOrgIdFromClientOsContext();
+    const res = await fetch('/api/client-os/meetings/analyze-transcript', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ transcript }),
+      body: JSON.stringify({ transcript, orgId }),
     });
 
     if (!res.ok) throw new Error('AI request failed');
     const data = (await res.json().catch(() => null)) as any;
-    return (data?.analysis || data) as MeetingAnalysisResult;
+    return (data?.analysis || data?.data?.analysis || data) as MeetingAnalysisResult;
   } catch {
     await new Promise(resolve => setTimeout(resolve, 2000)); 
     return {

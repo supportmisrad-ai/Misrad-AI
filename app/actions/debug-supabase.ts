@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 /**
  * Debug function to check Supabase connection
@@ -33,63 +33,16 @@ export async function debugSupabaseConnection(): Promise<{
     
     console.log('[debugSupabaseConnection] Environment check:', envCheck);
     
-    // Try to create client
-    let supabase;
+    // Prisma-first: use Prisma to test DB connectivity.
     try {
-      supabase = createClient();
-      console.log('[debugSupabaseConnection] Client created');
-    } catch (error: any) {
-      return {
-        success: false,
-        details: {
-          step: 'client_creation',
-          error: error.message,
-          envCheck,
-        },
-      };
-    }
-    
-    // Check client structure
-    const clientCheck = {
-      isNull: supabase === null,
-      isUndefined: supabase === undefined,
-      type: typeof supabase,
-      hasFrom: supabase && 'from' in supabase,
-      fromType: supabase && typeof (supabase as any).from,
-      isFunction: typeof (supabase as any)?.from === 'function',
-      constructor: supabase?.constructor?.name,
-      keys: supabase && typeof supabase === 'object' ? Object.keys(supabase).slice(0, 15) : [],
-    };
-    
-    console.log('[debugSupabaseConnection] Client check:', clientCheck);
-    
-    if (!supabase || typeof supabase.from !== 'function') {
-      return {
-        success: false,
-        details: {
-          step: 'client_verification',
-          clientCheck,
-          envCheck,
-        },
-      };
-    }
-    
-    // Try a simple query
-    try {
-      const { data, error } = await supabase
-        .from('client_clients')
-        .select('id')
-        .limit(1);
-        
+      const row = await prisma.clientClient.findFirst({ select: { id: true } });
       return {
         success: true,
         details: {
           envCheck,
-          clientCheck,
-          queryTest: {
-            success: !error,
-            error: error?.message || null,
-            dataCount: data?.length || 0,
+          prismaTest: {
+            success: true,
+            sampleId: row?.id ?? null,
           },
         },
       };
@@ -97,10 +50,9 @@ export async function debugSupabaseConnection(): Promise<{
       return {
         success: false,
         details: {
-          step: 'query_test',
+          step: 'prisma_test',
           error: queryError.message,
           envCheck,
-          clientCheck,
         },
       };
     }

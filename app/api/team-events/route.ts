@@ -5,18 +5,54 @@
  */
 
 import { NextRequest } from 'next/server';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser } from '../../../lib/auth';
-import { TeamEvent } from '../../../types';
-import { createClient } from '@/lib/supabase';
+import { TeamEvent, TeamEventStatus, TeamEventType } from '../../../types';
+import prisma, { executeRawOrgScoped } from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import type { Prisma } from '@prisma/client';
 
 function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;
     if (Array.isArray(value)) return null;
     return value as Record<string, unknown>;
+}
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
+}
+
+type NexusTeamEventsDelegate = {
+    findMany: (args: { where?: Record<string, unknown>; orderBy?: Record<string, unknown> }) => Promise<Array<Record<string, unknown>>>;
+    create: (args: { data: Record<string, unknown> }) => Promise<Record<string, unknown>>;
+};
+
+type NexusEventAttendanceDelegate = {
+    createMany: (args: { data: Array<Record<string, unknown>>; skipDuplicates?: boolean }) => Promise<unknown>;
+};
+
+function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
+    const client = prisma as unknown;
+    const obj = asObject(client);
+    const delegate = obj?.['nexus_team_events'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'findMany') || !hasFunction(delegate, 'create')) {
+        throw new Error('Prisma delegate nexus_team_events is unavailable');
+    }
+    return delegate as unknown as NexusTeamEventsDelegate;
+}
+
+function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
+    const client = prisma as unknown;
+    const obj = asObject(client);
+    const delegate = obj?.['nexus_event_attendance'];
+    if (!asObject(delegate) || !hasFunction(delegate, 'createMany')) {
+        throw new Error('Prisma delegate nexus_event_attendance is unavailable');
+    }
+    return delegate as unknown as NexusEventAttendanceDelegate;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -53,12 +89,11 @@ function mapNexusUserRow(row: unknown): DbUser {
         name: getString(obj, 'name', getString(obj, 'full_name', getString(obj, 'email'))),
         role: getString(obj, 'role', 'עובד'),
         isSuperAdmin: Boolean(obj['is_super_admin'] ?? obj['isSuperAdmin'] ?? false),
-        tenantId: getNullableString(obj, 'organization_id'),
+        tenantId: getNullableString(obj, 'organization_id') ?? getNullableString(obj, 'organizationId'),
     };
 }
 
 async function resolveOrCreateDbUser(params: {
-    supabase: SupabaseClient;
     organizationId: string;
     email: string;
     authUser: unknown;
@@ -68,20 +103,11 @@ async function resolveOrCreateDbUser(params: {
 
     const authObj = asObject(params.authUser) ?? {};
 
-    const existing = await params.supabase
-        .from('nexus_users')
-        .select('*')
-        .eq('organization_id', params.organizationId)
-        .eq('email', email)
-        .limit(1)
-        .maybeSingle();
-
-    if (existing.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    if (!existing.error && existing.data?.id) {
-        return mapNexusUserRow(existing.data);
+    const existing = await prisma.nexusUser.findFirst({
+        where: { organizationId: params.organizationId, email },
+    });
+    if (existing?.id) {
+        return mapNexusUserRow(existing);
     }
 
     const nowIso = new Date().toISOString();
@@ -94,49 +120,92 @@ async function resolveOrCreateDbUser(params: {
     const avatarUrl = getNullableString(authObj, 'imageUrl');
     const isSuperAdmin = Boolean(authObj['isSuperAdmin']);
 
-    const created = await params.supabase
-        .from('nexus_users')
-        .insert({
-            organization_id: params.organizationId,
+    const created = await prisma.nexusUser.create({
+        data: {
+            organizationId: params.organizationId,
             name,
             email,
             role,
             avatar: avatarUrl || null,
             online: true,
             capacity: 0,
-            is_super_admin: isSuperAdmin,
-            created_at: nowIso,
-            updated_at: nowIso,
-        })
-        .select('*')
-        .single();
+            isSuperAdmin,
+            createdAt: new Date(nowIso),
+            updatedAt: new Date(nowIso),
+        },
+    });
 
-    if (created.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
+    if (!created?.id) return null;
+    return mapNexusUserRow(created);
+}
+
+function toIsoOrEmpty(value: unknown): string {
+    const s = String(value ?? '').trim();
+    if (!s) return '';
+    try {
+        const d = new Date(s);
+        if (Number.isFinite(d.getTime())) return d.toISOString();
+    } catch {
+        // ignore
     }
+    return s;
+}
 
-    if (created.error || !created.data?.id) {
-        return null;
-    }
+const TEAM_EVENT_TYPES: readonly TeamEventType[] = ['training', 'fun_day', 'group_meeting', 'enrichment', 'company_event', 'other'] as const;
+const TEAM_EVENT_STATUSES: readonly TeamEventStatus[] = ['draft', 'scheduled', 'in_progress', 'completed', 'cancelled'] as const;
 
-    return mapNexusUserRow(created.data);
+function normalizeTeamEventType(input: unknown): TeamEventType {
+    const v = String(input ?? '').trim();
+    return (TEAM_EVENT_TYPES as readonly string[]).includes(v) ? (v as TeamEventType) : 'other';
+}
+
+function normalizeTeamEventStatus(input: unknown): TeamEventStatus {
+    const v = String(input ?? '').trim();
+    return (TEAM_EVENT_STATUSES as readonly string[]).includes(v) ? (v as TeamEventStatus) : 'scheduled';
+}
+
+function mapTeamEventRow(row: unknown): TeamEvent {
+    const obj = asObject(row) ?? {};
+    return {
+        id: String(obj.id ?? ''),
+        tenantId: obj.tenant_id ? String(obj.tenant_id) : undefined,
+        title: String(obj.title ?? ''),
+        description: obj.description == null ? undefined : String(obj.description),
+        eventType: normalizeTeamEventType(obj.event_type),
+        startDate: obj.start_date ? new Date(String(obj.start_date)).toISOString() : '',
+        endDate: obj.end_date ? new Date(String(obj.end_date)).toISOString() : '',
+        allDay: Boolean(obj.all_day ?? false),
+        location: obj.location == null ? undefined : String(obj.location),
+        organizerId: obj.organizer_id ? String(obj.organizer_id) : undefined,
+        requiredAttendees: Array.isArray(obj.required_attendees) ? obj.required_attendees.map((x) => String(x)).filter(Boolean) : [],
+        optionalAttendees: Array.isArray(obj.optional_attendees) ? obj.optional_attendees.map((x) => String(x)).filter(Boolean) : [],
+        status: normalizeTeamEventStatus(obj.status),
+        requiresApproval: Boolean(obj.requires_approval ?? false),
+        approvedBy: obj.approved_by ? String(obj.approved_by) : undefined,
+        approvedAt: obj.approved_at ? toIsoOrEmpty(obj.approved_at) : undefined,
+        notificationSent: Boolean(obj.notification_sent ?? false),
+        reminderSent: Boolean(obj.reminder_sent ?? false),
+        reminderDaysBefore: typeof obj.reminder_days_before === 'number' ? obj.reminder_days_before : Number(obj.reminder_days_before ?? 1) || 1,
+        metadata: asObject(obj.metadata) ?? {},
+        createdAt: obj.created_at ? toIsoOrEmpty(obj.created_at) : '',
+        createdBy: obj.created_by ? String(obj.created_by) : undefined,
+        updatedAt: obj.updated_at ? toIsoOrEmpty(obj.updated_at) : '',
+    };
 }
 
 async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const supabase = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -147,7 +216,7 @@ async function GETHandler(request: NextRequest) {
             return apiError('User email not found', { status: 400 });
         }
 
-        const dbUser = await resolveOrCreateDbUser({ supabase, organizationId: workspace.id, email: user.email, authUser: user });
+        const dbUser = await resolveOrCreateDbUser({ organizationId: workspace.id, email: user.email, authUser: user });
 
         if (!dbUser || !dbUser.tenantId) {
             // Return empty array instead of error - user might not be synced yet
@@ -160,34 +229,32 @@ async function GETHandler(request: NextRequest) {
         const eventType = searchParams.get('event_type');
         const status = searchParams.get('status');
 
-        // Build query
-        let query = supabase.from('nexus_team_events').select('*').order('start_date', { ascending: true });
-        query = query.eq('organization_id', workspace.id);
-
+        const where: Record<string, unknown> = { organizationId: workspace.id };
         if (startDate) {
-            query = query.gte('start_date', startDate);
+            const d = new Date(String(startDate));
+            if (Number.isFinite(d.getTime())) {
+                const prev = asObject(where.start_date) ?? {};
+                where.start_date = { ...prev, gte: d };
+            }
         }
         if (endDate) {
-            query = query.lte('end_date', endDate);
+            const d = new Date(String(endDate));
+            if (Number.isFinite(d.getTime())) {
+                const prev = asObject(where.end_date) ?? {};
+                where.end_date = { ...prev, lte: d };
+            }
         }
         if (eventType) {
-            query = query.eq('event_type', eventType);
+            where.event_type = String(eventType);
         }
         if (status) {
-            query = query.eq('status', status);
+            where.status = String(status);
         }
 
-        const { data: events, error } = await query;
+        const rows = await getNexusTeamEventsDelegate().findMany({ where, orderBy: { start_date: 'asc' } });
 
-        if (error) {
-            console.error('[API] Error fetching team events:', error);
-            if (error.code === '42703') {
-                return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
-            }
-            return apiError('שגיאה בטעינת אירועים', { status: 500 });
-        }
-
-        return apiSuccess({ events: events || [] }, { status: 200 });
+        const events = (Array.isArray(rows) ? rows : []).map(mapTeamEventRow);
+        return apiSuccess({ events }, { status: 200 });
 
     } catch (error: unknown) {
         const msg = getErrorMessage(error);
@@ -202,21 +269,78 @@ async function GETHandler(request: NextRequest) {
     }
 }
 
+async function bestEffortInsertLegacyNotification(params: {
+    organizationId: string;
+    recipientId: string;
+    type: string;
+    text: string;
+    actorName?: string | null;
+    relatedId?: string | null;
+}): Promise<void> {
+    const nowIso = new Date().toISOString();
+    await executeRawOrgScoped(prisma, {
+        organizationId: String(params.organizationId),
+        reason: 'team_events_notification_insert_legacy',
+        query: `
+            insert into misrad_notifications
+              (organization_id, recipient_id, type, text, actor_name, related_id, is_read, created_at, updated_at)
+            values
+              ($1::uuid, $2::uuid, $3::text, $4::text, $5::text, $6::uuid, false, $7::timestamptz, $7::timestamptz)
+        `,
+        values: [
+            String(params.organizationId),
+            String(params.recipientId),
+            String(params.type),
+            String(params.text),
+            params.actorName ? String(params.actorName) : null,
+            params.relatedId ? String(params.relatedId) : null,
+            nowIso,
+        ],
+    });
+}
+
+async function bestEffortInsertModernNotification(params: {
+    organizationId: string;
+    recipientId: string;
+    type: string;
+    title: string;
+    message: string;
+    relatedId?: string | null;
+}): Promise<void> {
+    const now = new Date();
+    type NotificationType = Prisma.MisradNotificationCreateInput['type'];
+    const data = {
+        organization_id: String(params.organizationId),
+        recipient_id: String(params.recipientId),
+        type: String(params.type) as NotificationType,
+        title: String(params.title),
+        message: String(params.message),
+        timestamp: now.toISOString(),
+        isRead: false,
+        link: params.relatedId ? String(params.relatedId) : null,
+        created_at: now,
+        updated_at: now,
+    } satisfies Prisma.MisradNotificationCreateInput;
+
+    await prisma.misradNotification.create({
+        data,
+        select: { id: true },
+    });
+}
+
 async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const supabase = createClient();
-
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/team-events#post');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -227,7 +351,7 @@ async function POSTHandler(request: NextRequest) {
             return apiError('User email not found', { status: 400 });
         }
 
-        const dbUser = await resolveOrCreateDbUser({ supabase, organizationId: workspace.id, email: user.email, authUser: user });
+        const dbUser = await resolveOrCreateDbUser({ organizationId: workspace.id, email: user.email, authUser: user });
         if (!dbUser) {
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
@@ -262,16 +386,20 @@ async function POSTHandler(request: NextRequest) {
             return apiError('כותרת, סוג אירוע, תאריך התחלה ותאריך סיום נדרשים', { status: 400 });
         }
 
-        // Create event
-        const insertRes = await supabase
-            .from('nexus_team_events')
-            .insert({
-                organization_id: workspace.id,
+        const start = new Date(String(startDate));
+        const end = new Date(String(endDate));
+        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) {
+            return apiError('תאריכים לא תקינים', { status: 400 });
+        }
+
+        const eventRow = await getNexusTeamEventsDelegate().create({
+            data: {
+                organizationId: workspace.id,
                 title,
                 description,
                 event_type: eventType,
-                start_date: startDate,
-                end_date: endDate,
+                start_date: start,
+                end_date: end,
                 all_day: allDay,
                 location,
                 organizer_id: dbUser.id,
@@ -281,88 +409,67 @@ async function POSTHandler(request: NextRequest) {
                 requires_approval: requiresApproval,
                 reminder_days_before: reminderDaysBefore,
                 metadata,
-                created_by: dbUser.id
-            })
-            .select('*')
-            .single();
+                created_by: dbUser.id,
+            },
+        });
 
-        if (insertRes.error) {
-            console.error('[API] Error creating team event:', insertRes.error);
-            if (insertRes.error.code === '42703') {
-                return apiError('[SchemaMismatch] nexus_team_events is missing organization_id', { status: 500 });
-            }
+        if (!eventRow?.id) {
             return apiError('שגיאה ביצירת אירוע', { status: 500 });
         }
 
-        const event = insertRes.data;
-
-        if (!event) {
-            console.error('[API] Error creating team event: empty response');
-            return apiError('שגיאה ביצירת אירוע', { status: 500 });
-        }
+        const event = mapTeamEventRow(eventRow);
 
         // Create attendance records for required and optional attendees
         if (event && (requiredAttendees.length > 0 || optionalAttendees.length > 0)) {
             const allAttendees = [...requiredAttendees, ...optionalAttendees];
-            const attendanceRecords = allAttendees.map(attendeeId => ({
-                organization_id: workspace.id,
-                event_id: event.id,
-                user_id: attendeeId,
-                status: 'invited' as const
-            }));
-
-            const { error: attendanceError } = await supabase
-                .from('nexus_event_attendance')
-                .insert(attendanceRecords);
-
-            if (attendanceError) {
+            try {
+                await getNexusEventAttendanceDelegate().createMany({
+                    data: allAttendees.map((attendeeId: string) => ({
+                        organizationId: workspace.id,
+                        event_id: event.id,
+                        user_id: attendeeId,
+                        status: 'invited',
+                    })),
+                    skipDuplicates: true,
+                });
+            } catch (attendanceError) {
                 console.error('[API] Error creating attendance records:', attendanceError);
-                // Don't fail the request, just log the error
             }
         }
 
         // Send notifications to required attendees
+        // Notifications are best-effort and schema-dependent; do not fail the request.
         if (event && requiredAttendees.length > 0) {
             try {
                 const organizerName = dbUser?.name || 'מערכת';
-                
-                const notifications = requiredAttendees.filter((attendeeId: string) => attendeeId !== user.id).map((attendeeId: string) => ({
-                    organization_id: workspace.id,
-                    recipient_id: attendeeId,
-                    type: 'team_event',
-                    text: `הוזמנת לאירוע: ${title}`,
-                    actor_id: dbUser.id,
-                    actor_name: organizerName,
-                    related_id: event.id,
-                    is_read: false,
-                    metadata: {
-                        eventId: event.id,
-                        eventTitle: title,
-                        eventType: eventType,
-                        startDate: startDate,
-                        endDate: endDate,
-                        location: location
-                    },
-                    created_at: new Date().toISOString()
-                }));
-                
-                const { error: notifError } = await supabase
-                    .from('misrad_notifications')
-                    .insert(notifications);
-                
-                if (notifError) {
-                    if (notifError.code !== '42P01' && !String(notifError.message || '').includes('does not exist')) {
-                        throw new Error(`[SchemaMismatch] misrad_notifications insert failed: ${notifError.message}`);
+                for (const attendeeId of requiredAttendees.filter((x: string) => String(x) !== String(dbUser.id))) {
+                    const text = `הוזמנת לאירוע: ${title}`;
+                    try {
+                        await bestEffortInsertLegacyNotification({
+                            organizationId: workspace.id,
+                            recipientId: attendeeId,
+                            type: 'team_event',
+                            text,
+                            actorName: organizerName,
+                            relatedId: event.id,
+                        });
+                    } catch {
+                        try {
+                            await bestEffortInsertModernNotification({
+                                organizationId: workspace.id,
+                                recipientId: attendeeId,
+                                type: 'SYSTEM',
+                                title: 'team_event',
+                                message: text,
+                                relatedId: event.id,
+                            });
+                        } catch (e: unknown) {
+                            console.warn('[API] Could not create event notification (ignored):', e);
+                        }
                     }
-                    console.warn('[API] Could not create event notifications:', notifError);
                 }
             } catch (notifError: unknown) {
-                const msg = getErrorMessage(notifError);
-                if (String(msg || '').includes('[SchemaMismatch]')) {
-                    throw notifError instanceof Error ? notifError : new Error(msg);
-                }
-                console.warn('[API] Error sending event notifications:', notifError);
-                // Don't fail the request if notification fails
+                console.warn('[API] Error sending event notifications (ignored):', notifError);
             }
         }
 

@@ -37,6 +37,28 @@ function asObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+const PRESENCE_TTL_MS = 2 * 60 * 1000;
+
+function parseLastSeenToDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+  if (typeof value === 'string' && value.trim()) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function isUserOnlineFromRow(row: Record<string, unknown>, now = new Date()): boolean {
+  const lastSeenRaw = row.last_seen_at ?? row.lastSeenAt;
+  const lastSeen = parseLastSeenToDate(lastSeenRaw);
+  if (!lastSeen) {
+    // Fallback for legacy rows.
+    return Boolean(row.online ?? false);
+  }
+  return now.getTime() - lastSeen.getTime() <= PRESENCE_TTL_MS;
+}
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message) return error.message;
   const obj = asObject(error);
@@ -168,13 +190,19 @@ function parseTimeHHmmToDate(value: unknown): Date | null {
 
 function mapUserRow(row: unknown): User {
   const obj = asObject(row) ?? {};
+  const now = new Date();
+  const isDev = process.env.NODE_ENV !== 'production';
+  const organizationId =
+    (obj.organization_id ?? obj.organizationId ?? obj.tenant_id ?? obj.tenantId) == null
+      ? undefined
+      : String(obj.organization_id ?? obj.organizationId ?? obj.tenant_id ?? obj.tenantId);
   return {
     id: String(obj.id ?? ''),
     name: String(obj.name ?? obj.full_name ?? obj.fullName ?? obj.email ?? ''),
     role: String(obj.role ?? 'עובד'),
     department: obj.department == null ? undefined : String(obj.department),
     avatar: String(obj.avatar ?? obj.avatar_url ?? obj.avatarUrl ?? ''),
-    online: Boolean(obj.online ?? true),
+    online: isUserOnlineFromRow(obj, now),
     capacity: Number(obj.capacity ?? 0),
     email: obj.email == null ? undefined : String(obj.email),
     phone: obj.phone == null ? undefined : String(obj.phone),
@@ -197,7 +225,8 @@ function mapUserRow(row: unknown): User {
     isSuperAdmin: Boolean(obj.is_super_admin ?? obj.isSuperAdmin ?? false),
     managerId: obj.manager_id ?? obj.managerId ?? undefined,
     managedDepartment: obj.managed_department ?? obj.managedDepartment ?? undefined,
-    tenantId: obj.organization_id ?? obj.tenant_id ?? obj.tenantId ?? undefined,
+    organizationId,
+    tenantId: organizationId,
   } as User;
 }
 
@@ -294,18 +323,20 @@ export async function getNexusMe(params: { orgId: string }): Promise<{
   const profileObj = asObject(profileRow) ?? {};
 
   const nexusUserObj = asObject(resolved.user) ?? {};
+  const now = new Date();
   const canonicalUser: User = {
     id: String(nexusUserObj.id ?? ''),
     name: String(profileObj.full_name ?? nexusUserObj.name ?? ''),
     role: String(profileObj.role ?? nexusUserObj.role ?? resolved.clerkUser.role ?? 'עובד'),
     department: typeof nexusUserObj.department === 'string' ? nexusUserObj.department : undefined,
     avatar: String(profileObj.avatar_url ?? nexusUserObj.avatar ?? ''),
-    online: Boolean(nexusUserObj.online ?? true),
+    online: isUserOnlineFromRow(nexusUserObj, now),
     capacity: Number(nexusUserObj.capacity ?? 0),
     email: String(profileObj.email ?? nexusUserObj.email ?? resolved.clerkUser.email ?? ''),
     phone: typeof profileObj.phone === 'string' ? profileObj.phone : undefined,
     location: typeof profileObj.location === 'string' ? profileObj.location : undefined,
     bio: typeof profileObj.bio === 'string' ? profileObj.bio : undefined,
+    targets: normalizeJson(nexusUserObj.targets) as unknown as User['targets'],
     notificationPreferences: normalizeJson(
       profileObj.notification_preferences ?? nexusUserObj.notificationPreferences
     ) as unknown as User['notificationPreferences'],
@@ -315,6 +346,7 @@ export async function getNexusMe(params: { orgId: string }): Promise<{
       nexusUserObj.is_super_admin ?? nexusUserObj.isSuperAdmin ?? resolved.clerkUser.isSuperAdmin
     ),
     isTenantAdmin: Boolean(nexusUserObj.isTenantAdmin ?? false),
+    organizationId: resolved.workspace.id,
     tenantId: resolved.workspace.id,
     billingInfo: normalizeJson(profileObj.billing_info ?? nexusUserObj.billingInfo) as unknown as User['billingInfo'],
   };
@@ -343,6 +375,65 @@ export async function getNexusMe(params: { orgId: string }): Promise<{
       : null,
     isTenantAdmin: tenantAdminStatus,
     matched: true,
+  };
+}
+
+export async function updateNexusPresenceHeartbeat(params: {
+  orgId: string;
+}): Promise<{
+  ok: true;
+  serverTime: string;
+  debug?: { workspaceId: string; userId: string; usedFallback: boolean; updatedCount: number };
+}> {
+  const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
+  const workspace = resolved.workspace;
+
+  const dbUser = asObject(resolved.user) ?? {};
+  const dbUserId = String(dbUser.id ?? '').trim();
+  if (!dbUserId) throw new Error('User not found');
+
+  const now = new Date();
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  const updateData = { online: true } as any;
+  updateData.lastSeenAt = now;
+
+  let updatedCount: { count: number } | null = null;
+  let usedFallback = false;
+  try {
+    updatedCount = await prisma.nexusUser.updateMany({
+      where: {
+        id: dbUserId,
+        organizationId: workspace.id,
+      },
+      data: updateData,
+    });
+  } catch {
+    // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
+    usedFallback = true;
+    updatedCount = await prisma.nexusUser.updateMany({
+      where: {
+        id: dbUserId,
+        organizationId: workspace.id,
+      },
+      data: {
+        online: true,
+      },
+    });
+  }
+  if (!updatedCount?.count) {
+    throw new Error(
+      isDev
+        ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
+        : 'Failed to update presence'
+    );
+  }
+  return {
+    ok: true,
+    serverTime: now.toISOString(),
+    ...(isDev
+      ? { debug: { workspaceId: workspace.id, userId: dbUserId, usedFallback, updatedCount: updatedCount.count } }
+      : {}),
   };
 }
 
@@ -400,7 +491,7 @@ export async function sendNexusUserInvitation(params: {
   }
 
   const baseUrl = getBaseUrl();
-  const signupUrl = `${baseUrl}/sign-up?email=${encodeURIComponent(email)}&invited=true`;
+  const signupUrl = `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(email)}&invited=true`;
 
   const emailResult = await sendEmployeeInvitationEmail(
     email,
@@ -902,6 +993,9 @@ export async function listNexusUsers(params: {
   const authUser = resolved.clerkUser;
 
   const canManageTeam = await hasPermission('manage_team');
+  const dbUserObj = asObject(resolved.user) ?? {};
+  const dbUserId = String(dbUserObj.id ?? '').trim();
+  const myDepartment = typeof dbUserObj.department === 'string' && dbUserObj.department.trim() ? String(dbUserObj.department) : null;
 
   const page = Math.max(1, Math.floor(params.page ?? 1));
   const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 50)));
@@ -919,11 +1013,25 @@ export async function listNexusUsers(params: {
     });
     rows = row ? [row] : [];
   } else {
+    const where: Prisma.NexusUserWhereInput = {
+      organizationId: workspace.id,
+    };
+
+    if (canManageTeam) {
+      if (params.department) {
+        where.department = params.department;
+      }
+    } else {
+      // Scope employees to their own department (or just themselves if no department is set).
+      if (myDepartment) {
+        where.department = myDepartment;
+      } else if (dbUserId) {
+        where.id = dbUserId;
+      }
+    }
+
     const found = await prisma.nexusUser.findMany({
-      where: {
-        organizationId: workspace.id,
-        ...(params.department ? { department: params.department } : {}),
-      },
+      where,
       skip: offset,
       take: endInclusive - offset + 1,
       orderBy: [{ createdAt: 'desc' }],
@@ -937,7 +1045,7 @@ export async function listNexusUsers(params: {
     const target = mapped[0];
     if (!target) throw new Error('User not found');
 
-    if (String(target.id) !== String(authUser.id) && !canManageTeam) {
+    if (String(target.id) !== String(dbUserId) && !canManageTeam) {
       throw new Error('Forbidden');
     }
 
@@ -1013,6 +1121,14 @@ export async function createNexusUser(params: { orgId: string; input: Omit<User,
         morningBrief: true,
         soundEffects: false,
         marketing: true,
+        pushBehavior: 'vibrate_sound',
+        pushCategories: {
+          alerts: true,
+          tasks: true,
+          events: true,
+          system: true,
+          marketing: false,
+        },
       }) as unknown as Prisma.InputJsonValue,
       twoFactorEnabled: false,
       isSuperAdmin: requester.isSuperAdmin ? Boolean(body.isSuperAdmin) : false,
@@ -1058,7 +1174,12 @@ export async function updateNexusUser(params: { orgId: string; userId: string; u
   }
 
   for (const key of Object.keys(updatesObj)) {
-    if (['notificationPreferences', 'uiPreferences', 'targets', 'pendingReward', 'billingInfo', 'tenantId'].includes(key)) continue;
+    if (
+      ['notificationPreferences', 'uiPreferences', 'targets', 'pendingReward', 'billingInfo', 'tenantId', 'organizationId'].includes(
+        key
+      )
+    )
+      continue;
     patch[key] = updatesObj[key];
   }
 
@@ -1081,6 +1202,74 @@ export async function updateNexusUser(params: { orgId: string; userId: string; u
 
   const updated = mapUserRow(row);
   await logAuditEvent('data.write', 'user', { resourceId: updated.id, details: { updatedBy: requester.id, updates: params.updates }, success: true });
+
+  return updated;
+}
+
+export async function updateNexusMyTargets(params: { orgId: string; targets: User['targets'] }): Promise<User> {
+  const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
+  const workspace = resolved.workspace;
+  const requester = resolved.clerkUser;
+
+  const dbUser = asObject(resolved.user) ?? {};
+  const dbUserId = String(dbUser.id ?? '').trim();
+  if (!dbUserId) throw new Error('User not found');
+
+  const targetsObj = asObject(params.targets) ?? {};
+
+  const tasksMonthRaw = targetsObj.tasksMonth;
+  const tasksMonthNumber =
+    typeof tasksMonthRaw === 'number'
+      ? tasksMonthRaw
+      : typeof tasksMonthRaw === 'string' && tasksMonthRaw.trim()
+        ? Number(tasksMonthRaw)
+        : NaN;
+
+  if (!Number.isFinite(tasksMonthNumber)) throw new Error('Missing tasksMonth');
+
+  const leadsMonthRaw = targetsObj.leadsMonth;
+  const leadsMonthNumber =
+    typeof leadsMonthRaw === 'number'
+      ? leadsMonthRaw
+      : typeof leadsMonthRaw === 'string' && leadsMonthRaw.trim()
+        ? Number(leadsMonthRaw)
+        : undefined;
+
+  const nextTargets: Record<string, unknown> = {
+    tasksMonth: Math.max(0, Math.floor(tasksMonthNumber)),
+  };
+  if (leadsMonthRaw !== undefined) {
+    nextTargets.leadsMonth =
+      leadsMonthNumber === undefined || !Number.isFinite(leadsMonthNumber)
+        ? 0
+        : Math.max(0, Math.floor(leadsMonthNumber));
+  }
+
+  const updatedCount = await prisma.nexusUser.updateMany({
+    where: {
+      id: dbUserId,
+      organizationId: workspace.id,
+    },
+    data: {
+      targets: nextTargets as unknown as Prisma.InputJsonValue,
+    },
+  });
+  if (!updatedCount.count) throw new Error('Failed to update targets');
+
+  const row = await prisma.nexusUser.findFirst({
+    where: {
+      id: dbUserId,
+      organizationId: workspace.id,
+    },
+  });
+  if (!row) throw new Error('Failed to update targets');
+
+  const updated = mapUserRow(row);
+  await logAuditEvent('data.write', 'user', {
+    resourceId: updated.id,
+    details: { updatedBy: requester.id, updates: { targets: nextTargets } },
+    success: true,
+  });
 
   return updated;
 }

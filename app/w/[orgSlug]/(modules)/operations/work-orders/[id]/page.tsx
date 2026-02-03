@@ -23,8 +23,15 @@ import {
 } from '@/app/actions/operations';
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
-import { createClient } from '@/lib/supabase';
+import { createServiceRoleClientScoped } from '@/lib/supabase';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import type {
+  OperationsInventoryOption,
+  OperationsStockSourceOption,
+  OperationsTechnicianOption,
+  OperationsWorkOrderAttachmentRow,
+  OperationsWorkOrderCheckinRow,
+} from '@/lib/services/operations/types';
 
 function formatStatus(status: string): { label: string; className: string } {
   switch (status) {
@@ -67,7 +74,19 @@ export default async function OperationsWorkOrderDetailsPage({
   const errorRaw = sp.error;
   const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 
-  const emptyListRes = { success: true, data: [] as any[], error: undefined as string | undefined };
+  type MaterialsRes = Awaited<ReturnType<typeof getOperationsMaterialsForWorkOrder>>;
+  type AttachmentsRes = Awaited<ReturnType<typeof getOperationsWorkOrderAttachments>>;
+  type CheckinsRes = Awaited<ReturnType<typeof getOperationsWorkOrderCheckins>>;
+  type TechnicianOptionsRes = Awaited<ReturnType<typeof getOperationsTechnicianOptions>>;
+  type StockSourcesRes = Awaited<ReturnType<typeof getOperationsStockSourceOptions>>;
+  type InventoryOptionsRes = Awaited<ReturnType<typeof getOperationsInventoryOptions>>;
+
+  const emptyMaterialsRes: MaterialsRes = { success: true, data: [] };
+  const emptyAttachmentsRes: AttachmentsRes = { success: true, data: [] };
+  const emptyCheckinsRes: CheckinsRes = { success: true, data: [] };
+  const emptyTechnicianOptionsRes: TechnicianOptionsRes = { success: true, data: [] };
+  const emptyStockSourcesRes: StockSourcesRes = { success: true, data: [] };
+  const emptyInventoryOptionsRes: InventoryOptionsRes = { success: true, data: [] };
 
   const res = await getOperationsWorkOrderById({ orgSlug, id });
   if (!res.success || !res.data) {
@@ -94,26 +113,26 @@ export default async function OperationsWorkOrderDetailsPage({
   const w = res.data;
 
   const [technicianOptionsRes, materialsRes, attachmentsRes, checkinsRes, stockSourcesRes, inventoryOptionsRes] = await Promise.all([
-    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve({ success: true, data: [] as any[] }),
-    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyListRes),
-    tab === 'materials' ? getOperationsStockSourceOptions({ orgSlug }) : Promise.resolve({ success: true, data: [] as any[] }),
+    tab === 'details' ? getOperationsTechnicianOptions({ orgSlug }) : Promise.resolve(emptyTechnicianOptionsRes),
+    tab === 'materials' ? getOperationsMaterialsForWorkOrder({ orgSlug, workOrderId: id }) : Promise.resolve(emptyMaterialsRes),
+    tab === 'details' ? getOperationsWorkOrderAttachments({ orgSlug, workOrderId: id }) : Promise.resolve(emptyAttachmentsRes),
+    tab === 'details' ? getOperationsWorkOrderCheckins({ orgSlug, workOrderId: id }) : Promise.resolve(emptyCheckinsRes),
+    tab === 'materials' ? getOperationsStockSourceOptions({ orgSlug }) : Promise.resolve(emptyStockSourcesRes),
     tab === 'materials'
       ? w.stockSourceHolderId
         ? getOperationsInventoryOptionsForHolder({ orgSlug, holderId: w.stockSourceHolderId })
         : getOperationsInventoryOptions({ orgSlug })
-      : Promise.resolve(emptyListRes),
+      : Promise.resolve(emptyInventoryOptionsRes),
   ]);
 
   const statusBadge = formatStatus(w.status);
-  const inventoryOptions = inventoryOptionsRes.success ? (inventoryOptionsRes.data ?? []) : [];
+  const inventoryOptions: OperationsInventoryOption[] = inventoryOptionsRes.success ? (inventoryOptionsRes.data ?? []) : [];
   const materials = materialsRes.success ? (materialsRes.data ?? []) : [];
-  const attachments = attachmentsRes.success ? (attachmentsRes.data ?? []) : [];
-  const checkins = checkinsRes.success ? (checkinsRes.data ?? []) : [];
-  const technicianOptions = technicianOptionsRes && (technicianOptionsRes as any).success ? ((technicianOptionsRes as any).data ?? []) : [];
-  const stockSourceOptions = stockSourcesRes && (stockSourcesRes as any).success ? ((stockSourcesRes as any).data ?? []) : [];
-  const stockAvailable = inventoryOptions.filter((o: any) => Number(o.onHand) > 0);
+  const attachments: OperationsWorkOrderAttachmentRow[] = attachmentsRes.success ? (attachmentsRes.data ?? []) : [];
+  const checkins: OperationsWorkOrderCheckinRow[] = checkinsRes.success ? (checkinsRes.data ?? []) : [];
+  const technicianOptions: OperationsTechnicianOption[] = technicianOptionsRes.success ? (technicianOptionsRes.data ?? []) : [];
+  const stockSourceOptions: OperationsStockSourceOption[] = stockSourcesRes.success ? (stockSourcesRes.data ?? []) : [];
+  const stockAvailable = inventoryOptions.filter((o) => o.onHand > 0);
 
   async function startAction() {
     'use server';
@@ -186,11 +205,14 @@ export default async function OperationsWorkOrderDetailsPage({
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = String(workspace.id);
 
-    const supabase = createClient();
+    const supabase = createServiceRoleClientScoped({
+      reason: 'ops_work_order_signature_upload',
+      scopeColumn: 'organization_id',
+      scopeId: organizationId,
+    });
     const bucket = 'operations-files';
-    const timestamp = Date.now();
     const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/signature-${timestamp}.png`;
+    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/signature.png`;
 
     const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
     if (!base64) {
@@ -217,7 +239,7 @@ export default async function OperationsWorkOrderDetailsPage({
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
       contentType: 'image/png',
-      upsert: false,
+      upsert: true,
     });
 
     if (uploadError) {
@@ -265,12 +287,15 @@ export default async function OperationsWorkOrderDetailsPage({
     const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
     const organizationId = String(workspace.id);
 
-    const supabase = createClient();
+    const supabase = createServiceRoleClientScoped({
+      reason: 'ops_work_order_attachment_upload',
+      scopeColumn: 'organization_id',
+      scopeId: organizationId,
+    });
     const bucket = 'operations-files';
-    const timestamp = Date.now();
     const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
     const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/${timestamp}-${safeName}`;
+    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/${safeName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -293,7 +318,7 @@ export default async function OperationsWorkOrderDetailsPage({
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
       contentType: file.type || 'application/octet-stream',
-      upsert: false,
+      upsert: true,
     });
 
     if (uploadError) {
@@ -435,14 +460,14 @@ export default async function OperationsWorkOrderDetailsPage({
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200"
                     >
                       <option value="">לא משויך</option>
-                      {technicianOptions.map((t: any) => (
+                      {technicianOptions.map((t) => (
                         <option key={String(t.id)} value={String(t.id)}>
                           {String(t.label)}
                         </option>
                       ))}
                     </select>
-                    {technicianOptionsRes && !(technicianOptionsRes as any).success ? (
-                      <div className="mt-2 text-xs font-bold text-rose-700">{(technicianOptionsRes as any).error}</div>
+                    {!technicianOptionsRes.success ? (
+                      <div className="mt-2 text-xs font-bold text-rose-700">{technicianOptionsRes.error}</div>
                     ) : null}
                   </div>
 
@@ -620,8 +645,8 @@ export default async function OperationsWorkOrderDetailsPage({
                       </option>
                       <optgroup label="מחסן">
                         {stockSourceOptions
-                          .filter((o: any) => String(o.group) === 'WAREHOUSE')
-                          .map((o: any) => (
+                          .filter((o) => o.group === 'WAREHOUSE')
+                          .map((o) => (
                             <option key={String(o.holderId)} value={String(o.holderId)}>
                               {String(o.label)}
                             </option>
@@ -629,8 +654,8 @@ export default async function OperationsWorkOrderDetailsPage({
                       </optgroup>
                       <optgroup label="רכבים">
                         {stockSourceOptions
-                          .filter((o: any) => String(o.group) === 'VEHICLE')
-                          .map((o: any) => (
+                          .filter((o) => o.group === 'VEHICLE')
+                          .map((o) => (
                             <option key={String(o.holderId)} value={String(o.holderId)}>
                               {String(o.label)}
                             </option>
@@ -638,16 +663,16 @@ export default async function OperationsWorkOrderDetailsPage({
                       </optgroup>
                       <optgroup label="אצל טכנאי אחר">
                         {stockSourceOptions
-                          .filter((o: any) => String(o.group) === 'TECHNICIAN')
-                          .map((o: any) => (
+                          .filter((o) => o.group === 'TECHNICIAN')
+                          .map((o) => (
                             <option key={String(o.holderId)} value={String(o.holderId)}>
                               {String(o.label)}
                             </option>
                           ))}
                       </optgroup>
                     </select>
-                    {stockSourcesRes && !(stockSourcesRes as any).success ? (
-                      <div className="mt-2 text-xs font-bold text-rose-700">{(stockSourcesRes as any).error}</div>
+                    {!stockSourcesRes.success ? (
+                      <div className="mt-2 text-xs font-bold text-rose-700">{stockSourcesRes.error}</div>
                     ) : null}
                   </div>
 
@@ -684,7 +709,7 @@ export default async function OperationsWorkOrderDetailsPage({
                     {stockAvailable.length
                       ? stockAvailable
                           .slice(0, 8)
-                          .map((o: any) => `${String(o.label)}: ${String(o.onHand)}${o.unit ? ` ${String(o.unit)}` : ''}`)
+                          .map((o) => `${String(o.label)}: ${String(o.onHand)}${o.unit ? ` ${String(o.unit)}` : ''}`)
                           .join(' · ')
                       : 'אין כרגע מלאי זמין במקור הזה'}
                   </div>
@@ -705,7 +730,7 @@ export default async function OperationsWorkOrderDetailsPage({
                       <option value="" disabled>
                         {inventoryOptions.length ? 'בחר פריט…' : 'אין פריטים זמינים'}
                       </option>
-                      {inventoryOptions.map((opt: any) => (
+                      {inventoryOptions.map((opt) => (
                         <option key={opt.inventoryId} value={opt.inventoryId}>
                           {opt.label} — {opt.onHand}{opt.unit ? ` ${opt.unit}` : ''}
                         </option>
@@ -748,7 +773,7 @@ export default async function OperationsWorkOrderDetailsPage({
 
                 <div className="mt-3 space-y-2">
                   {materials.length ? (
-                    materials.map((m: any) => (
+                    materials.map((m) => (
                       <div
                         key={m.id}
                         className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3"

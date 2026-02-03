@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import { setNexusBillingItems, buildNexusBillingItemsForTemplate } from '@/lib/services/nexus-billing-service';
@@ -27,16 +27,14 @@ async function POSTHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    const supabase = createClient();
-
-    const { data: onboardingLegacy, error: onboardingLegacyError } = await supabase
-      .from('social_system_settings')
-      .select('value')
-      .eq('key', legacyKeyOnboarding(workspace.id))
-      .maybeSingle();
-
-    if (onboardingLegacyError) {
-      return NextResponse.json({ error: onboardingLegacyError.message }, { status: 500 });
+    let onboardingLegacy: any = null;
+    try {
+      onboardingLegacy = await prisma.social_system_settings.findUnique({
+        where: { key: legacyKeyOnboarding(workspace.id) },
+        select: { value: true },
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
     }
 
     const onboardingTemplateKey = String((onboardingLegacy?.value as any)?.key || '').trim();
@@ -50,14 +48,14 @@ async function POSTHandler(request: NextRequest) {
       });
     }
 
-    const { data: billingLegacy, error: billingLegacyError } = await supabase
-      .from('social_system_settings')
-      .select('value')
-      .eq('key', legacyKeyBilling(workspace.id))
-      .maybeSingle();
-
-    if (billingLegacyError) {
-      return NextResponse.json({ error: billingLegacyError.message }, { status: 500 });
+    let billingLegacy: any = null;
+    try {
+      billingLegacy = await prisma.social_system_settings.findUnique({
+        where: { key: legacyKeyBilling(workspace.id) },
+        select: { value: true },
+      });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
     }
 
     const legacyBillingTemplateKey = String((billingLegacy?.value as any)?.templateKey || '').trim();

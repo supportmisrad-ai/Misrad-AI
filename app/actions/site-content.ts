@@ -1,8 +1,7 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
-import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { requireAuth, createErrorResponse } from '@/lib/errorHandler';
+import prisma from '@/lib/prisma';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -22,29 +21,17 @@ function isMissingTableError(error: unknown) {
   return String(getUnknownErrorCode(error) || '').toUpperCase() === '42P01';
 }
 
-async function selectFromSiteContentTable(
-  supabase: SupabaseClient,
-  query: (tableName: string) => PromiseLike<{ data: unknown; error?: unknown }>
-) {
-  const candidates = ['site_content', 'social_site_content'] as const;
-  let lastError: unknown = null;
-
-  for (const tableName of candidates) {
-    const result = await query(tableName);
-    if (!result?.error) return { ...result, tableName };
-    lastError = result.error;
-    if (!isMissingTableError(result.error)) return { ...result, tableName };
-  }
-
-  return { data: null, error: lastError, tableName: candidates[0] };
-}
-
-async function bestEffortLogActivity(supabase: SupabaseClient, payload: UnknownRecord) {
+async function bestEffortResolveUpdatedByUserId(clerkUserId: string): Promise<string | null> {
+  const v = String(clerkUserId || '').trim();
+  if (!v) return null;
   try {
-    const { error } = await supabase.from('activity_logs').insert(payload);
-    if (!error) return;
+    const user = await prisma.social_users.findUnique({
+      where: { clerk_user_id: v },
+      select: { id: true },
+    });
+    return user?.id ? String(user.id) : null;
   } catch {
-    // ignore
+    return null;
   }
 }
 
@@ -79,28 +66,27 @@ export async function getSiteContent(
   page: 'landing' | 'pricing' | 'legal'
 ): Promise<{ success: boolean; data?: SiteContent[]; error?: string }> {
   try {
-    const supabase = createClient();
+    const rows = await prisma.social_site_content.findMany({
+      where: { page: String(page) },
+      orderBy: [{ section: 'asc' }, { key: 'asc' }],
+    });
 
-    const { data, error } = await selectFromSiteContentTable(supabase, (tableName) =>
-      supabase
-        .from(tableName)
-        .select('*')
-        .eq('page', page)
-        .order('section', { ascending: true })
-    );
+    const out: SiteContent[] = (Array.isArray(rows) ? rows : []).map((row: any) => ({
+      id: String(row.id),
+      page: String(row.page) as SiteContent['page'],
+      section: String(row.section),
+      key: String(row.key),
+      content: row.content,
+      updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : new Date().toISOString(),
+      updatedBy: row.updated_by ? String(row.updated_by) : '',
+    }));
 
-    if (error) {
-      // If table doesn't exist, return empty array
-      if (isMissingTableError(error)) {
-        return { success: true, data: [] };
-      }
-
-      const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
-      return { success: false, error: res.error };
-    }
-
-    return { success: true, data: Array.isArray(data) ? (data as SiteContent[]) : [] };
+    return { success: true, data: out };
   } catch (error) {
+    // If table doesn't exist, return empty array
+    if (isMissingTableError(error)) {
+      return { success: true, data: [] };
+    }
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
     return { success: false, error: res.error };
   }
@@ -121,37 +107,39 @@ export async function updateSiteContent(
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const supabase = createClient();
+    const updatedBy = await bestEffortResolveUpdatedByUserId(String(authCheck.userId || ''));
+    const pageValue = String(page);
+    const sectionValue = String(section);
+    const keyValue = String(key);
+    const contentValue = typeof content === 'string' ? content : JSON.stringify(content);
 
-    // Upsert content
-    const { error } = await selectFromSiteContentTable(supabase, (tableName) =>
-      supabase
-        .from(tableName)
-        .upsert(
-          {
-            page,
-            section,
-            key,
-            content: typeof content === 'string' ? content : JSON.stringify(content),
-            updated_at: new Date().toISOString(),
-            updated_by: authCheck.userId,
-          },
-          {
-            onConflict: 'page,section,key',
-          }
-        )
-    );
-
-    if (error) {
-      const res = createErrorResponse(error, 'שגיאה בשמירת תוכן');
-      return { success: false, error: res.error };
-    }
-
-    await bestEffortLogActivity(supabase, {
-      user_id: authCheck.userId,
-      action: `עדכון תוכן: ${page}/${section}/${key}`,
-      created_at: new Date().toISOString(),
+    const existing = await prisma.social_site_content.findFirst({
+      where: { page: pageValue, section: sectionValue, key: keyValue },
+      select: { id: true },
     });
+
+    if (existing?.id) {
+      await prisma.social_site_content.update({
+        where: { id: String(existing.id) },
+        data: {
+          content: contentValue,
+          updated_at: new Date(),
+          updated_by: updatedBy,
+        },
+      });
+    } else {
+      await prisma.social_site_content.create({
+        data: {
+          page: pageValue,
+          section: sectionValue,
+          key: keyValue,
+          content: contentValue,
+          updated_at: new Date(),
+          updated_by: updatedBy,
+          created_at: new Date(),
+        },
+      });
+    }
 
     return { success: true };
   } catch (error) {
@@ -189,31 +177,20 @@ export async function getContentByKey(
   key: string
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
-    const supabase = createClient();
+    const row = await prisma.social_site_content.findFirst({
+      where: { page: String(page), section: String(section), key: String(key) },
+      select: { content: true },
+    });
 
-    const { data, error } = await selectFromSiteContentTable(supabase, (tableName) =>
-      supabase
-        .from(tableName)
-        .select('content')
-        .eq('page', page)
-        .eq('section', section)
-        .eq('key', key)
-        .single()
-    );
-
-    if (error || !data) {
-      return { success: true, data: null }; // Return null if not found
+    if (!row?.content) {
+      return { success: true, data: null };
     }
 
     // Try to parse JSON, if fails return as string
     try {
-      const obj = asObject(data);
-      const raw = obj?.content;
-      return { success: true, data: JSON.parse(String(raw ?? '')) };
+      return { success: true, data: JSON.parse(String(row.content ?? '')) };
     } catch {
-      const obj = asObject(data);
-      const raw = obj?.content;
-      return { success: true, data: raw };
+      return { success: true, data: row.content };
     }
   } catch (error) {
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן');

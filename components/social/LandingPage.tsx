@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
 import { useLandingContent } from '@/components/social/landing/useLandingContent';
+import { Footer } from '@/components/landing/Footer';
+import { Navbar } from '@/components/landing/Navbar';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -64,7 +66,7 @@ export default function LandingPage() {
   }, []);
 
   const handleGetStarted = () => {
-    router.push('/sign-in');
+    router.push('/pricing');
   };
 
   const handleGoToLegal = () => {
@@ -89,55 +91,6 @@ export default function LandingPage() {
 
   return (
     <div className={`min-h-screen bg-[#fcfdfe] text-slate-900 overflow-x-hidden ${highContrast ? 'high-contrast' : ''}`} dir="rtl" style={{ fontSize: `${fontSize}%` }}>
-      {/* Accessibility Button - Fixed */}
-      <div className="fixed bottom-6 left-6 z-[200] flex flex-col gap-2">
-        <button
-          onClick={() => setAccessibilityOpen(!accessibilityOpen)}
-          className="w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-all"
-          aria-label="נגישות"
-        >
-          <Shield size={24} />
-        </button>
-        {accessibilityOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-2xl shadow-2xl p-4 min-w-[200px] border-2 border-indigo-100"
-          >
-            <h3 className="font-black text-slate-900 mb-3 text-sm">נגישות</h3>
-            <div className="flex flex-col gap-3">
-              <div>
-                <label className="text-xs font-bold text-slate-600 mb-1 block">גודל טקסט</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setFontSize(Math.max(80, fontSize - 10))}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-black"
-                  >
-                    -
-                  </button>
-                  <span className="text-xs font-black text-slate-700 w-12 text-center">{fontSize}%</span>
-                  <button
-                    onClick={() => setFontSize(Math.min(150, fontSize + 10))}
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 font-black"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <button
-                onClick={() => setHighContrast(!highContrast)}
-                className={`w-full px-4 py-2 rounded-lg font-bold text-sm transition-all ${
-                  highContrast 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                ניגודיות גבוהה {highContrast ? '✓' : ''}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </div>
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-[100] bg-white/70 backdrop-blur-xl border-b border-slate-100/50">
@@ -610,24 +563,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-50 py-32 px-6 border-t border-slate-100 relative">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
-              <span className="font-black text-3xl tracking-tighter">Social</span>
-            </div>
-            <p className="text-slate-600 font-bold text-lg leading-relaxed">אנחנו כאן כדי להפוך את הסושיאל למקום רווחי, מאורגן ויצירתי יותר.</p>
-          </div>
-          <div className="mt-32 pt-12 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6 text-[11px] font-black text-slate-400 uppercase tracking-widest">
-            <p>© 2025 SOCIAL ISRAEL. כל הזכויות שמורות.</p>
-            <div className="flex gap-10">
-              <span className="hover:text-slate-900 transition-colors">נוצר באהבה בתל אביב 💙</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Footer - שימוש ב-Footer הגלובלי */}
+      <Footer />
     </div>
   );
 }

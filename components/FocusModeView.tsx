@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Task } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const AMBIENT_SOUNDS = [
     { id: 'rain', name: 'גשם קל', icon: <CloudRain size={18} />, color: 'text-blue-400' },
@@ -28,19 +29,24 @@ const FocusModeView: React.FC = () => {
     const [sessionHistory, setSessionHistory] = useState<number>(0);
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const prevNowRef = useRef<number>(0);
+
+    const now = useSecondTicker(isActive && timeLeft > 0);
 
     useEffect(() => {
-        let interval: any;
-        if (isActive && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-        } else if (timeLeft === 0) {
-            setIsActive(false);
-            setSessionHistory(prev => prev + 1);
-        }
-        return () => clearInterval(interval);
-    }, [isActive, timeLeft]);
+        if (!isActive) return;
+        if (timeLeft <= 0) return;
+        if (!now) return;
+        if (prevNowRef.current === now) return;
+        prevNowRef.current = now;
+        setTimeLeft((prev) => prev - 1);
+    }, [isActive, now, timeLeft]);
+
+    useEffect(() => {
+        if (timeLeft !== 0) return;
+        setIsActive(false);
+        setSessionHistory(prev => prev + 1);
+    }, [timeLeft]);
 
     const toggleTimer = () => setIsActive(!isActive);
     

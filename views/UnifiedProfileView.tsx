@@ -157,6 +157,7 @@ export const MeView: React.FC<{
       if (typeof window === 'undefined') return null;
       return (
           getWorkspaceOrgSlugFromPathname(window.location.pathname) ||
+          (currentUser as any)?.organizationId ||
           (currentUser as any)?.tenantId ||
           null
       );

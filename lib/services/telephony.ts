@@ -13,6 +13,26 @@
 import { Buffer } from 'buffer';
 import { prisma, queryRawTenantScoped } from '../prisma';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+function getStringField(obj: Record<string, unknown> | null, key: string): string | undefined {
+    if (!obj) return undefined;
+    const v = obj[key];
+    return typeof v === 'string' ? v : v == null ? undefined : String(v);
+}
+
 export interface TelephonyCredentials {
     // Voicenter credentials
     UserCode?: string;
@@ -27,8 +47,11 @@ export interface TelephonyCredentials {
     api_secret?: string;
     secret?: string;
     account_id?: string;
+
+    // Common provider field
+    from_number?: string;
     
-    [key: string]: any; // Allow additional provider-specific credentials
+    [key: string]: unknown; // Allow additional provider-specific credentials
 }
 
 export interface CallInitiationResult {
@@ -54,7 +77,7 @@ export class TelephonyService {
         orgId: string
     ): Promise<CallInitiationResult> {
         try {
-            const rows = await queryRawTenantScoped<any[]>(prisma, {
+            const rows = await queryRawTenantScoped<unknown[]>(prisma, {
                 tenantId: orgId,
                 reason: 'telephony_load_system_settings_flags',
                 query: `
@@ -67,13 +90,15 @@ export class TelephonyService {
             });
 
             const row = Array.isArray(rows) && rows.length ? rows[0] : null;
-            const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
-                ? row.system_flags.telephony
-                : null;
+            const rowObj = asObject(row);
+            const systemFlags = asObject(rowObj?.system_flags);
+            const telephonyObj = asObject(systemFlags?.telephony);
 
-            const provider = telephony?.provider ? String(telephony.provider) : '';
-            const isActive = Boolean(telephony?.isActive ?? true);
-            const credentials = telephony?.credentials as TelephonyCredentials | undefined;
+            const provider = getStringField(telephonyObj, 'provider')?.trim() || '';
+            const isActiveRaw = telephonyObj?.isActive;
+            const isActive = typeof isActiveRaw === 'boolean' ? isActiveRaw : Boolean(isActiveRaw ?? true);
+            const credentialsObj = asObject(telephonyObj?.credentials);
+            const credentials = credentialsObj as TelephonyCredentials | undefined;
 
             if (!provider || !isActive || !credentials) {
                 return {
@@ -94,11 +119,11 @@ export class TelephonyService {
                         error: `Unsupported telephony provider: ${provider}`
                     };
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[TelephonyService] Error initiating call:', error);
             return {
                 success: false,
-                error: error.message || 'Failed to initiate call'
+                error: getErrorMessage(error) || 'Failed to initiate call'
             };
         }
     }
@@ -156,8 +181,9 @@ export class TelephonyService {
                 let errorMessage = `Voicenter API error: ${response.statusText}`;
                 
                 try {
-                    const errorJson = JSON.parse(errorText);
-                    errorMessage = errorJson.message || errorJson.error || errorMessage;
+                    const parsed = JSON.parse(errorText) as unknown;
+                    const errorObj = asObject(parsed);
+                    errorMessage = String(errorObj?.message || errorObj?.error || errorMessage);
                 } catch {
                     // If error response is not JSON, use the text as-is
                     if (errorText) {
@@ -178,21 +204,34 @@ export class TelephonyService {
                 };
             }
 
-            const result = await response.json();
+            const result = (await response.json()) as unknown;
+            const resultObj = asObject(result);
+            const callId =
+                getStringField(resultObj, 'CallID') ??
+                getStringField(resultObj, 'callId') ??
+                getStringField(resultObj, 'id') ??
+                getStringField(resultObj, 'SessionID') ??
+                getStringField(resultObj, 'sessionId');
+            const sessionId =
+                getStringField(resultObj, 'SessionID') ??
+                getStringField(resultObj, 'sessionId') ??
+                getStringField(resultObj, 'CallID') ??
+                getStringField(resultObj, 'callId');
+            const message = getStringField(resultObj, 'message') || 'Call initiated successfully via Voicenter';
 
             // Extract call ID from Voicenter response
             // Adjust these field names based on actual Voicenter API response structure
             return {
                 success: true,
-                callId: result.CallID || result.callId || result.id || result.SessionID || result.sessionId,
-                sessionId: result.SessionID || result.sessionId || result.CallID || result.callId,
-                message: result.message || 'Call initiated successfully via Voicenter'
+                callId: callId || undefined,
+                sessionId: sessionId || undefined,
+                message
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[TelephonyService] Error in Voicenter call initiation:', error);
             return {
                 success: false,
-                error: `Failed to initiate Voicenter call: ${error.message}`
+                error: `Failed to initiate Voicenter call: ${getErrorMessage(error)}`
             };
         }
     }
@@ -258,20 +297,20 @@ export class TelephonyService {
                 };
             }
 
-            const result = await response.json();
+            const result = (await response.json()) as unknown;
+            const resultObj = asObject(result);
 
-            // Extract call SID from Twilio response
             return {
                 success: true,
-                callId: result.sid,
-                sessionId: result.sid,
+                callId: getStringField(resultObj, 'sid') || undefined,
+                sessionId: getStringField(resultObj, 'sid') || undefined,
                 message: 'Call initiated successfully'
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[TelephonyService] Error in Twilio call initiation:', error);
             return {
                 success: false,
-                error: `Failed to initiate Twilio call: ${error.message}`
+                error: `Failed to initiate Twilio call: ${getErrorMessage(error)}`
             };
         }
     }
@@ -282,8 +321,8 @@ export class TelephonyService {
      * @param orgId - Organization/Tenant ID
      * @returns Active integration or null
      */
-    static async getActiveIntegration(orgId: string) {
-        const rows = await queryRawTenantScoped<any[]>(prisma, {
+    static async getActiveIntegration(orgId: string): Promise<Record<string, unknown> | null> {
+        const rows = await queryRawTenantScoped<unknown[]>(prisma, {
             tenantId: orgId,
             reason: 'telephony_get_active_integration',
             query: `
@@ -296,11 +335,15 @@ export class TelephonyService {
         });
 
         const row = Array.isArray(rows) && rows.length ? rows[0] : null;
-        const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
-            ? row.system_flags.telephony
-            : null;
+        const rowObj = asObject(row);
+        const systemFlags = asObject(rowObj?.system_flags);
+        const telephony = asObject(systemFlags?.telephony);
 
-        if (!telephony?.provider || telephony?.isActive === false) return null;
+        if (!telephony) return null;
+        const provider = getStringField(telephony, 'provider');
+        const isActiveRaw = telephony.isActive;
+        const isActive = typeof isActiveRaw === 'boolean' ? isActiveRaw : isActiveRaw == null ? true : Boolean(isActiveRaw);
+        if (!provider || isActive === false) return null;
         return telephony;
     }
 

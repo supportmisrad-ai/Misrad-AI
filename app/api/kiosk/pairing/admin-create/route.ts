@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { randomBytes } from 'crypto';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
-import { createServiceRoleClientScoped } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -47,46 +47,37 @@ async function POSTHandler(request: NextRequest) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
 
-    const supabase = createServiceRoleClientScoped({
-      scopeColumn: 'organization_id',
-      scopeId: String(workspace.id),
-      reason: 'kiosk_pairing_admin_create',
-    });
-
     for (let attempt = 0; attempt < 10; attempt++) {
       const token = generateToken();
       const code = generateCode();
 
-      const insert = await supabase
-        .from('device_pairing_tokens')
-        .insert({
-          code,
-          token,
-          device_nonce: null,
-          status: 'PENDING',
-          expires_at: expiresAt.toISOString(),
-          organization_id: workspace.id,
-          creator_clerk_user_id: user.id,
-          used: false,
-          created_at: now.toISOString(),
-          updated_at: now.toISOString(),
-        } as any)
-        .select('token, expires_at')
-        .maybeSingle();
-
-      if (!insert.error && insert.data?.token) {
-        return apiSuccess({
-          token: String(insert.data.token),
-          expiresAt: String(insert.data.expires_at),
+      try {
+        const created = await prisma.devicePairingToken.create({
+          data: {
+            code,
+            token,
+            deviceNonce: null,
+            status: 'PENDING',
+            expiresAt,
+            organizationId: String(workspace.id),
+            creatorClerkUserId: String(user.id),
+            used: false,
+          },
+          select: { token: true, expiresAt: true },
         });
-      }
 
-      const msg = String(insert.error?.message || '').toLowerCase();
-      if (msg.includes('duplicate') || msg.includes('unique')) {
-        continue;
+        if (created?.token) {
+          return apiSuccess({
+            token: String(created.token),
+            expiresAt: created.expiresAt ? new Date(created.expiresAt).toISOString() : expiresAt.toISOString(),
+          });
+        }
+      } catch (e: any) {
+        if (String(e?.code || '') === 'P2002') {
+          continue;
+        }
+        return apiError('שגיאה ביצירת טוקן', { status: 500 });
       }
-
-      return apiError('שגיאה ביצירת טוקן', { status: 500 });
     }
 
     return apiError('שגיאה ביצירת טוקן', { status: 500 });

@@ -13,37 +13,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { revokeToken } from '@/lib/integrations/google-oauth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-async function selectDbUserId(params: { supabase: any; workspaceId: string; email: string }): Promise<string | null> {
+async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
 
-    const byOrg = await params.supabase
-        .from('nexus_users')
-        .select('id')
-        .eq('email', email)
-        .eq('organization_id', params.workspaceId)
-        .limit(1)
-        .maybeSingle();
+    const row = await prisma.nexusUser.findFirst({
+        where: {
+            email,
+            organizationId: String(params.workspaceId),
+        },
+        select: { id: true },
+    });
 
-    if ((byOrg as any)?.error?.code === '42703') {
-        throw new Error('[SchemaMismatch] nexus_users is missing organization_id');
-    }
-
-    return byOrg.data?.id ? String(byOrg.data.id) : null;
+    return row?.id ? String(row.id) : null;
 }
 async function POSTHandler(request: NextRequest) {
     try {
         const { workspace } = await getWorkspaceOrThrow(request);
         const clerkUser = await getAuthenticatedUser();
 
-        const sb = createClient();
-        
-        const dbUserId = await selectDbUserId({ supabase: sb, workspaceId: workspace.id, email: clerkUser.email });
+        const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
         
         if (!dbUserId) {
             return NextResponse.json(
@@ -62,26 +56,19 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        // Find integration(s) to revoke
-        let query = sb
-            .from('misrad_integrations')
-            .select('*')
-            .eq('user_id', dbUserId) // Use Supabase UUID, not Clerk ID
-            .eq('organization_id', workspace.id)
-            .eq('service_type', serviceType)
-            .eq('is_active', true);
-
-        if (integrationId) {
-            query = query.eq('id', integrationId);
-        }
-
-        const { data: integrations, error: fetchError } = await query;
-
-        if (fetchError) {
+        let integrations: any[] = [];
+        try {
+            integrations = await prisma.scale_integrations.findMany({
+                where: {
+                    user_id: String(dbUserId),
+                    tenant_id: String(workspace.id),
+                    service_type: String(serviceType),
+                    is_active: true,
+                    ...(integrationId ? { id: String(integrationId) } : {}),
+                },
+            });
+        } catch (fetchError: any) {
             console.error('[API] Error fetching integrations:', fetchError);
-            if (fetchError.code === '42703') {
-                return NextResponse.json({ error: '[SchemaMismatch] misrad_integrations is missing organization_id' }, { status: 500 });
-            }
             throw new Error('Failed to fetch integrations');
         }
 
@@ -108,11 +95,7 @@ async function POSTHandler(request: NextRequest) {
             }
 
             // Delete from database
-            return sb
-                .from('misrad_integrations')
-                .delete()
-                .eq('id', integration.id)
-                .eq('organization_id', workspace.id);
+            return prisma.scale_integrations.delete({ where: { id: String(integration.id) } });
         });
 
         await Promise.all(revokePromises);

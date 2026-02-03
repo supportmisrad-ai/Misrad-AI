@@ -2,7 +2,6 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { getModuleDefinition } from '@/lib/os/modules/registry';
 import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation } from '@/lib/server/workspace';
-import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -36,7 +35,6 @@ export default async function NexusModuleLayout({
       dir="rtl"
     >
       {children}
-      <RouteVideoHelp />
     </div>
   );
 }

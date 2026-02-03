@@ -212,7 +212,7 @@ export default function PricingSection({
       router.push(destination);
       return;
     }
-    router.push(`/sign-up?redirect_url=${encodeURIComponent(destination)}`);
+    router.push(`/login?redirect=${encodeURIComponent(destination)}`);
   };
 
   return (

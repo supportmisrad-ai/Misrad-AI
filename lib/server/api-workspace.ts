@@ -1,5 +1,36 @@
 import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function normalizeOrgKey(orgKey: string): string {
+  const raw = String(orgKey).trim();
+  if (!raw) return raw;
+  if (!raw.includes('%')) return raw;
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function getErrorStatus(error: unknown): number | null {
+  const obj = asObject(error);
+  const status = obj?.status;
+  return typeof status === 'number' && Number.isFinite(status) ? status : null;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
 export class APIError extends Error {
   status: number;
 
@@ -14,12 +45,12 @@ export function getOrgKeyOrThrow(request: Request): string {
   if (!orgKey) {
     throw new APIError(400, 'Missing x-org-id header');
   }
-  return orgKey;
+  return normalizeOrgKey(orgKey);
 }
 
 function getOrgKeyFromHeader(request: Request): string | null {
   const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
-  return orgKey ? String(orgKey) : null;
+  return orgKey ? normalizeOrgKey(String(orgKey)) : null;
 }
 
 export async function getWorkspaceByOrgKeyOrThrow(orgKey: string): Promise<{
@@ -27,29 +58,32 @@ export async function getWorkspaceByOrgKeyOrThrow(orgKey: string): Promise<{
   workspaceId: string;
   orgKey: string;
 }> {
-  if (!orgKey || !String(orgKey).trim()) {
+  const normalizedOrgKey = normalizeOrgKey(orgKey);
+  if (!normalizedOrgKey || !String(normalizedOrgKey).trim()) {
     throw new APIError(400, 'Missing workspace context');
   }
 
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(String(orgKey));
-    return { workspace, workspaceId: workspace.id, orgKey: String(orgKey) };
-  } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : 403;
-    throw new APIError(status, e?.message || 'Forbidden');
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(String(normalizedOrgKey));
+    return { workspace, workspaceId: workspace.id, orgKey: String(normalizedOrgKey) };
+  } catch (e: unknown) {
+    const status = getErrorStatus(e) ?? 403;
+    throw new APIError(status, getErrorMessage(e) || 'Forbidden');
   }
 }
 
 async function getOrgKeyFromParams(ctx?: {
-  params?: any;
+  params?: unknown;
 }): Promise<string | null> {
   if (!ctx?.params) return null;
   const params = await Promise.resolve(ctx.params);
+  const obj = asObject(params);
+  if (!obj) return null;
   const orgKey =
-    (params as any)?.orgSlug ??
-    (params as any)?.orgId ??
-    (params as any)?.organizationId ??
-    (params as any)?.workspaceId ??
+    obj.orgSlug ??
+    obj.orgId ??
+    obj.organizationId ??
+    obj.workspaceId ??
     null;
   return orgKey ? String(orgKey) : null;
 }
@@ -57,7 +91,7 @@ async function getOrgKeyFromParams(ctx?: {
 export async function getWorkspaceContextOrThrow(
   request: Request,
   ctx?: {
-    params?: any;
+    params?: unknown;
   }
 ): Promise<{
   workspace: WorkspaceInfo;
@@ -87,10 +121,10 @@ export async function getWorkspaceContextOrThrow(
     }
 
     return { workspace: workspacePrimary, workspaceId: workspacePrimary.id, orgKey: primaryKey };
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) throw e;
-    const status = typeof e?.status === 'number' ? e.status : 403;
-    throw new APIError(status, e?.message || 'Forbidden');
+    const status = getErrorStatus(e) ?? 403;
+    throw new APIError(status, getErrorMessage(e) || 'Forbidden');
   }
 }
 

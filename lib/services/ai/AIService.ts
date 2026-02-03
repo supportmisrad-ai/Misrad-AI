@@ -1,4 +1,5 @@
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { AIProviderError, UpgradeRequiredError } from './errors';
@@ -33,6 +34,12 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   return '';
+}
+
+function stringifyError(error: unknown): string {
+  const obj = asObject(error);
+  const msg = obj && typeof obj.message === 'string' ? obj.message : '';
+  return msg || getErrorMessage(error) || String(error);
 }
 
 function isAIProviderName(value: unknown): value is AIProviderName {
@@ -342,7 +349,7 @@ export class AIService {
     }
   }
 
-  async generateJson<T = any>(params: AIGenerateJsonParams): Promise<AIGenerateJsonResult<T>> {
+  async generateJson<T = unknown>(params: AIGenerateJsonParams): Promise<AIGenerateJsonResult<T>> {
     const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
     const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
 
@@ -359,7 +366,7 @@ export class AIService {
     const start = Date.now();
     let providerUsed: AIProviderName = feature.settings.primary_provider;
     let modelUsed = feature.settings.primary_model;
-    let providersTried: Array<{ provider: AIProviderName; model: string; ok: boolean; error?: string }> = [];
+    const providersTried: Array<{ provider: AIProviderName; model: string; ok: boolean; error?: string }> = [];
 
     try {
       const primary = await this.tryGenerateJson({
@@ -405,12 +412,12 @@ export class AIService {
         modelDisplayName: modelDisplayName,
         chargedCents,
       };
-    } catch (primaryErr: any) {
+    } catch (primaryErr: unknown) {
       providersTried.push({
         provider: feature.settings.primary_provider,
         model: feature.settings.primary_model,
         ok: false,
-        error: String(primaryErr?.message || primaryErr),
+        error: stringifyError(primaryErr),
       });
 
       const shouldTryFallback = !!feature.settings.fallback_provider && !!feature.settings.fallback_model;
@@ -468,12 +475,12 @@ export class AIService {
             modelDisplayName: modelDisplayName,
             chargedCents,
           };
-        } catch (fallbackErr: any) {
+        } catch (fallbackErr: unknown) {
           providersTried.push({
             provider: feature.settings.fallback_provider as AIProviderName,
             model: feature.settings.fallback_model as string,
             ok: false,
-            error: String(fallbackErr?.message || fallbackErr),
+            error: stringifyError(fallbackErr),
           });
         }
       }
@@ -497,7 +504,7 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(primaryErr?.message || primaryErr),
+        errorMessage: stringifyError(primaryErr),
         meta: {
           ...params.meta,
           providersTried,
@@ -511,7 +518,7 @@ export class AIService {
     }
   }
 
-  async generateVisionJson<T = any>(params: {
+  async generateVisionJson<T = unknown>(params: {
     featureKey: string;
     organizationId?: string;
     userId?: string;
@@ -519,8 +526,8 @@ export class AIService {
     prompt: string;
     imageDataUrl: string;
     systemInstruction?: string;
-    responseSchema?: any;
-    meta?: Record<string, any>;
+    responseSchema?: unknown;
+    meta?: Record<string, unknown>;
   }): Promise<AIGenerateJsonResult<T>> {
     const ctx = params.bypassAuth
       ? (() => {
@@ -633,7 +640,7 @@ export class AIService {
     const start = Date.now();
     let providerUsed: AIProviderName = feature.settings.primary_provider;
     let modelUsed = feature.settings.primary_model;
-    let providersTried: Array<{ provider: AIProviderName; model: string; ok: boolean; error?: string }> = [];
+    const providersTried: Array<{ provider: AIProviderName; model: string; ok: boolean; error?: string }> = [];
 
     try {
       const primary = await this.tryGenerateText({
@@ -676,12 +683,12 @@ export class AIService {
         modelDisplayName: modelDisplayName,
         chargedCents,
       };
-    } catch (primaryErr: any) {
+    } catch (primaryErr: unknown) {
       providersTried.push({
         provider: feature.settings.primary_provider,
         model: feature.settings.primary_model,
         ok: false,
-        error: String(primaryErr?.message || primaryErr),
+        error: stringifyError(primaryErr),
       });
 
       const shouldTryFallback = !!feature.settings.fallback_provider && !!feature.settings.fallback_model;
@@ -736,12 +743,12 @@ export class AIService {
             modelDisplayName: modelDisplayName,
             chargedCents,
           };
-        } catch (fallbackErr: any) {
+        } catch (fallbackErr: unknown) {
           providersTried.push({
             provider: feature.settings.fallback_provider as AIProviderName,
             model: feature.settings.fallback_model as string,
             ok: false,
-            error: String(fallbackErr?.message || fallbackErr),
+            error: stringifyError(fallbackErr),
           });
         }
       }
@@ -765,7 +772,7 @@ export class AIService {
         chargedCents: 0,
         latencyMs: Date.now() - start,
         status: 'error',
-        errorMessage: String(primaryErr?.message || primaryErr),
+        errorMessage: stringifyError(primaryErr),
         meta: {
           ...params.meta,
           providersTried,
@@ -985,21 +992,21 @@ export class AIService {
     return { settings, modelDisplayName };
   }
 
-  private async loadOrganizationAiDna(params: { organizationId: string }): Promise<Record<string, any>> {
+  private async loadOrganizationAiDna(params: { organizationId: string }): Promise<Record<string, unknown>> {
     const row = await prisma.organization_settings
       .findUnique({ where: { organization_id: params.organizationId }, select: { ai_dna: true } })
       .catch(() => null);
 
-    const aiDna = (row as any)?.ai_dna;
+    const aiDna = row?.ai_dna;
     if (!aiDna || typeof aiDna !== 'object' || Array.isArray(aiDna)) return {};
-    return aiDna as Record<string, any>;
+    return aiDna as Record<string, unknown>;
   }
 
   private pickRelevantDna(params: {
     featureKey: string;
-    aiDna: Record<string, any>;
-    meta?: Record<string, any>;
-  }): Record<string, any> {
+    aiDna: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+  }): Record<string, unknown> {
     const base = { ...params.aiDna };
 
     const toneOverride = params.meta?.toneOverride;
@@ -1043,7 +1050,7 @@ export class AIService {
     return base;
   }
 
-  private applyTemplate(params: { template: string; dna: Record<string, any>; request: string }): string {
+  private applyTemplate(params: { template: string; dna: Record<string, unknown>; request: string }): string {
     const dnaJson = JSON.stringify(params.dna || {}, null, 2);
     const req = String(params.request || '');
 
@@ -1061,7 +1068,7 @@ export class AIService {
     featureKey: string;
     basePrompt: string | null;
     userRequest: string;
-    meta?: Record<string, any>;
+    meta?: Record<string, unknown>;
   }): Promise<string> {
     const aiDna = await this.loadOrganizationAiDna({ organizationId: params.organizationId });
     const relevantDna = this.pickRelevantDna({ featureKey: params.featureKey, aiDna, meta: params.meta });
@@ -1239,7 +1246,7 @@ export class AIService {
     organizationId: string;
     userId: string;
     input: string;
-    meta?: Record<string, any>;
+    meta?: Record<string, unknown>;
   }): Promise<{ embedding: number[] }> {
     const baseFeatureKey = String(params.featureKey || '').trim() || 'ai.memory';
     const embeddingFeatureKey = baseFeatureKey.toLowerCase().includes('embedding') ? baseFeatureKey : `${baseFeatureKey}.embedding`;
@@ -1305,7 +1312,7 @@ export class AIService {
     model: string;
     prompt: string;
     systemInstruction?: string;
-    responseSchema?: any;
+    responseSchema?: unknown;
     timeoutMs: number;
   }): Promise<{ text: string }> {
     const systemInstruction = this.mergeSystemInstruction(params.systemInstruction);
@@ -1425,23 +1432,25 @@ export class AIService {
     latencyMs: number;
     status: 'success' | 'error';
     errorMessage?: string;
-    meta?: Record<string, any>;
+    meta?: Record<string, unknown>;
   }): Promise<void> {
+    type AIUsageLogsCreateData = Parameters<typeof prisma.ai_usage_logs.create>[0]['data'];
+    const data: AIUsageLogsCreateData = {
+      organization_id: params.organizationId,
+      user_id: params.userId,
+      feature_key: params.featureKey,
+      task_kind: params.taskKind,
+      provider: params.provider,
+      model: params.model,
+      model_display_name: params.modelDisplayName,
+      charged_cents: params.chargedCents,
+      latency_ms: params.latencyMs,
+      status: params.status,
+      error_message: params.errorMessage || null,
+      meta: params.meta ? (params.meta as Prisma.InputJsonValue) : undefined,
+    };
     await prisma.ai_usage_logs.create({
-      data: {
-        organization_id: params.organizationId,
-        user_id: params.userId,
-        feature_key: params.featureKey,
-        task_kind: params.taskKind,
-        provider: params.provider,
-        model: params.model,
-        model_display_name: params.modelDisplayName,
-        charged_cents: params.chargedCents,
-        latency_ms: params.latencyMs,
-        status: params.status,
-        error_message: params.errorMessage || null,
-        meta: params.meta || null,
-      } as any,
+      data,
     });
   }
 

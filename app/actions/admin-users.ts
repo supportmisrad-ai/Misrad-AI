@@ -2,6 +2,7 @@
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import type { UserRole } from '@/types/social';
 import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
@@ -9,24 +10,48 @@ import { z } from 'zod';
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEBUG_ADMIN_USERS = process.env.DEBUG_ADMIN_USERS === 'true' && !IS_PROD;
 
-function debugLog(...args: any[]) {
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object") return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getUnknownErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  const obj = asObject(error);
+  return typeof obj?.message === 'string' ? obj.message : 'שגיאה לא צפויה';
+}
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  if (value == null) return {} as Prisma.InputJsonValue;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  const obj = asObject(value);
+  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
+}
+
+function debugLog(...args: unknown[]) {
   if (DEBUG_ADMIN_USERS) console.log(...args);
 }
 
-function safeErrorLog(message: string, error?: any) {
+function safeErrorLog(message: string, error?: unknown) {
   if (DEBUG_ADMIN_USERS && error !== undefined) console.error(message, error);
   else console.error(message);
 }
 
-async function requireSuperAdminOrFail() {
+async function requireSuperAdminOrFail(): Promise<{ success: true; userId: string } | { success: false; error: string }> {
   const authCheck = await requireAuth();
-  if (!authCheck.success) return authCheck as any;
+  if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
   const u = await currentUser();
-  const isSuperAdmin = Boolean((u as any)?.publicMetadata?.isSuperAdmin);
+  const publicMetadata = asObject((u as { publicMetadata?: unknown } | null)?.publicMetadata);
+  const isSuperAdmin = Boolean(publicMetadata?.isSuperAdmin);
   if (!isSuperAdmin) {
-    return createErrorResponse('Forbidden', 'אין הרשאה');
+    return { success: false, error: createErrorResponse('Forbidden', 'אין הרשאה').error || 'אין הרשאה' };
   }
-  return { success: true, userId: authCheck.userId } as const;
+  return { success: true, userId: String(authCheck.userId || '') };
 }
 
 const listUsersSchema = z.object({
@@ -39,10 +64,10 @@ export async function getAdminUsersPage(params?: {
   limit?: number;
   offset?: number;
   search?: string;
-}): Promise<{ success: boolean; data?: { items: any[]; total: number }; error?: string }> {
+}): Promise<{ success: boolean; data?: { items: Array<{ id: string; name: string; email: string; role: string; plan: 'free'; registeredAt: string | null; lastActivity: string | null; isBanned: false; avatar: string | null }>; total: number }; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return adminCheck;
 
     const parsed = listUsersSchema.safeParse({
       limit: params?.limit,
@@ -54,38 +79,41 @@ export async function getAdminUsersPage(params?: {
     const search = parsed.success ? parsed.data.search : undefined;
 
     const s = search && search.trim() ? search.trim() : '';
-    const where = s
+    const where: Prisma.NexusUserWhereInput = s
       ? {
           OR: [
-            { name: { contains: s, mode: 'insensitive' as const } },
-            { email: { contains: s, mode: 'insensitive' as const } },
+            { name: { contains: s, mode: 'insensitive' } },
+            { email: { contains: s, mode: 'insensitive' } },
           ],
         }
       : {};
 
     const [total, rows] = await prisma.$transaction([
-      prisma.nexusUser.count({ where: where as any }),
+      prisma.nexusUser.count({ where }),
       prisma.nexusUser.findMany({
-        where: where as any,
+        where,
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
       }),
     ]);
 
-    const items = (rows || []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      email: m.email || 'אין דוא"ל',
-      role: m.role || 'user',
-      plan: 'free',
-      registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
-      lastActivity: (m.updatedAt || m.createdAt) ? new Date(m.updatedAt || m.createdAt).toISOString() : null,
-      isBanned: false,
-      avatar: m.avatar || null,
-    }));
+    const items = (rows || []).map((m) => {
+      const last = m.updatedAt ?? m.createdAt;
+      return {
+        id: String(m.id),
+        name: String(m.name || ''),
+        email: m.email ? String(m.email) : 'אין דוא"ל',
+        role: m.role ? String(m.role) : 'user',
+        plan: 'free' as const,
+        registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
+        lastActivity: last ? new Date(last).toISOString() : null,
+        isBanned: false as const,
+        avatar: m.avatar ? String(m.avatar) : null,
+      };
+    });
 
-    return createSuccessResponse({ items, total: total || 0 }) as any;
+    return createSuccessResponse({ items, total: total || 0 });
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
   }
@@ -94,7 +122,7 @@ export async function getAdminUsersPage(params?: {
 export async function deleteAdminUser(userId: string): Promise<{ success: boolean; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return adminCheck;
 
     const resolvedUserId = String(userId || '').trim();
     if (!resolvedUserId) {
@@ -129,17 +157,13 @@ export async function deleteAdminUser(userId: string): Promise<{ success: boolea
           items_synced: 1,
           started_at: new Date(),
           completed_at: new Date(),
-          metadata: {
-            action: 'delete_user',
-            targetUserId: resolvedUserId,
-            organizationId,
-          } as any,
+          metadata: toJson({ action: 'delete_user', targetUserId: resolvedUserId, organizationId }),
         },
       });
     } catch {
     }
 
-    return createSuccessResponse(true) as any;
+    return createSuccessResponse(true);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה במחיקת משתמש');
   }
@@ -157,7 +181,7 @@ export async function updateUserProfile(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return adminCheck;
 
     const resolvedUserId = String(userId || '').trim();
     if (!resolvedUserId) {
@@ -178,13 +202,11 @@ export async function updateUserProfile(
       return createErrorResponse(null, 'Tenant Isolation lockdown: משתמש ללא organization_id לא ניתן לעדכון דרך Admin');
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.NexusUserUpdateManyMutationInput = { updatedAt: new Date() };
     if (updates.name) updateData.name = updates.name;
     if (updates.email) updateData.email = updates.email;
     if (updates.role) updateData.role = updates.role;
     if (updates.avatar) updateData.avatar = updates.avatar;
-
-    updateData.updatedAt = new Date();
 
     await prisma.nexusUser.updateMany({
       where: { id: resolvedUserId, organizationId },
@@ -201,7 +223,7 @@ export async function updateUserProfile(
           items_synced: 1,
           started_at: new Date(),
           completed_at: new Date(),
-          metadata: {
+          metadata: toJson({
             action: 'update_user',
             targetUserId: resolvedUserId,
             organizationId,
@@ -211,7 +233,7 @@ export async function updateUserProfile(
               role: updates.role ?? null,
               avatar: updates.avatar ?? null,
             },
-          } as any,
+          }),
         },
       });
     } catch {
@@ -241,7 +263,7 @@ export async function getUserDetails(
 }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return adminCheck;
 
     const member = await prisma.nexusUser.findUnique({
       where: { id: String(userId) },
@@ -301,7 +323,7 @@ export async function createUser(
 }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck as any;
+    if (!adminCheck.success) return adminCheck;
 
     const trimmedEmail = userData.email?.trim();
     const trimmedFirstName = userData.firstName?.trim();
@@ -381,14 +403,15 @@ export async function createUser(
         return createErrorResponse(null, 'האימייל כבר קיים במערכת');
       }
       debugLog('[createUser] No existing user found, proceeding with invitation...');
-    } catch (checkError: any) {
-      debugLog('[createUser] Could not check for existing user, continuing anyway:', checkError.message);
+    } catch (checkError: unknown) {
+      debugLog('[createUser] Could not check for existing user, continuing anyway:', getUnknownErrorMessage(checkError));
     }
 
     try {
-      const invitationData: any = {
+      const invitationData = {
         emailAddress: trimmedEmail,
       };
+      void invitationData;
 
       try {
         const invitation = await client.invitations.createInvitation({
@@ -411,12 +434,7 @@ export async function createUser(
               items_synced: 1,
               started_at: new Date(),
               completed_at: new Date(),
-              metadata: {
-                action: 'invite_user',
-                email: trimmedEmail,
-                invitationId: invitation.id,
-                withMetadata: true,
-              } as any,
+              metadata: toJson({ action: 'invite_user', email: trimmedEmail, invitationId: invitation.id, withMetadata: true }),
             },
           });
         } catch (logError) {
@@ -428,8 +446,8 @@ export async function createUser(
           supabaseUserId: '',
           email: trimmedEmail,
         });
-      } catch (metadataError: any) {
-        debugLog('[createUser] Creating invitation with metadata failed, trying without metadata...', metadataError.message);
+      } catch (metadataError: unknown) {
+        debugLog('[createUser] Creating invitation with metadata failed, trying without metadata...', getUnknownErrorMessage(metadataError));
 
         const invitation = await client.invitations.createInvitation({
           emailAddress: trimmedEmail,
@@ -447,11 +465,7 @@ export async function createUser(
               items_synced: 1,
               started_at: new Date(),
               completed_at: new Date(),
-              metadata: {
-                action: 'invite_user',
-                email: trimmedEmail,
-                invitationId: invitation.id,
-              } as any,
+              metadata: toJson({ action: 'invite_user', email: trimmedEmail, invitationId: invitation.id }),
             },
           });
         } catch (logError) {
@@ -464,41 +478,52 @@ export async function createUser(
           email: trimmedEmail,
         });
       }
-    } catch (invitationError: any) {
+    } catch (invitationError: unknown) {
       if (DEBUG_ADMIN_USERS) {
         console.error('[createUser] ❌ Invitation creation failed:', invitationError);
         console.error('[createUser] Invitation error type:', typeof invitationError);
-        console.error('[createUser] Invitation error keys:', Object.keys(invitationError || {}));
-        console.error('[createUser] Invitation error details:', JSON.stringify(invitationError, Object.getOwnPropertyNames(invitationError), 2));
+        const obj = asObject(invitationError) ?? {};
+        console.error('[createUser] Invitation error keys:', Object.keys(obj));
+        console.error('[createUser] Invitation error details:', JSON.stringify(obj, Object.getOwnPropertyNames(obj), 2));
       } else {
         console.error('[createUser] Invitation creation failed');
       }
       
       // Extract error message - prioritize detailed error messages
       let errorMessage = 'שגיאה ביצירת הזמנה';
+
+      const invitationErrObj = asObject(invitationError) ?? {};
       
       // Check for errors array first (Clerk's standard format)
-      if (invitationError?.errors && Array.isArray(invitationError.errors) && invitationError.errors.length > 0) {
-        const firstError = invitationError.errors[0];
-        if (DEBUG_ADMIN_USERS) console.error('[createUser] First error from array:', JSON.stringify(firstError, null, 2));
-        
-        if (firstError?.longMessage) {
-          errorMessage = firstError.longMessage;
-        } else if (firstError?.message) {
-          errorMessage = firstError.message;
-        } else if (firstError?.meta?.param && firstError?.meta?.reason) {
-            errorMessage = `${firstError.meta.param}: ${firstError.meta.reason}`;
-        } else if (firstError?.meta?.reason) {
-            errorMessage = firstError.meta.reason;
-        } else if (firstError?.code) {
-          errorMessage = firstError.code;
+      const errorsVal = invitationErrObj.errors;
+      if (Array.isArray(errorsVal) && errorsVal.length > 0) {
+        const firstErrorObj = asObject(errorsVal[0]) ?? {};
+        if (DEBUG_ADMIN_USERS) console.error('[createUser] First error from array:', JSON.stringify(firstErrorObj, null, 2));
+
+        const longMessage = firstErrorObj.longMessage;
+        const message = firstErrorObj.message;
+        const metaObj = asObject(firstErrorObj.meta);
+        const param = metaObj?.param;
+        const reason = metaObj?.reason;
+        const code = firstErrorObj.code;
+
+        if (typeof longMessage === 'string' && longMessage) {
+          errorMessage = longMessage;
+        } else if (typeof message === 'string' && message) {
+          errorMessage = message;
+        } else if (typeof param === 'string' && typeof reason === 'string' && (param || reason)) {
+          errorMessage = `${param}: ${reason}`;
+        } else if (typeof reason === 'string' && reason) {
+          errorMessage = reason;
+        } else if (typeof code === 'string' && code) {
+          errorMessage = code;
         }
-      } else if (invitationError?.message) {
-        errorMessage = invitationError.message;
-      } else if (invitationError?.statusText) {
-        errorMessage = invitationError.statusText;
-      } else if (invitationError?.status) {
-        errorMessage = `HTTP ${invitationError.status}: ${errorMessage}`;
+      } else if (typeof invitationErrObj.message === 'string') {
+        errorMessage = invitationErrObj.message;
+      } else if (typeof invitationErrObj.statusText === 'string') {
+        errorMessage = invitationErrObj.statusText;
+      } else if (invitationErrObj.status != null) {
+        errorMessage = `HTTP ${String(invitationErrObj.status)}: ${errorMessage}`;
       }
       
       if (DEBUG_ADMIN_USERS) console.error('[createUser] Extracted error message:', errorMessage);
@@ -522,7 +547,7 @@ export async function createUser(
       
       return createErrorResponse(invitationError, errorMessage);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     safeErrorLog('Error in createUser', error);
     return createErrorResponse(error, 'שגיאה ביצירת משתמש');
   }

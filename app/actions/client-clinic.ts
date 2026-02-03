@@ -341,9 +341,9 @@ export async function listClinicSessions(params: {
   const { orgId, clientId } = params;
   if (!orgId) throw new Error('orgId is required');
 
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
-
   try {
+    const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
     const data = await prisma.clientSession.findMany({
       where: {
         organizationId: workspace.id,

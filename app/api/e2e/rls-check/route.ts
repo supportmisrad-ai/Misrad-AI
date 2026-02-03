@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { createClient, createServiceRoleClient } from '@/lib/supabase';
+import prisma, { executeRawAllowlisted, queryRawAllowlisted } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 function safeString(value: unknown): string {
   return String(value ?? '').trim();
@@ -17,7 +18,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId } = await auth();
+    const authRes = await auth();
+    const userId = authRes.userId;
     if (!userId) {
       return NextResponse.json({ ok: false, error: 'NoAuthSession' }, { status: 401 });
     }
@@ -35,114 +37,164 @@ export async function POST(req: Request) {
     if (!expectedOrgId || !otherOrgId) {
       return NextResponse.json({ ok: false, error: 'expectedOrgId and otherOrgId are required' }, { status: 400 });
     }
-
-    const supabase = createClient();
-
-    const rpcRes = await supabase.rpc('current_organization_id');
-    let currentOrgId = rpcRes.error ? null : (rpcRes.data ? String(rpcRes.data) : null);
-
-    if (!currentOrgId) {
-      const service = createServiceRoleClient({ allowUnscoped: true, reason: 'e2e_rls_check_resolve_org' });
-      const orgFromUser = await service
-        .from('social_users')
-        .select('organization_id')
-        .eq('clerk_user_id', userId)
-        .maybeSingle();
-      if (!orgFromUser.error) {
-        const resolved = (orgFromUser.data as any)?.organization_id;
-        currentOrgId = resolved ? String(resolved) : null;
-      }
+    if (!expectedClientId || !otherClientId || !expectedLeadId || !otherLeadId || !expectedPostId || !otherPostId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            'expectedClientId, otherClientId, expectedLeadId, otherLeadId, expectedPostId, otherPostId are required',
+        },
+        { status: 400 }
+      );
     }
 
-    const expectedRead = await supabase.from('organizations').select('id').eq('id', expectedOrgId).maybeSingle();
-    const otherRead = await supabase.from('organizations').select('id').eq('id', otherOrgId).maybeSingle();
+    const membership = await prisma.social_users.findUnique({
+      where: { clerk_user_id: String(userId) },
+      select: { organization_id: true },
+    });
 
-    const expectedClientRead = expectedClientId
-      ? await supabase.from('client_clients').select('id, organization_id').eq('id', expectedClientId).maybeSingle()
-      : { data: null as any, error: null as any };
+    const orgIdFromSocial = membership?.organization_id ? String(membership.organization_id) : null;
+    const orgIdFromProfile = orgIdFromSocial
+      ? null
+      : await prisma.profile
+          .findFirst({
+            where: { clerkUserId: String(userId) },
+            select: { organizationId: true },
+          })
+          .then((p) => (p?.organizationId ? String(p.organizationId) : null));
 
-    const otherClientRead = otherClientId
-      ? await supabase.from('client_clients').select('id, organization_id').eq('id', otherClientId).maybeSingle()
-      : { data: null as any, error: null as any };
+    const organizationId = orgIdFromSocial || orgIdFromProfile;
+    if (!organizationId) {
+      return NextResponse.json({ ok: false, error: 'Failed to resolve organizationId for user' }, { status: 500 });
+    }
 
-    const expectedLeadRead = expectedLeadId
-      ? await supabase.from('system_leads').select('id, organization_id').eq('id', expectedLeadId).maybeSingle()
-      : { data: null as any, error: null as any };
+    const claims = JSON.stringify({
+      role: 'authenticated',
+      organization_id: organizationId,
+      org_id: organizationId,
+      clerk_user_id: String(userId),
+      sub: String(userId),
+    });
 
-    const otherLeadRead = otherLeadId
-      ? await supabase.from('system_leads').select('id, organization_id').eq('id', otherLeadId).maybeSingle()
-      : { data: null as any, error: null as any };
+    type RlsRow = {
+      current_org_id: string | null;
+      expected_org_visible: boolean;
+      other_org_visible: boolean;
+      expected_client_visible: boolean;
+      other_client_visible: boolean;
+      expected_lead_visible: boolean;
+      other_lead_visible: boolean;
+      expected_post_visible: boolean;
+      other_post_visible: boolean;
+      expected_client_org_id: string | null;
+      other_client_org_id: string | null;
+      expected_lead_org_id: string | null;
+      other_lead_org_id: string | null;
+      expected_post_client_id: string | null;
+      other_post_client_id: string | null;
+    };
 
-    const expectedPostRead = expectedPostId
-      ? await supabase.from('social_posts').select('id, client_id').eq('id', expectedPostId).maybeSingle()
-      : { data: null as any, error: null as any };
+    const rows = await prisma.$transaction(
+      async (tx) => {
+      await executeRawAllowlisted(tx, {
+        reason: 'e2e_rls_check_setup_role',
+        query: 'set local role authenticated',
+        values: [],
+      });
 
-    const otherPostRead = otherPostId
-      ? await supabase.from('social_posts').select('id, client_id').eq('id', otherPostId).maybeSingle()
-      : { data: null as any, error: null as any };
+      await executeRawAllowlisted(tx, {
+        reason: 'e2e_rls_check_setup_claims',
+        query: "select set_config('request.jwt.claims', $1, true)",
+        values: [claims],
+      });
 
-    const expectedVisible = Boolean(expectedRead.data?.id) || (currentOrgId ? currentOrgId === expectedOrgId : false);
-    const otherVisible = Boolean(otherRead.data?.id) && (currentOrgId ? currentOrgId === otherOrgId : false);
+      const sql = `
+select
+  public.current_organization_id()::text as current_org_id,
+  exists (select 1 from public.organizations o where o.id = $1::uuid) as expected_org_visible,
+  exists (select 1 from public.organizations o where o.id = $2::uuid) as other_org_visible,
+  exists (select 1 from public.client_clients c where c.id = $3::uuid) as expected_client_visible,
+  exists (select 1 from public.client_clients c where c.id = $4::uuid) as other_client_visible,
+  exists (select 1 from public.system_leads l where l.id = $5::uuid) as expected_lead_visible,
+  exists (select 1 from public.system_leads l where l.id = $6::uuid) as other_lead_visible,
+  exists (select 1 from public.social_posts p where p.id = $7::uuid) as expected_post_visible,
+  exists (select 1 from public.social_posts p where p.id = $8::uuid) as other_post_visible,
+  (select c.organization_id::text from public.client_clients c where c.id = $3::uuid limit 1) as expected_client_org_id,
+  (select c.organization_id::text from public.client_clients c where c.id = $4::uuid limit 1) as other_client_org_id,
+  (select l.organization_id::text from public.system_leads l where l.id = $5::uuid limit 1) as expected_lead_org_id,
+  (select l.organization_id::text from public.system_leads l where l.id = $6::uuid limit 1) as other_lead_org_id,
+  (select p.client_id::text from public.social_posts p where p.id = $7::uuid limit 1) as expected_post_client_id,
+  (select p.client_id::text from public.social_posts p where p.id = $8::uuid limit 1) as other_post_client_id;
+`;
 
-    const expectedClientVisible = Boolean(expectedClientRead.data?.id);
-    const otherClientVisible = Boolean(otherClientRead.data?.id);
+      return queryRawAllowlisted<RlsRow[]>(tx, {
+        reason: 'e2e_rls_check_select',
+        query: sql,
+        values: [
+          expectedOrgId,
+          otherOrgId,
+          expectedClientId,
+          otherClientId,
+          expectedLeadId,
+          otherLeadId,
+          expectedPostId,
+          otherPostId,
+        ],
+      });
+      },
+      {
+        maxWait: 20_000,
+        timeout: 60_000,
+      }
+    );
 
-    const expectedLeadVisible = Boolean(expectedLeadRead.data?.id);
-    const otherLeadVisible = Boolean(otherLeadRead.data?.id);
-
-    const expectedPostVisible = Boolean(expectedPostRead.data?.id);
-    const otherPostVisible = Boolean(otherPostRead.data?.id);
+    const row = Array.isArray(rows) && rows.length ? rows[0] : null;
+    if (!row) {
+      return NextResponse.json({ ok: false, error: 'RLS check returned no rows' }, { status: 500 });
+    }
 
     return NextResponse.json({
       ok: true,
-      currentOrgId,
-      expectedOrg: {
-        id: expectedOrgId,
-        visible: expectedVisible,
-        error: expectedRead.error?.message ?? null,
-      },
-      otherOrg: {
-        id: otherOrgId,
-        visible: otherVisible,
-        error: otherRead.error?.message ?? null,
-      },
+      currentOrgId: row.current_org_id,
+      expectedOrg: { id: expectedOrgId, visible: Boolean(row.expected_org_visible), error: null },
+      otherOrg: { id: otherOrgId, visible: Boolean(row.other_org_visible), error: null },
       expectedClient: {
-        id: expectedClientId || null,
-        visible: expectedClientVisible,
-        orgId: (expectedClientRead.data as any)?.organization_id ?? null,
-        error: expectedClientRead.error?.message ?? null,
+        id: expectedClientId,
+        visible: Boolean(row.expected_client_visible),
+        orgId: row.expected_client_org_id,
+        error: null,
       },
       otherClient: {
-        id: otherClientId || null,
-        visible: otherClientVisible,
-        orgId: (otherClientRead.data as any)?.organization_id ?? null,
-        error: otherClientRead.error?.message ?? null,
+        id: otherClientId,
+        visible: Boolean(row.other_client_visible),
+        orgId: row.other_client_org_id,
+        error: null,
       },
       expectedLead: {
-        id: expectedLeadId || null,
-        visible: expectedLeadVisible,
-        orgId: (expectedLeadRead.data as any)?.organization_id ?? null,
-        error: expectedLeadRead.error?.message ?? null,
+        id: expectedLeadId,
+        visible: Boolean(row.expected_lead_visible),
+        orgId: row.expected_lead_org_id,
+        error: null,
       },
       otherLead: {
-        id: otherLeadId || null,
-        visible: otherLeadVisible,
-        orgId: (otherLeadRead.data as any)?.organization_id ?? null,
-        error: otherLeadRead.error?.message ?? null,
+        id: otherLeadId,
+        visible: Boolean(row.other_lead_visible),
+        orgId: row.other_lead_org_id,
+        error: null,
       },
       expectedPost: {
-        id: expectedPostId || null,
-        visible: expectedPostVisible,
-        clientId: (expectedPostRead.data as any)?.client_id ?? null,
-        error: expectedPostRead.error?.message ?? null,
+        id: expectedPostId,
+        visible: Boolean(row.expected_post_visible),
+        clientId: row.expected_post_client_id,
+        error: null,
       },
       otherPost: {
-        id: otherPostId || null,
-        visible: otherPostVisible,
-        clientId: (otherPostRead.data as any)?.client_id ?? null,
-        error: otherPostRead.error?.message ?? null,
+        id: otherPostId,
+        visible: Boolean(row.other_post_visible),
+        clientId: row.other_post_client_id,
+        error: null,
       },
-      rpcError: rpcRes.error?.message ?? null,
+      rpcError: null,
     });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e?.message || 'RLS check failed' }, { status: 500 });

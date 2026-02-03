@@ -12,6 +12,8 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
+import { buildLeaveRequestTeamUrl, sendWebPushNotificationToEmails } from '@/lib/server/web-push';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -19,6 +21,36 @@ function asObject(value: unknown): Record<string, unknown> | null {
     if (!value || typeof value !== 'object') return null;
     if (Array.isArray(value)) return null;
     return value as Record<string, unknown>;
+}
+
+async function selectEmailsByUserIdsInOrganization(params: {
+    organizationId: string;
+    userIds: string[];
+}): Promise<string[]> {
+    const ids = (Array.isArray(params.userIds) ? params.userIds : []).map((x) => String(x || '').trim()).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const rows = await queryRawOrgScoped<unknown[]>(prisma, {
+        organizationId: params.organizationId,
+        reason: 'leave_requests_user_emails_lookup',
+        query: `
+            select lower(email)::text as email
+            from nexus_users
+            where organization_id = $1::uuid
+              and id = any($2::uuid[])
+              and email is not null
+              and trim(email) <> ''
+        `,
+        values: [params.organizationId, ids],
+    });
+
+    return (Array.isArray(rows) ? rows : [])
+        .map((r) => {
+            const obj = asObject(r);
+            const email = obj ? getString(obj, 'email') : '';
+            return String(email || '').trim().toLowerCase();
+        })
+        .filter(Boolean);
 }
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
@@ -387,13 +419,13 @@ async function GETHandler(request: NextRequest) {
 
         const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
 
-        const bypassTenantIsolationE2e =
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === '1' ||
-            String(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS || '').toLowerCase() === 'true';
+        const allowUnscoped = isBypassModuleEntitlementsEnabled();
+        if (allowUnscoped) {
+            assertNoProdEntitlementsBypass('api/leave-requests');
+        }
 
         const isDev = process.env.NODE_ENV === 'development';
-        const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
-        const allowUnscoped = bypassTenantIsolationE2e;
+        const isE2E = isE2eTestingEnv();
         if (allowUnscoped && !isDev && !isE2E) {
             console.error('[Security Risk] allowUnscoped attempted in Production');
             return apiError('Unscoped access forbidden in production', { status: 403 });
@@ -506,7 +538,7 @@ async function POSTHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
 
-        const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
+        const { workspaceId: organizationId, orgKey } = await getWorkspaceOrThrow(request);
 
         // Get user from database by email
         if (!user.email) {
@@ -689,6 +721,32 @@ async function POSTHandler(request: NextRequest) {
                         await insertNotifications({ workspaceId: organizationId, notifications });
                     } catch (e: unknown) {
                         console.warn('[API] Could not create notifications:', e);
+                    }
+
+                    // Web Push (PWA) - only for urgent requests
+                    if (isUrgent) {
+                        try {
+                            const recipientEmails = await selectEmailsByUserIdsInOrganization({
+                                organizationId,
+                                userIds: managersToNotify,
+                            });
+
+                            if (recipientEmails.length > 0) {
+                                await sendWebPushNotificationToEmails({
+                                    organizationId,
+                                    emails: recipientEmails,
+                                    payload: {
+                                        title: 'בקשת חופש דחופה',
+                                        body: `${employee.name} - ${leaveTypeLabel} (${startDate} עד ${endDate})`,
+                                        url: buildLeaveRequestTeamUrl({ orgSlug: String(orgKey || '') }),
+                                        tag: `leave-request-${String(leaveRequest.id)}`,
+                                        category: 'alerts',
+                                    },
+                                });
+                            }
+                        } catch (pushError) {
+                            console.warn('[API] Could not send web push (ignored):', pushError);
+                        }
                     }
                 }
             }

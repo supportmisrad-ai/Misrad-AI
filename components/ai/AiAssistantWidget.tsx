@@ -41,6 +41,7 @@ function isSalesPathname(pathname: string): boolean {
 
 export function AiAssistantWidget() {
   const pathname = usePathname() || '/';
+  if (String(pathname).startsWith('/w/')) return null;
   const isSales = useMemo(() => isSalesPathname(pathname), [pathname]);
   const personaLabel = isSales ? 'יועץ מכירות' : 'תמיכה טכנית';
   const fabIcon = isSales ? '💰' : '🤖';

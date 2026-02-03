@@ -64,17 +64,17 @@ export const PERMISSIONS_LIST: { id: PermissionId; label: string; desc: string }
 export const DEFAULT_ROLE_DEFINITIONS: RoleDefinition[] = [
     {
         name: 'מנכ״ל',
-        permissions: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
+        permissions: ['view_financials', 'manage_team', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
         isSystem: true
     },
     {
         name: 'אדמין',
-        permissions: ['view_financials', 'manage_team', 'manage_system', 'delete_data', 'view_intelligence', 'view_crm', 'view_assets'],
+        permissions: ['manage_team', 'view_intelligence', 'view_crm', 'view_assets'],
         isSystem: true
     },
     {
         name: 'סמנכ״ל מכירות',
-        permissions: ['view_financials', 'view_intelligence', 'view_crm', 'view_assets', 'manage_team'],
+        permissions: ['view_intelligence', 'view_crm', 'view_assets', 'manage_team'],
     },
     {
         name: 'מנהלת שיווק',
@@ -94,7 +94,7 @@ export const DEFAULT_ROLE_DEFINITIONS: RoleDefinition[] = [
     },
     {
         name: 'אדמיניסטרציה',
-        permissions: ['view_assets', 'view_crm', 'manage_team', 'view_financials'], 
+        permissions: ['view_assets', 'view_crm', 'manage_team'], 
     },
     {
         name: 'הנהלת חשבונות',

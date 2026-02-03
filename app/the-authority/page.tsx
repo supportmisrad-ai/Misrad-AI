@@ -28,7 +28,7 @@ export default async function TheAuthorityLandingPage() {
           desc: 'העוקב לא הולך לאיבוד — הוא נכנס לתהליך מסודר.',
         },
       ]}
-      ctaPrimaryHref="/sign-up"
+      ctaPrimaryHref="/login?mode=sign-up&plan=the_authority"
       ctaPrimaryLabel="התחל לנהל את הלקוחות בחינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"

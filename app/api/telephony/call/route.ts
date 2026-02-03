@@ -8,7 +8,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { TelephonyService } from '../../../../lib/services/telephony';
-import { createClient } from '@/lib/supabase';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';

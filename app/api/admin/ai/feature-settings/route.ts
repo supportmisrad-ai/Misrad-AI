@@ -1,6 +1,6 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
-import { createClient } from '@/lib/supabase';
 import { requireSuperAdmin } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -21,6 +21,34 @@ type FeatureSettingsRow = {
   updated_at: string;
 };
 
+function toIso(value: any): string {
+  try {
+    if (value instanceof Date) return value.toISOString();
+    const d = new Date(String(value || ''));
+    return Number.isNaN(d.getTime()) ? new Date().toISOString() : d.toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+function toRow(r: any): FeatureSettingsRow {
+  return {
+    id: String(r?.id || ''),
+    organization_id: r?.organization_id ? String(r.organization_id) : null,
+    feature_key: String(r?.feature_key || ''),
+    enabled: Boolean(r?.enabled),
+    primary_provider: String(r?.primary_provider || ''),
+    primary_model: String(r?.primary_model || ''),
+    fallback_provider: r?.fallback_provider ? String(r.fallback_provider) : null,
+    fallback_model: r?.fallback_model ? String(r.fallback_model) : null,
+    base_prompt: r?.base_prompt != null ? String(r.base_prompt) : null,
+    reserve_cost_cents: Number(r?.reserve_cost_cents ?? 0) || 0,
+    timeout_ms: Number(r?.timeout_ms ?? 0) || 0,
+    created_at: toIso(r?.created_at),
+    updated_at: toIso(r?.updated_at),
+  };
+}
+
 async function GETHandler(req: Request) {
   try {
     await requireSuperAdmin();
@@ -30,26 +58,21 @@ async function GETHandler(req: Request) {
     const featureKeyQuery = (url.searchParams.get('q') || '').trim();
     const limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 200)));
 
-    const supabase = createClient();
-
-    let query = supabase
-      .from('ai_feature_settings')
-      .select('*')
-      .order('feature_key', { ascending: true })
-      .limit(limit);
-
+    const where: any = {};
     if (organizationId) {
-      query = query.eq('organization_id', organizationId);
+      where.organization_id = String(organizationId);
     }
-
     if (featureKeyQuery) {
-      query = query.ilike('feature_key', `%${featureKeyQuery}%`);
+      where.feature_key = { contains: String(featureKeyQuery), mode: 'insensitive' };
     }
 
-    const { data, error } = await query;
-    if (error) return apiError(error, { status: 500 });
+    const rows = await prisma.ai_feature_settings.findMany({
+      where,
+      orderBy: { feature_key: 'asc' },
+      take: limit,
+    });
 
-    return apiSuccess({ rows: (data || []) as FeatureSettingsRow[] });
+    return apiSuccess({ rows: (rows || []).map(toRow) });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
@@ -82,19 +105,32 @@ async function POSTHandler(req: Request) {
       base_prompt: body.base_prompt !== undefined ? (body.base_prompt === null ? null : String(body.base_prompt)) : null,
       reserve_cost_cents: Number.isFinite(Number(body.reserve_cost_cents)) ? Math.max(0, Math.floor(Number(body.reserve_cost_cents))) : 25,
       timeout_ms: Number.isFinite(Number(body.timeout_ms)) ? Math.max(1000, Math.floor(Number(body.timeout_ms))) : 30000,
-      updated_at: new Date().toISOString(),
+      updated_at: new Date(),
     };
 
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from('ai_feature_settings')
-      .upsert(patch as any, { onConflict: 'organization_id,feature_key' })
-      .select('*')
-      .maybeSingle();
+    const where: any = {
+      feature_key: featureKey,
+      organization_id: organizationId,
+    };
 
-    if (error) return apiError(error, { status: 500 });
+    const existing = await prisma.ai_feature_settings.findFirst({
+      where,
+      select: { id: true },
+    });
 
-    return apiSuccess({ row: data as any });
+    const row = existing?.id
+      ? await prisma.ai_feature_settings.update({
+          where: { id: String(existing.id) },
+          data: patch,
+        })
+      : await prisma.ai_feature_settings.create({
+          data: {
+            ...patch,
+            created_at: new Date(),
+          },
+        });
+
+    return apiSuccess({ row: toRow(row) });
   } catch (e: any) {
     const msg = String(e?.message || e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
@@ -112,19 +148,16 @@ async function DELETEHandler(req: Request) {
 
     if (!featureKey) return apiError('featureKey is required', { status: 400 });
 
-    const supabase = createClient();
-    let q = supabase.from('ai_feature_settings').delete().eq('feature_key', featureKey);
+    const where: any = { feature_key: featureKey };
 
     if (organizationIdRaw === null) {
-      q = q.is('organization_id', null);
+      where.organization_id = null;
     } else {
       const organizationId = String(organizationIdRaw || '').trim();
-      if (organizationId) q = q.eq('organization_id', organizationId);
-      else q = q.is('organization_id', null);
+      where.organization_id = organizationId ? organizationId : null;
     }
 
-    const { error } = await q;
-    if (error) return apiError(error, { status: 500 });
+    await prisma.ai_feature_settings.deleteMany({ where });
 
     return apiSuccess({ ok: true });
   } catch (e: any) {

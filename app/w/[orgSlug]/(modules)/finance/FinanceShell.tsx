@@ -18,6 +18,7 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
+import { getOSModule } from '@/types/os-modules';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
@@ -240,6 +241,7 @@ export default function FinanceShell(props: {
         onPlusClickAction={togglePlusMenu}
         plusAriaLabel={isPlusMenuOpen ? 'סגור פעולות' : 'פעולה חדשה'}
         plusActive={isPlusMenuOpen}
+        plusGradient={getOSModule('finance')?.gradient}
       />
 
       <AnimatePresence>

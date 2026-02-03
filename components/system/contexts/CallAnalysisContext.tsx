@@ -9,6 +9,15 @@ interface CallAnalysisContextType {
   state: CallAnalysisState;
   history: CallAnalysisResult[];
   startAnalysis: (file: File) => void;
+  analyzeTranscriptText: (
+    transcriptText: string,
+    opts?: {
+      title?: string;
+      fileName?: string;
+      audioUrl?: string;
+      leadId?: string | null;
+    }
+  ) => void;
   cancelAnalysis: () => void;
   resetAnalysis: () => void;
   loadFromHistory: (result: CallAnalysisResult) => void;
@@ -104,6 +113,99 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
         return null;
       })
       .filter(Boolean);
+  };
+
+  const analyzeTranscriptText = async (
+    transcriptText: string,
+    opts?: {
+      title?: string;
+      fileName?: string;
+      audioUrl?: string;
+      leadId?: string | null;
+    }
+  ) => {
+    const clean = String(transcriptText || '').trim();
+    if (!clean) {
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: 'תמלול ריק', progress: 0 }));
+      return;
+    }
+
+    abortControllerRef.current = new AbortController();
+
+    setState({
+      isProcessing: true,
+      progress: 60,
+      currentStep: 'מייצר תובנות והצעות מענה...',
+      fileName: opts?.fileName ? String(opts.fileName) : 'Live',
+      result: null,
+    });
+
+    try {
+      const orgSlug = getOrgSlugFromPath(pathname);
+      if (!orgSlug) {
+        throw new Error('חסר orgSlug בכתובת. נסה לרענן את הדף.');
+      }
+
+      const suggestRes = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/system/call-analyzer/suggest`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ transcriptText: clean }),
+        signal: abortControllerRef.current?.signal,
+      });
+
+      if (suggestRes.status === 402) {
+        const { outputsCount, savedHours } = inferSocialProof(history);
+        setCreditsModal({ open: true, outputsCount, savedHours });
+        setState((prev) => ({ ...prev, isProcessing: false, progress: 0, currentStep: 'נגמרו נקודות AI' }));
+        return;
+      }
+
+      if (!suggestRes.ok) {
+        const err = await suggestRes.json().catch(() => ({} as any));
+        throw new Error(err?.error || 'שגיאה בניתוח');
+      }
+
+      const suggestJson = (await suggestRes.json()) as {
+        result?: any;
+      };
+
+      const aiResult = (suggestJson as any)?.result || {};
+
+      const topicsRaw = (aiResult as any)?.topics || {};
+      const normalizedTopics = {
+        promises: Array.isArray(topicsRaw.promises) ? topicsRaw.promises : [],
+        painPoints: Array.isArray(topicsRaw.painPoints) ? topicsRaw.painPoints : [],
+        likes: Array.isArray(topicsRaw.likes) ? topicsRaw.likes : [],
+        slang: Array.isArray(topicsRaw.slang) ? topicsRaw.slang : [],
+        stories: Array.isArray(topicsRaw.stories) ? topicsRaw.stories : [],
+        decisions: Array.isArray(topicsRaw.decisions) ? topicsRaw.decisions : [],
+        tasks: normalizeTasks(topicsRaw.tasks),
+      };
+
+      const finalResult: CallAnalysisResult = {
+        id: `analysis_${Date.now()}`,
+        fileName: opts?.fileName ? String(opts.fileName) : 'Live',
+        title: opts?.title ? String(opts.title) : (opts?.fileName ? String(opts.fileName) : 'שיחה חיה'),
+        createdAt: new Date().toISOString(),
+        audioUrl: opts?.audioUrl ? String(opts.audioUrl) : '',
+        date: new Date().toISOString(),
+        duration: '0:00',
+        summary: String(aiResult.summary || ''),
+        score: Number.isFinite(Number(aiResult.score)) ? Number(aiResult.score) : 0,
+        intent: (aiResult.intent as any) || 'window_shopping',
+        objections: Array.isArray(aiResult.objections) ? aiResult.objections : [],
+        transcript: Array.isArray(aiResult.transcript) ? aiResult.transcript : [],
+        topics: normalizedTopics as any,
+        feedback: aiResult.feedback || { positive: [], improvements: [] },
+        leadId: opts?.leadId == null ? undefined : String(opts.leadId),
+      } as any;
+
+      setHistory((prev) => [finalResult, ...prev]);
+      setState((prev) => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: error?.message || 'שגיאה בניתוח', progress: 0 }));
+    }
   };
 
   const startAnalysis = async (file: File) => {
@@ -282,6 +384,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     <CallAnalysisContext.Provider value={{ 
         state, history, startAnalysis, cancelAnalysis, 
         resetAnalysis, loadFromHistory, deleteFromHistory, updateHistoryItem,
+        analyzeTranscriptText,
         creditsModal,
         closeCreditsModal,
     }}>

@@ -69,10 +69,13 @@ export default async function OpsContractorPortalPage({
   }
 
   const data = res.data;
-  const workOrdersAll = data.workOrders || [];
+  type PortalData = NonNullable<Awaited<ReturnType<typeof getOperationsContractorPortalData>>['data']>;
+  type PortalWorkOrder = PortalData['workOrders'][number];
+
+  const workOrdersAll: PortalWorkOrder[] = data.workOrders || [];
   const qLower = q.toLowerCase();
   const workOrders = qLower
-    ? workOrdersAll.filter((w: any) => {
+    ? workOrdersAll.filter((w) => {
         const t = String(w.title || '').toLowerCase();
         const p = String(w.projectTitle || '').toLowerCase();
         const a = String(w.installationAddress || '').toLowerCase();
@@ -83,12 +86,17 @@ export default async function OpsContractorPortalPage({
   const selectedWorkOrderId = workOrderId || (workOrders[0]?.id ? String(workOrders[0].id) : null);
   const selectedWorkOrder = selectedWorkOrderId ? workOrders.find((w) => String(w.id) === String(selectedWorkOrderId)) : null;
 
-  const [attachmentsRes, checkinsRes] = selectedWorkOrderId
+  type AttachmentsRes = Awaited<ReturnType<typeof contractorGetWorkOrderAttachments>>;
+  type CheckinsRes = Awaited<ReturnType<typeof contractorGetWorkOrderCheckins>>;
+  const emptyAttachmentsRes: AttachmentsRes = { success: true, data: [] };
+  const emptyCheckinsRes: CheckinsRes = { success: true, data: [] };
+
+  const [attachmentsRes, checkinsRes]: [AttachmentsRes, CheckinsRes] = selectedWorkOrderId
     ? await Promise.all([
         contractorGetWorkOrderAttachments({ token, workOrderId: selectedWorkOrderId }),
         contractorGetWorkOrderCheckins({ token, workOrderId: selectedWorkOrderId }),
       ])
-    : [{ success: true as const, data: [] as any[] }, { success: true as const, data: [] as any[] }];
+    : [emptyAttachmentsRes, emptyCheckinsRes];
 
   const attachments = attachmentsRes.success ? (attachmentsRes.data ?? []) : [];
   const checkins = checkinsRes.success ? (checkinsRes.data ?? []) : [];
@@ -102,7 +110,7 @@ export default async function OpsContractorPortalPage({
     }
 
     const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success) {
+    if (!access.success || !access.organizationId) {
       const msg = access.error ? String(access.error) : 'גישה נדחתה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
@@ -131,7 +139,7 @@ export default async function OpsContractorPortalPage({
     }
 
     const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success) {
+    if (!access.success || !access.organizationId) {
       const msg = access.error ? String(access.error) : 'גישה נדחתה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
@@ -145,11 +153,10 @@ export default async function OpsContractorPortalPage({
     const supabase = createServiceRoleClientScoped({
       reason: 'ops_portal_signature_upload',
       scopeColumn: 'organization_id',
-      scopeId: String((access as any).organizationId || '').trim(),
+      scopeId: String(access.organizationId).trim(),
     });
     const bucket = 'operations-files';
-    const timestamp = Date.now();
-    const filePath = `${String((access as any).organizationId || '').trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/signature-${timestamp}.png`;
+    const filePath = `${String(access.organizationId).trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/signature.png`;
 
     const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
     if (!base64) {
@@ -176,7 +183,7 @@ export default async function OpsContractorPortalPage({
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
       contentType: 'image/png',
-      upsert: false,
+      upsert: true,
     });
 
     if (uploadError) {
@@ -213,7 +220,7 @@ export default async function OpsContractorPortalPage({
     }
 
     const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success) {
+    if (!access.success || !access.organizationId) {
       const msg = access.error ? String(access.error) : 'גישה נדחתה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
@@ -227,12 +234,11 @@ export default async function OpsContractorPortalPage({
     const supabase = createServiceRoleClientScoped({
       reason: 'ops_portal_attachment_upload',
       scopeColumn: 'organization_id',
-      scopeId: String((access as any).organizationId || '').trim(),
+      scopeId: String(access.organizationId).trim(),
     });
     const bucket = 'operations-files';
-    const timestamp = Date.now();
     const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${String((access as any).organizationId || '').trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/${timestamp}-${safeName}`;
+    const filePath = `${String(access.organizationId).trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/${safeName}`;
 
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
@@ -255,7 +261,7 @@ export default async function OpsContractorPortalPage({
 
     const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
       contentType: file.type || 'application/octet-stream',
-      upsert: false,
+      upsert: true,
     });
 
     if (uploadError) {
@@ -295,7 +301,7 @@ export default async function OpsContractorPortalPage({
     }
 
     const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success) {
+    if (!access.success || !access.organizationId) {
       const msg = access.error ? String(access.error) : 'גישה נדחתה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }

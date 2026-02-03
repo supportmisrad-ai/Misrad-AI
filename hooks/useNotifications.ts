@@ -1,22 +1,40 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Notification, User } from '../types';
+import { Notification, Toast, User } from '../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
-export const useNotifications = (currentUser: User, users: User[], addToast: (msg: string, type?: any) => void) => {
+declare global {
+    interface WindowEventMap {
+        nexusNotificationsRefresh: Event;
+    }
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+export const useNotifications = (
+    currentUser: User,
+    users: User[],
+    addToast: (msg: string, type?: Toast['type']) => void
+) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
 
-    const mergeServerNotifications = (serverRows: any[]) => {
-        const mapped: Notification[] = (Array.isArray(serverRows) ? serverRows : []).map((row: any) => {
-            const metadata = row.metadata || {};
-            const taskId = metadata.taskId || row.related_id || row.relatedId;
-            const createdAt = row.created_at || row.createdAt;
-            const time = createdAt
-                ? new Date(createdAt).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    const mergeServerNotifications = (serverRows: unknown[]) => {
+        const mapped: Notification[] = (Array.isArray(serverRows) ? serverRows : []).map((row) => {
+            const rowObj = asObject(row) ?? {};
+            const metadataObj = asObject(rowObj.metadata) ?? {};
+            const taskIdValue = metadataObj.taskId ?? rowObj.related_id ?? rowObj.relatedId;
+            const createdAtValue = rowObj.created_at ?? rowObj.createdAt;
+            const time = createdAtValue
+                ? new Date(String(createdAtValue)).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
                 : new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
 
-            const typeRaw = row.type;
+            const typeRaw = rowObj.type;
+            const serverType = typeof typeRaw === 'string' ? typeRaw : String(typeRaw ?? '');
             const type: Notification['type'] =
                 typeRaw === 'task_assigned' ? 'info' :
                 typeRaw === 'task_status' ? 'info' :
@@ -26,18 +44,30 @@ export const useNotifications = (currentUser: User, users: User[], addToast: (ms
                 'system';
 
             return {
-                id: String(row.id || `${row.recipient_id}-${row.related_id}-${createdAt}`),
+                id: String(rowObj.id || `${rowObj.recipient_id}-${rowObj.related_id}-${createdAtValue}`),
                 // Server is already scoped to the current user, but recipient_id may be a DB UUID.
                 // Normalize to currentUser.id so UI filtering works consistently.
                 recipientId: String(currentUser.id),
                 type,
-                text: String(row.text || ''),
+                text: typeof rowObj.text === 'string' ? rowObj.text : String(rowObj.text ?? ''),
                 time,
-                read: Boolean(row.is_read ?? row.isRead ?? false),
-                actorName: row.actor_name || row.actorName,
-                actorAvatar: row.actor_avatar || row.actorAvatar,
-                taskId: taskId ? String(taskId) : undefined,
-            } as Notification;
+                read: Boolean(rowObj.is_read ?? rowObj.isRead ?? false),
+                actorName:
+                    typeof rowObj.actor_name === 'string'
+                        ? rowObj.actor_name
+                        : typeof rowObj.actorName === 'string'
+                            ? rowObj.actorName
+                            : undefined,
+                actorAvatar:
+                    typeof rowObj.actor_avatar === 'string'
+                        ? rowObj.actor_avatar
+                        : typeof rowObj.actorAvatar === 'string'
+                            ? rowObj.actorAvatar
+                            : undefined,
+                taskId: taskIdValue == null ? undefined : String(taskIdValue),
+                serverType,
+                metadata: metadataObj,
+            };
         });
 
         setNotifications(prev => {
@@ -65,8 +95,10 @@ export const useNotifications = (currentUser: User, users: User[], addToast: (ms
                 },
             });
             if (!res.ok) return;
-            const data = await res.json();
-            mergeServerNotifications(data?.notifications || []);
+            const data: unknown = await res.json();
+            const dataObj = asObject(data) ?? {};
+            const notificationsValue = dataObj.notifications;
+            mergeServerNotifications(Array.isArray(notificationsValue) ? notificationsValue : []);
         } catch (e) {
             // ignore (notifications are non-blocking)
         }
@@ -88,9 +120,9 @@ export const useNotifications = (currentUser: User, users: User[], addToast: (ms
         const handler = () => {
             fetchServerNotifications();
         };
-        window.addEventListener('nexusNotificationsRefresh', handler as any);
+        window.addEventListener('nexusNotificationsRefresh', handler);
         return () => {
-            window.removeEventListener('nexusNotificationsRefresh', handler as any);
+            window.removeEventListener('nexusNotificationsRefresh', handler);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser?.id]);

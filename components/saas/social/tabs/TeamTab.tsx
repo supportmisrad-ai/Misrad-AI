@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Shield, Trash2, User } from 'lucide-react';
 import { getSocialTeam, removeSocialUser, updateSocialUserRole } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
+import { Toast } from '@/types';
 
 type SocialRole = 'super_admin' | 'owner' | 'team_member';
 
@@ -29,7 +30,7 @@ export function TeamTab({
   addToast,
 }: {
   tenantId: string | null;
-  addToast: (message: string, type?: string) => void;
+  addToast: (message: string, type?: Toast['type']) => void;
 }) {
   const [rows, setRows] = useState<SocialTeamUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);

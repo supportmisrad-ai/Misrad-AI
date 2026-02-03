@@ -7,20 +7,55 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { RoleDefinition } from '../../../types';
+import { PermissionId, RoleDefinition } from '../../../types';
 import { logAuditEvent } from '../../../lib/audit';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapRoleRow(row: any): RoleDefinition {
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(value: unknown): UnknownRecord | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as UnknownRecord;
+}
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error && error.message) return error.message;
+    const obj = asObject(error);
+    const msg = obj?.message;
+    return typeof msg === 'string' ? msg : '';
+}
+
+const PERMISSION_IDS: readonly PermissionId[] = [
+    'view_financials',
+    'manage_team',
+    'manage_system',
+    'delete_data',
+    'view_intelligence',
+    'view_crm',
+    'view_assets',
+] as const;
+
+function isPermissionId(value: unknown): value is PermissionId {
+    return typeof value === 'string' && (PERMISSION_IDS as readonly string[]).includes(value);
+}
+
+function normalizePermissions(value: unknown): PermissionId[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter(isPermissionId);
+}
+
+function mapRoleRow(row: unknown): RoleDefinition {
+    const r = asObject(row) ?? {};
     return {
-        id: row?.id,
-        name: row?.name,
-        permissions: (row?.permissions || []) as any,
-        isSystem: row?.is_system || false,
-        description: row?.description,
-    } as any;
+        id: r.id ? String(r.id) : undefined,
+        name: String(r.name || ''),
+        permissions: normalizePermissions(r.permissions),
+        isSystem: Boolean(r.is_system ?? false),
+        description: r.description == null ? undefined : String(r.description),
+    };
 }
 async function GETHandler(request: NextRequest) {
     try {
@@ -28,7 +63,7 @@ async function GETHandler(request: NextRequest) {
         let user;
         try {
             user = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch {
             // Return 401 if authentication fails
             return NextResponse.json(
                 { error: 'Unauthorized - Please sign in' },
@@ -36,30 +71,24 @@ async function GETHandler(request: NextRequest) {
             );
         }
         
-        const supabase = createClient();
-
         // All authenticated users can view roles (needed for selecting roles when editing users)
         // Only creating/editing roles requires manage_system permission
-        const { data, error } = await supabase
-            .from('misrad_roles')
-            .select('*')
-            .order('name');
+        const data = await prisma.scale_roles.findMany({
+            orderBy: { name: 'asc' },
+        });
 
-        if (error) {
-            throw error;
-        }
-
-        const roles = (Array.isArray(data) ? data : []).map(mapRoleRow);
+        const roles = (Array.isArray(data) ? data : []).map((row) => mapRoleRow(row));
         
         return NextResponse.json({ roles });
         
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error fetching roles:', error);
+        const msg = getErrorMessage(error);
         
-        if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+        if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {
             return NextResponse.json(
-                { error: error.message },
-                { status: error.message.includes('Forbidden') ? 403 : 401 }
+                { error: msg },
+                { status: msg.includes('Forbidden') ? 403 : 401 }
             );
         }
         
@@ -77,8 +106,13 @@ async function POSTHandler(request: NextRequest) {
         // Only users with manage_system permission can create roles
         await requirePermission('manage_system');
         
-        const body = await request.json();
-        const { name, permissions, description, isSystem } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+
+        const name = bodyObj.name;
+        const permissions = bodyObj.permissions;
+        const description = bodyObj.description;
+        const isSystem = bodyObj.isSystem;
         
         if (!name || typeof name !== 'string') {
             return NextResponse.json(
@@ -94,32 +128,32 @@ async function POSTHandler(request: NextRequest) {
                 { status: 400 }
             );
         }
+
+        const parsedPermissions = normalizePermissions(permissions);
         
-        const newRole: Omit<RoleDefinition, 'id'> = {
-            name: name.trim(),
-            permissions: permissions || [],
-            isSystem: isSystem || false,
-            ...(description && { description })
-        } as any;
-
-        const supabase = createClient();
-
-        const { data, error } = await supabase
-            .from('misrad_roles')
-            .insert({
-                name: (newRole as any).name,
-                permissions: (newRole as any).permissions,
-                is_system: (newRole as any).isSystem || false,
-                description: (newRole as any).description || null,
-            })
-            .select('*')
-            .single();
-
-        if (error) {
-            throw error;
+        let created;
+        try {
+            created = await prisma.scale_roles.create({
+                data: {
+                    name: name.trim(),
+                    permissions: parsedPermissions,
+                    is_system: Boolean(isSystem),
+                    description: description == null ? null : String(description),
+                },
+            });
+        } catch (e: unknown) {
+            // Prisma unique constraint
+            const code = String(asObject(e)?.code || '');
+            if (code === 'P2002') {
+                return NextResponse.json(
+                    { error: 'Role with this name already exists' },
+                    { status: 409 }
+                );
+            }
+            throw e;
         }
 
-        const createdRole = mapRoleRow(data);
+        const createdRole = mapRoleRow(created);
         
         await logAuditEvent('role.create', 'role', {
             resourceId: createdRole.id,
@@ -131,26 +165,19 @@ async function POSTHandler(request: NextRequest) {
         
         return NextResponse.json({ success: true, role: createdRole });
         
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[API] Error creating role:', error);
+        const msg = getErrorMessage(error);
         
-        if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+        if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {
             return NextResponse.json(
-                { error: error.message },
-                { status: error.message.includes('Forbidden') ? 403 : 401 }
-            );
-        }
-        
-        // Check for duplicate role name
-        if (error.message?.includes('duplicate') || error.code === '23505') {
-            return NextResponse.json(
-                { error: 'Role with this name already exists' },
-                { status: 409 }
+                { error: msg },
+                { status: msg.includes('Forbidden') ? 403 : 401 }
             );
         }
         
         return NextResponse.json(
-            { error: error.message || 'Failed to create role' },
+            { error: msg || 'Failed to create role' },
             { status: 500 }
         );
     }

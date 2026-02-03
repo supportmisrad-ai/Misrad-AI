@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
-import { createClient } from '@/lib/supabase';
+import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import type { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -15,87 +16,80 @@ type AnalysisReport = {
   mode: 'manager' | 'employee';
   summary: string;
   score: number;
-  actionableSteps: any[];
-  suggestedLinks: any[];
-  employees?: any;
-  revenueInsight?: any;
-  personalTasksAnalysis?: any;
+  actionableSteps: unknown[];
+  suggestedLinks: unknown[];
+  employees?: unknown;
+  revenueInsight?: unknown;
+  personalTasksAnalysis?: unknown;
 };
 
-function readAiDnaObject(input: any): Record<string, any> {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
-  return input as Record<string, any>;
+type UnknownRecord = Record<string, unknown>;
+
+function asObject(input: unknown): UnknownRecord | null {
+  if (!input || typeof input !== 'object') return null;
+  if (Array.isArray(input)) return null;
+  return input as UnknownRecord;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const obj = asObject(error);
+  const msg = obj?.message;
+  return typeof msg === 'string' ? msg : '';
+}
+
+function readAiDnaObject(input: unknown): UnknownRecord {
+  return asObject(input) ?? {};
 }
 
 async function GETHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ organizationId: null, history: [] }, { status: 200 });
 
     await requirePermission('view_intelligence');
 
     await getAuthenticatedUser();
 
     const { workspace } = await getWorkspaceOrThrow(request);
-    const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', workspace.id)
-      .maybeSingle();
+    const data = await prisma.organization_settings.findUnique({
+      where: { organization_id: String(workspace.id) },
+      select: { ai_dna: true },
+    });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    const aiDna = readAiDnaObject(data?.ai_dna);
+    const byUser = asObject(aiDna[FLAG_KEY_AI_HISTORY_BY_USER]) ?? {};
 
-    const aiDna = readAiDnaObject((data as any)?.ai_dna);
-    const byUser = aiDna?.[FLAG_KEY_AI_HISTORY_BY_USER] && typeof aiDna[FLAG_KEY_AI_HISTORY_BY_USER] === 'object'
-      ? aiDna[FLAG_KEY_AI_HISTORY_BY_USER]
-      : {};
-
-    const history = Array.isArray((byUser as any)?.[userId]) ? (byUser as any)[userId] : [];
+    const history = Array.isArray(byUser[userId]) ? (byUser[userId] as unknown[]) : [];
 
     return NextResponse.json({ organizationId: workspace.id, history }, { status: 200 });
-  } catch (e: any) {
-    const msg = e?.message || 'Internal server error';
-    if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
-    }
-    const status = msg.includes('Forbidden') ? 403 : 500;
-    return NextResponse.json({ error: msg }, { status });
+  } catch {
+    return NextResponse.json({ organizationId: null, history: [] }, { status: 200 });
   }
 }
 
 async function PATCHHandler(request: NextRequest) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!userId) return NextResponse.json({ success: false, organizationId: null, history: [] }, { status: 200 });
 
     await requirePermission('view_intelligence');
 
     await getAuthenticatedUser();
 
     const { workspace } = await getWorkspaceOrThrow(request);
-    const supabase = createClient();
 
     const body = (await request.json().catch(() => null)) as { history?: AnalysisReport[] } | null;
     const nextHistory = Array.isArray(body?.history) ? body?.history : [];
 
-    const { data: existing, error: existingError } = await supabase
-      .from('organization_settings')
-      .select('ai_dna')
-      .eq('organization_id', workspace.id)
-      .maybeSingle();
+    const existing = await prisma.organization_settings.findUnique({
+      where: { organization_id: String(workspace.id) },
+      select: { ai_dna: true },
+    });
 
-    if (existingError) {
-      return NextResponse.json({ error: existingError.message }, { status: 500 });
-    }
-
-    const currentAiDna = readAiDnaObject((existing as any)?.ai_dna);
-    const currentByUser = currentAiDna?.[FLAG_KEY_AI_HISTORY_BY_USER] && typeof currentAiDna[FLAG_KEY_AI_HISTORY_BY_USER] === 'object'
-      ? currentAiDna[FLAG_KEY_AI_HISTORY_BY_USER]
-      : {};
+    const currentAiDna = readAiDnaObject(existing?.ai_dna);
+    const currentByUser = asObject(currentAiDna[FLAG_KEY_AI_HISTORY_BY_USER]) ?? {};
 
     const nextByUser = {
       ...currentByUser,
@@ -107,34 +101,25 @@ async function PATCHHandler(request: NextRequest) {
       [FLAG_KEY_AI_HISTORY_BY_USER]: nextByUser,
     };
 
-    const now = new Date().toISOString();
-    const { error } = await supabase
-      .from('organization_settings')
-      .upsert(
-        {
-          organization_id: workspace.id,
-          ai_dna: nextAiDna,
-          updated_at: now,
-        } as any,
-        { onConflict: 'organization_id' }
-      );
+    await prisma.organization_settings.upsert({
+      where: { organization_id: String(workspace.id) },
+      create: {
+        organization_id: String(workspace.id),
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
+        updated_at: new Date(),
+      },
+      update: {
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
+        updated_at: new Date(),
+      },
+    });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const history = Array.isArray((nextAiDna as any)?.[FLAG_KEY_AI_HISTORY_BY_USER]?.[userId])
-      ? (nextAiDna as any)[FLAG_KEY_AI_HISTORY_BY_USER][userId]
-      : [];
+    const nextByUserObj = asObject((nextAiDna as UnknownRecord)[FLAG_KEY_AI_HISTORY_BY_USER]) ?? {};
+    const history = Array.isArray(nextByUserObj[userId]) ? (nextByUserObj[userId] as unknown[]) : [];
 
     return NextResponse.json({ success: true, organizationId: workspace.id, history }, { status: 200 });
-  } catch (e: any) {
-    const msg = e?.message || 'Internal server error';
-    if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
-    }
-    const status = msg.includes('Forbidden') ? 403 : 500;
-    return NextResponse.json({ error: msg }, { status });
+  } catch {
+    return NextResponse.json({ success: false, organizationId: null, history: [] }, { status: 200 });
   }
 }
 

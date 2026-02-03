@@ -64,11 +64,6 @@ function resolveBaseURLForStorageState(params: { baseURL: string; storageStatePa
     if (authCookieDomains.has(host)) return params.baseURL;
 
     // Most common mismatch on local dev: cookies are set for localhost but tests run on 127.0.0.1.
-    if (host === '127.0.0.1' && authCookieDomains.has('localhost')) {
-      url.hostname = 'localhost';
-      return url.toString().replace(/\/$/, '');
-    }
-
     return params.baseURL;
   } catch {
     return params.baseURL;
@@ -87,7 +82,11 @@ async function getWhoami(params: { baseURL: string; e2eKey: string; context: Bro
   });
   const json = (await res.json().catch(() => null)) as WhoamiResponse | null;
   if (!res.ok() || !json?.ok || !json?.clerkUserId) {
-    throw new Error(`whoami failed: HTTP ${res.status()} ${JSON.stringify(json)}`);
+    const hint =
+      res.status() === 401 || json?.error === 'NoAuthSession'
+        ? ' (storageState is likely expired or missing Clerk __refresh_* cookie. Re-run tests/e2e/setup-auth.spec.ts for both victim+attacker with E2E_REQUIRE_REFRESH_COOKIE=1, and ensure your system clock is synced)'
+        : '';
+    throw new Error(`whoami failed: HTTP ${res.status()} ${JSON.stringify(json)}${hint}`);
   }
   return { clerkUserId: json.clerkUserId, email: json.email ?? null };
 }
@@ -168,17 +167,76 @@ async function rlsCheck(params: {
   return json;
 }
 
+async function prismaTenantGuardProbe(params: { baseURL: string; e2eKey: string; context: BrowserContext }) {
+  const res = await params.context.request.get(`${params.baseURL}/api/e2e/prisma-tenant-guard`, {
+    headers: { 'x-e2e-key': params.e2eKey },
+    timeout: 60_000,
+  });
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; blocked?: boolean; error?: string } | null;
+  return { res, json };
+}
+
+async function orgSpoofProbe(params: {
+  baseURL: string;
+  e2eKey: string;
+  context: BrowserContext;
+  orgKey: string;
+}) {
+  const res = await params.context.request.get(`${params.baseURL}/api/e2e/x-org-id-spoof-system-leads`, {
+    headers: { 'x-e2e-key': params.e2eKey, 'x-org-id': params.orgKey },
+    timeout: 60_000,
+  });
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; blocked?: boolean; error?: string } | null;
+  return { res, json };
+}
+
 async function createAuthedContext(params: {
   baseURL: string;
   storageStatePath: string;
 }) {
   const browser = await chromium.launch();
-  const context = await browser.newContext({ storageState: params.storageStatePath });
-  const page = await context.newPage();
+
+  const storageState = (() => {
+    try {
+      const baseHost = new URL(params.baseURL).hostname;
+      const raw = fs.readFileSync(params.storageStatePath, 'utf-8');
+      const parsed = JSON.parse(raw || '{}') as any;
+      const cookies = Array.isArray(parsed?.cookies) ? (parsed.cookies as any[]) : [];
+
+      const rewrittenCookies = cookies.map((c) => {
+        if (!c || typeof c !== 'object') return c;
+        const domainRaw = String(c.domain || '').replace(/^\./, '').trim();
+        const name = String(c.name || '').trim();
+        const isClerkCookie =
+          name === '__session' || name.startsWith('__clerk') || name.startsWith('__client') || name.startsWith('__refresh');
+
+        if (isClerkCookie && domainRaw === 'localhost' && baseHost === '127.0.0.1') {
+          return {
+            ...c,
+            domain: '127.0.0.1',
+            secure: false,
+            sameSite: c.sameSite === 'None' ? 'Lax' : c.sameSite,
+          };
+        }
+
+        return c;
+      });
+
+      return { ...parsed, cookies: rewrittenCookies };
+    } catch {
+      return params.storageStatePath;
+    }
+  })();
+
+  const context = await browser.newContext({ storageState });
 
   // Give Clerk a chance to refresh/rotate session cookies inside a real browser context.
-  await page.goto(`${params.baseURL}/workspaces`, { waitUntil: 'domcontentloaded', timeout: 120_000 });
-  await page.waitForTimeout(750);
+  // Avoid /workspaces here because it may redirect/loop depending on org access.
+  const page = await context.newPage();
+  await page
+    .goto(`${params.baseURL}/login?redirect_url=%2F`, { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    .catch(() => undefined);
+  await page.waitForTimeout(1500);
 
   return { browser, context };
 }
@@ -250,6 +308,19 @@ test.describe('Tenant Isolation (RLS battle test)', () => {
         otherPostId: String(seeded.attackerSocialPost!.id),
       });
 
+    if (
+      !victimCheck.expectedOrg?.visible ||
+      victimCheck.otherOrg?.visible ||
+      !victimCheck.expectedClient?.visible ||
+      victimCheck.otherClient?.visible ||
+      !victimCheck.expectedLead?.visible ||
+      victimCheck.otherLead?.visible ||
+      !victimCheck.expectedPost?.visible ||
+      victimCheck.otherPost?.visible
+    ) {
+      throw new Error(`victim rls-check mismatch: ${JSON.stringify(victimCheck)}`);
+    }
+
     expect(victimCheck.currentOrgId).toEqual(targetOrgId);
     expect(victimCheck.expectedOrg?.visible).toBe(true);
     expect(victimCheck.otherOrg?.visible).toBe(false);
@@ -274,6 +345,19 @@ test.describe('Tenant Isolation (RLS battle test)', () => {
         otherPostId: String(seeded.victimSocialPost!.id),
       });
 
+    if (
+      !attackerCheck.expectedOrg?.visible ||
+      attackerCheck.otherOrg?.visible ||
+      !attackerCheck.expectedClient?.visible ||
+      attackerCheck.otherClient?.visible ||
+      !attackerCheck.expectedLead?.visible ||
+      attackerCheck.otherLead?.visible ||
+      !attackerCheck.expectedPost?.visible ||
+      attackerCheck.otherPost?.visible
+    ) {
+      throw new Error(`attacker rls-check mismatch: ${JSON.stringify(attackerCheck)}`);
+    }
+
     expect(attackerCheck.currentOrgId).toEqual(attackerOrgId);
     expect(attackerCheck.expectedOrg?.visible).toBe(true);
     expect(attackerCheck.otherOrg?.visible).toBe(false);
@@ -283,6 +367,24 @@ test.describe('Tenant Isolation (RLS battle test)', () => {
     expect(attackerCheck.otherLead?.visible).toBe(false);
     expect(attackerCheck.expectedPost?.visible).toBe(true);
       expect(attackerCheck.otherPost?.visible).toBe(false);
+
+      {
+        const probe = await prismaTenantGuardProbe({ baseURL: victimBaseURL, e2eKey, context: victimContext });
+        expect(probe.res.status()).toBe(500);
+        expect(probe.json?.ok).toBe(true);
+        expect(probe.json?.blocked).toBe(true);
+      }
+
+      {
+        const probe = await orgSpoofProbe({
+          baseURL: victimBaseURL,
+          e2eKey,
+          context: victimContext,
+          orgKey: String(seeded.orgAttacker!.slug || seeded.orgAttacker!.id),
+        });
+        expect([400, 401, 403]).toContain(probe.res.status());
+        expect(probe.json?.ok).toBe(false);
+      }
     } finally {
       await victimContext?.close().catch(() => undefined);
       await attackerContext?.close().catch(() => undefined);

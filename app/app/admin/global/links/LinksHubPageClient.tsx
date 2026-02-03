@@ -260,7 +260,7 @@ function getLinks(): HubLink[] {
     {
       id: 'auth-signup',
       title: 'הרשמה',
-      href: '/sign-up',
+      href: '/login?mode=sign-up',
       category: 'Auth',
       icon: KeyRound,
     },

@@ -12,21 +12,12 @@ import {
     markAllSystemNotificationsRead,
     markSystemNotificationRead,
 } from '@/app/actions/system-notifications';
+import type { SystemNotificationDTO } from '@/lib/services/system/notifications';
 
 type NotificationType = 'success' | 'warning' | 'error' | 'info' | 'financial';
 type Category = 'all' | 'leads' | 'finance' | 'system' | 'tasks';
 
-interface NotificationItem {
-    id: string;
-    title: string;
-    description: string;
-    time: string; // Relative time
-    type: NotificationType;
-    category: Category;
-    isRead: boolean;
-    actionLabel?: string;
-    link?: string | null;
-}
+type NotificationItem = SystemNotificationDTO;
 
 function orgSlugFromPathname(pathname: string | null | undefined): string | null {
     if (!pathname) return null;
@@ -62,7 +53,7 @@ const NotificationsView: React.FC<{ orgSlug?: string; initialNotifications?: Not
         void (async () => {
             try {
                 const rows = await getSystemNotifications({ orgSlug: resolvedOrgSlug, limit: 200 });
-                setNotifications(rows as any);
+                setNotifications(rows);
             } catch {
                 // ignore
             }

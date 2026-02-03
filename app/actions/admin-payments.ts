@@ -1,9 +1,16 @@
 'use server';
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import type { ActionResult } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
 
 function toNumber(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -45,19 +52,17 @@ async function logAdminPaymentAction(params: {
 /**
  * Get all payments (admin view)
  */
-export async function getAllPayments(): Promise<{
-  success: boolean;
-  data?: {
-    paymentOrders: any[];
-    invoices: any[];
-    subscriptionOrders: any[];
-  };
-  error?: string;
-}> {
+export async function getAllPayments(): Promise<
+  ActionResult<{
+    paymentOrders: Array<Record<string, unknown>>;
+    invoices: Array<Record<string, unknown>>;
+    subscriptionOrders: Array<Record<string, unknown>>;
+  }>
+> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return createErrorResponse(authCheck.error || 'נדרשת התחברות', authCheck.error || 'נדרשת התחברות');
     }
 
     await requireSuperAdmin();
@@ -76,50 +81,59 @@ export async function getAllPayments(): Promise<{
 
     const clientIds = Array.from(
       new Set([
-        ...paymentOrdersRows.map((r) => String((r as any).client_id || '')),
-        ...invoiceRows.map((r) => String((r as any).client_id || '')),
+        ...paymentOrdersRows.map((r) => String(asObject(r)?.client_id || '')),
+        ...invoiceRows.map((r) => String(asObject(r)?.client_id || '')),
       ].filter(Boolean))
     );
 
     const clients = clientIds.length
       ? await prisma.clients.findMany({
-          where: { id: { in: clientIds } } as any,
+          where: { id: { in: clientIds } },
           select: { id: true, company_name: true, email: true, avatar: true },
         })
       : [];
 
     const clientById = new Map<string, { id: string; company_name: string; email: string | null; avatar: string | null }>();
     for (const c of clients) {
-      clientById.set(String((c as any).id), {
-        id: String((c as any).id),
-        company_name: String((c as any).company_name ?? ''),
-        email: (c as any).email == null ? null : String((c as any).email),
-        avatar: (c as any).avatar == null ? null : String((c as any).avatar),
+      const cObj = asObject(c) ?? {};
+      const id = String(cObj.id ?? '');
+      if (!id) continue;
+      clientById.set(id, {
+        id,
+        company_name: String(cObj.company_name ?? ''),
+        email: cObj.email == null ? null : String(cObj.email),
+        avatar: cObj.avatar == null ? null : String(cObj.avatar),
       });
     }
 
     const paymentOrders = paymentOrdersRows.map((row) => {
-      const clientId = String((row as any).client_id || '');
+      const rowObj = asObject(row) ?? {};
+      const clientId = String(rowObj.client_id || '');
       return {
-        ...(row as any),
-        amount: toNumber((row as any).amount),
+        ...rowObj,
+        amount: toNumber(rowObj.amount),
         clients: clientById.get(clientId) ?? null,
       };
     });
 
     const invoices = invoiceRows.map((row) => {
-      const clientId = String((row as any).client_id || '');
+      const rowObj = asObject(row) ?? {};
+      const clientId = String(rowObj.client_id || '');
       return {
-        ...(row as any),
-        amount: toNumber((row as any).amount),
+        ...rowObj,
+        amount: toNumber(rowObj.amount),
         clients: clientById.get(clientId) ?? null,
       };
     });
 
+    const subscriptionOrdersOut = (Array.isArray(subscriptionOrders) ? subscriptionOrders : []).map(
+      (row) => asObject(row) ?? {}
+    );
+
     return createSuccessResponse({
       paymentOrders: paymentOrders || [],
       invoices: invoices || [],
-      subscriptionOrders: (subscriptionOrders as any[]) || [],
+      subscriptionOrders: subscriptionOrdersOut || [],
     });
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת תשלומים');
@@ -132,11 +146,11 @@ export async function getAllPayments(): Promise<{
 export async function updatePaymentOrderStatus(
   orderId: string,
   status: 'pending' | 'paid' | 'cancelled'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<ActionResult<true>> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return createErrorResponse(authCheck.error || 'נדרשת התחברות', authCheck.error || 'נדרשת התחברות');
     }
 
     await requireSuperAdmin();
@@ -150,11 +164,13 @@ export async function updatePaymentOrderStatus(
       return createErrorResponse(new Error('Payment order not found'), 'הזמנה לא נמצאה');
     }
 
-    const clientId = String((existing as any).client_id || '').trim();
+    const existingObj = asObject(existing) ?? {};
+    const clientId = String(existingObj.client_id || '').trim();
     const clientOrg = clientId
-      ? await prisma.clients.findFirst({ where: { id: clientId } as any, select: { organization_id: true } })
+      ? await prisma.clients.findFirst({ where: { id: clientId }, select: { organization_id: true } })
       : null;
-    const organizationId = String((clientOrg as any)?.organization_id || '').trim();
+    const clientOrgObj = asObject(clientOrg) ?? {};
+    const organizationId = String(clientOrgObj.organization_id || '').trim();
     if (!organizationId) {
       return createErrorResponse(null, 'Tenant Isolation lockdown: להזמנת תשלום אין organization_id');
     }
@@ -183,11 +199,11 @@ export async function updatePaymentOrderStatus(
 export async function updateInvoiceStatus(
   invoiceId: string,
   status: 'paid' | 'pending' | 'overdue'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<ActionResult<true>> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return createErrorResponse(authCheck.error || 'נדרשת התחברות', authCheck.error || 'נדרשת התחברות');
     }
 
     await requireSuperAdmin();
@@ -201,11 +217,13 @@ export async function updateInvoiceStatus(
       return createErrorResponse(new Error('Invoice not found'), 'חשבונית לא נמצאה');
     }
 
-    const clientId = String((existing as any).client_id || '').trim();
+    const existingObj = asObject(existing) ?? {};
+    const clientId = String(existingObj.client_id || '').trim();
     const clientOrg = clientId
-      ? await prisma.clients.findFirst({ where: { id: clientId } as any, select: { organization_id: true } })
+      ? await prisma.clients.findFirst({ where: { id: clientId }, select: { organization_id: true } })
       : null;
-    const organizationId = String((clientOrg as any)?.organization_id || '').trim();
+    const clientOrgObj = asObject(clientOrg) ?? {};
+    const organizationId = String(clientOrgObj.organization_id || '').trim();
     if (!organizationId) {
       return createErrorResponse(null, 'Tenant Isolation lockdown: לחשבונית אין organization_id');
     }

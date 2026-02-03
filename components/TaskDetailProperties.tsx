@@ -7,6 +7,8 @@ import { Activity, AlertTriangle, User as UserIcon, Calendar, Briefcase, Timer, 
 import { CustomSelect } from './CustomSelect';
 import { CustomDatePicker } from './CustomDatePicker';
 import { CustomTimePicker } from './CustomTimePicker';
+import { useSecondTicker } from '../hooks/useSecondTicker';
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
 interface TaskDetailPropertiesProps {
     task: Task;
@@ -45,6 +47,28 @@ const formatTime = (seconds: number) => {
     return `${m} דק׳`;
 };
 
+const getLiveTimeSpentSeconds = (task: Task, nowMs: number): number => {
+    const base = Number(task.timeSpent ?? 0) || 0;
+    if (!task.isTimerRunning) return base;
+    if (typeof window === 'undefined') return base;
+
+    const orgSlug = getWorkspaceOrgSlugFromPathname(window.location.pathname);
+    if (!orgSlug) return base;
+
+    try {
+        const raw = window.sessionStorage.getItem(`nexus_task_timers_v1:${orgSlug}`);
+        if (!raw) return base;
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return base;
+        const startedAt = (parsed as Record<string, unknown>)[String(task.id)];
+        if (typeof startedAt !== 'number' || !Number.isFinite(startedAt) || startedAt <= 0) return base;
+        const deltaSeconds = Math.floor(Math.max(0, nowMs - startedAt) / 1000);
+        return base + deltaSeconds;
+    } catch {
+        return base;
+    }
+};
+
 const RenderLabel = ({ icon, label }: { icon: any, label: string }) => (
     <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2.5">
         {icon} {label}
@@ -53,6 +77,8 @@ const RenderLabel = ({ icon, label }: { icon: any, label: string }) => (
 
 export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task, onOpenPopover, activePopover }) => {
     const { users, updateTask, workflowStages, clients } = useData();
+    const nowMs = useSecondTicker(Boolean(task.isTimerRunning));
+    const liveTimeSpent = getLiveTimeSpentSeconds(task, nowMs);
     
     // Refs for button positioning
     const assigneeButtonRef = useRef<HTMLButtonElement>(null);
@@ -218,7 +244,7 @@ export const TaskDetailProperties: React.FC<TaskDetailPropertiesProps> = ({ task
                 <div className="flex-1 relative opacity-70 hover:opacity-100 transition-opacity">
                     <RenderLabel icon={<Clock size={12} />} label="בפועל" />
                     <div className={`${BUTTON_CLASS} cursor-default hover:bg-gray-50`}>
-                        <span className="font-mono font-bold text-gray-900">{formatTime(task.timeSpent || 0)}</span>
+                        <span className="font-mono font-bold text-gray-900">{formatTime(liveTimeSpent || 0)}</span>
                         <Info size={14} className="text-gray-300" />
                     </div>
                 </div>

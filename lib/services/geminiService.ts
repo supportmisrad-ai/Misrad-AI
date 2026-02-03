@@ -41,6 +41,18 @@ export const generatePostVariations = async (
     הקפד על עברית טבעית, זורמת ומותאמת לקהל הישראלי.
   `;
 
+  function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+  }
+
+  function asStringArray(value: unknown): string[] | null {
+    if (!Array.isArray(value)) return null;
+    if (!value.every((v) => typeof v === 'string')) return null;
+    return value as string[];
+  }
+
   try {
     const res = await fetch('/api/ai/analyze', {
       method: 'POST',
@@ -52,14 +64,16 @@ export const generatePostVariations = async (
     });
 
     if (!res.ok) return [];
-    const data = (await res.json().catch(() => ({}))) as any;
-    const result = data?.result;
-    if (!result?.actionableSteps) return [];
+    const data = (await res.json().catch(() => ({}))) as unknown;
+    const dataObj = asObject(data);
+    const resultObj = asObject(dataObj?.result);
+    const steps = asStringArray(resultObj?.actionableSteps);
+    if (!steps) return [];
 
     // Fallback: convert actionable steps into variations
-    return (result.actionableSteps as string[]).slice(0, 3).map((content, i) => ({
+    return steps.slice(0, 3).map((content, i) => ({
       id: `var-${Date.now()}-${i}`,
-      type: ['sales', 'social', 'value'][i] as any,
+      type: ['sales', 'social', 'value'][i] || 'value',
       content,
       imageSuggestion: '',
     }));

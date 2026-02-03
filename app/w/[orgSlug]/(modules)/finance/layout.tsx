@@ -8,7 +8,6 @@ import {
 } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import FinanceModuleEntryClient from './FinanceModuleEntryClient';
-import { RouteVideoHelp } from '@/components/knowledge-base/RouteVideoHelp';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -51,7 +50,6 @@ export default async function FinanceModuleLayout({
       <FinanceModuleEntryClient initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
         {children}
       </FinanceModuleEntryClient>
-      <RouteVideoHelp />
     </div>
   );
 }

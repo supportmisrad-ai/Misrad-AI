@@ -2,12 +2,14 @@
 
 import { currentUser } from '@clerk/nextjs/server';
 import crypto from 'crypto';
+import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
+import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getBaseUrl } from '@/lib/utils';
 import { sendMisradWelcomeEmail } from '@/lib/email';
-import { createServiceRoleClient } from '@/lib/supabase';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object') {
@@ -70,12 +72,78 @@ function isUuidLike(value: string | null | undefined): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
 }
 
+async function upsertSocialUserForClerkUser(params: {
+  clerkUserId: string;
+  organizationId: string;
+  email?: string;
+  fullName?: string;
+  imageUrl?: string;
+  role?: string | null;
+}): Promise<{ id: string; organization_id: string | null; role: string | null } | null> {
+  const clerkUserId = String(params.clerkUserId || '').trim();
+  const organizationId = String(params.organizationId || '').trim();
+  if (!clerkUserId || !organizationId) return null;
+
+  const now = new Date();
+  const emailLower = params.email ? String(params.email).trim().toLowerCase() : null;
+  const fullName = params.fullName ? String(params.fullName) : null;
+  const avatarUrl = params.imageUrl ? String(params.imageUrl) : null;
+  const role = params.role ? String(params.role) : null;
+
+  const existing = await prisma.social_users.findUnique({
+    where: { clerk_user_id: clerkUserId },
+    select: { id: true, organization_id: true, role: true },
+  });
+
+  if (existing?.id) {
+    await prisma.social_users.update({
+      where: { clerk_user_id: clerkUserId },
+      data: {
+        email: emailLower,
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        organization_id: organizationId,
+        ...(role ? { role } : {}),
+        updated_at: now,
+      },
+    });
+    return {
+      id: String(existing.id),
+      organization_id: organizationId,
+      role: role ?? (existing.role ? String(existing.role) : null),
+    };
+  }
+
+  const created = await prisma.social_users.create({
+    data: {
+      clerk_user_id: clerkUserId,
+      email: emailLower,
+      full_name: fullName,
+      avatar_url: avatarUrl,
+      organization_id: organizationId,
+      role: role ?? 'owner',
+      created_at: now,
+      updated_at: now,
+    },
+    select: { id: true, organization_id: true, role: true },
+  });
+
+  return created?.id
+    ? {
+        id: String(created.id),
+        organization_id: created.organization_id ? String(created.organization_id) : null,
+        role: created.role ? String(created.role) : null,
+      }
+    : null;
+}
+
 async function upsertProfileForClerkUser(params: {
   clerkUserId: string;
   email?: string;
   fullName?: string;
   imageUrl?: string;
   preferredOrganizationKey?: string;
+  pendingPlan?: PackageType;
   sendWelcomeEmail?: boolean;
 }): Promise<{ profileId: string; organizationId: string; organizationSlug?: string | null; role?: string | null }> {
   const clerkUserId = String(params.clerkUserId || '').trim();
@@ -94,7 +162,7 @@ async function upsertProfileForClerkUser(params: {
   if (existing?.id) {
     // Best-effort update user fields (no changes to org here)
     await prisma.profile.updateMany({
-      where: { id: existing.id },
+      where: { id: existing.id, organizationId: existing.organizationId },
       data: {
         email: params.email ?? undefined,
         fullName: params.fullName ?? undefined,
@@ -121,11 +189,22 @@ async function upsertProfileForClerkUser(params: {
         if (org?.id) {
           organizationIdOut = String(org.id);
           await prisma.profile.updateMany({
-            where: { id: existing.id },
+            where: { id: existing.id, organizationId: existing.organizationId },
             data: { organizationId: String(org.id) },
           });
         }
       }
+    }
+
+    if (organizationIdOut) {
+      await upsertSocialUserForClerkUser({
+        clerkUserId,
+        organizationId: organizationIdOut,
+        email: params.email,
+        fullName: params.fullName,
+        imageUrl: params.imageUrl,
+        role: existing.role ?? null,
+      });
     }
 
     return {
@@ -173,6 +252,15 @@ async function upsertProfileForClerkUser(params: {
         select: { id: true, organizationId: true, role: true },
       });
 
+      await upsertSocialUserForClerkUser({
+        clerkUserId,
+        organizationId: created.organizationId,
+        email: params.email,
+        fullName: params.fullName,
+        imageUrl: params.imageUrl,
+        role: created.role ?? null,
+      });
+
       return {
         profileId: created.id,
         organizationId: created.organizationId,
@@ -218,6 +306,15 @@ async function upsertProfileForClerkUser(params: {
       select: { id: true, organizationId: true, role: true },
     });
 
+    await upsertSocialUserForClerkUser({
+      clerkUserId,
+      organizationId: created.organizationId,
+      email: params.email,
+      fullName: params.fullName,
+      imageUrl: params.imageUrl,
+      role: created.role ?? null,
+    });
+
     const createdOrgKey = String(created.organizationId || '').trim();
     const org = await prisma.social_organizations.findFirst({
       where: isUuidLike(createdOrgKey) ? { id: createdOrgKey } : { slug: createdOrgKey },
@@ -234,22 +331,32 @@ async function upsertProfileForClerkUser(params: {
 
   // Default: create an org + owner profile (with predetermined UUID for owner_id)
   const ownerProfileId = crypto.randomUUID();
+  const ownerIdPlaceholder = crypto.randomUUID();
   const orgName = params.fullName || params.email || 'Organization';
   const slugBase = normalizeSlug(orgName);
+
+  const pendingPlanRaw = params.pendingPlan ? String(params.pendingPlan).trim() : '';
+  const pendingPlan = pendingPlanRaw && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, pendingPlanRaw) ? (pendingPlanRaw as PackageType) : null;
+  const planModules: OSModuleKey[] | null = pendingPlan
+    ? pendingPlan === 'solo'
+      ? (['system'] as OSModuleKey[])
+      : [...(BILLING_PACKAGES[pendingPlan].modules || [])]
+    : null;
+  const hasModule = (k: OSModuleKey): boolean => Boolean(planModules && planModules.includes(k));
 
   const createdOrg = await prisma.social_organizations.create({
     data: {
       name: orgName,
       slug: slugBase || null,
-      owner_id: ownerProfileId,
-      has_nexus: true,
-      has_system: false,
-      has_social: false,
-      has_finance: false,
-      has_client: false,
-      has_operations: false,
+      owner_id: ownerIdPlaceholder,
+      has_nexus: pendingPlan ? hasModule('nexus') : true,
+      has_system: pendingPlan ? hasModule('system') : false,
+      has_social: pendingPlan ? hasModule('social') : false,
+      has_finance: pendingPlan ? hasModule('finance') : false,
+      has_client: pendingPlan ? hasModule('client') : false,
+      has_operations: pendingPlan ? hasModule('operations') : false,
       subscription_status: 'trial',
-      subscription_plan: null,
+      subscription_plan: pendingPlan ? String(pendingPlan) : null,
       trial_start_date: new Date(),
       trial_days: 7,
     },
@@ -268,6 +375,26 @@ async function upsertProfileForClerkUser(params: {
     },
     select: { id: true, organizationId: true, role: true },
   });
+
+  const ensuredSocialUser = await upsertSocialUserForClerkUser({
+    clerkUserId,
+    organizationId: createdOrg.id,
+    email: params.email,
+    fullName: params.fullName,
+    imageUrl: params.imageUrl,
+    role: createdProfile.role ?? null,
+  });
+
+  if (ensuredSocialUser?.id && String(ensuredSocialUser.id) !== String(ownerIdPlaceholder)) {
+    try {
+      await prisma.social_organizations.update({
+        where: { id: createdOrg.id },
+        data: { owner_id: String(ensuredSocialUser.id), updated_at: new Date() },
+      });
+    } catch {
+      // ignore
+    }
+  }
 
   // Best-effort welcome email with portal link
   try {
@@ -422,10 +549,6 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
   params: ClerkWebhookUserSyncParams
 ): Promise<{ success: boolean; userId?: string; error?: string }> {
   try {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return createErrorResponse('Supabase service role is not configured');
-    }
-
     const webhookSecret =
       process.env.CLERK_WEBHOOK_SECRET ||
       process.env.CLERK_WEB_HOOK_SECRET ||
@@ -463,54 +586,56 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
     const email = params.email ? String(params.email).trim() : undefined;
 
     // Webhook path: keep backwards compatible behavior with /api/webhooks/clerk/route.ts
-    // which expects userId to be social_users.id (UUID) for downstream Supabase operations.
-    const supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'clerk_webhook_sync_user' });
-    const nowIso = new Date().toISOString();
+    // which expects userId to be social_users.id (UUID) for downstream operations.
+    const now = new Date();
 
-    const { data: existing, error: findError } = await supabase
-      .from('social_users')
-      .select('id')
-      .eq('clerk_user_id', clerkUserId)
-      .limit(1)
-      .maybeSingle();
-    if (findError) {
-      throw new Error(findError.message);
-    }
+    const existing = await prisma.social_users.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { id: true },
+    });
 
-    type SocialUserUpsertPayload = {
+    const updateData: {
       email: string | null;
       full_name: string | null;
       avatar_url: string | null;
-      updated_at: string;
-      clerk_user_id?: string;
-      created_at?: string;
-    };
-
-    const payload: SocialUserUpsertPayload = {
+      updated_at: Date;
+    } = {
       email: email ? String(email).trim().toLowerCase() : null,
       full_name: params.fullName ? String(params.fullName) : null,
       avatar_url: params.imageUrl ? String(params.imageUrl) : null,
-      updated_at: nowIso,
+      updated_at: now,
     };
 
     if (existing?.id) {
-      const { error: updateError } = await supabase
-        .from('social_users')
-        .update(payload)
-        .eq('id', String(existing.id));
-      if (updateError) throw new Error(updateError.message);
+      await prisma.social_users.update({
+        where: { clerk_user_id: clerkUserId },
+        data: updateData,
+        select: { id: true },
+      });
+
       return { success: true, userId: String(existing.id) };
     }
 
-    payload.clerk_user_id = clerkUserId;
-    payload.created_at = nowIso;
+    const createData: {
+      clerk_user_id: string;
+      email: string | null;
+      full_name: string | null;
+      avatar_url: string | null;
+      created_at: Date;
+      updated_at: Date;
+    } = {
+      clerk_user_id: clerkUserId,
+      email: updateData.email,
+      full_name: updateData.full_name,
+      avatar_url: updateData.avatar_url,
+      created_at: now,
+      updated_at: now,
+    };
 
-    const { data: created, error: insertError } = await supabase
-      .from('social_users')
-      .insert(payload)
-      .select('id')
-      .single();
-    if (insertError) throw new Error(insertError.message);
+    const created = await prisma.social_users.create({
+      data: createData,
+      select: { id: true },
+    });
 
     return { success: true, userId: created?.id ? String(created.id) : undefined };
   } catch (error: unknown) {
@@ -529,6 +654,18 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
       return createErrorResponse('Not authenticated');
     }
 
+    let pendingPlan: PackageType | undefined = undefined;
+    try {
+      const jar = await cookies();
+      const cookieVal = jar.get('pending_plan')?.value;
+      const candidate = String(cookieVal || '').trim();
+      if (candidate && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, candidate)) {
+        pendingPlan = candidate as PackageType;
+      }
+    } catch {
+      pendingPlan = undefined;
+    }
+
     const user = await currentUser();
     const email = user?.emailAddresses?.[0]?.emailAddress
       ? String(user.emailAddresses[0].emailAddress)
@@ -542,8 +679,18 @@ export async function provisionCurrentUserWorkspaceAction(): Promise<{
       fullName,
       imageUrl,
       preferredOrganizationKey: undefined,
+      pendingPlan,
       sendWelcomeEmail: false,
     });
+
+    if (pendingPlan) {
+      try {
+        const jar = await cookies();
+        jar.delete('pending_plan');
+      } catch {
+        // ignore
+      }
+    }
 
     const organizationKey = String(out.organizationSlug || out.organizationId);
     return { success: true, organizationKey };
