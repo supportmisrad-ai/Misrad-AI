@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { parseWorkspaceRoute, joinPath } from '@/lib/os/social-routing';
+import { encodeWorkspaceOrgSlug, parseWorkspaceRoute, joinPath } from '@/lib/os/social-routing';
 import { usePathname, useRouter } from 'next/navigation';
 
 export function getNexusBasePath(pathname: string | null | undefined): string {
   const info = parseWorkspaceRoute(pathname);
   if (info.orgSlug && info.module === 'nexus') {
-    return `/w/${encodeURIComponent(info.orgSlug)}/nexus`;
+    return `/w/${encodeWorkspaceOrgSlug(info.orgSlug)}/nexus`;
   }
   if (info.orgSlug && info.module === 'system') {
-    return `/w/${encodeURIComponent(info.orgSlug)}/system`;
+    return `/w/${encodeWorkspaceOrgSlug(info.orgSlug)}/system`;
   }
   return '/app';
 }

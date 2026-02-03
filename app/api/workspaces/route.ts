@@ -34,8 +34,9 @@ async function GETHandler() {
       where: { clerk_user_id: clerkUserId },
       select: { id: true, organization_id: true },
     });
-  } catch {
-    return apiError('Forbidden', { status: 403 });
+  } catch (err) {
+    console.error('GET /api/workspaces failed to query social_users', err);
+    return apiError('שגיאה לא צפויה', { status: 500 });
   }
 
   if (!socialUser?.id) {

@@ -9,6 +9,7 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { generateOrgSlug } from '@/lib/shared/orgSlug';
 
 export default function AdminOrganizationsClient(props: {
   orgs: any[];
@@ -24,6 +25,7 @@ export default function AdminOrganizationsClient(props: {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
 
   const [lastInviteUrl, setLastInviteUrl] = useState<string | null>(null);
 
@@ -31,6 +33,14 @@ export default function AdminOrganizationsClient(props: {
     setName('');
     setSlug('');
     setOwnerEmail('');
+    setSlugTouched(false);
+  };
+
+  const onNameChange = (nextName: string) => {
+    setName(nextName);
+    if (!slugTouched) {
+      setSlug(generateOrgSlug(nextName));
+    }
   };
 
   const canSubmit = useMemo(() => {
@@ -91,7 +101,15 @@ export default function AdminOrganizationsClient(props: {
 
       <AdminToolbar
         actions={
-          <Button onClick={() => setIsOpen(true)}>
+          <Button
+            onClick={() => {
+              setIsOpen(true);
+              setSlugTouched(false);
+              if (!slugTouched && name.trim()) {
+                setSlug(generateOrgSlug(name));
+              }
+            }}
+          >
             <Plus size={18} />
             הוסף ארגון
           </Button>
@@ -217,7 +235,7 @@ export default function AdminOrganizationsClient(props: {
                 <label className="block text-xs font-black text-slate-600 mb-2">שם הארגון</label>
                 <Input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => onNameChange(e.target.value)}
                   placeholder="שם הארגון"
                 />
               </div>
@@ -226,7 +244,10 @@ export default function AdminOrganizationsClient(props: {
                 <label className="block text-xs font-black text-slate-600 mb-2">Slug</label>
                 <Input
                   value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    setSlug(e.target.value);
+                  }}
                   placeholder="slug"
                 />
               </div>

@@ -5,6 +5,7 @@ import { WebhookEvent } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/app/actions/users';
+import { generateOrgSlug } from '@/lib/server/orgSlug';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -202,7 +203,8 @@ async function POSTHandler(req: Request) {
         if (orgInviteToken) {
           try {
             const nowIso = new Date().toISOString();
-            const desiredSlug = typeof orgSignupInvite?.desired_slug === 'string' ? String(orgSignupInvite.desired_slug) : null;
+            const desiredSlugRaw = typeof orgSignupInvite?.desired_slug === 'string' ? String(orgSignupInvite.desired_slug) : null;
+            const desiredSlug = desiredSlugRaw ? generateOrgSlug(desiredSlugRaw) : null;
             const orgName = typeof orgSignupInvite?.organization_name === 'string' ? String(orgSignupInvite.organization_name) : null;
 
             if (desiredSlug && orgName) {

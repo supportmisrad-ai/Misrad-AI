@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Building2, Edit, Plus, Save, X, RefreshCw, Upload } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { generateOrgSlug } from '@/lib/shared/orgSlug';
 import {
   createOrganization,
   getOrganizations,
@@ -52,6 +53,7 @@ export default function OrganizationsTab() {
   const [users, setUsers] = useState<SocialUserLite[]>([]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createSlugTouched, setCreateSlugTouched] = useState(false);
   const [createForm, setCreateForm] = useState<CreateFormState>({
     name: '',
     slug: '',
@@ -66,6 +68,7 @@ export default function OrganizationsTab() {
 
   const [editingOrgId, setEditingOrgId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
+  const [editSlugTouched, setEditSlugTouched] = useState(false);
 
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [logoOrgId, setLogoOrgId] = useState<string | null>(null);
@@ -111,8 +114,27 @@ export default function OrganizationsTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!isCreateOpen) return;
+    if (createSlugTouched) return;
+    const suggested = generateOrgSlug(createForm.name);
+    setCreateForm((s) => (s.slug === suggested ? s : { ...s, slug: suggested }));
+  }, [createForm.name, createSlugTouched, isCreateOpen]);
+
+  useEffect(() => {
+    if (!editForm) return;
+    if (editSlugTouched) return;
+    const suggested = generateOrgSlug(editForm.name);
+    setEditForm((s) => {
+      if (!s) return s;
+      if (s.slug === suggested) return s;
+      return { ...s, slug: suggested };
+    });
+  }, [editForm?.name, editSlugTouched]);
+
   const startEdit = (org: OrganizationWithOwner) => {
     setEditingOrgId(org.id);
+    setEditSlugTouched(false);
     setEditForm({
       organizationId: org.id,
       name: org.name || '',
@@ -129,6 +151,7 @@ export default function OrganizationsTab() {
   const cancelEdit = () => {
     setEditingOrgId(null);
     setEditForm(null);
+    setEditSlugTouched(false);
   };
 
   const saveEdit = async () => {
@@ -193,6 +216,10 @@ export default function OrganizationsTab() {
       addToast('שם ארגון חובה', 'error');
       return;
     }
+    if (!createForm.slug.trim()) {
+      addToast('Slug חובה (באנגלית)', 'error');
+      return;
+    }
     if (!createForm.ownerUserId) {
       addToast('חובה לבחור Owner', 'error');
       return;
@@ -200,7 +227,7 @@ export default function OrganizationsTab() {
 
     const res = await createOrganization({
       name: createForm.name,
-      slug: createForm.slug || undefined,
+      slug: createForm.slug,
       ownerUserId: createForm.ownerUserId,
       has_nexus: createForm.has_nexus,
       has_social: createForm.has_social,
@@ -217,6 +244,7 @@ export default function OrganizationsTab() {
 
     addToast('ארגון נוצר בהצלחה', 'success');
     setIsCreateOpen(false);
+    setCreateSlugTouched(false);
     setCreateForm({
       name: '',
       slug: '',
@@ -346,13 +374,19 @@ export default function OrganizationsTab() {
               <input
                 placeholder="שם ארגון"
                 value={createForm.name}
-                onChange={(e) => setCreateForm((s) => ({ ...s, name: e.target.value }))}
+                onChange={(e) => {
+                  const nextName = e.target.value;
+                  setCreateForm((s) => ({ ...s, name: nextName }));
+                }}
                 className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
               />
               <input
-                placeholder="slug (אופציונלי)"
+                placeholder="slug (חובה, באנגלית)"
                 value={createForm.slug}
-                onChange={(e) => setCreateForm((s) => ({ ...s, slug: e.target.value }))}
+                onChange={(e) => {
+                  setCreateSlugTouched(true);
+                  setCreateForm((s) => ({ ...s, slug: e.target.value }));
+                }}
                 className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400"
               />
               <select
@@ -437,7 +471,10 @@ export default function OrganizationsTab() {
                       {isEditing ? (
                         <input
                           value={editForm?.name || ''}
-                          onChange={(e) => setEditForm((s) => (s ? { ...s, name: e.target.value } : s))}
+                          onChange={(e) => {
+                            const nextName = e.target.value;
+                            setEditForm((s) => (s ? { ...s, name: nextName } : s));
+                          }}
                           className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400 w-full"
                         />
                       ) : (
@@ -461,7 +498,10 @@ export default function OrganizationsTab() {
                       {isEditing ? (
                         <input
                           value={editForm?.slug || ''}
-                          onChange={(e) => setEditForm((s) => (s ? { ...s, slug: e.target.value } : s))}
+                          onChange={(e) => {
+                            setEditSlugTouched(true);
+                            setEditForm((s) => (s ? { ...s, slug: e.target.value } : s));
+                          }}
                           className="bg-white border border-indigo-200 rounded-xl px-4 py-2 text-slate-900 text-sm outline-none focus:border-indigo-400 w-full"
                         />
                       ) : (

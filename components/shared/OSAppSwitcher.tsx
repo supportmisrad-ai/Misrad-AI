@@ -6,6 +6,7 @@ import { LayoutGrid, Lock, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { buildWorkspaceModulePath, modulesRegistry } from '@/lib/os/modules/registry';
+import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { OS_MODULES } from '@/types/os-modules';
 import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgradeModal';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
@@ -188,7 +189,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
       const controller = new AbortController();
       entitlementsAbortRef.current = controller;
       try {
-        const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/entitlements`, { cache: 'no-store', signal: controller.signal });
+        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store', signal: controller.signal });
         if (!res.ok) return;
         const data = await res.json();
         if (data?.entitlements) {

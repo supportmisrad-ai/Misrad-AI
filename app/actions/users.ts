@@ -8,6 +8,7 @@ import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { getBaseUrl } from '@/lib/utils';
 import { sendMisradWelcomeEmail } from '@/lib/email';
 
@@ -52,17 +53,6 @@ function serializeUnknownError(error: unknown) {
   }
 
   return { value: error };
-}
- 
-function normalizeSlug(input: string): string {
-  return String(input ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/['"`]/g, '')
-    .replace(/[^a-z0-9\u0590-\u05FF]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 64);
 }
 
 function isUuidLike(value: string | null | undefined): boolean {
@@ -333,7 +323,10 @@ async function upsertProfileForClerkUser(params: {
   const ownerProfileId = crypto.randomUUID();
   const ownerIdPlaceholder = crypto.randomUUID();
   const orgName = params.fullName || params.email || 'Organization';
-  const slugBase = normalizeSlug(orgName);
+  const emailPrefix = params.email ? String(params.email).split('@')[0] : '';
+  const fullNameSlug = params.fullName ? generateOrgSlug(params.fullName) : '';
+  const emailPrefixSlug = emailPrefix ? generateOrgSlug(emailPrefix) : '';
+  const slugBase = await generateUniqueOrgSlug(fullNameSlug || emailPrefixSlug || 'org');
 
   const pendingPlanRaw = params.pendingPlan ? String(params.pendingPlan).trim() : '';
   const pendingPlan = pendingPlanRaw && Object.prototype.hasOwnProperty.call(BILLING_PACKAGES, pendingPlanRaw) ? (pendingPlanRaw as PackageType) : null;

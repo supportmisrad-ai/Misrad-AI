@@ -1,4 +1,5 @@
 import { OSModuleDefinition, OSModuleKey } from './types';
+import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 
 export const modulesRegistry: Record<OSModuleKey, OSModuleDefinition> = {
   nexus: {
@@ -57,7 +58,7 @@ export const DEFAULT_OS_MODULE_PRIORITY: OSModuleKey[] = [
 ];
 
 export function buildWorkspaceModulePath(orgSlug: string, module: OSModuleKey): string {
-  return `/w/${encodeURIComponent(orgSlug)}/${module}`;
+  return `/w/${encodeWorkspaceOrgSlug(orgSlug)}/${module}`;
 }
 
 export function getModuleDefinition(module: OSModuleKey): OSModuleDefinition {

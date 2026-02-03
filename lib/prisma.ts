@@ -229,45 +229,74 @@ function getEffectiveDatabaseUrlForPrisma(): string | null {
   const envDatabaseUrl = String(process.env.DATABASE_URL || '').trim();
   const envDirectUrl = String(process.env.DIRECT_URL || '').trim();
 
-  const candidates = [
-    { name: 'DATABASE_URL', url: envDatabaseUrl },
-    { name: 'DIRECT_URL', url: envDirectUrl },
-  ].filter((c) => Boolean(c.url));
-
-  if (candidates.length === 0) return null;
-
-  const isPoolerLikeUrl = (value: string): boolean => {
+  const getPoolerMode = (value: string): 'transaction' | 'session' | 'none' => {
     try {
       const u = new URL(value);
       const host = String(u.hostname || '').toLowerCase();
       const port = String(u.port || '').trim();
-      return host.includes('pooler') || port === '6543' || port === '6544';
+      const isPoolerHost = host.includes('pooler');
+      if (!isPoolerHost) return 'none';
+      if (port === '5432' || port === '') return 'session';
+      if (port === '6543' || port === '6544') return 'transaction';
+      return 'session';
     } catch {
-      return false;
+      const raw = String(value || '').toLowerCase();
+      if (!raw.includes('pooler')) return 'none';
+      const m = raw.match(/@[^/]+pooler[^/:]*(?::(\d+))?/);
+      const port = String(m?.[1] || '').trim();
+      if (port === '6543' || port === '6544') return 'transaction';
+      return 'session';
     }
   };
 
-  const poolerCandidate = candidates.find((c) => isPoolerLikeUrl(c.url));
-  const chosenRaw = (poolerCandidate?.url || envDatabaseUrl || envDirectUrl).trim();
-  if (!chosenRaw) return null;
-  if (process.env.NODE_ENV === 'production') return chosenRaw;
+  const upgradeSessionPoolerToTransaction = (value: string): string => {
+    try {
+      const u = new URL(value);
+      const host = String(u.hostname || '').toLowerCase();
+      const port = String(u.port || '').trim();
+      if (!host.includes('pooler')) return value;
+      if (port !== '5432' && port !== '') return value;
+      u.port = '6543';
+      return u.toString();
+    } catch {
+      const raw = String(value || '');
+      if (!raw.toLowerCase().includes('pooler')) return value;
+      return raw.replace(/@([^/]+pooler[^/:]*)(?::(\d+))?/, (_m, host: string, port?: string) => {
+        const p = String(port || '').trim();
+        if (p && p !== '5432') return `@${host}:${p}`;
+        return `@${host}:6543`;
+      });
+    }
+  };
 
-  try {
-    const u = new URL(chosenRaw);
-    const host = String(u.hostname || '').toLowerCase();
-    const port = String(u.port || '').trim();
-    const isPoolerLike = host.includes('pooler') || port === '6543' || port === '6544';
+  const normalizeCandidate = (rawCandidate: string): string | null => {
+    const candidate = String(rawCandidate || '').trim();
+    if (!candidate) return null;
 
-    if (!isPoolerLike) return chosenRaw;
+    const mode = getPoolerMode(candidate);
+    const upgraded = mode === 'session' ? upgradeSessionPoolerToTransaction(candidate) : candidate;
+    const isPooler = getPoolerMode(upgraded) !== 'none';
+    if (!isPooler) return upgraded;
 
-    if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '1');
-    if (!u.searchParams.has('pgbouncer')) u.searchParams.set('pgbouncer', 'true');
-    if (!u.searchParams.has('statement_cache_size')) u.searchParams.set('statement_cache_size', '0');
+    try {
+      const u = new URL(upgraded);
+      u.searchParams.set('connection_limit', '1');
+      u.searchParams.set('pgbouncer', 'true');
+      u.searchParams.set('statement_cache_size', '0');
+      return u.toString();
+    } catch {
+      return upgraded;
+    }
+  };
 
-    return u.toString();
-  } catch {
-    return chosenRaw;
-  }
+  // Prisma runtime should always prefer DATABASE_URL. DIRECT_URL is reserved for CLI/migrations.
+  const fromDatabaseUrl = normalizeCandidate(envDatabaseUrl);
+  if (fromDatabaseUrl) return fromDatabaseUrl;
+
+  const fromDirectUrl = normalizeCandidate(envDirectUrl);
+  if (fromDirectUrl) return fromDirectUrl;
+
+  return null;
 }
 
 const _effectiveDatabaseUrl = getEffectiveDatabaseUrlForPrisma();

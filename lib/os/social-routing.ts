@@ -1,5 +1,6 @@
 import { OSModuleKey } from '@/lib/os/modules/types';
-import { OS_MODULES } from '@/types/os-modules';
+
+const ALL_OS_MODULE_KEYS: OSModuleKey[] = ['nexus', 'system', 'social', 'finance', 'client', 'operations'];
 
 export type WorkspaceRouteInfo = {
   orgSlug: string | null;
@@ -21,6 +22,10 @@ function safeDecodeURIComponent(value: string): string {
   return v;
 }
 
+export function encodeWorkspaceOrgSlug(orgSlug: string): string {
+  return encodeURIComponent(safeDecodeURIComponent(String(orgSlug ?? '')));
+}
+
 export function parseWorkspaceRoute(pathname: string | null | undefined): WorkspaceRouteInfo {
   if (!pathname) return { orgSlug: null, module: null };
   const parts = pathname.split('/').filter(Boolean);
@@ -28,7 +33,7 @@ export function parseWorkspaceRoute(pathname: string | null | undefined): Worksp
   const orgSlugRaw = parts[1] || null;
   const orgSlug = orgSlugRaw ? safeDecodeURIComponent(orgSlugRaw) : null;
   const rawModule = parts[2] || null;
-  const allowed = new Set<OSModuleKey>(OS_MODULES.map((m) => m.id as OSModuleKey));
+  const allowed = new Set<OSModuleKey>(ALL_OS_MODULE_KEYS);
   const workspaceModuleKey = rawModule && allowed.has(rawModule as OSModuleKey) ? (rawModule as OSModuleKey) : null;
   return { orgSlug, module: workspaceModuleKey };
 }
@@ -39,7 +44,7 @@ export function getSocialBasePath(pathname: string | null | undefined): string {
   }
   const info = parseWorkspaceRoute(pathname);
   if (info.orgSlug && info.module === 'social') {
-    return `/w/${encodeURIComponent(info.orgSlug)}/social`;
+    return `/w/${encodeWorkspaceOrgSlug(info.orgSlug)}/social`;
   }
   return '/social';
 }

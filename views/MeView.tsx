@@ -9,7 +9,7 @@ import { HoldButton } from '../components/HoldButton';
 import { LeadStatus, Status } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
-import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { encodeWorkspaceOrgSlug, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import NexusCard from '@/components/shared/NexusCard';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 
@@ -142,7 +142,7 @@ export const MeView: React.FC<{
       (async () => {
           try {
               const res = await fetch(
-                  `/api/workspaces/${encodeURIComponent(orgSlug)}/me-insights?module=${encodeURIComponent(currentInsightsModule)}`,
+                  `/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/me-insights?module=${encodeURIComponent(currentInsightsModule)}`,
                   { cache: 'no-store', signal: controller.signal }
               );
               if (!res.ok) {
@@ -168,7 +168,7 @@ export const MeView: React.FC<{
               return;
           }
           try {
-              const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/entitlements`, { cache: 'no-store' });
+              const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store' });
               if (!res.ok) {
                   setHasNexusEntitlement(false);
                   return;
@@ -717,7 +717,7 @@ export const MeView: React.FC<{
                                       icon={Target}
                                       metric={meInsightsData?.hotLeads?.totalLeads ?? null}
                                       metricLabel="לידים"
-                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/system`)}
+                                      onClickAction={() => router.push(`/w/${encodeWorkspaceOrgSlug(orgSlug)}/system`)}
                                       className="min-h-[132px]"
                                   />
                               ) : currentInsightsModule === 'client' ? (
@@ -727,7 +727,7 @@ export const MeView: React.FC<{
                                       icon={CheckCircle}
                                       metric={meInsightsData?.commitments?.count ?? null}
                                       metricLabel={null}
-                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/client`)}
+                                      onClickAction={() => router.push(`/w/${encodeWorkspaceOrgSlug(orgSlug)}/client`)}
                                       className="min-h-[132px]"
                                   />
                               ) : currentInsightsModule === 'finance' ? (
@@ -741,7 +741,7 @@ export const MeView: React.FC<{
                                               : null
                                       }
                                       metricLabel={null}
-                                      onClickAction={() => router.push(`/w/${encodeURIComponent(orgSlug)}/finance`)}
+                                      onClickAction={() => router.push(`/w/${encodeWorkspaceOrgSlug(orgSlug)}/finance`)}
                                       className="min-h-[132px]"
                                   />
                               ) : null}

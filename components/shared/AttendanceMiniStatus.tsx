@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock, LogOut } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { getNexusMe, listNexusTimeEntries, updateNexusTimeEntry } from '@/app/actions/nexus';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
 
@@ -40,7 +41,7 @@ export default function AttendanceMiniStatus() {
         return;
       }
       try {
-        const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/entitlements`, { cache: 'no-store' });
+        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store' });
         if (!res.ok) {
           setHasNexus(false);
           return;

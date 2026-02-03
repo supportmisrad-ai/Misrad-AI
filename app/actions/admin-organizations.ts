@@ -6,6 +6,7 @@ import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/e
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
 import { sendOrganizationWelcomeEmail } from '@/lib/email';
+import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 
 type SocialOrganizationsCreateData = Parameters<typeof prisma.social_organizations.create>[0]['data'];
 type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.social_organizations.updateMany>[0]['data'];
@@ -55,17 +56,6 @@ function getUnknownErrorMessage(error: unknown): string {
     return typeof msg === 'string' ? msg : 'שגיאה לא צפויה';
   }
   return 'שגיאה לא צפויה';
-}
-
-function normalizeSlug(input: string): string {
-  return String(input ?? '')
-    .trim()
-    .toLowerCase()
-    .replace(/['\"`]/g, '')
-    .replace(/[^a-z0-9\u0590-\u05FF]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 64);
 }
 
 function normalizeEmail(input: string): string {
@@ -251,7 +241,7 @@ export async function getSocialUsersLite(params?: {
 
 export async function createOrganization(input: {
   name: string;
-  slug?: string;
+  slug: string;
   ownerUserId: string;
   has_nexus?: boolean;
   has_social?: boolean;
@@ -273,22 +263,10 @@ export async function createOrganization(input: {
     const ownerUserId = (input.ownerUserId || '').trim();
     if (!ownerUserId) return createErrorResponse(null, 'בעלים (ownerUserId) חובה');
 
-    const baseSlug = normalizeSlug(input.slug || name);
+    const baseSlug = generateOrgSlug(input.slug);
     if (!baseSlug) return createErrorResponse(null, 'Slug לא תקין');
 
-    let finalSlug = baseSlug;
-    for (let i = 0; i < 50; i++) {
-      const candidate = i === 0 ? baseSlug : `${baseSlug}-${i + 1}`;
-      const existing = await prisma.social_organizations.findFirst({
-        where: { slug: candidate },
-        select: { id: true },
-      });
-
-      if (!existing) {
-        finalSlug = candidate;
-        break;
-      }
-    }
+    const finalSlug = await generateUniqueOrgSlug(baseSlug);
 
     const now = new Date();
 
@@ -363,7 +341,7 @@ export async function createOrganizationOrInviteOwner(input: {
     const name = (input.name || '').trim();
     if (!name) return { success: false, error: createErrorResponse(null, 'שם ארגון חובה').error || 'שם ארגון חובה' };
 
-    const desiredSlug = normalizeSlug(input.slug || '');
+    const desiredSlug = generateOrgSlug(input.slug || '');
     if (!desiredSlug) return { success: false, error: createErrorResponse(null, 'Slug לא תקין').error || 'Slug לא תקין' };
 
     const ownerEmail = normalizeEmail(input.ownerEmail || '');
@@ -498,7 +476,7 @@ export async function updateOrganization(input: {
     }
 
     if (input.slug !== undefined) {
-      const desired = normalizeSlug(String(input.slug));
+      const desired = generateOrgSlug(String(input.slug));
       if (!desired) return createErrorResponse(null, 'Slug לא תקין');
 
       const existing = await prisma.social_organizations.findFirst({

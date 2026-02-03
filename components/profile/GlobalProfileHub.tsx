@@ -5,7 +5,7 @@ import nextDynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Bell, ChevronRight, Cog, ExternalLink, Shield, Sparkles, User, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
+import { encodeWorkspaceOrgSlug, joinPath, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { getModuleLabel as getOSModuleLabel, isOSModuleKey } from '@/lib/os/modules/registry';
 import { getMyProfile, upsertMyProfile } from '@/app/actions/profiles';
 import PremiumFrame from './PremiumFrame';
@@ -386,7 +386,7 @@ function AiDnaSection({ orgSlug }: { orgSlug: string }) {
   const [isSaving, setIsSaving] = useState(false);
   const [dna, setDna] = useState<any>({});
 
-  const endpoint = useMemo(() => `/api/workspaces/${encodeURIComponent(orgSlug)}/ai-dna`, [orgSlug]);
+  const endpoint = useMemo(() => `/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/ai-dna`, [orgSlug]);
 
   const load = async () => {
     setIsLoading(true);
@@ -477,7 +477,7 @@ export default function GlobalProfileHub({
   const moduleBasePath = useMemo(() => {
     if (!orgSlug) return '/';
     const module = currentModule || 'nexus';
-    return `/w/${encodeURIComponent(orgSlug)}/${module}`;
+    return `/w/${encodeWorkspaceOrgSlug(orgSlug)}/${module}`;
   }, [currentModule, orgSlug]);
 
   const dashboardFallback = useMemo(() => {
@@ -504,7 +504,7 @@ export default function GlobalProfileHub({
     const loadEntitlements = async () => {
       if (!orgSlug) return;
       try {
-        const res = await fetch(`/api/workspaces/${encodeURIComponent(orgSlug)}/entitlements`, { cache: 'no-store' });
+        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store' });
         if (!res.ok) {
           setEntitlements({});
           return;
@@ -528,7 +528,7 @@ export default function GlobalProfileHub({
 
       setMeInsightsLoading(true);
       try {
-        const url = new URL(`/api/workspaces/${encodeURIComponent(orgSlug)}/me-insights`, window.location.origin);
+        const url = new URL(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/me-insights`, window.location.origin);
         url.searchParams.set('module', moduleKey);
         const res = await fetch(url.toString(), { cache: 'no-store' });
         const data = await res.json().catch(() => ({}));

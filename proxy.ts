@@ -2,7 +2,6 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 const isPublicRoute = createRouteMatcher([
-  "/",
   "/login(.*)",
   "/sign-in(.*)",
   "/sign-out(.*)",
@@ -10,6 +9,16 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/reset-password(.*)",
   "/maintenance(.*)",
+  "/invite/(.*)",
+  "/employee-invite/(.*)",
+  "/portal/ops/(.*)",
+  "/connect/offer/(.*)",
+  "/marketplace/offer/(.*)",
+  "/sso-callback",
+  "/partner-portal(.*)",
+  "/manifest.json",
+  "/sw.js",
+  "/manifests/(.*)",
   "/api/webhooks/clerk",
 ]);
 
@@ -194,7 +203,11 @@ export default clerkMiddleware(async (auth, req) => {
     const isStatic =
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
+      pathname === "/manifest.json" ||
+      pathname === "/sw.js" ||
       pathname.startsWith("/icons/") ||
+      pathname.startsWith("/manifests/") ||
+      pathname.startsWith("/icon-") ||
       pathname.startsWith("/public/");
 
     if (!isStatic && !isAuthRoute && !pathname.startsWith("/maintenance")) {
