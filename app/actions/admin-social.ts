@@ -214,9 +214,7 @@ export async function getSocialTeam(tenantId: string): Promise<{ success: boolea
     const memberIds = (teamMembers || []).map((r) => r.user_id).filter(Boolean).map((v) => String(v));
 
     const socialUsers = await prisma.social_users.findMany({
-      where: memberIds.length > 0
-        ? ({ OR: [{ organization_id: organizationId }, { id: { in: memberIds } }] } as unknown as Prisma.social_usersWhereInput)
-        : ({ organization_id: organizationId } as unknown as Prisma.social_usersWhereInput),
+      where: { organization_id: organizationId } as unknown as Prisma.social_usersWhereInput,
       select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true, created_at: true },
       orderBy: { created_at: 'desc' },
     });
