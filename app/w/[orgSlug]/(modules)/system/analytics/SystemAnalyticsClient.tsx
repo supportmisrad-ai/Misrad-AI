@@ -8,24 +8,8 @@ import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
 import type { Task as NexusTask } from '@/types';
 
-function normalizeTaskPriority(value: string): TaskPriority {
-  const v = String(value || '').toLowerCase();
-  if (v === 'low' || v === 'medium' || v === 'high' || v === 'critical') return v;
-  return 'medium';
-}
-
-function normalizeTaskStatus(value: string): TaskStatus {
-  const v = String(value || '').toLowerCase();
-  if (v === 'todo' || v === 'in_progress' || v === 'review' || v === 'done') return v;
-  return 'todo';
-}
-
-function normalizeCampaignStatus(value: string): Campaign['status'] {
-  const v = String(value || '').toLowerCase();
-  if (v === 'active' || v === 'paused' || v === 'draft') return v as any;
-  if (v === 'completed') return 'paused';
-  return 'active';
-}
+import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
+import { normalizeCampaignStatus } from '@/lib/campaign-utils';
 
 function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
   return {

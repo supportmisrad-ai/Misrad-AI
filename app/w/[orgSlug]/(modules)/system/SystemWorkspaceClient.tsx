@@ -22,20 +22,7 @@ import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/action
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
 
-function normalizeTaskPriority(value: string): TaskPriority {
-  const v = String(value || '').toLowerCase();
-  if (v === 'low' || v === 'medium' || v === 'high' || v === 'critical') return v;
-  return 'medium';
-}
-
-function normalizeTaskStatus(value: string): TaskStatus {
-  const v = String(value || '').toLowerCase();
-  if (v === 'todo' || v === 'in_progress' || v === 'review' || v === 'done') return v;
-  if (v.includes('in progress')) return 'in_progress';
-  if (v.includes('review') || v.includes('waiting')) return 'review';
-  if (v.includes('done') || v.includes('completed')) return 'done';
-  return 'todo';
-}
+import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
 
 function mapNexusTaskToUiTask(row: NexusTask): Task {
   const due = row.dueDate ? new Date(String(row.dueDate)) : new Date();

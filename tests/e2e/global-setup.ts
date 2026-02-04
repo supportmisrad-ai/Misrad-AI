@@ -617,7 +617,7 @@ async function globalSetup(config: FullConfig) {
 
       await browser.close();
       throw new Error(
-        `E2E_SKIP_LOGIN=1 אך לא נמצא storageState תקין בנתיב: ${storageStatePath}. ${skipLoginDebug || skipLoginReason ? `Debug: ${[skipLoginDebug, skipLoginReason].filter(Boolean).join(' | ')}. ` : ''}הרץ פעם אחת עם E2E_MANUAL_LOGIN=1 כדי להתחבר וליצור storageState ואז הרץ שוב עם E2E_SKIP_LOGIN=1.`
+        `E2E_SKIP_LOGIN=1 but no valid storageState found at: ${storageStatePath}. ${skipLoginDebug || skipLoginReason ? `Debug: ${[skipLoginDebug, skipLoginReason].filter(Boolean).join(' | ')}. ` : ''}Run once with E2E_MANUAL_LOGIN=1 to login and create storageState, then run again with E2E_SKIP_LOGIN=1.`
       );
     }
 
