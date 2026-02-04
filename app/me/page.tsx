@@ -3,69 +3,83 @@ import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { loadCurrentUserLastLocation } from '@/lib/server/workspace';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 // Force dynamic rendering as this page depends on authentication
 export const dynamic = 'force-dynamic';
 
 async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | null> {
-  const clerkUserId = await getCurrentUserId();
-  if (!clerkUserId) return null;
+  return await withTenantIsolationContext(
+    { suppressReporting: true, source: 'me-page-redirect' },
+    async () => {
+      const clerkUserId = await getCurrentUserId();
+      if (!clerkUserId) return null;
 
-  const socialUser = await prisma.social_users.findUnique({
-    where: { clerk_user_id: clerkUserId },
-    select: { id: true, organization_id: true },
-  });
+      const socialUser = await prisma.social_users.findUnique(
+        withPrismaTenantIsolationOverride({
+          where: { clerk_user_id: clerkUserId },
+          select: { id: true, organization_id: true },
+        }, { suppressReporting: true })
+      );
 
-  if (!socialUser?.id) return null;
+      if (!socialUser?.id) return null;
 
-  const orgIds = new Set<string>();
+      const orgIds = new Set<string>();
 
-  if (socialUser.organization_id) {
-    orgIds.add(String(socialUser.organization_id));
-  }
+      if (socialUser.organization_id) {
+        orgIds.add(String(socialUser.organization_id));
+      }
 
-  const ownedOrgs = await prisma.social_organizations.findMany({
-    where: { owner_id: String(socialUser.id) },
-    select: { id: true },
-  });
+      const ownedOrgs = await prisma.social_organizations.findMany(
+        withPrismaTenantIsolationOverride({
+          where: { owner_id: String(socialUser.id) },
+          select: { id: true },
+        }, { suppressReporting: true })
+      );
 
-  for (const row of ownedOrgs) {
-    if (row?.id) orgIds.add(String(row.id));
-  }
+      for (const row of ownedOrgs) {
+        if (row?.id) orgIds.add(String(row.id));
+      }
 
-  const memberships = await prisma.social_team_members.findMany({
-    where: { user_id: String(socialUser.id) },
-    select: { organization_id: true },
-  });
+      const memberships = await prisma.social_team_members.findMany(
+        withPrismaTenantIsolationOverride({
+          where: { user_id: String(socialUser.id) },
+          select: { organization_id: true },
+        }, { suppressReporting: true })
+      );
 
-  for (const row of memberships) {
-    if (row?.organization_id) orgIds.add(String(row.organization_id));
-  }
+      for (const row of memberships) {
+        if (row?.organization_id) orgIds.add(String(row.organization_id));
+      }
 
-  const ids = Array.from(orgIds);
-  if (!ids.length) return null;
+      const ids = Array.from(orgIds);
+      if (!ids.length) return null;
 
-  const orgs = await prisma.social_organizations.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, slug: true },
-  });
+      const orgs = await prisma.social_organizations.findMany(
+        withPrismaTenantIsolationOverride({
+          where: { id: { in: ids } },
+          select: { id: true, slug: true },
+        }, { suppressReporting: true })
+      );
 
-  if (!orgs.length) return null;
+      if (!orgs.length) return null;
 
-  const last = await loadCurrentUserLastLocation();
-  const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
-  if (lastKey) {
-    const match = orgs.find((o) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
-    if (match) return String(match.slug || match.id);
-  }
+      const last = await loadCurrentUserLastLocation();
+      const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
+      if (lastKey) {
+        const match = orgs.find((o) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
+        if (match) return String(match.slug || match.id);
+      }
 
-  const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
-  if (primaryId) {
-    const match = orgs.find((o) => String(o.id) === primaryId);
-    if (match) return String(match.slug || match.id);
-  }
+      const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
+      if (primaryId) {
+        const match = orgs.find((o) => String(o.id) === primaryId);
+        if (match) return String(match.slug || match.id);
+      }
 
-  return String(orgs[0].slug || orgs[0].id);
+      return String(orgs[0].slug || orgs[0].id);
+    }
+  );
 }
 
 export default async function MePage() {

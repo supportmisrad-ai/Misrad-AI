@@ -115,32 +115,40 @@ async function enforceTrialExpirationBestEffort(params: {
     if (!organizationId || !socialUserId || Number.isNaN(now.getTime())) return;
 
     const [member, org] = await Promise.all([
-      prisma.social_team_members.findFirst({
-        where: {
-          organization_id: organizationId,
-          user_id: socialUserId,
-        },
-        select: {
-          subscription_status: true,
-          trial_start_date: true,
-          trial_days: true,
-        },
-      }),
-      prisma.social_organizations.findUnique({
-        where: { id: organizationId },
-        select: {
-          subscription_status: true,
-          trial_start_date: true,
-          trial_days: true,
-        },
-      }),
+      prisma.social_team_members.findFirst(
+        withPrismaTenantIsolationOverride({
+          where: {
+            organization_id: organizationId,
+            user_id: socialUserId,
+          },
+          select: {
+            id: true,
+            organization_id: true,
+            user_id: true,
+            role: true,
+            trial_start_date: true,
+            trial_days: true,
+          },
+        }, { suppressReporting: true })
+      ),
+      prisma.social_organizations.findUnique(
+        withPrismaTenantIsolationOverride({
+          where: { id: organizationId },
+          select: {
+            subscription_status: true,
+            subscription_plan: true,
+            trial_start_date: true,
+            trial_days: true,
+          },
+        }, { suppressReporting: true })
+      ),
     ]);
 
     const updates: Promise<unknown>[] = [];
 
-    if (member?.subscription_status === 'trial' && member?.trial_start_date) {
-      const start = member.trial_start_date instanceof Date ? member.trial_start_date : new Date(String(member.trial_start_date));
-      const days = Number.isFinite(Number(member.trial_days)) ? Number(member.trial_days) : DEFAULT_TRIAL_DAYS;
+    if (member && org?.subscription_status === 'trial' && org?.trial_start_date) {
+      const start = org.trial_start_date instanceof Date ? org.trial_start_date : new Date(String(org.trial_start_date));
+      const days = Number.isFinite(Number(org.trial_days)) ? Number(org.trial_days) : DEFAULT_TRIAL_DAYS;
       if (!Number.isNaN(start.getTime()) && Number.isFinite(days) && days > 0) {
         const end = new Date(start);
         end.setDate(end.getDate() + Math.floor(days));
@@ -150,7 +158,6 @@ async function enforceTrialExpirationBestEffort(params: {
               where: {
                 organization_id: organizationId,
                 user_id: socialUserId,
-                subscription_status: 'trial',
               },
               data: {
                 subscription_status: 'expired',
@@ -840,28 +847,30 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     );
     const idCandidates = slugCandidates.filter((c) => isUuidLike(c));
 
-    org = await prisma.social_organizations.findFirst({
-      where: {
-        OR: [
-          ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
-          ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
-        ],
-      },
-      select: { 
-        id: true, 
-        name: true, 
-        owner_id: true, 
-        slug: true, 
-        logo: true, 
-        seats_allowed: true,
-        has_nexus: true,
-        has_system: true,
-        has_social: true,
-        has_finance: true,
-        has_client: true,
-        has_operations: true,
-      },
-    });
+    org = await prisma.social_organizations.findFirst(
+      withPrismaTenantIsolationOverride({
+        where: {
+          OR: [
+            ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
+            ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
+          ],
+        },
+        select: { 
+          id: true, 
+          name: true, 
+          owner_id: true, 
+          slug: true, 
+          logo: true, 
+          seats_allowed: true,
+          has_nexus: true,
+          has_system: true,
+          has_social: true,
+          has_finance: true,
+          has_client: true,
+          has_operations: true,
+        },
+      }, { suppressReporting: true })
+    );
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
     if (msg.includes('permission denied')) {
@@ -957,6 +966,13 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
   const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
   const decodedOnceOrgSlug = decodeOnce(orgSlug);
 
+  console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi', {
+    originalOrgSlug: orgSlug,
+    decodedOrgSlug,
+    decodedOnceOrgSlug,
+    clerkUserId,
+  });
+
   let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
   try {
     socialUser = await getCurrentSocialUser(clerkUserId);
@@ -982,25 +998,30 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
   const organizationKey = decodedOrgSlug;
 
   let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
+  let slugCandidates: string[] = [];
+  let idCandidates: string[] = [];
+  
   try {
-    const slugCandidates = Array.from(
+    slugCandidates = Array.from(
       new Set(
         [organizationKey, decodedOnceOrgSlug, String(orgSlug || ''), encodeURIComponent(organizationKey)]
           .map((v) => String(v || '').trim())
           .filter(Boolean)
       )
     );
-    const idCandidates = slugCandidates.filter((c) => isUuidLike(c));
+    idCandidates = slugCandidates.filter((c) => isUuidLike(c));
 
-    org = await prisma.social_organizations.findFirst({
-      where: {
-        OR: [
-          ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
-          ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
-        ],
-      },
-      select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
-    });
+    org = await prisma.social_organizations.findFirst(
+      withPrismaTenantIsolationOverride({
+        where: {
+          OR: [
+            ...(slugCandidates.length ? [{ slug: { in: slugCandidates } }] : []),
+            ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
+          ],
+        },
+        select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+      }, { suppressReporting: true })
+    );
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
     if (msg.includes('permission denied')) {
@@ -1010,6 +1031,16 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
   }
 
   if (!org?.id) {
+    console.error('[workspace-access] Organization not found', {
+      originalOrgSlug: orgSlug,
+      decodedOrgSlug,
+      decodedOnceOrgSlug,
+      slugCandidates,
+      idCandidates,
+      socialUserId: socialUser?.id,
+      socialUserOrgId: socialUser?.organization_id,
+      clerkUserId,
+    });
     throw setErrorStatus(new Error('Organization not found'), 404);
   }
 
