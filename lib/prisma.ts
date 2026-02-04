@@ -268,7 +268,6 @@ function getEffectiveDatabaseUrlForPrisma(): string | null {
       });
     }
   };
-
   const normalizeCandidate = (rawCandidate: string): string | null => {
     const candidate = String(rawCandidate || '').trim();
     if (!candidate) return null;
@@ -883,6 +882,42 @@ const RAW_SQL_UNSCOPED_ALLOWLIST = new Map<string, RegExp[]>([
       /\bsum\([\s\S]*metadata->>'monthlyfee'[\s\S]*\)::numeric/i,
     ],
   ],
+  [
+    'api_rate_limit_cleanup',
+    [
+      /\bDELETE\s+FROM\s+api_rate_limits\s+WHERE\s+expires_at\s*<\s*NOW\(\)/i,
+    ],
+  ],
+  [
+    'api_rate_limit_check',
+    [
+      /\bSELECT\s+count\s+FROM\s+api_rate_limits\s+WHERE\s+key\s*=\s*\$1/i,
+    ],
+  ],
+  [
+    'api_rate_limit_incr',
+    [
+      /\bUPDATE\s+api_rate_limits\s+SET\s+count\s*=\s*count\s*\+\s*1\s+WHERE\s+key\s*=\s*\$1/i,
+    ],
+  ],
+  [
+    'api_rate_limit_insert',
+    [
+      /\bINSERT\s+INTO\s+api_rate_limits\b[\s\S]*\bVALUES\b[\s\S]*\bNOW\(\)\s*\+\s*INTERVAL\s*'2\s*minutes'/i,
+    ],
+  ],
+  [
+    'api_key_check',
+    [
+      /\bSELECT\s+id,\s*is_active,\s*rate_limit_per_minute,\s*allowed_endpoints\b[\s\S]*\bFROM\s+api_keys\b[\s\S]*\bWHERE\s+key\s*=\s*\$1\s+AND\s+is_active\s*=\s*true/i,
+    ],
+  ],
+  [
+    'api_key_usage',
+    [
+      /\bUPDATE\s+api_keys\s+SET\s+last_used_at\s*=\s*NOW\(\)\s+WHERE\s+key\s*=\s*\$1/i,
+    ],
+  ],
 ]);
 
 function assertUnscopedRawAllowed(params: { reason: string; query: string; values: unknown[] }) {
@@ -989,6 +1024,10 @@ if (typeof _rawQueryUnsafeOriginal === 'function') {
       /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
       /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
       /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
+      // Public Leads API - api_keys validation
+      /\bSELECT\b[\s\S]*\bFROM\s+api_keys\b[\s\S]*\bWHERE\s+key\s*=\s*\$1\b/i,
+      // Public Leads API - rate limiting
+      /\bSELECT\b[\s\S]*\bFROM\s+api_rate_limits\b[\s\S]*\bWHERE\s+key\s*=\s*\$1\b/i,
     ];
     if (allowlist.some((pattern) => pattern.test(query))) {
       return (_rawQueryUnsafeOriginal as RawQueryUnsafe).call(this as unknown, query, ...args);
@@ -1004,6 +1043,14 @@ if (typeof _rawExecuteUnsafeOriginal === 'function') {
       /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
       /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
       /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
+      // Public Leads API - update last used timestamp
+      /\bUPDATE\s+api_keys\s+SET\s+last_used_at\b/i,
+      // Public Leads API - rate limiting cleanup
+      /\bDELETE\s+FROM\s+api_rate_limits\b[\s\S]*\bWHERE\s+expires_at\s*<\s*NOW\(\)/i,
+      // Public Leads API - rate limiting update
+      /\bUPDATE\s+api_rate_limits\s+SET\s+count\b/i,
+      // Public Leads API - rate limiting insert
+      /\bINSERT\s+INTO\s+api_rate_limits\b/i,
     ];
     if (allowlist.some((pattern) => pattern.test(query))) {
       return (_rawExecuteUnsafeOriginal as RawExecuteUnsafe).call(this as unknown, query, ...args);

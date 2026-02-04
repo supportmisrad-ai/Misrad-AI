@@ -27,12 +27,15 @@ export default function ClientWorkspace() {
     setActiveDraft,
     setPinnedClientIds,
     setPosts,
+    setClientRequests,
+    setManagerRequests,
     setIsPaymentModalOpen,
     setIsClientMode,
     setIsOnboardingMode,
     addToast,
     setIdeas,
-    setClients
+    setClients,
+    orgSlug
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'requests' | 'bank' | 'dna' | 'messages' | 'vault'>('overview');
@@ -73,10 +76,13 @@ export default function ClientWorkspace() {
 
   const handlers = useClientWorkspaceHandlers({
     activeClient,
+    orgSlug,
     setActiveDraft,
     setPosts,
     setIdeas,
     setClients,
+    setClientRequests,
+    setManagerRequests,
     addToast
   });
 

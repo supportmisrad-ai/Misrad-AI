@@ -2,7 +2,7 @@
 
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { provisionCurrentUserWorkspaceAction } from '@/app/actions/users';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
 
 export type CustomerAccountRecord = {
@@ -14,51 +14,27 @@ export type CustomerAccountRecord = {
   email: string | null;
 };
 
-async function requireCurrentOrganizationId(): Promise<string> {
+async function requireCurrentOrganizationId(orgSlug: string): Promise<string> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     throw new Error('Not authenticated');
   }
 
-  const profile = await prisma.profile.findFirst({
-    where: { clerkUserId },
-    select: { organizationId: true },
-  });
-
-  const existingOrgId = profile?.organizationId ?? null;
-  if (existingOrgId) {
-    return String(existingOrgId);
-  }
-
-  const provision = await provisionCurrentUserWorkspaceAction();
-  if (!provision.success) {
-    throw new Error(provision.error || 'Failed to provision workspace');
-  }
-
-  const profileAfter = await prisma.profile.findFirst({
-    where: { clerkUserId },
-    select: { organizationId: true },
-  });
-
-  const orgIdAfter = profileAfter?.organizationId ?? null;
-  if (!orgIdAfter) {
-    throw new Error('Missing organization for current user');
-  }
-
-  return String(orgIdAfter);
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+  return String(workspace.id);
 }
 
 function normalizePhone(input: string): string {
   return String(input || '').trim();
 }
 
-export async function getCustomerAccountForCurrentOrganization(): Promise<{
+export async function getCustomerAccountForCurrentOrganization(params: { orgSlug: string }): Promise<{
   success: boolean;
   data?: CustomerAccountRecord | null;
   error?: string;
 }> {
   try {
-    const organizationId = await requireCurrentOrganizationId();
+    const organizationId = await requireCurrentOrganizationId(params.orgSlug);
 
     const row = await prisma.customerAccount.findFirst({
       where: { organizationId: String(organizationId) },
@@ -88,11 +64,16 @@ export async function getCustomerAccountForCurrentOrganization(): Promise<{
 }
 
 export async function upsertCustomerAccountForCurrentOrganization(input: {
+  orgSlug: string;
   companyName: string;
   phone: string;
   email?: string;
 }): Promise<{ success: boolean; data?: true; error?: string }> {
   try {
+    const orgSlug = String(input.orgSlug || '').trim();
+    if (!orgSlug) {
+      return createErrorResponse(null, 'ארגון לא נמצא');
+    }
     const companyName = String(input.companyName || '').trim();
     const phone = normalizePhone(input.phone);
     const email = input.email ? String(input.email).trim() : '';
@@ -107,7 +88,7 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
       return createErrorResponse(null, 'אימייל חובה');
     }
 
-    const organizationId = await requireCurrentOrganizationId();
+    const organizationId = await requireCurrentOrganizationId(orgSlug);
 
     const now = new Date();
 
@@ -148,11 +129,6 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
       });
     } catch {
       // ignore
-    }
-
-    const provision = await provisionCurrentUserWorkspaceAction();
-    if (!provision.success) {
-      return createErrorResponse(provision.error || 'Failed to provision workspace');
     }
 
     return createSuccessResponse(true);

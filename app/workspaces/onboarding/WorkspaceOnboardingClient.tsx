@@ -51,6 +51,7 @@ export default function WorkspaceOnboardingClient(props: {
     setIsSaving(true);
     try {
       const res = await upsertCustomerAccountForCurrentOrganization({
+        orgSlug: props.organizationKey,
         companyName: name,
         phone: p,
         email: emailValue,
@@ -84,7 +85,7 @@ export default function WorkspaceOnboardingClient(props: {
         <div className="mb-8">
           <div className="text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase">Onboarding</div>
           <h1 className="text-3xl font-black text-slate-900 mt-2">מגדירים את העסק שלך</h1>
-          <p className="text-sm text-slate-600 mt-2">ניסיון חינם מלא ל-7 ימים — בלי כרטיס. צריך רק כמה פרטים כדי להתחיל.</p>
+          <p className="text-sm text-slate-600 mt-2">ניסיון חינם מלא ל-7 ימים. צריך רק כמה פרטים כדי להתחיל.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-3xl border border-white/70 bg-white/70 backdrop-blur p-8 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.25)]">
@@ -135,7 +136,7 @@ export default function WorkspaceOnboardingClient(props: {
               disabled={!canSubmit || isSaving}
               className="h-12 w-full rounded-2xl"
             >
-              {isSaving ? 'שומר...' : 'התחל ניסיון חינם (בלי כרטיס)'}
+              {isSaving ? 'שומר...' : 'התחל ניסיון חינם'}
             </Button>
 
             <div className="text-xs text-slate-500">

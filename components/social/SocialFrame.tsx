@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Icons from 'lucide-react';
 import { AppWindow, Bell, Calendar, Home, Users } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 import ToastContainer from '@/components/social/ToastContainer';
 import AddClientModal from '@/components/social/modals/AddClientModal';
@@ -36,6 +37,7 @@ import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
+import type { OrganizationProfile } from '@/types';
 
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { useSocialData } from '@/contexts/SocialDataContext';
@@ -52,8 +54,8 @@ export default function SocialFrame({
   basePath: string;
   orgSlug: string;
   isTeamEnabled?: boolean;
-  initialOrganization?: any;
-  initialCurrentUser?: any;
+  initialOrganization?: Partial<OrganizationProfile> | null;
+  initialCurrentUser?: { name?: string | null; role?: string | null; avatarUrl?: string | null } | null;
 }) {
   const {
     isTourActive,
@@ -228,7 +230,17 @@ export default function SocialFrame({
     </button>
   );
 
-  const menuItems = useMemo(
+  type MenuItem = {
+    id: string;
+    label: string;
+    view: string;
+    icon: string;
+    requiresClient?: boolean;
+  };
+
+  const iconMap = useMemo(() => Icons as unknown as Record<string, LucideIcon>, []);
+
+  const menuItems = useMemo<MenuItem[]>(
     () => [
       { id: 'dashboard', label: 'דשבורד', view: 'dashboard', icon: 'Home' },
       { id: 'all-clients', label: 'לקוחות', view: 'all-clients', icon: 'Users' },
@@ -269,14 +281,14 @@ export default function SocialFrame({
   const navItems = useMemo(
     () =>
       menuItems.map((item) => {
-        const IconComponent = ((Icons as any)[item.icon] as any) || Icons.Home;
+        const IconComponent = iconMap[item.icon] || Icons.Home;
         return {
           label: item.label,
           path: getRouteForView(item.view),
           icon: IconComponent,
         };
       }),
-    [menuItems]
+    [iconMap, menuItems]
   );
 
   const primaryNavPaths = useMemo(() => ['/dashboard', '/clients', '/calendar', '/inbox'], []);
@@ -403,13 +415,13 @@ export default function SocialFrame({
               <div className="grid grid-cols-4 gap-4">
                 {menuItems.map((item) => {
                   const isActiveItem = currentView === item.view;
-                  const IconComponent = ((Icons as any)[item.icon] as any) || Icons.Home;
+                  const IconComponent = iconMap[item.icon] || Icons.Home;
                   return (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => {
-                        if ((item as any).requiresClient && !activeClient) {
+                        if (item.requiresClient && !activeClient) {
                           openComingSoon();
                           return;
                         }

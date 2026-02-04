@@ -13,18 +13,24 @@ export default async function PrivacyPage() {
   const renderedMarkdown = String(markdown).replace(/\{\{DATE\}\}/g, new Date().toLocaleDateString('he-IL'));
 
   return (
-    <div className="min-h-screen bg-white text-slate-900" dir="rtl">
+    <div className="min-h-screen bg-slate-50 text-slate-900" dir="rtl">
       <Navbar />
       <main className="pt-20">
-        <section className="relative overflow-hidden">
-          <div className="absolute -top-24 -right-24 w-[520px] h-[520px] bg-blue-200/20 rounded-full blur-[120px] pointer-events-none" />
-          <div className="absolute -bottom-32 -left-24 w-[620px] h-[620px] bg-slate-200/40 rounded-full blur-[140px] pointer-events-none" />
-          <div className="max-w-4xl mx-auto px-6 py-16 sm:py-20 relative">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-bold shadow-sm">
-              <span>פרטיות</span>
+        <section>
+          <div className="max-w-4xl mx-auto px-6 py-12 sm:py-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-600 text-xs font-medium">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>מדיניות פרטיות</span>
             </div>
-            <h1 className="mt-6 text-4xl sm:text-5xl font-black leading-tight">מדיניות פרטיות</h1>
-            <div className="mt-10 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+            <h1 className="mt-4 text-3xl sm:text-4xl font-bold text-slate-900">
+              מדיניות פרטיות
+            </h1>
+            <p className="mt-3 text-base text-slate-600 leading-relaxed max-w-2xl">
+              איך אנחנו שומרים, מטפלים ומגנים על המידע והפרטיות שלך במערכת
+            </p>
+            <div className="mt-8 rounded-xl bg-white border border-slate-200 shadow-sm p-6 sm:p-8">
               <MarkdownRenderer content={renderedMarkdown} />
             </div>
           </div>

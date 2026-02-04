@@ -11,6 +11,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { getBaseUrl } from '@/lib/utils';
 import { sendMisradWelcomeEmail } from '@/lib/email';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object') {
@@ -80,6 +81,24 @@ async function upsertSocialUserForClerkUser(params: {
   const avatarUrl = params.imageUrl ? String(params.imageUrl) : null;
   const role = params.role ? String(params.role) : null;
 
+  // וידוא שה-organization קיים לפני יצירת social_user
+  const orgExists = await prisma.social_organizations.findFirst({
+    where: {
+      OR: [
+        { id: organizationId },
+        { slug: organizationId }
+      ]
+    },
+    select: { id: true }
+  });
+
+  if (!orgExists?.id) {
+    console.warn(`[upsertSocialUserForClerkUser] organization ${organizationId} not found - skipping social_user creation`);
+    return null;
+  }
+
+  const validOrgId = String(orgExists.id);
+
   const existing = await prisma.social_users.findUnique({
     where: { clerk_user_id: clerkUserId },
     select: { id: true, organization_id: true, role: true },
@@ -92,14 +111,14 @@ async function upsertSocialUserForClerkUser(params: {
         email: emailLower,
         full_name: fullName,
         avatar_url: avatarUrl,
-        organization_id: organizationId,
+        organization_id: validOrgId,
         ...(role ? { role } : {}),
         updated_at: now,
       },
     });
     return {
       id: String(existing.id),
-      organization_id: organizationId,
+      organization_id: validOrgId,
       role: role ?? (existing.role ? String(existing.role) : null),
     };
   }
@@ -110,7 +129,7 @@ async function upsertSocialUserForClerkUser(params: {
       email: emailLower,
       full_name: fullName,
       avatar_url: avatarUrl,
-      organization_id: organizationId,
+      organization_id: validOrgId,
       role: role ?? 'owner',
       created_at: now,
       updated_at: now,
@@ -319,9 +338,8 @@ async function upsertProfileForClerkUser(params: {
     };
   }
 
-  // Default: create an org + owner profile (with predetermined UUID for owner_id)
+  // Default: create an org + owner profile
   const ownerProfileId = crypto.randomUUID();
-  const ownerIdPlaceholder = crypto.randomUUID();
   const orgName = params.fullName || params.email || 'Organization';
   const emailPrefix = params.email ? String(params.email).split('@')[0] : '';
   const fullNameSlug = params.fullName ? generateOrgSlug(params.fullName) : '';
@@ -337,57 +355,70 @@ async function upsertProfileForClerkUser(params: {
     : null;
   const hasModule = (k: OSModuleKey): boolean => Boolean(planModules && planModules.includes(k));
 
-  const createdOrg = await prisma.social_organizations.create({
-    data: {
-      name: orgName,
-      slug: slugBase || null,
-      owner_id: ownerIdPlaceholder,
-      has_nexus: pendingPlan ? hasModule('nexus') : true,
-      has_system: pendingPlan ? hasModule('system') : false,
-      has_social: pendingPlan ? hasModule('social') : false,
-      has_finance: pendingPlan ? hasModule('finance') : false,
-      has_client: pendingPlan ? hasModule('client') : false,
-      has_operations: pendingPlan ? hasModule('operations') : false,
-      subscription_status: 'trial',
-      subscription_plan: pendingPlan ? String(pendingPlan) : null,
-      trial_start_date: new Date(),
-      trial_days: 7,
-    },
-    select: { id: true, slug: true },
-  });
+  const now = new Date();
+  const emailLower = params.email ? String(params.email).trim().toLowerCase() : null;
+  const fullName = params.fullName ? String(params.fullName) : null;
+  const avatarUrl = params.imageUrl ? String(params.imageUrl) : null;
 
-  const createdProfile = await prisma.profile.create({
-    data: {
-      id: ownerProfileId,
-      organizationId: createdOrg.id,
-      clerkUserId,
-      email: params.email ?? null,
-      fullName: params.fullName ?? null,
-      avatarUrl: params.imageUrl ?? null,
-      role: 'owner',
-    },
-    select: { id: true, organizationId: true, role: true },
-  });
+  const tempOrgId = crypto.randomUUID();
+  const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
+    const createdSocialUser = await tx.social_users.create({
+      data: {
+        clerk_user_id: clerkUserId,
+        email: emailLower,
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        organization_id: null,
+        role: 'owner',
+        created_at: now,
+        updated_at: now,
+      },
+      select: { id: true },
+    });
 
-  const ensuredSocialUser = await upsertSocialUserForClerkUser({
-    clerkUserId,
-    organizationId: createdOrg.id,
-    email: params.email,
-    fullName: params.fullName,
-    imageUrl: params.imageUrl,
-    role: createdProfile.role ?? null,
-  });
+    const createdOrg = await tx.social_organizations.create({
+      data: {
+        id: tempOrgId,
+        name: orgName,
+        slug: slugBase || null,
+        owner_id: createdSocialUser.id,
+        has_nexus: pendingPlan ? hasModule('nexus') : true,
+        has_system: pendingPlan ? hasModule('system') : false,
+        has_social: pendingPlan ? hasModule('social') : false,
+        has_finance: pendingPlan ? hasModule('finance') : false,
+        has_client: pendingPlan ? hasModule('client') : false,
+        has_operations: pendingPlan ? hasModule('operations') : false,
+        subscription_status: 'trial',
+        subscription_plan: pendingPlan ? String(pendingPlan) : null,
+        trial_start_date: now,
+        trial_days: DEFAULT_TRIAL_DAYS,
+        created_at: now,
+        updated_at: now,
+      },
+      select: { id: true, slug: true },
+    });
 
-  if (ensuredSocialUser?.id && String(ensuredSocialUser.id) !== String(ownerIdPlaceholder)) {
-    try {
-      await prisma.social_organizations.update({
-        where: { id: createdOrg.id },
-        data: { owner_id: String(ensuredSocialUser.id), updated_at: new Date() },
-      });
-    } catch {
-      // ignore
-    }
-  }
+    await tx.social_users.update({
+      where: { id: createdSocialUser.id },
+      data: { organization_id: createdOrg.id, updated_at: now },
+      select: { id: true },
+    });
+
+    const createdProfile = await tx.profile.create({
+      data: {
+        id: ownerProfileId,
+        organizationId: createdOrg.id,
+        clerkUserId,
+        email: params.email ?? null,
+        fullName: params.fullName ?? null,
+        avatarUrl: params.imageUrl ?? null,
+        role: 'owner',
+      },
+      select: { id: true, organizationId: true, role: true },
+    });
+
+    return { createdOrg, createdProfile };
+  });
 
   // Best-effort welcome email with portal link
   try {

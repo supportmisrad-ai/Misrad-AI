@@ -19,11 +19,13 @@ import MobileBottomNav from '@/components/shared/MobileBottomNav';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
+import type { OrganizationProfile } from '@/types';
+import type { UserProfile } from '@/components/system/types';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: UserProfile | null;
+  initialOrganization?: Partial<OrganizationProfile> | null;
 }) {
   const { user } = useAuth();
   const { pathname, roomName } = useRoomBranding();
@@ -32,9 +34,9 @@ export default function FinanceShell(props: {
 
   const orgSlug = React.useMemo(() => parseWorkspaceRoute(nextPathname).orgSlug, [nextPathname]);
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
-    name: (user as any)?.name ?? null,
-    role: (user as any)?.role ?? null,
-    avatarUrl: (user as any)?.avatar ?? null,
+    name: user?.name ?? null,
+    role: user?.role ?? null,
+    avatarUrl: user?.avatar ?? null,
   });
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -83,7 +85,7 @@ export default function FinanceShell(props: {
     router.push(`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`);
   }, [basePath, router, systemIdentity?.needsProfileCompletion]);
 
-  const headerName = systemIdentity?.name || String((user as any)?.name || (user as any)?.email || 'משתמש');
+  const headerName = systemIdentity?.name || String(user?.name || user?.email || 'משתמש');
   const headerRole = systemIdentity?.role || null;
 
   if (!user) {

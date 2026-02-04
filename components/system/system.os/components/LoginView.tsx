@@ -68,7 +68,7 @@ const LoginView = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             className="w-full bg-slate-900/40 border border-slate-800 rounded-xl px-4 py-3.5 pl-10 text-sm font-medium text-white placeholder:text-slate-700 focus:outline-none focus:border-primary/50 transition-all"
-                            placeholder="admin@nexus.os"
+                            placeholder="אימייל"
                         />
                         <Mail size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600" />
                     </div>

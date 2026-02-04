@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, Boxes, ClipboardList, Mic, Truck, Sparkles, Zap } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,14 +40,14 @@ export default function SaveTimeHubPage() {
               <div className="mt-10 flex flex-col sm:flex-row gap-4">
                 <Link
                   href="/pricing"
-                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
+                  className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
                 >
                   התחל ניסיון חינם
                   <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 hover:shadow-lg transition-all"
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 hover:shadow-lg transition-all"
                 >
                   ראה מחירים
                 </Link>
@@ -145,6 +147,10 @@ export default function SaveTimeHubPage() {
             </div>
           </div>
         </section>
+
+        <TestimonialsSection />
+
+        <SalesFaq variant="default" />
       </main>
       <Footer />
     </div>

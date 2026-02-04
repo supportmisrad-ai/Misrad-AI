@@ -124,9 +124,10 @@ export const SalesTargets: React.FC = () => {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {salesTeam.map((user: User) => {
-                        const target = user.targets?.leadsMonth || 0; // Sales Target (Revenue or Leads count, using leadsMonth as placeholder for Revenue Target here for simplicity)
-                        // Mock actual performance for demo based on their ID
-                        const actual = (leads as Lead[]).filter((l: Lead) => l.status === 'Won').length * 5000; // Mock 5k per deal
+                        const target = user.targets?.leadsMonth || 0;
+                        // Calculate actual revenue from won deals
+                        const userWonDeals = (leads as Lead[]).filter((l: Lead) => l.status === 'Won');
+                        const actual = userWonDeals.reduce((sum: number, l: Lead) => sum + l.value, 0);
                         const userProgress = target > 0 ? Math.min((actual / target) * 100, 100) : 0;
                         const isEditing = editingUserId === user.id;
 

@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
@@ -65,7 +65,8 @@ async function ensureBucketExists(supabase: ReturnType<typeof createClient>, buc
 export async function uploadFile(
   file: File | Blob,
   fileName: string,
-  folder: 'posts' | 'ideas' | 'requests' | 'media' = 'media'
+  folder: 'posts' | 'ideas' | 'requests' | 'media' = 'media',
+  orgSlug?: string
 ): Promise<UploadResult> {
   try {
     const { userId } = await auth();
@@ -99,26 +100,18 @@ export async function uploadFile(
 
     const supabase = createClient();
 
-    let organizationId: string | null = null;
-    try {
-      const where = {
-        OR: [{ id: String(supabaseUserId) }, { clerkUserId: String(userId) }],
-      } satisfies Prisma.ProfileWhereInput;
-
-      const profile = await prisma.profile.findFirst({
-        where,
-        select: { organizationId: true },
-      });
-      const rawOrgId = profile?.organizationId;
-      organizationId = rawOrgId ? String(rawOrgId) : null;
-    } catch {
-      organizationId = null;
+    const resolvedOrgSlug = String(orgSlug || '').trim();
+    if (!resolvedOrgSlug) {
+      return { success: false, error: 'orgSlug חסר' };
     }
+
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+    const organizationId = String(workspace.id);
 
     // Generate unique file name: {userId}/{folder}/{timestamp}-{originalName}
     const timestamp = Date.now();
     const sanitizedFileName = String(fileName ?? '').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const basePrefix = organizationId ? `${organizationId}/users/${supabaseUserId}` : `${supabaseUserId}`;
+    const basePrefix = `${organizationId}/users/${supabaseUserId}`;
     const filePath = `${basePrefix}/${folder}/${timestamp}-${sanitizedFileName}`;
 
     // Convert File/Blob to ArrayBuffer

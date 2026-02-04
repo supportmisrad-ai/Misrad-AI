@@ -16,7 +16,7 @@
 
 - Node.js 18+ 
 - npm או yarn
-- חשבון Supabase (אופציונלי - המערכת עובדת גם עם Mock Data)
+- חשבון Supabase (אופציונלי - רק ל-Storage; גישה לנתונים עסקיים היא Prisma-first)
 
 ## 🔧 התקנה
 
@@ -57,15 +57,12 @@ npm run dev
 http://localhost:4000
 ```
 
-## 🗄️ חיבור ל-Supabase
+## 🗄️ Supabase (Storage בלבד)
 
-המערכת תומכת בחיבור ל-Supabase לדאטה-בייס אמיתי:
+Supabase משמש **רק** ל-Storage (העלאות/הורדות קבצים). גישה לנתונים עסקיים מתבצעת **אך ורק** דרך Prisma כדי להסתמך על Tenant Guard.
 
 1. **צור פרויקט ב-Supabase**: https://app.supabase.com
-2. **הרץ את קוד ה-SQL**: העתק את התוכן מ-`supabase-schema.sql` והרץ ב-SQL Editor
-3. **הוסף את המפתחות** ל-`.env.local` (ראה `ENV_SETUP.md`)
-
-**הערה:** אם Supabase לא מוגדר, המערכת תשתמש ב-Mock Data אוטומטית.
+2. **הוסף את המפתחות** ל-`.env.local` (ראה `ENV_SETUP.md`)
 
 ## 🔌 API Endpoints
 
@@ -136,6 +133,7 @@ npm run lint
 
 - **Authentication**: Clerk
 - **Authorization**: מערכת הרשאות מבוססת תפקידים
+- **Tenant Guard (Prisma-first)**: כל גישה לנתונים עסקיים דרך Prisma בלבד עם סינון ארגוני קשיח.
 - **Audit Logging**: מעקב אחר כל הפעולות
 - **API Security**: API Key authentication לאינטגרציות
 - **Data Filtering**: סינון נתונים רגישים לפי הרשאות

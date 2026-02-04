@@ -43,9 +43,9 @@ const MessagesTab: React.FC<MessagesTabProps> = ({ conversations, onSendMessage 
         />
         <button 
           onClick={() => { if(replyMessage) { onSendMessage(currentConv?.id || '1', replyMessage); setReplyMessage(''); } }} 
-          className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all"
+          className="w-16 h-16 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all focus:outline-none"
         >
-          <Send size={24} className="rotate-180" />
+          <Send size={24} style={{ transform: 'rotate(-90deg)' }} strokeWidth={2.5} />
         </button>
       </div>
     </div>

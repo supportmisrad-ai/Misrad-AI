@@ -43,9 +43,9 @@ export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
     monthlyPrice: 499,
   },
   the_mentor: {
-    labelHe: 'Legacy',
-    modules: ['client', 'finance', 'nexus'],
-    monthlyPrice: 349,
+    labelHe: 'כל החבילות',
+    modules: ['nexus', 'system', 'social', 'client', 'finance', 'operations'],
+    monthlyPrice: 499,
   },
 };
 

@@ -123,7 +123,7 @@ const NewLeadModal: React.FC<NewLeadModalProps> = ({ onClose, onSave }) => {
                         </div>
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-slate-700">כתובת אימייל</label>
-                            <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-full px-6 py-4 text-sm focus:ring-4 focus:ring-primary/10 focus:bg-white outline-none transition-all shadow-sm" placeholder="email@example.com" dir="ltr" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                            <input type="email" className="w-full bg-slate-50 border border-slate-200 rounded-full px-6 py-4 text-sm focus:ring-4 focus:ring-primary/10 focus:bg-white outline-none transition-all shadow-sm" placeholder="דוא&quot;ל" dir="ltr" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                         </div>
                     </div>
                 </div>

@@ -289,7 +289,7 @@ const PartnersView: React.FC = () => {
                         <h3 className="text-xl font-bold text-slate-800 mb-2">הזמן שותף חדש</h3>
                         <p className="text-slate-500 text-sm mb-6">שלח הזמנה אישית להצטרף לתוכנית השותפים שלנו.</p>
                         
-                        <input type="email" placeholder="email@partner.com" className="w-full border border-slate-200 rounded-xl px-4 py-3 mb-4 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
+                        <input type="email" placeholder="דוא&quot;ל שותף" className="w-full border border-slate-200 rounded-xl px-4 py-3 mb-4 bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none" />
                         
                         <button onClick={() => { addToast('הזמנה נשלחה בהצלחה', 'success'); setShowInviteModal(false); }} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-colors">
                             שלח הזמנה

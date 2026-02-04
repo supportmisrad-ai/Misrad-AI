@@ -10,11 +10,12 @@ import { processPayment } from '@/app/actions/payments';
 interface PaymentCheckoutPortalProps {
   order: PaymentOrder;
   client: Client;
+  orgSlug: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export default function PaymentCheckoutPortal({ order, client, onSuccess, onCancel }: PaymentCheckoutPortalProps) {
+export default function PaymentCheckoutPortal({ order, client, orgSlug, onSuccess, onCancel }: PaymentCheckoutPortalProps) {
   const [installments, setInstallments] = useState<1 | 2>(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [step, setStep] = useState<'checkout' | 'success'>('checkout');
@@ -77,7 +78,8 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
         cardNumber.replace(/\s/g, ''),
         expiryDate,
         cvv,
-        installments
+        installments,
+        orgSlug
       );
 
       if (result.success && result.transactionId) {
@@ -190,7 +192,7 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
                       <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-6 flex items-center gap-4">
                         <input 
                           required 
-                          placeholder="MM/YY" 
+                          placeholder="חודש/שנה" 
                           value={expiryDate}
                           onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
                           maxLength={5}
@@ -200,7 +202,7 @@ export default function PaymentCheckoutPortal({ order, client, onSuccess, onCanc
                       <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-6 flex items-center gap-4">
                         <input 
                           required 
-                          placeholder="CVV" 
+                          placeholder="קוד אבטחה" 
                           value={cvv}
                           onChange={(e) => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
                           maxLength={4}

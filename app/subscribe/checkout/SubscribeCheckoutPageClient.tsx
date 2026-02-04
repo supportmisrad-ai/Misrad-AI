@@ -103,6 +103,12 @@ function SubscribeCheckoutContent({
     const raw = searchParams.get('partner') || searchParams.get('partner_code') || '';
     return String(raw).trim();
   });
+  const [couponCode, setCouponCode] = useState(() => {
+    const raw = searchParams.get('coupon') || searchParams.get('coupon_code') || '';
+    return String(raw).trim();
+  });
+
+  const [orderAmount, setOrderAmount] = useState<number | null>(null);
 
   const [paymentTitle, setPaymentTitle] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
@@ -134,11 +140,14 @@ function SubscribeCheckoutContent({
     setPaymentMethod('manual');
     setExternalPaymentUrl(null);
     setAcceptedLegal(false);
+    setOrderAmount(null);
     setSelectedPaymentOption(() => {
       if (!enablePaymentManual && enablePaymentCreditCard) return 'credit_card';
       return 'manual';
     });
   }, [plan, billingCycle, packageType, soloModuleKey]);
+
+  const amountToPay = orderAmount ?? amount;
 
   useEffect(() => {
     const loadConfig = async () => {
@@ -167,6 +176,7 @@ function SubscribeCheckoutContent({
       if (packageType === 'solo' && soloModuleKey) checkoutQs.set('module', String(soloModuleKey));
       if (seats) checkoutQs.set('seats', String(seats));
       if (partnerReferralCode.trim()) checkoutQs.set('partner', partnerReferralCode.trim());
+      if (couponCode.trim()) checkoutQs.set('coupon', couponCode.trim());
 
       const redirectUrl = `/subscribe/checkout?${checkoutQs.toString()}`;
       router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
@@ -212,6 +222,7 @@ function SubscribeCheckoutContent({
         customerPhone: phone,
         seats: seats ?? undefined,
         partnerReferralCode: partnerReferralCode.trim() || undefined,
+        couponCode: couponCode.trim() || undefined,
       });
 
       if (!result.success || !result.data?.id) {
@@ -220,6 +231,7 @@ function SubscribeCheckoutContent({
 
       setOrderId(result.data.id);
       setOrderOrgKey((result.data as any).organizationId || null);
+      setOrderAmount(typeof result.data.amount === 'number' ? result.data.amount : null);
     } catch (e: any) {
       setError(e?.message || 'שגיאה ביצירת הזמנה');
     } finally {
@@ -257,7 +269,7 @@ function SubscribeCheckoutContent({
 
   const bitPayText = useMemo(() => {
     const lines = [
-      `סכום לתשלום: ₪${amount}`,
+      `סכום לתשלום: ₪${amountToPay}`,
       productLabel ? `מוצר: ${productLabel}` : null,
       seats ? `משתמשים: ${seats}` : null,
       `תוכנית: ${plan}`,
@@ -265,7 +277,7 @@ function SubscribeCheckoutContent({
       orderId ? `מספר הזמנה: ${orderId}` : null,
     ].filter(Boolean);
     return lines.join('\n');
-  }, [amount, billingCycle, orderId, plan, productLabel, seats]);
+  }, [amountToPay, billingCycle, orderId, plan, productLabel, seats]);
 
   if (isSuccess) {
     return (
@@ -326,7 +338,7 @@ function SubscribeCheckoutContent({
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-sm text-slate-500">סיכום</div>
               <div className="mt-2 text-slate-900 font-bold">
-                ₪{amount} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {productLabel || plan}{seats ? ` • ${seats} משתמשים` : ''}
+                ₪{amountToPay} • {billingCycle === 'yearly' ? 'שנתי' : 'חודשי'} • {productLabel || plan}{seats ? ` • ${seats} משתמשים` : ''}
               </div>
             </div>
 
@@ -380,6 +392,13 @@ function SubscribeCheckoutContent({
               value={partnerReferralCode}
               onChange={e => setPartnerReferralCode(e.target.value)}
               placeholder='קוד שותף / רו"ח (אופציונלי)'
+              className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
+            />
+
+            <input
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value)}
+              placeholder='קוד קופון (אופציונלי)'
               className="w-full rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400"
             />
 

@@ -6,6 +6,7 @@ import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/e
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getBaseUrl } from '@/lib/utils';
 import { sendOrganizationWelcomeEmail } from '@/lib/email';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 
 type SocialOrganizationsCreateData = Parameters<typeof prisma.social_organizations.create>[0]['data'];
@@ -284,7 +285,7 @@ export async function createOrganization(input: {
         subscription_status: input.subscription_status ?? 'trial',
         subscription_plan: input.subscription_plan ?? null,
         trial_start_date: now,
-        trial_days: input.trial_days ?? 7,
+        trial_days: input.trial_days ?? DEFAULT_TRIAL_DAYS,
         created_at: now,
         updated_at: now,
       } satisfies SocialOrganizationsCreateData,
@@ -380,7 +381,7 @@ export async function createOrganizationOrInviteOwner(input: {
           subscription_status: 'trial',
           subscription_plan: null,
           trial_start_date: now,
-          trial_days: 7,
+          trial_days: DEFAULT_TRIAL_DAYS,
           created_at: now,
           updated_at: now,
         } satisfies SocialOrganizationsCreateData,

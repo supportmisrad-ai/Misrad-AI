@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 
 import { createServiceRoleClient } from '@/lib/supabase';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 export const dynamic = 'force-dynamic';
 
@@ -191,7 +192,7 @@ export async function POST(req: Request) {
           subscription_status: 'trial',
           subscription_plan: null,
           trial_start_date: nowIso,
-          trial_days: 7,
+          trial_days: DEFAULT_TRIAL_DAYS,
           created_at: nowIso,
           updated_at: nowIso,
         })

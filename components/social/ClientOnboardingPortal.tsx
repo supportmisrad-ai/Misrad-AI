@@ -239,14 +239,22 @@ export default function ClientOnboardingPortal() {
                 <div className="flex items-center gap-4">
                   {logo && <img src={logo} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
                   <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingLogo}
-                    className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black flex items-center gap-2"
+                    className="px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Camera size={20} className={isUploadingLogo ? 'opacity-60' : undefined} />
                     {isUploadingLogo ? 'מעלה...' : logo ? 'החלף תמונה' : 'העלה תמונה'}
                   </button>
-                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                  <input 
+                    ref={fileInputRef} 
+                    type="file" 
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" 
+                    onChange={handleLogoUpload} 
+                    className="absolute opacity-0 pointer-events-none w-0 h-0" 
+                    tabIndex={-1}
+                  />
                 </div>
               </div>
               <div>

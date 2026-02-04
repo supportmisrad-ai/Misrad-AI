@@ -50,37 +50,18 @@ async function GETHandler(request: NextRequest) {
         // But only admins can UPDATE them (in PATCH method below)
 
         const searchParams = request.nextUrl.searchParams;
-        const organizationIdFromQuery = searchParams.get('organizationId');
-        const tenantIdFromQuery = searchParams.get('tenantId');
         const headerOrgKey = getOrgKeyFromHeader(request);
 
-        const queryOrgKey = organizationIdFromQuery || tenantIdFromQuery;
-
-        if (!headerOrgKey && queryOrgKey && user?.isSuperAdmin) {
-            await requireSuperAdmin();
-        }
-
-        if (!headerOrgKey && !queryOrgKey) {
+        if (searchParams.get('organizationId') || searchParams.get('tenantId')) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
-        if (!headerOrgKey && queryOrgKey && !user?.isSuperAdmin) {
-            return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
-        }
-
-        const primaryOrgKey = headerOrgKey || (queryOrgKey ? String(queryOrgKey) : null);
+        const primaryOrgKey = headerOrgKey;
         if (!primaryOrgKey) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
-
-        if (headerOrgKey && queryOrgKey && String(headerOrgKey) !== String(queryOrgKey)) {
-            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(queryOrgKey));
-            if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
-                return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
-            }
-        }
 
         // Default flags if no tenant or no settings found
         const defaultFlags: Record<string, 'active' | 'maintenance' | 'hidden'> = {
@@ -140,7 +121,7 @@ async function PATCHHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
 
         const body = await request.json();
-        const { screenId, status, organizationId: providedOrganizationId, tenantId: providedTenantId } = body;
+        const { screenId, status, organizationId: _providedOrganizationId, tenantId: _providedTenantId } = body;
 
         if (!screenId || !status) {
             return NextResponse.json(
@@ -157,30 +138,20 @@ async function PATCHHandler(request: NextRequest) {
         }
 
         const headerOrgKey = getOrgKeyFromHeader(request);
-        const organizationIdFromBody = providedOrganizationId ? String(providedOrganizationId) : null;
-        const tenantIdFromBody = providedTenantId ? String(providedTenantId) : null;
-        const bodyOrgKey = organizationIdFromBody || tenantIdFromBody;
 
-        if (!headerOrgKey && !bodyOrgKey) {
+        if (_providedOrganizationId != null || _providedTenantId != null) {
             return NextResponse.json(
-                { error: 'Missing workspace context. Provide x-org-id header or organizationId/tenantId in body.' },
+                { error: 'Missing workspace context' },
                 { status: 400 }
             );
         }
 
-        const primaryOrgKey = headerOrgKey || bodyOrgKey;
+        const primaryOrgKey = headerOrgKey;
         if (!primaryOrgKey) {
             return NextResponse.json({ error: 'Missing workspace context' }, { status: 400 });
         }
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
-
-        if (headerOrgKey && bodyOrgKey && String(headerOrgKey) !== String(bodyOrgKey)) {
-            const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(String(bodyOrgKey));
-            if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
-                return NextResponse.json({ error: 'Conflicting workspace context' }, { status: 400 });
-            }
-        }
 
         const existingSettings = await prisma.system_settings.findFirst({
             where: { tenant_id: String(workspacePrimary.id) },

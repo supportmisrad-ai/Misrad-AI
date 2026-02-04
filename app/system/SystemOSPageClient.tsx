@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, Target, Check, Users, TrendingUp, Crown, Sparkles, Zap, FileText, BarChart3, HeartPulse, CheckCircle2, ArrowUp, Phone, Activity, DollarSign, Clock } from 'lucide-react';
+import { ArrowRight, Target, Check, Users, TrendingUp, Crown, Sparkles, Zap, FileText, BarChart3, HeartPulse, CheckCircle2, ArrowUp, Phone, Activity, DollarSign, Clock, PhoneCall, Cpu, ShoppingBag, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { PricingCard } from '@/components/landing/PricingCard';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
+import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
 
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic';
@@ -16,6 +18,7 @@ export const dynamic = 'force-dynamic';
 export default function SystemOSLandingPage() {
   const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans overflow-x-hidden" dir="rtl">
@@ -50,26 +53,22 @@ export default function SystemOSLandingPage() {
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
               <button
                 onClick={() => router.push('/pricing')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
                 onClick={() => router.push('/login')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-xl font-bold transition-all text-sm sm:text-base"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 rounded-full font-bold transition-all text-sm sm:text-base"
               >
                 כניסה
               </button>
               <button
-                onClick={() => {
-                  const element = document.getElementById('pricing');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold transition-all text-sm sm:text-base"
+                onClick={() => setIsVideoModalOpen(true)}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 rounded-full font-bold transition-all text-sm sm:text-base flex items-center justify-center gap-2 hover:border-indigo-300 hover:scale-105"
               >
-                ראה מחירים
+                <Play size={18} className="text-indigo-600" />
+                צפייה במערכת
               </button>
             </div>
           </div>
@@ -194,9 +193,24 @@ export default function SystemOSLandingPage() {
                 icon: Target
               },
               {
+                title: 'חייגן מובנה',
+                desc: 'חייג ללידים ישירות מהמערכת, תיעוד אוטומטי של שיחות ומעקב מלא',
+                icon: PhoneCall
+              },
+              {
                 title: 'משימות Follow Up',
                 desc: 'התקשר, שלח מייל, עקוב אחר ליד - משימות פשוטות לביצוע מיידי',
                 icon: Phone
+              },
+              {
+                title: 'הצעות מחיר',
+                desc: 'צור והנפק הצעות מחיר מקצועיות ללקוחות, מעקב אחר סטטוס ואישורים',
+                icon: FileText
+              },
+              {
+                title: 'ניהול מוצרים',
+                desc: 'קטלוג מוצרים ושירותים, מחירונים, וניהול מלאי',
+                icon: ShoppingBag
               },
               {
                 title: 'ניהול מכירות',
@@ -209,14 +223,14 @@ export default function SystemOSLandingPage() {
                 icon: Zap
               },
               {
+                title: 'AI Analytics',
+                desc: 'ניתוח מתקדם של ביצועי מכירות, חיזוי טרנדים, והמלצות אוטומטיות',
+                icon: Cpu
+              },
+              {
                 title: 'דוחות מתקדמים',
                 desc: 'דוחות על ביצועי מכירות, לידים, וקמפיינים',
                 icon: BarChart3
-              },
-              {
-                title: 'בינה מלאכותית (AI)',
-                desc: 'ניתוח לידים, המלצות מכירות, ותובנות עסקיות',
-                icon: Sparkles
               }
             ].map((feature, i) => (
               <motion.div
@@ -290,7 +304,7 @@ export default function SystemOSLandingPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto"
             >
               <PricingCard
                 title={getModuleLabelHe('system')}
@@ -363,7 +377,7 @@ export default function SystemOSLandingPage() {
               onClick={() => router.push('/pricing')}
               className="px-8 py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-sm hover:scale-105"
             >
-              התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={20} className="rotate-180" />
+              התחל ניסיון חינם <ArrowRight size={20} className="rotate-180" />
             </button>
             <button
               onClick={() => {
@@ -380,7 +394,18 @@ export default function SystemOSLandingPage() {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* FAQ Section */}
+      <SalesFaq variant="system" />
+
       <Footer />
+      
+      <DemoVideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+      />
     </div>
   );
 }

@@ -43,21 +43,46 @@ export async function POST(req: Request) {
     if (!organizationId && isE2E) {
       try {
         const maybeId = isUuid(orgSlug) ? orgSlug : undefined;
-        const created = await prisma.social_organizations.create({
-          data: {
-            ...(maybeId ? { id: maybeId } : {}),
-            name: 'E2E Workspace',
-            slug: orgSlug,
-            owner_id: crypto.randomUUID(),
-            has_nexus: true,
-            has_social: true,
-            has_system: true,
-            has_finance: true,
-            has_client: true,
-            has_operations: true,
-          } as any,
-          select: { id: true },
+        const e2eOwnerId = crypto.randomUUID();
+
+        const created = await prisma.$transaction(async (tx) => {
+          await tx.social_users.create({
+            data: {
+              id: e2eOwnerId,
+              clerk_user_id: `e2e_${e2eOwnerId}`,
+              email: `e2e_${orgSlug}@test.local`,
+              full_name: 'E2E Test User',
+              organization_id: null,
+              role: 'owner',
+              created_at: new Date(),
+              updated_at: new Date(),
+            } as any,
+          });
+
+          const createdOrg = await tx.social_organizations.create({
+            data: {
+              ...(maybeId ? { id: maybeId } : {}),
+              name: 'E2E Workspace',
+              slug: orgSlug,
+              owner_id: e2eOwnerId,
+              has_nexus: true,
+              has_social: true,
+              has_system: true,
+              has_finance: true,
+              has_client: true,
+              has_operations: true,
+            } as any,
+            select: { id: true },
+          });
+
+          await tx.social_users.update({
+            where: { id: e2eOwnerId },
+            data: { organization_id: createdOrg.id, updated_at: new Date() },
+          });
+
+          return createdOrg;
         });
+
         organizationId = created?.id || null;
       } catch {
         // fall through to re-query below

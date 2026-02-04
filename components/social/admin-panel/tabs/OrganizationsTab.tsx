@@ -193,17 +193,22 @@ export default function OrganizationsTab() {
         return;
       }
 
+      const resolvedOrgSlug = String(editForm.slug || '').trim();
+      if (!resolvedOrgSlug) {
+        addToast('חסר orgSlug לארגון (לא ניתן לעדכן דגלי מערכת)', 'error');
+        return;
+      }
+
       await fetch('/api/system/flags', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-org-id': resolvedOrgSlug },
         body: JSON.stringify({
-          tenantId: editForm.organizationId,
           screenId: 'reports',
           status: 'hidden',
         }),
       });
 
-      addToast('Finance כובה (חירום) + reports הוסתר', 'success');
+      addToast('כספים כובה (חירום) + דוחות הוסתרו', 'success');
       cancelEdit();
       await load();
     } catch (e: any) {
@@ -265,7 +270,7 @@ export default function OrganizationsTab() {
       addToast(res.error || 'שגיאה בעדכון Owner', 'error');
       return;
     }
-    addToast('Owner עודכן בהצלחה', 'success');
+    addToast('הבעלים עודכן בהצלחה', 'success');
     await load();
   };
 

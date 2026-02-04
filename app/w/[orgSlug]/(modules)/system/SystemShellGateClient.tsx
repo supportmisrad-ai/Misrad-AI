@@ -19,6 +19,8 @@ import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
+import type { OrganizationProfile, User } from '@/types';
+import type { WorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 
 const SHELL_TABS = new Set([
   'workspace',
@@ -34,7 +36,17 @@ const SHELL_TABS = new Set([
   'analytics',
 ]);
 
-const SystemShellContext = createContext<{ orgSlug: string; currentUser: any } | null>(null);
+type ShellUser = {
+  id: string;
+  avatar?: string | null;
+  email?: string | null;
+  role?: string | null;
+  name?: string | null;
+  phone?: string | null;
+  isSuperAdmin?: boolean;
+};
+
+const SystemShellContext = createContext<{ orgSlug: string; currentUser: ShellUser | null } | null>(null);
 
 class ClerkProviderErrorBoundary extends React.Component<
   { fallback: React.ReactNode; children: React.ReactNode },
@@ -77,9 +89,9 @@ function SystemShellGateClientCore({
 }: {
   children: React.ReactNode;
   orgSlug: string;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
-  systemIdentity: any;
+  initialCurrentUser?: ShellUser;
+  initialOrganization?: Partial<OrganizationProfile>;
+  systemIdentity: WorkspaceSystemIdentity | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -95,7 +107,7 @@ function SystemShellGateClientCore({
   const shouldWrapWithShell = activeTab ? SHELL_TABS.has(activeTab) : false;
   if (!shouldWrapWithShell) {
     return (
-      <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser }}>
+      <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser ?? null }}>
         <ToastProvider>
           <AuthProvider initialCurrentUser={initialCurrentUser}>
             <CallAnalysisProvider>
@@ -120,7 +132,7 @@ function SystemShellGateClientCore({
   const resolvedUser = {
     name: systemIdentity?.name || String(initialCurrentUser?.name || initialCurrentUser?.email || 'משתמש'),
     role: systemIdentity?.role || (initialCurrentUser?.isSuperAdmin ? 'סופר אדמין' : String(initialCurrentUser?.role || 'משתמש')),
-    avatarUrl: systemIdentity?.avatarUrl || String((initialCurrentUser as any)?.avatar || ''),
+    avatarUrl: systemIdentity?.avatarUrl || (typeof initialCurrentUser?.avatar === 'string' ? initialCurrentUser.avatar : ''),
     needsProfileCompletion: Boolean(systemIdentity?.needsProfileCompletion),
   };
 
@@ -226,7 +238,7 @@ function SystemShellGateClientCore({
   );
 
   return (
-    <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser }}>
+    <SystemShellContext.Provider value={{ orgSlug, currentUser: initialCurrentUser ?? null }}>
       <ToastProvider>
         <AuthProvider initialCurrentUser={initialCurrentUser}>
           <CallAnalysisProvider>
@@ -504,13 +516,13 @@ function SystemShellGateClientWithClerk({
 }: {
   children: React.ReactNode;
   orgSlug: string;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: ShellUser;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   const { identity: systemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
     name: initialCurrentUser?.name ?? null,
     role: initialCurrentUser?.role ?? null,
-    avatarUrl: (initialCurrentUser as any)?.avatar ?? null,
+    avatarUrl: typeof initialCurrentUser?.avatar === 'string' ? initialCurrentUser.avatar : null,
   });
 
   return (
@@ -533,13 +545,13 @@ function SystemShellGateClientWithoutClerk({
 }: {
   children: React.ReactNode;
   orgSlug: string;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: ShellUser;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   const fallbackIdentity = {
     name: String(initialCurrentUser?.name || initialCurrentUser?.email || 'משתמש'),
     role: (initialCurrentUser?.role ?? null) as string | null,
-    avatarUrl: String((initialCurrentUser as any)?.avatar || ''),
+    avatarUrl: typeof initialCurrentUser?.avatar === 'string' ? initialCurrentUser.avatar : '',
     needsProfileCompletion: false,
     profileCompleted: true,
   };
@@ -564,8 +576,8 @@ export default function SystemShellGateClient({
 }: {
   children: React.ReactNode;
   orgSlug: string;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: ShellUser;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   return (
     <ClerkProviderErrorBoundary

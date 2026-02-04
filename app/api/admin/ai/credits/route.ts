@@ -1,6 +1,7 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -18,18 +19,13 @@ function getErrorMessage(error: unknown): string {
   return typeof msg === 'string' ? msg : String(error ?? '');
 }
 
-type AdjustCreditsBody = {
-  organizationId: string;
-  deltaCents: number;
-};
-
 async function GETHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
-    const url = new URL(req.url);
-    const organizationId = String(url.searchParams.get('organizationId') || '').trim();
-    if (!organizationId) return apiError('organizationId is required', { status: 400 });
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
 
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -83,12 +79,17 @@ async function POSTHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
+
     const body: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(body) ?? {};
-    const organizationId = String(bodyObj.organizationId ?? '').trim();
     const deltaCents = Math.floor(Number(bodyObj.deltaCents));
 
-    if (!organizationId) return apiError('organizationId is required', { status: 400 });
+    if (bodyObj.organizationId != null) {
+      return apiError('organizationId must be provided via x-org-id header', { status: 400 });
+    }
     if (!Number.isFinite(deltaCents) || deltaCents === 0) {
       return apiError('deltaCents must be a non-zero number', { status: 400 });
     }

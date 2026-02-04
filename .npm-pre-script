@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+// מנגנון חסימת פקודות מסוכנות
+require('./scripts/command-interceptor.js');

@@ -19,6 +19,27 @@ type IncomingMessage = {
   text?: string;
 };
 
+type UserContext = {
+  name?: string;
+  company?: string;
+  industry?: string;
+  painPoints?: string[];
+  interests?: string[];
+  budget?: string;
+  timeline?: string;
+  objections?: string[];
+};
+
+type SituationType = 'browsing' | 'pricing_inquiry' | 'ready_to_buy' | 'technical_support' | 'objection' | 'comparison' | 'urgent';
+
+type SmartResponse = {
+  text: string;
+  situation: SituationType;
+  confidence: number;
+  detectedInfo?: Partial<UserContext>;
+  suggestedActions?: Array<{ label: string; action: string }>;
+};
+
 function extractText(msg: IncomingMessage): string {
   if (typeof msg.content === 'string') return String(msg.content);
   if (typeof msg.text === 'string') return String(msg.text);
@@ -27,6 +48,87 @@ function extractText(msg: IncomingMessage): string {
     .filter((p) => p && p.type === 'text')
     .map((p) => String(p.text || ''))
     .join('');
+}
+
+function analyzeConversationContext(messages: Array<{ role: string; content: string }>): { detectedInfo: Partial<UserContext>; situation: SituationType } {
+  const allText = messages.map(m => m.content).join(' ').toLowerCase();
+  const userMessages = messages.filter(m => m.role === 'user').map(m => m.content.toLowerCase());
+  const lastUserMsg = userMessages[userMessages.length - 1] || '';
+  
+  const detectedInfo: Partial<UserContext> = {};
+  
+  // זיהוי שם
+  const nameMatch = allText.match(/שמי ([א-ת]+)|אני ([א-ת]+)|קוראים לי ([א-ת]+)/);
+  if (nameMatch) detectedInfo.name = nameMatch[1] || nameMatch[2] || nameMatch[3];
+  
+  // זיהוי חברה
+  const companyMatch = allText.match(/מחברת ([א-ת\s]+)|העסק שלי ([א-ת\s]+)|אני ב([א-ת\s]+)/);
+  if (companyMatch) detectedInfo.company = (companyMatch[1] || companyMatch[2] || companyMatch[3]).trim();
+  
+  // זיהוי תחום
+  if (allText.includes('נדל"ן') || allText.includes('נדלן')) detectedInfo.industry = 'נדל"ן';
+  else if (allText.includes('ביטוח')) detectedInfo.industry = 'ביטוח';
+  else if (allText.includes('שיווק')) detectedInfo.industry = 'שיווק ופרסום';
+  else if (allText.includes('בניה')) detectedInfo.industry = 'בניה ושיפוצים';
+  
+  // זיהוי בעיות
+  const painPoints: string[] = [];
+  if (allText.includes('לא מספיק') || allText.includes('חסר')) painPoints.push('חוסר זמן');
+  if (allText.includes('לקוחות בורחים') || allText.includes('לא עונים')) painPoints.push('אובדן לקוחות');
+  if (allText.includes('מסובך') || allText.includes('לא מבין')) painPoints.push('מורכבות');
+  if (painPoints.length) detectedInfo.painPoints = painPoints;
+  
+  // זיהוי התנגדויות
+  const objections: string[] = [];
+  if (lastUserMsg.includes('יקר') || lastUserMsg.includes('מחיר')) objections.push('מחיר גבוה');
+  if (lastUserMsg.includes('מסובך') || lastUserMsg.includes('לא מבין')) objections.push('מורכבות');
+  if (lastUserMsg.includes('לא בטוח') || lastUserMsg.includes('לא יודע')) objections.push('חוסר ביטחון');
+  if (lastUserMsg.includes('יש לי כבר') || lastUserMsg.includes('משתמש ב')) objections.push('מערכת קיימת');
+  if (objections.length) detectedInfo.objections = objections;
+  
+  // זיהוי תקציב
+  const budgetMatch = lastUserMsg.match(/(\d{1,3}(?:,\d{3})*|\d+)\s*(?:שקל|₪)/);
+  if (budgetMatch) detectedInfo.budget = budgetMatch[0];
+  
+  // זיהוי לוח זמנים
+  if (lastUserMsg.includes('דחוף') || lastUserMsg.includes('מהר') || lastUserMsg.includes('עכשיו')) detectedInfo.timeline = 'דחוף';
+  else if (lastUserMsg.includes('חודש') || lastUserMsg.includes('שבועיים')) detectedInfo.timeline = 'קצר טווח';
+  
+  // זיהוי סיטואציה
+  let situation: SituationType = 'browsing';
+  
+  if (lastUserMsg.includes('כמה עולה') || lastUserMsg.includes('מחיר') || lastUserMsg.includes('עלות') || lastUserMsg.includes('תוכני')) {
+    situation = 'pricing_inquiry';
+  } else if (lastUserMsg.includes('רוצה לקנות') || lastUserMsg.includes('להירשם') || lastUserMsg.includes('להתחיל') || lastUserMsg.includes('בוא נתחיל')) {
+    situation = 'ready_to_buy';
+  } else if (objections.length > 0) {
+    situation = 'objection';
+  } else if (lastUserMsg.includes('לעומת') || lastUserMsg.includes('השוואה') || lastUserMsg.includes('יותר טוב') || lastUserMsg.includes('מתחרה')) {
+    situation = 'comparison';
+  } else if (lastUserMsg.includes('דחוף') || lastUserMsg.includes('בעיה') || lastUserMsg.includes('לא עובד')) {
+    situation = 'urgent';
+  } else if (lastUserMsg.includes('איך') || lastUserMsg.includes('מה זה') || lastUserMsg.includes('תסביר')) {
+    situation = 'technical_support';
+  }
+  
+  return { detectedInfo, situation };
+}
+
+function extractDynamicActions(text: string): Array<{ label: string; action: string }> {
+  const match = text.match(/\[!ACTIONS\]([\s\S]+?)\[\/ACTIONS\]/);
+  if (!match) return [];
+  
+  const actionsStr = match[1].trim();
+  const pairs = actionsStr.split(';;').filter(Boolean);
+  
+  return pairs.map(pair => {
+    const [label, action] = pair.split('|').map(s => s.trim());
+    return { label: label || '', action: action || '' };
+  }).filter(a => a.label && a.action);
+}
+
+function stripActionsTag(text: string): string {
+  return text.replace(/\[!ACTIONS\][\s\S]+?\[\/ACTIONS\]/g, '').trim();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -109,23 +211,28 @@ function ensureSalesCTA(text: string): string {
 
   return [
     out,
-    '---',
-    '**צעד הבא:**',
-    '- [מחירון](/pricing)',
-    '- [הרשמה / התחלה מהירה](/subscribe/checkout)',
-    '- [דבר איתנו / צור קשר](/contact)',
+    '',
+    '**רוצה להתחיל?**',
+    '- [מחירון ומידע](/pricing)',
+    '- [הרשמה](/login?mode=sign-up)',
+    '- [צור קשר](/contact)',
   ].join('\n');
 }
 
 function isSalesPathname(pathname: string): boolean {
   const p = String(pathname || '/').toLowerCase();
+  
+  // Not sales: workspace pages (require orgSlug)
   if (p.startsWith('/w/')) return false;
-  if (p.includes('pricing')) return true;
-  if (p.includes('landing')) return true;
-  if (p.includes('subscribe')) return true;
-  if (p.includes('solo')) return true;
-  if (p.includes('the-operator')) return true;
-  return false;
+  
+  // Not sales: admin/internal/auth pages
+  if (p.startsWith('/admin')) return false;
+  if (p.startsWith('/api')) return false;
+  if (p.includes('sign-in') || p.includes('sign-up') || p.includes('sign-out')) return false;
+  if (p.includes('invite') || p.includes('reset-password') || p.includes('sso-callback')) return false;
+  
+  // Everything else = sales mode (no workspace required)
+  return true;
 }
 
 function inferOrgSlug(pathname: string): string | null {
@@ -354,11 +461,11 @@ async function POSTHandler(req: Request) {
     const safeMessages = Array.isArray(body.messages) ? body.messages : [];
     const coreMessages = safeMessages
       .filter((m) => isChatRole(m?.role))
-      .map((m) => ({ role: m.role, content: extractText(m) }));
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: extractText(m) }));
 
     const lastUser = [...coreMessages].reverse().find((m) => m.role === 'user')?.content || '';
     const history = coreMessages
-      .slice(-18)
+      .slice(-6)
       .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
       .join('\n');
 
@@ -369,15 +476,50 @@ async function POSTHandler(req: Request) {
 
     if (sales) {
       const systemInstruction = [
-        'ענה תמיד בעברית טבעית, זורמת ומודרנית.',
-        'אתה יועץ מכירות מומחה של MISRAD AI. המטרה שלך היא להמיר מתעניינים למשתמשים על ידי הצגת ערך פרקטי (ROI).',
-        'אל תשתמש בשמות באנגלית. השתמש בשמות בעברית בלבד: "עוזר קולי (בנהיגה)", "חיבור לידים", "קיוסק".',
-        'התמקד בעוזר הקולי (בנהיגה), בחיבור לידים ובקיוסק.',
-        'דבר בגובה העיניים, היה ישיר ואל תשתמש במילים שיווקיות זולות.',
-        'אתה מייצג את MISRAD AI בלבד (לא Misrad-CRM). אל תמציא יכולות/מודולים שלא קיימים.',
-        'אם שואלים על מערכות אחרות: תן השוואה עניינית קצרה ותסביר למה הגישה של MISRAD (ניהול מבוסס קול ושטח) עדיפה לבעלי עסקים שזזים הרבה.',
-        'פורמט תשובה: Markdown קריא למובייל. השתמש בכותרות קצרות, בולטים והדגשות כשצריך.',
-        'בסוף כל תשובה משמעותית הוסף CTA ברור עם לינקים לפרייסינג/הרשמה או וואטסאפ/צור קשר.',
+        '# תפקיד',
+        'אתה יועץ מכירות מומחה וחכם של MISRAD AI. אתה מאמן מכירות ברמה עולמית.',
+        '',
+        '# יכולות מרכזיות',
+        '1. **קליטת מידע** - זכור כל פרט שהמשתמש משתף (שם, חברה, תחום, בעיות, תקציב, לוח זמנים)',
+        '2. **זיהוי סיטואציות** - הבן במה המשתמש נמצא:',
+        '   - browsing: רק מסתכל, לא מוכן',
+        '   - pricing_inquiry: שואל על מחיר',
+        '   - ready_to_buy: מוכן לקנות עכשיו',
+        '   - technical_support: שאלה טכנית',
+        '   - objection: מעלה התנגדות',
+        '   - comparison: משווה עם מתחרים',
+        '   - urgent: צריך פתרון דחוף',
+        '3. **טיפול בהתנגדויות** - כשיש התנגדות ("יקר מדי", "לא בטוח", "מסובך"), השב בצורה חכמה:',
+        '   - הכר בחששות',
+        '   - הצג ערך/ROI',
+        '   - תן דוגמה/סיפור הצלחה',
+        '   - הצע פעולה קלה',
+        '4. **כפתורים דינמיים** - בסוף כל תשובה, החזר 2-4 כפתורים רלוונטיים להקשר:',
+        '   פורמט: `[!ACTIONS]label1|action1;;label2|action2[/ACTIONS]`',
+        '   דוגמאות:',
+        '   - browsing: "מה זה עושה?", "כמה עולה?", "יש דמו?"',
+        '   - pricing_inquiry: "ראה מחירון", "דבר עם מכירות", "התחל ניסיון"',
+        '   - objection (יקר): "חשב ROI", "השווה תכניות", "ניסיון חינם 14 יום"',
+        '   - ready_to_buy: "הירשם עכשיו", "צור קשר מיידי", "ראה מדריך"',
+        '',
+        '# הנחיות תוכן',
+        '- עברית טבעית וזורמת בלבד',
+        '- שמות עבריים: "עוזר קולי", "חיבור לידים", "קיוסק", "ניהול לקוחות"',
+        '- התמקד ב-ROI מדיד: "חוסך X שעות בשבוע", "מגדיל המרה ב-Y%"',
+        '- דבר ישיר, ללא שיווק זול',
+        '- אם לא יודע - אל תמציא',
+        '',
+        '# התנגדויות נפוצות וטיפול',
+        '**"יקר מדי"** → "אני מבין את החשש. בואו נחשב ביחד: אם המערכת חוסכת לך 10 שעות בשבוע, זה כמה שווה לך? רוב הלקוחות שלנו מדווחים על החזר השקעה תוך 2-3 חודשים. [רוצה לראות דוגמה קונקרטית?]"',
+        '**"לא בטוח שזה בשבילי"** → "בואו נבדוק ביחד. ספר לי קצת על העסק שלך - מה התחום? כמה לקוחות? מה הכאב הכי גדול? על פי זה אוכל להגיד לך בדיוק איך זה יכול לעזור או אם באמת זה לא מתאים."',
+        '**"מסובך מדי"** → "זה בדיוק מה שלא רצינו! המערכת בנויה להיות פשוטה - תתחיל עם הבסיס (5 דקות הקמה) ותוסיף תכונות בהדרגה. יש לך וידאו של 3 דקות שמראה בדיוק איך להתחיל. רוצה?"',
+        '**"יש לי כבר מערכת"** → "מעולה! רוב הלקוחות שלנו גם הגיעו ממערכות אחרות. מה החסרונות שאתה מרגיש במערכת הנוכחית? MISRAD בנויה בדיוק כדי לפתור את הבעיות הנפוצות - יכול להיות שזה בדיוק מה שחסר לך."',
+        '',
+        '# חשוב',
+        '- זכור מידע מהשיחה (אם אמר שמו, השתמש בו)',
+        '- התאם את הטון לרמת המוכנות',
+        '- **תמיד** החזר כפתורי פעולה רלוונטיים',
+        '- Markdown נקי וקריא',
       ].join('\n');
 
       const importantLinks = getLinksHub()
@@ -386,7 +528,38 @@ async function POSTHandler(req: Request) {
         .map((l) => `- ${l.title}: ${l.href}`)
         .join('\n');
 
-      const prompt = `עמוד נוכחי: ${pathname}\n\nLinks:\n${importantLinks || '(none)'}\n\nHistory:\n${history || '(empty)'}\n\nUser message:\n${lastUser}`;
+      // ניתוח הקשר מההיסטוריה
+      const contextAnalysis = analyzeConversationContext(coreMessages as Array<{ role: string; content: string }>);
+      
+      const prompt = [
+        `# הקשר נוכחי`,
+        `עמוד: ${pathname}`,
+        ``,
+        `# מידע שנאסף על המשתמש`,
+        contextAnalysis.detectedInfo ? JSON.stringify(contextAnalysis.detectedInfo, null, 2) : 'אין עדיין',
+        ``,
+        `# היסטוריית שיחה (${coreMessages.length} הודעות)`,
+        history || '(ריק)',
+        ``,
+        `# קישורים זמינים`,
+        importantLinks || '(none)',
+        ``,
+        `# הודעה נוכחית`,
+        lastUser,
+        ``,
+        `# משימה`,
+        `1. זהה סוג סיטואציה (browsing/pricing_inquiry/ready_to_buy/objection/comparison/urgent)`,
+        `2. אם יש מידע חדש על המשתמש - קלוט אותו`,
+        `3. אם יש התנגדות - טפל בה בחוכמה`,
+        `4. ענה בצורה רלוונטית וישירה`,
+        `5. **חובה**: בסוף התשובה, הוסף 2-4 כפתורים דינמיים בפורמט:`,
+        `[!ACTIONS]כפתור1|פעולה1;;כפתור2|פעולה2[/ACTIONS]`,
+        ``,
+        `דוגמה לכפתורים טובים:`,
+        `- אם שואל על מחיר: "ראה מחירון מלא|/pricing;;דבר עם יועץ|/contact;;התחל ניסיון חינם|/login?mode=sign-up"`,
+        `- אם מתלבט: "תכנן פגישת ייעוץ|/contact;;שאל שאלה נוספת|מה עוד חשוב לדעת?;;ראה סרטון הסבר|איפה הסרטון?"`,
+        `- אם מוכן: "הירשם עכשיו|/login?mode=sign-up;;דבר עם מכירות|/contact;;שאלות נוספות|יש לי עוד שאלה"`,
+      ].join('\n');
 
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -400,7 +573,8 @@ async function POSTHandler(req: Request) {
             { role: 'system', content: systemInstruction },
             { role: 'user', content: prompt },
           ],
-          temperature: 0.4,
+          temperature: 0.7,
+          max_tokens: 500,
         }),
       });
 
@@ -410,8 +584,21 @@ async function POSTHandler(req: Request) {
       }
 
       const json: unknown = await res.json();
-      const text = extractOpenAiText(json);
-      return streamTextResponse(ensureSalesCTA(text));
+      let text = extractOpenAiText(json);
+      
+      // חלץ כפתורים דינמיים
+      const actions = extractDynamicActions(text);
+      text = stripActionsTag(text);
+      
+      // אם אין כפתורים, הוסף ברירת מחדל
+      if (actions.length === 0) {
+        text = ensureSalesCTA(text);
+      } else {
+        // הוסף כפתורים בפורמט JSON בסוף
+        text = text + '\n\n' + JSON.stringify({ quickActions: actions.map(a => a.label) });
+      }
+      
+      return streamTextResponse(text);
     }
 
     await getAuthenticatedUser();

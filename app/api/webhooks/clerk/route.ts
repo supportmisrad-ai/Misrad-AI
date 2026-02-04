@@ -5,6 +5,7 @@ import { WebhookEvent } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/app/actions/users';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug } from '@/lib/server/orgSlug';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -244,7 +245,7 @@ async function POSTHandler(req: Request) {
                     has_operations: false,
                     subscription_status: 'trial',
                     trial_start_date: nowIso,
-                    trial_days: 7,
+                    trial_days: DEFAULT_TRIAL_DAYS,
                     created_at: nowIso,
                     updated_at: nowIso,
                   } satisfies Record<string, unknown>)

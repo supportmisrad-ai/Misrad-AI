@@ -9,7 +9,7 @@ export default async function SoloLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="Solo · מודול בודד"
+      badge="מודול בודד"
       title="התחלה חכמה: לבחור מודול אחד ולהתחיל לעבוד מסודר."
       subtitle="מתחילים קטן — גדלים חכם. בוחרים מודול ומתמקדים במה שכואב."
       audience="פרילאנסרים ועצמאים · עסקים קטנים · צוותים בתחילת הדרך"
@@ -29,7 +29,7 @@ export default async function SoloLandingPage() {
         },
       ]}
       ctaPrimaryHref="/login?mode=sign-up&plan=solo"
-      ctaPrimaryLabel="התחל ניסיון חינם (בלי כרטיס)"
+      ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}

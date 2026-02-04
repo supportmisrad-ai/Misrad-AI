@@ -42,8 +42,9 @@ export const SystemControlPanel: React.FC<SystemControlPanelProps> = ({ organiza
         setIsExporting(true);
         try {
             const url = new URL('/api/admin/ai/brain-export', window.location.origin);
-            url.searchParams.set('organizationId', orgSlug);
-            const res = await fetch(url.toString());
+            const res = await fetch(url.toString(), {
+                headers: { 'x-org-id': orgSlug },
+            });
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 throw new Error(data.error || 'שגיאה ביצוא הגדרות AI');

@@ -9,7 +9,7 @@ export default async function TheAuthorityLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="The Authority · שיווק ומיתוג"
+      badge="חבילת שיווק ומיתוג"
       title="מהתוכן ללקוח: לחבר את השיווק לניהול הלקוחות."
       subtitle="להפוך עוקבים ללקוחות משלמים ולנהל את כל התקשורת במקום אחד."
       audience="מנהלי סושיאל, משפיענים, עסקים שמייצרים תוכן וקהילות"

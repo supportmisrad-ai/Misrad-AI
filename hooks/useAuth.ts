@@ -12,6 +12,7 @@ import { isCeoRole } from '@/lib/constants/roles';
 import { getNexusMe, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+const PRESENCE_REQUEST_TIMEOUT_MS = 12_000;
 
 type ToastKind = 'success' | 'error' | 'info' | 'warning';
 
@@ -157,8 +158,8 @@ export const useAuth = (
     const sendPresenceHeartbeat = useCallback(async () => {
         if (typeof window === 'undefined') return;
         const visibilityState = typeof document !== 'undefined' ? document.visibilityState : null;
-        if (!orgSlug || !isClerkLoaded || visibilityState === 'hidden') {
-            const nextState = JSON.stringify({ orgSlug, isClerkLoaded, visibilityState });
+        if (!orgSlug || !isClerkLoaded || !clerkUserId || visibilityState === 'hidden') {
+            const nextState = JSON.stringify({ orgSlug, isClerkLoaded, clerkUserId: Boolean(clerkUserId), visibilityState });
             if (nextState !== presenceGuardStateRef.current) {
                 presenceGuardStateRef.current = nextState;
                 console.info(`[Presence] heartbeat skipped (guard) ${nextState}`);
@@ -172,34 +173,51 @@ export const useAuth = (
         }
         presenceInFlightRef.current = true;
 
+        let pendingWarnTimeout: ReturnType<typeof setTimeout> | null = null;
+        let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+        let heartbeatPromise: Promise<unknown> | null = null;
+
         try {
             const startedAt = Date.now();
-            const pendingWarnTimeout = setTimeout(() => {
+            pendingWarnTimeout = setTimeout(() => {
                 console.warn(`[Presence] heartbeat pending >5s (possible hang) orgSlug=${orgSlug}`);
             }, 5000);
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutHandle = setTimeout(() => {
+                    reject(new Error(`Presence heartbeat timeout after ${PRESENCE_REQUEST_TIMEOUT_MS}ms`));
+                }, PRESENCE_REQUEST_TIMEOUT_MS);
+            });
             console.info(`[Presence] heartbeat start orgSlug=${orgSlug}`);
-            const result = await updateNexusPresenceHeartbeat({ orgId: orgSlug });
-            clearTimeout(pendingWarnTimeout);
+            heartbeatPromise = updateNexusPresenceHeartbeat({ orgId: orgSlug });
+            const result = await Promise.race([heartbeatPromise, timeoutPromise]);
             console.info(
                 `[Presence] heartbeat completed in ${Date.now() - startedAt}ms orgSlug=${orgSlug}`
             );
             presenceFailureCountRef.current = 0;
             presenceSuccessCountRef.current += 1;
             if (presenceSuccessCountRef.current === 1) {
-                console.info('Presence heartbeat ok', { orgSlug, serverTime: result?.serverTime, debug: result?.debug });
+                console.info('Presence heartbeat ok', { orgSlug, serverTime: (result as any)?.serverTime, debug: (result as any)?.debug });
             }
             setCurrentUser((prev) => (prev.online ? prev : { ...prev, online: true }));
         } catch (error) {
+            if (error instanceof Error && error.message.includes('Presence heartbeat timeout')) {
+                void heartbeatPromise?.catch(() => null);
+            }
             console.warn('[Presence] heartbeat error', error);
-            // best-effort
             presenceFailureCountRef.current += 1;
             if (presenceFailureCountRef.current === 1) {
                 console.warn('Presence heartbeat failed', error);
             }
         } finally {
+            try {
+                if (pendingWarnTimeout) clearTimeout(pendingWarnTimeout);
+                if (timeoutHandle) clearTimeout(timeoutHandle);
+            } catch {
+                // ignore
+            }
             presenceInFlightRef.current = false;
         }
-    }, [orgSlug, isClerkLoaded]);
+    }, [orgSlug, isClerkLoaded, clerkUserId]);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;

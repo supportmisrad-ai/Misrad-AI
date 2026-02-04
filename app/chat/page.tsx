@@ -1,6 +1,6 @@
 'use client';
 
-import ChatInterface from '../../components/ChatInterface';
+import ChatInterface from '@/components/ChatInterface';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 

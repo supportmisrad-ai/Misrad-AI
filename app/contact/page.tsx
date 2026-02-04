@@ -18,37 +18,37 @@ export default function ContactPage() {
               <MessageCircle size={14} />
               <span>צור קשר</span>
             </div>
-            <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
+            <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               דבר איתנו
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600">
                 נחזור אליך מהר
               </span>
             </h1>
-            <p className="mt-6 text-xl text-slate-600 max-w-2xl leading-relaxed">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">
               לכל שאלה, בקשה או נושא טכני — אנחנו זמינים ונחזור אליך בהקדם.
             </p>
 
-            <div className="mt-14 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="mt-10 sm:mt-14 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
               {/* Info Card */}
-              <div className="rounded-3xl bg-white border border-slate-200 shadow-xl p-8">
-                <div className="text-lg font-black text-slate-900 mb-6">פרטי יצירת קשר</div>
+              <div className="rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl p-6 sm:p-8">
+                <div className="text-base sm:text-lg font-black text-slate-900 mb-5 sm:mb-6">פרטי יצירת קשר</div>
                 <div className="space-y-5">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                      <Mail size={20} />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                      <Mail size={18} className="sm:w-5 sm:h-5" />
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900">אימייל</div>
-                      <div className="text-slate-600 mt-1">support@misrad-ai.com</div>
+                      <div className="text-sm sm:text-base font-bold text-slate-900">אימייל</div>
+                      <div className="text-sm sm:text-base text-slate-600 mt-1">support@misrad-ai.com</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
-                      <Clock size={20} />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                      <Clock size={18} className="sm:w-5 sm:h-5" />
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900">זמינות</div>
-                      <div className="text-slate-600 mt-1">א׳-ה׳ 09:00-18:00</div>
+                      <div className="text-sm sm:text-base font-bold text-slate-900">זמינות</div>
+                      <div className="text-sm sm:text-base text-slate-600 mt-1">א׳-ה׳ 09:00-18:00</div>
                     </div>
                   </div>
                 </div>
@@ -66,8 +66,8 @@ export default function ContactPage() {
               {/* Form Card */}
               <div className="relative">
                 <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-[2rem] blur-xl" />
-                <div className="relative rounded-3xl bg-white border border-slate-200 shadow-xl p-8">
-                  <div className="text-lg font-black text-slate-900 mb-6">שלח הודעה</div>
+                <div className="relative rounded-2xl sm:rounded-3xl bg-white border border-slate-200 shadow-xl p-6 sm:p-8">
+                  <div className="text-base sm:text-lg font-black text-slate-900 mb-5 sm:mb-6">שלח הודעה</div>
                   <form className="space-y-4">
                     <input
                       name="name"

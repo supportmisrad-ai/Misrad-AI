@@ -1,12 +1,50 @@
-require('dotenv').config({ path: '.env' });
-try {
-  require('dotenv').config({ path: '.env.local' });
-} catch {}
-
 const fs = require('fs');
+const dotenv = require('dotenv');
+
+const envPath = '.env.local';
+if (fs.existsSync(envPath)) {
+  try {
+    const parsed = dotenv.parse(fs.readFileSync(envPath));
+    for (const [k, v] of Object.entries(parsed)) process.env[k] = v;
+  } catch (e) {
+    console.error(`[db-check-prisma-migration-sync] Failed to load ${envPath}:`, e);
+    process.exit(1);
+  }
+} else {
+  console.error(`[db-check-prisma-migration-sync] ${envPath} not found; using process.env only.`);
+}
+
 const path = require('path');
 const net = require('net');
 const { PrismaClient } = require('@prisma/client');
+
+function parseDbIdentity(urlValue) {
+  try {
+    if (!urlValue) return null;
+    const u = new URL(String(urlValue));
+    const port = u.port ? Number.parseInt(String(u.port), 10) : 5432;
+    const database = u.pathname ? String(u.pathname).replace(/^\//, '') : '';
+    return {
+      host: u.hostname || null,
+      port: Number.isFinite(port) ? port : 5432,
+      database: database || null,
+      user: u.username ? decodeURIComponent(u.username) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function printDbTargetToStderr() {
+  const id = parseDbIdentity(process.env.DATABASE_URL);
+  if (!id) {
+    console.error('[db-check-prisma-migration-sync] DATABASE_URL -> (missing/invalid)');
+    return;
+  }
+  console.error(
+    `[db-check-prisma-migration-sync] DATABASE_URL -> host=${id.host} port=${id.port} db=${id.database ?? 'unknown'} user=${id.user ?? 'unknown'}`
+  );
+}
 
 function getHostSafe(urlValue) {
   try {
@@ -212,6 +250,7 @@ async function runCheck(label) {
 }
 
 async function main() {
+  printDbTargetToStderr();
   const timeoutMs = envInt('PRISMA_MIGRATION_SYNC_TIMEOUT_MS', 45_000);
   const timeout = setTimeout(() => {
     console.error(

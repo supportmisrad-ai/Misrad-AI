@@ -178,6 +178,8 @@ export default function LobbyClient({
             onKeyDown={handleKeyDown}
             moduleGradient={globalChatGradient}
             moduleAccent={globalChatAccent}
+            moduleKey="global"
+            orgSlug={orgSlug}
           />
         </div>
       </div>

@@ -56,6 +56,8 @@ const config: Config = {
         'blob': 'blob 10s infinite',
         'pulse-soft': 'pulseSoft 3s ease-in-out infinite',
         'spin-slow': 'spin 8s linear infinite',
+        'float': 'float 3s ease-in-out infinite',
+        'bounce-slow': 'bounceSlow 2s ease-in-out infinite',
       },
       keyframes: {
         blob: {
@@ -75,6 +77,36 @@ const config: Config = {
         pulseSoft: {
           '0%, 100%': { opacity: '0.6' },
           '50%': { opacity: '1' }
+        },
+        scan: {
+          '0%': { transform: 'translateY(-100%)' },
+          '50%': { transform: 'translateY(100%)' },
+          '50.1%': { transform: 'translateY(-100%)' },
+          '100%': { transform: 'translateY(-100%)' },
+        },
+        grow: {
+          '0%, 100%': { transform: 'scaleY(0.6)' },
+          '50%': { transform: 'scaleY(1)' },
+        },
+        slideIn: {
+          '0%': { transform: 'translateX(100%)', opacity: '0' },
+          '10%': { transform: 'translateX(0)', opacity: '1' },
+          '90%': { transform: 'translateX(0)', opacity: '1' },
+          '100%': { transform: 'translateX(100%)', opacity: '0' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        scanHorizontal: {
+          '0%': { transform: 'translateX(-100%)' },
+          '50%': { transform: 'translateX(100%)' },
+          '50.1%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
+        bounceSlow: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
         }
       }
     },

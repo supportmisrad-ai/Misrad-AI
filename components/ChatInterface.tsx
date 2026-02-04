@@ -1,70 +1,109 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Sparkles } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeletons';
+import { Send, Sparkles } from 'lucide-react';
+import { useApp } from '@/contexts/AppContext';
+import { ChatBubble } from '@/components/chat/ChatBubble';
+import { ChatHeader } from '@/components/chat/ChatHeader';
+import { ChatHistory, ChatHistoryItem } from '@/components/chat/ChatHistory';
+import { saveChatHistory, getChatHistory, deleteChatHistory } from '@/app/actions/chat-history';
 
 interface ChatInterfaceProps {
   className?: string;
   initialMessage?: string;
+  moduleKey?: string; // 'nexus', 'social', 'finance', etc.
+  assistantName?: string;
+  assistantRole?: string;
+  assistantAvatar?: string;
 }
 
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
-  parts: Array<{ type: 'text'; text: string }>;
+  content: string;
+  timestamp: number;
 };
 
-export default function ChatInterface({ className = '', initialMessage }: ChatInterfaceProps) {
+export default function ChatInterface({
+  className = '',
+  initialMessage,
+  moduleKey = 'general',
+  assistantName = 'איציק',
+  assistantRole = 'עוזר AI חכם',
+  assistantAvatar = '🤖',
+}: ChatInterfaceProps) {
   const [input, setInput] = useState(initialMessage || '');
-  const containerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'chat' | 'history'>('chat');
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(`session_${Date.now()}`);
 
-  // Auto-scroll to bottom when new messages arrive
+  let orgSlug: string | null = null;
+  try {
+    orgSlug = useApp().orgSlug;
+  } catch {
+    orgSlug = null;
+  }
+
+  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
 
-  // Auto-focus input when component mounts
+  // Load history on mount
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
+    if (orgSlug) {
+      loadHistory();
     }
-  }, []);
+  }, [orgSlug]);
 
-  // Set initial message if provided
-  useEffect(() => {
-    if (initialMessage && initialMessage.trim() && messages.length === 0 && !isLoading) {
-      // Don't auto-send, just set it in the input
-      setInput(initialMessage);
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
+  const loadHistory = async () => {
+    if (!orgSlug) return;
+    
+    const result = await getChatHistory({ moduleKey });
+    if (result.success && result.data) {
+      setChatHistory(result.data);
     }
-  }, [initialMessage, messages.length, isLoading]);
+  };
 
-  // Auto-resize textarea
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
-    }
-  }, [input]);
+  const saveCurrentChat = async () => {
+    if (!orgSlug || messages.length === 0) return;
+
+    const title = messages[0]?.content?.slice(0, 50) || 'שיחה חדשה';
+    const preview = messages[0]?.content?.slice(0, 80) || '';
+
+    await saveChatHistory({
+      moduleKey,
+      chatSessionId: currentSessionId,
+      title,
+      preview,
+      messages,
+    });
+
+    await loadHistory();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const resolvedOrgSlug = String(orgSlug || '').trim();
+    if (!resolvedOrgSlug) {
+      setError('חסר ארגון פעיל. עבור למסך עם Workspace פעיל ונסה שוב.');
+      return;
+    }
+
     const userText = input;
     const userMessage: ChatMessage = {
       id: `user_${Date.now()}`,
       role: 'user',
-      parts: [{ type: 'text', text: userText }],
+      content: userText,
+      timestamp: Date.now(),
     };
 
     setInput('');
@@ -79,8 +118,16 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
         const nextMessages = [...messages, userMessage];
         const res = await fetch('/api/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: nextMessages }),
+          headers: { 
+            'Content-Type': 'application/json', 
+            'x-org-id': resolvedOrgSlug 
+          },
+          body: JSON.stringify({ 
+            messages: nextMessages.map(m => ({ 
+              role: m.role, 
+              parts: [{ type: 'text', text: m.content }] 
+            }))
+          }),
         });
 
         if (!res.ok) {
@@ -92,9 +139,15 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
         const assistantMessage: ChatMessage = {
           id: `assistant_${Date.now()}`,
           role: 'assistant',
-          parts: [{ type: 'text', text: text || '' }],
+          content: text || '',
+          timestamp: Date.now(),
         };
-        setMessages((prev) => [...prev, assistantMessage]);
+        
+        const updatedMessages = [...nextMessages, assistantMessage];
+        setMessages(updatedMessages);
+
+        // Auto-save after AI response
+        setTimeout(() => saveCurrentChat(), 1000);
       } catch (err: any) {
         setError(String(err?.message || 'שגיאה בבוט. נסה שוב.'));
       } finally {
@@ -104,141 +157,128 @@ export default function ChatInterface({ className = '', initialMessage }: ChatIn
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Send on Enter, but allow Shift+Enter for new line
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e as any);
     }
   };
 
+  const handleLoadHistory = (id: string) => {
+    const item = chatHistory.find(h => h.id === id);
+    if (item && item.messages) {
+      setMessages(item.messages as ChatMessage[]);
+      setCurrentSessionId(id);
+      setView('chat');
+    }
+  };
+
+  const handleDeleteHistory = async (id: string) => {
+    if (!orgSlug) return;
+    
+    await deleteChatHistory({ moduleKey, chatSessionId: id });
+    await loadHistory();
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setCurrentSessionId(`session_${Date.now()}`);
+    setView('chat');
+  };
+
   return (
-    <div ref={containerRef} className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full bg-white rounded-2xl shadow-lg overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 p-4 border-b bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950 dark:to-purple-950">
-        <div className="p-2 bg-indigo-100 dark:bg-indigo-900 rounded-lg">
-          <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-        </div>
-        <div>
-          <h2 className="font-semibold text-lg text-gray-900 dark:text-white">Nexus Brain</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">עוזר AI חכם</p>
-        </div>
-      </div>
+      <ChatHeader
+        name={assistantName}
+        role={assistantRole}
+        avatar={assistantAvatar}
+        onShowHistory={() => setView(view === 'history' ? 'chat' : 'history')}
+        showHistory={view === 'history'}
+      />
 
-      {/* Messages Container */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900 custom-scrollbar">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 dark:text-gray-400">
-            <Bot className="w-12 h-12 mb-4 text-gray-300 dark:text-gray-600" />
-            <p className="text-lg font-medium mb-2">שלום! איך אני יכול לעזור?</p>
-            <p className="text-sm">שאל אותי על לידים, משימות, סטטיסטיקות או כל דבר אחר</p>
-          </div>
-        )}
-
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${
-              message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-            }`}
-          >
-            {/* Avatar */}
-            <div
-              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                message.role === 'user'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400'
-              }`}
-            >
-              {message.role === 'user' ? (
-                <User className="w-4 h-4" />
-              ) : (
-                <Bot className="w-4 h-4" />
-              )}
-            </div>
-
-            {/* Message Content */}
-            <div
-              className={`flex-1 rounded-lg p-3 ${
-                message.role === 'user'
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700'
-              }`}
-            >
-              <div className="whitespace-pre-wrap break-words">
-                {message.parts.map((part, i) => (
-                  <div key={`${message.id}-${i}`} className="text-sm leading-relaxed">
-                    {part.text}
-                  </div>
-                ))}
+      {/* Content */}
+      {view === 'history' ? (
+        <ChatHistory
+          history={chatHistory}
+          onSelect={handleLoadHistory}
+          onDelete={handleDeleteHistory}
+          onBack={() => setView('chat')}
+        />
+      ) : (
+        <>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-full text-center text-slate-400">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center mb-4">
+                  <Sparkles size={32} className="text-slate-600" />
+                </div>
+                <p className="text-[16px] font-bold mb-2">שלום! איך אני יכול לעזור?</p>
+                <p className="text-[14px]">שאל אותי על לידים, משימות, סטטיסטיקות או כל דבר אחר</p>
               </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Loading Indicator */}
-        {isLoading && (
-          <div className="flex gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-              <Bot className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-              <Skeleton className="w-4 h-4 rounded-full" />
-            </div>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
-            שגיאה: {error}
-          </div>
-        )}
-
-        {/* Scroll anchor for auto-scroll */}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-4 border-t bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
-      >
-        <div className="flex gap-2 items-end">
-          <div className="flex-1 relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="שאל שאלה או בקש עזרה... (Enter לשליחה, Shift+Enter לשורה חדשה)"
-              className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white resize-none min-h-[52px] max-h-[120px] text-base leading-relaxed"
-              disabled={isLoading}
-              dir="rtl"
-              rows={1}
-            />
-            <div className="absolute left-3 bottom-3 text-xs text-gray-400 dark:text-gray-500">
-              {input.length > 0 && `${input.length} תווים`}
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:shadow-none min-h-[52px]"
-            title="שלח (Enter)"
-          >
-            {isLoading ? (
-              <Skeleton className="w-5 h-5 rounded-full bg-white/30" />
-            ) : (
-              <Send className="w-5 h-5" />
             )}
-            <span className="font-medium hidden sm:inline">שלח</span>
-          </button>
-        </div>
-        <div className="mt-2 text-xs text-gray-400 dark:text-gray-500 text-center">
-          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">Enter</kbd> לשליחה • <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">Shift+Enter</kbd> לשורה חדשה
-        </div>
-      </form>
+
+            {messages.map((message) => (
+              <ChatBubble
+                key={message.id}
+                role={message.role}
+                content={message.content}
+                avatar={message.role === 'assistant' ? assistantAvatar : undefined}
+                name={message.role === 'assistant' ? assistantName : undefined}
+                timestamp={message.timestamp}
+              />
+            ))}
+
+            {isLoading && (
+              <ChatBubble
+                role="assistant"
+                content=""
+                avatar={assistantAvatar}
+                isTyping
+              />
+            )}
+
+            {error && (
+              <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-[14px]">
+                <strong>שגיאה:</strong> {error}
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <form onSubmit={handleSubmit} className="p-4 border-t-2 border-slate-100 bg-white">
+            <div className="flex gap-3 items-end">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="שאל שאלה..."
+                  className="w-full px-5 py-[14px] border-2 border-slate-200 rounded-3xl focus:outline-none focus:border-blue-400 resize-none min-h-[56px] max-h-[120px] text-[16px] leading-[1.5]"
+                  disabled={isLoading}
+                  dir="rtl"
+                  rows={1}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="px-6 py-4 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-3xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:shadow-none min-h-[56px] font-bold"
+              >
+                <Send size={20} />
+                <span className="hidden sm:inline">שלח</span>
+              </button>
+            </div>
+          </form>
+        </>
+      )}
     </div>
   );
 }
-

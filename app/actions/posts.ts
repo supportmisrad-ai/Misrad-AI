@@ -8,7 +8,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
 import { createPostSchema, validateWithSchema } from '@/lib/validation';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { triggerWebhookEvent } from './integrations';
 import { Prisma } from '@prisma/client';
 
@@ -53,20 +53,13 @@ function isPostStatus(value: unknown): value is PostStatus {
   );
 }
 
-async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    const row = await prisma.social_users.findUnique({
-      where: { clerk_user_id: String(userId) },
-      select: { organization_id: true },
-    });
-    const orgId = row?.organization_id;
-    return orgId ? String(orgId) : null;
-  } catch {
-    return null;
+async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
+  const resolvedOrgSlug = String(orgSlug || '').trim();
+  if (!resolvedOrgSlug) {
+    throw new Error('Missing orgSlug');
   }
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+  return String(workspace.id);
 }
 
 async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
@@ -105,17 +98,16 @@ async function assertPostInOrganization(params: { postId: string; organizationId
 /**
  * Server Action: Get all posts
  */
-export async function getPosts(
-  clientId?: string,
-  orgId?: string
-): Promise<{ success: boolean; data?: SocialPost[]; error?: string }> {
+export async function getPosts(params: {
+  orgSlug: string;
+  clientId?: string;
+}): Promise<{ success: boolean; data?: SocialPost[]; error?: string }> {
   try {
-    const organizationId = orgId
-      ? (await requireWorkspaceAccessByOrgSlug(orgId))?.id
-      : await resolveOrganizationIdForCurrentUser();
-
-    if (!organizationId) {
-      return { success: true, data: [] };
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(params.orgSlug);
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
     type PostRow = Prisma.SocialPostGetPayload<{
@@ -128,7 +120,7 @@ export async function getPosts(
     const rows: PostRow[] = await prisma.socialPost.findMany({
       where: {
         organizationId,
-        ...(clientId ? { clientId } : {}),
+        ...(params.clientId ? { clientId: params.clientId } : {}),
       },
       include: {
         social_post_platforms: { select: { platform: true } },
@@ -172,6 +164,7 @@ export async function getPosts(
  */
 export async function createPost(
   postData: {
+    orgSlug: string;
     clientId: string;
     content: string;
     platforms: SocialPlatform[];
@@ -204,8 +197,10 @@ export async function createPost(
     }
     const supabaseUserId = userResult.userId;
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(postData.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -217,7 +212,8 @@ export async function createPost(
       const uploadResult = await uploadFile(
         postData.mediaFile,
         `post-${Date.now()}.${postData.mediaFile.type.split('/')[1] || 'jpg'}`,
-        'posts'
+        'posts',
+        postData.orgSlug
       );
 
       if (!uploadResult.success) {
@@ -268,7 +264,7 @@ export async function createPost(
     }
 
     // Fetch complete post
-    const result = await getPosts(postData.clientId);
+    const result = await getPosts({ orgSlug: postData.orgSlug, clientId: postData.clientId });
     if (result.success && result.data) {
       const createdPost = result.data.find(p => p.id === post.id);
       if (createdPost) {
@@ -295,6 +291,7 @@ export async function createPost(
 export async function updatePost(
   postId: string,
   updates: {
+    orgSlug: string;
     content?: string;
     platforms?: SocialPlatform[];
     mediaFile?: File | Blob;
@@ -309,8 +306,10 @@ export async function updatePost(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(updates.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -322,7 +321,8 @@ export async function updatePost(
       const uploadResult = await uploadFile(
         updates.mediaFile,
         `post-${Date.now()}.${updates.mediaFile.type.split('/')[1] || 'jpg'}`,
-        'posts'
+        'posts',
+        updates.orgSlug
       );
 
       if (!uploadResult.success) {
@@ -381,7 +381,7 @@ export async function updatePost(
     }
 
     // Fetch updated post
-    const result = await getPosts();
+    const result = await getPosts({ orgSlug: updates.orgSlug });
     if (result.success && result.data) {
       const updatedPost = result.data.find(p => p.id === postId);
       if (updatedPost) {
@@ -402,15 +402,17 @@ export async function updatePost(
 /**
  * Server Action: Delete a post
  */
-export async function deletePost(postId: string): Promise<{ success: boolean; error?: string }> {
+export async function deletePost(postId: string, orgSlug: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -466,15 +468,17 @@ export async function deletePost(postId: string): Promise<{ success: boolean; er
 /**
  * Server Action: Publish a post (change status to published)
  */
-export async function publishPost(postId: string): Promise<{ success: boolean; error?: string }> {
+export async function publishPost(postId: string, orgSlug: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 

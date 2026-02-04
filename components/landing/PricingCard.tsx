@@ -28,7 +28,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             onHoverStart={() => setIsHovered(true)}
             onHoverEnd={() => setIsHovered(false)}
             whileHover={{ y: recommended ? -8 : -4 }}
-            className={`relative pt-12 pb-8 px-8 rounded-3xl border-2 flex flex-col h-full transition-all duration-500 group ${
+            className={`relative pt-8 sm:pt-12 pb-6 sm:pb-8 px-4 sm:px-6 md:px-8 rounded-2xl sm:rounded-3xl border-2 flex flex-col h-full transition-all duration-500 group ${
                 recommended 
                     ? `bg-white ${isGold ? 'border-[#C5A572]/40' : 'border-indigo-300'} shadow-xl z-10 scale-105` 
                     : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300'
@@ -85,10 +85,10 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             )}
 
             {/* Header Section */}
-            <div className="mb-8 relative z-10 mt-2">
+            <div className="mb-6 sm:mb-8 relative z-10 mt-2">
                 <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
-                        <h3 className={`text-2xl font-black mb-1 ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
+                        <h3 className={`text-xl sm:text-2xl font-black mb-1 ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
                             {title}
                         </h3>
                         {systemSubtitle && (
@@ -113,11 +113,11 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
 
                 {/* Price Display - Enhanced */}
                 <div className="relative">
-                    <div className="flex items-baseline gap-2 mb-2">
-                        <span className={`text-5xl font-black ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
+                    <div className="flex items-baseline gap-1.5 sm:gap-2 mb-2">
+                        <span className={`text-4xl sm:text-5xl font-black ${recommended ? `text-transparent bg-clip-text bg-gradient-to-r ${isGold ? 'from-[#C5A572] to-[#E5C17A]' : 'from-indigo-600 to-purple-600'}` : 'text-slate-900'}`}>
                             ₪{finalPrice}
                         </span>
-                        <span className="text-slate-400 text-sm font-bold">/חודש</span>
+                        <span className="text-slate-400 text-xs sm:text-sm font-bold">/חודש</span>
                     </div>
                     
                     {billingCycle === 'yearly' && (
@@ -139,14 +139,14 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
             </div>
 
             {/* Features List - Enhanced */}
-            <ul className="space-y-3.5 mb-8 flex-1 relative z-10 overflow-y-auto min-h-0">
+            <ul className="space-y-2.5 sm:space-y-3.5 mb-6 sm:mb-8 flex-1 relative z-10 overflow-y-auto min-h-0">
                 {features.map((feature, i) => (
                     <motion.li
                         key={i}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.05 }}
-                        className="flex items-start gap-3 text-sm break-words"
+                        className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm break-words"
                     >
                         {typeof feature === 'string' ? (
                             <>
@@ -177,7 +177,7 @@ export const PricingCard = ({ title, price, features, recommended = false, onSel
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onSelect}
-                className={`relative w-full py-4 rounded-xl font-black text-sm transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn ${
+                className={`relative w-full py-3 sm:py-4 rounded-full font-black text-xs sm:text-sm transition-all duration-300 flex items-center justify-center gap-2 overflow-hidden group/btn ${
                     recommended
                         ? (isGold
                             ? 'bg-gradient-to-r from-[#C5A572] via-[#D4AF6E] to-[#E5C17A] text-slate-900 shadow-xl shadow-[#C5A572]/20 hover:shadow-2xl hover:shadow-[#C5A572]/30 mb-6'

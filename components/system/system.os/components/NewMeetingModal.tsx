@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown, Loader2, ExternalLink, CheckCircle } from 'lucide-react';
 import { Lead } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -9,11 +9,20 @@ interface NewMeetingModalProps {
   initialLeadId?: string;
   onClose: () => void;
   onSave: (meeting: any) => void;
+  userId?: string;
+  organizationId?: string;
 }
 
-const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId, onClose, onSave }) => {
+const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId, onClose, onSave, userId, organizationId }) => {
   const [activeTab, setActiveTab] = useState<'details' | 'automation'>('details');
   const [isTimingOpen, setIsTimingOpen] = useState(false);
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
+  const [createdMeetingUrl, setCreatedMeetingUrl] = useState<string | null>(null);
+  const [integrationStatus, setIntegrationStatus] = useState<{
+    zoom: boolean;
+    meet: boolean;
+  } | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -52,11 +61,29 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
       return map[day] || 'ראשון';
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Check integration status on mount
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const response = await fetch('/api/integrations/status');
+        if (response.ok) {
+          const data = await response.json();
+          setIntegrationStatus(data);
+        }
+      } catch (error) {
+        console.error('Error checking integration status:', error);
+      } finally {
+        setIsCheckingStatus(false);
+      }
+    };
+    checkStatus();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedLead = leads.find(l => l.id === formData.leadId);
     
-    onSave({
+    const meetingData = {
       id: Date.now().toString(),
       title: selectedLead ? selectedLead.name : formData.title,
       leadName: selectedLead ? selectedLead.name : formData.title,
@@ -64,12 +91,56 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
       date: formData.date,
       time: formData.time,
       type: formData.type,
-      location: formData.type === 'frontal' ? formData.location : 'שיחת וידאו (זום)',
+      location: formData.type === 'frontal' ? formData.location : 'שיחת וידאו',
       dayName: getDayNameFromDate(formData.date),
       reminders: reminders,
-      postMeeting: postMeeting
-    });
-    onClose();
+      postMeeting: postMeeting,
+      meetingUrl: null as string | null,
+      platform: 'none' as string,
+    };
+
+    // Try to create online meeting if type is zoom and we have credentials
+    if (formData.type === 'zoom' && userId && organizationId) {
+      setIsCreatingMeeting(true);
+      try {
+        const startTime = new Date(`${formData.date}T${formData.time}:00`);
+        
+        const response = await fetch('/api/meetings/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            organizationId,
+            title: meetingData.title,
+            startTime: startTime.toISOString(),
+            duration: 60,
+            description: meetingData.leadCompany,
+            preferredPlatform: 'zoom',
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.joinUrl) {
+            meetingData.meetingUrl = result.joinUrl;
+            meetingData.platform = result.platform;
+            meetingData.location = result.joinUrl;
+            setCreatedMeetingUrl(result.joinUrl);
+          }
+        }
+      } catch (error) {
+        console.error('Error creating meeting:', error);
+      } finally {
+        setIsCreatingMeeting(false);
+      }
+    }
+    
+    onSave(meetingData);
+    
+    // Don't close immediately if we created a meeting - show the link
+    if (!meetingData.meetingUrl) {
+      onClose();
+    }
   };
 
   return (
@@ -168,10 +239,15 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                             <button
                                 type="button"
                                 onClick={() => setFormData({...formData, type: 'zoom'})}
-                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${formData.type === 'zoom' ? 'bg-rose-50 border-rose-200 text-primary shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                                className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all relative ${formData.type === 'zoom' ? 'bg-rose-50 border-rose-200 text-primary shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
                             >
                                 <Video size={20} />
-                                <span className="text-sm font-bold">זום</span>
+                                <span className="text-sm font-bold">זום / מיט</span>
+                                {!isCheckingStatus && (integrationStatus?.zoom || integrationStatus?.meet) && (
+                                    <div className="absolute top-1 left-1">
+                                        <CheckCircle size={14} className="text-green-600" />
+                                    </div>
+                                )}
                             </button>
                             <button
                                 type="button"
@@ -182,6 +258,11 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                 <span className="text-sm font-bold">פרונטלי</span>
                             </button>
                         </div>
+                        {!isCheckingStatus && formData.type === 'zoom' && !integrationStatus?.zoom && !integrationStatus?.meet && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+                                💡 לא מחובר ל-Zoom או Google Meet. הפגישה תישמר ללא לינק אוטומטי.
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -344,13 +425,54 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                 </div>
             )}
 
+            {createdMeetingUrl && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-green-50 border-2 border-green-200 rounded-2xl p-4"
+                >
+                    <div className="flex items-start gap-3">
+                        <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                            <h4 className="font-bold text-sm text-green-900 mb-1">✅ הפגישה נוצרה בהצלחה!</h4>
+                            <p className="text-xs text-green-700 mb-2">לינק הפגישה:</p>
+                            <a
+                                href={createdMeetingUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-green-200 text-xs text-green-800 hover:bg-green-50 transition-colors font-medium"
+                            >
+                                <ExternalLink size={14} />
+                                {createdMeetingUrl.substring(0, 40)}...
+                            </a>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="w-full mt-3 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors"
+                    >
+                        סגור
+                    </button>
+                </motion.div>
+            )}
+
             <div className="pt-4 mt-auto">
                 <button 
                     type="submit"
-                    className="w-full bg-onyx-900 text-white font-black py-4 rounded-2xl hover:bg-black transition-all shadow-xl shadow-onyx-900/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-[0.98]"
+                    disabled={isCreatingMeeting}
+                    className="w-full bg-onyx-900 text-white font-black py-4 rounded-2xl hover:bg-black transition-all shadow-xl shadow-onyx-900/20 flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Save size={20} />
-                    שמור ושלח זימון
+                    {isCreatingMeeting ? (
+                        <>
+                            <Loader2 size={20} className="animate-spin" />
+                            יוצר פגישה...
+                        </>
+                    ) : (
+                        <>
+                            <Save size={20} />
+                            שמור ושלח זימון
+                        </>
+                    )}
                 </button>
             </div>
         </form>

@@ -1,62 +1,20 @@
+'use client';
+
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { useState } from 'react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
-import { getCurrentUserId } from '@/lib/server/authHelper';
-import prisma from '@/lib/prisma';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
+import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
+import { Target, Users, Briefcase, BarChart3, Lightbulb, Archive, Play } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-async function getFirstWorkspaceSlug(): Promise<string | null> {
-  const clerkUserId = await getCurrentUserId();
-  if (!clerkUserId) return null;
-
-  try {
-    const socialUser = await prisma.social_users.findFirst({
-      where: { clerk_user_id: clerkUserId },
-      select: { id: true, organization_id: true },
-    });
-
-    if (!socialUser?.id) return null;
-
-    const orgIds = new Set<string>();
-    if (socialUser.organization_id) orgIds.add(String(socialUser.organization_id));
-
-    const ownedOrgs = await prisma.social_organizations.findMany({
-      where: { owner_id: socialUser.id },
-      select: { id: true },
-    });
-    ownedOrgs.forEach(o => o?.id && orgIds.add(String(o.id)));
-
-    const memberships = await prisma.social_team_members.findMany({
-      where: { user_id: socialUser.id },
-      select: { organization_id: true },
-    });
-    memberships.forEach(m => m?.organization_id && orgIds.add(String(m.organization_id)));
-
-    if (orgIds.size === 0) return null;
-
-    const orgs = await prisma.social_organizations.findMany({
-      where: { id: { in: Array.from(orgIds) } },
-      select: { slug: true, has_nexus: true },
-      orderBy: { created_at: 'asc' },
-    });
-
-    const nexusOrg = orgs.find(o => o.has_nexus);
-    if (nexusOrg?.slug) return nexusOrg.slug;
-
-    return orgs[0]?.slug || null;
-  } catch {
-    return null;
-  }
-}
-
-export default async function NexusMarketingPage() {
-  const workspaceSlug = await getFirstWorkspaceSlug();
-  if (workspaceSlug) {
-    redirect(`/w/${encodeURIComponent(workspaceSlug)}/nexus`);
-  }
+export default function NexusMarketingPage() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
@@ -78,42 +36,86 @@ export default async function NexusMarketingPage() {
               Nexus הוא מרכז השליטה של Misrad AI: תמונת מצב אחת לצוות, משימות, הרשאות ותהליכים — כדי שתוכל לנהל את העסק מהר ובביטחון.
             </p>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
+            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <Users size={24} className="text-slate-700" />
+                </div>
                 <div className="text-xs font-black text-slate-500">ניהול צוות</div>
                 <div className="mt-2 text-lg font-black">מי עושה מה ומתי</div>
                 <div className="mt-2 text-sm text-slate-600">תמונה רחבה, עומסים, משימות ותיעדוף.</div>
               </div>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
-                <div className="text-xs font-black text-slate-500">תפעול</div>
-                <div className="mt-2 text-lg font-black">תהליכים קצרים</div>
-                <div className="mt-2 text-sm text-slate-600">הכל נגיש, ברור ומדיד.</div>
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <Target size={24} className="text-slate-700" />
+                </div>
+                <div className="text-xs font-black text-slate-500">Sales Pipeline</div>
+                <div className="mt-2 text-lg font-black">מעקב מכירות מתקדם</div>
+                <div className="mt-2 text-sm text-slate-600">8 שלבים מוגדרים, דשבורד מכירות, יעדים וביצועים.</div>
               </div>
-              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6">
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <Lightbulb size={24} className="text-slate-700" />
+                </div>
+                <div className="text-xs font-black text-slate-500">Intelligence</div>
+                <div className="mt-2 text-lg font-black">תובנות עסקיות</div>
+                <div className="mt-2 text-sm text-slate-600">ניתוח נתונים, זיהוי מגמות, והמלצות אסטרטגיות.</div>
+              </div>
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <Archive size={24} className="text-slate-700" />
+                </div>
+                <div className="text-xs font-black text-slate-500">ניהול נכסים</div>
+                <div className="mt-2 text-lg font-black">Assets Management</div>
+                <div className="mt-2 text-sm text-slate-600">ניהול נכסים, מסמכים, וקבצים ארגוניים.</div>
+              </div>
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <BarChart3 size={24} className="text-slate-700" />
+                </div>
+                <div className="text-xs font-black text-slate-500">דוחות</div>
+                <div className="mt-2 text-lg font-black">דוחות כספיים</div>
+                <div className="mt-2 text-sm text-slate-600">דוחות מתקדמים משולבים עם מודול Finance.</div>
+              </div>
+              <div className="rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-200/50 p-6 hover:border-slate-300 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-4">
+                  <Briefcase size={24} className="text-slate-700" />
+                </div>
                 <div className="text-xs font-black text-slate-500">סנכרון</div>
                 <div className="mt-2 text-lg font-black">חיבור לכל המודולים</div>
-                <div className="mt-2 text-sm text-slate-600">נגיעה אחת שמחברת System, Client ו-Social.</div>
+                <div className="mt-2 text-sm text-slate-600">נגיעה אחת שמחברת System, Client, Social, Finance ו-Operations.</div>
               </div>
             </div>
 
             <div className="mt-10 flex flex-col sm:flex-row gap-3">
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10"
+                className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-slate-900 text-white font-bold shadow-xl shadow-slate-900/10"
               >
                 התחל חינם
               </Link>
-              <Link
-                href="/subscribe/checkout?package=solo&module=nexus&billing=monthly"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50"
+              <button
+                onClick={() => setIsVideoModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all"
               >
-                מעבר לתשלום
-              </Link>
+                <Play size={18} className="text-indigo-600" />
+                צפייה במערכת
+              </button>
             </div>
           </div>
         </section>
+
+        {/* Testimonials Section */}
+        <TestimonialsSection />
+
+        {/* FAQ Section */}
+        <SalesFaq variant="system" />
       </main>
       <Footer />
+      <DemoVideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+      />
     </div>
   );
 }

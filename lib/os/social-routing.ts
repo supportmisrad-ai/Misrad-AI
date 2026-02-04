@@ -56,3 +56,7 @@ export function joinPath(basePath: string, subPath: string): string {
   const sub = rawSub.startsWith('/') ? rawSub : `/${rawSub}`;
   return `${base}${sub}`;
 }
+
+export function encodeWorkspaceOrgSlug(orgSlug: string): string {
+  return encodeURIComponent(String(orgSlug ?? '').trim());
+}

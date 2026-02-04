@@ -1,5 +1,7 @@
 # ארכיטקטורת המערכת - System Architecture
 
+> עדכון: זהו מסמך היסטורי. כיום המערכת היא Prisma-first, וכל גישה לנתונים עסקיים מתבצעת דרך Prisma עם Tenant Guard. שימוש ב-Supabase מוגבל ל-Storage בלבד.
+
 ## זרימת התחברות משתמש - User Authentication Flow
 
 ### 1. התחברות (Login)

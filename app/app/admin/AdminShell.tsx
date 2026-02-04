@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, MoreHorizontal } from 'lucide-react';
+import { LayoutGrid, Building2, Users, Sparkles, ScrollText, Server, SlidersHorizontal, Globe, LifeBuoy, Moon, ArrowRight, RefreshCw, ChevronDown, ChevronRight, Shield, ShieldCheck, MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { AdminGuard } from '@/components/AdminGuard';
 import { useData } from '@/context/DataContext';
 import { SharedHeader } from '@/components/shared/SharedHeader';
@@ -11,6 +11,8 @@ import { Avatar } from '@/components/Avatar';
 import CommandPalette from '@/components/CommandPalette';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
 import { Button } from '@/components/ui/button';
+import type { CommandPaletteNavItem } from '@/components/command-palette/command-palette.types';
+import type { Lead } from '@/types';
 
 function isActivePath(pathname: string, href: string, currentSearch: string) {
   const [hrefPath, hrefQuery = ''] = String(href || '').split('?');
@@ -70,6 +72,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     }));
   }, [pathname]);
 
+  const keydownOptions = useMemo(() => ({ capture: true }), []);
+
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -78,11 +82,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       }
     };
 
-    document.addEventListener('keydown', down, { capture: true });
-    return () => document.removeEventListener('keydown', down, { capture: true } as any);
-  }, [isCommandPaletteOpen, setCommandPaletteOpen]);
+    document.addEventListener('keydown', down, keydownOptions);
+    return () => document.removeEventListener('keydown', down, keydownOptions);
+  }, [isCommandPaletteOpen, keydownOptions, setCommandPaletteOpen]);
 
-  const navItems = useMemo(
+  type AdminNavItem = { href: string; label: string; icon: LucideIcon };
+
+  const navItems = useMemo<AdminNavItem[]>(
     () => [
       { href: '/app/admin', label: 'דשבורד', icon: LayoutGrid },
       { href: '/app/admin/modules', label: 'מודולים', icon: SlidersHorizontal },
@@ -90,7 +96,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       { href: '/app/admin/users', label: 'משתמשים', icon: Users },
       { href: '/app/admin/tenants', label: 'טננטים', icon: Server },
       { href: '/app/admin/system-flags', label: 'מתגי מערכת', icon: SlidersHorizontal },
-      { href: '/app/admin/support', label: 'תמיכה', icon: LifeBuoy },
+      { href: '/app/admin/support', label: 'תקלות', icon: LifeBuoy },
       { href: '/app/admin/ai', label: 'בינה מלאכותית', icon: Sparkles },
       { href: '/app/admin/logs', label: 'לוגים', icon: ScrollText },
     ],
@@ -104,13 +110,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const mobileNavItems = useMemo(() => {
     const find = (href: string) => effectiveNavItems.find((i) => i.href === href);
-    const base = [
-      find('/app/admin'),
-      find('/app/admin/users'),
-      find('/app/admin/ai'),
-      find('/app/admin/logs'),
-    ].filter(Boolean) as any[];
-    return base;
+    const base = [find('/app/admin'), find('/app/admin/users'), find('/app/admin/ai'), find('/app/admin/logs')];
+    return base.filter((item): item is AdminNavItem => Boolean(item));
   }, [effectiveNavItems]);
 
   const globalSubItems = useMemo(
@@ -166,7 +167,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const clientSubItems = useMemo(
     () => [
-      { href: '/app/admin/client/support', label: 'קריאות תמיכה' },
+      { href: '/app/admin/client/support', label: 'דיווחי תקלות' },
       { href: '/app/admin/client/features', label: "בקשות פיצ'רים" },
       { href: '/app/admin/client/announcements', label: 'הודעות מערכת' },
     ],
@@ -175,6 +176,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   const landingSubItems = useMemo(
     () => [
+      { href: '/app/admin/landing/content', label: 'תוכן (המלצות + FAQ)' },
       { href: '/app/admin/landing/pricing', label: 'תמחור' },
       { href: '/app/admin/landing/payment-links', label: 'לינקים לתשלום' },
       { href: '/app/admin/landing/partners', label: 'שותפים' },
@@ -188,19 +190,21 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     []
   );
 
-  const commandPaletteNavItems = useMemo(() => {
-    const main = effectiveNavItems.map((i) => ({ id: i.href, label: i.label, icon: i.icon }));
+  const commandPaletteNavItems = useMemo<CommandPaletteNavItem[]>(() => {
+    const main: CommandPaletteNavItem[] = effectiveNavItems.map((i) => ({ id: i.href, label: i.label, icon: i.icon }));
     if (isAuditServiceRole) {
       return main;
     }
-    const global = globalSubItems.map((i) => ({ id: i.href, label: `גלובלי · ${i.label}`, icon: Globe }));
-    const nexus = nexusSubItems.map((i) => ({ id: i.href, label: `נקסוס · ${i.label}`, icon: Sparkles }));
-    const social = socialSubItems.map((i) => ({ id: i.href, label: `סושיאל · ${i.label}`, icon: ShieldCheck }));
-    const system = systemSubItems.map((i) => ({ id: i.href, label: `System · ${i.label}`, icon: Server }));
-    const client = clientSubItems.map((i) => ({ id: i.href, label: `Client · ${i.label}`, icon: Users }));
-    const landing = landingSubItems.map((i) => ({ id: i.href, label: `דף נחיתה · ${i.label}`, icon: Globe }));
+    const global: CommandPaletteNavItem[] = globalSubItems.map((i) => ({ id: i.href, label: `גלובלי · ${i.label}`, icon: Globe }));
+    const nexus: CommandPaletteNavItem[] = nexusSubItems.map((i) => ({ id: i.href, label: `נקסוס · ${i.label}`, icon: Sparkles }));
+    const social: CommandPaletteNavItem[] = socialSubItems.map((i) => ({ id: i.href, label: `סושיאל · ${i.label}`, icon: ShieldCheck }));
+    const system: CommandPaletteNavItem[] = systemSubItems.map((i) => ({ id: i.href, label: `System · ${i.label}`, icon: Server }));
+    const client: CommandPaletteNavItem[] = clientSubItems.map((i) => ({ id: i.href, label: `Client · ${i.label}`, icon: Users }));
+    const landing: CommandPaletteNavItem[] = landingSubItems.map((i) => ({ id: i.href, label: `דף נחיתה · ${i.label}`, icon: Globe }));
     return [...main, ...global, ...nexus, ...social, ...system, ...client, ...landing];
   }, [clientSubItems, effectiveNavItems, globalSubItems, isAuditServiceRole, landingSubItems, nexusSubItems, socialSubItems, systemSubItems]);
+
+  const commandPaletteLeads = useMemo<Lead[]>(() => (Array.isArray(leads) ? leads : []), [leads]);
 
   const userName = String(currentUser?.name || 'Admin');
   const userRole = currentUser?.role ? String(currentUser.role) : null;
@@ -598,8 +602,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             }
           }}
           onSelectLead={(_lead) => setCommandPaletteOpen(false)}
-          leads={[] as any}
-          navItems={commandPaletteNavItems as any}
+          leads={commandPaletteLeads}
+          navItems={commandPaletteNavItems}
           hideLeads
           hideAssets
         />

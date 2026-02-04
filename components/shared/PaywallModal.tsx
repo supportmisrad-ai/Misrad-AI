@@ -20,7 +20,7 @@ export default function PaywallModal(props: {
 
   const packages = useMemo(() => {
     const all = Object.entries(BILLING_PACKAGES) as Array<[PackageType, (typeof BILLING_PACKAGES)[PackageType]]>;
-    return all.filter(([k]) => k !== 'the_mentor');
+    return all;
   }, []);
 
   const handleSelect = (packageType: PackageType) => {

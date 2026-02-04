@@ -6,6 +6,8 @@ import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import PricingSection from '@/components/landing/PricingSection';
 import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
 
 export default function PricingPageClient() {
   return (
@@ -25,20 +27,23 @@ export default function PricingPageClient() {
           <div className="max-w-6xl mx-auto px-6">
             <div className="text-center">
               <div className="text-xs font-black text-slate-500">השוואה מהירה</div>
-              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">למה זה לא &quot;עוד מערכת&quot;</h2>
+              <h2 className="mt-3 text-3xl sm:text-4xl font-black text-slate-900">מה מייחד את MISRAD?</h2>
             </div>
 
             <div className="mt-10 rounded-3xl border border-slate-200 bg-white overflow-hidden">
               <div className="grid grid-cols-3 bg-slate-50 border-b border-slate-200">
                 <div className="p-4 sm:p-5 text-sm font-black text-slate-700 text-right">פיצ׳ר</div>
-                <div className="p-4 sm:p-5 text-sm font-black text-slate-900 text-center">MISRAD OS</div>
+                <div className="p-4 sm:p-5 text-sm font-black text-slate-900 text-center">MISRAD AI</div>
                 <div className="p-4 sm:p-5 text-sm font-black text-slate-500 text-center">מתחרים</div>
               </div>
 
               {[
                 { label: 'שליטה קולית בעברית', ours: true, theirs: false },
-                { label: 'חיבור לקבלני משנה', ours: true, theirs: false },
+                { label: 'עבודה מנייד 100%', ours: true, theirs: false },
                 { label: 'מצב Kiosk לעובדים', ours: true, theirs: false },
+                { label: 'חיבור לקבלני משנה', ours: true, theirs: false },
+                { label: 'תמיכה בעברית', ours: true, theirs: false },
+                { label: 'מותאם לשבת', ours: true, theirs: false },
               ].map((row) => (
                 <div key={row.label} className="grid grid-cols-3 border-b border-slate-200 last:border-b-0">
                   <div className="p-4 sm:p-5 text-sm font-bold text-slate-700 text-right">{row.label}</div>
@@ -53,6 +58,10 @@ export default function PricingPageClient() {
             </div>
           </div>
         </section>
+
+        <TestimonialsSection />
+
+        <SalesFaq variant="default" />
       </div>
       <Footer />
     </div>

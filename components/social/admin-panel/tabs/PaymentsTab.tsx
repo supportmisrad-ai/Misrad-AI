@@ -7,6 +7,7 @@ import { updatePaymentOrderStatus, updateInvoiceStatus } from '@/app/actions/adm
 import { adminMarkSubscriptionOrderPaid } from '@/app/actions/subscription-orders-admin';
 import { getSubscriptionPaymentConfigs, upsertSubscriptionPaymentConfig } from '@/app/actions/subscription-payment-configs';
 import { Button } from '@/components/ui/button';
+import { getPackageLabelHe } from '@/lib/billing/plan-labels';
 
 interface PaymentsTabProps {
   payments: any;
@@ -16,6 +17,11 @@ interface PaymentsTabProps {
 
 export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsTabProps) {
   const subscriptionOrders = payments?.subscriptionOrders || [];
+
+  const packageKeys = useMemo(
+    () => ['solo', 'the_closer', 'the_authority', 'the_operator', 'the_empire', 'the_mentor'] as const,
+    []
+  );
 
   const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [configs, setConfigs] = useState<
@@ -196,10 +202,11 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
               <h4 className="text-xl font-black text-slate-900 mb-4">הגדרות QR לתשלום לפי חבילה</h4>
               <div className="grid grid-cols-1 gap-4">
-                {(['the_closer', 'the_authority', 'the_mentor'] as const).map((pkg) => (
+                {packageKeys.map((pkg) => (
                   <div key={pkg} className="grid grid-cols-1 md:grid-cols-5 gap-3 bg-white rounded-xl border border-slate-200 p-4">
                     <div className="md:col-span-1">
-                      <div className="text-xs font-black text-slate-600 mb-2">{pkg}</div>
+                      <div className="text-xs font-black text-slate-600 mb-2">{getPackageLabelHe(pkg)}</div>
+                      <div className="text-[10px] text-slate-500 mb-2">{pkg}</div>
                       <input
                         value={configs[pkg]?.title ?? ''}
                         onChange={(e) => setConfigs((prev) => ({ ...prev, [pkg]: { ...prev[pkg], title: e.target.value } }))}
@@ -261,7 +268,7 @@ export default function PaymentsTab({ payments, onRefresh, addToast }: PaymentsT
                     onClick={async () => {
                       setIsSavingConfig(true);
                       try {
-                        for (const pkg of ['the_closer', 'the_authority', 'the_mentor'] as const) {
+                        for (const pkg of packageKeys) {
                           const cfg = configs[pkg];
                           const result = await upsertSubscriptionPaymentConfig({
                             packageType: pkg as any,
