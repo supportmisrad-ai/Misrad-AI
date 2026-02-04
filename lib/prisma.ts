@@ -280,7 +280,10 @@ function getEffectiveDatabaseUrlForPrisma(): string | null {
 
     try {
       const u = new URL(upgraded);
-      u.searchParams.set('connection_limit', '1');
+      // Vercel serverless needs more connections under production load
+      // Default was 1 which caused severe timeouts. 5 was still slow. Using 10 now.
+      u.searchParams.set('connection_limit', '10');
+      u.searchParams.set('pool_timeout', '20');
       u.searchParams.set('pgbouncer', 'true');
       u.searchParams.set('statement_cache_size', '0');
       return u.toString();

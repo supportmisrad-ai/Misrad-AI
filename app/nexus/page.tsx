@@ -1,11 +1,62 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import { getCurrentUserId } from '@/lib/server/authHelper';
+import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export default function NexusMarketingPage() {
+async function getFirstWorkspaceSlug(): Promise<string | null> {
+  const clerkUserId = await getCurrentUserId();
+  if (!clerkUserId) return null;
+
+  try {
+    const socialUser = await prisma.social_users.findFirst({
+      where: { clerk_user_id: clerkUserId },
+      select: { id: true, organization_id: true },
+    });
+
+    if (!socialUser?.id) return null;
+
+    const orgIds = new Set<string>();
+    if (socialUser.organization_id) orgIds.add(String(socialUser.organization_id));
+
+    const ownedOrgs = await prisma.social_organizations.findMany({
+      where: { owner_id: socialUser.id },
+      select: { id: true },
+    });
+    ownedOrgs.forEach(o => o?.id && orgIds.add(String(o.id)));
+
+    const memberships = await prisma.social_team_members.findMany({
+      where: { user_id: socialUser.id },
+      select: { organization_id: true },
+    });
+    memberships.forEach(m => m?.organization_id && orgIds.add(String(m.organization_id)));
+
+    if (orgIds.size === 0) return null;
+
+    const orgs = await prisma.social_organizations.findMany({
+      where: { id: { in: Array.from(orgIds) } },
+      select: { slug: true, has_nexus: true },
+      orderBy: { created_at: 'asc' },
+    });
+
+    const nexusOrg = orgs.find(o => o.has_nexus);
+    if (nexusOrg?.slug) return nexusOrg.slug;
+
+    return orgs[0]?.slug || null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function NexusMarketingPage() {
+  const workspaceSlug = await getFirstWorkspaceSlug();
+  if (workspaceSlug) {
+    redirect(`/w/${encodeURIComponent(workspaceSlug)}/nexus`);
+  }
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />

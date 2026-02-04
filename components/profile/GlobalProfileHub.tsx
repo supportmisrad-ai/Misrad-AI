@@ -903,31 +903,34 @@ export default function GlobalProfileHub({
               onClick={closeDrawer}
             />
             <motion.aside
-              initial={{ x: 520 }}
+              initial={{ x: '100%' }}
               animate={{ x: 0 }}
-              exit={{ x: 520 }}
+              exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-              className="fixed top-0 right-0 z-[9991] h-[100dvh] w-full sm:w-[520px] bg-white shadow-2xl border-l border-slate-200 flex flex-col"
+              className="fixed top-0 right-0 z-[9991] h-[100dvh] w-full sm:w-[520px] bg-white shadow-2xl border-l border-slate-200 flex flex-col overflow-hidden"
               role="dialog"
               aria-modal="true"
               aria-label={activeSection.label}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="text-lg font-black text-slate-900 truncate">{activeSection.label}</div>
-                  <div className="text-xs text-slate-500 font-medium mt-0.5">{getSectionDescription(activeSection.id) || ''}</div>
-                </div>
+              <div className="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 sm:gap-4 flex-shrink-0">
                 <button
                   type="button"
-                  onClick={closeDrawer}
-                  className="p-2 rounded-full hover:bg-white border border-slate-200 text-slate-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeDrawer();
+                  }}
+                  className="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-white border-2 border-slate-300 text-slate-700 hover:text-slate-900 active:scale-95 transition-all shadow-sm"
                   aria-label="סגור"
                 >
-                  <X size={18} />
+                  <X size={20} strokeWidth={2.5} />
                 </button>
+                <div className="min-w-0 flex-1">
+                  <div className="text-base sm:text-lg font-black text-slate-900 truncate">{activeSection.label}</div>
+                  <div className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate">{getSectionDescription(activeSection.id) || ''}</div>
+                </div>
               </div>
-              <div className="p-6 md:p-8 overflow-y-auto flex-1">{activeSection.content}</div>
+              <div className="p-4 sm:p-6 md:p-8 overflow-y-auto flex-1" style={{ pointerEvents: 'auto' }}>{activeSection.content}</div>
             </motion.aside>
           </>
         ) : null}
