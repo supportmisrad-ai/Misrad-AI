@@ -37,14 +37,33 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         const fetchBusinesses = async () => {
             setIsLoading(true);
             try {
-                const response = await fetch('/api/admin/tenants');
+                const response = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
                 if (!response.ok) {
                     setBusinesses([]);
                     return;
                 }
                 const raw = await response.json().catch(() => ({}));
                 const payload = unwrap(raw);
-                setBusinesses((payload as any).tenants || []);
+                // Convert workspaces to business format
+                const workspaces = (payload as any).workspaces || [];
+                const businesses = workspaces.map((w: any) => ({
+                    id: w.id,
+                    name: w.name,
+                    subdomain: w.slug,
+                    logo: w.logo,
+                    plan: w.subscription_plan || 'unknown',
+                    status: w.subscription_status || 'Active',
+                    joinedAt: w.created_at,
+                    mrr: 0,
+                    usersCount: w.membersCount || 0,
+                    modules: [],
+                    region: 'il-central' as const,
+                    version: undefined,
+                    allowedEmails: [],
+                    requireApproval: false,
+                    ownerEmail: w.owner?.email || '',
+                }));
+                setBusinesses(businesses);
             } catch (error) {
                 console.error('Error fetching businesses:', error);
                 setBusinesses([]);
@@ -84,22 +103,15 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         }
     }, [isOpen]);
 
-    // Get current subdomain from window location
+    // Get current workspace slug from window location
     const getCurrentSubdomain = () => {
         if (typeof window === 'undefined') return null;
-        const hostname = window.location.hostname;
+        const path = window.location.pathname;
         
-        // Check if it's a production subdomain
-        const match = hostname.match(/^([^.]+)\.nexus-os\.co$/);
-        if (match) return match[1];
-        
-        // For localhost, check localStorage or URL params
-        if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const subdomainFromUrl = urlParams.get('tenant');
-            if (subdomainFromUrl) return subdomainFromUrl;
-
-            return null;
+        // Extract orgSlug from /w/[orgSlug]/... path
+        const pathParts = path.split('/').filter(Boolean);
+        if (pathParts[0] === 'w' && pathParts[1]) {
+            return decodeURIComponent(pathParts[1]);
         }
         
         return null;
@@ -107,23 +119,26 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
 
     const handleSwitchBusiness = (tenant: Tenant) => {
         if (tenant.subdomain) {
-            // Get current protocol and path
-            const protocol = window.location.protocol;
-            const hostname = window.location.hostname;
+            // Navigate to the workspace
             const path = window.location.pathname;
             const search = window.location.search;
             
-            // Check if we're on localhost (development)
-            if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
-                // For localhost, use query parameter or localStorage
-                const url = new URL(window.location.href);
-                url.searchParams.set('tenant', tenant.subdomain);
-                window.location.href = url.toString();
+            // Extract current module from path if we're in a workspace
+            const pathParts = path.split('/').filter(Boolean);
+            let targetPath = `/w/${encodeURIComponent(tenant.subdomain)}`;
+            
+            // Try to preserve the current module if it exists
+            if (pathParts[0] === 'w' && pathParts[1]) {
+                const currentModule = pathParts[2];
+                if (currentModule) {
+                    targetPath += `/${currentModule}`;
+                }
             } else {
-                // For production, redirect to subdomain
-                const newUrl = `${protocol}//${tenant.subdomain}.nexus-os.co${path}${search}`;
-                window.location.href = newUrl;
+                // If not in a workspace, go to lobby
+                targetPath += '/lobby';
             }
+            
+            window.location.href = targetPath + search;
         }
     };
 
@@ -293,7 +308,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                                                 )}
                                                             </div>
                                                             <span className="text-xs text-gray-500 truncate">
-                                                                {business.subdomain}.nexus-os.co
+                                                                /w/{business.subdomain}
                                                             </span>
                                                         </div>
 
