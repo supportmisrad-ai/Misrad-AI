@@ -66,6 +66,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/manifests/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
   // Use 'export' for static sites, or remove for server-side rendering
   // output: 'standalone', // Commented out for Netlify compatibility
   // Transpile Supabase to fix ESM import issues
