@@ -444,7 +444,7 @@ const FinanceOSApp: React.FC<{
           switcherSlot={<WorkspaceSwitcher />}
           notificationsSlot={notificationsSlot}
           user={{ name: headerName, role: headerRole }}
-          onProfileClickAction={goToMe}
+          onProfileClickAction={undefined}
           profileHref={`${basePath}/me${systemIdentity?.needsProfileCompletion ? '?edit=profile' : ''}`}
           userAvatarSlot={avatarSlot}
           profileSlot={undefined}
