@@ -102,7 +102,14 @@ export default function SystemDialerClient({
         leads={leads as any}
         onAddActivity={(leadId, activity) => void handleAddActivity(leadId, activity as any)}
         onAddTask={undefined}
-        user={currentUser}
+        user={
+          currentUser
+            ? {
+                ...currentUser,
+                phone: currentUser.phone ?? undefined,
+              }
+            : undefined
+        }
       />
 
       {hasMore ? (

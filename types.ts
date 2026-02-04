@@ -473,7 +473,7 @@ export interface FeatureRequest {
 }
 
 export type SupportTicketCategory = 'Tech' | 'Account' | 'Billing' | 'Feature';
-export type SupportTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+export type SupportTicketStatus = 'open' | 'in_progress' | 'waiting_for_customer' | 'resolved' | 'closed';
 
 export interface SupportTicket {
     id: string;
@@ -492,9 +492,34 @@ export interface SupportTicket {
     updated_at?: string;
     resolved_at?: string;
     closed_at?: string;
+    read_at?: string;
+    handled_at?: string;
+    sla_deadline?: string;
+    first_response_at?: string;
+    resolution_time_minutes?: number;
+    last_updated_by?: string;
     admin_response?: string;
     resolution_notes?: string;
     metadata?: Record<string, unknown>;
+}
+
+export type SupportTicketEventAction =
+    | 'created'
+    | 'status_changed'
+    | 'admin_replied'
+    | 'marked_read'
+    | 'updated'
+    | 'COMMENT';
+
+export interface SupportTicketEvent {
+    id: string;
+    ticket_id: string;
+    tenant_id?: string;
+    actor_id?: string;
+    action: SupportTicketEventAction;
+    content?: string | null;
+    metadata?: Record<string, unknown>;
+    created_at: string;
 }
 
 export interface SystemUpdate {

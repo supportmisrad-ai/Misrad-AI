@@ -49,7 +49,7 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
 
 export default async function WorkspaceOnboardingPage() {
   const { organizationKey } = await getCurrentOrganizationKey();
-  const accountRes = await getCustomerAccountForCurrentOrganization();
+  const accountRes = await getCustomerAccountForCurrentOrganization({ orgSlug: organizationKey });
 
   const existing = accountRes.success ? accountRes.data : null;
   const hasCompany = Boolean(existing?.companyName && String(existing.companyName).trim());

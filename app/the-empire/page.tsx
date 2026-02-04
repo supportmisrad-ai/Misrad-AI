@@ -9,7 +9,7 @@ export default async function TheEmpireLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="The Empire · הכל-כלול"
+      badge="הכל כלול"
       title="מערכת הפעלה לעסק: שיווק, מכירות, תפעול וכספים — במקום אחד."
       subtitle="להפסיק לשלם ל-5 תוכנות שונות. קבלו שליטה מלאה על העסק ב-360 מעלות."
       audience="מנכ״לים, בעלי עסקים עם 3+ עובדים, מי שמשלם היום ל-4 תוכנות שונות"
@@ -33,7 +33,7 @@ export default async function TheEmpireLandingPage() {
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}
-      videoTitle="סרטון הדגמה · הכל-כלול"
+      videoTitle="סרטון הדגמה · הכל כלול"
     />
   );
 }

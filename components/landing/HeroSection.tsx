@@ -55,13 +55,13 @@ export default function HeroSection({ isAuthenticated, onWatchDemo }: HeroSectio
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
               onClick={() => isAuthenticated ? window.location.href = '/app' : router.push('/login')}
-              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold text-lg hover:bg-indigo-500 transition-all shadow-sm flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 bg-indigo-600 text-white rounded-full font-bold text-lg hover:bg-indigo-500 transition-all shadow-sm flex items-center justify-center gap-2"
             >
-              {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם (בלי כרטיס)'} <ArrowRight size={20} className="rotate-180" />
+              {isAuthenticated ? 'חזרה ללוח הבקרה' : 'התחל ניסיון חינם'} <ArrowRight size={20} className="rotate-180" />
             </button>
             <button
               onClick={onWatchDemo}
-              className="w-full sm:w-auto px-8 py-4 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-xl font-bold text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full font-bold text-lg hover:bg-indigo-100 transition-all flex items-center justify-center gap-2"
             >
               <Play size={20} fill="currentColor" /> איך זה עובד
             </button>

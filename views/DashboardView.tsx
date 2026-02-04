@@ -1055,7 +1055,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                 className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                 aria-label="משימה חדשה"
                             >
-                                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative">
+                                <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/15 mb-3 group-hover:scale-105 transition-transform relative mr-auto">
                                     <Plus size={18} />
                                     <span
                                         role="button"
@@ -1090,7 +1090,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                 className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                 aria-label="עובד חדש"
                             >
-                                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform">
+                                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center border border-purple-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
                                     <Users size={18} />
                                 </div>
                                 <div className="font-black text-sm text-slate-900">עובד חדש</div>
@@ -1105,7 +1105,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                     className="group relative rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                     aria-label="תדריך בוקר"
                                 >
-                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform">
+                                    <div className="w-12 h-12 rounded-2xl bg-orange-50 text-orange-700 flex items-center justify-center border border-orange-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
                                         <Sun size={18} />
                                     </div>
                                     <div className="font-black text-sm text-slate-900">תדריך בוקר</div>
@@ -1127,7 +1127,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                         aria-label="משימות"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-700 flex items-center justify-center border border-yellow-100 mb-3 group-hover:scale-105 transition-transform">
+                                        <div className="w-12 h-12 rounded-2xl bg-yellow-50 text-yellow-700 flex items-center justify-center border border-yellow-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
                                             <Zap size={18} />
                                         </div>
                                         <div className="font-black text-sm text-slate-900">משימות</div>
@@ -1140,7 +1140,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                         aria-label="יעדים חודשיים"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 mb-3 group-hover:scale-105 transition-transform">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center border border-indigo-100 mb-3 group-hover:scale-105 transition-transform mr-auto">
                                             <Target size={18} />
                                         </div>
                                         <div className="font-black text-sm text-slate-900">יעדים חודשיים</div>
@@ -1157,7 +1157,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                         className="group rounded-3xl border border-white/70 bg-white/70 hover:bg-white transition-all shadow-sm hover:shadow-md p-4 text-right"
                                         aria-label="המיקוד להיום"
                                     >
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center border border-slate-200 mb-3 group-hover:scale-105 transition-transform">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-700 flex items-center justify-center border border-slate-200 mb-3 group-hover:scale-105 transition-transform mr-auto">
                                             <Compass size={18} />
                                         </div>
                                         <div className="font-black text-sm text-slate-900">המיקוד להיום</div>
@@ -1167,10 +1167,8 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                             )}
                         </div>
 
-
                         {isHomeDashboard.current && workspaceOrgSlug ? (
                             <div className="mt-5 pt-5 border-t border-white/50">
-                                <div className="text-sm font-black text-slate-900 text-right mb-3">מעבר מהיר למודולים</div>
                                 <OSAppSwitcher
                                     mode="inlineGrid"
                                     compact={true}
@@ -1186,7 +1184,6 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
             {/* ===== SECTION 4: KPI WIDGETS ===== */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-                
                 {/* 1. Time Clock Widget - Glass */}
                 <div id="time-clock-widget" className={`relative overflow-hidden rounded-[2.5rem] p-8 shadow-2xl transition-all duration-500 min-h-[240px] ${activeShift ? 'bg-black/90 text-white border border-white/10' : 'bg-white/60 border border-white/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.05)]'}`}>
                     {activeShift && (

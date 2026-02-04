@@ -5,6 +5,7 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export type OSRoomId = 'social' | 'nexus' | 'system' | 'finance' | 'client';
@@ -117,7 +118,7 @@ async function POSTHandler(req: NextRequest) {
           subscription_status: 'trial',
           subscription_plan: null,
           trial_start_date: new Date(),
-          trial_days: 7,
+          trial_days: DEFAULT_TRIAL_DAYS,
         },
         select: { id: true },
       });

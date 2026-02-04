@@ -40,8 +40,7 @@ export const SalesDashboard: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs font-bold relative z-10">
-                        <span className="text-emerald-400 flex items-center gap-1"><ArrowUpRight size={14} /> 12%</span>
-                        <span className="text-slate-500">מהחודש שעבר</span>
+                        <span className="text-slate-500">החודש הנוכחי</span>
                     </div>
                 </motion.div>
 

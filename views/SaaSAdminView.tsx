@@ -307,7 +307,7 @@ export const SaaSAdminView: React.FC = () => {
 
         } catch (error: any) {
             console.error('[SaaSAdmin] Error creating tenant:', error);
-            addToast(error.message || 'שגיאה ביצירת tenant', 'error');
+            addToast(error.message || 'שגיאה ביצירת הארגון', 'error');
             setIsAddTenantOpen(true); // Reopen modal on error
         }
     };
@@ -336,10 +336,10 @@ export const SaaSAdminView: React.FC = () => {
 
             // Update local state only if API call succeeded
             updateTenant(id, updatedTenant);
-            addToast('Tenant עודכן בהצלחה!', 'success');
+            addToast('הארגון עודכן בהצלחה!', 'success');
         } catch (error: any) {
             console.error('[SaaSAdmin] Error updating tenant:', error);
-            addToast(error.message || 'שגיאה בעדכון tenant', 'error');
+            addToast(error.message || 'שגיאה בעדכון הארגון', 'error');
             throw error; // Re-throw to allow caller to handle
         }
     };
@@ -382,10 +382,10 @@ export const SaaSAdminView: React.FC = () => {
 
             // Remove from local state only if API call succeeded
             deleteTenant(id);
-            addToast(`Tenant ${tenantName} נמחק בהצלחה!`, 'success');
+            addToast(`הארגון ${tenantName} נמחק בהצלחה!`, 'success');
         } catch (error: any) {
             console.error('[SaaSAdmin] Error deleting tenant:', error);
-            addToast(error.message || 'שגיאה במחיקת tenant', 'error');
+            addToast(error.message || 'שגיאה במחיקת הארגון', 'error');
         }
     };
 

@@ -5,6 +5,7 @@ import { Idea } from '@/types/social';
 import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
 import prisma from '@/lib/prisma';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -20,20 +21,13 @@ function getUnknownErrorMessage(error: unknown): string {
   return typeof msg === 'string' ? msg : '';
 }
 
-async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    const socialUser = await prisma.social_users.findUnique({
-      where: { clerk_user_id: String(userId) },
-      select: { organization_id: true },
-    });
-    const orgId = (socialUser as any)?.organization_id;
-    return orgId ? String(orgId) : null;
-  } catch {
-    return null;
+async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
+  const resolvedOrgSlug = String(orgSlug || '').trim();
+  if (!resolvedOrgSlug) {
+    throw new Error('Missing orgSlug');
   }
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+  return String(workspace.id);
 }
 
 async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
@@ -64,11 +58,16 @@ async function assertIdeaInOrganization(params: { ideaId: string; organizationId
 /**
  * Server Action: Get all ideas
  */
-export async function getIdeas(clientId?: string): Promise<{ success: boolean; data?: Idea[]; error?: string }> {
+export async function getIdeas(
+  orgSlug: string,
+  clientId?: string
+): Promise<{ success: boolean; data?: Idea[]; error?: string }> {
   try {
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
-      return { success: true, data: [] };
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
     const ideasRows = await prisma.social_ideas.findMany({
@@ -106,6 +105,7 @@ export async function getIdeas(clientId?: string): Promise<{ success: boolean; d
  */
 export async function createIdea(
   ideaData: {
+    orgSlug: string;
     clientId: string;
     title: string;
     description: string;
@@ -120,8 +120,10 @@ export async function createIdea(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(ideaData.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -133,7 +135,8 @@ export async function createIdea(
       const uploadResult = await uploadFile(
         ideaData.mediaFile,
         `idea-${Date.now()}.${ideaData.mediaFile.type.split('/')[1] || 'jpg'}`,
-        'ideas'
+        'ideas',
+        ideaData.orgSlug
       );
       
       if (!uploadResult.success) {
@@ -187,6 +190,7 @@ export async function createIdea(
 export async function updateIdea(
   ideaId: string,
   updates: {
+    orgSlug: string;
     title?: string;
     description?: string;
     category?: string;
@@ -201,8 +205,10 @@ export async function updateIdea(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(updates.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -214,7 +220,8 @@ export async function updateIdea(
       const uploadResult = await uploadFile(
         updates.mediaFile,
         `idea-${Date.now()}.${updates.mediaFile.type.split('/')[1] || 'jpg'}`,
-        'ideas'
+        'ideas',
+        updates.orgSlug
       );
       
       if (!uploadResult.success) {
@@ -252,7 +259,7 @@ export async function updateIdea(
     }
 
     // Fetch updated idea
-    const result = await getIdeas();
+    const result = await getIdeas(updates.orgSlug);
     if (result.success && result.data) {
       const updatedIdea = result.data.find(i => i.id === ideaId);
       if (updatedIdea) {
@@ -273,15 +280,17 @@ export async function updateIdea(
 /**
  * Server Action: Delete an idea
  */
-export async function deleteIdea(ideaId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) {
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 

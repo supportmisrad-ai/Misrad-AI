@@ -34,7 +34,7 @@ export default async function SaveTimeCallsLandingPage() {
         },
       ]}
       ctaPrimaryHref="/login?mode=sign-up&plan=the_closer"
-      ctaPrimaryLabel="התחל ניסיון חינם (בלי כרטיס)"
+      ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה מחירים"
       videoUrl={videoUrl}

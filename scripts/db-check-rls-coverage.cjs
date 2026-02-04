@@ -1,10 +1,49 @@
-require('dotenv').config({ path: '.env' });
-try {
-  require('dotenv').config({ path: '.env.local' });
-} catch {}
+const fs = require('fs');
+const dotenv = require('dotenv');
+
+const envPath = '.env.local';
+if (fs.existsSync(envPath)) {
+  try {
+    const parsed = dotenv.parse(fs.readFileSync(envPath));
+    for (const [k, v] of Object.entries(parsed)) process.env[k] = v;
+  } catch (e) {
+    console.error(`[db-check-rls-coverage] Failed to load ${envPath}:`, e);
+    process.exit(1);
+  }
+} else {
+  console.error(`[db-check-rls-coverage] ${envPath} not found; using process.env only.`);
+}
 
 const { PrismaClient } = require('@prisma/client');
 const net = require('net');
+
+function parseDbIdentity(urlValue) {
+  try {
+    if (!urlValue) return null;
+    const u = new URL(String(urlValue));
+    const port = u.port ? Number.parseInt(String(u.port), 10) : 5432;
+    const database = u.pathname ? String(u.pathname).replace(/^\//, '') : '';
+    return {
+      host: u.hostname || null,
+      port: Number.isFinite(port) ? port : 5432,
+      database: database || null,
+      user: u.username ? decodeURIComponent(u.username) : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function printDbTargetToStderr() {
+  const id = parseDbIdentity(process.env.DATABASE_URL);
+  if (!id) {
+    console.error('[db-check-rls-coverage] DATABASE_URL -> (missing/invalid)');
+    return;
+  }
+  console.error(
+    `[db-check-rls-coverage] DATABASE_URL -> host=${id.host} port=${id.port} db=${id.database ?? 'unknown'} user=${id.user ?? 'unknown'}`
+  );
+}
 
 function getHostSafe(urlValue) {
   try {
@@ -205,13 +244,25 @@ async function runCheck(label) {
     for (const t of tables) {
       if (skipTables.has(t.tableName)) continue;
 
+      const grantCount = grantCountMap.get(t.tableName) || 0;
+
       if (!t.rlsEnabled || !t.rlsForced) {
-        results.failures.push({
+        const item = {
           table: `public.${t.tableName}`,
           reason: 'RLS_NOT_ENABLED_OR_FORCED',
           rlsEnabled: t.rlsEnabled,
           rlsForced: t.rlsForced,
-        });
+          grantCount,
+        };
+
+        if (grantCount > 0) {
+          results.failures.push(item);
+        } else {
+          results.warnings.push({
+            ...item,
+            reason: 'RLS_NOT_ENABLED_OR_FORCED_BUT_NOT_EXPOSED_TO_ANON_OR_AUTHENTICATED',
+          });
+        }
         continue;
       }
 
@@ -225,24 +276,36 @@ async function runCheck(label) {
           const missing = expected.filter((p) => !policyNames.includes(p));
           const extras = policyNames.filter((p) => !expected.includes(p));
           if (missing.length > 0) {
-            results.failures.push({
+            const item = {
               table: `public.${t.tableName}`,
               reason: 'MISSING_EXPECTED_POLICIES',
               expectedPolicies: expected,
               missingPolicies: missing,
               presentPolicies: policyNames,
-            });
+              grantCount,
+            };
+
+            if (grantCount > 0) results.failures.push(item);
+            else results.warnings.push({ ...item, reason: 'MISSING_EXPECTED_POLICIES_BUT_NOT_EXPOSED_TO_ANON_OR_AUTHENTICATED' });
             continue;
           }
 
           if (expected.length === 1 && expected[0] === 'deny_all' && extras.length > 0) {
-            results.failures.push({
+            const item = {
               table: `public.${t.tableName}`,
               reason: 'UNEXPECTED_POLICIES_ON_DENY_ALL_TABLE',
               expectedPolicies: expected,
               unexpectedPolicies: extras,
               presentPolicies: policyNames,
-            });
+              grantCount,
+            };
+
+            if (grantCount > 0) results.failures.push(item);
+            else
+              results.warnings.push({
+                ...item,
+                reason: 'UNEXPECTED_POLICIES_ON_DENY_ALL_TABLE_BUT_NOT_EXPOSED_TO_ANON_OR_AUTHENTICATED',
+              });
             continue;
           }
         } else {
@@ -256,13 +319,17 @@ async function runCheck(label) {
 
           const missing = required.filter((p) => !policyNames.includes(p));
           if (missing.length > 0) {
-            results.failures.push({
+            const item = {
               table: `public.${t.tableName}`,
               reason: 'MISSING_REQUIRED_POLICIES',
               requiredPolicies: required,
               missingPolicies: missing,
               presentPolicies: policyNames,
-            });
+              grantCount,
+            };
+
+            if (grantCount > 0) results.failures.push(item);
+            else results.warnings.push({ ...item, reason: 'MISSING_REQUIRED_POLICIES_BUT_NOT_EXPOSED_TO_ANON_OR_AUTHENTICATED' });
             continue;
           }
         }
@@ -270,7 +337,6 @@ async function runCheck(label) {
         if (policyCount > 0) continue;
       }
 
-      const grantCount = grantCountMap.get(t.tableName) || 0;
       if (grantCount > 0) {
         results.failures.push({
           table: `public.${t.tableName}`,
@@ -299,6 +365,7 @@ async function runCheck(label) {
 }
 
 async function main() {
+  printDbTargetToStderr();
   const timeoutMs = envInt('RLS_CHECK_TIMEOUT_MS', 45_000);
   const timeout = setTimeout(() => {
     console.error(

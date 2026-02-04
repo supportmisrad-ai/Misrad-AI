@@ -1,6 +1,7 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -53,15 +54,16 @@ async function GETHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
+
     const url = new URL(req.url);
-    const organizationId = (url.searchParams.get('organizationId') || '').trim();
     const featureKeyQuery = (url.searchParams.get('q') || '').trim();
     const limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 200)));
 
     const where: any = {};
-    if (organizationId) {
-      where.organization_id = String(organizationId);
-    }
+    where.organization_id = String(organizationId);
     if (featureKeyQuery) {
       where.feature_key = { contains: String(featureKeyQuery), mode: 'insensitive' };
     }
@@ -84,6 +86,10 @@ async function POSTHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
+
     const body = (await req.json().catch(() => ({}))) as Partial<FeatureSettingsRow> & {
       organization_id?: string | null;
       feature_key?: string;
@@ -92,10 +98,12 @@ async function POSTHandler(req: Request) {
     const featureKey = String(body.feature_key || '').trim();
     if (!featureKey) return apiError('feature_key is required', { status: 400 });
 
-    const organizationId = body.organization_id === null ? null : body.organization_id ? String(body.organization_id) : null;
+    if (body.organization_id != null) {
+      return apiError('organization_id must be provided via x-org-id header', { status: 400 });
+    }
 
     const patch: any = {
-      organization_id: organizationId,
+      organization_id: String(organizationId),
       feature_key: featureKey,
       enabled: body.enabled !== undefined ? Boolean(body.enabled) : true,
       primary_provider: String(body.primary_provider || 'google'),
@@ -110,7 +118,7 @@ async function POSTHandler(req: Request) {
 
     const where: any = {
       feature_key: featureKey,
-      organization_id: organizationId,
+      organization_id: String(organizationId),
     };
 
     const existing = await prisma.ai_feature_settings.findFirst({
@@ -142,20 +150,19 @@ async function DELETEHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
+
     const url = new URL(req.url);
     const featureKey = (url.searchParams.get('featureKey') || '').trim();
-    const organizationIdRaw = url.searchParams.get('organizationId');
+    const scope = (url.searchParams.get('scope') || '').trim().toLowerCase();
 
     if (!featureKey) return apiError('featureKey is required', { status: 400 });
 
     const where: any = { feature_key: featureKey };
 
-    if (organizationIdRaw === null) {
-      where.organization_id = null;
-    } else {
-      const organizationId = String(organizationIdRaw || '').trim();
-      where.organization_id = organizationId ? organizationId : null;
-    }
+    where.organization_id = scope === 'global' ? null : String(organizationId);
 
     await prisma.ai_feature_settings.deleteMany({ where });
 

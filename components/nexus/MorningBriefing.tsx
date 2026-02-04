@@ -155,7 +155,19 @@ export const MorningBriefing: React.FC = () => {
       return pWeight[b.priority] - pWeight[a.priority];
   });
 
-  const completedYesterday = Math.floor(Math.random() * 5) + 2; // Mock stat
+  const completedYesterday = (() => {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      return taskList.filter((t: Task) => {
+          if (t.status !== Status.DONE) return false;
+          const completedAtRaw = t.completionDetails?.completedAt;
+          if (!completedAtRaw) return false;
+          const d = new Date(completedAtRaw);
+          if (Number.isNaN(d.getTime())) return false;
+          return d >= start && d < end;
+      }).length;
+  })();
 
   // Initialize selection on mount
   useEffect(() => {

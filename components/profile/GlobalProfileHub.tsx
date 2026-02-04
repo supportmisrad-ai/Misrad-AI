@@ -753,8 +753,8 @@ export default function GlobalProfileHub({
 
     if (moduleKey === 'finance') {
       return {
-        href: `/w/${encodeURIComponent(orgSlug)}/finance?tab=reports`,
-        ariaLabel: 'פתח דוחות פיננסיים',
+        href: `/w/${encodeURIComponent(orgSlug)}/finance?tab=integrations`,
+        ariaLabel: 'פתח אינטגרציות פיננסיות',
       };
     }
 

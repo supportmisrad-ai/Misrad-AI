@@ -33,7 +33,7 @@ export function useAdminPanelController() {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = getSocialBasePath(pathname);
-  const { clients, setClients, setActiveClientId, addToast, userRole, isCheckingRole } = useApp();
+  const { clients, setClients, setActiveClientId, addToast, userRole, isCheckingRole, orgSlug } = useApp();
   const hasAccess = canAccessAdminPanel(userRole);
 
   const [activeTab, setActiveTab] = useState<
@@ -154,7 +154,12 @@ export function useAdminPanelController() {
   };
 
   const loadNotificationHistory = async () => {
-    const result = await getNotificationHistory({ limit: pageSize, offset: notificationsOffset });
+    const resolvedOrgSlug = String(orgSlug || '').trim();
+    if (!resolvedOrgSlug) {
+      setNotificationHistory([]);
+      return;
+    }
+    const result = await getNotificationHistory({ orgSlug: resolvedOrgSlug, limit: pageSize, offset: notificationsOffset });
     if (result.success && result.data) {
       setNotificationHistory(result.data);
     }

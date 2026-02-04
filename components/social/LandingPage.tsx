@@ -34,6 +34,15 @@ import { Skeleton } from '@/components/ui/skeletons';
 import { useLandingContent } from '@/components/social/landing/useLandingContent';
 import { Footer } from '@/components/landing/Footer';
 import { Navbar } from '@/components/landing/Navbar';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
+
+type SocialStats = {
+  activeUsers: number;
+  totalPosts: number;
+  avgTimeSavedHours: number;
+  satisfactionRate: number;
+};
 
 export default function LandingPage() {
   const router = useRouter();
@@ -44,6 +53,8 @@ export default function LandingPage() {
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
   const [fontSize, setFontSize] = useState(100); // percentage
   const [highContrast, setHighContrast] = useState(false);
+  const [stats, setStats] = useState<SocialStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   // Scroll to top on mount to ensure Hero section is visible
   useEffect(() => {
@@ -63,6 +74,30 @@ export default function LandingPage() {
       setDemoStep((prev) => (prev + 1) % 3);
     }, 4000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Load real stats from API
+  useEffect(() => {
+    let cancelled = false;
+    const loadStats = async () => {
+      try {
+        setStatsLoading(true);
+        const res = await fetch('/api/landing/social-stats', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Failed to load stats');
+        const data = await res.json();
+        if (cancelled) return;
+        if (data.ok && data.stats) {
+          setStats(data.stats);
+        }
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        // Keep null to hide stats on error
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    };
+    loadStats();
+    return () => { cancelled = true; };
   }, []);
 
   const handleGetStarted = () => {
@@ -108,7 +143,7 @@ export default function LandingPage() {
               className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-2xl font-black text-sm shadow-[0_20px_40px_-12px_rgba(59,130,246,0.3)] hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
             >
               <span className="relative z-10 flex items-center gap-3">
-                התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
+                התחל ניסיון חינם <ChevronLeft size={24} />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </button>
@@ -157,7 +192,7 @@ export default function LandingPage() {
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-12 py-6 rounded-2xl font-black text-xl shadow-[0_30px_60px_-15px_rgba(59,130,246,0.4)] flex items-center justify-center gap-4 hover:from-blue-700 hover:to-purple-700 hover:scale-[1.02] active:scale-95 transition-all relative overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-3">
-                  התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
+                  התחל ניסיון חינם <ChevronLeft size={24} />
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
@@ -226,37 +261,63 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 px-6 bg-gradient-to-b from-white to-blue-50/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { icon: Users, value: '500+', label: 'משתמשים פעילים', color: 'text-blue-600' },
-              { icon: TrendingUp, value: '15,000+', label: 'פוסטים שנוצרו', color: 'text-purple-600' },
-              { icon: Clock, value: '15 שעות', label: 'חיסכון ממוצע בשבוע', color: 'text-emerald-600' },
-              { icon: Award, value: '98%', label: 'שיעור שביעות רצון', color: 'text-red-600' },
-            ].map((stat, i) => {
-              const IconComponent = stat.icon;
-              return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.1 }}
-                  className="text-center flex flex-col items-center gap-4"
-                >
-                  <div className={`w-16 h-16 ${stat.color} bg-white rounded-2xl flex items-center justify-center shadow-lg`}>
-                    <IconComponent size={32} />
-                  </div>
-                  <div className="text-4xl md:text-5xl font-black text-slate-900">{stat.value}</div>
-                  <div className="text-sm font-bold text-slate-500">{stat.label}</div>
-                </motion.div>
-              );
-            })}
+      {/* Stats Section - Real Data */}
+      {stats && stats.totalPosts > 0 && (
+        <section className="py-20 px-6 bg-gradient-to-b from-white to-blue-50/30">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {[
+                { 
+                  icon: Users, 
+                  value: stats.activeUsers > 0 ? `${stats.activeUsers}+` : '0', 
+                  label: 'משתמשים פעילים', 
+                  color: 'text-blue-600',
+                  show: stats.activeUsers > 0
+                },
+                { 
+                  icon: TrendingUp, 
+                  value: stats.totalPosts > 0 ? `${stats.totalPosts.toLocaleString('he-IL')}+` : '0', 
+                  label: 'פוסטים שנוצרו', 
+                  color: 'text-purple-600',
+                  show: stats.totalPosts > 0
+                },
+                { 
+                  icon: Clock, 
+                  value: stats.avgTimeSavedHours > 0 ? `${stats.avgTimeSavedHours} שעות` : '--', 
+                  label: 'חיסכון בזמן כולל', 
+                  color: 'text-emerald-600',
+                  show: stats.avgTimeSavedHours > 0
+                },
+                { 
+                  icon: Award, 
+                  value: stats.satisfactionRate > 0 ? `${stats.satisfactionRate}%` : '--', 
+                  label: 'שביעות רצון', 
+                  color: 'text-red-600',
+                  show: stats.satisfactionRate > 0
+                },
+              ].filter(stat => stat.show).map((stat, i) => {
+                const IconComponent = stat.icon;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="text-center flex flex-col items-center gap-4"
+                  >
+                    <div className={`w-16 h-16 ${stat.color} bg-white rounded-2xl flex items-center justify-center shadow-lg`}>
+                      <IconComponent size={32} />
+                    </div>
+                    <div className="text-4xl md:text-5xl font-black text-slate-900">{stat.value}</div>
+                    <div className="text-sm font-bold text-slate-500">{stat.label}</div>
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Hebrew Calendar Feature Section */}
       <section className="py-40 px-6 bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 relative overflow-hidden">
@@ -533,13 +594,13 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <button 
                 onClick={handleGetStarted}
-                className="bg-white text-blue-600 px-12 py-6 rounded-[32px] font-black text-xl shadow-2xl flex items-center justify-center gap-4 hover:bg-blue-50 hover:scale-[1.02] active:scale-95 transition-all"
+                className="bg-white text-blue-600 px-12 py-6 rounded-full font-black text-xl shadow-2xl flex items-center justify-center gap-4 hover:bg-blue-50 hover:scale-[1.02] active:scale-95 transition-all"
               >
-                התחל ניסיון חינם (בלי כרטיס) <ChevronLeft size={24} />
+                התחל ניסיון חינם <ChevronLeft size={24} />
               </button>
               <button 
                 onClick={() => router.push('/pricing')}
-                className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-12 py-6 rounded-[32px] font-black text-xl flex items-center justify-center gap-4 hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
+                className="bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white px-12 py-6 rounded-full font-black text-xl flex items-center justify-center gap-4 hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
               >
                 צפה במחירון (₪149) <ArrowRight size={24} />
               </button>
@@ -562,6 +623,12 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* FAQ Section */}
+      <SalesFaq variant="system" />
 
       {/* Footer - שימוש ב-Footer הגלובלי */}
       <Footer />

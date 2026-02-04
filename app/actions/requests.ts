@@ -7,6 +7,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
 import { updatePost } from './posts';
 import { Prisma } from '@prisma/client';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -56,19 +57,14 @@ function toIsoStringOrNow(value: unknown): string {
   return new Date().toISOString();
 }
 
-async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    const row = await prisma.profile.findFirst({
-      where: { clerkUserId: String(userId) },
-      select: { organizationId: true },
-    });
-    return row?.organizationId ? String(row.organizationId) : null;
-  } catch {
-    return null;
+async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
+  const resolvedOrgSlug = String(orgSlug || '').trim();
+  if (!resolvedOrgSlug) {
+    throw new Error('Missing orgSlug');
   }
+
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+  return String(workspace.id);
 }
 
 async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
@@ -124,11 +120,16 @@ async function assertManagerRequestInOrganization(params: { requestId: string; o
 /**
  * Server Action: Get client requests
  */
-export async function getClientRequests(clientId?: string): Promise<{ success: boolean; data?: ClientRequest[]; error?: string }> {
+export async function getClientRequests(
+  orgSlug: string,
+  clientId?: string
+): Promise<{ success: boolean; data?: ClientRequest[]; error?: string }> {
   try {
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
-      return { success: true, data: [] };
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
     const rows = await prisma.social_client_requests.findMany({
@@ -163,11 +164,16 @@ export async function getClientRequests(clientId?: string): Promise<{ success: b
 /**
  * Server Action: Get manager requests
  */
-export async function getManagerRequests(clientId?: string): Promise<{ success: boolean; data?: ManagerRequest[]; error?: string }> {
+export async function getManagerRequests(
+  orgSlug: string,
+  clientId?: string
+): Promise<{ success: boolean; data?: ManagerRequest[]; error?: string }> {
   try {
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
-      return { success: true, data: [] };
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
     const rows = await prisma.social_manager_requests.findMany({
@@ -204,6 +210,7 @@ export async function getManagerRequests(clientId?: string): Promise<{ success: 
  */
 export async function createClientRequest(
   requestData: {
+    orgSlug: string;
     clientId: string;
     type: 'media' | 'text' | 'approval';
     content: string;
@@ -217,8 +224,10 @@ export async function createClientRequest(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(requestData.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -230,7 +239,8 @@ export async function createClientRequest(
       const uploadResult = await uploadFile(
         requestData.mediaFile,
         `request-${Date.now()}.${requestData.mediaFile.type.split('/')[1] || 'jpg'}`,
-        'requests'
+        'requests',
+        requestData.orgSlug
       );
       
       if (!uploadResult.success) {
@@ -278,6 +288,7 @@ export async function createClientRequest(
  */
 export async function createManagerRequest(
   requestData: {
+    orgSlug: string;
     clientId: string;
     title: string;
     description: string;
@@ -290,8 +301,10 @@ export async function createManagerRequest(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(requestData.orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -336,6 +349,7 @@ export async function createManagerRequest(
  */
 export async function approveClientRequest(
   requestId: string,
+  orgSlug: string,
   postId?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -344,8 +358,10 @@ export async function approveClientRequest(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -369,7 +385,7 @@ export async function approveClientRequest(
 
     // If postId provided, update post status to approved
     if (postId) {
-      const result = await updatePost(postId, { status: 'pending_approval' });
+      const result = await updatePost(postId, { status: 'pending_approval', orgSlug });
       if (!result.success) {
         console.error('Error updating post status:', result.error);
         // Don't fail the whole operation
@@ -385,11 +401,13 @@ export async function approveClientRequest(
     };
   }
 }
+
 /**
  * Server Action: Reject client request
  */
 export async function rejectClientRequest(
   requestId: string,
+  orgSlug: string,
   reason?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -398,8 +416,10 @@ export async function rejectClientRequest(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 
@@ -440,6 +460,7 @@ export async function rejectClientRequest(
  */
 export async function updateManagerRequest(
   requestId: string,
+  orgSlug: string,
   updates: {
     status?: 'pending' | 'approved' | 'rejected' | 'completed';
     managerComment?: string;
@@ -451,8 +472,10 @@ export async function updateManagerRequest(
       return { success: false, error: 'לא מחובר' };
     }
 
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
       return { success: false, error: 'Forbidden' };
     }
 

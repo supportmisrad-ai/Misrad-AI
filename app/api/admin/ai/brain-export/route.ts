@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { buildAiBrainExport } from '@/app/actions/admin-ai-brain-export';
 import { requireSuperAdmin } from '@/lib/auth';
 import { apiError } from '@/lib/server/api-response';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -10,11 +11,9 @@ async function GETHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
-    const url = new URL(req.url);
-    const organizationId = String(url.searchParams.get('organizationId') || '').trim();
-    if (!organizationId) {
-      return apiError('organizationId is required', { status: 400 });
-    }
+    const orgKey = getOrgKeyOrThrow(req);
+    const { workspaceId } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+    const organizationId = String(workspaceId);
 
     const { snapshot, filename } = await buildAiBrainExport({ organizationId });
 

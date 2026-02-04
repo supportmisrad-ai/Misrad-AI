@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { CreditCard, TrendingUp, FileText, BarChart, Plug, Settings, Menu, X, Search, User, Compass } from 'lucide-react';
+import { CreditCard, TrendingUp, Plug, Settings, Menu, User, Compass } from 'lucide-react';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useToast } from '../system/contexts/ToastContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,8 +24,6 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 
 // Import placeholder components
-import InvoicesView from './invoices/InvoicesView';
-import ReportsView from './ReportsView';
 import IntegrationsView from './integrations/IntegrationsView';
 import OverviewView from './OverviewView';
 
@@ -100,8 +98,6 @@ const FinanceOSApp: React.FC<{
 
   const navItems = [
     { id: 'overview', label: 'סקירה כללית', icon: TrendingUp },
-    { id: 'invoices', label: 'חשבוניות', icon: FileText },
-    { id: 'reports', label: 'דוחות', icon: BarChart },
     { id: 'integrations', label: 'אינטגרציות', icon: Plug },
     { id: 'hub', label: 'הגדרות', icon: Settings }
   ];
@@ -111,7 +107,7 @@ const FinanceOSApp: React.FC<{
   useEffect(() => {
     const tab = searchParams?.get('tab');
     if (!tab) return;
-    const allowed = new Set(['overview', 'invoices', 'reports', 'integrations', 'hub']);
+    const allowed = new Set(['overview', 'integrations', 'hub']);
     if (!allowed.has(tab)) return;
     if (tab !== activeTab) {
       setActiveTab(tab);
@@ -305,10 +301,6 @@ const FinanceOSApp: React.FC<{
     switch (activeTab) {
       case 'overview':
         return <OverviewView initialFinanceOverview={initialFinanceOverview} />;
-      case 'invoices':
-        return <InvoicesView />;
-      case 'reports':
-        return <ReportsView />;
       case 'integrations':
         return <IntegrationsView />;
       case 'me':
@@ -320,9 +312,9 @@ const FinanceOSApp: React.FC<{
                 basePath
                   ? [
                       {
-                        title: 'דוחות',
-                        subtitle: 'סיכומים וניתוחים מהירים',
-                        href: `${basePath}?tab=reports`,
+                        title: 'אינטגרציות',
+                        subtitle: 'חיבור חשבונית ירוקה ומערכות נוספות',
+                        href: `${basePath}?tab=integrations`,
                         iconId: 'trending_up',
                       },
                       {
@@ -498,8 +490,6 @@ const FinanceOSApp: React.FC<{
               <div className="grid grid-cols-4 gap-4">
                 {[
                   { id: 'overview', label: 'סקירה', icon: TrendingUp, onClick: () => navigateToTab('overview') },
-                  { id: 'invoices', label: 'חשבוניות', icon: FileText, onClick: () => navigateToTab('invoices') },
-                  { id: 'reports', label: 'דוחות', icon: BarChart, onClick: () => navigateToTab('reports') },
                   { id: 'integrations', label: 'אינטגרציות', icon: Plug, onClick: () => navigateToTab('integrations') },
                   { id: 'hub', label: 'הגדרות', icon: Settings, onClick: () => navigateToTab('hub') },
                   { id: 'me', label: 'פרופיל', icon: User, onClick: goToMe },
@@ -555,20 +545,20 @@ const FinanceOSApp: React.FC<{
             onClick: () => navigateToTab('overview'),
           },
           {
-            id: 'invoices',
-            label: 'חשבוניות',
-            icon: FileText,
-            active: activeTab === 'invoices',
-            onClick: () => navigateToTab('invoices'),
+            id: 'integrations',
+            label: 'אינטגרציות',
+            icon: Plug,
+            active: activeTab === 'integrations',
+            onClick: () => navigateToTab('integrations'),
           },
         ]}
         leftItems={[
           {
-            id: 'reports',
-            label: 'דוחות',
-            icon: BarChart,
-            active: activeTab === 'reports',
-            onClick: () => navigateToTab('reports'),
+            id: 'hub',
+            label: 'הגדרות',
+            icon: Settings,
+            active: activeTab === 'hub',
+            onClick: () => navigateToTab('hub'),
           },
           {
             id: 'menu',

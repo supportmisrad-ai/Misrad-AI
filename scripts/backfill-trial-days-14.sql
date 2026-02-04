@@ -1,0 +1,25 @@
+-- Backfill: extend active trials to 14 days
+--
+-- Notes:
+-- - This updates only rows currently in subscription_status='trial'
+-- - It does not revive expired/cancelled subscriptions
+-- - Run on your DB (staging first)
+
+BEGIN;
+
+-- Organizations
+UPDATE organizations
+SET trial_days = 14,
+    updated_at = NOW()
+WHERE subscription_status = 'trial'
+  AND (trial_days IS NULL OR trial_days < 14);
+
+-- Team members
+UPDATE social_team_members
+SET trial_days = 14,
+    updated_at = NOW()
+WHERE subscription_status = 'trial'
+  AND trial_start_date IS NOT NULL
+  AND (trial_days IS NULL OR trial_days < 14);
+
+COMMIT;

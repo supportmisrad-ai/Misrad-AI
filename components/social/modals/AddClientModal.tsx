@@ -476,7 +476,7 @@ export default function AddClientModal() {
                             ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500' 
                             : 'border-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
                         }`}
-                        placeholder="email@example.com"
+                        placeholder="דוא&quot;ל"
                       />
                       {errors.email && (
                         <p className="text-xs text-red-500 mt-1">{errors.email}</p>

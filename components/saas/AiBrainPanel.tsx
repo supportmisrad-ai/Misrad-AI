@@ -54,6 +54,12 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
 
   const selectedOrg = useMemo(() => orgs.find((o) => o.id === selectedOrgId) || null, [orgs, selectedOrgId]);
 
+  const selectedOrgKey = useMemo(() => {
+    if (!selectedOrg) return '';
+    const slug = String(selectedOrg.slug || '').trim();
+    return slug || String(selectedOrg.id || '').trim();
+  }, [selectedOrg]);
+
   const loadOrganizations = useCallback(async () => {
     setLoadingOrgs(true);
     try {
@@ -72,31 +78,33 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
     setLoadingRows(true);
     try {
       const url = new URL('/api/admin/ai/feature-settings', window.location.origin);
-      url.searchParams.set('organizationId', orgId);
       if (featureQuery.trim()) url.searchParams.set('q', featureQuery.trim());
       url.searchParams.set('limit', '500');
 
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: selectedOrgKey ? { 'x-org-id': selectedOrgKey } : undefined,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בטעינת הגדרות AI');
       setRows(Array.isArray(data.rows) ? data.rows : []);
     } finally {
       setLoadingRows(false);
     }
-  }, [featureQuery]);
+  }, [featureQuery, selectedOrgKey]);
 
   const loadCreditStatus = useCallback(async (orgId: string) => {
     try {
       const url = new URL('/api/admin/ai/credits', window.location.origin);
-      url.searchParams.set('organizationId', orgId);
-      const res = await fetch(url.toString());
+      const res = await fetch(url.toString(), {
+        headers: selectedOrgKey ? { 'x-org-id': selectedOrgKey } : undefined,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בטעינת יתרת קרדיטים');
       setCreditStatus(data.status ?? null);
     } catch {
       setCreditStatus(null);
     }
-  }, []);
+  }, [selectedOrgKey]);
 
   useEffect(() => {
     void loadOrganizations();
@@ -115,9 +123,10 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
   const downloadAiBackup = async () => {
     if (!selectedOrgId) return;
     const url = new URL('/api/admin/ai/brain-export', window.location.origin);
-    url.searchParams.set('organizationId', selectedOrgId);
 
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+      headers: selectedOrgKey ? { 'x-org-id': selectedOrgKey } : undefined,
+    });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || 'שגיאה ביצוא הגדרות AI');
@@ -142,9 +151,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
     try {
       const res = await fetch('/api/admin/ai/feature-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(selectedOrgKey ? { 'x-org-id': selectedOrgKey } : {}) },
         body: JSON.stringify({
-          organization_id: selectedOrgId,
           feature_key: row.feature_key,
           enabled: row.enabled,
           primary_provider: row.primary_provider,
@@ -172,8 +180,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
     try {
       const res = await fetch('/api/admin/ai/ingest-history', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ organizationId: selectedOrgId, limitPerType: 100 }),
+        headers: { 'Content-Type': 'application/json', ...(selectedOrgKey ? { 'x-org-id': selectedOrgKey } : {}) },
+        body: JSON.stringify({ limitPerType: 100 }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'שגיאה בהרצת אינדוקס');
@@ -190,8 +198,8 @@ export const AiBrainPanel: React.FC<{ hideHeader?: boolean }> = ({ hideHeader })
     if (!selectedOrgId) return;
     const res = await fetch('/api/admin/ai/credits', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ organizationId: selectedOrgId, deltaCents }),
+      headers: { 'Content-Type': 'application/json', ...(selectedOrgKey ? { 'x-org-id': selectedOrgKey } : {}) },
+      body: JSON.stringify({ deltaCents }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'שגיאה בעדכון קרדיטים');

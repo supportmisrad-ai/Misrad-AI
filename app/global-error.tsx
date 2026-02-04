@@ -25,6 +25,7 @@ export default function GlobalError({
             <div className="mt-4 flex justify-end">
               <Button
                 type="button"
+                variant="secondary"
                 onClick={() => {
                   if (typeof reset === 'function') {
                     reset();

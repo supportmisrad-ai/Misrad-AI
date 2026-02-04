@@ -25,31 +25,31 @@ export function LandingPackageVideosPanel({ hideHeader }: { hideHeader?: boolean
     () => [
       {
         key: 'the_operator',
-        label: 'The Operator · תפעול ושטח',
+        label: 'חבילת תפעול ושטח',
         landingPath: '/the-operator',
         contentKey: 'the_operator_video_url',
       },
       {
         key: 'the_closer',
-        label: 'The Closer · מכירות וצמיחה',
+        label: 'חבילת מכירות',
         landingPath: '/the-closer',
         contentKey: 'the_closer_video_url',
       },
       {
         key: 'the_authority',
-        label: 'The Authority · שיווק ומיתוג',
+        label: 'חבילת שיווק ומיתוג',
         landingPath: '/the-authority',
         contentKey: 'the_authority_video_url',
       },
       {
         key: 'the_empire',
-        label: 'The Empire · הכל-כלול',
+        label: 'הכל כלול',
         landingPath: '/the-empire',
         contentKey: 'the_empire_video_url',
       },
       {
         key: 'solo',
-        label: 'Solo · חבילת בסיס',
+        label: 'מודול בודד',
         landingPath: '/solo',
         contentKey: 'solo_video_url',
       },

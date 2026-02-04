@@ -11,6 +11,26 @@ import { ClientProvider } from '../context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAuth } from '@clerk/nextjs';
 import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
+import type { Client, Meeting } from '@/components/client-os-full/types';
+import type { ClientOSUserData } from '@/components/client-os-full/ClientOSApp';
+
+type ClientOsIdentity = {
+  name?: string | null;
+  email?: string | null;
+  avatar?: string | null;
+  role?: string | null;
+};
+
+type ClientOsOrganization = {
+  id?: string | null;
+  name?: string | null;
+  logo?: string | null;
+};
+
+type ClientOsWindow = Window & {
+  __CLIENT_OS_USER__?: ClientOSUserData;
+  supabaseForOrgLookup?: ReturnType<typeof createBrowserClientWithClerk>;
+};
 
 export default function ClientOsAppLayoutClient({
   children,
@@ -24,12 +44,12 @@ export default function ClientOsAppLayoutClient({
 }: {
   children: React.ReactNode;
   orgSlug: string;
-  userData: any;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  userData: ClientOSUserData;
+  initialCurrentUser?: ClientOsIdentity | null;
+  initialOrganization?: ClientOsOrganization | null;
   initialOrgId: string;
-  initialClients?: any[];
-  initialMeetings?: any[];
+  initialClients?: Client[];
+  initialMeetings?: Meeting[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -81,28 +101,33 @@ export default function ClientOsAppLayoutClient({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    (window as any).__CLIENT_OS_USER__ = userData;
+    const clientWindow = window as ClientOsWindow;
+    clientWindow.__CLIENT_OS_USER__ = userData;
     window.dispatchEvent(new CustomEvent('client-os-user-updated', { detail: userData }));
   }, [userData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if ((window as any).supabaseForOrgLookup) return;
-    (window as any).supabaseForOrgLookup = supabase;
+    const clientWindow = window as ClientOsWindow;
+    if (clientWindow.supabaseForOrgLookup) return;
+    clientWindow.supabaseForOrgLookup = supabase;
   }, [supabase]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handlePortalOpen = (e: any) => {
-      const clientId = e?.detail;
+    const handlePortalOpen = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const clientId = event.detail as unknown;
       if (!clientId) return;
       router.push(`${basePath}/client-portal?clientId=${encodeURIComponent(String(clientId))}`);
     };
 
-    const handleComposerOpen = (e: any) => {
-      const clientId = e?.detail?.clientId ?? e?.detail ?? null;
-      if (clientId != null) {
+    const handleComposerOpen = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as { clientId?: string | number } | string | number | null | undefined;
+      const clientId = typeof detail === 'object' && detail !== null ? detail.clientId ?? null : detail ?? null;
+      if (clientId !== null && clientId !== undefined) {
         setSelectedClientIdForComposer(String(clientId));
       }
       setShowComposer(true);
@@ -140,8 +165,8 @@ export default function ClientOsAppLayoutClient({
     return (
       <ClientProvider
         initialOrgId={initialOrgId}
-        initialClients={initialClients as any}
-        initialMeetings={initialMeetings as any}
+        initialClients={initialClients}
+        initialMeetings={initialMeetings}
       >
         {children}
         <ToastManager />
@@ -152,8 +177,8 @@ export default function ClientOsAppLayoutClient({
   return (
     <ClientProvider
       initialOrgId={initialOrgId}
-      initialClients={initialClients as any}
-      initialMeetings={initialMeetings as any}
+      initialClients={initialClients}
+      initialMeetings={initialMeetings}
     >
       <Layout activeView={activeView} onNavigate={navigate}>
         {children}

@@ -92,7 +92,7 @@ export const ClientTasksTab: React.FC<ClientTasksTabProps> = ({ client, assigned
                 <div className="p-2 bg-white/20 rounded-lg backdrop-blur-md shadow-glow-gold">
                   <Zap size={18} className="text-nexus-accent" fill="currentColor" />
                 </div>
-                <h3 className="font-bold">טייס אוטומטי</h3>
+                <h3 className="font-bold">אוטומציה מלאה</h3>
               </div>
               <p className="text-white/60 text-xs leading-relaxed mb-6">מערכת השליחה האוטומטית דואגת לשמור על קשר רציף עם הלקוח בין הפגישות.</p>
 

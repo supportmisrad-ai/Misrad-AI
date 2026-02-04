@@ -8,10 +8,11 @@ import { ManagerRequest } from '@/types/social';
 interface TasksTabProps {
   requests: ManagerRequest[];
   onCompleteRequest: (reqId: string) => void;
+  onUploadNow: (request: ManagerRequest) => void;
   setActiveTab: (tab: any) => void;
 }
 
-const TasksTab: React.FC<TasksTabProps> = ({ requests, onCompleteRequest, setActiveTab }) => {
+const TasksTab: React.FC<TasksTabProps> = ({ requests, onCompleteRequest, onUploadNow, setActiveTab }) => {
   const activeRequests = requests.filter(r => r.status === 'pending');
 
   return (
@@ -41,7 +42,7 @@ const TasksTab: React.FC<TasksTabProps> = ({ requests, onCompleteRequest, setAct
               </div>
               <div className="flex gap-4">
                 <button 
-                  onClick={() => setActiveTab('upload')} 
+                  onClick={() => onUploadNow(mr)} 
                   className="bg-blue-600 text-white px-10 py-5 rounded-[24px] font-black shadow-xl shadow-blue-100 flex items-center gap-3 hover:bg-blue-700 transition-all"
                 >
                   <Upload size={20}/> העלאה עכשיו

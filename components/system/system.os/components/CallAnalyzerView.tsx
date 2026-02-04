@@ -217,7 +217,7 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
 
     const startLiveSession = async () => {
         if (!liveCoachEnabled) {
-            addToast('Live Coach מושבת כרגע', 'info');
+            addToast('המאמן החי מושבת כרגע', 'info');
             return;
         }
 

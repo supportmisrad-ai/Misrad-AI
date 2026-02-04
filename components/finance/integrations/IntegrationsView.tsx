@@ -1,18 +1,68 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Plug, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../../GreenInvoiceConnectModal';
 import { useToast } from '../../system/contexts/ToastContext';
 
+type GreenInvoiceStatus = {
+  isLoading: boolean;
+  connected: boolean;
+  lastSynced: string | null;
+  error: string | null;
+};
+
 const IntegrationsView: React.FC = () => {
   const { addToast } = useToast();
   const [isGreenInvoiceModalOpen, setIsGreenInvoiceModalOpen] = useState(false);
-  const [greenInvoiceConnected, setGreenInvoiceConnected] = useState(false);
+
+  const [greenInvoiceStatus, setGreenInvoiceStatus] = useState<GreenInvoiceStatus>({
+    isLoading: true,
+    connected: false,
+    lastSynced: null,
+    error: null,
+  });
+
+  const loadGreenInvoiceStatus = useCallback(async () => {
+    setGreenInvoiceStatus((prev) => ({
+      ...prev,
+      isLoading: true,
+      error: null,
+    }));
+
+    try {
+      const response = await fetch('/api/integrations/green-invoice/status', {
+        method: 'GET',
+        cache: 'no-store',
+      });
+
+      const data: any = await response.json().catch(() => ({}));
+      const connected = Boolean(data?.connected);
+      const lastSynced = typeof data?.lastSynced === 'string' ? data.lastSynced : null;
+
+      setGreenInvoiceStatus({
+        isLoading: false,
+        connected,
+        lastSynced,
+        error: null,
+      });
+    } catch (error: any) {
+      setGreenInvoiceStatus({
+        isLoading: false,
+        connected: false,
+        lastSynced: null,
+        error: String(error?.message || 'שגיאה בבדיקת סטטוס חיבור'),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    loadGreenInvoiceStatus();
+  }, [loadGreenInvoiceStatus]);
 
   const handleGreenInvoiceSuccess = () => {
-    setGreenInvoiceConnected(true);
-    addToast('חובר בהצלחה לחשבונית ירוקה!', 'success');
+    addToast('פרטי החיבור נשמרו. מעדכן סטטוס...', 'success');
+    loadGreenInvoiceStatus();
   };
 
   return (
@@ -36,7 +86,9 @@ const IntegrationsView: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              {greenInvoiceConnected ? (
+              {greenInvoiceStatus.isLoading ? (
+                <div className="text-sm font-medium text-slate-500">בודק סטטוס...</div>
+              ) : greenInvoiceStatus.connected ? (
                 <div className="flex items-center gap-2 text-emerald-600">
                   <CheckCircle2 size={20} />
                   <span className="text-sm font-medium">מחובר</span>
@@ -68,7 +120,7 @@ const IntegrationsView: React.FC = () => {
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-slate-400">
                 <XCircle size={20} />
-                <span className="text-sm font-medium">לא זמין</span>
+                <span className="text-sm font-medium">בקרוב</span>
               </div>
             </div>
           </div>

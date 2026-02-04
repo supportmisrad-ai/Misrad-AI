@@ -74,6 +74,7 @@ model MisradClient {
   successGoals                     MisradSuccessGoal[]
 
   @@index([organizationId])
+  @@index([organizationId, created_at])
   @@index([customerAccountId])
   @@index([cycleId])
   @@map("misrad_clients")
@@ -93,6 +94,7 @@ model MisradJourneyStage {
   milestones           MisradMilestone[]
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@map("misrad_journey_stages")
 }
@@ -111,6 +113,7 @@ model MisradMilestone {
   stage           MisradJourneyStage @relation(fields: [stage_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([stage_id])
   @@map("misrad_milestones")
@@ -129,6 +132,7 @@ model MisradOpportunity {
   client          MisradClient            @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@map("misrad_opportunities")
 }
@@ -151,6 +155,7 @@ model MisradSuccessGoal {
   client          MisradClient            @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@map("misrad_success_goals")
 }
@@ -167,6 +172,7 @@ model MisradMetricHistory {
   goal            MisradSuccessGoal @relation(fields: [goal_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([goal_id])
   @@map("misrad_metric_history")
@@ -187,6 +193,7 @@ model MisradClientHandoff {
   client                  MisradClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@map("misrad_client_handoffs")
 }
 
@@ -202,6 +209,7 @@ model MisradRoiRecord {
   client          MisradClient      @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([category])
   @@map("misrad_roi_records")
@@ -223,6 +231,7 @@ model MisradClientAction {
   client           MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([status])
   @@map("misrad_client_actions")
@@ -243,6 +252,7 @@ model MisradAssignedForm {
   client          MisradClient             @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([templateId])
   @@map("misrad_assigned_forms")
@@ -263,6 +273,7 @@ model MisradFeedbackItem {
   client          MisradClient            @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([source])
   @@map("misrad_feedback_items")
@@ -283,6 +294,7 @@ model MisradClientAsset {
   client          MisradClient        @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([category])
   @@map("misrad_client_assets")
@@ -304,6 +316,7 @@ model MisradClientDeliverable {
   client          MisradClient            @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([status])
   @@map("misrad_client_deliverables")
@@ -323,6 +336,7 @@ model MisradClientTransformation {
   client          MisradClient @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([isPublished])
   @@map("misrad_client_transformations")
@@ -346,6 +360,7 @@ model MisradStakeholder {
   client          MisradClient          @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([nexusRole])
   @@map("misrad_stakeholders")
@@ -371,6 +386,7 @@ model MisradMeeting {
   client          MisradClient                 @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([organization_id, meetingAt], map: "idx_misrad_meetings_org_meeting_at")
   @@index([client_id, meetingAt], map: "idx_misrad_meetings_client_meeting_at")
@@ -390,6 +406,7 @@ model MisradMeetingFile {
   meeting         MisradMeeting         @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([meeting_id])
   @@map("misrad_meeting_files")
@@ -418,6 +435,7 @@ model MisradMeetingAnalysisResult {
   meeting          MisradMeeting           @relation(fields: [meeting_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@map("misrad_meeting_analysis_results")
 }
@@ -437,6 +455,7 @@ model MisradAiTask {
   analysis        MisradMeetingAnalysisResult @relation(fields: [analysis_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([analysis_id])
   @@index([bucket])
@@ -455,6 +474,7 @@ model MisradAiLiabilityRisk {
   analysis        MisradMeetingAnalysisResult @relation(fields: [analysis_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([analysis_id])
   @@index([riskLevel])
@@ -479,6 +499,7 @@ model MisradEmail {
   client          MisradClient? @relation(fields: [client_id], references: [id])
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([isRead])
   @@map("misrad_emails")
@@ -498,6 +519,7 @@ model MisradMessage {
   attachments        MisradMessageAttachment[]
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([sender_id])
   @@index([recipient_id])
   @@index([read_status])
@@ -517,6 +539,7 @@ model MisradMessageAttachment {
   message         MisradMessage @relation(fields: [message_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([message_id])
   @@map("misrad_message_attachments")
 }
@@ -540,6 +563,7 @@ model MisradInvoice {
   client                           MisradClient                       @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([status])
   @@index([organization_id, dateAt], map: "idx_misrad_invoices_org_date_at")
@@ -562,6 +586,7 @@ model MisradClientAgreement {
   client          MisradClient          @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([status])
   @@map("misrad_client_agreements")
@@ -584,6 +609,7 @@ model MisradCycle {
   groupEvents     MisradGroupEvent[]
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([status])
   @@map("misrad_cycles")
 }
@@ -604,6 +630,7 @@ model MisradCycleTask {
   cycle            MisradCycle              @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([cycle_id])
   @@map("misrad_cycle_tasks")
 }
@@ -622,6 +649,7 @@ model MisradCycleAsset {
   cycle           MisradCycle         @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([cycle_id])
   @@map("misrad_cycle_assets")
 }
@@ -643,6 +671,7 @@ model MisradGroupEvent {
   cycle           MisradCycle?           @relation(fields: [cycle_id], references: [id])
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([cycle_id])
   @@index([status])
   @@map("misrad_group_events")
@@ -660,6 +689,7 @@ model MisradWorkflowBlueprint {
   stages          MisradWorkflowStage[]
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@map("misrad_workflow_blueprints")
 }
 
@@ -675,6 +705,7 @@ model MisradWorkflowStage {
   blueprint       MisradWorkflowBlueprint @relation(fields: [blueprint_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([blueprint_id])
   @@map("misrad_workflow_stages")
 }
@@ -693,6 +724,7 @@ model MisradWorkflowItem {
   stage           MisradWorkflowStage    @relation(fields: [stage_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([stage_id])
   @@map("misrad_workflow_items")
 }
@@ -710,6 +742,7 @@ model MisradFormTemplate {
   steps           MisradFormStep[]
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([category])
   @@map("misrad_form_templates")
 }
@@ -726,6 +759,7 @@ model MisradFormStep {
   template        MisradFormTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([template_id])
   @@map("misrad_form_steps")
 }
@@ -745,6 +779,7 @@ model MisradFormField {
   step            MisradFormStep  @relation(fields: [step_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([step_id])
   @@map("misrad_form_fields")
 }
@@ -765,6 +800,7 @@ model MisradFormResponse {
   template         MisradFormTemplate       @relation(fields: [template_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([template_id])
   @@index([assigned_form_id])
@@ -787,6 +823,7 @@ model MisradNotification {
   client          MisradClient?          @relation(fields: [client_id], references: [id])
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([recipient_id], map: "idx_misrad_notifications_recipient_id")
   @@index([isRead])
@@ -805,6 +842,7 @@ model MisradActivityLog {
   client          MisradClient          @relation(fields: [client_id], references: [id], onDelete: Cascade)
 
   @@index([organization_id])
+  @@index([organization_id, created_at])
   @@index([client_id])
   @@index([type])
   @@index([isRisk])
@@ -2154,15 +2192,37 @@ model scale_support_tickets {
   priority         String    @default("medium")
   assigned_to      String?   @db.Uuid
   resolved_by      String?   @db.Uuid
+  last_updated_by  String?   @db.Uuid
   created_at       DateTime? @default(now()) @db.Timestamptz(6)
   updated_at       DateTime? @default(now()) @db.Timestamptz(6)
   resolved_at      DateTime? @db.Timestamptz(6)
   closed_at        DateTime? @db.Timestamptz(6)
+  read_at          DateTime? @db.Timestamptz(6)
+  handled_at       DateTime? @db.Timestamptz(6)
+  sla_deadline     DateTime? @db.Timestamptz(6)
+  first_response_at DateTime? @db.Timestamptz(6)
+  resolution_time_minutes Int?
   metadata         Json?     @default("{}")
   admin_response   String?
   resolution_notes String?
 
   @@map("misrad_support_tickets")
+}
+
+model support_ticket_events {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ticket_id  String    @db.Uuid
+  tenant_id  String?   @db.Uuid
+  actor_id   String?   @db.Uuid
+  action     String
+  content    String?   @db.Text
+  metadata   Json?     @default("{}")
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([ticket_id])
+  @@index([tenant_id])
+  @@index([created_at])
+  @@map("support_ticket_events")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2619,7 +2679,7 @@ model social_organizations {
   subscription_status              String?                            @default("trial")
   subscription_plan                String?
   trial_start_date                 DateTime?                          @db.Timestamptz(6)
-  trial_days                       Int?                               @default(30)
+  trial_days                       Int?                               @default(14)
   subscription_start_date          DateTime?                          @db.Timestamptz(6)
   created_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
   updated_at                       DateTime?                          @default(now()) @db.Timestamptz(6)
@@ -2635,6 +2695,7 @@ model social_organizations {
   ai_usage_logs                    ai_usage_logs[]
   billing_events                   billing_events[]
   charges                          charges[]
+  coupon_redemptions               coupon_redemptions[]
   clientApprovals                  ClientApproval[]
   clientClients                    ClientClient[]
   clientDocumentFiles              ClientDocumentFile[]
@@ -2916,7 +2977,7 @@ model social_team_members {
   email                      String?
   plan                       String?                      @default("free")
   trial_start_date           DateTime?                    @db.Timestamptz(6)
-  trial_days                 Int?                         @default(30)
+  trial_days                 Int?                         @default(14)
   subscription_status        String?
   subscription_start_date    DateTime?                    @db.Timestamptz(6)
   organization_id            String                       @db.Uuid
@@ -3466,6 +3527,8 @@ model subscription_orders {
   plan_key                String?
   billing_cycle           String
   amount                  Decimal?              @default(0) @db.Decimal(10, 2)
+  amount_before_discount  Decimal?              @default(0) @db.Decimal(10, 2)
+  coupon_discount         Decimal?              @default(0) @db.Decimal(10, 2)
   currency                String?               @default("ILS")
   status                  String                @default("pending")
   payment_method          String                @default("bit")
@@ -3481,12 +3544,64 @@ model subscription_orders {
   proof_image_url         String?
   proof_image_path        String?
   seats                   Int?
+  coupon_id               String?               @db.Uuid
   organizations           social_organizations? @relation(fields: [organization_id], references: [id], onUpdate: NoAction)
+  coupon                  coupons?              @relation(fields: [coupon_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  coupon_redemptions      coupon_redemptions[]
 
   @@index([clerk_user_id], map: "idx_subscription_orders_clerk_user_id")
   @@index([organization_id], map: "idx_subscription_orders_org_id")
   @@index([social_user_id], map: "idx_subscription_orders_social_user_id")
   @@index([status], map: "idx_subscription_orders_status")
+  @@index([coupon_id], map: "idx_subscription_orders_coupon_id")
+}
+
+model coupons {
+  id                    String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code_hash             String                @unique @db.VarChar(64)
+  code_last4            String?               @db.VarChar(4)
+  name                  String?
+  status                String                @default("active")
+  discount_type         coupon_discount_type
+  discount_percent      Int?
+  discount_amount       Decimal?              @db.Decimal(10, 2)
+  min_order_amount      Decimal?              @db.Decimal(10, 2)
+  starts_at             DateTime?             @db.Timestamptz(6)
+  ends_at               DateTime?             @db.Timestamptz(6)
+  max_redemptions_total Int?
+  created_at            DateTime?             @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime?             @default(now()) @db.Timestamptz(6)
+
+  coupon_redemptions    coupon_redemptions[]
+  subscription_orders   subscription_orders[]
+
+  @@index([status], map: "idx_coupons_status")
+  @@index([starts_at], map: "idx_coupons_starts_at")
+  @@index([ends_at], map: "idx_coupons_ends_at")
+}
+
+model coupon_redemptions {
+  id             String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  coupon_id      String              @db.Uuid
+  organization_id String             @db.Uuid
+  order_id       String?             @db.Uuid
+  clerk_user_id  String?
+  redeemed_at    DateTime?           @default(now()) @db.Timestamptz(6)
+  amount_before  Decimal?            @db.Decimal(10, 2)
+  discount_amount Decimal?           @db.Decimal(10, 2)
+  amount_after   Decimal?            @db.Decimal(10, 2)
+  created_at     DateTime?           @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime?           @default(now()) @db.Timestamptz(6)
+
+  coupons        coupons             @relation(fields: [coupon_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations  social_organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  orders         subscription_orders? @relation(fields: [order_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([coupon_id, organization_id], map: "coupon_redemptions_coupon_org_unique")
+  @@index([coupon_id], map: "idx_coupon_redemptions_coupon_id")
+  @@index([organization_id], map: "idx_coupon_redemptions_org_id")
+  @@index([order_id], map: "idx_coupon_redemptions_order_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -3828,4 +3943,43 @@ enum user_role {
   content_creator
   designer
   client
+}
+
+enum coupon_discount_type {
+  PERCENT
+  FIXED_AMOUNT
+}
+
+model landing_testimonials {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  role             String
+  company          String
+  content          String   @db.Text
+  rating           Int      @default(5)
+  image_url        String?
+  video_url        String?
+  cover_image_url  String?
+  sort_order       Int      @default(0)
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([is_active, sort_order])
+  @@map("landing_testimonials")
+}
+
+model landing_faq {
+  id               String   @id @default(uuid()) @db.Uuid
+  question         String   @db.Text
+  answer           String   @db.Text
+  video_url        String?
+  cover_image_url  String?
+  sort_order       Int      @default(0)
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([is_active, sort_order])
+  @@map("landing_faq")
 }

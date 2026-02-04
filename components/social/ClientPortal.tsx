@@ -4,10 +4,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { CheckCircle2, Upload, MessageSquare, Calendar, LogOut, Send, X, ShoppingCart, Bell, BarChart3, FileText, ShieldAlert, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice } from '@/types/social';
+import { SocialPost, PaymentOrder, AgencyServiceConfig, Invoice, ManagerRequest } from '@/types/social';
 import PaymentCheckoutPortal from './PaymentCheckoutPortal';
 import { Avatar } from '@/components/Avatar';
 import { getInvoices } from '@/app/actions/payments';
+import { publishPost, updatePost } from '@/app/actions/posts';
+import { createClientRequest, updateManagerRequest } from '@/app/actions/requests';
 import ApprovalsTab from './portal/ApprovalsTab';
 import TasksTab from './portal/TasksTab';
 import StoreTab from './portal/StoreTab';
@@ -30,29 +32,35 @@ export default function ClientPortal() {
     setPosts,
     setClientRequests,
     setManagerRequests,
-    addToast 
+    addToast,
+    orgSlug
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'approvals' | 'tasks' | 'calendar' | 'upload' | 'billing' | 'store' | 'analytics'>('approvals');
+  const [uploadPrefill, setUploadPrefill] = useState<{
+    key: string;
+    text?: string;
+    isUrgent?: boolean;
+    contentType?: 'post' | 'story' | 'reel' | '';
+    targetPlatforms?: any[];
+  } | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activePaymentOrder, setActivePaymentOrder] = useState<PaymentOrder | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
-  const activeOrgId = (activeClient as any)?.organizationId;
 
   // AI Chat hook with client context
   const { messages, input, handleInputChange, handleSubmit, isLoading } = (useChat as any)({
     api: '/api/chat',
-    headers: activeOrgId ? { 'x-org-id': activeOrgId } : undefined,
+    headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
     body: {
       clientContext: activeClient ? {
         companyName: activeClient.companyName,
         name: activeClient.name,
         brandVoice: activeClient.brandVoice,
         dna: activeClient.dna,
-        organizationId: activeOrgId,
       } : undefined,
     },
     initialMessages: activeClient ? [
@@ -82,7 +90,7 @@ export default function ClientPortal() {
     if (!activeClient?.id) return;
     setIsLoadingInvoices(true);
     try {
-      const result = await getInvoices(activeClient.id);
+      const result = await getInvoices(activeClient.id, orgSlug || undefined);
       if (result.success && result.data) {
         setInvoices(result.data as any);
       }
@@ -91,6 +99,26 @@ export default function ClientPortal() {
     } finally {
       setIsLoadingInvoices(false);
     }
+  };
+
+  const handleUploadNow = (request: ManagerRequest) => {
+    const text = `משימה מהמנהל: ${String(request.title || '').trim()}
+${String(request.description || '').trim()}`.trim();
+
+    const type = String(request.type || '').toLowerCase();
+    const isUrgent = /דחוף|היום|מייד|מחר/i.test(text);
+    const contentType = type === 'media' ? 'reel' : '';
+
+    const platforms = Array.isArray(activeClient?.activePlatforms) ? activeClient.activePlatforms : [];
+
+    setUploadPrefill({
+      key: String(request.id),
+      text,
+      isUrgent,
+      contentType,
+      targetPlatforms: platforms,
+    });
+    setActiveTab('upload');
   };
   const [cart, setCart] = useState<{service: AgencyServiceConfig, qty: number}[]>([]);
 
@@ -109,7 +137,7 @@ export default function ClientPortal() {
   const startPayment = async (amount: number, description: string) => {
     try {
       const { createPaymentOrder } = await import('@/app/actions/payments');
-      const result = await createPaymentOrder(activeClient.id, amount, description, 2);
+      const result = await createPaymentOrder(activeClient.id, amount, description, 2, orgSlug || undefined);
       
       if (result.success && result.data) {
         setActivePaymentOrder(result.data);
@@ -138,28 +166,205 @@ export default function ClientPortal() {
   const totalCartPrice = cart.reduce((sum, item) => sum + (item.service.basePrice * item.qty), 0);
 
   const handleApprove = (postId: string) => {
-    openComingSoon();
+    void (async () => {
+      const resolvedOrgSlug = String(orgSlug || '').trim();
+      if (!resolvedOrgSlug) {
+        addToast('חסר ארגון פעיל', 'error');
+        return;
+      }
+
+      const res = await publishPost(String(postId), resolvedOrgSlug);
+      if (!res.success) {
+        addToast(res.error || 'שגיאה באישור הפוסט', 'error');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      setPosts((prev) =>
+        (Array.isArray(prev) ? prev : []).map((p) =>
+          String(p.id) === String(postId)
+            ? {
+                ...p,
+                status: 'published',
+                publishedAt: now,
+              }
+            : p
+        )
+      );
+
+      addToast('הפוסט אושר ונשלח לשידור ✅', 'success');
+    })();
   };
 
   const handleReject = (postId: string, note: string) => {
-    openComingSoon();
+    void (async () => {
+      const resolvedOrgSlug = String(orgSlug || '').trim();
+      if (!resolvedOrgSlug) {
+        addToast('חסר ארגון פעיל', 'error');
+        return;
+      }
+
+      const res = await updatePost(String(postId), {
+        orgSlug: resolvedOrgSlug,
+        status: 'internal_review',
+      });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בשליחת הפוסט לתיקון', 'error');
+        return;
+      }
+
+      setPosts((prev) =>
+        (Array.isArray(prev) ? prev : []).map((p) =>
+          String(p.id) === String(postId)
+            ? {
+                ...p,
+                ...(res.data ? (res.data as SocialPost) : {}),
+                status: 'internal_review',
+              }
+            : p
+        )
+      );
+
+      addToast(note ? `נשלח לתיקון: ${note}` : 'נשלח לתיקון', 'success');
+    })();
   };
 
   const handleUpload = (media: string, text: string) => {
-    openComingSoon();
+    void (async () => {
+      const resolvedOrgSlug = String(orgSlug || '').trim();
+      if (!resolvedOrgSlug) {
+        addToast('חסר ארגון פעיל', 'error');
+        return;
+      }
+      if (!activeClient?.id) {
+        addToast('חסר לקוח פעיל', 'error');
+        return;
+      }
+
+      const resolvedMedia = String(media || '').trim();
+      const resolvedText = String(text || '').trim();
+      if (!resolvedMedia && !resolvedText) {
+        addToast('אין תוכן לשליחה', 'error');
+        return;
+      }
+
+      const hasDataUrl = resolvedMedia.startsWith('data:');
+      const hasHttpUrl = /^https?:\/\//i.test(resolvedMedia);
+
+      let mediaFile: Blob | undefined;
+      let mediaUrl: string | undefined;
+
+      if (hasDataUrl) {
+        try {
+          mediaFile = await fetch(resolvedMedia).then((r) => r.blob());
+        } catch (e) {
+          console.error('[ClientPortal] failed to parse data url to blob', e);
+        }
+      } else if (hasHttpUrl) {
+        mediaUrl = resolvedMedia;
+      }
+
+      const type = resolvedMedia ? 'media' : 'text';
+
+      const res = await createClientRequest({
+        orgSlug: resolvedOrgSlug,
+        clientId: String(activeClient.id),
+        type,
+        content: resolvedText,
+        ...(mediaFile ? { mediaFile } : {}),
+        ...(mediaUrl ? { mediaUrl } : {}),
+      });
+
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בשליחת חומרים', 'error');
+        return;
+      }
+
+      if (res.data) {
+        setClientRequests((prev) => [res.data as any, ...(Array.isArray(prev) ? prev : [])]);
+      }
+
+      const managerRequestId = String(uploadPrefill?.key || '').trim();
+      if (managerRequestId) {
+        try {
+          const completeRes = await updateManagerRequest(managerRequestId, resolvedOrgSlug, { status: 'completed' });
+          if (completeRes.success) {
+            setManagerRequests((prev) =>
+              (Array.isArray(prev) ? prev : []).map((r) =>
+                String(r.id) === String(managerRequestId)
+                  ? {
+                      ...r,
+                      status: 'completed',
+                    }
+                  : r
+              )
+            );
+          }
+        } catch (e) {
+          console.error('[ClientPortal] failed to auto-complete manager request after upload', e);
+        } finally {
+          setUploadPrefill(null);
+          setActiveTab('tasks');
+        }
+      }
+
+      addToast('נשלח למנהל הסושיאל ✅', 'success');
+    })();
   };
 
   const handleCompleteRequest = (reqId: string) => {
-    openComingSoon();
+    void (async () => {
+      const resolvedOrgSlug = String(orgSlug || '').trim();
+      if (!resolvedOrgSlug) {
+        addToast('חסר ארגון פעיל', 'error');
+        return;
+      }
+
+      const res = await updateManagerRequest(String(reqId), resolvedOrgSlug, { status: 'completed' });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בעדכון משימה', 'error');
+        return;
+      }
+
+      setManagerRequests((prev) =>
+        (Array.isArray(prev) ? prev : []).map((r) =>
+          String(r.id) === String(reqId)
+            ? {
+                ...r,
+                status: 'completed',
+              }
+            : r
+        )
+      );
+
+      addToast('סומן כבוצע ✅', 'success');
+    })();
   };
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'approvals': return <ApprovalsTab posts={clientPosts} onApprove={handleApprove} onReject={handleReject} />;
-      case 'tasks': return <TasksTab requests={clientManagerRequests} onCompleteRequest={handleCompleteRequest} setActiveTab={setActiveTab} />;
+      case 'tasks': return <TasksTab requests={clientManagerRequests} onCompleteRequest={handleCompleteRequest} onUploadNow={handleUploadNow} setActiveTab={setActiveTab} />;
       case 'store': return <StoreTab marketplaceAddons={marketplaceAddons} cart={cart} updateCart={updateCart} handleCheckoutStore={() => startPayment(totalCartPrice, 'רכישת שירותים')} totalCartPrice={totalCartPrice} />;
       case 'calendar': return <CalendarTab posts={clientPosts} />;
-      case 'upload': return <UploadTab client={activeClient as any} clientRequests={clientRequestsList} onUpload={handleUpload} />;
+      case 'upload':
+        return (
+          <UploadTab
+            client={activeClient as any}
+            clientRequests={clientRequestsList}
+            onUpload={handleUpload}
+            prefill={
+              uploadPrefill && uploadPrefill.key
+                ? {
+                    text: uploadPrefill.text,
+                    isUrgent: uploadPrefill.isUrgent,
+                    contentType: (uploadPrefill.contentType as any) ?? '',
+                    targetPlatforms: (uploadPrefill.targetPlatforms as any) ?? [],
+                  }
+                : undefined
+            }
+          />
+        );
       case 'billing': return <BillingTab client={activeClient as any} invoices={invoices as any} onStartPayment={startPayment} />;
       case 'analytics': return <AnalyticsTab client={activeClient as any} posts={clientPosts} />;
       default: return <ApprovalsTab posts={clientPosts} onApprove={handleApprove} onReject={handleReject} />;
@@ -167,7 +372,16 @@ export default function ClientPortal() {
   };
 
   if (activePaymentOrder) {
-    return <PaymentCheckoutPortal order={activePaymentOrder} client={activeClient} onSuccess={() => setActivePaymentOrder(null)} onCancel={() => setActivePaymentOrder(null)} />;
+    if (!orgSlug) return null;
+    return (
+      <PaymentCheckoutPortal
+        order={activePaymentOrder}
+        client={activeClient}
+        orgSlug={orgSlug}
+        onSuccess={() => setActivePaymentOrder(null)}
+        onCancel={() => setActivePaymentOrder(null)}
+      />
+    );
   }
 
   return (

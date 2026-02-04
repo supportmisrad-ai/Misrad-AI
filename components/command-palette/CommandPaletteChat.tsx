@@ -1,9 +1,12 @@
 'use client';
 
-import React from 'react';
-import { Send, Bot, User, X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Send, Sparkles, Clock, Trash2 } from 'lucide-react';
 import { ChatSources } from './ChatSources';
 import { Skeleton } from '@/components/ui/skeletons';
+import { ChatBubble } from '@/components/chat/ChatBubble';
+import { ChatHistoryItem } from '@/components/chat/ChatHistory';
+import { saveChatHistory, getChatHistory, deleteChatHistory } from '@/app/actions/chat-history';
 
 interface CommandPaletteChatProps {
   query: string;
@@ -21,6 +24,8 @@ interface CommandPaletteChatProps {
 
   moduleGradient: string;
   moduleAccent: string;
+  moduleKey?: string;
+  orgSlug?: string | null;
 }
 
 export function CommandPaletteChat({
@@ -37,13 +42,106 @@ export function CommandPaletteChat({
   starters,
   onKeyDown,
   moduleGradient,
-  moduleAccent
+  moduleAccent,
+  moduleKey = 'general',
+  orgSlug
 }: CommandPaletteChatProps) {
   const resolvedStarters = Array.isArray(starters) ? starters : [];
+  const [view, setView] = useState<'chat' | 'history'>('chat');
+  const [chatHistory, setChatHistory] = useState<ChatHistoryItem[]>([]);
+  const [currentSessionId] = useState<string>(`session_${Date.now()}`);
+
+  useEffect(() => {
+    if (orgSlug) {
+      loadHistory();
+    }
+  }, [orgSlug]);
+
+  const loadHistory = async () => {
+    if (!orgSlug) return;
+    const result = await getChatHistory({ moduleKey });
+    if (result.success && result.data) {
+      setChatHistory(result.data);
+    }
+  };
+
+  const handleDeleteHistory = async (id: string) => {
+    if (!orgSlug) return;
+    await deleteChatHistory({ moduleKey, chatSessionId: id });
+    await loadHistory();
+  };
+
+  useEffect(() => {
+    if (orgSlug && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant') {
+      const chatMessages = messages.map(m => ({
+        id: m.id || `msg_${Date.now()}`,
+        role: m.role,
+        content: extractMessageText(m),
+        timestamp: Date.now()
+      }));
+
+      const title = messages[0]?.content?.slice(0, 50) || 'שיחה חדשה';
+      const preview = messages[0]?.content?.slice(0, 80) || '';
+
+      setTimeout(() => {
+        saveChatHistory({
+          moduleKey,
+          chatSessionId: currentSessionId,
+          title,
+          preview,
+          messages: chatMessages,
+        }).then(() => loadHistory());
+      }, 1000);
+    }
+  }, [messages, orgSlug]);
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gradient-to-b from-white via-slate-50/30 to-white space-y-5 min-h-0 relative">
+      {view === 'history' ? (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-slate-50">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-[18px] font-bold text-slate-900">היסטוריית שיחות</h3>
+            <button
+              onClick={() => setView('chat')}
+              className="text-sm text-slate-600 hover:text-slate-900 font-medium"
+            >
+              ← חזרה לצ'אט
+            </button>
+          </div>
+          {chatHistory.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Clock size={48} className="mx-auto mb-3 opacity-50" />
+              <p className="font-medium">אין שיחות שמורות</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {chatHistory.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 bg-white rounded-2xl border-2 border-slate-200 hover:border-slate-300 transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-[14px] text-slate-900 truncate mb-1">{item.title}</h4>
+                      <p className="text-[12px] text-slate-600 truncate">{item.preview}</p>
+                      <p className="text-[11px] text-slate-400 mt-2">
+                        {new Date(item.timestamp).toLocaleDateString('he-IL')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteHistory(item.id)}
+                      className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-gradient-to-b from-white via-slate-50/30 to-white space-y-5 min-h-0 relative">
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: moduleAccent, opacity: 0.03 }}></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: moduleAccent, opacity: 0.03 }}></div>
         
@@ -61,86 +159,55 @@ export function CommandPaletteChat({
         )}
 
         {messages.map((message, index) => (
-          <div
-            key={message.id}
-            className={`flex gap-4 relative z-10 ${
-              message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-            }`}
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            <div
-              className={`flex-shrink-0 w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg border-2 ${
-                message.role === 'user'
-                  ? 'text-white border-white/30'
-                  : 'bg-slate-100 text-slate-700 border-white/50'
-              }`}
-              style={message.role === 'user' ? { background: moduleGradient } : undefined}
-            >
-              {message.role === 'user' ? (
-                <User className="w-5 h-5" />
-              ) : (
-                <Bot className="w-5 h-5" />
-              )}
-            </div>
-
-            <div
-              className={`flex-1 rounded-3xl p-4 max-w-[75%] backdrop-blur-sm transition-all duration-200 ${
-                message.role === 'user'
-                  ? 'text-white shadow-lg border border-white/20'
-                  : 'bg-white/80 backdrop-blur-md border border-slate-200/60 text-slate-900 shadow-md hover:shadow-lg'
-              }`}
-              style={message.role === 'user' ? { background: moduleGradient } : undefined}
-            >
-              <div className="whitespace-pre-wrap break-words text-sm leading-relaxed font-medium">
-                {extractMessageText(message)}
-              </div>
-
-              {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
+          <div key={message.id} className="relative z-10">
+            <ChatBubble
+              role={message.role}
+              content={extractMessageText(message)}
+              avatar={message.role === 'assistant' ? '🤖' : undefined}
+              name={message.role === 'assistant' ? 'איציק' : undefined}
+              timestamp={Date.now()}
+            />
+            {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
+              <div className="mr-14 mt-2">
                 <ChatSources sources={(message as any).sources} />
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         ))}
 
         {isThinking && (
-          <div className="flex gap-4 relative z-10">
-            <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-slate-100 border-2 border-white/50 shadow-lg flex items-center justify-center">
-              <Bot className="w-5 h-5" style={{ color: moduleAccent }} />
-            </div>
-            <div className="bg-white/80 backdrop-blur-md rounded-3xl p-4 border border-slate-200/60 shadow-md">
-              <div className="flex items-center gap-2">
-                <Skeleton className="w-5 h-5 rounded-full" />
-                <span className="text-sm text-slate-600 font-medium">חושב...</span>
-              </div>
-            </div>
+          <div className="relative z-10">
+            <ChatBubble
+              role="assistant"
+              content=""
+              avatar="🤖"
+              isTyping
+            />
           </div>
         )}
 
         {error && (
-          <div className="p-4 bg-red-50/80 backdrop-blur-md border border-red-200/60 rounded-3xl shadow-lg">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-red-100 rounded-xl shrink-0">
-                <X className="text-red-600" size={20} />
-              </div>
-              <div className="flex-1">
-                <div className="text-red-800 font-bold text-sm mb-1">שגיאה בצ'אט</div>
-                <div className="text-red-700 text-sm">
-                  {error.message || 'אירעה שגיאה. נסה שוב.'}
-                </div>
-                {(error.message?.includes('API') || error.message?.includes('network') || error.message?.includes('fetch')) && (
-                  <div className="mt-2 text-xs text-red-600">
-                    ⚠️ בדוק את חיבור האינטרנט והגדרות ה-AI
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-[14px] relative z-10">
+            <strong>שגיאה:</strong> {error.message || 'אירעה שגיאה. נסה שוב.'}
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
+      )}
 
       <div className="p-5 border-t border-slate-200/60 bg-gradient-to-r from-white via-slate-50/50 to-white backdrop-blur-xl shrink-0 relative">
+        {view === 'chat' && (
+          <div className="absolute top-3 left-5">
+            <button
+              onClick={() => setView('history')}
+              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
+              title="היסטוריית שיחות"
+            >
+              <Clock size={20} />
+            </button>
+          </div>
+        )}
         <div className="flex gap-3 items-end">
           <div className="flex-1 relative">
             <textarea
@@ -149,19 +216,19 @@ export function CommandPaletteChat({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={onKeyDown}
               placeholder="שאל שאלה..."
-              className="w-full px-5 py-4 pr-14 bg-white/80 backdrop-blur-md border-2 border-slate-200/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-400/40 focus:border-slate-300 resize-none min-h-[56px] max-h-[120px] text-base leading-relaxed shadow-sm transition-all duration-200"
-              disabled={isThinking}
+              className="w-full px-5 py-[14px] border-2 border-slate-200 rounded-3xl focus:outline-none focus:border-blue-400 resize-none min-h-[56px] max-h-[120px] text-[16px] leading-[1.5]"
+              disabled={isThinking || view === 'history'}
               dir="rtl"
               rows={1}
             />
           </div>
           <button
             onClick={handleSendMessage}
-            disabled={!query.trim() || isThinking}
-            className="px-6 py-4 text-white rounded-2xl hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all duration-200 shadow-lg min-h-[56px] hover:scale-105 active:scale-95 disabled:hover:scale-100"
-            style={{ background: moduleGradient }}
+            disabled={!query.trim() || isThinking || view === 'history'}
+            className="px-6 py-4 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-3xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:shadow-none min-h-[56px] font-bold"
           >
-            <Send className="w-5 h-5" />
+            <Send size={20} />
+            <span className="hidden sm:inline">שלח</span>
           </button>
         </div>
       </div>

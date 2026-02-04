@@ -9,9 +9,9 @@ export default async function TheOperatorLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="The Operator · תפעול ושטח"
+      badge="חבילת תפעול ושטח"
       title="הסוף לבלגן בשטח: לנהל קריאות, טכנאים ומלאי מהנייד."
-      subtitle="בלי וואטסאפ ובלי מחברות. ניסיון חינם מלא ל-7 ימים — בלי כרטיס."
+      subtitle="בלי וואטסאפ ובלי מחברות. ניסיון חינם מלא ל-7 ימים."
       audience="קבלני שיפוצים, מיזוג אוויר, אינסטלציה, חברות ניהול ואחזקה"
       pain="הודעות נעלמות, טכנאים לא מדווחים, ויכוחים עם לקוחות, וחוסר תיעוד."
       bullets={[
@@ -33,7 +33,7 @@ export default async function TheOperatorLandingPage() {
         },
       ]}
       ctaPrimaryHref="/login?mode=sign-up&plan=the_operator"
-      ctaPrimaryLabel="התחל ניסיון חינם (בלי כרטיס)"
+      ctaPrimaryLabel="התחל ניסיון חינם"
       ctaSecondaryHref="/pricing"
       ctaSecondaryLabel="ראה חבילות"
       videoUrl={videoUrl}

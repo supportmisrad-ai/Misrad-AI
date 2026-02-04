@@ -136,7 +136,7 @@ const AutomationsView: React.FC = () => {
                 <div>
                     <h2 className="text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-3">
                         <Workflow className="text-primary" strokeWidth={2.5} />
-                        טייס אוטומטי
+                        אוטומציה מלאה
                     </h2>
                     <p className="text-slate-500 font-medium mt-1">המערכת עובדת בשבילך 24/7.</p>
                 </div>

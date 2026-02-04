@@ -14,9 +14,10 @@ import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { Client, PostVariation, SocialPost, SocialPlatform } from '@/types/social';
-import { createPost, publishPost } from '@/app/actions/posts';
+import { createPost, publishPost, updatePost } from '@/app/actions/posts';
 import { Avatar } from '@/components/Avatar';
 import { Skeleton } from '@/components/ui/skeletons';
+import { useApp } from '@/contexts/AppContext';
 
 interface VariationWithImage extends PostVariation {
   generatedImage?: string | null;
@@ -41,8 +42,9 @@ export default function TheMachine() {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = getSocialBasePath(pathname);
-  const { clients, activeDraft, activeClientId, activeClient, setActiveDraft, setPosts } = useSocialData();
+  const { clients, posts, activeDraft, activeClientId, activeClient, setActiveDraft, setPosts } = useSocialData();
   const { addToast } = useSocialUI();
+  const { orgSlug } = useApp();
 
   const [step, setStep] = useState(1);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -55,6 +57,10 @@ export default function TheMachine() {
   const [previewPlatform, setPreviewPlatform] = useState<SocialPlatform>('instagram');
   const [editableContent, setEditableContent] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
+  const editingPostId = String((activeDraft as any)?.id || '').trim();
+  const editingPost = editingPostId && !editingPostId.startsWith('draft-') ? posts.find((p) => String(p.id) === editingPostId) : undefined;
+  const isEditingExistingPost = Boolean(editingPost?.id);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -85,15 +91,23 @@ export default function TheMachine() {
       const client = clients.find(c => c.id === cid);
       if (client) {
         setSelectedClient(client);
-        setSelectedPlatforms(client.activePlatforms || ['facebook', 'instagram']);
+        if (isEditingExistingPost && editingPost?.platforms?.length) {
+          setSelectedPlatforms(editingPost.platforms);
+        } else {
+          setSelectedPlatforms(client.activePlatforms || ['facebook', 'instagram']);
+        }
       }
     }
 
     if (activeDraft) {
       setBrief(activeDraft.description || activeDraft.title);
-      if (activeDraft.draftContent) setEditableContent(activeDraft.draftContent);
+      if (activeDraft.draftContent) {
+        setEditableContent(activeDraft.draftContent);
+      } else if (isEditingExistingPost && editingPost?.content) {
+        setEditableContent(editingPost.content);
+      }
     }
-  }, [activeDraft, activeClientId, clients]);
+  }, [activeDraft, activeClientId, clients, editingPost?.content, editingPost?.platforms, isEditingExistingPost]);
 
   const togglePlatformSelection = (id: SocialPlatform) => {
     setSelectedPlatforms(prev => 
@@ -131,15 +145,70 @@ export default function TheMachine() {
   };
 
   const handleFinalize = async () => {
-    if (!selectedClient || !selectedVariation) return;
+    if (!selectedClient) return;
+    if (!selectedVariation && !isEditingExistingPost) return;
 
     addToast('שולח לפרסום דרך Make/Zapier...', 'info');
 
+    if (!orgSlug) {
+      addToast('יש לבחור ארגון לפני יצירת פוסט', 'error');
+      return;
+    }
+
+    if (isEditingExistingPost && editingPost?.id) {
+      const mediaUrl = selectedVariation?.generatedImage || editingPost.mediaUrl || undefined;
+      const updated = await updatePost(editingPost.id, {
+        orgSlug,
+        content: editableContent,
+        platforms: selectedPlatforms,
+        mediaUrl,
+        scheduledAt: editingPost.scheduledAt || undefined,
+        status: editingPost.status,
+      });
+
+      if (!updated.success) {
+        addToast(updated.error || 'שגיאה בעדכון הפוסט', 'error');
+        return;
+      }
+
+      const shouldPublish = String(editingPost.status || '') !== 'published';
+      if (shouldPublish) {
+        const published = await publishPost(editingPost.id, orgSlug);
+        if (!published.success) {
+          addToast(published.error || 'שגיאה בפרסום הפוסט', 'error');
+          return;
+        }
+      }
+
+      const publishedAt = shouldPublish ? new Date().toISOString() : editingPost.publishedAt;
+      setPosts((prev) =>
+        (Array.isArray(prev) ? prev : []).map((p) =>
+          String(p.id) === String(editingPost.id)
+            ? {
+                ...p,
+                ...(updated.data ? (updated.data as SocialPost) : {}),
+                content: editableContent,
+                platforms: selectedPlatforms,
+                mediaUrl,
+                status: shouldPublish ? 'published' : (p.status as any),
+                publishedAt: publishedAt || p.publishedAt,
+              }
+            : p
+        )
+      );
+
+      addToast('הפוסט עודכן ✅', 'success');
+      setActiveDraft(null);
+      router.push(joinPath(basePath, '/dashboard'));
+      return;
+    }
+
     const created = await createPost({
+      orgSlug,
       clientId: selectedClient.id,
       content: editableContent,
       platforms: selectedPlatforms,
-      mediaUrl: selectedVariation.generatedImage || undefined,
+      mediaUrl: selectedVariation?.generatedImage || undefined,
       scheduledAt: new Date().toISOString(),
       status: 'draft',
     });
@@ -149,7 +218,7 @@ export default function TheMachine() {
       return;
     }
 
-    const published = await publishPost(created.data.id);
+    const published = await publishPost(created.data.id, orgSlug);
     if (!published.success) {
       addToast(published.error || 'שגיאה בפרסום הפוסט', 'error');
       return;

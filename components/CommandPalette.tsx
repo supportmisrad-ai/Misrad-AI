@@ -8,6 +8,8 @@ import { CommandPaletteHeader } from './command-palette/CommandPaletteHeader';
 import { CommandPaletteChat } from './command-palette/CommandPaletteChat';
 import { CommandPaletteSearch } from './command-palette/CommandPaletteSearch';
 import { getSemanticStarters } from './command-palette/semanticStarters';
+import { getModuleDefinition } from '@/lib/os/modules/registry';
+import { useApp } from '@/contexts/AppContext';
 
 const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
@@ -20,6 +22,17 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   hideAssets,
 }) => {
   const [mode, setMode] = useState<CommandPaletteMode>('search');
+
+  let orgSlug: string | null = null;
+  try {
+    orgSlug = useApp().orgSlug;
+  } catch {
+    orgSlug = null;
+  }
+
+  const moduleDef = getModuleDefinition('nexus');
+  const moduleAccent = moduleDef.theme.accent;
+  const moduleGradient = `linear-gradient(135deg, ${moduleDef.theme.accent} 0%, #6D28D9 100%)`;
 
   const {
     query,
@@ -77,6 +90,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           onModeChange={setMode} 
           onClose={onClose}
           inputRef={inputRef}
+          moduleGradient={moduleGradient}
+          moduleAccent={moduleAccent}
         />
 
         {mode === 'chat' ? (
@@ -93,24 +108,25 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
             sendText={sendText}
             starters={getSemanticStarters('nexus')}
             onKeyDown={handleKeyDown}
+            moduleGradient={moduleGradient}
+            moduleAccent={moduleAccent}
+            moduleKey="nexus"
+            orgSlug={orgSlug}
           />
         ) : (
           <CommandPaletteSearch
             query={query}
             setQuery={setQuery}
             isThinking={isThinking}
-            messages={messages}
-            error={error}
             inputRef={inputRef as React.RefObject<HTMLInputElement>}
-            extractMessageText={extractMessageText}
-            handleSendMessage={handleSendMessage}
-                            onKeyDown={handleKeyDown}
+            onKeyDown={handleKeyDown}
             filteredNav={filteredNav}
             filteredLeads={filteredLeads}
             filteredAssets={filteredAssets}
             onNavigate={onNavigate}
             onSelectLead={onSelectLead}
             onClose={onClose}
+            moduleAccent={moduleAccent}
           />
         )}
       </div>

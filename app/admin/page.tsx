@@ -1,20 +1,19 @@
 import { redirect } from 'next/navigation';
-import { requireCurrentOrganizationId } from '@/lib/server/workspace';
-import prisma from '@/lib/prisma';
+import { loadCurrentUserLastLocation, requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminRootPage() {
-  const organizationId = await requireCurrentOrganizationId();
-
-  const org = await prisma.social_organizations.findUnique({
-    where: { id: String(organizationId) },
-    select: { slug: true },
-  });
-
-  if (!org?.slug) {
+  const last = await loadCurrentUserLastLocation();
+  const orgSlug = last.orgSlug ? String(last.orgSlug).trim() : '';
+  if (!orgSlug) {
     redirect('/workspaces');
   }
 
-  redirect(`/w/${encodeURIComponent(String(org.slug))}/admin`);
+  try {
+    await requireWorkspaceAccessByOrgSlug(orgSlug);
+    redirect(`/w/${encodeURIComponent(orgSlug)}/admin`);
+  } catch {
+    redirect('/workspaces');
+  }
 }

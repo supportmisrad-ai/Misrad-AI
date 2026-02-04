@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, FileText, Send, Upload, AlertCircle, ImageIcon } from 'lucide-react';
 import { Client, ClientRequest, SocialPlatform } from '@/types/social';
@@ -10,9 +10,15 @@ interface UploadTabProps {
   client: Client;
   clientRequests: ClientRequest[];
   onUpload: (media: string, text: string) => void;
+  prefill?: {
+    text?: string;
+    isUrgent?: boolean;
+    contentType?: 'post' | 'story' | 'reel' | '';
+    targetPlatforms?: SocialPlatform[];
+  };
 }
 
-const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload }) => {
+const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload, prefill }) => {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [uploadText, setUploadText] = useState('');
   const [targetPlatforms, setTargetPlatforms] = useState<SocialPlatform[]>([]);
@@ -21,6 +27,22 @@ const UploadTab: React.FC<UploadTabProps> = ({ client, clientRequests, onUpload 
   const [isUploading, setIsUploading] = useState(false);
   
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!prefill) return;
+    if (typeof prefill.text === 'string') {
+      setUploadText(prefill.text);
+    }
+    if (typeof prefill.isUrgent === 'boolean') {
+      setIsUrgent(prefill.isUrgent);
+    }
+    if (prefill.contentType !== undefined) {
+      setContentType(prefill.contentType);
+    }
+    if (Array.isArray(prefill.targetPlatforms)) {
+      setTargetPlatforms(prefill.targetPlatforms);
+    }
+  }, [prefill]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

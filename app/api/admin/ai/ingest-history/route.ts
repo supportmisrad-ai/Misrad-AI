@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { AIService } from '@/lib/services/ai/AIService';
 import { Prisma } from '@prisma/client';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -41,11 +42,13 @@ async function POSTHandler(req: Request) {
   try {
     await requireSuperAdmin();
 
+    const orgKey = getOrgKeyOrThrow(req);
+
     const rawBody: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(rawBody) ?? {};
-    const organizationId = String(bodyObj.organizationId || '').trim();
-    if (!organizationId) {
-      return apiError('organizationId is required', { status: 400 });
+
+    if (bodyObj.organizationId != null) {
+      return apiError('organizationId must be provided via x-org-id header', { status: 400 });
     }
 
     const includeObj = asObject(bodyObj.include) ?? {};
@@ -55,10 +58,11 @@ async function POSTHandler(req: Request) {
 
     const ai = AIService.getInstance();
 
-    const orgIds: string[] =
-      organizationId.toLowerCase() === 'all'
-        ? (await prisma.social_organizations.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
-        : [organizationId];
+    const normalizedOrgKey = String(orgKey || '').trim();
+    const isAll = normalizedOrgKey.toLowerCase() === 'all';
+    const orgIds: string[] = isAll
+      ? (await prisma.social_organizations.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
+      : [String((await getWorkspaceByOrgKeyOrThrow(normalizedOrgKey)).workspaceId)];
 
     const results: {
       organizationId: string;
@@ -67,7 +71,7 @@ async function POSTHandler(req: Request) {
       nexusClients: { attempted: number; succeeded: number; failed: number };
       errors: Array<{ source_type: string; source_id: string; message: string }>;
     } = {
-      organizationId,
+      organizationId: isAll ? 'all' : String(orgIds[0] || ''),
       organizationsProcessed: orgIds.length,
       systemLeads: { attempted: 0, succeeded: 0, failed: 0 },
       nexusClients: { attempted: 0, succeeded: 0, failed: 0 },

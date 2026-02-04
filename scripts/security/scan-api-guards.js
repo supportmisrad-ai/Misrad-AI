@@ -15,6 +15,8 @@ const PUBLIC_APPROVED = new Set([
   'app/api/download/android/route.ts',
   'app/api/download/windows/route.ts',
   'app/api/os/module-icons/route.ts',
+  'app/api/landing/social-stats/route.ts',
+  'app/api/public/leads/route.ts',
   'app/api/employees/invite/[token]/route.ts',
   'app/api/employees/invite/[token]/complete/route.ts',
   'app/api/invitations/token/[token]/route.ts',
@@ -26,6 +28,7 @@ const PUBLIC_APPROVED = new Set([
 
 const CANDIDATE_APPROVED = new Set([
   // Add explicit exceptions here (route.ts paths) when a candidate is accepted by design.
+	'app/api/workspaces/route.ts',
 ]);
 
 function rel(p) {

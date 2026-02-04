@@ -380,7 +380,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
         <div>
           <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-800 flex items-center gap-3">
             <Workflow className="text-indigo-600" size={32} />
-            טייס אוטומטי
+            אוטומציה מלאה
           </h2>
           <p className="text-slate-500 font-medium mt-2 text-lg">
             הגדר פעולות אוטומטיות שיפעלו במערכת שלך

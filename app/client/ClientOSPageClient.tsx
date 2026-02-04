@@ -3,13 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar } from 'lucide-react';
+import { ArrowRight, HeartPulse, Check, Target, Phone, Users, TrendingUp, Medal, Activity, DollarSign, Clock, Zap, Globe, CalendarDays, UserCircle, Video, Calendar, Sparkles, Shield, Star, Briefcase, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { ClientOSDemo } from '@/components/landing/demos/ClientOSDemo';
 import { PricingCard } from '@/components/landing/PricingCard';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
 import { SalesFaq } from '@/components/landing/SalesFaq';
+import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
 
 // Force dynamic rendering to prevent build-time errors
 export const dynamic = 'force-dynamic';
@@ -17,6 +19,7 @@ export const dynamic = 'force-dynamic';
 export default function ClientOSPage() {
   const router = useRouter();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden" dir="rtl">
@@ -45,7 +48,7 @@ export default function ClientOSPage() {
             </h1>
             
             <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed px-2">
-              מערכת לניהול לקוחות עם <strong className="text-[#C5A572]">פורטל לקוח</strong>, <strong className="text-[#C5A572]">ניהול קבוצות</strong>, ומעקב מתאמנים ופגישות. כולל סנכרון עם זום וגוגל מיט.
+              מערכת לניהול לקוחות עם <strong className="text-[#C5A572]">פורטל לקוח</strong>, <strong className="text-[#C5A572]">ניהול קבוצות</strong>, ומעקב מתאמנים. <strong className="text-[#C5A572]">אינטגרציה מלאה עם Zoom ו-Google Meet</strong> - יצירת לינק פגישה אוטומטית.
             </p>
 
             {/* Core Features Grid */}
@@ -53,8 +56,8 @@ export default function ClientOSPage() {
               {[
                 { text: 'פורטל לקוח', icon: Globe, desc: 'לקוחות נכנסים לראות מידע, משימות וקבצים' },
                 { text: 'ניהול קבוצות', icon: Users, desc: 'ארגון לקוחות בקבוצות וצוותי עבודה' },
-                { text: 'מעקב פגישות', icon: CalendarDays, desc: 'ניהול פגישות עם קישורים לזום וגוגל מיט' },
-                { text: 'מעקב מתאמנים', icon: UserCircle, desc: 'מעקב התקדמות ותוכניות אימון' },
+                { text: 'ניהול פגישות', icon: CalendarDays, desc: 'תזמון פגישות, מעקב וניתוח אינטליגנטי של פגישות' },
+                { text: 'ניהול משימות', icon: UserCircle, desc: 'מעקב אחר משימות, תהליכים ותיעוד עבודה' },
               ].map((item, i) => (
                 <div key={i} className="p-3 rounded-xl bg-white border border-slate-200 hover:border-[#C5A572]/30 hover:bg-slate-50 transition-all text-right shadow-sm">
                   <div className="flex items-start gap-2">
@@ -72,34 +75,33 @@ export default function ClientOSPage() {
 
             {/* Integration Badges */}
             <div className="flex flex-wrap items-center justify-center gap-3 mb-8 px-2">
-              <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
-                <Video size={14} /> זום
+              <div className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-xs font-bold text-blue-700 flex items-center gap-2 shadow-sm">
+                <Video size={14} /> Zoom
               </div>
-              <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
+              <div className="px-3 py-1.5 rounded-lg bg-green-50 border border-green-200 text-xs font-bold text-green-700 flex items-center gap-2 shadow-sm">
                 <Video size={14} /> Google Meet
               </div>
               <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
                 <Calendar size={14} /> Google Calendar
+              </div>
+              <div className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 flex items-center gap-2 shadow-sm">
+                <Users size={14} /> Groups Management
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-8 sm:mb-12 px-2">
               <button
                 onClick={() => router.push('/pricing')}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#C5A572]/30 hover:scale-105 text-sm sm:text-base"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-[#C5A572] hover:bg-[#D4AF6E] text-[#0F172A] rounded-full font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#C5A572]/30 hover:scale-105 text-sm sm:text-base"
               >
-                התחל ניסיון חינם (בלי כרטיס) <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
+                התחל ניסיון חינם <ArrowRight size={18} className="sm:w-5 sm:h-5 rotate-180" />
               </button>
               <button
-                onClick={() => {
-                  const element = document.getElementById('pricing');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-bold transition-all text-sm sm:text-base"
+                onClick={() => setIsVideoModalOpen(true)}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 rounded-full font-bold transition-all text-sm sm:text-base flex items-center justify-center gap-2 hover:border-indigo-300 hover:scale-105"
               >
-                ראה מחירים
+                <Play size={18} className="text-indigo-600" />
+                צפייה במערכת
               </button>
             </div>
           </div>
@@ -225,9 +227,10 @@ export default function ClientOSPage() {
               <ul className="space-y-3 sm:space-y-4">
                 {[
                   'פורטל לקוח - לקוחות נכנסים לראות את המידע שלהם',
+                  'אינטגרציה מלאה עם Zoom - יצירת לינק פגישה אוטומטית',
+                  'אינטגרציה מלאה עם Google Meet - קישור ישיר מהמערכת',
                   'ניהול קבוצות - ארגון לקוחות בקבוצות וצוותי עבודה',
-                  'מעקב פגישות - עם קישורים ישירים לזום וגוגל מיט',
-                  'מעקב מתאמנים - מעקב התקדמות ותוכניות אימון',
+                  'Meeting Intelligence - ניתוח אינטליגנטי של פגישות',
                   'סנכרון Google Calendar - כל הפגישות במקום אחד',
                   'ניהול משימות אישיות - כל עובד רואה רק את שלו'
                 ].map((item, i) => (
@@ -588,7 +591,7 @@ export default function ClientOSPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto"
             >
               <PricingCard
                 title={getModuleLabelHe('client')}
@@ -681,7 +684,18 @@ export default function ClientOSPage() {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+
+      {/* FAQ Section */}
+      <SalesFaq variant="client" />
+
       <Footer />
+      
+      <DemoVideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+      />
     </div>
   );
 }

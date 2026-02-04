@@ -15,7 +15,15 @@ export default function MarkdownRenderer({
 }) {
   const isDark = theme === 'dark';
   return (
-    <div className={cn('w-full', className)} dir="rtl">
+    <div 
+      className={cn('w-full', className)} 
+      dir="rtl" 
+      style={{ 
+        fontFamily: '"Heebo", "Assistant", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+        WebkitFontSmoothing: 'antialiased',
+        MozOsxFontSmoothing: 'grayscale'
+      }}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}
@@ -28,11 +36,7 @@ export default function MarkdownRenderer({
                 {...props}
                 target={isExternal ? '_blank' : undefined}
                 rel={isExternal ? 'noreferrer noopener' : undefined}
-                className={
-                  isDark
-                    ? 'text-amber-200 hover:text-amber-100 underline'
-                    : 'text-indigo-700 hover:text-indigo-900 underline'
-                }
+                className="inline-block my-1.5 px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-medium text-xs transition-colors no-underline"
               >
                 {children}
               </a>
@@ -42,8 +46,8 @@ export default function MarkdownRenderer({
             <h1
               className={
                 isDark
-                  ? 'text-2xl sm:text-3xl font-black tracking-tight text-white mt-8 first:mt-0 mb-4'
-                  : 'text-3xl sm:text-4xl font-black tracking-tight text-slate-900 mt-8 first:mt-0 mb-4'
+                  ? 'text-2xl font-bold text-white mt-6 first:mt-0 mb-4'
+                  : 'text-2xl font-bold text-slate-900 mt-6 first:mt-0 mb-4'
               }
             >
               {children}
@@ -53,8 +57,8 @@ export default function MarkdownRenderer({
             <h2
               className={
                 isDark
-                  ? 'text-xl sm:text-2xl font-black tracking-tight text-white mt-10 mb-3 pb-3 border-b border-white/15'
-                  : 'text-2xl sm:text-3xl font-black tracking-tight text-slate-900 mt-10 mb-3 pb-3 border-b border-slate-200'
+                  ? 'text-xl font-semibold text-white mt-8 mb-3 pb-2 border-b border-white/10'
+                  : 'text-xl font-semibold text-slate-900 mt-8 mb-3 pb-2 border-b border-slate-200'
               }
             >
               {children}
@@ -64,8 +68,8 @@ export default function MarkdownRenderer({
             <h3
               className={
                 isDark
-                  ? 'text-base sm:text-lg font-black text-white mt-8 mb-2'
-                  : 'text-lg sm:text-xl font-black text-slate-900 mt-8 mb-2'
+                  ? 'text-lg font-semibold text-white mt-6 mb-2'
+                  : 'text-lg font-semibold text-slate-900 mt-6 mb-2'
               }
             >
               {children}
@@ -75,8 +79,8 @@ export default function MarkdownRenderer({
             <p
               className={
                 isDark
-                  ? 'text-white/90 leading-7 my-4 text-[15px] sm:text-base'
-                  : 'text-slate-700 leading-7 my-4 text-[15px] sm:text-base'
+                  ? 'text-white/85 leading-relaxed my-3 text-base'
+                  : 'text-slate-700 leading-relaxed my-3 text-base'
               }
             >
               {children}
@@ -86,8 +90,8 @@ export default function MarkdownRenderer({
             <ul
               className={
                 isDark
-                  ? 'list-disc list-outside pr-6 text-white/90 my-4 space-y-2 marker:text-white/40'
-                  : 'list-disc list-outside pr-6 text-slate-700 my-4 space-y-2 marker:text-slate-400'
+                  ? 'list-disc pr-6 text-white/85 my-3 space-y-2 marker:text-slate-400'
+                  : 'list-disc pr-6 text-slate-700 my-3 space-y-2 marker:text-slate-400'
               }
             >
               {children}
@@ -97,45 +101,49 @@ export default function MarkdownRenderer({
             <ol
               className={
                 isDark
-                  ? 'list-decimal list-outside pr-6 text-white/90 my-4 space-y-2 marker:text-white/40'
-                  : 'list-decimal list-outside pr-6 text-slate-700 my-4 space-y-2 marker:text-slate-400'
+                  ? 'list-decimal list-outside pr-6 text-white/85 my-3 space-y-2 marker:text-slate-500'
+                  : 'list-decimal list-outside pr-6 text-slate-700 my-3 space-y-2 marker:text-slate-500'
               }
             >
               {children}
             </ol>
           ),
-          li: ({ children }) => <li className={isDark ? 'text-white/90 leading-7' : 'text-slate-700 leading-7'}>{children}</li>,
+          li: ({ children }) => (
+            <li className={isDark ? 'text-white/85 leading-relaxed text-base' : 'text-slate-700 leading-relaxed text-base'}>
+              {children}
+            </li>
+          ),
           blockquote: ({ children }) => (
             <blockquote
               className={
                 isDark
-                  ? 'my-6 rounded-2xl border border-white/10 bg-white/5 pr-5 pl-4 py-4 text-white/85'
-                  : 'my-6 rounded-2xl border border-slate-200 bg-slate-50 pr-5 pl-4 py-4 text-slate-700'
+                  ? 'my-4 rounded-lg border-r-2 border-slate-500 bg-white/5 pr-4 pl-4 py-3 text-white/80'
+                  : 'my-4 rounded-lg border-r-2 border-slate-300 bg-slate-50 pr-4 pl-4 py-3 text-slate-600'
               }
             >
               {children}
             </blockquote>
           ),
-          hr: () => <hr className={isDark ? 'my-4 border-white/20' : 'my-6 border-slate-200'} />,
+          hr: () => <hr className={isDark ? 'my-6 border-t border-white/10' : 'my-6 border-t border-slate-200'} />,
           code: ({ children }) => (
             <code
               className={
                 isDark
                   ? 'px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-sm'
-                  : 'px-1.5 py-0.5 rounded bg-slate-100 text-slate-900 font-mono text-sm'
+                  : 'px-1.5 py-0.5 rounded bg-slate-100 text-slate-800 font-mono text-sm'
               }
             >
               {children}
             </code>
           ),
           table: ({ children }) => (
-            <div className={isDark ? 'my-6 overflow-x-auto rounded-2xl border border-white/10' : 'my-6 overflow-x-auto rounded-2xl border border-slate-200'}>
-              <table className={isDark ? 'w-full text-sm text-white/90' : 'w-full text-sm text-slate-700'}>{children}</table>
+            <div className={isDark ? 'my-6 overflow-x-auto rounded-lg border border-white/10' : 'my-6 overflow-x-auto rounded-lg border border-slate-200'}>
+              <table className={isDark ? 'w-full text-sm text-white/85' : 'w-full text-sm text-slate-700'}>{children}</table>
             </div>
           ),
           thead: ({ children }) => <thead className={isDark ? 'bg-white/5' : 'bg-slate-50'}>{children}</thead>,
           th: ({ children }) => (
-            <th className={isDark ? 'px-4 py-3 text-right font-black text-white' : 'px-4 py-3 text-right font-black text-slate-900'}>
+            <th className={isDark ? 'px-4 py-3 text-right font-semibold text-white text-sm' : 'px-4 py-3 text-right font-semibold text-slate-900 text-sm'}>
               {children}
             </th>
           ),
@@ -144,7 +152,11 @@ export default function MarkdownRenderer({
               {children}
             </td>
           ),
-          strong: ({ children }) => <strong className={isDark ? 'font-black text-white' : 'font-black text-slate-900'}>{children}</strong>,
+          strong: ({ children }) => (
+            <strong className={isDark ? 'font-semibold text-white' : 'font-semibold text-slate-900'}>
+              {children}
+            </strong>
+          ),
         }}
       >
         {content}

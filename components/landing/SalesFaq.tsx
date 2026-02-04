@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Minus, Plus } from 'lucide-react';
 
 type SalesFaqVariant = 'default' | 'system' | 'client';
 
@@ -50,6 +51,18 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
 
   const items: Array<{ q: string; a: React.ReactNode }> = [
     {
+      q: 'כמה זמן לוקח להתחיל לעבוד?',
+      a: 'מקסימום 10 דקות. נרשמים, מוסיפים את הצוות, ומתחילים לפתוח קריאות. זה באמת פשוט.',
+    },
+    {
+      q: 'צריך הדרכה?',
+      a: 'לרוב לא. המערכת בנויה להיות אינטואיטיבית. יש תמיכה בעברית בכל שעה אם צריך.',
+    },
+    {
+      q: 'אפשר לייבא נתונים קיימים?',
+      a: 'כן. תשלחו לנו את האקסלים ואנחנו נעזור לייבא אותם. זה חלק מהשירות.',
+    },
+    {
       q: 'מה קורה אחרי רכישה?',
       a: 'מיד אחרי התשלום תקבל גישה למערכת שבחרת. אפשר להוסיף משתמשים לפי החבילה ולהתחיל לעבוד.',
     },
@@ -96,14 +109,24 @@ export function SalesFaq({ variant = 'default' }: { variant?: SalesFaqVariant })
 
         <div className={`rounded-3xl border overflow-hidden ${styles.cardBg} ${styles.cardBorder}`}>
           {items.map((item, idx) => (
-            <details key={idx} className={idx === 0 ? '' : `border-t ${styles.cardBorder}`}>
+            <details key={idx} className={`group ${idx === 0 ? '' : `border-t ${styles.cardBorder}`}`}>
               <summary
                 className={`cursor-pointer list-none px-6 py-5 text-slate-900 font-bold flex items-center justify-between gap-4 ${styles.summaryHoverBg}`}
               >
                 <span className="text-sm sm:text-base">{item.q}</span>
-                <span className="text-slate-500 text-xs">+</span>
+                <span
+                  className="shrink-0 w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-700 transition-all group-open:bg-slate-900 group-open:border-slate-900 group-open:text-white"
+                  aria-hidden="true"
+                >
+                  <span className="group-open:hidden">
+                    <Plus size={18} />
+                  </span>
+                  <span className="hidden group-open:block">
+                    <Minus size={18} />
+                  </span>
+                </span>
               </summary>
-              <div className="px-6 pb-6 text-sm sm:text-base text-slate-600 leading-relaxed">{item.a}</div>
+              <div className="px-6 pb-6 mt-4 text-sm sm:text-base text-slate-700 leading-7 font-medium text-right">{item.a}</div>
             </details>
           ))}
         </div>

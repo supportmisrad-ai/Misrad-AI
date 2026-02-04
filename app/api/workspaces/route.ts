@@ -1,6 +1,5 @@
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
@@ -45,12 +44,7 @@ async function GETHandler() {
   const orgIds = new Set<string>();
 
   if (socialUser.organization_id) {
-    try {
-      await getWorkspaceByOrgKeyOrThrow(String(socialUser.organization_id));
-      orgIds.add(socialUser.organization_id);
-    } catch {
-      // Fail-closed: do not include inaccessible orgs
-    }
+    orgIds.add(String(socialUser.organization_id));
   }
 
   const ownedOrgs = await prisma.social_organizations.findMany({
@@ -59,7 +53,7 @@ async function GETHandler() {
   });
 
   for (const org of ownedOrgs) {
-    if (org?.id) orgIds.add(org.id);
+    if (org?.id) orgIds.add(String(org.id));
   }
 
   const membershipRows = await prisma.social_team_members.findMany({
@@ -71,15 +65,7 @@ async function GETHandler() {
     if (row.organization_id) orgIds.add(String(row.organization_id));
   }
 
-  const ids: string[] = [];
-  for (const orgId of orgIds) {
-    try {
-      await getWorkspaceByOrgKeyOrThrow(String(orgId));
-      ids.push(String(orgId));
-    } catch {
-      // Fail-closed: skip
-    }
-  }
+  const ids = Array.from(orgIds).filter(Boolean);
   if (ids.length === 0) {
     return apiSuccess({ workspaces: [] as WorkspaceApiItem[] });
   }

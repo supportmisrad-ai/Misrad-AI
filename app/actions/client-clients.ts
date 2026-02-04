@@ -73,7 +73,7 @@ export async function getClientsLite(
 ): Promise<{ success: boolean; data?: ClientLite[]; error?: string }> {
   try {
     const organizationId = await resolveOrganizationId(clerkUserId, orgId);
-    if (!organizationId) return { success: true, data: [] };
+    if (!organizationId) return { success: false, error: 'Missing orgSlug' };
 
     const data = await prisma.clientClient.findMany({
       where: { organizationId },
@@ -119,7 +119,7 @@ export async function getClientsPage(params: {
   try {
     const organizationId = await resolveOrganizationId(params.clerkUserId, params.orgId);
     if (!organizationId) {
-      return { success: true, data: { clients: [], page: 1, pageSize: 0, hasMore: false } };
+      return { success: false, error: 'Missing orgSlug' };
     }
 
     const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 200)));
@@ -239,12 +239,7 @@ async function resolveOrganizationId(clerkUserId?: string, orgId?: string): Prom
     }
   }
 
-  if (!clerkUserId) return null;
-
-  const { getCurrentUserInfo } = await import('@/app/actions/users');
-  const userInfo = await getCurrentUserInfo();
-  if (!userInfo.success) return null;
-  return userInfo.organizationId ? String(userInfo.organizationId) : null;
+  return null;
 }
 
 export async function getClients(

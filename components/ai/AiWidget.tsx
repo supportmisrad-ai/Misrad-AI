@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { Maximize2, MessageCircle, Minimize2, Send, X, Bot, Sparkles } from 'lucide-react';
+import { Maximize2, MessageCircle, Minimize2, X, Bot, Sparkles, ArrowUp } from 'lucide-react';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
@@ -285,9 +285,10 @@ export function AiWidget() {
                   key={m.id}
                   className={
                     m.role === 'user'
-                      ? 'self-start max-w-[88%] rounded-2xl bg-slate-900 text-white px-3 py-2 text-[15px] leading-7 font-medium whitespace-pre-wrap'
-                      : 'self-end max-w-[88%] rounded-2xl bg-slate-100 text-slate-900 px-3 py-2 text-[15px] leading-7 font-medium'
+                      ? 'self-start max-w-[85%] rounded-2xl bg-slate-900 text-white px-6 py-4 text-base leading-relaxed font-medium whitespace-pre-wrap shadow-md'
+                      : 'self-end max-w-[85%] rounded-2xl bg-white text-slate-900 border border-slate-200 px-6 py-4 text-base leading-relaxed shadow-md'
                   }
+                  style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
                 >
                   {m.role === 'user' ? (
                     m.content
@@ -299,7 +300,7 @@ export function AiWidget() {
                   ) : (
                     <MarkdownRenderer
                       content={m.content}
-                      className="text-[15px] leading-7 font-medium [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_h1]:mt-2 [&_h2]:mt-2 [&_h3]:mt-2"
+                      className="[&_p]:first:mt-0 [&_p]:last:mb-0"
                     />
                   )}
                 </div>
@@ -330,16 +331,17 @@ export function AiWidget() {
                 rows={1}
                 dir="rtl"
                 placeholder={marketing ? 'שאל אותי איך לבצע פעולה במערכת...' : 'איך אפשר לעזור?'}
-                className="flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-[15px] font-semibold focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition-all"
+                className="flex-1 resize-none rounded-2xl border-2 border-slate-200 bg-white px-4 py-3 text-[15px] font-medium focus:outline-none focus:border-blue-500 transition-colors"
+                style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="h-12 w-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center hover:from-amber-500 hover:to-orange-600 hover:shadow-xl hover:shadow-orange-500/30 active:scale-95 disabled:opacity-50 transition-all focus:outline-none shadow-lg"
                 aria-label="שלח"
               >
-                <Send size={18} className="-rotate-90" />
+                <ArrowUp size={20} strokeWidth={3} />
               </button>
             </div>
           </form>

@@ -79,12 +79,7 @@ async function getOrgKeyFromParams(ctx?: {
   const params = await Promise.resolve(ctx.params);
   const obj = asObject(params);
   if (!obj) return null;
-  const orgKey =
-    obj.orgSlug ??
-    obj.orgId ??
-    obj.organizationId ??
-    obj.workspaceId ??
-    null;
+  const orgKey = obj.orgSlug ?? null;
   return orgKey ? String(orgKey) : null;
 }
 

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
@@ -35,24 +34,16 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
 
   const orgIds = new Set<string>();
 
-  const addIfAccessible = async (orgId: string | null | undefined) => {
-    if (!orgId) return;
-    try {
-      await getWorkspaceByOrgKeyOrThrow(String(orgId));
-      orgIds.add(String(orgId));
-    } catch {
-      // Fail-closed: do not include inaccessible orgs
-    }
-  };
-
-  await addIfAccessible(socialUser.organization_id);
+  if (socialUser.organization_id) {
+    orgIds.add(String(socialUser.organization_id));
+  }
 
   const ownedOrgs = await prisma.social_organizations.findMany({
     where: { owner_id: socialUser.id },
     select: { id: true },
   });
   for (const org of ownedOrgs) {
-    await addIfAccessible(org?.id);
+    if (org?.id) orgIds.add(String(org.id));
   }
 
   const membershipRows = await prisma.social_team_members.findMany({
@@ -60,7 +51,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     select: { organization_id: true },
   });
   for (const row of membershipRows) {
-    await addIfAccessible(row?.organization_id ? String(row.organization_id) : null);
+    if (row?.organization_id) orgIds.add(String(row.organization_id));
   }
 
   if (orgIds.size === 0) {
@@ -124,7 +115,7 @@ export default async function WorkspacesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {workspaces.map((ws) => (
               <Link
-                key={ws.slug}
+                key={ws.id}
                 href={`/w/${encodeURIComponent(ws.slug)}`}
                 className="group relative rounded-3xl border border-white/70 bg-white/70 backdrop-blur p-6 shadow-[0_20px_60px_-30px_rgba(15,23,42,0.35)] hover:shadow-[0_30px_80px_-35px_rgba(15,23,42,0.45)] transition-all overflow-hidden"
               >

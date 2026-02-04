@@ -504,7 +504,7 @@ export async function getSocialInitialData(params: {
   const [workspace, clientsResult, teamResult, postsResult, activityResult] = await Promise.all([
     workspacePromise,
     getClientsPage({ orgSlug: params.orgSlug, pageSize: 200 }),
-    getTeamMembers(),
+    getTeamMembers(params.orgSlug),
     getSocialPosts({ orgSlug: params.orgSlug }),
     getSocialActivity({ orgSlug: params.orgSlug, limit: 50 }),
   ]);

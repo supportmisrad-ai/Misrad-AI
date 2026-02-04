@@ -6,6 +6,7 @@ import type { PackageType } from '@/lib/server/workspace';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { uploadFile } from '@/app/actions/files';
 import { calculateOrderAmount } from '@/lib/billing/pricing';
+import { CouponEngine } from '@/lib/server/couponEngine';
 import prisma from '@/lib/prisma';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
@@ -52,6 +53,7 @@ export type CreateSubscriptionOrderInput = {
   customerPhone: string;
   seats?: number;
   partnerReferralCode?: string;
+  couponCode?: string;
 };
 
 export type SubscriptionOrder = {
@@ -140,6 +142,54 @@ export async function createSubscriptionOrder(
       return createErrorResponse(error, errorMessage || 'שגיאה בחישוב מחיר');
     }
 
+    const couponCode = String(input.couponCode || '').trim();
+
+    if (couponCode && !organizationId) {
+      return createErrorResponse(null, 'חסרה חברה להזמנה');
+    }
+
+    class CouponApplyError extends Error {
+      reason: string;
+
+      constructor(reason: string, message: string) {
+        super(message);
+        this.reason = reason;
+      }
+    }
+
+    const couponReasonMessage = (reason: string): string => {
+      switch (reason) {
+        case 'INVALID_CODE':
+          return 'קוד קופון לא תקין';
+        case 'INACTIVE':
+          return 'הקופון לא פעיל';
+        case 'NOT_STARTED':
+          return 'הקופון עדיין לא התחיל';
+        case 'EXPIRED':
+          return 'הקופון פג תוקף';
+        case 'MIN_ORDER_AMOUNT':
+          return 'הסכום לא עומד במינימום לקופון';
+        case 'ALREADY_REDEEMED':
+          return 'הקופון כבר מומש עבור החברה';
+        case 'MAX_REDEMPTIONS_REACHED':
+          return 'הקופון הגיע למספר מימושים מקסימלי';
+        case 'ORDER_ALREADY_HAS_COUPON':
+          return 'כבר הוחל קופון על ההזמנה';
+        default:
+          return 'שגיאה בהחלת קופון';
+      }
+    };
+
+    const toNumberSafe = (value: unknown): number => {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+      const s = String(value ?? '').trim();
+      if (!s) return 0;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    let finalAmount = calculatedAmount;
+
     const createData: Record<string, unknown> = {
       id,
       clerk_user_id: clerkUserId,
@@ -162,18 +212,40 @@ export async function createSubscriptionOrder(
     if (seats) createData.seats = seats;
 
     try {
-      await prisma.subscription_orders.create({ data: createData as any });
-    } catch (error: unknown) {
-      if (seats && isMissingColumnError(error, 'seats')) {
+      await prisma.$transaction(async (tx) => {
         try {
-          delete (createData as any).seats;
-          await prisma.subscription_orders.create({ data: createData as any });
-        } catch (retryError: unknown) {
-          return createErrorResponse(retryError, 'שגיאה ביצירת הזמנת מנוי');
+          await tx.subscription_orders.create({ data: createData as any });
+        } catch (error: unknown) {
+          if (seats && isMissingColumnError(error, 'seats')) {
+            delete (createData as any).seats;
+            await tx.subscription_orders.create({ data: createData as any });
+          } else {
+            throw error;
+          }
         }
-      } else {
-        return createErrorResponse(error, 'שגיאה ביצירת הזמנת מנוי');
+
+        if (couponCode) {
+          const res = await CouponEngine.applyToSubscriptionOrder({
+            orderId: id,
+            organizationId: String(organizationId),
+            couponCode,
+            clerkUserId,
+            now,
+            db: tx,
+          });
+
+          if (!res.ok) {
+            throw new CouponApplyError(res.reason, couponReasonMessage(res.reason));
+          }
+
+          finalAmount = toNumberSafe(res.amountAfter);
+        }
+      });
+    } catch (error: unknown) {
+      if (error instanceof CouponApplyError) {
+        return createErrorResponse(error, error.message);
       }
+      return createErrorResponse(error, 'שגיאה ביצירת הזמנת מנוי');
     }
 
     const partnerReferralCode = String(input.partnerReferralCode || '').trim();
@@ -226,7 +298,7 @@ export async function createSubscriptionOrder(
       packageType: packageType,
       planKey: packageType === 'solo' ? (soloModuleKey ? String(soloModuleKey) : null) : null,
       billingCycle: input.billingCycle,
-      amount: Number(calculatedAmount) || 0,
+      amount: Number(finalAmount) || 0,
       currency: String(input.currency || 'ILS'),
       status: 'pending',
       paymentMethod: 'bit',
@@ -317,7 +389,7 @@ export async function submitSubscriptionPaymentProof(input: {
 
     const order = await prisma.subscription_orders.findFirst({
       where: { id: orderId },
-      select: { id: true, clerk_user_id: true, status: true },
+      select: { id: true, clerk_user_id: true, status: true, organization_id: true },
     });
 
     if (!order?.id) {
@@ -332,8 +404,23 @@ export async function submitSubscriptionPaymentProof(input: {
 
     let proof: { url?: string; path?: string } = {};
     if (input.proofFile) {
+      const organizationId = order.organization_id ? String(order.organization_id) : '';
+      if (!organizationId) {
+        return createErrorResponse(new Error('Missing organization'), 'חסרה חברה להזמנה');
+      }
+
+      const organization = await prisma.social_organizations.findFirst({
+        where: { id: organizationId },
+        select: { slug: true },
+      });
+
+      const orgSlug = String(organization?.slug || '').trim();
+      if (!orgSlug) {
+        return createErrorResponse(new Error('Missing organization slug'), 'לא נמצא מזהה ארגון');
+      }
+
       const fileName = `subscription-proof-${input.orderId}`;
-      const upload = await uploadFile(input.proofFile, fileName, 'media');
+      const upload = await uploadFile(input.proofFile, fileName, 'media', orgSlug);
       if (!upload.success || !upload.url || !upload.path) {
         return createErrorResponse(new Error(upload.error || 'Upload failed'), upload.error || 'שגיאה בהעלאת הוכחה');
       }

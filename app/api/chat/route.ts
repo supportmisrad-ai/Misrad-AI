@@ -298,7 +298,7 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     }
 
     const lastUser = [...coreMessages].reverse().find((m) => m.role === 'user')?.content || '';
-    const history = coreMessages.slice(-20).map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
+    const history = coreMessages.slice(-6).map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n');
 
     const ctx = clientContext ? {
       companyName: clientContext.companyName,

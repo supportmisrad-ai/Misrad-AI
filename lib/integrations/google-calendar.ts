@@ -125,6 +125,14 @@ export async function syncTaskToCalendar(
                 dateTime: new Date(dueDate.getTime() + 3600000).toISOString(), // 1 hour default
                 timeZone: 'Asia/Jerusalem'
             },
+            conferenceData: {
+                createRequest: {
+                    requestId: `meet-${task.id || Date.now()}-${Math.random().toString(36).substring(7)}`,
+                    conferenceSolutionKey: {
+                        type: 'hangoutsMeet'
+                    }
+                }
+            },
             reminders: {
                 useDefault: false,
                 overrides: [
@@ -141,13 +149,15 @@ export async function syncTaskToCalendar(
             const response = await calendar.events.update({
                 calendarId: 'primary',
                 eventId: existingEventId,
+                conferenceDataVersion: 1,
                 requestBody: eventData
             });
             eventId = response.data.id || existingEventId;
         } else {
-            // Create new event
+            // Create new event with Google Meet link
             const response = await calendar.events.insert({
                 calendarId: 'primary',
+                conferenceDataVersion: 1,
                 requestBody: eventData
             });
             eventId = response.data.id || '';

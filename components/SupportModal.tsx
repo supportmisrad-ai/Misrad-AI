@@ -46,17 +46,12 @@ export const SupportModal: React.FC = () => {
 
         try {
             const orgSlugFromPath = typeof window !== 'undefined' ? getWorkspaceOrgSlugFromPathname(window.location.pathname) : null;
-            const orgKey =
-                orgSlugFromPath ||
-                (currentUser as any)?.tenantId ||
-                (currentUser as any)?.organizationId ||
-                null;
 
             const response = await fetch('/api/support', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(orgKey ? { 'x-org-id': encodeURIComponent(String(orgKey)) } : {}),
+                    ...(orgSlugFromPath ? { 'x-org-id': String(orgSlugFromPath) } : {}),
                 },
                 body: JSON.stringify({
                     category: supportDraft.category,

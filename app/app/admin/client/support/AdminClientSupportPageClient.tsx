@@ -10,7 +10,7 @@ export default function AdminClientSupportPageClient() {
   const { addToast } = useData();
   return (
     <div className="space-y-6" dir="rtl">
-      <AdminPageHeader title="תמיכה" subtitle="ניהול קריאות תמיכה" icon={LifeBuoy} />
+      <AdminPageHeader title="תקלות" subtitle="ניהול דיווחי תקלות" icon={LifeBuoy} />
       <SupportTicketsPanel addToast={addToast as any} hideHeader />
     </div>
   );

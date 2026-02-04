@@ -1,15 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CheckCircle2 } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, BarChart3, CreditCard, FileText, ShieldCheck, Sparkles, TrendingUp, Gift, CheckCircle2, MessageCircle, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
+import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
 
 export const dynamic = 'force-dynamic';
 
 const features = [
-  { icon: FileText, title: 'חשבוניות בשתי לחיצות', desc: 'יצירה, שליחה, ומעקב — בלי להסתבך.', color: 'bg-emerald-600' },
+  { icon: FileText, title: 'חשבוניות מהירות', desc: 'יצירה פשוטה, שליחה בקליק, ומעקב אוטומטי.', color: 'bg-emerald-600' },
+  { icon: MessageCircle, title: 'שליחה בוואטסאפ', desc: 'שלח חשבוניות ללקוחות ישירות דרך WhatsApp.', color: 'bg-green-600' },
   { icon: CreditCard, title: 'שליטה בתשלומים', desc: 'מה שולם, מה פתוח, ומה צריך לגבות.', color: 'bg-indigo-600' },
   { icon: BarChart3, title: 'דוחות ברורים', desc: 'תמונה אמיתית של הכנסות והוצאות לאורך זמן.', color: 'bg-amber-600' },
 ];
@@ -21,6 +26,7 @@ const benefits = [
 ];
 
 export default function FinanceMarketingPage() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   return (
     <div className="min-h-screen bg-white text-slate-900" dir="rtl">
       <Navbar />
@@ -55,20 +61,21 @@ export default function FinanceMarketingPage() {
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
               <Link
                 href="/pricing"
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
+                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
               >
                 התחל ניסיון חינם
                 <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
               </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 hover:shadow-lg transition-all"
+              <button
+                onClick={() => setIsVideoModalOpen(true)}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-black hover:border-indigo-300 hover:scale-105 transition-all"
               >
-                ראה חבילות
-              </Link>
+                <Play size={18} className="text-indigo-600" />
+                צפייה במערכת
+              </button>
             </div>
 
-            <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {features.map((f) => (
                 <div key={f.title} className="group rounded-3xl bg-white border border-slate-200 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
                   <div className={`w-14 h-14 rounded-2xl ${f.color} flex items-center justify-center text-white group-hover:scale-105 transition-transform`}>
@@ -147,7 +154,7 @@ export default function FinanceMarketingPage() {
                     <div className="mt-6">
                       <Link
                         href="/pricing"
-                        className="group w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
+                        className="group w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
                       >
                         התחל עכשיו
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -162,8 +169,17 @@ export default function FinanceMarketingPage() {
             </div>
           </div>
         </section>
+
+        <TestimonialsSection />
+
+        <SalesFaq variant="default" />
       </main>
       <Footer />
+      
+      <DemoVideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+      />
     </div>
   );
 }

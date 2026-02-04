@@ -1,7 +1,6 @@
 import NexusModuleClient from './NexusModuleClient';
 import { currentUser } from '@clerk/nextjs/server';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { getNexusOwnerDashboardData } from '@/lib/services/nexus-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +24,6 @@ export default async function NexusModuleHome({
 }) {
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const initialOwnerDashboard = await getNexusOwnerDashboardData(orgSlug);
 
   const clerk = await currentUser();
   const clerkObj = asObject(clerk) ?? {};
@@ -70,7 +67,6 @@ export default async function NexusModuleHome({
     <NexusModuleClient
       initialCurrentUser={initialCurrentUser}
       initialOrganization={initialOrganization}
-      initialOwnerDashboard={initialOwnerDashboard}
     />
   );
 }

@@ -1,15 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowRight, ClipboardCheck, FileText, Mic, Tablet, Users, Play } from 'lucide-react';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
 import { getModuleLabelHe } from '@/lib/os/modules/registry';
+import { DemoVideoModal } from '@/components/landing/DemoVideoModal';
 import KillerFeaturesBox from '@/components/landing/KillerFeaturesBox';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
 
 export const dynamic = 'force-dynamic';
 
 export default function OperationsMarketingPage() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  
   const features = [
     {
       title: 'תפסיקו להקליד. פשוט תדברו.',
@@ -43,7 +49,7 @@ export default function OperationsMarketingPage() {
                 <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
                   האופרציה שלכם,
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-amber-700 via-rose-700 to-indigo-700">
-                    על טייס אוטומטי.
+                    עובדת אוטומטית.
                   </span>
                 </h1>
 
@@ -54,22 +60,23 @@ export default function OperationsMarketingPage() {
                 <div className="mt-10 flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/pricing"
-                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-onyx-900 text-white font-bold shadow-xl shadow-onyx-900/10 hover:bg-black"
+                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-onyx-900 text-white font-bold shadow-xl shadow-onyx-900/10 hover:bg-black"
                   >
-                    התחל ניסיון חינם (בלי כרטיס)
+                    התחל ניסיון חינם
                   </Link>
                   <Link
                     href="/subscribe/checkout?package=solo&module=operations&billing=monthly"
-                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50"
+                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-700 font-bold hover:bg-slate-50"
                   >
                     מעבר לתשלום <ArrowRight size={16} className="rotate-180" />
                   </Link>
-                  <Link
-                    href="/pricing"
-                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-bold hover:bg-amber-100"
+                  <button
+                    onClick={() => setIsVideoModalOpen(true)}
+                    className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-gradient-to-r from-white via-indigo-50/50 to-purple-50/50 border-2 border-indigo-200 text-slate-900 font-bold hover:border-indigo-300 hover:scale-105 transition-all gap-2"
                   >
-                    ראה חבילות
-                  </Link>
+                    <Play size={18} className="text-indigo-600" />
+                    צפייה במערכת
+                  </button>
                 </div>
               </div>
 
@@ -215,9 +222,9 @@ export default function OperationsMarketingPage() {
                   <div className="mt-6">
                     <Link
                       href="/subscribe/checkout?package=the_operator&billing=monthly"
-                      className="inline-flex items-center justify-center w-full px-6 py-3 rounded-xl bg-onyx-900 text-white font-black hover:bg-black"
+                      className="inline-flex items-center justify-center w-full px-6 py-3 rounded-full bg-onyx-900 text-white font-black hover:bg-black"
                     >
-                      מתאים לך? חבילת תפעול ושטח <ArrowRight size={16} className="rotate-180" />
+                      מעבר למסלול השטח
                     </Link>
                   </div>
                 </div>
@@ -239,13 +246,13 @@ export default function OperationsMarketingPage() {
               <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <Link
                   href="/pricing"
-                  className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-slate-900 text-white font-black hover:bg-black"
+                  className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-slate-900 text-white font-black hover:bg-black"
                 >
                   ראה חבילות <ArrowRight size={16} className="rotate-180" />
                 </Link>
                 <Link
                   href="/pricing"
-                  className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
+                  className="inline-flex w-full sm:w-auto items-center justify-center px-6 py-3 rounded-full bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50"
                 >
                   התחל ניסיון חינם
                 </Link>
@@ -253,8 +260,17 @@ export default function OperationsMarketingPage() {
             </div>
           </div>
         </section>
+
+        <TestimonialsSection />
+
+        <SalesFaq variant="default" />
       </main>
       <Footer />
+      
+      <DemoVideoModal 
+        isOpen={isVideoModalOpen} 
+        onClose={() => setIsVideoModalOpen(false)} 
+      />
     </div>
   );
 }

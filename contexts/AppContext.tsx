@@ -37,6 +37,9 @@ interface AppContextType {
   // User Role
   userRole: UserRole;
   isCheckingRole: boolean;
+
+  // Org
+  orgSlug: string | null;
   
   // Views
   settingsSubView: SettingsSubView;
@@ -426,7 +429,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
           const orgSlug = effectiveOrgSlug || workspaceOrgId;
           return orgSlug ? getClientsPage({ orgSlug, pageSize: 200 }) : Promise.resolve({ success: true, data: { clients: [], nextCursor: null, hasMore: false } } as any);
         })(),
-        getTeamMembers(),
+        effectiveOrgSlug ? getTeamMembers(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
       ]);
 
       if (!isMountedRef.current) return;
@@ -462,12 +465,12 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       // 2. Secondary data - fetch in background without blocking
       // This allows the UI to be responsive faster
       Promise.all([
-        workspaceOrgId ? getPosts(undefined, workspaceOrgId) : getPosts(),
+        effectiveOrgSlug ? getPosts({ orgSlug: effectiveOrgSlug }) : Promise.resolve({ success: true, data: [] }),
         getTasks(effectiveOrgSlug || undefined),
-        getConversations(),
-        getClientRequests(),
-        getManagerRequests(),
-        getIdeas(),
+        effectiveOrgSlug ? getConversations(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
+        effectiveOrgSlug ? getClientRequests(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
+        effectiveOrgSlug ? getManagerRequests(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
+        effectiveOrgSlug ? getIdeas(effectiveOrgSlug) : Promise.resolve({ success: true, data: [] }),
       ]).then(([
         postsResult,
         tasksResult,
@@ -568,8 +571,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     if (initialSocialData && hasInitialDataForOrg(initialSocialData)) {
       return;
     }
-    if (activeClientId) {
-      getIdeas(activeClientId).then(result => {
+    if (activeClientId && effectiveOrgSlug) {
+      getIdeas(effectiveOrgSlug, activeClientId).then(result => {
         if (isMountedRef.current) {
           if (result.success && result.data) {
             setIdeas(result.data);
@@ -583,7 +586,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
         setIdeas([]);
       }
     }
-  }, [activeClientId]);
+  }, [activeClientId, effectiveOrgSlug]);
 
   useEffect(() => {
     const run = async () => {
@@ -618,6 +621,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({
       isLoaded,
       userRole,
       isCheckingRole,
+      orgSlug: effectiveOrgSlug,
       settingsSubView,
       setSettingsSubView,
       isSidebarOpen,

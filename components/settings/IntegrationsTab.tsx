@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, AlertTriangle } from 'lucide-react';
+import { Zap, Calendar, Webhook, Copy, Check, Code, Play, FileText, AlertTriangle, Video, CheckCircle } from 'lucide-react';
 import { GreenInvoiceConnectModal } from '../GreenInvoiceConnectModal';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -21,6 +21,12 @@ export const IntegrationsTab: React.FC = () => {
         recommendations?: any;
     } | null>(null);
     const [isCheckingOAuth, setIsCheckingOAuth] = useState(true);
+    const [integrationStatus, setIntegrationStatus] = useState<{
+        zoom: boolean;
+        meet: boolean;
+        googleCalendar: boolean;
+    } | null>(null);
+    const [isCheckingIntegrations, setIsCheckingIntegrations] = useState(true);
     
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
@@ -64,6 +70,24 @@ export const IntegrationsTab: React.FC = () => {
         checkOAuthConfig();
     }, []);
 
+    // Check integration status (Zoom, Meet)
+    useEffect(() => {
+        const checkIntegrationStatus = async () => {
+            try {
+                const response = await fetch('/api/integrations/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    setIntegrationStatus(data);
+                }
+            } catch (error) {
+                console.error('Error checking integration status:', error);
+            } finally {
+                setIsCheckingIntegrations(false);
+            }
+        };
+        checkIntegrationStatus();
+    }, []);
+
             // Check for OAuth errors and success in URL params
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -77,14 +101,21 @@ export const IntegrationsTab: React.FC = () => {
                 setOauthError('oauth_denied');
             } else if (error.includes('redirect_uri_mismatch') || error.includes('redirect')) {
                 setOauthError('redirect_uri_mismatch');
+            } else if (error.includes('zoom')) {
+                setOauthError('zoom_connection_failed');
             }
             // Clean URL
             window.history.replaceState({}, '', window.location.pathname + '?tab=integrations');
         }
         
         if (success) {
-            if (success === 'calendar_connected' || success === 'green_invoice_connected') {
+            if (success === 'calendar_connected' || success === 'green_invoice_connected' || success === 'zoom_connected') {
                 setOauthSuccess(success);
+                // Refresh integration status
+                fetch('/api/integrations/status')
+                    .then(res => res.json())
+                    .then(data => setIntegrationStatus(data))
+                    .catch(console.error);
                 // Clean URL after showing success message
                 setTimeout(() => {
                     window.history.replaceState({}, '', window.location.pathname + '?tab=integrations');
@@ -92,6 +123,21 @@ export const IntegrationsTab: React.FC = () => {
             }
         }
     }, []);
+
+    const handleZoomConnect = () => {
+        window.location.href = '/api/integrations/zoom/connect';
+    };
+
+    const handleZoomDisconnect = async () => {
+        try {
+            const response = await fetch('/api/integrations/zoom/disconnect', { method: 'POST' });
+            if (response.ok) {
+                setIntegrationStatus(prev => prev ? { ...prev, zoom: false } : null);
+            }
+        } catch (error) {
+            console.error('Error disconnecting Zoom:', error);
+        }
+    };
 
     return (
         <motion.div key="integrations" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8 pb-16 md:pb-20">
@@ -130,11 +176,15 @@ export const IntegrationsTab: React.FC = () => {
                                 <h3 className="font-bold text-sm text-green-900 mb-1">
                                     {oauthSuccess === 'calendar_connected' 
                                         ? '✅ Google Calendar מחובר בהצלחה!' 
+                                        : oauthSuccess === 'zoom_connected'
+                                        ? '✅ Zoom מחובר בהצלחה!'
                                         : '✅ מורנינג מחובר בהצלחה!'}
                                 </h3>
                                 <p className="text-xs text-green-700">
                                     {oauthSuccess === 'calendar_connected' 
                                         ? 'החיבור ל-Google Calendar הושלם בהצלחה. המשימות שלך יסתנכרנו אוטומטית.' 
+                                        : oauthSuccess === 'zoom_connected'
+                                        ? 'החיבור ל-Zoom הושלם בהצלחה. אתה יכול ליצור פגישות Zoom אוטומטית.'
                                         : 'החיבור למורנינג הושלם בהצלחה. אתה יכול ליצור חשבוניות ישירות מהמערכת.'}
                                 </p>
                             </div>
@@ -230,6 +280,108 @@ export const IntegrationsTab: React.FC = () => {
                 )}
             </AnimatePresence>
 
+            {/* Video Conferencing Section */}
+            <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-6 rounded-2xl border border-blue-200">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
+                    <Video size={20} className="text-blue-600" /> פלטפורמות וידאו
+                </h3>
+                <p className="text-xs text-gray-600 mb-6">
+                    התחבר ל-Zoom או Google Meet ליצירת לינקי פגישה אוטומטית
+                </p>
+
+                <div className="space-y-4">
+                    {/* Zoom Integration */}
+                    <div className="bg-white p-4 rounded-xl border-2 border-blue-100 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                                    <Video size={24} className="text-blue-600" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                        Zoom
+                                        {isCheckingIntegrations ? (
+                                            <Skeleton className="h-4 w-16 rounded" />
+                                        ) : integrationStatus?.zoom ? (
+                                            <span className="flex items-center gap-1 text-green-600 text-xs">
+                                                <CheckCircle size={14} /> מחובר
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {isCheckingIntegrations ? 'בודק סטטוס...' :
+                                         integrationStatus?.zoom ? 'פעיל וזמין ליצירת פגישות' : 'לא מחובר'}
+                                    </div>
+                                </div>
+                            </div>
+                            {!isCheckingIntegrations && (
+                                integrationStatus?.zoom ? (
+                                    <button 
+                                        onClick={handleZoomDisconnect}
+                                        className="px-4 py-2 rounded-lg text-xs font-bold transition-colors bg-red-100 text-red-700 hover:bg-red-200"
+                                    >
+                                        נתק
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={handleZoomConnect}
+                                        className="px-4 py-2 rounded-lg text-xs font-bold transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                                    >
+                                        התחבר
+                                    </button>
+                                )
+                            )}
+                        </div>
+                        {integrationStatus?.zoom && (
+                            <div className="mt-3 pt-3 border-t border-blue-100">
+                                <div className="text-xs text-gray-600">
+                                    ✅ פגישות Zoom ייווצרו אוטומטית עם לינק וסיסמה
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Google Meet Integration */}
+                    <div className="bg-white p-4 rounded-xl border-2 border-green-100 shadow-sm">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                                    <Video size={24} className="text-green-600" />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                        Google Meet
+                                        {isCheckingIntegrations ? (
+                                            <Skeleton className="h-4 w-16 rounded" />
+                                        ) : integrationStatus?.meet ? (
+                                            <span className="flex items-center gap-1 text-green-600 text-xs">
+                                                <CheckCircle size={14} /> מחובר
+                                            </span>
+                                        ) : null}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                        {isCheckingIntegrations ? 'בודק סטטוס...' :
+                                         integrationStatus?.meet ? 'פעיל דרך Google Calendar' : 'דורש חיבור ל-Google Calendar'}
+                                    </div>
+                                </div>
+                            </div>
+                            {!isCheckingIntegrations && integrationStatus?.meet && (
+                                <div className="px-4 py-2 rounded-lg text-xs font-bold bg-green-100 text-green-700">
+                                    מחובר
+                                </div>
+                            )}
+                        </div>
+                        {integrationStatus?.meet && (
+                            <div className="mt-3 pt-3 border-t border-green-100">
+                                <div className="text-xs text-gray-600">
+                                    ✅ פגישות Google Meet ייווצרו אוטומטית דרך Calendar
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Financial Integrations */}
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
@@ -304,9 +456,16 @@ export const IntegrationsTab: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <div className="font-bold text-sm text-gray-900">Google Calendar</div>
+                                <div className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                                    Google Calendar
+                                    {isCalendarConnected && integrationStatus?.googleCalendar && (
+                                        <span className="flex items-center gap-1 text-green-600 text-xs">
+                                            <CheckCircle size={14} /> מחובר
+                                        </span>
+                                    )}
+                                </div>
                                 <div className="text-xs text-gray-500">
-                                    {isCalendarConnected ? 'מחובר ופעיל' : 
+                                    {isCalendarConnected ? 'מחובר ופעיל - מאפשר Google Meet' : 
                                      isCheckingOAuth ? 'בודק הגדרות...' :
                                      oauthConfig?.configured ? 'מוכן להתחברות' : 'מפתחות OAuth לא מוגדרים'}
                                 </div>

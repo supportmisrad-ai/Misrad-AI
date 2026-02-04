@@ -6,6 +6,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 export type PackageType = import('@/lib/billing/pricing').PackageType;
 
@@ -29,7 +30,7 @@ export type LastLocation = {
   module: OSModuleKey | null;
 };
 
-type OrganizationModuleFlags = {
+export type OrganizationModuleFlags = {
   has_nexus: boolean | null;
   has_system: boolean | null;
   has_social: boolean | null;
@@ -98,6 +99,99 @@ function decodeOnce(value: string): string {
     return decodeURIComponent(String(value || ''));
   } catch {
     return String(value || '');
+  }
+}
+
+async function enforceTrialExpirationBestEffort(params: {
+  organizationId: string;
+  socialUserId: string;
+  now: Date;
+}): Promise<void> {
+  try {
+    const organizationId = String(params.organizationId || '').trim();
+    const socialUserId = String(params.socialUserId || '').trim();
+    const now = params.now instanceof Date ? params.now : new Date();
+
+    if (!organizationId || !socialUserId || Number.isNaN(now.getTime())) return;
+
+    const [member, org] = await Promise.all([
+      prisma.social_team_members.findFirst({
+        where: {
+          organization_id: organizationId,
+          user_id: socialUserId,
+        },
+        select: {
+          subscription_status: true,
+          trial_start_date: true,
+          trial_days: true,
+        },
+      }),
+      prisma.social_organizations.findUnique({
+        where: { id: organizationId },
+        select: {
+          subscription_status: true,
+          trial_start_date: true,
+          trial_days: true,
+        },
+      }),
+    ]);
+
+    const updates: Promise<unknown>[] = [];
+
+    if (member?.subscription_status === 'trial' && member?.trial_start_date) {
+      const start = member.trial_start_date instanceof Date ? member.trial_start_date : new Date(String(member.trial_start_date));
+      const days = Number.isFinite(Number(member.trial_days)) ? Number(member.trial_days) : DEFAULT_TRIAL_DAYS;
+      if (!Number.isNaN(start.getTime()) && Number.isFinite(days) && days > 0) {
+        const end = new Date(start);
+        end.setDate(end.getDate() + Math.floor(days));
+        if (now > end) {
+          updates.push(
+            prisma.social_team_members.updateMany({
+              where: {
+                organization_id: organizationId,
+                user_id: socialUserId,
+                subscription_status: 'trial',
+              },
+              data: {
+                subscription_status: 'expired',
+                updated_at: now,
+              },
+            })
+          );
+        }
+      }
+    }
+
+    if (org?.subscription_status === 'trial' && org?.trial_start_date) {
+      const start = org.trial_start_date instanceof Date ? org.trial_start_date : new Date(String(org.trial_start_date));
+      const days = Number.isFinite(Number(org.trial_days)) ? Number(org.trial_days) : DEFAULT_TRIAL_DAYS;
+      if (!Number.isNaN(start.getTime()) && Number.isFinite(days) && days > 0) {
+        const end = new Date(start);
+        end.setDate(end.getDate() + Math.floor(days));
+        if (now > end) {
+          updates.push(
+            prisma.social_organizations.updateMany({
+              where: {
+                id: organizationId,
+                subscription_status: 'trial',
+              },
+              data: {
+                subscription_status: 'expired',
+                updated_at: now,
+              },
+            })
+          );
+        }
+      }
+    }
+
+    if (updates.length) {
+      await Promise.allSettled(updates);
+    }
+  } catch (e: unknown) {
+    console.error('[workspace-access] enforceTrialExpirationBestEffort failed (ignored)', {
+      message: getErrorMessage(e),
+    });
   }
 }
 
@@ -194,15 +288,26 @@ export function getPackageModules(packageType: PackageType): OSModuleKey[] {
   // Backwards compatible fail-safe.
   if (packageType === 'the_closer') return ['system', 'nexus'];
   if (packageType === 'the_authority') return ['social', 'nexus'];
-  if (packageType === 'the_mentor') return ['client', 'finance', 'nexus'];
+  if (packageType === 'the_mentor') return ['nexus', 'system', 'social', 'client', 'finance', 'operations'];
   return ['nexus'];
 }
 
 export function inferOrganizationPackageType(flags: OrganizationModuleFlags): PackageType {
   // Heuristic mapping based on enabled modules.
-  // Mentor is the widest (client/finance), Authority is social, Closer is system.
-  if (flags.has_client || flags.has_finance) return 'the_mentor';
-  if (flags.has_social) return 'the_authority';
+  // Prefer the explicit all-inclusive package when the org has everything enabled.
+  if (
+    flags.has_nexus &&
+    flags.has_system &&
+    flags.has_social &&
+    flags.has_client &&
+    flags.has_finance &&
+    flags.has_operations
+  ) {
+    return 'the_empire';
+  }
+
+  if (flags.has_operations || flags.has_finance) return 'the_operator';
+  if (flags.has_social || flags.has_client) return 'the_authority';
   return 'the_closer';
 }
 
@@ -266,9 +371,10 @@ async function loadOrganizationModuleFlags(organizationId: string): Promise<Orga
 export async function getOrganizationPackageEntitlements(
   organizationId: string,
   socialUserId?: string,
-  orgSlug?: string
+  orgSlug?: string,
+  preloadedFlags?: OrganizationModuleFlags
 ): Promise<{ packageType: PackageType; entitlements: WorkspaceEntitlements }> {
-  const flags = await loadOrganizationModuleFlags(organizationId);
+  const flags = preloadedFlags || await loadOrganizationModuleFlags(organizationId);
   const packageType = inferOrganizationPackageType(flags);
 
   const orgEntitlements: WorkspaceEntitlements = {
@@ -332,10 +438,19 @@ export async function loadCurrentUserLastLocation(): Promise<LastLocation> {
   }
 
   try {
-    const data = await prisma.social_users.findUnique({
-      where: { clerk_user_id: clerkUserId },
-      select: { last_location_org: true, last_module: true },
-    });
+    const data = await prisma.social_users.findUnique(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerk_user_id: clerkUserId },
+          select: { last_location_org: true, last_module: true },
+        },
+        {
+          source: 'workspace_last_location_load',
+          organizationId: '',
+          suppressReporting: true,
+        }
+      )
+    );
 
     return {
       orgSlug: data?.last_location_org ?? null,
@@ -370,10 +485,19 @@ export async function persistCurrentUserLastLocation({
       ...(module ? { last_module: module } : {}),
     };
 
-    await prisma.social_users.update({
-      where: { clerk_user_id: clerkUserId },
-      data: update,
-    });
+    await prisma.social_users.update(
+      withPrismaTenantIsolationOverride(
+        {
+          where: { clerk_user_id: clerkUserId },
+          data: update,
+        },
+        {
+          source: 'workspace_last_location_persist',
+          organizationId: '',
+          suppressReporting: true,
+        }
+      )
+    );
   } catch (error: unknown) {
     const message = String(getErrorMessage(error) || '').toLowerCase();
     if (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied')) {
@@ -438,7 +562,7 @@ export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: s
         },
         {
           source: 'workspace_access',
-          organizationId: null,
+          organizationId: '',
           suppressReporting: true,
         }
       )
@@ -467,38 +591,42 @@ export async function getOrganizationEntitlements(
   organizationId: string,
   socialUserId?: string,
   orgSlug?: string,
+  preloadedFlags?: OrganizationModuleFlags
 ): Promise<WorkspaceEntitlements> {
   const isE2E = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
-  let org: OrganizationModuleFlags | null = null;
-  try {
-    org = await prisma.social_organizations.findUnique({
-      where: { id: organizationId },
-      select: {
-        has_nexus: true,
-        has_system: true,
-        has_social: true,
-        has_finance: true,
-        has_client: true,
-        has_operations: true,
-      },
-    });
-  } catch (error: unknown) {
-    const message = String(getErrorMessage(error) || '').toLowerCase();
-    if (isE2E && (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied'))) {
-      return await applyLaunchScopeToEntitlements(
-        {
-          nexus: true,
-          system: true,
-          social: true,
-          finance: true,
-          client: true,
-          operations: true,
+  let org: OrganizationModuleFlags | null = preloadedFlags || null;
+  
+  if (!org) {
+    try {
+      org = await prisma.social_organizations.findUnique({
+        where: { id: organizationId },
+        select: {
+          has_nexus: true,
+          has_system: true,
+          has_social: true,
+          has_finance: true,
+          has_client: true,
+          has_operations: true,
         },
-        { organizationId, orgSlug }
-      );
+      });
+    } catch (error: unknown) {
+      const message = String(getErrorMessage(error) || '').toLowerCase();
+      if (isE2E && (message.includes('does not exist') || message.includes('relation') || message.includes('permission denied'))) {
+        return await applyLaunchScopeToEntitlements(
+          {
+            nexus: true,
+            system: true,
+            social: true,
+            finance: true,
+            client: true,
+            operations: true,
+          },
+          { organizationId, orgSlug }
+        );
+      }
+      throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load organization entitlements');
     }
-    throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to load organization entitlements');
   }
 
   if (!org) {
@@ -622,81 +750,6 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   const clerkIsSuperAdmin = await isClerkSuperAdmin();
 
   if (!socialUser?.id && !clerkIsSuperAdmin) {
-    try {
-      const profile = await prisma.profile.findFirst({
-        where: { clerkUserId: String(clerkUserId) },
-        select: { organizationId: true, email: true, fullName: true, avatarUrl: true, role: true },
-      });
-
-      const inferredOrgId = profile?.organizationId ? String(profile.organizationId) : '';
-      if (inferredOrgId) {
-        const now = new Date();
-        const emailLower = profile?.email ? String(profile.email).trim().toLowerCase() : null;
-
-        const existing = await prisma.social_users.findUnique({
-          where: { clerk_user_id: String(clerkUserId) },
-          select: { id: true, organization_id: true, role: true },
-        });
-
-        const su = existing?.id
-          ? await prisma.social_users.update({
-              where: { clerk_user_id: String(clerkUserId) },
-              data: {
-                email: emailLower,
-                full_name: profile?.fullName ? String(profile.fullName) : null,
-                avatar_url: profile?.avatarUrl ? String(profile.avatarUrl) : null,
-                organization_id: inferredOrgId,
-                ...(profile?.role ? { role: String(profile.role) } : {}),
-                updated_at: now,
-              },
-              select: { id: true, organization_id: true, role: true },
-            })
-          : await prisma.social_users.create({
-              data: {
-                clerk_user_id: String(clerkUserId),
-                email: emailLower,
-                full_name: profile?.fullName ? String(profile.fullName) : null,
-                avatar_url: profile?.avatarUrl ? String(profile.avatarUrl) : null,
-                organization_id: inferredOrgId,
-                role: profile?.role ? String(profile.role) : 'team_member',
-                created_at: now,
-                updated_at: now,
-              },
-              select: { id: true, organization_id: true, role: true },
-            });
-
-        socialUser = {
-          id: String(su.id),
-          organization_id: su.organization_id ? String(su.organization_id) : null,
-          role: su.role ? String(su.role) : null,
-        };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (socialUser?.id && !socialUser.organization_id) {
-    try {
-      const profile = await prisma.profile.findFirst({
-        where: { clerkUserId: String(clerkUserId) },
-        select: { organizationId: true },
-      });
-
-      const inferredOrgId = profile?.organizationId ? String(profile.organizationId) : '';
-      if (inferredOrgId) {
-        await prisma.social_users.update({
-          where: { clerk_user_id: String(clerkUserId) },
-          data: { organization_id: inferredOrgId, updated_at: new Date() },
-        });
-        socialUser = { ...socialUser, organization_id: inferredOrgId };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!socialUser?.id && !clerkIsSuperAdmin) {
     redirect('/sign-in');
   }
 
@@ -710,11 +763,23 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     isUuidLike(String(socialUser.organization_id)) &&
     String(socialUser.organization_id) === String(organizationKey)
   ) {
-    let org: { id: string; name: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
+    let org: { id: string; name: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } & OrganizationModuleFlags | null = null;
     try {
       org = await prisma.social_organizations.findUnique({
         where: { id: String(socialUser.organization_id) },
-        select: { id: true, name: true, slug: true, logo: true, seats_allowed: true },
+        select: { 
+          id: true, 
+          name: true, 
+          slug: true, 
+          logo: true, 
+          seats_allowed: true,
+          has_nexus: true,
+          has_system: true,
+          has_social: true,
+          has_finance: true,
+          has_client: true,
+          has_operations: true,
+        },
       });
     } catch (e: unknown) {
       const msg = String(getErrorMessage(e) || '').toLowerCase();
@@ -733,10 +798,19 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
       redirect('/');
     }
 
+    if (!isSuperAdmin && socialUser?.id) {
+      await enforceTrialExpirationBestEffort({
+        organizationId: String(org.id),
+        socialUserId: String(socialUser.id),
+        now: new Date(),
+      });
+    }
+
     const entitlements = await getOrganizationEntitlements(
       String(org.id),
       isSuperAdmin ? undefined : socialUser.id,
-      decodedOrgSlug
+      decodedOrgSlug,
+      org // Pass preloaded flags
     );
 
     return {
@@ -750,7 +824,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   }
 
   // Resolve org by human slug first; if not found, attempt UUID id lookup (backwards compatible).
-  let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } | null = null;
+  let org: { id: string; name: string; owner_id: string | null; slug: string | null; logo: string | null; seats_allowed: unknown } & OrganizationModuleFlags | null = null;
   try {
     const slugCandidates = Array.from(
       new Set(
@@ -773,7 +847,20 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
           ...(idCandidates.length ? [{ id: { in: idCandidates } }] : []),
         ],
       },
-      select: { id: true, name: true, owner_id: true, slug: true, logo: true, seats_allowed: true },
+      select: { 
+        id: true, 
+        name: true, 
+        owner_id: true, 
+        slug: true, 
+        logo: true, 
+        seats_allowed: true,
+        has_nexus: true,
+        has_system: true,
+        has_social: true,
+        has_finance: true,
+        has_client: true,
+        has_operations: true,
+      },
     });
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
@@ -815,7 +902,15 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
     redirect('/');
   }
 
-  const entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, decodedOrgSlug);
+  if (!isSuperAdmin && socialUser?.id) {
+    await enforceTrialExpirationBestEffort({
+      organizationId: String(org.id),
+      socialUserId: String(socialUser.id),
+      now: new Date(),
+    });
+  }
+
+  const entitlements = await getOrganizationEntitlements(org.id, isSuperAdmin ? undefined : socialUser?.id, decodedOrgSlug, org);
 
   return {
     id: org.id,
@@ -927,6 +1022,14 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
 
   if (!isSuperAdmin && !isOwner && !isPrimary && !isTeamMember) {
     throw setErrorStatus(new Error('Forbidden'), 403);
+  }
+
+  if (!isSuperAdmin && socialUser?.id) {
+    await enforceTrialExpirationBestEffort({
+      organizationId: String(org.id),
+      socialUserId: String(socialUser.id),
+      now: new Date(),
+    });
   }
 
   const entitlements = await getOrganizationEntitlements(

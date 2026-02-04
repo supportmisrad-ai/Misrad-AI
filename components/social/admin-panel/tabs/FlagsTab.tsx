@@ -365,11 +365,11 @@ export default function FlagsTab({ featureFlags, setFeatureFlags, onRefresh, add
                 <input
                   value={systemSupportEmail}
                   onChange={(e) => setSystemSupportEmail(e.target.value)}
-                  placeholder="support@yourdomain.com"
+                  placeholder="support@misrad-ai.com, itsikdahan1@gmail.com"
                   className="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:ring-2 focus:ring-slate-300"
                 />
                 <div className="mt-2 text-[11px] text-slate-500 font-bold">
-                  משמש ללינקי mailto במיילים ובהודעות.
+                  משמש ללינקי mailto במיילים ובהודעות. ניתן להזין כמה מיילים בהפרדה של פסיק.
                 </div>
               </div>
 

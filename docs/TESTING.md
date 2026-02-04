@@ -113,15 +113,15 @@ npm install
 npm run test:e2e -- tests/e2e/system/system-home.spec.ts --project=chromium
 ```
 
-## בדיקת RLS / Tenant Isolation (קריטית)
+## בדיקת Tenant Guard / Tenant Isolation (קריטית)
 
-בדיקה זו מאמתת Tenant Isolation דרך Supabase RLS בפועל, כולל בדיקה ש־`current_organization_id()` מחלץ את ה־Org ID מה־Clerk JWT template ושאין דליפה בין טננטים.
+בדיקה זו מאמתת Tenant Isolation דרך ה-APIים הפנימיים (כולל Tenant Guard של Prisma). אם מופעלת שכבת RLS ב-Supabase, הבדיקה מכסה גם את `current_organization_id()` ואת הוצאת ה-Org ID מה־Clerk JWT template כדי לוודא שאין דליפה בין טננטים.
 
 הטסט:
 - `tests/e2e/security/tenant-isolation.spec.ts`
 
 ### דרישות מקדימות
-- להגדיר ב־`.env.local` (או env ב־CLI): `CLERK_SUPABASE_JWT_TEMPLATE=supabase`
+- אם בודקים גם RLS של Supabase: להגדיר ב־`.env.local` (או env ב־CLI): `CLERK_SUPABASE_JWT_TEMPLATE=supabase`
 - להגדיר 2 משתמשים אמיתיים ב־Clerk:
   - Victim: `E2E_EMAIL` / `E2E_PASSWORD`
   - Attacker: `E2E_ATTACKER_EMAIL` / `E2E_ATTACKER_PASSWORD`

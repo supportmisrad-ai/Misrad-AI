@@ -347,12 +347,9 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task, onClose 
               </div>
               <div className="flex items-center gap-2">
                 {linkedClient && (
-                  <button
-                    onClick={() => window.open(`https://sales-os.demo/clients/${linkedClient.id}`, '_blank')}
-                    className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[10px] font-bold border border-emerald-100 hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
-                  >
-                    <Zap size={12} /> CRM
-                  </button>
+                  <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-full text-[10px] font-bold border border-emerald-100 flex items-center gap-1.5">
+                    <Zap size={12} /> {linkedClient.companyName}
+                  </div>
                 )}
                 {task.isPrivate && <Lock size={14} className="text-gray-400" />}
 

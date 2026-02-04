@@ -181,7 +181,7 @@ export default function TeamSettingsTab({ onNotify, isEnabled, setIsEnabled, tea
                     type="email"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="email@agency.com"
+                    placeholder="דוא&quot;ל"
                     className="bg-white border border-slate-200 rounded-xl p-3 font-bold text-sm w-full outline-none focus:ring-2 ring-blue-200"
                   />
                 </div>

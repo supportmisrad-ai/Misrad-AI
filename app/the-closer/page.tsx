@@ -9,7 +9,7 @@ export default async function TheCloserLandingPage() {
 
   return (
     <PackageLandingPage
-      badge="The Closer · מכירות וצמיחה"
+      badge="חבילת מכירות"
       title="להפוך לידים לכסף: מערכת CRM חכמה שסוגרת יותר עסקאות."
       subtitle="להפסיק לאבד לקוחות בין הכיסאות. נהלו פייפליין, שיחות ומשימות במקום אחד."
       audience="סוכני ביטוח, נדל״ן, מוקדי מכירות, עסקים מבוססי לידים"

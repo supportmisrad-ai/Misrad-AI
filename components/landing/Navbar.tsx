@@ -3,40 +3,24 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Target, LifeBuoy, Menu, X, HelpCircle, Type } from 'lucide-react';
+import { CircleUser, LifeBuoy, Menu, X, HelpCircle, Type, User, LogIn, Accessibility } from 'lucide-react';
 import Image from 'next/image';
 import { getSystemIconUrl } from '@/lib/metadata';
+interface NavbarProps {
+    initialLogo?: string | null;
+    initialLogoText?: string | null;
+    isSignedIn?: boolean;
+}
 
-export const Navbar = () => {
+export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: NavbarProps) => {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isFabOpen, setIsFabOpen] = useState(false);
     const [fontScale, setFontScale] = useState(100);
     const [highContrast, setHighContrast] = useState(false);
-    const [logoSrc, setLogoSrc] = useState<string | null>(null);
-    const [logoText, setLogoText] = useState('MISRAD AI');
+    const [logoSrc, setLogoSrc] = useState<string | null>(initialLogo || null);
+    const [logoText, setLogoText] = useState(initialLogoText || 'MISRAD AI');
 
-    useEffect(() => {
-        let cancelled = false;
-
-        (async () => {
-            try {
-                const res = await fetch('/api/landing/settings', { cache: 'no-store' });
-                const data = await res.json().catch(() => null);
-                if (cancelled) return;
-                const nextLogo = typeof data?.logo === 'string' ? data.logo : null;
-                const nextText = typeof data?.logoText === 'string' ? data.logoText : null;
-                if (nextLogo) setLogoSrc(nextLogo);
-                if (nextText) setLogoText(nextText || 'MISRAD AI');
-            } catch {
-                // ignore
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     useEffect(() => {
         try {
@@ -109,7 +93,7 @@ export const Navbar = () => {
                     onClick={() => setIsFabOpen((v) => !v)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-14 h-14 rounded-2xl bg-slate-900 text-white shadow-xl flex items-center justify-center transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
+                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
                     aria-label="עזרה ונגישות"
                     aria-expanded={isFabOpen}
                 >
@@ -117,7 +101,7 @@ export const Navbar = () => {
                         animate={{ rotate: isFabOpen ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {isFabOpen ? <X size={22} /> : <Target size={22} />}
+                        {isFabOpen ? <X size={20} strokeWidth={2} /> : <Accessibility size={22} strokeWidth={2} />}
                     </motion.div>
                 </motion.button>
                 <AnimatePresence>
@@ -133,7 +117,7 @@ export const Navbar = () => {
                             <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-purple-50">
                                 <div className="font-black text-slate-900 text-sm flex items-center gap-2">
                                     <div className="w-6 h-6 rounded-lg bg-slate-800 flex items-center justify-center">
-                                        <Target size={14} className="text-white" />
+                                        <CircleUser size={14} className="text-white" />
                                     </div>
                                     עזרה ונגישות
                                 </div>
@@ -219,7 +203,7 @@ export const Navbar = () => {
                                 className="w-full px-5 py-3.5 border-t border-slate-200 flex items-center gap-3 hover:bg-gradient-to-r hover:from-slate-50 hover:to-transparent transition-all text-right group bg-slate-50/30"
                             >
                                 <div className="w-10 h-10 rounded-xl bg-slate-600 text-white flex items-center justify-center group-hover:bg-slate-700 transition-colors">
-                                    <Target size={18} />
+                                    <CircleUser size={20} />
                                 </div>
                                 <div>
                                     <div className="font-bold text-slate-900 text-sm">הצהרת נגישות</div>
@@ -232,16 +216,24 @@ export const Navbar = () => {
             </div>
 
             <motion.nav
-                initial={{ y: -10, opacity: 0 }}
+                initial={{ y: -10, opacity: 1 }}
                 animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
                 className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-xl shadow-slate-200/40"
             >
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
                         <div className="w-10 h-10 flex items-center justify-center">
                             {logoSrc ? (
-                                <img src={logoSrc} alt="MISRAD" className="w-full h-full object-contain" />
+                                <img 
+                                    src={logoSrc} 
+                                    alt="MISRAD" 
+                                    className="w-full h-full object-contain" 
+                                    onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        setLogoSrc(null);
+                                    }}
+                                />
                             ) : (
                                 <Image src={getSystemIconUrl('misrad')} alt="MISRAD" width={40} height={40} className="w-full h-full object-contain" priority />
                             )}
@@ -252,27 +244,59 @@ export const Navbar = () => {
                     </div>
 
                     <div className="hidden md:flex items-center gap-8 bg-white/60 backdrop-blur-md px-6 py-2 rounded-full border border-slate-200/70 shadow-lg shadow-slate-200/50">
-                        <button onClick={() => handleNavClick('features')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">פיצ׳רים</button>
-                        <button onClick={() => handleNavClick('comparison')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">למה אנחנו</button>
-                        <button onClick={() => handleNavClick('pricing')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</button>
+                        <button onClick={() => handleNavClick('features')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">יכולות</button>
+                        <button onClick={() => handleNavClick('comparison')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">יתרונות</button>
+                        <button onClick={() => router.push('/pricing')} className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">מחירים</button>
                     </div>
 
                     <div className="hidden md:flex items-center gap-4">
-                        <button onClick={() => router.push('/login')} className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors">
-                            כניסה
-                        </button>
-                        <button onClick={() => router.push('/pricing')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
-                            נסה חינם
-                        </button>
+                        {isSignedIn ? (
+                            <button 
+                                onClick={() => router.push('/me')} 
+                                className="flex items-center gap-2 bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/20"
+                            >
+                                <User size={16} />
+                                למערכת שלי
+                            </button>
+                        ) : (
+                            <>
+                                <button onClick={() => router.push('/sign-in')} className="flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-indigo-600 transition-colors">
+                                    <LogIn size={16} />
+                                    כניסה
+                                </button>
+                                <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white px-5 py-2.5 rounded-full text-sm font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-xl shadow-slate-900/10">
+                                    התחילו חינם
+                                </button>
+                            </>
+                        )}
                     </div>
 
-                    <button
-                        className="md:hidden text-slate-900"
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        aria-label={isMenuOpen ? 'סגור תפריט' : 'פתח תפריט'}
-                    >
-                        {isMenuOpen ? <X /> : <Menu />}
-                    </button>
+                    <div className="md:hidden flex items-center gap-3">
+                        {isSignedIn ? (
+                            <button 
+                                onClick={() => router.push('/me')} 
+                                className="flex items-center gap-1.5 bg-gradient-to-r from-slate-900 to-slate-700 text-white px-3 py-2 rounded-lg text-xs font-bold hover:from-slate-800 hover:to-slate-600 transition-all shadow-lg"
+                            >
+                                <User size={14} />
+                                למערכת
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={() => router.push('/sign-in')} 
+                                className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-indigo-600 transition-colors"
+                            >
+                                <LogIn size={14} />
+                                כניסה
+                            </button>
+                        )}
+                        <button
+                            className="text-slate-900"
+                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                            aria-label={isMenuOpen ? 'סגור תפריט' : 'פתח תפריט'}
+                        >
+                            {isMenuOpen ? <X /> : <Menu />}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Mobile Menu */}
@@ -285,12 +309,19 @@ export const Navbar = () => {
                             className="md:hidden bg-white/70 backdrop-blur-xl border-b border-slate-200/60 overflow-hidden shadow-2xl shadow-slate-200/50"
                         >
                             <div className="p-6 space-y-4 flex flex-col">
-                                <button onClick={() => { setIsMenuOpen(false); handleNavClick('features'); }} className="text-lg font-medium text-slate-700 text-right">פיצ׳רים</button>
-                                <button onClick={() => { setIsMenuOpen(false); handleNavClick('comparison'); }} className="text-lg font-medium text-slate-700 text-right">למה אנחנו</button>
-                                <button onClick={() => { setIsMenuOpen(false); handleNavClick('pricing'); }} className="text-lg font-medium text-slate-700 text-right">מחירים</button>
+                                <div className="text-xs font-black text-slate-500 uppercase tracking-wider">חבילות</div>
+                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-closer'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת מכירות</button>
+                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-authority'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת שיווק ומיתוג</button>
+                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-operator'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">חבילת תפעול ושטח</button>
+                                <button onClick={() => { setIsMenuOpen(false); router.push('/the-empire'); }} className="text-lg font-medium text-slate-700 text-right hover:text-indigo-600 transition-colors">הכל כלול</button>
                                 <div className="h-px bg-slate-200 my-2"></div>
-                                <button onClick={() => router.push('/login')} className="w-full rounded-xl border border-slate-200 bg-white py-3 font-black text-slate-900 shadow-sm">כניסה</button>
-                                <button onClick={() => router.push('/pricing')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-xl font-bold shadow-xl shadow-slate-900/10">נסה חינם</button>
+                                <button onClick={() => { setIsMenuOpen(false); router.push('/pricing'); }} className="text-lg font-bold text-slate-900 text-right">כל החבילות והמחירים</button>
+                                {!isSignedIn && (
+                                    <>
+                                        <div className="h-px bg-slate-200 my-2"></div>
+                                        <button onClick={() => router.push('/sign-up')} className="bg-gradient-to-r from-slate-900 to-slate-700 text-white w-full py-3 rounded-full font-bold shadow-xl shadow-slate-900/10">התחילו חינם</button>
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     ) : null}

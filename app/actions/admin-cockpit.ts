@@ -847,7 +847,7 @@ export async function getSystemEmailSettings(): Promise<{
     }
     const parsedObj = asObject(parsedValue) ?? {};
 
-    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com').trim();
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
 
     const supportEmailRaw = (parsedObj.supportEmail ?? supportEmailFallback);
@@ -861,7 +861,7 @@ export async function getSystemEmailSettings(): Promise<{
       migrationEmail,
     });
   } catch (error) {
-    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com').trim();
+    const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
     return createSuccessResponse({
       supportEmail: supportEmailFallback || null,

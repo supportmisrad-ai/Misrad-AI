@@ -1,33 +1,32 @@
 'use server';
 
 import { Conversation } from '@/types/social';
-import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-async function resolveOrganizationIdForCurrentUser(): Promise<string | null> {
-  const { userId } = await auth();
-  if (!userId) return null;
-
-  try {
-    const row = await prisma.social_users.findUnique({
-      where: { clerk_user_id: String(userId) },
-      select: { organization_id: true },
-    });
-    const orgId = (row as any)?.organization_id;
-    return orgId ? String(orgId) : null;
-  } catch {
-    return null;
+async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
+  const resolvedOrgSlug = String(orgSlug || '').trim();
+  if (!resolvedOrgSlug) {
+    throw new Error('Missing orgSlug');
   }
+
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+  return String(workspace.id);
 }
 
 /**
  * Server Action: Get all conversations
  */
-export async function getConversations(clientId?: string): Promise<{ success: boolean; data?: Conversation[]; error?: string }> {
+export async function getConversations(
+  orgSlug: string,
+  clientId?: string
+): Promise<{ success: boolean; data?: Conversation[]; error?: string }> {
   try {
-    const organizationId = await resolveOrganizationIdForCurrentUser();
-    if (!organizationId) {
-      return { success: true, data: [] };
+    let organizationId: string;
+    try {
+      organizationId = await requireOrganizationIdForOrgSlug(orgSlug);
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
     const rows = await prisma.social_conversations.findMany({

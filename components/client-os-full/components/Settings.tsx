@@ -254,7 +254,7 @@ const Settings: React.FC = () => {
         return (
           <div className="space-y-8 animate-fade-in">
              <div>
-              <h3 className="text-xl font-display font-semibold text-gray-900 mb-1">טייס אוטומטי</h3>
+              <h3 className="text-xl font-display font-semibold text-gray-900 mb-1">אוטומציה מלאה</h3>
               <p className="text-sm text-gray-500">לשלוח דברים לבד.</p>
             </div>
 
@@ -348,7 +348,7 @@ const Settings: React.FC = () => {
                onClick={() => setActiveTab('automation')}
                className={`flex-shrink-0 lg:w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium whitespace-nowrap ${activeTab === 'automation' ? 'bg-white border border-gray-200 text-nexus-primary shadow-sm' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}
             >
-               <Bell size={18} /> טייס אוטומטי
+               <Bell size={18} /> אוטומציה מלאה
             </button>
             <button 
                onClick={() => setActiveTab('intelligence')}

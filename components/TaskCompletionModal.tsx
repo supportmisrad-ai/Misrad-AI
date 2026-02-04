@@ -155,7 +155,7 @@ export const TaskCompletionModal: React.FC = () => {
                                                     value={userTime.hours}
                                                     onChange={e => handleContributorChange(userId, 'hours', Number(e.target.value))}
                                                     className="w-12 p-1 text-center border border-gray-200 rounded outline-none focus:border-blue-500 font-mono text-sm"
-                                                    placeholder="HH"
+                                                    placeholder="שע"
                                                     min="0"
                                                 />
                                                 <span className="text-gray-400">:</span>
@@ -164,7 +164,7 @@ export const TaskCompletionModal: React.FC = () => {
                                                     value={userTime.minutes}
                                                     onChange={e => handleContributorChange(userId, 'minutes', Number(e.target.value))}
                                                     className="w-12 p-1 text-center border border-gray-200 rounded outline-none focus:border-blue-500 font-mono text-sm"
-                                                    placeholder="MM"
+                                                    placeholder="דק"
                                                     min="0"
                                                 />
                                             </div>

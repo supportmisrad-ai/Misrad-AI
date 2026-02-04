@@ -24,25 +24,25 @@ export default function AboutPage() {
               <Sparkles size={14} />
               <span>אודות</span>
             </div>
-            <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl font-black leading-tight">
+            <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight">
               MISRAD AI
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600">
                 מערכת שנבנתה לעבודה אמיתית
               </span>
             </h1>
-            <p className="mt-6 text-xl text-slate-600 max-w-2xl leading-relaxed">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">
               אנחנו בונים את Misrad AI כדי לתת לעסקים בישראל מערכת אחת שמרכזת הכל: ניהול, תהליכים, צוות, לקוחות ותובנות — בלי רעש ובלי מערכות מפוזרות.
             </p>
 
-            <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-10 sm:mt-14 grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
               {values.map((v) => (
-                <div key={v.label} className="group rounded-3xl bg-white border border-slate-200 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${v.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                    <v.icon size={24} />
+                <div key={v.label} className="group rounded-2xl sm:rounded-3xl bg-white border border-slate-200 p-6 sm:p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+                  <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gradient-to-br ${v.gradient} flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform`}>
+                    <v.icon size={20} className="sm:w-6 sm:h-6" />
                   </div>
-                  <div className="mt-5 text-xs font-black text-slate-500">{v.label}</div>
-                  <div className="mt-2 text-xl font-black text-slate-900">{v.title}</div>
-                  <div className="mt-3 text-slate-600 leading-relaxed">{v.desc}</div>
+                  <div className="mt-4 sm:mt-5 text-xs font-black text-slate-500">{v.label}</div>
+                  <div className="mt-1.5 sm:mt-2 text-lg sm:text-xl font-black text-slate-900">{v.title}</div>
+                  <div className="mt-2 sm:mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">{v.desc}</div>
                 </div>
               ))}
             </div>

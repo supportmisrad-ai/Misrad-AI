@@ -247,7 +247,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 onKeyDown={(e) => handleKeyDown(e, passwordRef)}
                 className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-black outline-none focus:ring-4 ring-blue-50"
-                placeholder="email@example.com"
+                placeholder="דוא&quot;ל"
                 required
               />
             </div>

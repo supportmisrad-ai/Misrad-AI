@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { LifeBuoy, Send, ArrowRight, MessageCircle } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { getContentByKey } from '@/app/actions/site-content';
+import { StyledDropdown } from '@/components/ui/StyledDropdown';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -217,16 +218,17 @@ function SupportPageInner() {
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-1">
                 <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest">קטגוריה</label>
-                <select
+                <StyledDropdown
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-11 px-3 rounded-2xl bg-white border border-gray-200 text-slate-800 font-bold outline-none focus:border-nexus-primary/30"
-                >
-                  <option value="Tech">תמיכה טכנית</option>
-                  <option value="Account">חשבון ופרטים</option>
-                  <option value="Billing">חיוב ומנויים</option>
-                  <option value="Feature">בקשת פיצ׳ר</option>
-                </select>
+                  onChange={setCategory}
+                  options={[
+                    { value: 'Tech', label: 'תמיכה טכנית' },
+                    { value: 'Account', label: 'חשבון ופרטים' },
+                    { value: 'Billing', label: 'חיוב ומנויים' },
+                    { value: 'Feature', label: 'בקשת פיצ׳ר' }
+                  ]}
+                  variant="support"
+                />
               </div>
 
               <div className="space-y-1">

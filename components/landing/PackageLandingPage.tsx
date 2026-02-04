@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { Navbar } from '@/components/landing/Navbar';
 import { Footer } from '@/components/landing/Footer';
+import TestimonialsSection from '@/components/landing/TestimonialsSection';
+import { SalesFaq } from '@/components/landing/SalesFaq';
+import { PackageCTAButtons } from '@/components/landing/PackageCTAButtons';
 import { Users, AlertTriangle, CheckCircle2, Play, ArrowLeft, Sparkles, Gift } from 'lucide-react';
 
 export type PackageLandingBullet = {
@@ -81,7 +84,7 @@ export default function PackageLandingPage({
               </span>
             </div>
 
-            <h1 className="mt-8 text-4xl sm:text-5xl md:text-6xl font-black leading-tight max-w-4xl">
+            <h1 className="mt-6 sm:mt-8 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-tight max-w-4xl">
               {title.split(':')[0]}
               {title.includes(':') && (
                 <span className={`block text-transparent bg-clip-text bg-gradient-to-r ${
@@ -93,50 +96,39 @@ export default function PackageLandingPage({
               {!title.includes(':') && null}
             </h1>
 
-            <p className="mt-6 text-xl text-slate-600 max-w-2xl leading-relaxed">{subtitle}</p>
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg md:text-xl text-slate-600 max-w-2xl leading-relaxed">{subtitle}</p>
 
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-8 sm:mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white flex-shrink-0">
-                    <Users size={20} />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-600 flex items-center justify-center text-white flex-shrink-0">
+                    <Users size={18} className="sm:w-5 sm:h-5" />
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-500">למי זה</div>
-                    <div className="mt-2 text-lg font-black text-slate-900">{audience}</div>
+                    <div className="mt-1.5 sm:mt-2 text-base sm:text-lg font-black text-slate-900">{audience}</div>
                   </div>
                 </div>
               </div>
               <div className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl transition-all">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-600 flex items-center justify-center text-white flex-shrink-0">
-                    <AlertTriangle size={20} />
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-rose-600 flex items-center justify-center text-white flex-shrink-0">
+                    <AlertTriangle size={18} className="sm:w-5 sm:h-5" />
                   </div>
                   <div>
                     <div className="text-xs font-black text-slate-500">הבעיה שאנחנו פותרים</div>
-                    <div className="mt-2 text-lg font-black text-slate-900">{pain}</div>
+                    <div className="mt-1.5 sm:mt-2 text-base sm:text-lg font-black text-slate-900">{pain}</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              <Link
-                href={ctaPrimaryHref}
-                className="group inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
-              >
-                {ctaPrimaryLabel}
-                <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-              </Link>
-              {ctaSecondaryHref && ctaSecondaryLabel ? (
-                <Link
-                  href={ctaSecondaryHref}
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 hover:shadow-lg transition-all"
-                >
-                  {ctaSecondaryLabel}
-                </Link>
-              ) : null}
-            </div>
+            <PackageCTAButtons 
+              ctaPrimaryHref={ctaPrimaryHref}
+              ctaPrimaryLabel={ctaPrimaryLabel}
+              ctaSecondaryHref={ctaSecondaryHref}
+              ctaSecondaryLabel={ctaSecondaryLabel}
+            />
           </div>
         </section>
 
@@ -146,22 +138,22 @@ export default function PackageLandingPage({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               {/* Bullets */}
               <div>
-                <h2 className="text-3xl sm:text-4xl font-black leading-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
                   למה זה עובד
                   <span className={`block text-transparent bg-clip-text bg-gradient-to-r ${
                     isTactical ? 'from-orange-600 to-amber-600' : 'from-indigo-600 to-purple-600'
                   }`}>בפועל</span>
                 </h2>
-                <div className="mt-8 space-y-4">
+                <div className="mt-6 sm:mt-8 space-y-3 sm:space-y-4">
                   {bullets.map((b, i) => (
-                    <div key={b.title} className="group rounded-3xl bg-white border border-slate-200 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                    <div key={b.title} className="group rounded-2xl sm:rounded-3xl bg-white border border-slate-200 p-5 sm:p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                       <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${bulletGradients[i % bulletGradients.length]} flex items-center justify-center text-white shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform`}>
-                          <CheckCircle2 size={20} />
+                        <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br ${bulletGradients[i % bulletGradients.length]} flex items-center justify-center text-white shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                          <CheckCircle2 size={18} className="sm:w-5 sm:h-5" />
                         </div>
                         <div>
-                          <div className="text-lg font-black text-slate-900">{b.title}</div>
-                          <div className="text-slate-600 mt-2 leading-relaxed">{b.desc}</div>
+                          <div className="text-base sm:text-lg font-black text-slate-900">{b.title}</div>
+                          <div className="text-sm sm:text-base text-slate-600 mt-1.5 sm:mt-2 leading-relaxed">{b.desc}</div>
                         </div>
                       </div>
                     </div>
@@ -210,7 +202,7 @@ export default function PackageLandingPage({
                     <div className="mt-6">
                       <Link
                         href={ctaPrimaryHref}
-                        className="w-full group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
+                        className="w-full group inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-slate-900 text-white font-black shadow-lg hover:bg-slate-800 transition-colors"
                       >
                         {ctaPrimaryLabel}
                         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
@@ -218,7 +210,7 @@ export default function PackageLandingPage({
                     </div>
 
                     <div className="mt-4 text-center text-xs text-slate-500">
-                      בלי התחייבות · בלי כרטיס אשראי · פשוט מתחילים לעבוד
+                      בלי התחייבות · פשוט מתחילים לעבוד
                     </div>
                   </div>
                 </div>
@@ -226,6 +218,10 @@ export default function PackageLandingPage({
             </div>
           </div>
         </section>
+
+        <TestimonialsSection />
+
+        <SalesFaq variant="default" />
       </main>
       <Footer />
     </div>

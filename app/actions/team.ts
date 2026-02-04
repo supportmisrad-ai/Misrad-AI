@@ -1,8 +1,8 @@
 'use server';
 
 import type { MemberType, TeamMember, TeamMemberRole } from '@/types/social';
-import { getCurrentUserInfo } from './users';
 import prisma from '@/lib/prisma';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -46,31 +46,22 @@ function isMemberType(v: unknown): v is MemberType {
  * Filters by organization - only shows team members from user's organization
  * Super admin sees all team members
  */
-export async function getTeamMembers(): Promise<{ success: boolean; data?: TeamMember[]; error?: string }> {
+export async function getTeamMembers(orgSlug: string): Promise<{ success: boolean; data?: TeamMember[]; error?: string }> {
   try {
-    // Get user info (role and organizationId)
-    const userInfo = await getCurrentUserInfo();
-    if (!userInfo.success) {
-      return {
-        success: false,
-        error: userInfo.error || 'שגיאה בקבלת פרטי משתמש',
-      };
+    let organizationId: string;
+    try {
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(String(orgSlug || '').trim());
+      organizationId = String(workspace?.id || '').trim();
+    } catch {
+      return { success: false, error: 'Forbidden' };
     }
 
-    const userRole = userInfo.role;
-    const userOrganizationId = userInfo.organizationId;
-
-    // Filter by organization - super_admin sees all, others see only their organization
-    if (userRole !== 'super_admin' && !userOrganizationId) {
-      // If no organizationId, return empty (user not part of any organization)
-      return {
-        success: true,
-        data: [],
-      };
+    if (!organizationId) {
+      return { success: false, error: 'Missing organizationId' };
     }
 
     const rows = (await prisma.social_team_members.findMany({
-      where: userRole === 'super_admin' ? {} : { organization_id: String(userOrganizationId) },
+      where: { organization_id: String(organizationId) },
       select: {
         id: true,
         user_id: true,

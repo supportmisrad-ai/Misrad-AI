@@ -14,7 +14,7 @@ export type SystemEmailSettings = {
 };
 
 export async function getSystemEmailSettingsUnsafe(): Promise<SystemEmailSettings> {
-  const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com').trim();
+  const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
   const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
 
   try {

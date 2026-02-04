@@ -361,7 +361,7 @@ export default function IntegrationsTab({ onNotify }: IntegrationsTabProps) {
                   type="url"
                   value={modalData.webhookUrl || ''}
                   onChange={(e) => setModalData({ ...modalData, webhookUrl: e.target.value })}
-                  placeholder="https://hooks.zapier.com/hooks/catch/..."
+                  placeholder="כתובת Webhook"
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-blue-500 focus:outline-none"
                 />
               </div>

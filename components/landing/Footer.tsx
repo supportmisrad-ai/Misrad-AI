@@ -51,9 +51,9 @@ export const Footer = () => {
             {/* Main Content */}
             <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-8">
                 {/* Top Section - Brand + CTA */}
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 pb-12 border-b border-white/10">
+                <div className="flex flex-col lg:flex-row justify-between items-center gap-8 pb-12 border-b border-white/10">
                     {/* Brand */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col lg:flex-row items-center gap-4 text-center lg:text-right">
                         <div className="w-14 h-14 flex items-center justify-center">
                             {logoSrc ? (
                                 <img src={logoSrc} alt="MISRAD" className="w-14 h-14 object-contain" />
@@ -79,15 +79,15 @@ export const Footer = () => {
                             <Link href="/" className="text-xl font-black text-white tracking-tight hover:text-white/90 transition-colors">
                                 {logoText || 'MISRAD AI'}
                             </Link>
-                            <p className="text-xs text-slate-500 mt-0.5">מערכת הפעלה לעסקים</p>
+                            <p className="text-xs text-slate-500 mt-0.5">ניהול קריאות ופרויקטים</p>
                         </div>
                     </div>
 
                     {/* CTA */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
                         <button
                             onClick={() => router.push('/pricing')}
-                            className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
+                            className="group px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-full hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2"
                         >
                             <Sparkles size={18} />
                             התחל ניסיון חינם
@@ -129,11 +129,11 @@ export const Footer = () => {
                         </h4>
                         <ul className="space-y-3 text-sm">
                             <li><Link href="/pricing" className={linkClasses}>כל החבילות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/solo" className={linkClasses}>Solo<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-closer" className={linkClasses}>The Closer<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-authority" className={linkClasses}>The Authority<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-operator" className={linkClasses}>The Operator<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
-                            <li><Link href="/the-empire" className={linkClasses}>The Empire<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/solo" className={linkClasses}>מודול בודד<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-closer" className={linkClasses}>חבילת מכירות<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-authority" className={linkClasses}>חבילת שיווק ומיתוג<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-operator" className={linkClasses}>חבילת תפעול ושטח<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
+                            <li><Link href="/the-empire" className={linkClasses}>הכל כלול<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                         </ul>
                     </div>
 
@@ -147,7 +147,7 @@ export const Footer = () => {
                             <li><Link href="/support" className={linkClasses}>תמיכה<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
                             <li>
                                 <a href="https://api.nexus-os.co/docs" target="_blank" rel="noreferrer" className={linkClasses}>
-                                    API Docs<ArrowUpRight size={14} className={arrowClasses} />
+                                    תיעוד API<ArrowUpRight size={14} className={arrowClasses} />
                                 </a>
                             </li>
                             <li><Link href="/security" className={linkClasses}>אבטחת מידע<ArrowUpRight size={14} className={arrowClasses} /></Link></li>
@@ -177,7 +177,7 @@ export const Footer = () => {
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
                             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                            <span className="text-xs font-bold text-emerald-400">Online</span>
+                            <span className="text-xs font-bold text-emerald-400">פעיל</span>
                         </div>
                         <span className="text-xs text-slate-500">מערכת ישראלית</span>
                     </div>

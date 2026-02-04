@@ -49,7 +49,7 @@ export function WorkspaceSwitcher({ className = '' }: { className?: string }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('/api/workspaces', { cache: 'no-store' });
+        const res = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
         if (!res.ok) return;
         const data = await res.json();
         setWorkspaces(Array.isArray(data?.workspaces) ? data.workspaces : []);

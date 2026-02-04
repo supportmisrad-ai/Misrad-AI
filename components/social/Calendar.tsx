@@ -14,6 +14,8 @@ import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
 import { SocialPost, SocialPlatform } from '@/types/social';
 import { gregorianToHebrew, getHebrewDateString, isShabbat, getHoliday, isHoliday, isFastDay, getFastDay } from '@/lib/hebrewCalendar';
 import { Avatar } from '@/components/Avatar';
+import { useApp } from '@/contexts/AppContext';
+import { deletePost } from '@/app/actions/posts';
 
 const PLATFORM_ICONS: Record<SocialPlatform, any> = {
   facebook: Facebook,
@@ -35,6 +37,7 @@ export default function Calendar() {
   const basePath = getSocialBasePath(pathname);
   const { clients, posts, setActiveDraft, setActiveClientId, setPosts } = useSocialData();
   const { addToast } = useSocialUI();
+  const { orgSlug } = useApp();
 
   const [viewDate, setViewDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -127,8 +130,20 @@ export default function Calendar() {
     router.push(joinPath(basePath, '/machine'));
   };
 
-  const handleDeletePost = (id: string) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
+  const handleDeletePost = async (id: string) => {
+    const resolvedOrgSlug = String(orgSlug || '').trim();
+    if (!resolvedOrgSlug) {
+      addToast('חסר ארגון פעיל', 'error');
+      return;
+    }
+
+    const result = await deletePost(id, resolvedOrgSlug);
+    if (!result.success) {
+      addToast(result.error || 'שגיאה במחיקת פוסט', 'error');
+      return;
+    }
+
+    setPosts((prev) => prev.filter((p) => p.id !== id));
     addToast('פוסט נמחק');
   };
 

@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import { updateClinicClient } from '@/app/actions/client-clinic';
 import prisma, { queryRawOrgScoped, executeRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object') return null;
@@ -30,23 +31,14 @@ function isInvoiceStatus(value: unknown): value is InvoiceStatus {
   );
 }
 
-async function requireCurrentOrganizationId(clerkUserId: string): Promise<string> {
-  const resolvedClerkUserId = String(clerkUserId || '').trim();
-  if (!resolvedClerkUserId) {
-    throw new Error('Not authenticated');
+async function requireCurrentOrganizationId(orgSlug: string): Promise<string> {
+  const resolvedOrgSlug = String(orgSlug || '').trim();
+  if (!resolvedOrgSlug) {
+    throw new Error('Missing orgSlug');
   }
 
-  const profile = await prisma.profile.findFirst({
-    where: { clerkUserId: resolvedClerkUserId },
-    select: { organizationId: true },
-  });
-
-  const organizationId = String(profile?.organizationId || '').trim();
-  if (!organizationId) {
-    throw new Error('Missing organizationId');
-  }
-
-  return organizationId;
+  const workspace = await requireWorkspaceAccessByOrgSlugApi(resolvedOrgSlug);
+  return String(workspace.id);
 }
 
 async function assertClientInOrganization(params: { organizationId: string; clientId: string }): Promise<void> {
@@ -75,7 +67,8 @@ export async function createPaymentOrder(
   clientId: string,
   amount: number,
   description: string,
-  installmentsAllowed: 1 | 2 = 1
+  installmentsAllowed: 1 | 2 = 1,
+  orgSlug?: string
 ): Promise<{ success: boolean; data?: PaymentOrder; error?: string }> {
   try {
     const authCheck = await requireAuth();
@@ -83,7 +76,7 @@ export async function createPaymentOrder(
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    const organizationId = await requireCurrentOrganizationId(String(orgSlug || ''));
     await assertClientInOrganization({ organizationId, clientId });
 
     const paymentOrder: PaymentOrder = {
@@ -126,7 +119,8 @@ export async function processPayment(
   cardNumber: string,
   expiryDate: string,
   cvv: string,
-  installments: 1 | 2 = 1
+  installments: 1 | 2 = 1,
+  orgSlug?: string
 ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
   try {
     const authCheck = await requireAuth();
@@ -134,7 +128,7 @@ export async function processPayment(
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    const organizationId = await requireCurrentOrganizationId(String(orgSlug || ''));
 
     // Get payment order
     const order = await prisma.social_payment_orders.findUnique({
@@ -353,14 +347,17 @@ async function createInvoice(
 /**
  * Get invoices for a client
  */
-export async function getInvoices(clientId: string): Promise<{ success: boolean; data?: FinanceInvoice[]; error?: string }> {
+export async function getInvoices(
+  clientId: string,
+  orgSlug?: string
+): Promise<{ success: boolean; data?: FinanceInvoice[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    const organizationId = await requireCurrentOrganizationId(String(orgSlug || ''));
     await assertClientInOrganization({ organizationId, clientId });
 
     const data = await queryRawOrgScoped<unknown[]>(prisma, {
@@ -409,14 +406,17 @@ export async function getInvoices(clientId: string): Promise<{ success: boolean;
 /**
  * Get payment history for a client
  */
-export async function getPaymentHistory(clientId: string): Promise<{ success: boolean; data?: unknown[]; error?: string }> {
+export async function getPaymentHistory(
+  clientId: string,
+  orgSlug?: string
+): Promise<{ success: boolean; data?: unknown[]; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
-    const organizationId = await requireCurrentOrganizationId(String(authCheck.userId));
+    const organizationId = await requireCurrentOrganizationId(String(orgSlug || ''));
     await assertClientInOrganization({ organizationId, clientId });
 
     const data = await queryRawOrgScoped<unknown[]>(prisma, {
