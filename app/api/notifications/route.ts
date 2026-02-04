@@ -36,7 +36,7 @@ async function selectDbUserId(params: { workspaceId: string; email: string }): P
         query: `
             select id::text as id
             from nexus_users
-            where organization_id = $1::uuid
+            where organization_id::uuid = $1::uuid
               and lower(email) = $2::text
             order by updated_at desc nulls last, created_at desc nulls last
             limit 1
@@ -83,7 +83,7 @@ async function GETHandler(request: NextRequest) {
             query: `
                 select *
                 from misrad_notifications
-                where organization_id = $1::uuid
+                where organization_id::uuid = $1::uuid
                   and recipient_id::text = $2::text
                 order by created_at desc
                 limit 50

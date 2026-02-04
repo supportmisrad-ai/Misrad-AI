@@ -551,7 +551,7 @@ function assertRawScopeParams(params: {
   // - insert into ... (organization_id, ...) values ($1, ...)
   // by requiring the placeholder appears close to the column mention.
   const placeholderNearColumnRe = new RegExp(
-    `(?:\\b\\w+\\.)?${col}\\b[\\s\\S]{0,1500}?\\$(\\d+)`,
+    `(?:\\b\\w+\\.)?${col}\\b(?::\\w+)?[\\s\\S]{0,1500}?\\$(\\d+)`,
     'gi'
   );
   const matches = Array.from(query.matchAll(placeholderNearColumnRe));
