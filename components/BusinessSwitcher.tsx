@@ -39,6 +39,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
             try {
                 const response = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
                 if (!response.ok) {
+                    // If unauthorized, return empty list (don't show error)
                     setBusinesses([]);
                     return;
                 }
