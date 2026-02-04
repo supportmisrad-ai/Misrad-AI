@@ -8,6 +8,7 @@ import { getBaseUrl } from '@/lib/utils';
 import { sendOrganizationWelcomeEmail } from '@/lib/email';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 type SocialOrganizationsCreateData = Parameters<typeof prisma.social_organizations.create>[0]['data'];
 type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.social_organizations.updateMany>[0]['data'];
@@ -97,147 +98,163 @@ export async function getOrganizations(params?: {
   query?: string;
   limit?: number;
 }): Promise<{ success: boolean; data?: OrganizationWithOwner[]; error?: string }> {
-  try {
-    const guard = await requireSuperAdmin();
-    if (!guard.success) return guard;
-    const query = (params?.query || '').trim();
-    const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
+  return await withTenantIsolationContext(
+    { suppressReporting: true, source: 'admin-organizations' },
+    async () => {
+      try {
+        const guard = await requireSuperAdmin();
+        if (!guard.success) return guard;
+        const query = (params?.query || '').trim();
+        const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
 
-    const orgs = await prisma.social_organizations.findMany({
-      where: query
-        ? {
-            OR: [
-              { name: { contains: query, mode: 'insensitive' } },
-              { slug: { contains: query, mode: 'insensitive' } },
-            ],
+        const orgs = await prisma.social_organizations.findMany({
+          where: query
+            ? {
+                OR: [
+                  { name: { contains: query, mode: 'insensitive' } },
+                  { slug: { contains: query, mode: 'insensitive' } },
+                ],
+              }
+            : undefined,
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo: true,
+            owner_id: true,
+            has_nexus: true,
+            has_social: true,
+            has_system: true,
+            has_finance: true,
+            has_client: true,
+            has_operations: true,
+            subscription_status: true,
+            subscription_plan: true,
+            trial_start_date: true,
+            trial_days: true,
+            subscription_start_date: true,
+            created_at: true,
+            updated_at: true,
+          },
+          orderBy: { created_at: 'desc' },
+          take: limit,
+        });
+
+        const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
+
+        const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
+        if (ownerIds.length) {
+          const owners = await prisma.social_users.findMany(
+            withPrismaTenantIsolationOverride({
+              where: { id: { in: ownerIds } },
+              select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
+            }, { suppressReporting: true })
+          );
+
+          for (const o of owners || []) {
+            ownersById[String(o.id)] = {
+              id: String(o.id),
+              email: o.email == null ? null : String(o.email),
+              full_name: o.full_name == null ? null : String(o.full_name),
+              clerk_user_id: String(o.clerk_user_id),
+              role: o.role == null ? null : String(o.role),
+            };
           }
-        : undefined,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        logo: true,
-        owner_id: true,
-        has_nexus: true,
-        has_social: true,
-        has_system: true,
-        has_finance: true,
-        has_client: true,
-        has_operations: true,
-        subscription_status: true,
-        subscription_plan: true,
-        trial_start_date: true,
-        trial_days: true,
-        subscription_start_date: true,
-        created_at: true,
-        updated_at: true,
-      },
-      orderBy: { created_at: 'desc' },
-      take: limit,
-    });
+        }
 
-    const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
+        const orgIds = (orgs || []).map((o) => o.id);
 
-    const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
-    if (ownerIds.length) {
-      const owners = await prisma.social_users.findMany({
-        where: { id: { in: ownerIds } },
-        select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
-      });
+        const membersCountByOrg: Record<string, number> = {};
+        if (orgIds.length) {
+          const group = await prisma.social_users.groupBy(
+            withPrismaTenantIsolationOverride({
+              by: ['organization_id'],
+              where: { organization_id: { in: orgIds } },
+              _count: { _all: true },
+            }, { suppressReporting: true })
+          );
 
-      for (const o of owners || []) {
-        ownersById[String(o.id)] = {
-          id: String(o.id),
-          email: o.email == null ? null : String(o.email),
-          full_name: o.full_name == null ? null : String(o.full_name),
-          clerk_user_id: String(o.clerk_user_id),
-          role: o.role == null ? null : String(o.role),
-        };
-      }
-    }
-
-    const orgIds = (orgs || []).map((o) => o.id);
-
-    const membersCountByOrg: Record<string, number> = {};
-    if (orgIds.length) {
-      const group = await prisma.social_users.groupBy({
-        by: ['organization_id'],
-        where: { organization_id: { in: orgIds } },
-        _count: { _all: true },
-      });
-
-      for (const g of group || []) {
-        const key = String(g.organization_id || '');
-        if (!key) continue;
-        membersCountByOrg[key] = Number(g._count._all || 0);
-      }
-    }
+          for (const g of group || []) {
+            const key = String(g.organization_id || '');
+            if (!key) continue;
+            membersCountByOrg[key] = Number(g._count._all || 0);
+          }
+        }
 
     function toIsoOrNull(value: unknown): string | null {
-      if (!value) return null;
-      if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
-      const d = new Date(String(value));
-      return Number.isNaN(d.getTime()) ? null : d.toISOString();
+          if (!value) return null;
+          if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+          const d = new Date(String(value));
+          return Number.isNaN(d.getTime()) ? null : d.toISOString();
+        }
+
+        const enriched: OrganizationWithOwner[] = (orgs || []).map((o) => ({
+          id: String(o.id),
+          name: String(o.name),
+          slug: o.slug == null ? null : String(o.slug),
+          logo: o.logo == null ? null : String(o.logo),
+          owner_id: String(o.owner_id),
+          has_nexus: o.has_nexus,
+          has_social: o.has_social,
+          has_system: o.has_system,
+          has_finance: o.has_finance,
+          has_client: o.has_client,
+          has_operations: o.has_operations,
+          subscription_status: o.subscription_status == null ? null : String(o.subscription_status),
+          subscription_plan: o.subscription_plan == null ? null : String(o.subscription_plan),
+          trial_start_date: toIsoOrNull(o.trial_start_date),
+          trial_days: o.trial_days == null ? null : Number(o.trial_days),
+          subscription_start_date: toIsoOrNull(o.subscription_start_date),
+          created_at: toIsoOrNull(o.created_at),
+          updated_at: toIsoOrNull(o.updated_at),
+          owner: ownersById[o.owner_id] || null,
+          membersCount: membersCountByOrg[o.id] || 0,
+        }));
+
+        return createSuccessResponse(enriched);
+      } catch (error) {
+        return createErrorResponse(error, 'שגיאה בטעינת ארגונים');
+      }
     }
-
-    const enriched: OrganizationWithOwner[] = (orgs || []).map((o) => ({
-      id: String(o.id),
-      name: String(o.name),
-      slug: o.slug == null ? null : String(o.slug),
-      logo: o.logo == null ? null : String(o.logo),
-      owner_id: String(o.owner_id),
-      has_nexus: o.has_nexus,
-      has_social: o.has_social,
-      has_system: o.has_system,
-      has_finance: o.has_finance,
-      has_client: o.has_client,
-      has_operations: o.has_operations,
-      subscription_status: o.subscription_status == null ? null : String(o.subscription_status),
-      subscription_plan: o.subscription_plan == null ? null : String(o.subscription_plan),
-      trial_start_date: toIsoOrNull(o.trial_start_date),
-      trial_days: o.trial_days == null ? null : Number(o.trial_days),
-      subscription_start_date: toIsoOrNull(o.subscription_start_date),
-      created_at: toIsoOrNull(o.created_at),
-      updated_at: toIsoOrNull(o.updated_at),
-      owner: ownersById[o.owner_id] || null,
-      membersCount: membersCountByOrg[o.id] || 0,
-    }));
-
-    return createSuccessResponse(enriched);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת ארגונים');
-  }
+  );
 }
 
 export async function getSocialUsersLite(params?: {
   query?: string;
   limit?: number;
 }): Promise<{ success: boolean; data?: SocialUserLite[]; error?: string }> {
-  try {
-    const guard = await requireSuperAdmin();
-    if (!guard.success) return guard;
-    const query = (params?.query || '').trim();
-    const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
+  return await withTenantIsolationContext(
+    { suppressReporting: true, source: 'admin-social-users-lite' },
+    async () => {
+      try {
+        const guard = await requireSuperAdmin();
+        if (!guard.success) return guard;
+        const query = (params?.query || '').trim();
+        const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
 
-    const data = await prisma.social_users.findMany({
-      where: query
-        ? {
-            OR: [
-              { email: { contains: query, mode: 'insensitive' } },
-              { full_name: { contains: query, mode: 'insensitive' } },
-              { clerk_user_id: { contains: query, mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
-      select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true },
-      orderBy: { created_at: 'desc' },
-      take: limit,
-    });
+        const data = await prisma.social_users.findMany(
+          withPrismaTenantIsolationOverride({
+            where: query
+              ? {
+                  OR: [
+                    { email: { contains: query, mode: 'insensitive' as const } },
+                    { full_name: { contains: query, mode: 'insensitive' as const } },
+                    { clerk_user_id: { contains: query, mode: 'insensitive' as const } },
+                  ],
+                }
+              : undefined,
+            select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true },
+            orderBy: { created_at: 'desc' as const },
+            take: limit,
+          }, { suppressReporting: true })
+        );
 
-    return createSuccessResponse(data || []);
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
-  }
+        return createSuccessResponse(data || []);
+      } catch (error) {
+        return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
+      }
+    }
+  );
 }
 
 export async function createOrganization(input: {
