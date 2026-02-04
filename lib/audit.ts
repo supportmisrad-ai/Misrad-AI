@@ -88,11 +88,13 @@ export async function logAuditEvent(
         };
         
         // In production, save to database
-        // For now, log to console (replace with database write)
-        console.log('[AUDIT]', JSON.stringify(auditLog, null, 2));
-        
-        // TODO: Save to database
-        // await db.auditLogs.create({ data: auditLog });
+        // For development, log to console
+        if (process.env.NODE_ENV === 'production') {
+            // TODO: Save to database when audit table is ready
+            // await db.auditLogs.create({ data: auditLog });
+        } else {
+            console.log('[AUDIT]', JSON.stringify(auditLog, null, 2));
+        }
         
     } catch (error) {
         // Don't throw - audit failures shouldn't break the app
@@ -156,11 +158,13 @@ export async function logIntegrationEvent(
         };
         
         // In production, save to database
-        // For now, log to console (replace with database write)
-        console.log('[AUDIT]', JSON.stringify(auditLog, null, 2));
-        
-        // TODO: Save to database
-        // await db.auditLogs.create({ data: auditLog });
+        // For development, log to console
+        if (process.env.NODE_ENV === 'production') {
+            // TODO: Save to database when audit table is ready
+            // await db.auditLogs.create({ data: auditLog });
+        } else {
+            console.log('[AUDIT]', JSON.stringify(auditLog, null, 2));
+        }
         
     } catch (error) {
         // Don't throw - audit failures shouldn't break the app
