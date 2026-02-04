@@ -401,13 +401,16 @@ export async function updateNexusPresenceHeartbeat(params: {
   let updatedCount: { count: number } | null = null;
   let usedFallback = false;
   try {
-    updatedCount = await prisma.nexusUser.updateMany({
+    // Use update instead of updateMany for better performance
+    const result = await prisma.nexusUser.update({
       where: {
         id: dbUserId,
         organizationId: workspace.id,
       },
       data: updateData,
+      select: { id: true },
     });
+    updatedCount = { count: result ? 1 : 0 };
   } catch {
     // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
     usedFallback = true;

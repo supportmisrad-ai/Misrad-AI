@@ -12,7 +12,7 @@ import { isCeoRole } from '@/lib/constants/roles';
 import { getNexusMe, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-const PRESENCE_REQUEST_TIMEOUT_MS = 12_000;
+const PRESENCE_REQUEST_TIMEOUT_MS = 8_000;
 
 type ToastKind = 'success' | 'error' | 'info' | 'warning';
 
@@ -180,8 +180,8 @@ export const useAuth = (
         try {
             const startedAt = Date.now();
             pendingWarnTimeout = setTimeout(() => {
-                console.warn(`[Presence] heartbeat pending >5s (possible hang) orgSlug=${orgSlug}`);
-            }, 5000);
+                console.warn(`[Presence] heartbeat pending >3s (possible hang) orgSlug=${orgSlug}`);
+            }, 3000);
             const timeoutPromise = new Promise<never>((_, reject) => {
                 timeoutHandle = setTimeout(() => {
                     reject(new Error(`Presence heartbeat timeout after ${PRESENCE_REQUEST_TIMEOUT_MS}ms`));
