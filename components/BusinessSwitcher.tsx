@@ -222,7 +222,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998]"
+                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]"
                                 onClick={() => setIsOpen(false)}
                             />
                             <motion.div
@@ -236,7 +236,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                     top: dropdownPosition.top,
                                     left: Math.max(8, dropdownPosition.left),
                                     width: '320px',
-                                    zIndex: 9999,
+                                    zIndex: 70,
                                 }}
                                 className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
                             >
