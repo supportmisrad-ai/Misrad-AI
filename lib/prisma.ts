@@ -1028,6 +1028,9 @@ if (typeof _rawQueryUnsafeOriginal === 'function') {
       /\bSELECT\b[\s\S]*\bFROM\s+api_keys\b[\s\S]*\bWHERE\s+key\s*=\s*\$1\b/i,
       // Public Leads API - rate limiting
       /\bSELECT\b[\s\S]*\bFROM\s+api_rate_limits\b[\s\S]*\bWHERE\s+key\s*=\s*\$1\b/i,
+      // Scoped queries (notifications, etc.)
+      /\borganization_id::uuid\s*=\s*\$\d+\b/i,
+      /\borganization_id\s*=\s*\$\d+::uuid\b/i,
     ];
     if (allowlist.some((pattern) => pattern.test(query))) {
       return (_rawQueryUnsafeOriginal as RawQueryUnsafe).call(this as unknown, query, ...args);
