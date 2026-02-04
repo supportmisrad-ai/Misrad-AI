@@ -31,7 +31,7 @@ export default function MobileBottomNav({
   plusClassName?: string;
   className?: string;
 }) {
-  const baseHeight = 65;
+  const baseHeight = 80;
 
   const resolvedPlusGradient = plusGradient || 'from-slate-900 to-slate-700';
 
@@ -39,20 +39,24 @@ export default function MobileBottomNav({
     const Icon = item.icon;
     const isActive = Boolean(item.active);
     return (
-      <button
-        key={item.id}
-        onClick={item.onClick}
-        aria-label={item.ariaLabel || item.label}
-        aria-current={isActive ? 'page' : undefined}
-        type="button"
-        className={`mx-auto flex flex-col items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200 ${
-          isActive
-            ? 'bg-slate-900 text-white shadow-lg shadow-black/20'
-            : 'bg-white/80 text-slate-500 border border-slate-200/60 shadow-sm hover:bg-white hover:border-slate-200'
-        }`}
-      >
-        <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className="sm:w-5 sm:h-5" />
-      </button>
+      <div key={item.id} className="flex flex-col items-center gap-1.5">
+        <button
+          onClick={item.onClick}
+          aria-label={item.ariaLabel || item.label}
+          aria-current={isActive ? 'page' : undefined}
+          type="button"
+          className={`flex items-center justify-center w-11 h-11 rounded-2xl transition-all duration-200 ${
+            isActive
+              ? 'bg-slate-900 text-white shadow-lg shadow-black/20'
+              : 'bg-white/80 text-slate-500 border border-slate-200/60 shadow-sm hover:bg-white hover:border-slate-200'
+          }`}
+        >
+          <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className="sm:w-5 sm:h-5" />
+        </button>
+        <span className={`text-[10px] font-bold leading-none ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
+          {item.label}
+        </span>
+      </div>
     );
   };
 
@@ -79,7 +83,21 @@ export default function MobileBottomNav({
               onClick={onPlusClickAction}
               aria-label={plusAriaLabel || 'פעולה חדשה'}
               type="button"
-              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[6px] border-transparent bg-gradient-to-br ${resolvedPlusGradient} ${plusClassName || ''}`}
+              className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_10px_30px_rgba(15,23,42,0.22)] border-[5px] border-white transition-all duration-200 ${plusClassName || ''}`}
+              style={{
+                background: `linear-gradient(135deg, ${plusGradient ? plusGradient.replace('from-', '').replace('to-', '').split(' ').map(c => {
+                  const colorMap: Record<string, string> = {
+                    'slate-900': '#0f172a',
+                    'slate-700': '#334155',
+                    'indigo-600': '#4f46e5',
+                    'purple-600': '#9333ea',
+                    'blue-600': '#2563eb',
+                    'cyan-600': '#0891b2',
+                    'emerald-600': '#059669',
+                  };
+                  return colorMap[c] || '#0f172a';
+                }).join(', ') : '#0f172a, #334155'})`
+              }}
             >
               <Plus
                 size={32}
