@@ -353,8 +353,8 @@ export function AiAssistantWidget() {
 
   const headerBg = isSales ? 'bg-slate-950' : 'bg-slate-900';
   const panelSize = isMedium
-    ? 'w-[min(640px,calc(100vw-2rem))] h-[min(820px,calc(100vh-4rem))]'
-    : 'w-[min(480px,calc(100vw-2rem))] h-[min(720px,calc(100vh-6rem))]';
+    ? 'w-[min(640px,calc(100vw-1rem))] h-[min(820px,calc(100vh-2rem))] md:w-[640px] md:h-[820px]'
+    : 'w-[calc(100vw-1rem)] h-[calc(100vh-2rem)] sm:w-[min(480px,calc(100vw-2rem))] sm:h-[min(720px,calc(100vh-6rem))]';
 
   const filteredKnowledge = searchQuery 
     ? KNOWLEDGE_BASE.filter(k => 
@@ -369,7 +369,7 @@ export function AiAssistantWidget() {
   return (
     <>
       {/* FAB */}
-      <div className="fixed bottom-6 right-6 z-[450]" dir="rtl">
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[450]" dir="rtl">
         <div className="relative">
           <AnimatePresence>
             {proactiveOpen && !isOpen ? (
@@ -400,10 +400,10 @@ export function AiAssistantWidget() {
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2 relative z-10"
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2 relative z-10"
             aria-label="פתח עוזר חכם"
           >
-            <span className="text-2xl leading-none">{fabIcon}</span>
+            <span className="text-xl sm:text-2xl leading-none">{fabIcon}</span>
           </motion.button>
         </div>
       </div>
@@ -415,37 +415,37 @@ export function AiAssistantWidget() {
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className={`fixed bottom-28 right-6 z-[500] ${panelSize} bg-white rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col`}
+            className={`fixed bottom-0.5 right-0.5 sm:bottom-28 sm:right-6 z-[500] ${panelSize} bg-white rounded-2xl sm:rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col`}
             dir="rtl"
           >
             {/* Header with Tabs */}
             <div className={`${headerBg} text-white flex flex-col`}>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 border-2 border-white/30 flex items-center justify-center shadow-lg">
-                    <span className="text-2xl">{personaAvatar}</span>
+              <div className="px-3 py-3 sm:px-5 sm:py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-400 to-indigo-500 border-2 border-white/30 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <span className="text-xl sm:text-2xl">{personaAvatar}</span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="text-[15px] font-black truncate">{personaName}</div>
-                    <div className="text-[12px] font-bold text-white/80 truncate">{personaRole} • MISRAD AI</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm sm:text-[15px] font-black truncate">{personaName}</div>
+                    <div className="text-[11px] sm:text-[12px] font-bold text-white/80 truncate">{personaRole} • MISRAD AI</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsMedium((v) => !v)}
-                    className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
+                    className="hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 items-center justify-center transition-colors"
                     aria-label={isMedium ? 'הקטן חלון' : 'הרחב חלון'}
                   >
-                    {isMedium ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                    {isMedium ? <Minimize2 size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Maximize2 size={16} className="sm:w-[18px] sm:h-[18px]" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
                     aria-label="סגור"
                   >
-                    <X size={18} />
+                    <X size={16} className="sm:w-[18px] sm:h-[18px]" />
                   </button>
                   <button
                     type="button"
@@ -454,10 +454,10 @@ export function AiAssistantWidget() {
                       setShowFeedback(true);
                       setCurrentChatId(null);
                     }}
-                    className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
                     aria-label="סיים שיחה"
                   >
-                    <Check size={18} />
+                    <Check size={16} className="sm:w-[18px] sm:h-[18px]" />
                   </button>
                 </div>
               </div>
@@ -466,35 +466,35 @@ export function AiAssistantWidget() {
               <div className="flex border-t border-white/10">
                 <button
                   onClick={() => setView('chat')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'chat' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <MessageSquare size={16} />
+                  <MessageSquare size={14} className="sm:w-4 sm:h-4" />
                   <span>שיחה</span>
                 </button>
                 <button
                   onClick={() => setView('history')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'history' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <Clock size={16} />
+                  <Clock size={14} className="sm:w-4 sm:h-4" />
                   <span>היסטוריה</span>
                 </button>
                 <button
                   onClick={() => setView('help')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 py-2.5 sm:px-4 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'help' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <HelpCircle size={16} />
+                  <HelpCircle size={14} className="sm:w-4 sm:h-4" />
                   <span>עזרה</span>
                 </button>
               </div>
@@ -615,16 +615,16 @@ export function AiAssistantWidget() {
               {view === 'chat' && (
                 <>
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto px-4 py-4">
+                  <div className="flex-1 overflow-y-auto px-3 py-3 sm:px-4 sm:py-4">
                     {messages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-4">
-                          <Sparkles size={36} className="text-slate-600" />
+                      <div className="h-full flex flex-col items-center justify-center text-center px-3 sm:px-6">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-3 sm:mb-4">
+                          <Sparkles size={28} className="sm:w-9 sm:h-9 text-slate-600" />
                         </div>
-                        <h3 className="text-[17px] font-bold text-slate-900 mb-2">
+                        <h3 className="text-base sm:text-[17px] font-bold text-slate-900 mb-2">
                           {isSales ? 'שלום! איך אפשר לעזור?' : 'העוזר החכם שלך כאן'}
                         </h3>
-                        <p className="text-[14px] text-slate-600 mb-6 leading-relaxed">
+                        <p className="text-[13px] sm:text-[14px] text-slate-600 mb-4 sm:mb-6 leading-relaxed">
                           {isSales 
                             ? 'שאל אותי על תוכניות, מחירים או תהליך ההצטרפות'
                             : 'שאל אותי כל שאלה על השימוש במערכת'}
@@ -636,10 +636,10 @@ export function AiAssistantWidget() {
                             <button
                               key={idx}
                               onClick={() => sendText(action)}
-                              className="w-full px-5 py-3.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl text-[14px] font-semibold text-slate-700 hover:text-slate-900 transition-all text-right flex items-center justify-between group"
+                              className="w-full px-4 py-3 sm:px-5 sm:py-3.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl sm:rounded-2xl text-[13px] sm:text-[14px] font-semibold text-slate-700 hover:text-slate-900 transition-all text-right flex items-center justify-between group"
                             >
                               <span>{action}</span>
-                              <Sparkles size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                              <Sparkles size={14} className="sm:w-4 sm:h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
                             </button>
                           ))}
                         </div>
@@ -658,7 +658,7 @@ export function AiAssistantWidget() {
                             <div key={id} className="space-y-2">
                               <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                                 <div
-                                  className={`${isUser ? 'max-w-[85%]' : 'w-full'} rounded-3xl px-6 py-5 shadow-sm text-[16px] leading-relaxed ${
+                                  className={`${isUser ? 'max-w-[85%]' : 'w-full'} rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-6 sm:py-5 shadow-sm text-[14px] sm:text-[16px] leading-relaxed ${
                                     isUser
                                       ? 'bg-slate-900 text-white border-none font-medium'
                                       : 'bg-white text-slate-900 border border-slate-200'
@@ -682,14 +682,14 @@ export function AiAssistantWidget() {
 
                               {/* Quick Actions */}
                               {!isUser && m.quickActions && m.quickActions.length > 0 && !isTyping && (
-                                <div className="flex gap-2 flex-wrap pr-2">
+                                <div className="flex gap-1.5 sm:gap-2 flex-wrap pr-1 sm:pr-2">
                                   {m.quickActions.map((action, idx) => (
                                     <button
                                       key={idx}
                                       onClick={() => sendText(action)}
-                                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 rounded-full text-[13px] font-semibold text-slate-700 hover:text-slate-900 transition-all flex items-center gap-2"
+                                      className="px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 rounded-full text-xs sm:text-[13px] font-semibold text-slate-700 hover:text-slate-900 transition-all flex items-center gap-1.5 sm:gap-2"
                                     >
-                                      <Zap size={14} className="text-slate-500" />
+                                      <Zap size={12} className="sm:w-3.5 sm:h-3.5 text-slate-500" />
                                       {action}
                                     </button>
                                   ))}
@@ -725,23 +725,23 @@ export function AiAssistantWidget() {
                       e.preventDefault();
                       void sendText(input);
                     }}
-                    className="p-4 bg-white border-t border-slate-200 flex items-center gap-3"
+                    className="p-3 sm:p-4 bg-white border-t border-slate-200 flex items-center gap-2 sm:gap-3"
                   >
                     <input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      placeholder={isSales ? 'שאל אותי על מחירים, חבילות וניסיון חינם...' : 'שאל אותי איך לבצע פעולה במערכת...'}
-                      className="flex-1 h-14 rounded-2xl border-2 border-slate-200 bg-slate-50 px-5 text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
+                      placeholder={isSales ? 'שאל על מחירים...' : 'איך לבצע פעולה...'}
+                      className="flex-1 h-11 sm:h-14 rounded-xl sm:rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 sm:px-5 text-sm sm:text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
                       style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
                       disabled={isLoading}
                     />
                     <button
                       type="submit"
                       disabled={isLoading || !String(input || '').trim()}
-                      className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:from-amber-500 hover:to-orange-600 hover:shadow-xl hover:shadow-orange-500/20 active:scale-95 transition-all focus:outline-none shadow-lg"
+                      className="h-11 w-11 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:from-amber-500 hover:to-orange-600 hover:shadow-xl hover:shadow-orange-500/20 active:scale-95 transition-all focus:outline-none shadow-lg"
                       aria-label="שלח"
                     >
-                      <ArrowUp size={22} strokeWidth={3} />
+                      <ArrowUp size={18} className="sm:w-[22px] sm:h-[22px]" strokeWidth={3} />
                     </button>
                   </form>
                   {error && <div className="px-5 pb-4 text-[13px] font-bold text-rose-600 bg-white">{error}</div>}

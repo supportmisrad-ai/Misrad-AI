@@ -379,13 +379,21 @@ export default function AddClientModal() {
                       <div className="flex items-center gap-4">
                         {logo && <img src={logo} className="w-20 h-20 rounded-2xl object-cover" alt="Logo" />}
                         <button
+                          type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl font-black flex items-center gap-2 text-sm md:text-base"
+                          className="px-4 md:px-6 py-3 md:py-4 bg-slate-50 border border-slate-100 rounded-xl md:rounded-2xl font-black flex items-center gap-2 text-sm md:text-base hover:bg-slate-100 transition-colors"
                         >
                           <Camera size={18} className="md:w-5 md:h-5" />
                           העלה לוגו
                         </button>
-                        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                        <input 
+                          ref={fileInputRef} 
+                          type="file" 
+                          accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" 
+                          onChange={handleLogoUpload} 
+                          className="absolute opacity-0 pointer-events-none w-0 h-0" 
+                          tabIndex={-1}
+                        />
                       </div>
                     </div>
                   </div>

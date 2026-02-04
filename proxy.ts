@@ -11,6 +11,10 @@ const isPublicRoute = createRouteMatcher([
   "/reset-password(.*)",
   "/maintenance(.*)",
   "/api/webhooks/clerk",
+  "/manifest.json",
+  "/favicon.ico",
+  "/robots.txt",
+  "/sitemap.xml",
 ]);
 
 const BYPASS_CLERK_USER_ID = (process.env.MAINTENANCE_BYPASS_CLERK_USER_ID || "").trim();

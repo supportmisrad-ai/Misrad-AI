@@ -14,13 +14,17 @@ import { CTAButtons } from '@/components/landing/CTAButtons';
 import { PartnersLogosSection } from '@/components/landing/PartnersLogosSection';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 10;
 
 async function getLandingSettings() {
   try {
-    const row = await prisma.social_system_settings.findUnique({
-      where: { key: 'landing_settings' },
-      select: { value: true },
-    });
+    const row = await Promise.race([
+      prisma.social_system_settings.findUnique({
+        where: { key: 'landing_settings' },
+        select: { value: true },
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
     const value = (row as any)?.value || {};
     return {
       logo: value.logo ?? null,
@@ -29,67 +33,6 @@ async function getLandingSettings() {
   } catch {
     return { logo: null, logoText: null };
   }
-}
-
-async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | null> {
-  const clerkUserId = await getCurrentUserId();
-  if (!clerkUserId) return null;
-
-  const socialUser = await prisma.social_users.findUnique({
-    where: { clerk_user_id: clerkUserId },
-    select: { id: true, organization_id: true },
-  });
-
-  if (!socialUser?.id) return null;
-
-  const orgIds = new Set<string>();
-
-  if (socialUser.organization_id) {
-    orgIds.add(String(socialUser.organization_id));
-  }
-
-  const ownedOrgs = await prisma.social_organizations.findMany({
-    where: { owner_id: String(socialUser.id) },
-    select: { id: true },
-  });
-
-  for (const row of ownedOrgs) {
-    if (row?.id) orgIds.add(String(row.id));
-  }
-
-  const memberships = await prisma.social_team_members.findMany({
-    where: { user_id: String(socialUser.id) },
-    select: { organization_id: true },
-  });
-
-  for (const row of memberships) {
-    if (row?.organization_id) orgIds.add(String(row.organization_id));
-  }
-
-  const ids = Array.from(orgIds);
-  if (!ids.length) return null;
-
-  const orgs = await prisma.social_organizations.findMany({
-    where: { id: { in: ids } },
-    select: { id: true, slug: true },
-  });
-
-  if (!orgs.length) return null;
-
-  const last = await loadCurrentUserLastLocation();
-  const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
-  if (lastKey) {
-    const match = orgs.find((o) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
-    if (match) return String(match.slug || match.id);
-  }
-
-  const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
-  if (primaryId) {
-    const match = orgs.find((o) => String(o.id) === primaryId);
-    if (match) return String(match.slug || match.id);
-  }
-
-  return String(orgs[0].slug || orgs[0].id);
 }
 
 export default async function RootPage() {
