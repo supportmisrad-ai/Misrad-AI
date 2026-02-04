@@ -2,6 +2,7 @@
 
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase';
+import { currentUser } from '@clerk/nextjs/server';
 import prisma, { executeRawOrgScoped } from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
@@ -385,59 +386,147 @@ export async function updateNexusPresenceHeartbeat(params: {
   serverTime: string;
   debug?: { workspaceId: string; userId: string; usedFallback: boolean; updatedCount: number };
 }> {
-  const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
-  const workspace = resolved.workspace;
-
-  const dbUser = asObject(resolved.user) ?? {};
-  const dbUserId = String(dbUser.id ?? '').trim();
-  if (!dbUserId) throw new Error('User not found');
-
-  const now = new Date();
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  const updateData = { online: true } as any;
-  updateData.lastSeenAt = now;
-
-  let updatedCount: { count: number } | null = null;
-  let usedFallback = false;
+  // Fast path: try to get workspace and user info with minimal DB calls
   try {
-    // Use update instead of updateMany for better performance
-    const result = await prisma.nexusUser.update({
-      where: {
-        id: dbUserId,
-        organizationId: workspace.id,
-      },
-      data: updateData,
-      select: { id: true },
-    });
-    updatedCount = { count: result ? 1 : 0 };
-  } catch {
-    // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
-    usedFallback = true;
-    updatedCount = await prisma.nexusUser.updateMany({
-      where: {
-        id: dbUserId,
-        organizationId: workspace.id,
-      },
-      data: {
-        online: true,
-      },
-    });
+    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgId);
+    
+    const clerk = await currentUser();
+    const clerkUserId = clerk?.id || null;
+    if (!clerkUserId) {
+      throw new Error('Unauthorized');
+    }
+
+    const now = new Date();
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    // Try direct update first - this is the most common case
+    try {
+      const result = await prisma.nexusUser.update({
+        where: {
+          id: clerkUserId,
+          organizationId: workspace.id,
+        },
+        data: {
+          online: true,
+          lastSeenAt: now,
+        },
+        select: { id: true },
+      });
+      
+      return {
+        ok: true,
+        serverTime: now.toISOString(),
+        ...(isDev
+          ? { debug: { workspaceId: workspace.id, userId: clerkUserId, usedFallback: false, updatedCount: result ? 1 : 0 } }
+          : {}),
+      };
+    } catch (updateError) {
+      // If direct update fails, fall back to the full resolution logic
+      const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
+      const dbUser = asObject(resolved.user) ?? {};
+      const dbUserId = String(dbUser.id ?? '').trim();
+      if (!dbUserId) throw new Error('User not found');
+
+      const updateData = { online: true } as any;
+      updateData.lastSeenAt = now;
+
+      let updatedCount: { count: number } | null = null;
+      let usedFallback = false;
+      try {
+        // Use update instead of updateMany for better performance
+        const result = await prisma.nexusUser.update({
+          where: {
+            id: dbUserId,
+            organizationId: workspace.id,
+          },
+          data: updateData,
+          select: { id: true },
+        });
+        updatedCount = { count: result ? 1 : 0 };
+      } catch {
+        // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
+        usedFallback = true;
+        updatedCount = await prisma.nexusUser.updateMany({
+          where: {
+            id: dbUserId,
+            organizationId: workspace.id,
+          },
+          data: {
+            online: true,
+          },
+        });
+      }
+      if (!updatedCount?.count) {
+        throw new Error(
+          isDev
+            ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
+            : 'Failed to update presence'
+        );
+      }
+      return {
+        ok: true,
+        serverTime: now.toISOString(),
+        ...(isDev
+          ? { debug: { workspaceId: workspace.id, userId: dbUserId, usedFallback, updatedCount: updatedCount.count } }
+          : {}),
+      };
+    }
+  } catch (error) {
+    // If anything fails, fall back to the original implementation
+    const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
+    const workspace = resolved.workspace;
+
+    const dbUser = asObject(resolved.user) ?? {};
+    const dbUserId = String(dbUser.id ?? '').trim();
+    if (!dbUserId) throw new Error('User not found');
+
+    const now = new Date();
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    const updateData = { online: true } as any;
+    updateData.lastSeenAt = now;
+
+    let updatedCount: { count: number } | null = null;
+    let usedFallback = false;
+    try {
+      // Use update instead of updateMany for better performance
+      const result = await prisma.nexusUser.update({
+        where: {
+          id: dbUserId,
+          organizationId: workspace.id,
+        },
+        data: updateData,
+        select: { id: true },
+      });
+      updatedCount = { count: result ? 1 : 0 };
+    } catch {
+      // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
+      usedFallback = true;
+      updatedCount = await prisma.nexusUser.updateMany({
+        where: {
+          id: dbUserId,
+          organizationId: workspace.id,
+        },
+        data: {
+          online: true,
+        },
+      });
+    }
+    if (!updatedCount?.count) {
+      throw new Error(
+        isDev
+          ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
+          : 'Failed to update presence'
+      );
+    }
+    return {
+      ok: true,
+      serverTime: now.toISOString(),
+      ...(isDev
+        ? { debug: { workspaceId: workspace.id, userId: dbUserId, usedFallback, updatedCount: updatedCount.count } }
+        : {}),
+    };
   }
-  if (!updatedCount?.count) {
-    throw new Error(
-      isDev
-        ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
-        : 'Failed to update presence'
-    );
-  }
-  return {
-    ok: true,
-    serverTime: now.toISOString(),
-    ...(isDev
-      ? { debug: { workspaceId: workspace.id, userId: dbUserId, usedFallback, updatedCount: updatedCount.count } }
-      : {}),
-  };
 }
 
 export async function sendNexusUserInvitation(params: {

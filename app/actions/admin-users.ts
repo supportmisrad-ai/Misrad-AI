@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import type { UserRole } from '@/types/social';
 import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
+import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEBUG_ADMIN_USERS = process.env.DEBUG_ADMIN_USERS === 'true' && !IS_PROD;
@@ -65,58 +66,67 @@ export async function getAdminUsersPage(params?: {
   offset?: number;
   search?: string;
 }): Promise<{ success: boolean; data?: { items: Array<{ id: string; name: string; email: string; role: string; plan: 'free'; registeredAt: string | null; lastActivity: string | null; isBanned: false; avatar: string | null }>; total: number }; error?: string }> {
-  try {
-    const adminCheck = await requireSuperAdminOrFail();
-    if (!adminCheck.success) return adminCheck;
+  return await withTenantIsolationContext(
+    { suppressReporting: true, source: 'admin-users-page' },
+    async () => {
+      try {
+        const adminCheck = await requireSuperAdminOrFail();
+        if (!adminCheck.success) return adminCheck;
 
-    const parsed = listUsersSchema.safeParse({
-      limit: params?.limit,
-      offset: params?.offset,
-      search: params?.search,
-    });
-    const limit = parsed.success ? parsed.data.limit : 25;
-    const offset = parsed.success ? parsed.data.offset : 0;
-    const search = parsed.success ? parsed.data.search : undefined;
+        const parsed = listUsersSchema.safeParse({
+          limit: params?.limit,
+          offset: params?.offset,
+          search: params?.search,
+        });
+        const limit = parsed.success ? parsed.data.limit : 25;
+        const offset = parsed.success ? parsed.data.offset : 0;
+        const search = parsed.success ? parsed.data.search : undefined;
 
-    const s = search && search.trim() ? search.trim() : '';
-    const where: Prisma.NexusUserWhereInput = s
-      ? {
-          OR: [
-            { name: { contains: s, mode: 'insensitive' } },
-            { email: { contains: s, mode: 'insensitive' } },
-          ],
-        }
-      : {};
+        const s = search && search.trim() ? search.trim() : '';
+        const where: Prisma.NexusUserWhereInput = s
+          ? {
+              OR: [
+                { name: { contains: s, mode: 'insensitive' } },
+                { email: { contains: s, mode: 'insensitive' } },
+              ],
+            }
+          : {};
 
-    const [total, rows] = await prisma.$transaction([
-      prisma.nexusUser.count({ where }),
-      prisma.nexusUser.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: offset,
-        take: limit,
-      }),
-    ]);
+        const [total, rows] = await prisma.$transaction([
+          prisma.nexusUser.count(
+            withPrismaTenantIsolationOverride({ where }, { suppressReporting: true })
+          ),
+          prisma.nexusUser.findMany(
+            withPrismaTenantIsolationOverride({
+              where,
+              orderBy: { createdAt: 'desc' as const },
+              skip: offset,
+              take: limit,
+            }, { suppressReporting: true })
+          ),
+        ]);
 
     const items = (rows || []).map((m) => {
-      const last = m.updatedAt ?? m.createdAt;
-      return {
-        id: String(m.id),
-        name: String(m.name || ''),
-        email: m.email ? String(m.email) : 'אין דוא"ל',
-        role: m.role ? String(m.role) : 'user',
-        plan: 'free' as const,
-        registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
-        lastActivity: last ? new Date(last).toISOString() : null,
-        isBanned: false as const,
-        avatar: m.avatar ? String(m.avatar) : null,
-      };
-    });
+          const last = m.updatedAt ?? m.createdAt;
+          return {
+            id: String(m.id),
+            name: String(m.name || ''),
+            email: m.email ? String(m.email) : 'אין דוא"ל',
+            role: m.role ? String(m.role) : 'user',
+            plan: 'free' as const,
+            registeredAt: m.createdAt ? new Date(m.createdAt).toISOString() : null,
+            lastActivity: last ? new Date(last).toISOString() : null,
+            isBanned: false as const,
+            avatar: m.avatar ? String(m.avatar) : null,
+          };
+        });
 
-    return createSuccessResponse({ items, total: total || 0 });
-  } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
-  }
+        return createSuccessResponse({ items, total: total || 0 });
+      } catch (error) {
+        return createErrorResponse(error, 'שגיאה בטעינת משתמשים');
+      }
+    }
+  );
 }
 
 export async function deleteAdminUser(userId: string): Promise<{ success: boolean; error?: string }> {
