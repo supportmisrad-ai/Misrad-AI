@@ -563,7 +563,7 @@ export default async function RootPage() {
                   desc: 'פוסטים, לוח שידורים, AI, קמפיינים ממומנים',
                   icon: Share2,
                   gradient: 'from-rose-500 to-orange-500',
-                  href: '/pricing'
+                  href: '/social'
                 },
                 {
                   name: 'Client',
@@ -571,7 +571,7 @@ export default async function RootPage() {
                   desc: 'ניהול לקוחות, פגישות, תוכניות, משוב',
                   icon: Users,
                   gradient: 'from-amber-500 to-yellow-500',
-                  href: '/pricing'
+                  href: '/client'
                 },
                 {
                   name: 'Finance',
@@ -579,7 +579,7 @@ export default async function RootPage() {
                   desc: 'חשבוניות, הוצאות, דוחות, אינטגרציות',
                   icon: TrendingUp,
                   gradient: 'from-cyan-500 to-blue-500',
-                  href: '/pricing'
+                  href: '/finance'
                 },
               ].map((module) => {
                 const Icon = module.icon;
