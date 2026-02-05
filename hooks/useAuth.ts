@@ -167,6 +167,11 @@ export const useAuth = (
             return;
         }
 
+        // Additional guard: skip heartbeat on public pages like landing
+        if (typeof window !== 'undefined' && window.location.pathname === '/') {
+            return;
+        }
+
         if (presenceInFlightRef.current) {
             console.info('[Presence] heartbeat skipped (in-flight)');
             return;
