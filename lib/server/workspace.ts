@@ -433,7 +433,7 @@ export async function getOrganizationPackageEntitlements(
 export async function requireClerkUserId(): Promise<string> {
   const clerkUserId = String((await getCurrentUserId()) || '').trim();
   if (!clerkUserId) {
-    redirect('/sign-in');
+    redirect('/login');
   }
   return clerkUserId;
 }
@@ -552,7 +552,7 @@ export async function requireCurrentOrganizationId(): Promise<string> {
       });
     }
   }
-  redirect('/sign-in');
+  redirect('/login');
 }
 
 export async function getCurrentSocialUser(clerkUserId: string): Promise<{ id: string; organization_id: string | null; role?: string | null } | null> {
@@ -757,7 +757,7 @@ export async function requireWorkspaceAccessByOrgSlug(orgSlug: string): Promise<
   const clerkIsSuperAdmin = await isClerkSuperAdmin();
 
   if (!socialUser?.id && !clerkIsSuperAdmin) {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   const isSuperAdmin = clerkIsSuperAdmin || String(socialUser?.role || '').toLowerCase() === 'super_admin';
@@ -958,8 +958,13 @@ export async function requireWorkspaceAccessByOrgSlugUi(orgSlug: string): Promis
 }
 
 export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promise<WorkspaceInfo> {
+  console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi: Starting with orgSlug:', orgSlug);
+  
   const clerkUserId = await getCurrentUserId();
+  console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi: getCurrentUserId result:', clerkUserId);
+  
   if (!clerkUserId) {
+    console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi: No clerkUserId found, throwing 401');
     throw setErrorStatus(new Error('Unauthorized'), 401);
   }
 
@@ -975,7 +980,9 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
 
   let socialUser: { id: string; organization_id: string | null; role?: string | null } | null = null;
   try {
+    console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi: Getting social user for clerkUserId:', clerkUserId);
     socialUser = await getCurrentSocialUser(clerkUserId);
+    console.log('[workspace-access] requireWorkspaceAccessByOrgSlugApi: Social user result:', socialUser);
   } catch (e: unknown) {
     const msg = String(getErrorMessage(e) || '').toLowerCase();
     if (msg.includes('schema cache') || msg.includes('does not exist') || msg.includes('permission denied')) {

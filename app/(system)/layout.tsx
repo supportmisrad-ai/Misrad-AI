@@ -49,7 +49,7 @@ export default async function SystemLayout({
       }
     }
   } catch {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   const def = getModuleDefinition('system');

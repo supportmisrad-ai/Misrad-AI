@@ -38,7 +38,7 @@ export default async function ClientLayout({
       }
     }
   } catch {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   const def = getModuleDefinition('client');

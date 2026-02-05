@@ -13,8 +13,12 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
     { suppressReporting: true, source: 'me-page-redirect' },
     async () => {
       const clerkUserId = await getCurrentUserId();
-      if (!clerkUserId) return null;
+      if (!clerkUserId) {
+        console.log('[MePage] No clerkUserId found');
+        return null;
+      }
 
+      console.log('[MePage] Looking up social_user for clerkUserId:', clerkUserId);
       const socialUser = await prisma.social_users.findUnique(
         withPrismaTenantIsolationOverride({
           where: { clerk_user_id: clerkUserId },
@@ -22,14 +26,21 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true })
       );
 
-      if (!socialUser?.id) return null;
+      console.log('[MePage] social_user found:', socialUser ? 'YES' : 'NO', socialUser);
+
+      if (!socialUser?.id) {
+        console.log('[MePage] No social_user record found for clerkUserId:', clerkUserId);
+        return null;
+      }
 
       const orgIds = new Set<string>();
 
       if (socialUser.organization_id) {
         orgIds.add(String(socialUser.organization_id));
+        console.log('[MePage] Added primary organization_id:', socialUser.organization_id);
       }
 
+      console.log('[MePage] Looking for owned organizations for user:', socialUser.id);
       const ownedOrgs = await prisma.social_organizations.findMany(
         withPrismaTenantIsolationOverride({
           where: { owner_id: String(socialUser.id) },
@@ -37,10 +48,15 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true })
       );
 
+      console.log('[MePage] Found owned organizations:', ownedOrgs.length);
       for (const row of ownedOrgs) {
-        if (row?.id) orgIds.add(String(row.id));
+        if (row?.id) {
+          orgIds.add(String(row.id));
+          console.log('[MePage] Added owned organization_id:', row.id);
+        }
       }
 
+      console.log('[MePage] Looking for team memberships for user:', socialUser.id);
       const memberships = await prisma.social_team_members.findMany(
         withPrismaTenantIsolationOverride({
           where: { user_id: String(socialUser.id) },
@@ -48,13 +64,22 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true })
       );
 
+      console.log('[MePage] Found team memberships:', memberships.length);
       for (const row of memberships) {
-        if (row?.organization_id) orgIds.add(String(row.organization_id));
+        if (row?.organization_id) {
+          orgIds.add(String(row.organization_id));
+          console.log('[MePage] Added membership organization_id:', row.organization_id);
+        }
       }
 
       const ids = Array.from(orgIds);
-      if (!ids.length) return null;
+      console.log('[MePage] Total organization IDs found:', ids.length, ids);
+      if (!ids.length) {
+        console.log('[MePage] No organizations found for user');
+        return null;
+      }
 
+      console.log('[MePage] Looking up organization details for IDs:', ids);
       const orgs = await prisma.social_organizations.findMany(
         withPrismaTenantIsolationOverride({
           where: { id: { in: ids } },
@@ -62,22 +87,36 @@ async function resolveRedirectWorkspaceSlugForCurrentUser(): Promise<string | nu
         }, { suppressReporting: true })
       );
 
-      if (!orgs.length) return null;
+      console.log('[MePage] Found organization details:', orgs.length, orgs);
+      if (!orgs.length) {
+        console.log('[MePage] No organization details found for IDs');
+        return null;
+      }
 
       const last = await loadCurrentUserLastLocation();
       const lastKey = last?.orgSlug ? String(last.orgSlug) : '';
+      console.log('[MePage] Last location orgSlug:', lastKey);
       if (lastKey) {
         const match = orgs.find((o) => String(o.slug || '') === lastKey || String(o.id) === lastKey);
-        if (match) return String(match.slug || match.id);
+        if (match) {
+          console.log('[MePage] Using last location:', match.slug || match.id);
+          return String(match.slug || match.id);
+        }
       }
 
       const primaryId = socialUser.organization_id ? String(socialUser.organization_id) : '';
+      console.log('[MePage] Primary organization_id:', primaryId);
       if (primaryId) {
         const match = orgs.find((o) => String(o.id) === primaryId);
-        if (match) return String(match.slug || match.id);
+        if (match) {
+          console.log('[MePage] Using primary organization:', match.slug || match.id);
+          return String(match.slug || match.id);
+        }
       }
 
-      return String(orgs[0].slug || orgs[0].id);
+      const fallback = String(orgs[0].slug || orgs[0].id);
+      console.log('[MePage] Using fallback organization:', fallback);
+      return fallback;
     }
   );
 }
@@ -89,7 +128,7 @@ export default async function MePage() {
   
   if (!clerkUserId) {
     // Not logged in -> redirect to sign in
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   let orgSlug: string | null = null;

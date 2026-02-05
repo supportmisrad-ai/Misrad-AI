@@ -48,7 +48,7 @@ export default async function NexusLayout({
       }
     }
   } catch {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
   const def = getModuleDefinition('nexus');

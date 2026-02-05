@@ -11,11 +11,18 @@
  */
 export async function getCurrentUserId(): Promise<string | null> {
   try {
+    console.log('[getCurrentUserId] Starting Clerk auth check');
     const { auth } = await import('@clerk/nextjs/server');
-    const { userId } = await auth();
-    return userId || null;
+    const authResult = await auth();
+    console.log('[getCurrentUserId] Clerk auth result:', {
+      hasUserId: !!authResult?.userId,
+      userId: authResult?.userId,
+    });
+    const userId = authResult?.userId || null;
+    console.log('[getCurrentUserId] Final result:', userId);
+    return userId;
   } catch (error) {
-    console.error('Error getting current user ID from Clerk:', error);
+    console.error('[getCurrentUserId] Error getting current user ID from Clerk:', error);
     return null;
   }
 }

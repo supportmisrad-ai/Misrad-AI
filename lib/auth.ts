@@ -157,7 +157,15 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
  */
 export async function getAuthenticatedUser() {
     try {
+        console.log('[Auth] getAuthenticatedUser: Starting authentication check');
+        
         const authResult = await auth();
+        console.log('[Auth] getAuthenticatedUser: Auth result:', {
+            hasUserId: !!authResult?.userId,
+            userId: authResult?.userId,
+            hasSessionId: !!authResult?.sessionId,
+        });
+        
         const userId = authResult?.userId;
         
         if (!userId) {
@@ -165,7 +173,16 @@ export async function getAuthenticatedUser() {
             throw new Error('Unauthorized - No user ID');
         }
         
+        console.log('[Auth] getAuthenticatedUser: Getting current user for userId:', userId);
         const user = await currentUser();
+        
+        console.log('[Auth] getAuthenticatedUser: Current user result:', {
+            hasUser: !!user,
+            userId: user?.id,
+            email: user?.emailAddresses?.[0]?.emailAddress,
+            firstName: user?.firstName,
+            lastName: user?.lastName,
+        });
         
         if (!user) {
             console.warn('[Auth] User not found after auth check');
@@ -175,7 +192,9 @@ export async function getAuthenticatedUser() {
         const rawRole = user.publicMetadata?.role;
         const role = typeof rawRole === 'string' && rawRole.trim() ? rawRole : 'עובד';
 
-        return {
+        console.log('[Auth] getAuthenticatedUser: User role:', role);
+
+        const result = {
             id: userId,
             email: user.emailAddresses[0]?.emailAddress,
             firstName: user.firstName,
@@ -185,6 +204,15 @@ export async function getAuthenticatedUser() {
             role,
             isSuperAdmin: user.publicMetadata?.isSuperAdmin === true
         };
+
+        console.log('[Auth] getAuthenticatedUser: Successfully authenticated user:', {
+            id: result.id,
+            email: result.email,
+            role: result.role,
+            isSuperAdmin: result.isSuperAdmin,
+        });
+
+        return result;
     } catch (error: unknown) {
         const message = getErrorMessage(error);
         console.error('[Auth] Error in getAuthenticatedUser:', {
