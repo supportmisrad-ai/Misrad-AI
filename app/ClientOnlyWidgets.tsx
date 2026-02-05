@@ -21,7 +21,6 @@ const ComingSoonPortal = dynamic(() => import('@/components/shared/ComingSoonPor
 
 function isSalesPathname(pathname: string): boolean {
   const p = String(pathname || '/').toLowerCase();
-  if (p.startsWith('/w/')) return false;
   if (p === '/admin' || p.startsWith('/admin/')) return false;
   if (p.startsWith('/w/') && p.includes('/admin')) return false;
   if (p === '/login' || p.startsWith('/login/')) return false;

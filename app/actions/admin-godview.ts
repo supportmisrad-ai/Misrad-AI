@@ -254,7 +254,7 @@ export async function getAdminGodView(): Promise<{
           await Promise.all([
             prisma.social_organizations.count(),
             prisma.profile.count(
-              withPrismaTenantIsolationOverride({}, { suppressReporting: true })
+              withPrismaTenantIsolationOverride({}, { suppressReporting: true, organizationId: 'super-admin-override' })
             ),
             sumPaidInvoicesThisMonth(),
             sumAiCreditsUsedTodayCents(),
