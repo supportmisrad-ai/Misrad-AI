@@ -4,10 +4,6 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher([
   "/",
   "/login(.*)",
-  "/sign-in(.*)",
-  "/sign-out(.*)",
-  "/logout(.*)",
-  "/sign-up(.*)",
   "/reset-password(.*)",
   "/maintenance(.*)",
   "/invite/(.*)",
@@ -17,11 +13,15 @@ const isPublicRoute = createRouteMatcher([
   "/marketplace/offer/(.*)",
   "/sso-callback",
   "/partner-portal(.*)",
+  "/pricing(.*)",
+  "/the-closer(.*)",
+  "/the-authority(.*)",
+  "/the-operator(.*)",
+  "/the-empire(.*)",
   "/manifest.json",
   "/sw.js",
   "/manifests/(.*)",
   "/api/webhooks/clerk",
-  "/manifest.json",
   "/favicon.ico",
   "/robots.txt",
   "/sitemap.xml",
@@ -198,10 +198,6 @@ export default clerkMiddleware(async (auth, req) => {
     const isAuthRoute =
       pathname === "/login" ||
       pathname.startsWith("/login/") ||
-      pathname === "/sign-in" ||
-      pathname.startsWith("/sign-in/") ||
-      pathname === "/sign-up" ||
-      pathname.startsWith("/sign-up/") ||
       pathname === "/reset-password" ||
       pathname.startsWith("/reset-password/");
 
