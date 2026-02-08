@@ -19,6 +19,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:no-postgrest": "node scripts/check-no-postgrest.cjs",
     "security:scan-prisma-take": "node scripts/security/scan-prisma-take-limits.js",
+    "audit:prisma:migrations:table-refs": "node scripts/audit-prisma-migrations-table-refs.cjs",
     "build": "npm run security:scan-api-guards && npm run security:scan-layer-boundaries && npm run security:assert-no-prod-bypass && npm run security:no-new-prisma-any && npm run check:no-postgrest && npm run prisma:migrate:deploy:ci && npm run prisma:migrations:check && npm run prisma:migrations:sync && npm run security:rls:coverage && npm run prisma:generate && next build",
     "start": "next start",
     "lint": "eslint",
