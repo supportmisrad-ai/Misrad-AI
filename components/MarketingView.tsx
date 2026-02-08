@@ -17,7 +17,7 @@ import FormsView from './FormsView';
 import PartnersView from './PartnersView';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 interface MarketingViewProps {
   campaigns: Campaign[];

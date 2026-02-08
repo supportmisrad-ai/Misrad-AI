@@ -18,7 +18,7 @@ import UploadTab from './portal/UploadTab';
 import BillingTab from './portal/BillingTab';
 import AnalyticsTab from './portal/AnalyticsTab';
 import { useChat } from '@ai-sdk/react';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 import { Skeleton } from '@/components/ui/skeletons';
 
 export default function ClientPortal() {

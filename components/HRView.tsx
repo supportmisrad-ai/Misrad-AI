@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
     Heart, Users, Smile, Calendar, Coffee, Award, 
@@ -6,7 +5,7 @@ import {
 } from 'lucide-react';
 import { INITIAL_AGENTS } from './system/constants';
 import { useToast } from './system/contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 const KUDOS: { id: number; from: string; to: string; text: string; time: string }[] = [];
 

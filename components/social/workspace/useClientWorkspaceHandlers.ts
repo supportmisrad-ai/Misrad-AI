@@ -1,7 +1,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { SocialPost, AIOpportunity, Client, ClientRequest, ManagerRequest } from '@/types/social';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 import { deletePost } from '@/app/actions/posts';
 import { deleteIdea, createIdea } from '@/app/actions/ideas';
 import { approveClientRequest, createManagerRequest, rejectClientRequest } from '@/app/actions/requests';

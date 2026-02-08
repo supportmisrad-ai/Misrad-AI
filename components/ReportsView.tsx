@@ -12,7 +12,7 @@ import {
     BarChart, Bar, Cell, PieChart, Pie, Legend, ComposedChart, Line
 } from 'recharts';
 import { useToast } from '../contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 interface CampaignLike {
     spent?: number;

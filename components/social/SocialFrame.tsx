@@ -31,7 +31,7 @@ import { Avatar } from '@/components/Avatar';
 import { useWorkspaceSystemIdentity } from '@/hooks/useWorkspaceSystemIdentity';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
 import { getUnreadUpdatesCount } from '@/app/actions/updates';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 import { Skeleton } from '@/components/ui/skeletons';
 import { DynamicIcon } from '@/components/shared/DynamicIcon';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';

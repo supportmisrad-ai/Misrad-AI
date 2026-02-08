@@ -3,18 +3,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Rocket, X } from 'lucide-react';
-
-type ComingSoonDetail = {
-  message?: string;
-};
+import { COMING_SOON_EVENT_NAME, type ComingSoonDetail } from './coming-soon';
 
 const DEFAULT_MESSAGE = "🚀 פיצ'ר זה נמצא בפיתוח מתקדם ויהיה זמין בקרוב. תודה על הסבלנות!";
-const EVENT_NAME = 'misrad-coming-soon';
-
-export function openComingSoon(detail?: ComingSoonDetail) {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: detail || {} }));
-}
 
 export default function ComingSoonPortal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,8 +20,8 @@ export default function ComingSoonPortal() {
       setIsOpen(true);
     };
 
-    window.addEventListener(EVENT_NAME, handler as EventListener);
-    return () => window.removeEventListener(EVENT_NAME, handler as EventListener);
+    window.addEventListener(COMING_SOON_EVENT_NAME, handler as EventListener);
+    return () => window.removeEventListener(COMING_SOON_EVENT_NAME, handler as EventListener);
   }, []);
 
   return (
