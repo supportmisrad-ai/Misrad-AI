@@ -635,32 +635,36 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
 
     // --- FOCUS TASKS LOGIC (SYNCED) ---
     // 1. Get tasks explicitly marked as 'isFocus' from Morning Briefing
-    const explicitFocusTasks = tasks.filter((t: any) => 
-        t.assigneeIds?.includes(currentUser.id) && 
-        t.isFocus && 
-        t.status !== Status.DONE && 
-        t.status !== Status.CANCELED
+    const explicitFocusTasks = tasks.filter(
+        (t) =>
+            t.assigneeIds?.includes(currentUser.id) &&
+            t.isFocus &&
+            t.status !== Status.DONE &&
+            t.status !== Status.CANCELED
     );
 
     // 2. Fallback heuristic if no tasks are marked (user skipped briefing)
-    const fallbackTasks = tasks.filter((t: any) => 
-        t.assigneeIds?.includes(currentUser.id) && 
-        t.status !== Status.DONE && 
-        t.status !== Status.CANCELED &&
-        t.priority === Priority.URGENT
-    ).slice(0, 3);
+    const fallbackTasks = tasks
+        .filter(
+            (t) =>
+                t.assigneeIds?.includes(currentUser.id) &&
+                t.status !== Status.DONE &&
+                t.status !== Status.CANCELED &&
+                t.priority === Priority.URGENT
+        )
+        .slice(0, 3);
 
     const focusTasks = explicitFocusTasks.length > 0 ? explicitFocusTasks : fallbackTasks;
     const isSynced = explicitFocusTasks.length > 0;
 
-    const completedTasksCount = tasks.filter((t: any) => t.status === Status.DONE).length;
+    const completedTasksCount = tasks.filter((t) => t.status === Status.DONE).length;
     const totalTasksCount = tasks.length;
     const completionRate = totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0;
     const taskProgress = Math.min((completionRate / monthlyGoals.tasksCompletion) * 100, 100);
 
-    const recurringRevenue = clients.filter((c: any) => c.status === 'Active').reduce((sum: number, client: any) => {
+    const recurringRevenue = clients.filter((c) => c.status === 'Active').reduce((sum: number, client) => {
             let price = 0;
-            const product = products.find((p: any) => p.name === client.package);
+            const product = products.find((p) => p.name === client.package);
             if (product) price = product.price;
             else {
                 if(client.package.includes('Premium')) price = 15000;
@@ -669,7 +673,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
             return sum + price;
         }, 0);
 
-    const wonLeadsRevenue = leads.filter((l: any) => l.status === LeadStatus.WON).reduce((sum: number, lead: any) => sum + lead.value, 0);
+    const wonLeadsRevenue = leads.filter((l) => l.status === LeadStatus.WON).reduce((sum: number, lead) => sum + lead.value, 0);
     const totalRevenue = recurringRevenue + wonLeadsRevenue;
     const revenueGoal = monthlyGoals.revenue || 1; 
     const revenueProgress = Math.min((totalRevenue / revenueGoal) * 100, 100);
@@ -678,7 +682,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
     const growth = ((revenueHistory[5] - revenueHistory[4]) / (revenueHistory[4] || 1)) * 100;
 
     // Correct Logic for Monthly Tasks: Check actual completion date, not creation date
-    const myCompletedTasksThisMonth = tasks.filter((t: any) => {
+    const myCompletedTasksThisMonth = tasks.filter((t) => {
         if (!t.assigneeIds?.includes(currentUser.id)) return false;
         if (t.status !== Status.DONE) return false;
         
@@ -1108,9 +1112,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
 
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {(ownerDashboard?.nextActions || [])
-                                        .filter((a: any) => (isFocusMode ? a?.source === 'nexus' : true))
+                                        .filter((a) => (isFocusMode ? a.source === 'nexus' : true))
                                         .slice(0, 6)
-                                        .map((a: any) => {
+                                        .map((a) => {
                                             const content = (
                                                 <>
                                                     <div className="flex items-center justify-between gap-3">
@@ -1143,7 +1147,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
                                             );
                                         })}
 
-                                    {(ownerDashboard?.nextActions || []).filter((a: any) => (isFocusMode ? a?.source === 'nexus' : true)).length === 0 && (
+                                    {(ownerDashboard?.nextActions || []).filter((a) => (isFocusMode ? a.source === 'nexus' : true)).length === 0 && (
                                         <div className="text-sm text-slate-500">אין פעולות דחופות כרגע</div>
                                     )}
                                 </div>
@@ -1442,11 +1446,11 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
                         </div>
                         <div className="flex items-center gap-3">
                             <div className="flex -space-x-3 space-x-reverse">
-                                {users.filter((u: any) => u.online).slice(0, 3).map((u: any) => (
+                                {users.filter((u) => u.online).slice(0, 3).map((u) => (
                                     <img key={u.id} src={u.avatar} className="w-10 h-10 rounded-full border-2 border-white ring-2 ring-green-400 shadow-md object-cover" />
                                 ))}
                             </div>
-                            {users.filter((u: any) => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter((u: any) => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
+                            {users.filter((u) => u.online).length > 0 ? <span className="text-xs text-green-700 font-bold bg-green-50 px-3 py-1.5 rounded-full shadow-sm border border-green-100">{users.filter((u) => u.online).length} אונליין</span> : <span className="text-xs text-gray-400 italic">כולם במנוחה</span>}
                         </div>
                     </div>
                 </div>
@@ -1481,7 +1485,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
 
             <div className="space-y-4">
                 {focusTasks.length > 0 ? (
-                    focusTasks.map((task: any) => (
+                    focusTasks.map((task) => (
                         <div key={task.id} className="relative">
                             {task.isFocus && (
                                 <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-1 h-12 bg-yellow-400 rounded-r-lg shadow-sm"></div>
