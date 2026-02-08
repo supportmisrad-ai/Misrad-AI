@@ -102,6 +102,24 @@ function getRedisClient(): Redis | null {
   }
 }
 
+async function promiseWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<{ ok: true; value: T } | { ok: false }> {
+  const ms = Math.max(1, Math.floor(timeoutMs));
+  let timeout: NodeJS.Timeout | null = null;
+  try {
+    const timeoutPromise = new Promise<{ ok: false }>((resolve) => {
+      timeout = setTimeout(() => resolve({ ok: false }), ms);
+    });
+
+    const result = await Promise.race([
+      promise.then((value) => ({ ok: true as const, value })),
+      timeoutPromise,
+    ]);
+    return result;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 async function redisIncrementWithTtl(params: {
   redis: Redis;
   key: string;
@@ -131,14 +149,13 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
   const bucketKey = stableHash(`${opts.namespace}:${opts.key}`);
 
   const mode: RateLimitMode = opts.mode ?? 'normal';
+  const shouldFailClosed = mode === 'fail_closed';
   const unavailableRetryAfterSeconds =
     typeof opts.unavailableRetryAfterSeconds === 'number' && Number.isFinite(opts.unavailableRetryAfterSeconds) && opts.unavailableRetryAfterSeconds > 0
       ? Math.floor(opts.unavailableRetryAfterSeconds)
       : 3;
 
-  const redisDisabled = isRedisDisabledExplicitly();
-  const isE2eTesting = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' || String(process.env.IS_E2E_TESTING || '') === '1';
-  const enforceFailClosed = mode === 'fail_closed' && !redisDisabled && !isE2eTesting;
+  const enforceFailClosed = shouldFailClosed;
 
   const redis = getRedisClient();
   if (!redis && enforceFailClosed) {
@@ -156,11 +173,20 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
   if (redis) {
     try {
       const redisKey = `rl:${bucketKey}`;
-      const { count, pttl } = await redisIncrementWithTtl({
+      const redisOp = redisIncrementWithTtl({
         redis,
         key: redisKey,
         windowMs: opts.windowMs,
       });
+      // Avoid hanging requests if Upstash is down / network stalls.
+      // NOTE: we can't cancel the underlying request; ensure we observe rejections.
+      redisOp.catch(() => undefined);
+      const timeoutMs = Number(process.env.MISRAD_RATE_LIMIT_REDIS_TIMEOUT_MS || 800);
+      const timed = await promiseWithTimeout(redisOp, Number.isFinite(timeoutMs) ? timeoutMs : 800);
+      if (!timed.ok) {
+        throw new Error('Redis rate limit timeout');
+      }
+      const { count, pttl } = timed.value;
 
       const resetAt = now + Math.max(0, pttl);
       if (count > opts.limit) {
