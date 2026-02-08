@@ -7,7 +7,7 @@ import {
     List, Kanban, Filter, Search, Clock, CheckCircle2, Circle, BookOpen, Phone, ArrowLeft, ArrowRight
 } from 'lucide-react';
 import { useToast } from '../system/contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 import { useAuth } from '../system/contexts/AuthContext';
 import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
 

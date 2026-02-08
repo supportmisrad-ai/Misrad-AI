@@ -9,7 +9,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 import type { Lead } from '../types';
 import type { FieldAgent, AIReport } from '@/components/system/types';
 

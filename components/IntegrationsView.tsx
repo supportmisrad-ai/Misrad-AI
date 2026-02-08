@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
     Webhook, Lock, Activity, Database, Server, CircleCheck, CircleX, 
@@ -7,7 +6,7 @@ import {
 } from 'lucide-react';
 import type { WebhookLog } from '@/components/system/types';
 import { useToast } from '../contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 interface IntegrationsViewProps {
   logs: WebhookLog[];

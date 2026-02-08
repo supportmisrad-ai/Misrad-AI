@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { logAuditEvent } from '@/lib/audit';
@@ -81,21 +82,31 @@ async function GETHandler(request: NextRequest) {
             brain: 'active'
         };
 
-        const settings = await prisma.system_settings.findFirst({
-            where: { tenant_id: String(workspacePrimary.id) },
-            select: { system_flags: true },
-        });
+        const orgId = String(workspacePrimary.id);
+        return await withTenantIsolationContext(
+            {
+                source: 'api_system_flags',
+                reason: 'GET',
+                organizationId: orgId,
+            },
+            async () => {
+                const settings = await prisma.system_settings.findFirst({
+                    where: { tenant_id: orgId },
+                    select: { system_flags: true },
+                });
 
-        if (settings?.system_flags) {
-            // Merge defaults with saved flags
-            const savedFlags = settings.system_flags as Record<string, 'active' | 'maintenance' | 'hidden'>;
-            return NextResponse.json({
-                systemFlags: { ...defaultFlags, ...savedFlags }
-            });
-        }
+                if (settings?.system_flags) {
+                    // Merge defaults with saved flags
+                    const savedFlags = settings.system_flags as Record<string, 'active' | 'maintenance' | 'hidden'>;
+                    return NextResponse.json({
+                        systemFlags: { ...defaultFlags, ...savedFlags }
+                    });
+                }
 
-        // Return defaults if no settings found
-        return NextResponse.json({ systemFlags: defaultFlags });
+                // Return defaults if no settings found
+                return NextResponse.json({ systemFlags: defaultFlags });
+            }
+        );
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error fetching system flags');
         else console.error('[API] Error fetching system flags:', error);
@@ -160,44 +171,54 @@ async function PATCHHandler(request: NextRequest) {
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
 
-        const existingSettings = await prisma.system_settings.findFirst({
-            where: { tenant_id: String(workspacePrimary.id) },
-            select: { system_flags: true },
-        });
-
-        const currentFlags = (existingSettings?.system_flags || {}) as Record<string, 'active' | 'maintenance' | 'hidden'>;
-        const updatedFlags = { ...currentFlags, [screenId]: status };
-
-        await prisma.system_settings.upsert({
-            where: { tenant_id: String(workspacePrimary.id) },
-            create: {
-                tenant_id: String(workspacePrimary.id),
-                system_flags: updatedFlags,
+        const orgId = String(workspacePrimary.id);
+        return await withTenantIsolationContext(
+            {
+                source: 'api_system_flags',
+                reason: 'PATCH',
+                organizationId: orgId,
             },
-            update: {
-                // Prisma Tenant Guard requires tenant key in update payload for upsert.
-                tenant_id: String(workspacePrimary.id),
-                system_flags: updatedFlags,
-                updated_at: new Date(),
-            },
-        });
+            async () => {
+                const existingSettings = await prisma.system_settings.findFirst({
+                    where: { tenant_id: orgId },
+                    select: { system_flags: true },
+                });
 
-        await logAuditEvent('data.write', 'system.flags', {
-            resourceId: String(screenId),
-            details: {
-                screenId,
-                status,
-                tenantId: String(workspacePrimary.id),
-            },
-        });
+                const currentFlags = (existingSettings?.system_flags || {}) as Record<string, 'active' | 'maintenance' | 'hidden'>;
+                const updatedFlags = { ...currentFlags, [screenId]: status };
 
-        return NextResponse.json({
-            success: true,
-            message: `מסך ${screenId} עודכן ל-${status === 'maintenance' ? 'תחזוקה' : status === 'hidden' ? 'מוסתר' : 'פעיל'}`,
-            screenId,
-            status,
-            systemFlags: updatedFlags
-        });
+                await prisma.system_settings.upsert({
+                    where: { tenant_id: orgId },
+                    create: {
+                        tenant_id: orgId,
+                        system_flags: updatedFlags,
+                    },
+                    update: {
+                        // Prisma Tenant Guard requires tenant key in update payload for upsert.
+                        tenant_id: orgId,
+                        system_flags: updatedFlags,
+                        updated_at: new Date(),
+                    },
+                });
+
+                await logAuditEvent('data.write', 'system.flags', {
+                    resourceId: String(screenId),
+                    details: {
+                        screenId,
+                        status,
+                        tenantId: orgId,
+                    },
+                });
+
+                return NextResponse.json({
+                    success: true,
+                    message: `מסך ${screenId} עודכן ל-${status === 'maintenance' ? 'תחזוקה' : status === 'hidden' ? 'מוסתר' : 'פעיל'}`,
+                    screenId,
+                    status,
+                    systemFlags: updatedFlags
+                });
+            }
+        );
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error updating system flag');
         else console.error('[API] Error updating system flag:', error);

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, Send, Clock } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 export default function Inbox() {
   const { clients, conversations } = useApp();

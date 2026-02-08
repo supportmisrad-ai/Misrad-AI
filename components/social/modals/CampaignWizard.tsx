@@ -5,7 +5,7 @@ import { X, Target, Users, DollarSign, ChevronLeft, ChevronRight, Rocket } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Avatar } from '@/components/Avatar';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 export default function CampaignWizard() {
   const { isCampaignWizardOpen, setIsCampaignWizardOpen, clients } = useApp();

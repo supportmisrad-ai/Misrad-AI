@@ -1,4 +1,4 @@
-import prisma, { queryRawAllowlisted } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { getClientsPage } from '@/app/actions/clients';
 import { getTeamMembers } from '@/app/actions/team';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
@@ -131,17 +131,15 @@ function isManagerRequestStatus(value: unknown): value is ManagerRequest['status
 
 export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]> {
   try {
-    const data = await queryRawAllowlisted<unknown[]>(prisma, {
-      reason: 'social_navigation_menu_list',
-      query: 'select * from navigation_menu where is_visible = true order by section asc, "order" asc',
-      values: [],
+    const data = await prisma.social_navigation_menu.findMany({
+      where: { is_visible: true },
+      orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
 
-    return (data || []).map((item: unknown) => {
-      const obj = asObject(item) ?? {};
+    return (data || []).map((item) => {
       let requiresRole: string[] | null = null;
       try {
-        const rr = obj.requires_role;
+        const rr = item.requires_role;
         if (rr) {
           const parsed = typeof rr === 'string' ? JSON.parse(rr) : rr;
           requiresRole = Array.isArray(parsed) ? parsed.map((r) => String(r)).filter(Boolean) : null;
@@ -151,20 +149,20 @@ export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]>
       }
 
       return {
-        id: getString(obj.id),
-        label: getString(obj.label),
-        icon: getString(obj.icon),
-        view: getString(obj.view),
-        section: isNavSection(obj.section) ? obj.section : 'global',
-        order: Number(obj.order || 0),
-        isVisible: obj.is_visible !== false,
-        requiresClient: Boolean(obj.requires_client),
+        id: getString(item.id),
+        label: getString(item.label),
+        icon: getString(item.icon),
+        view: getString(item.view),
+        section: isNavSection(item.section) ? item.section : 'global',
+        order: Number(item.order || 0),
+        isVisible: item.is_visible !== false,
+        requiresClient: Boolean(item.requires_client),
         requiresRole,
       };
     });
   } catch (error: unknown) {
     if (isMissingRelationOrColumnError(error) && !ALLOW_SCHEMA_FALLBACKS) {
-      throw new Error(`[SchemaMismatch] navigation_menu missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+      throw new Error(`[SchemaMismatch] social_navigation_menu missing table/column (${getErrorMessage(error) || 'missing relation'})`);
     }
     return [];
   }

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
     Network, Users, Link, DollarSign, Trophy, Copy, 
@@ -6,7 +5,7 @@ import {
     ArrowRight, Wallet, Percent, CheckCircle
 } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
-import { openComingSoon } from '@/components/shared/ComingSoonPortal';
+import { openComingSoon } from '@/components/shared/coming-soon';
 
 interface Partner {
     id: string;
