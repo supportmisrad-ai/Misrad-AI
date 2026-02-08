@@ -171,7 +171,7 @@ export async function createNexusTask(params: {
           audioUrl: body.audioUrl ?? null,
           snoozeCount: body.snoozeCount ?? 0,
           isFocus: Boolean(body.isFocus),
-          completionDetails: safeToInputJsonValue(body.completionDetails) as unknown as Prisma.InputJsonValue,
+          completionDetails: safeToInputJsonValue(body.completionDetails),
           department: body.department ?? user.role ?? null,
         },
       })

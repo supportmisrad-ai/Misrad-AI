@@ -77,7 +77,15 @@ async function POSTHandler(request: NextRequest) {
                 ({ workspace } = await getWorkspaceByOrgKeyOrThrow(String(orgSlugRaw)));
             } catch (e: unknown) {
                 const status = getErrorStatus(e) ?? 403;
-                return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status });
+                const safeMsg =
+                    status === 400
+                        ? 'Bad request'
+                        : status === 401
+                            ? 'Unauthorized'
+                            : status === 404
+                                ? 'Not found'
+                                : 'Forbidden';
+                return NextResponse.json({ error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg }, { status });
             }
 
             let decodedOrgSlug = String(orgSlugRaw);
@@ -122,8 +130,9 @@ async function POSTHandler(request: NextRequest) {
             });
 
         if (uploadError) {
+            const safeMsg = 'Upload failed';
             return NextResponse.json(
-                { error: uploadError.message },
+                { error: IS_PROD ? safeMsg : uploadError.message || safeMsg },
                 { status: 500 }
             );
         }

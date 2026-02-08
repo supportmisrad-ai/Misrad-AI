@@ -9,7 +9,9 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>;
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function isTemplateKey(value: unknown): value is 'retainer_fixed' | 'deliverables_package' {
   return value === 'retainer_fixed' || value === 'deliverables_package';
@@ -58,7 +60,9 @@ async function POSTHandler(request: NextRequest) {
       where: { key: legacyKeyOnboarding(workspace.id) },
       select: { value: true },
     }).catch((e: unknown) => {
-      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
+      const safeMsg = 'Failed';
+      const msg = getUnknownErrorMessage(e) || safeMsg;
+      return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 500 });
     });
 
     if (onboardingLegacy instanceof NextResponse) {
@@ -85,7 +89,9 @@ async function POSTHandler(request: NextRequest) {
       where: { key: legacyKeyBilling(workspace.id) },
       select: { value: true },
     }).catch((e: unknown) => {
-      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
+      const safeMsg = 'Failed';
+      const msg = getUnknownErrorMessage(e) || safeMsg;
+      return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 500 });
     });
 
     if (billingLegacy instanceof NextResponse) {
@@ -124,12 +130,23 @@ async function POSTHandler(request: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    const msg = getUnknownErrorMessage(error) || 'Internal server error';
-    const status = msg.toLowerCase().includes('forbidden') ? 403 : 500;
     if (error instanceof APIError) {
-      return NextResponse.json({ error: msg }, { status: error.status });
+      const safeMsg =
+        error.status === 400
+          ? 'Bad request'
+          : error.status === 401
+            ? 'Unauthorized'
+            : error.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      const msg = getUnknownErrorMessage(error) || safeMsg;
+      return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: error.status });
     }
-    return NextResponse.json({ error: msg }, { status });
+
+    const msg = getUnknownErrorMessage(error) || 'Internal server error';
+    const status = msg.toLowerCase().includes('unauthorized') ? 401 : msg.toLowerCase().includes('forbidden') ? 403 : 500;
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status });
   }
 }
 

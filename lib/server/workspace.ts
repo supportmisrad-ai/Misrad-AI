@@ -12,6 +12,7 @@ import {
 import { getCurrentSocialUser as getCurrentSocialUserFromActor, resolveWorkspaceActorUi } from '@/lib/server/workspace-access/actor';
 import {
   requireWorkspaceAccessByOrgSlugApiCached,
+  requireWorkspaceIdByOrgSlugApiCached,
   requireWorkspaceAccessByOrgSlugCached,
 } from '@/lib/server/workspace-access/access';
 import {
@@ -333,6 +334,16 @@ export async function requireWorkspaceAccessByOrgSlugApi(orgSlug: string): Promi
   }
   const workspace = await requireWorkspaceAccessByOrgSlugApiCached(String(clerkUserId), String(orgSlug || ''));
   enterTenantIsolationContext({ source: 'workspace_access_api', organizationId: workspace.id });
+  return workspace;
+}
+
+export async function requireWorkspaceIdByOrgSlugApi(orgSlug: string): Promise<{ id: string }> {
+  const clerkUserId = await getCurrentUserId();
+  if (!clerkUserId) {
+    throw setErrorStatus(new Error('Unauthorized'), 401);
+  }
+  const workspace = await requireWorkspaceIdByOrgSlugApiCached(String(clerkUserId), String(orgSlug || ''));
+  enterTenantIsolationContext({ source: 'workspace_access_api_light', organizationId: workspace.id });
   return workspace;
 }
 

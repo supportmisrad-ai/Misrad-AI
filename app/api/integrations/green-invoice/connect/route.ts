@@ -118,7 +118,18 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error connecting Green Invoice');
         else console.error('[API] Error connecting Green Invoice:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const safeMsg = 'Failed to connect Green Invoice';
         return NextResponse.json(

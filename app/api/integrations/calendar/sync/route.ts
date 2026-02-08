@@ -113,10 +113,19 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error syncing calendar');
         else console.error('[API] Error syncing calendar:', error);
         if (error instanceof APIError) {
-            return apiError(error.message || 'Forbidden', { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
-        const msg = getErrorMessage(error) || 'Failed to sync calendar';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'Failed to sync calendar';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

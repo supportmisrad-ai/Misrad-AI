@@ -37,8 +37,18 @@ import {
   X,
   Zap,
   ChevronDown,
+  type LucideIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeletons';
+import type { ToastType } from '@/contexts/ToastContext';
+
+type DateLike = string | number | Date;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
 
 export type CommunicationActivityType = 'whatsapp' | 'sms' | 'email' | 'note' | 'call' | string;
 
@@ -46,9 +56,9 @@ export interface CommunicationActivity {
   id: string;
   type: CommunicationActivityType;
   content: string;
-  timestamp: any;
+  timestamp: DateLike;
   direction?: 'outbound' | 'inbound' | string;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 export interface CommunicationLead {
@@ -59,25 +69,25 @@ export interface CommunicationLead {
   company?: string;
   status: string;
   value?: number;
-  createdAt: any;
+  createdAt: DateLike;
   isHot?: boolean;
   activities: CommunicationActivity[];
   productInterest?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface CommunicationTask {
   id: string;
   title: string;
   assigneeId?: string;
-  dueDate?: any;
-  priority?: any;
-  status?: any;
-  tags?: any;
-  [key: string]: any;
+  dueDate?: DateLike;
+  priority?: unknown;
+  status?: unknown;
+  tags?: unknown;
+  [key: string]: unknown;
 }
 
-export type AddToastFn = (message: string, type?: any) => void;
+export type AddToastFn = (message: string, type?: ToastType) => void;
 
 export type UseToastHook = () => { addToast: AddToastFn };
 
@@ -105,10 +115,10 @@ export type AIDraftFn = (ctx: {
 
 export type CallButtonComponent = React.ComponentType<{
   phoneNumber: string;
-  size?: any;
-  variant?: any;
+  size?: string;
+  variant?: string;
   className?: string;
-  user?: any;
+  user?: unknown;
   onToast?: AddToastFn;
   onCallInitiated?: (phone: string) => void;
 }>;
@@ -119,7 +129,7 @@ export interface CommunicationViewBaseProps {
   onUpdateLead?: (leadId: string, updates: Partial<CommunicationLead>) => void;
   onAddTask?: (task: CommunicationTask) => void;
   initialTab?: 'phone' | 'inbox';
-  user?: { id: string; phone?: string; [key: string]: any };
+  user?: { id: string; phone?: string; [key: string]: unknown };
 
   onUploadRecordingAction?: (params: { leadId: string; file: File }) => Promise<void> | void;
 
@@ -150,6 +160,10 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 }) => {
   const { addToast } = useToast();
 
+  type ChannelFilter = 'all' | 'whatsapp' | 'sms' | 'email';
+  type SendChannel = 'whatsapp' | 'sms' | 'email';
+  type AISuggestion = { title?: string; content?: string } & Record<string, unknown>;
+
   const [activeTab, setActiveTab] = useState<'phone' | 'inbox'>(initialTab);
 
   const [activeCall, setActiveCall] = useState<CommunicationLead | null>(null);
@@ -160,7 +174,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [isOnHold, setIsOnHold] = useState(false);
   const [transcript, setTranscript] = useState<{ sender: string; text: string }[]>([]);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const [aiSuggestions, setAiSuggestions] = useState<any[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
 
@@ -170,12 +184,12 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [channelFilter, setChannelFilter] = useState<'all' | 'whatsapp' | 'sms' | 'email'>('all');
-  const [selectedSendChannel, setSelectedSendChannel] = useState<'whatsapp' | 'sms' | 'email'>('whatsapp');
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>('all');
+  const [selectedSendChannel, setSelectedSendChannel] = useState<SendChannel>('whatsapp');
   const [isDrafting, setIsDrafting] = useState(false);
   const [sendingStatus, setSendingStatus] = useState<Record<string, 'sending' | 'sent' | 'delivered'>>({});
 
-  useOnClickOutside(moreMenuRef as any, () => setShowMoreMenu(false));
+  useOnClickOutside(moreMenuRef as React.RefObject<HTMLElement>, () => setShowMoreMenu(false));
 
   const activeLead = leads.find((l) => l.id === selectedChatId);
 
@@ -264,22 +278,23 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           time: new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           type: a.type,
           subject: a.type === 'email' ? 'תגובה לפנייה שלכם' : undefined,
-          metadata: (a as any)?.metadata,
+          metadata: a.metadata,
         };
       });
   }, [activeLead]);
 
-  const renderCallAnalysisActivity = (metadata: any) => {
-    const ca = metadata?.callAnalysis;
+  const renderCallAnalysisActivity = (metadata: unknown) => {
+    const ca = asObject(asObject(metadata)?.callAnalysis);
     if (!ca) return null;
 
-    const audio = ca?.audio || {};
+    const audio = asObject(ca.audio);
     const audioSrc = String(audio?.signedUrl || audio?.url || '').trim();
-    const analysis = ca?.analysis || {};
-    const score = Number.isFinite(Number(analysis?.score)) ? Number(analysis.score) : null;
+    const analysis = asObject(ca.analysis);
+    const score = Number.isFinite(Number(analysis?.score)) ? Number(analysis?.score) : null;
     const summary = String(analysis?.summary || '').trim();
-    const tasks = Array.isArray(analysis?.topics?.tasks) ? analysis.topics.tasks : [];
-    const promises = Array.isArray(analysis?.topics?.promises) ? analysis.topics.promises : [];
+    const topics = asObject(analysis?.topics);
+    const tasks = Array.isArray(topics?.tasks) ? topics.tasks : [];
+    const promises = Array.isArray(topics?.promises) ? topics.promises : [];
     const objections = Array.isArray(analysis?.objections) ? analysis.objections : [];
     const transcript = Array.isArray(analysis?.transcript) ? analysis.transcript : [];
 
@@ -307,7 +322,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
             <div className="bg-white border border-slate-200 rounded-2xl p-3">
               <div className="text-[11px] font-black text-slate-500">התחייבויות</div>
               <div className="mt-2 space-y-1">
-                {(promises.length ? promises : ['—']).slice(0, 8).map((p: any, idx: number) => (
+                {(promises.length ? promises : ['—']).slice(0, 8).map((p: unknown, idx: number) => (
                   <div key={idx} className="text-sm font-bold text-slate-800">{String(p)}</div>
                 ))}
               </div>
@@ -315,7 +330,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
             <div className="bg-white border border-slate-200 rounded-2xl p-3">
               <div className="text-[11px] font-black text-slate-500">משימות</div>
               <div className="mt-2 space-y-1">
-                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: any, idx: number) => (
+                {(tasks.length ? tasks : ['—']).slice(0, 10).map((t: unknown, idx: number) => (
                   <div key={idx} className="text-sm font-bold text-slate-800">{String(t)}</div>
                 ))}
               </div>
@@ -327,15 +342,21 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-3">
             <div className="text-[11px] font-black text-slate-500">התנגדויות</div>
             <div className="mt-2 space-y-2">
-              {objections.slice(0, 6).map((o: any, idx: number) => (
-                <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
-                  <div className="text-xs font-black text-slate-900">{String(o?.objection || '')}</div>
-                  <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String(o?.reply || '')}</div>
-                  {o?.next_question ? (
-                    <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(o.next_question)}</div>
-                  ) : null}
-                </div>
-              ))}
+              {objections.slice(0, 6).map((o: unknown, idx: number) => {
+                const oObj = asObject(o);
+                const objection = typeof oObj?.objection === 'string' ? oObj.objection : '';
+                const reply = typeof oObj?.reply === 'string' ? oObj.reply : '';
+                const nextQuestion = typeof oObj?.next_question === 'string' ? oObj.next_question : '';
+                return (
+                  <div key={idx} className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+                    <div className="text-xs font-black text-slate-900">{String(objection || '')}</div>
+                    <div className="text-sm font-bold text-slate-700 mt-1 whitespace-pre-wrap">{String(reply || '')}</div>
+                    {nextQuestion ? (
+                      <div className="text-xs font-bold text-slate-500 mt-2">שאלה הבאה: {String(nextQuestion)}</div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -344,11 +365,16 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           <div className="bg-white border border-slate-200 rounded-2xl p-3">
             <div className="text-[11px] font-black text-slate-500">תמלול (דוגמית)</div>
             <div className="mt-2 space-y-2">
-              {transcript.slice(0, 10).map((t: any, idx: number) => (
-                <div key={idx} className="text-sm font-bold text-slate-800">
-                  <span className="text-slate-500">{String(t?.speaker || '')}:</span> {String(t?.text || '')}
-                </div>
-              ))}
+              {transcript.slice(0, 10).map((t: unknown, idx: number) => {
+                const tObj = asObject(t);
+                const speaker = typeof tObj?.speaker === 'string' ? tObj.speaker : '';
+                const text = typeof tObj?.text === 'string' ? tObj.text : '';
+                return (
+                  <div key={idx} className="text-sm font-bold text-slate-800">
+                    <span className="text-slate-500">{String(speaker || '')}:</span> {String(text || '')}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -371,7 +397,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
     }
   }, [transcript]);
 
-  const handleUpdateStatus = (statusId: any) => {
+  const handleUpdateStatus = (statusId: string) => {
     if (selectedChatId && onUpdateLead) {
       onUpdateLead(selectedChatId, { status: statusId });
       addToast(`הסטטוס עודכן ל-${STAGES.find((s) => s.id === statusId)?.label}`, 'success');
@@ -447,10 +473,11 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
           activities: [],
           company: 'Unknown',
           score: 0,
-        } as any);
-    } catch (error: any) {
+        });
+    } catch (error: unknown) {
       console.error('Error initiating call:', error);
-      addToast(error.message || 'שגיאה בהפעלת השיחה', 'error');
+      const message = error instanceof Error ? error.message : '';
+      addToast(message || 'שגיאה בהפעלת השיחה', 'error');
     }
   };
 
@@ -469,7 +496,9 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
     setDialNumber('');
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  type SendMessageEvent = React.FormEvent<HTMLFormElement> | React.KeyboardEvent<HTMLTextAreaElement>;
+
+  const handleSendMessage = async (e: SendMessageEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || !selectedChatId) return;
 
@@ -563,15 +592,17 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                 </div>
 
                 <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
-                  {[
-                    { id: 'all', label: 'הכל', icon: Layers },
-                    { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-                    { id: 'sms', label: 'SMS', icon: Smartphone },
-                    { id: 'email', label: 'Email', icon: Mail },
-                  ].map((filter) => (
+                  {(
+                    [
+                      { id: 'all', label: 'הכל', icon: Layers },
+                      { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
+                      { id: 'sms', label: 'SMS', icon: Smartphone },
+                      { id: 'email', label: 'Email', icon: Mail },
+                    ] satisfies Array<{ id: ChannelFilter; label: string; icon: LucideIcon }>
+                  ).map((filter) => (
                     <button
                       key={filter.id}
-                      onClick={() => setChannelFilter(filter.id as any)}
+                      onClick={() => setChannelFilter(filter.id)}
                       className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all whitespace-nowrap border ${
                         channelFilter === filter.id
                           ? 'bg-slate-900 text-white border-slate-900 shadow-md'
@@ -778,7 +809,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                             <div className="p-4">
                               <p className={`text-sm leading-relaxed whitespace-pre-wrap font-medium ${isMe ? 'text-white' : 'text-slate-700'}`}>{msg.text}</p>
 
-                              {String(msg.type) === 'call' ? renderCallAnalysisActivity((msg as any)?.metadata) : null}
+                              {String(msg.type) === 'call' ? renderCallAnalysisActivity(msg.metadata) : null}
 
                               <div className={`text-[10px] mt-2 flex items-center justify-end gap-1.5 ${isMe ? 'text-slate-400' : 'text-slate-400'}`}>
                                 <span className="font-mono">{msg.time}</span>
@@ -803,15 +834,17 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
 
                   <div className="p-3 md:p-4 bg-white border-t border-slate-200 relative">
                     <div className="flex gap-2 mb-3 bg-slate-100 p-1 rounded-xl border border-slate-200 w-fit mx-auto md:mx-0">
-                      {[
-                        { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100' },
-                        { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100' },
-                        { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100' },
-                      ].map((channel) => (
+                      {(
+                        [
+                          { id: 'whatsapp', label: 'WA', icon: MessageSquare, color: 'text-emerald-600', active: 'bg-white shadow-sm border-emerald-100' },
+                          { id: 'sms', label: 'SMS', icon: Smartphone, color: 'text-blue-600', active: 'bg-white shadow-sm border-blue-100' },
+                          { id: 'email', label: 'Mail', icon: Mail, color: 'text-amber-600', active: 'bg-white shadow-sm border-amber-100' },
+                        ] satisfies Array<{ id: SendChannel; label: string; icon: LucideIcon; color: string; active: string }>
+                      ).map((channel) => (
                         <button
                           key={channel.id}
                           type="button"
-                          onClick={() => setSelectedSendChannel(channel.id as any)}
+                          onClick={() => setSelectedSendChannel(channel.id)}
                           className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all border border-transparent ${
                             selectedSendChannel === channel.id
                               ? `${channel.active} ${channel.color}`
@@ -880,7 +913,7 @@ const CommunicationViewBase: React.FC<CommunicationViewBaseProps> = ({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.shiftKey) {
                               e.preventDefault();
-                              handleSendMessage(e as any);
+                              void handleSendMessage(e);
                             }
                           }}
                         />

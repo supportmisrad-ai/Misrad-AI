@@ -12,6 +12,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
@@ -45,7 +46,8 @@ async function GETHandler(
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = ctx.params;
+    const resolvedParams = await Promise.resolve(ctx.params);
+    const { orgSlug } = resolvedParams;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
@@ -382,7 +384,15 @@ async function GETHandler(
     return apiSuccess({ moduleId: moduleId || null, organizationId: workspace.id });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e.message || 'Forbidden', { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     const msg = getErrorMessage(e);
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;

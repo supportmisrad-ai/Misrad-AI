@@ -11,6 +11,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 const FLAG_KEY_DEPARTMENTS = '__departments_v1';
 const FLAG_KEY_DEPARTMENT_HISTORY = '__department_history_v1';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type DepartmentHistory = {
   id: string;
   timestamp: number;
@@ -19,11 +21,13 @@ type DepartmentHistory = {
   oldValue?: string;
   newValue?: string;
   changedBy: string;
-};
+};
+
 
 function readAiDnaObject(input: unknown): Record<string, unknown> {
   return asObject(input) ?? {};
-}
+}
+
 
 async function GETHandler(request: NextRequest) {
   try {
@@ -54,9 +58,18 @@ async function GETHandler(request: NextRequest) {
     );
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json({ error: IS_PROD ? safeMsg : e.message || safeMsg }, { status: e.status });
     }
-    return NextResponse.json({ error: getErrorMessage(e) || 'Internal server error' }, { status: 500 });
+    const safeMsg = 'Internal server error';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg }, { status: 500 });
   }
 }
 
@@ -112,12 +125,22 @@ async function PATCHHandler(request: NextRequest) {
       { status: 200 }
     );
   } catch (e: unknown) {
-    const msg = getErrorMessage(e) || 'Forbidden';
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json({ error: IS_PROD ? safeMsg : e.message || safeMsg }, { status: e.status });
     }
+
+    const msg = getErrorMessage(e) || 'Forbidden';
     const status = msg.includes('Forbidden') ? 403 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    const safeMsg = status === 403 ? 'Forbidden' : 'Internal server error';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status });
   }
 }
 

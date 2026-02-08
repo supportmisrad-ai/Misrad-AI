@@ -11,7 +11,8 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { getBaseUrl } from '@/lib/utils';
 import { sendMisradWelcomeEmail } from '@/lib/email';
-import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 function serializeUnknownError(error: unknown) {
@@ -359,14 +360,10 @@ async function upsertProfileForClerkUser(params: {
 
   const tempOrgId = crypto.randomUUID();
   const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
-    const txAliased = tx as typeof tx & {
-      organizationUser: typeof tx.social_users;
-      organization: typeof tx.social_organizations;
-    };
-    (txAliased as unknown as { organizationUser?: unknown }).organizationUser = tx.social_users;
-    (txAliased as unknown as { organization?: unknown }).organization = tx.social_organizations;
+    const organizationUser = tx.social_users;
+    const organization = tx.social_organizations;
 
-    const createdSocialUser = await txAliased.organizationUser.create({
+    const createdSocialUser = await organizationUser.create({
       data: {
         clerk_user_id: clerkUserId,
         email: emailLower,
@@ -380,7 +377,7 @@ async function upsertProfileForClerkUser(params: {
       select: { id: true },
     });
 
-    const createdOrg = await txAliased.organization.create({
+    const createdOrg = await organization.create({
       data: {
         id: tempOrgId,
         name: orgName,
@@ -402,7 +399,7 @@ async function upsertProfileForClerkUser(params: {
       select: { id: true, slug: true },
     });
 
-    await txAliased.organizationUser.update({
+    await organizationUser.update({
       where: { id: createdSocialUser.id },
       data: { organization_id: createdOrg.id, updated_at: now },
       select: { id: true },

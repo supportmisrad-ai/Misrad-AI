@@ -23,6 +23,8 @@ type IncomingMessage = {
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 const HARD_LIMITS = {
   maxContentLengthBytes: 220_000,
   maxMessages: 60,
@@ -60,7 +62,8 @@ type OverloadedError = Error & { status: number; retryAfterSeconds: number };
 
 function overloadedError(): OverloadedError {
   return Object.assign(new Error('Overloaded'), { status: 503, retryAfterSeconds: 3 });
-}
+}
+
 
 function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
@@ -456,7 +459,18 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     }
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : e.message || safeMsg },
+        { status: e.status }
+      );
     }
     const obj = asObject(e);
     const statusFromError = obj?.status;
@@ -471,7 +485,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     if (typeof retryAfterSeconds === 'number' && retryAfterSeconds > 0) {
       headers['Retry-After'] = String(Math.floor(retryAfterSeconds));
     }
-    return NextResponse.json({ error: msg }, { status, headers });
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status, headers });
   }
 }
 

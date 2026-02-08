@@ -6,6 +6,8 @@ import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function getErrorCode(error: unknown): string {
   if (!error || typeof error !== 'object') return '';
   const rec = error as Record<string, unknown>;
@@ -23,7 +25,18 @@ async function GETHandler(request: NextRequest) {
       workspaceId = String(ws.workspaceId || '').trim();
     } catch (e: unknown) {
       if (e instanceof APIError) {
-        return NextResponse.json({ ok: false, error: e.message || 'Missing x-org-id header' }, { status: e.status });
+        const safeMsg =
+          e.status === 400
+            ? 'Bad request'
+            : e.status === 401
+              ? 'Unauthorized'
+              : e.status === 404
+                ? 'Not found'
+                : 'Forbidden';
+        return NextResponse.json(
+          { ok: false, error: IS_PROD ? safeMsg : e.message || safeMsg },
+          { status: e.status }
+        );
       }
       return NextResponse.json({ ok: false, error: 'Missing x-org-id header' }, { status: 400 });
     }
@@ -36,16 +49,22 @@ async function GETHandler(request: NextRequest) {
         checks[name] = { ok: true };
       } catch (e: unknown) {
         const code = getErrorCode(e);
-        const msg = getErrorMessage(e);
+        const msg = getErrorMessage(e) || 'Unknown error';
         if (code === 'P2022') {
-          checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing column (${msg})` };
+          checks[name] = {
+            ok: false,
+            error: IS_PROD ? `[SchemaMismatch] ${name}: missing column` : `[SchemaMismatch] ${name}: missing column (${msg})`,
+          };
           return;
         }
         if (code === 'P2021') {
-          checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing table (${msg})` };
+          checks[name] = {
+            ok: false,
+            error: IS_PROD ? `[SchemaMismatch] ${name}: missing table` : `[SchemaMismatch] ${name}: missing table (${msg})`,
+          };
           return;
         }
-        checks[name] = { ok: false, error: msg };
+        checks[name] = { ok: false, error: IS_PROD ? 'Internal server error' : msg };
       }
     };
 
@@ -87,7 +106,10 @@ async function GETHandler(request: NextRequest) {
 
     return NextResponse.json({ ok: true, checks, timestamp: new Date().toISOString() });
   } catch (e: unknown) {
-    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden' }, { status: 403 });
+    const msg = getErrorMessage(e) || 'Internal server error';
+    const status = msg.toLowerCase().includes('unauthorized') ? 401 : msg.toLowerCase().includes('forbidden') ? 403 : 500;
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return NextResponse.json({ ok: false, error: IS_PROD ? safeMsg : msg }, { status });
   }
 }
 

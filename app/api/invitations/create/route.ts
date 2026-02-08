@@ -128,7 +128,8 @@ async function POSTHandler(request: NextRequest) {
         try {
             await requireSuperAdmin();
         } catch (e: unknown) {
-            return apiError(getErrorMessage(e) || 'Forbidden - Super Admin required', { status: 403 });
+            const safeMsg = 'Forbidden - Super Admin required';
+            return apiError(IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg, { status: 403 });
         }
 
         if (!clerkUser.email) {
@@ -211,10 +212,19 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error creating invitation link');
         else console.error('[API] Error creating invitation link:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
-        const msg = getErrorMessage(error) || 'Failed to create invitation link';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'Failed to create invitation link';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

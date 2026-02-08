@@ -6,6 +6,8 @@ import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { requireSuperAdmin } from '@/lib/auth';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler() {
   try {
     // Primary source of truth: system_settings.maintenance_mode (global)
@@ -109,7 +111,11 @@ async function PATCHHandler(request: Request) {
 
     return NextResponse.json({ success: true, maintenanceMode }, { status: 200 });
   } catch (e: unknown) {
-    return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status: 403 });
+    const safeMsg = 'Forbidden';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 403 }
+    );
   }
 }
 

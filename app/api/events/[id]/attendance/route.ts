@@ -129,11 +129,23 @@ async function GETHandler(
         if (IS_PROD) console.error('[API] Error in /api/events/[id]/attendance GET');
         else console.error('[API] Error in /api/events/[id]/attendance GET:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'שגיאה בטעינת נוכחות';
         return NextResponse.json(
-            { error: message || 'שגיאה בטעינת נוכחות' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
@@ -246,11 +258,23 @@ async function POSTHandler(
         if (IS_PROD) console.error('[API] Error in /api/events/[id]/attendance POST');
         else console.error('[API] Error in /api/events/[id]/attendance POST:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'שגיאה בשמירת אישור הגעה';
         return NextResponse.json(
-            { error: message || 'שגיאה בשמירת אישור הגעה' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }

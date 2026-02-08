@@ -49,17 +49,25 @@ type ProfileRecord = {
 };
 
 function normalizeJson(value: unknown): Prisma.InputJsonValue {
-  if (value == null) return {} as Prisma.InputJsonValue;
+  if (value == null) return {};
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return value;
   if (typeof value === 'boolean') return value;
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
 
   if (Array.isArray(value)) {
-    return value as unknown as Prisma.InputJsonValue;
+    return value.map((v) => normalizeJson(v));
   }
 
   const obj = asObject(value);
-  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
+  if (!obj) return {};
+
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = normalizeJson(v);
+  }
+  return out;
 }
 
 function getWorkspaceId(workspace: unknown): string {

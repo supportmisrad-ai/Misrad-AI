@@ -7,6 +7,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
@@ -205,6 +207,10 @@ select
       rpcError: null,
     });
   } catch (e: unknown) {
-    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'RLS check failed' }, { status: 500 });
+    const safeMsg = 'RLS check failed';
+    return NextResponse.json(
+      { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 500 }
+    );
   }
 }

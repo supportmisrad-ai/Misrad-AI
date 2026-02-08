@@ -8,6 +8,8 @@ import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 const GLOBAL_BRANDING_KEY = 'global_branding';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type GlobalBrandingValue = {
   defaultLogoUrl?: string | null;
 };
@@ -78,12 +80,20 @@ async function PATCHHandler(request: NextRequest) {
           })
       );
     } catch (e: unknown) {
-      return NextResponse.json({ error: getErrorMessage(e) || 'Failed' }, { status: 500 });
+      const safeMsg = 'Failed';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, defaultLogoUrl: value.defaultLogoUrl ?? null }, { status: 200 });
   } catch (e: unknown) {
-    return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status: 403 });
+    const safeMsg = 'Forbidden';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 403 }
+    );
   }
 }
 

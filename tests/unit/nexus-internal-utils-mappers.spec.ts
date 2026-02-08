@@ -117,7 +117,7 @@ test.describe('nexus internal mappers.pure', () => {
       monthly_salary: 'not-a-number',
     };
 
-    const u = mapUserRow(row);
+    const u = mapUserRow(row, now);
     expect(u.id).toBe('u1');
     expect(u.name).toBe('a@b.com');
     expect(u.organizationId).toBe('org1');

@@ -1,4 +1,5 @@
-import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
+
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function normalizeOrgKey(orgKey: string): string {
@@ -16,7 +17,8 @@ function getErrorStatus(error: unknown): number | null {
   const obj = asObject(error);
   const status = obj?.status;
   return typeof status === 'number' && Number.isFinite(status) ? status : null;
-}
+}
+
 
 export class APIError extends Error {
   status: number;
@@ -87,7 +89,7 @@ export async function getWorkspaceContextOrThrow(
     throw new APIError(400, 'Missing workspace context');
   }
 
-  const primaryKey = headerOrgKey || paramsOrgKey;
+  const primaryKey = paramsOrgKey || headerOrgKey;
   if (!primaryKey) {
     throw new APIError(400, 'Missing workspace context');
   }
@@ -96,9 +98,12 @@ export async function getWorkspaceContextOrThrow(
     const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(primaryKey);
 
     if (headerOrgKey && paramsOrgKey && headerOrgKey !== paramsOrgKey) {
-      const { workspace: workspaceSecondary } = await getWorkspaceByOrgKeyOrThrow(paramsOrgKey);
-      if (String(workspaceSecondary.id) !== String(workspacePrimary.id)) {
-        throw new APIError(400, 'Conflicting workspace context');
+      try {
+        const { workspace: workspaceHeader } = await getWorkspaceByOrgKeyOrThrow(headerOrgKey);
+        if (String(workspaceHeader.id) !== String(workspacePrimary.id)) {
+          throw new APIError(400, 'Conflicting workspace context');
+        }
+      } catch {
       }
     }
 

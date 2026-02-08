@@ -22,7 +22,8 @@ type SubscriptionItemsCreateData = Parameters<typeof prisma.subscription_items.c
 type SubscriptionItemsDeleteManyWhere = Prisma.subscription_itemsDeleteManyArgs['where'];
 type ChargesCreateData = Parameters<typeof prisma.charges.create>[0]['data'];
 type BillingEventsCreateData = Parameters<typeof prisma.billing_events.create>[0]['data'];
-type SocialSyncLogsCreateData = Parameters<typeof prisma.social_sync_logs.create>[0]['data'];
+type SocialSyncLogsCreateData = Parameters<typeof prisma.social_sync_logs.create>[0]['data'];
+
 
 function isMissingRelationError(error: unknown): boolean {
   const errObj = asObject(error) ?? {};
@@ -57,13 +58,25 @@ function addYears(date: Date, years: number): Date {
 }
 
 function toJson(value: unknown): Prisma.InputJsonValue {
-  if (value == null) return {} as Prisma.InputJsonValue;
+  if (value == null) return {};
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return value;
   if (typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map((v) => toJson(v));
+  }
+
   const obj = asObject(value);
-  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
+  if (!obj) return {};
+
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = toJson(v);
+  }
+  return out;
 }
 
 function captureActionException(error: unknown, context: Record<string, unknown>) {

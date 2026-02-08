@@ -10,6 +10,8 @@ import { asObject } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
@@ -67,7 +69,18 @@ async function POSTHandler(req: Request) {
     );
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : e.message || safeMsg },
+        { status: e.status }
+      );
     }
     return NextResponse.json(
       {

@@ -10,6 +10,8 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function asString(value: unknown): string {
   return value == null ? '' : String(value);
 }
@@ -90,9 +92,18 @@ async function POSTHandler(req: Request) {
     return apiSuccessCompat({ insight }, { headers: abuse.headers });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e.message || 'Forbidden', { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
-    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Live insight failed' });
+    const safeMsg = 'Live insight failed';
+    return apiError(e, { status: 500, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
   }
 }
 

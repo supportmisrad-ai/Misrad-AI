@@ -120,7 +120,11 @@ async function PATCHHandler(request: NextRequest) {
         try {
             await requireSuperAdmin();
         } catch (e: unknown) {
-            return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
+            const safeMsg = 'Forbidden - Super Admin required';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+                { status: 403 }
+            );
         }
 
         const body = await request.json();

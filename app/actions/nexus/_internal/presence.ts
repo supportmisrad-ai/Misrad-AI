@@ -1,12 +1,16 @@
 import 'server-only';
 
 import { currentUser } from '@clerk/nextjs/server';
-import { Prisma } from '@prisma/client';
 
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { requireWorkspaceIdByOrgSlugApi } from '@/lib/server/workspace';
 
-import { setNexusUserOnlineOnlineOnly, setNexusUserOnlineWithLastSeenAt } from '@/lib/services/nexus-presence-service';
+import {
+  setNexusUserOnlineByEmailWithLastSeenAt,
+  setNexusUserOnlineOnlineOnly,
+  setNexusUserOnlineOnlineOnlyByEmail,
+  setNexusUserOnlineWithLastSeenAt,
+} from '@/lib/services/nexus-presence-service';
 
 import { asObject } from './utils';
 
@@ -19,7 +23,7 @@ export async function updateNexusPresenceHeartbeat(params: {
 }> {
   // Fast path: try to get workspace and user info with minimal DB calls
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgId);
+    const { id: workspaceId } = await requireWorkspaceIdByOrgSlugApi(params.orgId);
 
     const clerk = await currentUser();
     const clerkUserId = clerk?.id || null;
@@ -27,103 +31,78 @@ export async function updateNexusPresenceHeartbeat(params: {
       throw new Error('Unauthorized');
     }
 
+    const emailRaw = clerk?.primaryEmailAddress?.emailAddress ?? null;
+    const email = emailRaw ? String(emailRaw).trim().toLowerCase() : '';
+
     const now = new Date();
     const isDev = process.env.NODE_ENV !== 'production';
 
-    // Try direct update first - this is the most common case
-    try {
-      const result = await setNexusUserOnlineWithLastSeenAt({
-        organizationId: workspace.id,
-        userId: clerkUserId,
-        now,
-      });
-
-      return {
-        ok: true,
-        serverTime: now.toISOString(),
-        ...(isDev
-          ? {
-              debug: {
-                workspaceId: workspace.id,
-                userId: clerkUserId,
-                usedFallback: false,
-                updatedCount: result ? 1 : 0,
-              },
-            }
-          : {}),
-      };
-    } catch (updateError) {
-      // If direct update fails, fall back to the full resolution logic
-      const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
-      const dbUser = asObject(resolved.user) ?? {};
-      const dbUserId = String(dbUser.id ?? '').trim();
-      if (!dbUserId) throw new Error('User not found');
-
-      const updateData: Prisma.NexusUserUpdateInput = {
-        online: true,
-        lastSeenAt: now,
-      };
-
-      let updatedCount: { count: number } | null = null;
-      let usedFallback = false;
+    // Try direct update first - update by email (NexusUser.id is a UUID, not clerkUserId)
+    if (email) {
       try {
-        // Use update instead of updateMany for better performance
-        const result = await setNexusUserOnlineWithLastSeenAt({
-          organizationId: workspace.id,
-          userId: dbUserId,
+        const result = await setNexusUserOnlineByEmailWithLastSeenAt({
+          organizationId: workspaceId,
+          email,
           now,
         });
-        updatedCount = { count: result ? 1 : 0 };
-      } catch {
-        // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
-        usedFallback = true;
-        updatedCount = await setNexusUserOnlineOnlineOnly({ organizationId: workspace.id, userId: dbUserId });
-      }
-      if (!updatedCount?.count) {
-        throw new Error(
-          isDev
-            ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
-            : 'Failed to update presence'
-        );
-      }
-      return {
-        ok: true,
-        serverTime: now.toISOString(),
-        ...(isDev
-          ? {
-              debug: {
-                workspaceId: workspace.id,
-                userId: dbUserId,
-                usedFallback,
-                updatedCount: updatedCount.count,
-              },
-            }
-          : {}),
-      };
-    }
-  } catch (error) {
-    // If anything fails, fall back to the original implementation
-    const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
-    const workspace = resolved.workspace;
 
+        if (result?.count) {
+          return {
+            ok: true,
+            serverTime: now.toISOString(),
+            ...(isDev
+              ? {
+                  debug: {
+                    workspaceId,
+                    userId: clerkUserId,
+                    usedFallback: false,
+                    updatedCount: result.count,
+                  },
+                }
+              : {}),
+          };
+        }
+      } catch {
+        try {
+          const result = await setNexusUserOnlineOnlineOnlyByEmail({
+            organizationId: workspaceId,
+            email,
+          });
+
+          if (result?.count) {
+            return {
+              ok: true,
+              serverTime: now.toISOString(),
+              ...(isDev
+                ? {
+                    debug: {
+                      workspaceId,
+                      userId: clerkUserId,
+                      usedFallback: true,
+                      updatedCount: result.count,
+                    },
+                  }
+                : {}),
+            };
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // Fallback to the full resolution logic
+    const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
     const dbUser = asObject(resolved.user) ?? {};
     const dbUserId = String(dbUser.id ?? '').trim();
     if (!dbUserId) throw new Error('User not found');
-
-    const now = new Date();
-    const isDev = process.env.NODE_ENV !== 'production';
-
-    const updateData: Prisma.NexusUserUpdateInput = {
-      online: true,
-      lastSeenAt: now,
-    };
 
     let updatedCount: { count: number } | null = null;
     let usedFallback = false;
     try {
       // Use update instead of updateMany for better performance
       const result = await setNexusUserOnlineWithLastSeenAt({
-        organizationId: workspace.id,
+        organizationId: workspaceId,
         userId: dbUserId,
         now,
       });
@@ -131,12 +110,16 @@ export async function updateNexusPresenceHeartbeat(params: {
     } catch {
       // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
       usedFallback = true;
-      updatedCount = await setNexusUserOnlineOnlineOnly({ organizationId: workspace.id, userId: dbUserId });
+      if (email) {
+        updatedCount = await setNexusUserOnlineOnlineOnlyByEmail({ organizationId: workspaceId, email });
+      } else {
+        updatedCount = await setNexusUserOnlineOnlineOnly({ organizationId: workspaceId, userId: dbUserId });
+      }
     }
     if (!updatedCount?.count) {
       throw new Error(
         isDev
-          ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspace.id} orgId=${params.orgId} usedFallback=${usedFallback})`
+          ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspaceId} orgId=${params.orgId} usedFallback=${usedFallback})`
           : 'Failed to update presence'
       );
     }
@@ -146,7 +129,60 @@ export async function updateNexusPresenceHeartbeat(params: {
       ...(isDev
         ? {
             debug: {
-              workspaceId: workspace.id,
+              workspaceId,
+              userId: dbUserId,
+              usedFallback,
+              updatedCount: updatedCount.count,
+            },
+          }
+        : {}),
+    };
+  } catch (error) {
+    // If anything fails, fall back to the original implementation
+    const resolved = await resolveWorkspaceCurrentUserForApi(params.orgId);
+    const workspaceId = resolved.workspace.id;
+
+    const dbUser = asObject(resolved.user) ?? {};
+    const dbUserId = String(dbUser.id ?? '').trim();
+    if (!dbUserId) throw new Error('User not found');
+
+    const now = new Date();
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    let updatedCount: { count: number } | null = null;
+    let usedFallback = false;
+    try {
+      // Use update instead of updateMany for better performance
+      const result = await setNexusUserOnlineWithLastSeenAt({
+        organizationId: workspaceId,
+        userId: dbUserId,
+        now,
+      });
+      updatedCount = { count: result ? 1 : 0 };
+    } catch {
+      // If the DB isn't migrated yet (missing last_seen_at), fall back to legacy behavior.
+      usedFallback = true;
+      const email = resolved?.clerkUser?.email ? String(resolved.clerkUser.email).trim().toLowerCase() : '';
+      if (email) {
+        updatedCount = await setNexusUserOnlineOnlineOnlyByEmail({ organizationId: workspaceId, email });
+      } else {
+        updatedCount = await setNexusUserOnlineOnlineOnly({ organizationId: workspaceId, userId: dbUserId });
+      }
+    }
+    if (!updatedCount?.count) {
+      throw new Error(
+        isDev
+          ? `Failed to update presence (userId=${dbUserId} workspaceId=${workspaceId} orgId=${params.orgId} usedFallback=${usedFallback})`
+          : 'Failed to update presence'
+      );
+    }
+    return {
+      ok: true,
+      serverTime: now.toISOString(),
+      ...(isDev
+        ? {
+            debug: {
+              workspaceId,
               userId: dbUserId,
               usedFallback,
               updatedCount: updatedCount.count,

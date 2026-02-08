@@ -7,6 +7,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
@@ -183,10 +185,11 @@ export async function POST(req: Request) {
       systemInvoiceId: invoice.id,
     });
   } catch (e: unknown) {
+    const safeMsg = 'E2E route failed';
     return NextResponse.json(
       {
         ok: false,
-        error: getErrorMessage(e) || 'E2E route failed',
+        error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
       },
       { status: 500 }
     );

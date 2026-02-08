@@ -39,9 +39,10 @@ async function GETHandler(request: NextRequest) {
         try {
             await requireSuperAdmin();
         } catch (e: unknown) {
+            const safeMsg = 'Forbidden - Super Admin required';
             return NextResponse.json({
                 success: false,
-                error: getErrorMessage(e) || 'Forbidden - Super Admin required',
+                error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
                 checks: {}
             }, { status: 403 });
         }
@@ -92,7 +93,7 @@ async function GETHandler(request: NextRequest) {
         try {
             const { data: buckets, error: listError } = await supabase.storage.listBuckets();
             if (listError) {
-                checks.bucketExists = `Error: ${listError.message}`;
+                checks.bucketExists = `Error: ${IS_PROD ? 'Error' : listError.message}`;
             } else {
                 const attachmentsBucket = buckets?.find((b) => b.name === 'attachments');
                 checks.bucketExists = !!attachmentsBucket;
@@ -101,7 +102,7 @@ async function GETHandler(request: NextRequest) {
                 }
             }
         } catch (error: unknown) {
-            checks.bucketExists = `Error: ${getErrorMessage(error)}`;
+            checks.bucketExists = `Error: ${IS_PROD ? 'Error' : (getErrorMessage(error) || 'Error')}`;
         }
 
         // 4. Test upload (small test file)
@@ -124,7 +125,7 @@ async function GETHandler(request: NextRequest) {
                     checks.canRead = files.length > 0;
                     checks.filesFound = String(files.length);
                 } catch (readError: unknown) {
-                    checks.canRead = `Error: ${getErrorMessage(readError)}`;
+                    checks.canRead = `Error: ${IS_PROD ? 'Error' : (getErrorMessage(readError) || 'Error')}`;
                 }
 
                 // 6. Test delete
@@ -132,13 +133,13 @@ async function GETHandler(request: NextRequest) {
                     const deleted = await deleteFile(uploadResult.path, 'attachments');
                     checks.canDelete = deleted;
                 } catch (deleteError: unknown) {
-                    checks.canDelete = `Error: ${getErrorMessage(deleteError)}`;
+                    checks.canDelete = `Error: ${IS_PROD ? 'Error' : (getErrorMessage(deleteError) || 'Error')}`;
                 }
             } else {
                 checks.canUpload = 'Upload returned no URL';
             }
         } catch (uploadError: unknown) {
-            checks.canUpload = `Error: ${getErrorMessage(uploadError)}`;
+            checks.canUpload = `Error: ${IS_PROD ? 'Error' : (getErrorMessage(uploadError) || 'Error')}`;
         }
 
         // 7. Summary

@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useData } from '../context/DataContext';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket, Image as ImageIcon, Upload, Plus, Mic } from 'lucide-react';
-import { Status, Priority, LeadStatus, User as UserType } from '../types';
+import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink, Edit2, X, Check, DollarSign, ArrowUpRight, ArrowDownRight, RefreshCw, BarChart2, Star, ThumbsUp, Sun, Compass, User, CheckSquare, Sparkles, ChevronRight, Flame, Rocket, Image as ImageIcon, Upload, Plus, Mic, type LucideIcon } from 'lucide-react';
+import { Status, Priority, LeadStatus, User as UserType, type ModuleId } from '../types';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
 import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
@@ -16,6 +16,150 @@ import { Skeleton } from '@/components/ui/skeletons';
 import OSAppSwitcher from '@/components/shared/OSAppSwitcher';
 import { isCeoRole } from '@/lib/constants/roles';
 import { listNexusUsers } from '@/app/actions/nexus';
+
+type OwnerDashboardAction = {
+    id: string;
+    source: 'nexus' | 'system' | 'social' | 'finance' | 'client';
+    title: string;
+    subtitle?: string;
+    href?: string;
+    priority: 'urgent' | 'high' | 'normal';
+};
+
+type OwnerDashboardKpis = {
+    nexus?: { tasksOpen?: number; tasksUrgent?: number };
+    system?: { leadsTotal?: number; leadsHot?: number; leadsIncoming?: number };
+    social?: { postsTotal?: number; postsDraft?: number; postsScheduled?: number; postsPublished?: number };
+    finance?: { totalMinutes?: number; totalHours?: number } | { locked: true };
+    [key: string]: unknown;
+};
+
+function isLockedFinance(value: OwnerDashboardKpis['finance']): value is { locked: true } {
+    const obj = asObject(value);
+    return Boolean(obj && obj.locked === true);
+}
+
+type OwnerDashboardData = {
+    kpis?: OwnerDashboardKpis;
+    nextActions?: OwnerDashboardAction[];
+    [key: string]: unknown;
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    if (Array.isArray(value)) return null;
+    return value as Record<string, unknown>;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+    const v = obj?.[key];
+    return typeof v === 'string' ? v : null;
+}
+
+function getNumberProp(obj: Record<string, unknown> | null, key: string): number | null {
+    const v = obj?.[key];
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function getUiPreferences(user: unknown): Record<string, unknown> {
+    const u = asObject(user);
+    const prefs = asObject(u?.uiPreferences);
+    return prefs ?? {};
+}
+
+function getOnboardingPrefs(user: unknown, onboardingKey: string): Record<string, unknown> {
+    const prefs = getUiPreferences(user);
+    const raw = prefs[onboardingKey];
+    return asObject(raw) ?? {};
+}
+
+function coerceOwnerDashboardAction(value: unknown): OwnerDashboardAction | null {
+    const obj = asObject(value);
+    if (!obj) return null;
+    const id = getStringProp(obj, 'id') ?? '';
+    const title = getStringProp(obj, 'title') ?? '';
+    const sourceRaw = getStringProp(obj, 'source') ?? '';
+    const priorityRaw = getStringProp(obj, 'priority') ?? '';
+    if (!id || !title) return null;
+
+    const source: OwnerDashboardAction['source'] =
+        sourceRaw === 'nexus' || sourceRaw === 'system' || sourceRaw === 'social' || sourceRaw === 'finance' || sourceRaw === 'client'
+            ? sourceRaw
+            : 'nexus';
+
+    const priority: OwnerDashboardAction['priority'] =
+        priorityRaw === 'urgent' || priorityRaw === 'high' || priorityRaw === 'normal' ? priorityRaw : 'normal';
+
+    const subtitle = getStringProp(obj, 'subtitle') ?? undefined;
+    const href = getStringProp(obj, 'href') ?? undefined;
+
+    return { id, source, title, ...(subtitle ? { subtitle } : {}), ...(href ? { href } : {}), priority };
+}
+
+function coerceOwnerDashboardKpis(value: unknown): OwnerDashboardKpis | undefined {
+    const obj = asObject(value);
+    if (!obj) return undefined;
+
+    const nexusObj = asObject(obj.nexus);
+    const systemObj = asObject(obj.system);
+    const socialObj = asObject(obj.social);
+    const financeObj = asObject(obj.finance);
+
+    const nexus = nexusObj
+        ? { tasksOpen: getNumberProp(nexusObj, 'tasksOpen') ?? undefined, tasksUrgent: getNumberProp(nexusObj, 'tasksUrgent') ?? undefined }
+        : undefined;
+    const system = systemObj
+        ? {
+              leadsTotal: getNumberProp(systemObj, 'leadsTotal') ?? undefined,
+              leadsHot: getNumberProp(systemObj, 'leadsHot') ?? undefined,
+              leadsIncoming: getNumberProp(systemObj, 'leadsIncoming') ?? undefined,
+          }
+        : undefined;
+    const social = socialObj
+        ? {
+              postsTotal: getNumberProp(socialObj, 'postsTotal') ?? undefined,
+              postsDraft: getNumberProp(socialObj, 'postsDraft') ?? undefined,
+              postsScheduled: getNumberProp(socialObj, 'postsScheduled') ?? undefined,
+              postsPublished: getNumberProp(socialObj, 'postsPublished') ?? undefined,
+          }
+        : undefined;
+
+    let finance: OwnerDashboardKpis['finance'] | undefined;
+    if (financeObj) {
+        const locked = Boolean(financeObj.locked);
+        finance = locked
+            ? { locked: true }
+            : {
+                  totalMinutes: getNumberProp(financeObj, 'totalMinutes') ?? undefined,
+                  totalHours: getNumberProp(financeObj, 'totalHours') ?? undefined,
+              };
+    }
+
+    return {
+        ...(nexus ? { nexus } : {}),
+        ...(system ? { system } : {}),
+        ...(social ? { social } : {}),
+        ...(finance ? { finance } : {}),
+    };
+}
+
+function coerceOwnerDashboardData(value: unknown): OwnerDashboardData | null {
+    const obj = asObject(value);
+    if (!obj) return null;
+
+    const nextActionsRaw = obj.nextActions;
+    const nextActions = Array.isArray(nextActionsRaw)
+        ? nextActionsRaw.map(coerceOwnerDashboardAction).filter((v): v is OwnerDashboardAction => Boolean(v))
+        : undefined;
+
+    const kpis = coerceOwnerDashboardKpis(obj.kpis);
+
+    return {
+        ...(kpis ? { kpis } : {}),
+        ...(nextActions ? { nextActions } : {}),
+    };
+}
 
 const TOUR_PROMPT_STORAGE_KEY = 'nexus_seen_tour_prompt_v1';
 
@@ -46,7 +190,7 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
     );
 };
 
-export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initialOwnerDashboard }) => {
+export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ initialOwnerDashboard }) => {
     const renderCountRef = useRef(0);
     renderCountRef.current += 1;
     if (renderCountRef.current === 1 || renderCountRef.current % 10 === 0) {
@@ -60,7 +204,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const isHomeDashboard = useRef(false);
     isHomeDashboard.current = typeof pathname === 'string' ? /\/nexus\/?$/.test(pathname) : false;
-    const [ownerDashboard, setOwnerDashboard] = useState<any>(initialOwnerDashboard ?? null);
+    const [ownerDashboard, setOwnerDashboard] = useState<OwnerDashboardData | null>(() => coerceOwnerDashboardData(initialOwnerDashboard));
     const [showOwnerDashboard, setShowOwnerDashboard] = useState(true);
     const [isPilotLoading, setIsPilotLoading] = useState(false);
     const [isFocusMode, setIsFocusMode] = useState(false);
@@ -116,7 +260,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
     useEffect(() => {
         setIsRefreshing(Boolean(usersQuery.isFetching));
-        const next = (usersQuery.data as any)?.users;
+        const next = usersQuery.data?.users;
         if (Array.isArray(next)) {
             setUsers(next);
         }
@@ -136,8 +280,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             try {
                 const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/owner-dashboard`, { cache: 'no-store' });
                 if (!res.ok) return;
-                const data = await res.json();
-                if (!cancelled) setOwnerDashboard(data);
+                const json = (await res.json()) as unknown;
+                const next = coerceOwnerDashboardData(json);
+                if (!cancelled && next) setOwnerDashboard(next);
                 if (!cancelled) setPilotErrorCount(0);
             } catch {
                 // ignore
@@ -166,7 +311,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const [isLoadingOnboardingTemplate, setIsLoadingOnboardingTemplate] = useState(false);
     const [isApplyingOnboardingTemplate, setIsApplyingOnboardingTemplate] = useState(false);
 
-    const [billingItems, setBillingItems] = useState<any[] | null>(null);
+    const [billingItems, setBillingItems] = useState<unknown[] | null>(null);
     const [isLoadingBillingItems, setIsLoadingBillingItems] = useState(false);
     
     // Logo Reminder State
@@ -309,15 +454,27 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
 
             setOnboardingTemplate(templateKey);
             addToast('התבנית הופעלה. יצרנו עבורך סט משימות התחלה.', 'success');
-        } catch (e: any) {
-            addToast(e?.message || 'שגיאה בהפעלת התבנית', 'error');
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : '';
+            addToast(message || 'שגיאה בהפעלת התבנית', 'error');
         } finally {
             setIsApplyingOnboardingTemplate(false);
         }
     };
 
     // Dynamic Onboarding Checks
-    const onboardingSteps = [
+    type OnboardingStep = {
+        id: number;
+        label: string;
+        subLabel: string;
+        done: boolean;
+        icon: LucideIcon;
+        action: () => void;
+        color: string;
+        moduleId?: ModuleId;
+    };
+
+    const onboardingStepsBase: OnboardingStep[] = [
         {
             id: 1,
             label: 'השלמת פרופיל',
@@ -331,7 +488,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             id: 2,
             label: 'משימה ראשונה',
             subLabel: 'צור משימה במערכת',
-            done: tasks.some((t: any) => t.creatorId === currentUser.id),
+            done: tasks.some((t) => t.creatorId === currentUser.id),
             icon: CheckSquare,
             action: () => openCreateTask(),
             color: 'text-purple-600 bg-purple-50',
@@ -340,7 +497,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             id: 3,
             label: 'כניסה למשמרת',
             subLabel: 'הפעל שעון נוכחות',
-            done: !!activeShift || tasks.some((t: any) => t.timeSpent > 0),
+            done: !!activeShift || tasks.some((t) => t.timeSpent > 0),
             icon: Clock,
             action: () => {
                 if (typeof document === 'undefined') return;
@@ -357,11 +514,13 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             icon: Sparkles,
             action: () => navigate('/brain'),
             color: 'text-amber-600 bg-amber-50',
-            moduleId: 'ai',
+            moduleId: 'ai' as ModuleId,
         },
-    ].filter((step: any) => !step.moduleId || organization.enabledModules.includes(step.moduleId));
+    ];
 
-    const completedSteps = onboardingSteps.filter((s: any) => s.done).length;
+    const onboardingSteps = onboardingStepsBase.filter((step) => !step.moduleId || organization.enabledModules.includes(step.moduleId));
+
+    const completedSteps = onboardingSteps.filter((s) => s.done).length;
     const progressPercent = (completedSteps / onboardingSteps.length) * 100;
     const isAllComplete = completedSteps === onboardingSteps.length;
 
@@ -371,8 +530,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
     const isOwnerOrCeo = isCeoRole(currentUser.role) || currentUser.isSuperAdmin;
 
     useEffect(() => {
-        const completedAt = (currentUser as any)?.uiPreferences?.[onboardingKey]?.completedAt;
-        const dismissedAt = (currentUser as any)?.uiPreferences?.[onboardingKey]?.dismissedAt;
+        const existing = getOnboardingPrefs(currentUser, onboardingKey);
+        const completedAt = getStringProp(existing, 'completedAt');
+        const dismissedAt = getStringProp(existing, 'dismissedAt');
         if (completedAt) {
             setShowOnboarding(false);
             return;
@@ -382,7 +542,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
             return;
         }
         setShowOnboarding(true);
-    }, [(currentUser as any)?.uiPreferences]);
+    }, [currentUser.uiPreferences]);
 
     useEffect(() => {
         if (onboardingPersistedRef.current) return;
@@ -391,8 +551,8 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
         const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
-        const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
-        const completedAt = existing?.completedAt;
+        const existing = getOnboardingPrefs(currentUser, onboardingKey);
+        const completedAt = getStringProp(existing, 'completedAt');
         if (completedAt) {
             onboardingPersistedRef.current = true;
             setShowOnboarding(false);
@@ -403,8 +563,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
         setShowOnboarding(false);
         (async () => {
             try {
+                const uiPreferences = getUiPreferences(currentUser);
                 const nextPrefs = {
-                    ...((currentUser as any)?.uiPreferences || {}),
+                    ...uiPreferences,
                     [onboardingKey]: {
                         ...existing,
                         completedAt: new Date().toISOString(),
@@ -426,13 +587,15 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
         const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
-        const existing = (currentUser as any)?.uiPreferences?.[onboardingKey] || {};
-        if (existing?.completedAt) return;
+        const existing = getOnboardingPrefs(currentUser, onboardingKey);
+        const completedAt = getStringProp(existing, 'completedAt');
+        if (completedAt) return;
 
         (async () => {
             try {
+                const uiPreferences = getUiPreferences(currentUser);
                 const nextPrefs = {
-                    ...((currentUser as any)?.uiPreferences || {}),
+                    ...uiPreferences,
                     [onboardingKey]: {
                         ...existing,
                         dismissedAt: new Date().toISOString(),
@@ -918,7 +1081,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: any }> = ({ initi
                                                 <div className="text-xs text-slate-500 font-bold">Finance</div>
                                                 <DollarSign size={18} className="text-[#3730A3]" />
                                             </div>
-                                            {ownerDashboard.kpis.finance.locked ? (
+                                            {isLockedFinance(ownerDashboard.kpis.finance) ? (
                                                 <>
                                                     <div className="mt-3 text-2xl font-black">נעול</div>
                                                     <div className="mt-1 text-xs text-slate-500">אין הרשאת צפייה פיננסית</div>

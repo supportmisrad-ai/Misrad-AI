@@ -9,6 +9,8 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function generateToken(): string {
   return randomBytes(24).toString('base64url');
 }
@@ -87,7 +89,8 @@ async function POSTHandler(request: NextRequest) {
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }
-    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Internal server error' });
+    const safeMsg = 'Internal server error';
+    return apiError(e, { status: 500, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
   }
 }
 

@@ -70,8 +70,9 @@ async function POSTHandler(request: NextRequest) {
             const errorMessage = typeof errorObj.error === 'string' ? errorObj.error : getErrorMessage(errorJson);
             if (IS_PROD) console.error('Clerk API error');
             else console.error('Clerk API error:', errorJson);
+            const safeMsg = 'Failed to create passkey';
             return NextResponse.json(
-                { error: errorMessage || 'Failed to create passkey' },
+                { error: IS_PROD ? safeMsg : errorMessage || safeMsg },
                 { status: response.status }
             );
         }
@@ -86,8 +87,9 @@ async function POSTHandler(request: NextRequest) {
     } catch (error: unknown) {
         if (IS_PROD) console.error('Passkey creation error');
         else console.error('Passkey creation error:', error);
+        const safeMsg = 'Internal server error';
         return NextResponse.json(
-            { error: getErrorMessage(error) || 'Internal server error' },
+            { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
             { status: 500 }
         );
     }

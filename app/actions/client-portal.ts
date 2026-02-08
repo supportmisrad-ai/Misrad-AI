@@ -553,9 +553,10 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       type: normalizeClientType(c.type),
       tags: Array.isArray(c.tags) ? c.tags : [],
       pendingActions,
-      assignedForms: (Array.isArray((c as unknown as { assignedForms?: unknown[] }).assignedForms)
-        ? ((c as unknown as { assignedForms?: unknown[] }).assignedForms || []).map(normalizeAssignedForm)
-        : []),
+      assignedForms: (() => {
+        const assignedFormsRaw = (asObject(c) ?? {}).assignedForms;
+        return Array.isArray(assignedFormsRaw) ? assignedFormsRaw.map(normalizeAssignedForm) : [];
+      })(),
       successGoals,
       monthlyRetainer: c.monthlyRetainer,
       profitMargin: c.profitMargin,

@@ -9,6 +9,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
@@ -51,9 +53,24 @@ async function POSTHandler(req: Request) {
     return NextResponse.json({ draft: out.text || '' }, { headers: abuse.headers });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : e.message || safeMsg },
+        { status: e.status }
+      );
     }
-    return NextResponse.json({ error: getErrorMessage(e) || 'Failed to generate reply' }, { status: 500 });
+    const safeMsg = 'Failed to generate reply';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 500 }
+    );
   }
 }
 

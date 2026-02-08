@@ -240,9 +240,10 @@ async function POSTHandler(request: NextRequest) {
         return apiSuccess({ result }, { headers: abuse.headers });
 
     } catch (error: unknown) {
+        const safeMsg = 'Internal server error';
         await logAuditEvent('ai.query', 'intelligence', {
             success: false,
-            error: getErrorMessage(error)
+            error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg
         });
 
         if (IS_PROD) console.error('[AI SECURITY] Error processing AI request');

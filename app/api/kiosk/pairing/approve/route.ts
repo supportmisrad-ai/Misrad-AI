@@ -119,7 +119,9 @@ async function POSTHandler(request: NextRequest) {
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }
-    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Internal server error' });
+    const safeMsg = 'Internal server error';
+    const isProd = process.env.NODE_ENV === 'production';
+    return apiError(e, { status: 500, message: isProd ? safeMsg : getErrorMessage(e) || safeMsg });
   }
 }
 

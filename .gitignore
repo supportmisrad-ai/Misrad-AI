@@ -17,6 +17,7 @@ storageState.json
 /playwright-report/
 /test-results/
 
+/test-results2/
 # next.js
 /.next/
 /out/

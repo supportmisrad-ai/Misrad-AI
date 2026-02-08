@@ -6,10 +6,18 @@ export type ApiSuccess<T> = { success: true; data: T };
 export type ApiFailure = { success: false; error: string };
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 
 function getNumberProp(obj: Record<string, unknown> | null, key: string): number | null {
   const v = obj?.[key];
   return typeof v === 'number' && Number.isFinite(v) ? v : null;
+}
+
+function formatExplicitMessage(message: string, fallback: string): string {
+  const m = message.trim();
+  if (!m) return fallback;
+  return translateError(m) || m;
 }
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
@@ -71,7 +79,13 @@ export function apiError(
   }
 ): NextResponse<ApiFailure> {
   const status = typeof opts?.status === 'number' ? opts.status : getErrorStatus(error);
-  const message = formatErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
+  const fallback = opts?.message || 'שגיאה לא צפויה';
+  const explicit = typeof opts?.message === 'string' ? opts.message : '';
+  const message = explicit.trim()
+    ? formatExplicitMessage(explicit, fallback)
+    : IS_PROD && typeof error !== 'string'
+      ? fallback
+      : formatErrorMessage(error, fallback);
   return NextResponse.json({ success: false, error: message }, { status, headers: opts?.headers });
 }
 
@@ -85,7 +99,13 @@ export function apiErrorCompat(
   }
 ): NextResponse<ApiFailure & Record<string, unknown>> {
   const status = typeof opts?.status === 'number' ? opts.status : getErrorStatus(error);
-  const message = formatErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
+  const fallback = opts?.message || 'שגיאה לא צפויה';
+  const explicit = typeof opts?.message === 'string' ? opts.message : '';
+  const message = explicit.trim()
+    ? formatExplicitMessage(explicit, fallback)
+    : IS_PROD && typeof error !== 'string'
+      ? fallback
+      : formatErrorMessage(error, fallback);
   return NextResponse.json(
     { success: false, error: message, ...(opts?.extra || {}) },
     { status, headers: opts?.headers }

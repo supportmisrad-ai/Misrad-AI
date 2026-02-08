@@ -14,13 +14,25 @@ const DEBUG_ADMIN_USERS = process.env.DEBUG_ADMIN_USERS === 'true' && !IS_PROD;
 
 
 function toJson(value: unknown): Prisma.InputJsonValue {
-  if (value == null) return {} as Prisma.InputJsonValue;
+  if (value == null) return {};
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return value;
   if (typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map((v) => toJson(v));
+  }
+
   const obj = asObject(value);
-  return (obj ?? {}) as unknown as Prisma.InputJsonValue;
+  if (!obj) return {};
+
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = toJson(v);
+  }
+  return out;
 }
 
 function debugLog(...args: unknown[]) {

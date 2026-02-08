@@ -508,7 +508,7 @@ export async function updateOrganization(input: {
     const organizationId = (input.organizationId || '').trim();
     if (!organizationId) return createErrorResponse(null, 'organizationId חסר');
 
-    const patch = { updated_at: new Date() } as unknown as OrganizationUpdateManyData;
+    const patch: OrganizationUpdateManyData = { updated_at: new Date() };
 
     if (input.name !== undefined) patch.name = String(input.name).trim();
 

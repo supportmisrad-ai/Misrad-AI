@@ -7,6 +7,8 @@ import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspac
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function sanitizeFileName(name: string): string {
   return String(name ?? '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
 }
@@ -32,7 +34,8 @@ async function POSTHandler(req: Request) {
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
-      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
+      const safeMsg = 'Forbidden';
+      return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
     }
 
     const bucket = 'meeting-recordings';
@@ -54,16 +57,19 @@ async function POSTHandler(req: Request) {
         });
         if (createError) {
           // If concurrent create or permissions issue, continue and let upload fail if needed.
-          console.warn('[meeting-recordings] createBucket failed:', createError.message);
+          if (IS_PROD) console.warn('[meeting-recordings] createBucket failed');
+          else console.warn('[meeting-recordings] createBucket failed:', createError.message);
         }
       }
     } catch (e: unknown) {
-      console.warn('[meeting-recordings] bucket check failed:', getErrorMessage(e) || String(e));
+      if (IS_PROD) console.warn('[meeting-recordings] bucket check failed');
+      else console.warn('[meeting-recordings] bucket check failed:', getErrorMessage(e) || String(e));
     }
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data?.signedUrl || !data?.token) {
-      return apiError(error?.message || 'Failed to create signed upload URL', { status: 500 });
+      const safeMsg = 'Failed to create signed upload URL';
+      return apiError(IS_PROD ? safeMsg : error?.message || safeMsg, { status: 500 });
     }
 
     return apiSuccessCompat({

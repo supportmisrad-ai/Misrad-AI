@@ -2,7 +2,8 @@
 
 import type { MemberType, TeamMember, TeamMemberRole } from '@/types/social';
 import prisma from '@/lib/prisma';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+
 
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
@@ -20,6 +21,44 @@ type TeamMemberRow = {
   monthly_salary: string | number | null;
   social_team_member_clients?: Array<{ client_id: string }> | null;
 };
+
+function toTeamMemberRow(value: unknown): TeamMemberRow {
+  const obj = asObject(value) ?? {};
+  const clientsRaw = obj.social_team_member_clients;
+  const social_team_member_clients = Array.isArray(clientsRaw)
+    ? clientsRaw
+        .map((c) => {
+          const cObj = asObject(c) ?? {};
+          const clientId = cObj.client_id;
+          return clientId == null ? null : { client_id: String(clientId) };
+        })
+        .filter((c): c is { client_id: string } => Boolean(c))
+    : null;
+
+  const hourlyRateRaw = obj.hourly_rate;
+  const monthlySalaryRaw = obj.monthly_salary;
+
+  return {
+    id: String(obj.id ?? ''),
+    user_id: obj.user_id == null ? null : String(obj.user_id),
+    organization_id: String(obj.organization_id ?? ''),
+    name: String(obj.name ?? ''),
+    role: obj.role == null ? null : String(obj.role),
+    member_type: obj.member_type == null ? null : String(obj.member_type),
+    avatar: String(obj.avatar ?? ''),
+    active_tasks_count: obj.active_tasks_count == null ? null : Number(obj.active_tasks_count),
+    capacity_score: obj.capacity_score == null ? null : Number(obj.capacity_score),
+    hourly_rate:
+      hourlyRateRaw == null || typeof hourlyRateRaw === 'string' || typeof hourlyRateRaw === 'number'
+        ? (hourlyRateRaw as string | number | null)
+        : String(hourlyRateRaw),
+    monthly_salary:
+      monthlySalaryRaw == null || typeof monthlySalaryRaw === 'string' || typeof monthlySalaryRaw === 'number'
+        ? (monthlySalaryRaw as string | number | null)
+        : String(monthlySalaryRaw),
+    social_team_member_clients,
+  };
+}
 
 function isTeamMemberRole(v: unknown): v is TeamMemberRole {
   return v === 'account_manager' || v === 'content_creator' || v === 'designer';
@@ -66,9 +105,11 @@ export async function getTeamMembers(orgSlug: string): Promise<{ success: boolea
         social_team_member_clients: { select: { client_id: true } },
       },
       orderBy: { created_at: 'desc' },
-    })) as unknown as TeamMemberRow[];
+    }));
 
-    const teamMembers: TeamMember[] = rows.map((member) => {
+    const rowsNormalized: TeamMemberRow[] = (Array.isArray(rows) ? rows : []).map(toTeamMemberRow);
+
+    const teamMembers: TeamMember[] = rowsNormalized.map((member) => {
       const roleRaw = member.role ?? null;
       const memberTypeRaw = member.member_type ?? null;
 

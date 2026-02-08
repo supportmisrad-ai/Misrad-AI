@@ -6,6 +6,8 @@ import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type NexusClientCreateData = Parameters<typeof prisma.nexusClient.create>[0]['data'];
 type NexusTaskCreateData = Parameters<typeof prisma.nexusTask.create>[0]['data'];
 
@@ -14,7 +16,11 @@ async function POSTHandler(request: NextRequest) {
     try {
         await requireSuperAdmin();
     } catch (e: unknown) {
-        return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required', success: false }, { status: 403 });
+        const safeMsg = 'Forbidden - Super Admin required';
+        return NextResponse.json(
+            { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg, success: false },
+            { status: 403 }
+        );
     }
 
     let workspaceId = '';
@@ -23,7 +29,18 @@ async function POSTHandler(request: NextRequest) {
         workspaceId = String(ws.workspaceId || '').trim();
     } catch (e: unknown) {
         if (e instanceof APIError) {
-            return NextResponse.json({ success: false, error: e.message || 'Missing x-org-id header' }, { status: e.status });
+            const safeMsg =
+                e.status === 400
+                    ? 'Bad request'
+                    : e.status === 401
+                        ? 'Unauthorized'
+                        : e.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { success: false, error: IS_PROD ? safeMsg : e.message || safeMsg },
+                { status: e.status }
+            );
         }
         return NextResponse.json({ success: false, error: 'Missing x-org-id header' }, { status: 400 });
     }
@@ -52,7 +69,8 @@ async function POSTHandler(request: NextRequest) {
         // Clean up - delete the test record
         await prisma.nexusClient.delete({ where: { id: clientData.id } });
     } catch (error: unknown) {
-        testResults.clients = { success: false, error: getErrorMessage(error) };
+        const safeMsg = 'Internal server error';
+        testResults.clients = { success: false, error: IS_PROD ? safeMsg : getErrorMessage(error) };
     }
 
     // Test 2: Create a test task
@@ -76,7 +94,8 @@ async function POSTHandler(request: NextRequest) {
         // Clean up - delete the test record
         await prisma.nexusTask.delete({ where: { id: taskData.id } });
     } catch (error: unknown) {
-        testResults.tasks = { success: false, error: getErrorMessage(error) };
+        const safeMsg = 'Internal server error';
+        testResults.tasks = { success: false, error: IS_PROD ? safeMsg : getErrorMessage(error) };
     }
 
     const allSuccess = Object.values(testResults).every(r => r.success);

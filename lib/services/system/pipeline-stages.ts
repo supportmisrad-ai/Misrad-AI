@@ -1,8 +1,7 @@
 import 'server-only';
 
 import prisma from '@/lib/prisma';
-import { executeRawOrgScopedSql, queryRawOrgScoped, queryRawOrgScopedSql } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 
 import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
@@ -71,39 +70,34 @@ async function ensureSeededForOrg(params: { organizationId: string }) {
 
   if ((existing || []).length) return;
 
-  const values = DEFAULT_STAGES.map((s) => {
-    const rowParts: Prisma.Sql[] = [
-      Prisma.sql`${String(params.organizationId)}::uuid`,
-      Prisma.sql`${String(s.key)}`,
-      Prisma.sql`${String(s.label)}`,
-      Prisma.sql`${String(s.color)}`,
-      Prisma.sql`${String(s.accent)}`,
-      Prisma.sql`${Number(s.order)}`,
-      Prisma.sql`${true}`,
-    ];
-    return Prisma.sql`(${Prisma.join(rowParts)})`;
-  });
+  const rowsSql = DEFAULT_STAGES.map((_, idx) => {
+    const base = 2 + idx * 5;
+    return `($1::uuid, $${base}::text, $${base + 1}::text, $${base + 2}::text, $${base + 3}::text, $${base + 4}::int, true)`;
+  }).join(',\n        ');
 
-  const insertColumns: Prisma.Sql[] = [
-    Prisma.sql`organization_id`,
-    Prisma.sql`${Prisma.raw(`"key"`)}`,
-    Prisma.sql`label`,
-    Prisma.sql`color`,
-    Prisma.sql`accent`,
-    Prisma.sql`${Prisma.raw(`"order"`)}`,
-    Prisma.sql`is_active`,
+  const values: unknown[] = [
+    String(params.organizationId),
+    ...DEFAULT_STAGES.flatMap((s) => [String(s.key), String(s.label), String(s.color), String(s.accent), Number(s.order)]),
   ];
 
-  await executeRawOrgScopedSql(prisma, {
+  await executeRawOrgScoped(prisma, {
     organizationId: params.organizationId,
     reason: 'system_pipeline_stages_seed_insert',
-    sql: Prisma.sql`
+    query: `
       insert into system_pipeline_stages (
-        ${Prisma.join(insertColumns)}
+        organization_id,
+        "key",
+        label,
+        color,
+        accent,
+        "order",
+        is_active
       )
-      values ${Prisma.join(values)}
+      values
+        ${rowsSql}
       on conflict (organization_id, "key") do nothing
     `,
+    values,
   });
 }
 
@@ -112,28 +106,26 @@ export async function getSystemPipelineStagesForOrganizationId(params: {
 }): Promise<SystemPipelineStageDTO[]> {
   await ensureSeededForOrg({ organizationId: params.organizationId });
 
-  const orderSelect = Prisma.sql`"order" as "order"`;
-  const orderBy = Prisma.sql`order by "order" asc, created_at asc`;
-
-  const rows = await queryRawOrgScopedSql<StageRow[]>(prisma, {
+  const rows = await queryRawOrgScoped<StageRow[]>(prisma, {
     organizationId: params.organizationId,
     reason: 'system_pipeline_stages_list',
-    sql: Prisma.sql`
+    query: `
       select
         id,
         "key" as "key",
         label,
         color,
         accent,
-        ${orderSelect},
+        "order" as "order",
         coalesce(is_active, true) as "isActive",
         created_at as "createdAt"
       from system_pipeline_stages
-      where organization_id::text = ${String(params.organizationId)}
+      where organization_id = $1::uuid
         and coalesce(is_active, true) = true
-      ${orderBy}
+      order by "order" asc, created_at asc
       limit 100
     `,
+    values: [String(params.organizationId)],
   });
 
   return rows.map(toDto);
@@ -157,56 +149,39 @@ export async function createSystemPipelineStageForOrganizationId(params: {
     const accent = params.accent != null ? String(params.accent) : null;
     const order = params.order == null ? 0 : Number(params.order);
 
-    const insertColumns: Prisma.Sql[] = [
-      Prisma.sql`organization_id`,
-      Prisma.sql`${Prisma.raw(`"key"`)}`,
-      Prisma.sql`label`,
-      Prisma.sql`color`,
-      Prisma.sql`accent`,
-      Prisma.sql`${Prisma.raw(`"order"`)}`,
-      Prisma.sql`is_active`,
-      Prisma.sql`created_at`,
-      Prisma.sql`updated_at`,
-    ];
-
-    const valueParts: Prisma.Sql[] = [
-      Prisma.sql`${String(params.organizationId)}::uuid`,
-      Prisma.sql`${String(key)}`,
-      Prisma.sql`${String(label)}`,
-      Prisma.sql`${color}`,
-      Prisma.sql`${accent}`,
-      Prisma.sql`${order}`,
-      Prisma.sql`true`,
-      Prisma.sql`now()`,
-      Prisma.sql`now()`,
-    ];
-
-    const orderReturning = Prisma.sql`"order" as "order"`;
-
-    const rows = await queryRawOrgScopedSql<StageRow[]>(prisma, {
+    const rows = await queryRawOrgScoped<StageRow[]>(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_create',
-      sql: Prisma.sql`
-      insert into system_pipeline_stages (
-        ${Prisma.join(insertColumns)}
-      )
-      values (${Prisma.join(valueParts)})
-      on conflict (organization_id, "key") do update set
-        label = excluded.label,
-        color = excluded.color,
-        accent = excluded.accent,
-        "order" = excluded."order",
-        is_active = true,
-        updated_at = now()
-      returning
-        id,
-        "key" as "key",
-        label,
-        color,
-        accent,
-        ${orderReturning},
-        coalesce(is_active, true) as "isActive"
+      query: `
+        insert into system_pipeline_stages (
+          organization_id,
+          "key",
+          label,
+          color,
+          accent,
+          "order",
+          is_active,
+          created_at,
+          updated_at
+        )
+        values ($1::uuid, $2::text, $3::text, $4::text, $5::text, $6::int, true, now(), now())
+        on conflict (organization_id, "key") do update set
+          label = excluded.label,
+          color = excluded.color,
+          accent = excluded.accent,
+          "order" = excluded."order",
+          is_active = true,
+          updated_at = now()
+        returning
+          id,
+          "key" as "key",
+          label,
+          color,
+          accent,
+          "order" as "order",
+          coalesce(is_active, true) as "isActive"
       `,
+      values: [String(params.organizationId), String(key), String(label), color, accent, order],
     });
 
     const row = rows?.[0];
@@ -230,47 +205,74 @@ export async function updateSystemPipelineStageForOrganizationId(params: {
     const id = String(params.id || '').trim();
     if (!id) return { ok: false, message: 'id חסר' };
 
-    const existing = await queryRawOrgScopedSql<{ id: string }[]>(prisma, {
+    const existing = await queryRawOrgScoped<{ id: string }[]>(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_update_check',
-      sql: Prisma.sql`
+      query: `
         select id
         from system_pipeline_stages
-        where id::text = ${String(id)}
-          and organization_id::text = ${String(params.organizationId)}
+        where organization_id = $1::uuid
+          and id::text = $2::text
         limit 1
       `,
+      values: [String(params.organizationId), String(id)],
     });
     if (!existing?.[0]?.id) return { ok: false, message: 'Stage not found' };
 
     const nextLabel = params.label !== undefined ? String(params.label || '').trim() : null;
     if (params.label !== undefined && !nextLabel) return { ok: false, message: 'חובה להזין שם שלב' };
 
-    const orderReturning = Prisma.sql`"order" as "order"`;
+    const setParts: string[] = [];
+    const values: unknown[] = [String(params.organizationId), String(id)];
+    let nextIdx = 3;
 
-    const rows = await queryRawOrgScopedSql<StageRow[]>(prisma, {
+    if (params.label !== undefined) {
+      setParts.push(`label = $${nextIdx}::text`);
+      values.push(String(nextLabel));
+      nextIdx += 1;
+    }
+    if (params.color !== undefined) {
+      setParts.push(`color = $${nextIdx}::text`);
+      values.push(params.color == null ? null : String(params.color));
+      nextIdx += 1;
+    }
+    if (params.accent !== undefined) {
+      setParts.push(`accent = $${nextIdx}::text`);
+      values.push(params.accent == null ? null : String(params.accent));
+      nextIdx += 1;
+    }
+    if (params.order !== undefined) {
+      setParts.push(`"order" = $${nextIdx}::int`);
+      values.push(params.order == null ? 0 : Number(params.order));
+      nextIdx += 1;
+    }
+    if (params.isActive !== undefined) {
+      setParts.push(`is_active = $${nextIdx}::boolean`);
+      values.push(Boolean(params.isActive));
+      nextIdx += 1;
+    }
+
+    setParts.push('updated_at = now()');
+
+    const rows = await queryRawOrgScoped<StageRow[]>(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_update',
-      sql: Prisma.sql`
-      update system_pipeline_stages
-      set
-        label = ${params.label !== undefined ? String(nextLabel) : Prisma.raw('label')},
-        color = ${params.color !== undefined ? (params.color == null ? null : String(params.color)) : Prisma.raw('color')},
-        accent = ${params.accent !== undefined ? (params.accent == null ? null : String(params.accent)) : Prisma.raw('accent')},
-        "order" = ${params.order !== undefined ? (params.order == null ? 0 : Number(params.order)) : Prisma.raw('"order"')},
-        is_active = ${params.isActive !== undefined ? Boolean(params.isActive) : Prisma.raw('is_active')},
-        updated_at = now()
-      where id::text = ${String(id)}
-        and organization_id::text = ${String(params.organizationId)}
-      returning
-        id,
-        "key" as "key",
-        label,
-        color,
-        accent,
-        ${orderReturning},
-        coalesce(is_active, true) as "isActive"
+      query: `
+        update system_pipeline_stages
+        set
+          ${setParts.join(',\n          ')}
+        where organization_id = $1::uuid
+          and id::text = $2::text
+        returning
+          id,
+          "key" as "key",
+          label,
+          color,
+          accent,
+          "order" as "order",
+          coalesce(is_active, true) as "isActive"
       `,
+      values,
     });
 
     const row = rows?.[0];
@@ -289,18 +291,19 @@ export async function deleteSystemPipelineStageForOrganizationId(params: {
     const id = String(params.id || '').trim();
     if (!id) return { ok: false, message: 'id חסר' };
 
-    const existingRows = await queryRawOrgScopedSql<unknown[]>(prisma, {
+    const existingRows = await queryRawOrgScoped<unknown[]>(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_delete_check',
-      sql: Prisma.sql`
-      select
-        id,
-        "key" as "key"
-      from system_pipeline_stages
-      where id::text = ${String(id)}
-        and organization_id::text = ${String(params.organizationId)}
-      limit 1
+      query: `
+        select
+          id,
+          "key" as "key"
+        from system_pipeline_stages
+        where organization_id = $1::uuid
+          and id::text = $2::text
+        limit 1
       `,
+      values: [String(params.organizationId), String(id)],
     });
     const existing = existingRows?.[0];
     const existingObj = asObject(existing);
@@ -308,29 +311,31 @@ export async function deleteSystemPipelineStageForOrganizationId(params: {
     const existingKey = String(existingObj?.key ?? '');
     if (!existingId) return { ok: false, message: 'Stage not found' };
 
-    const leadCountRows = await queryRawOrgScopedSql<{ cnt: number }[]>(prisma, {
+    const leadCountRows = await queryRawOrgScoped<{ cnt: number }[]>(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_delete_lead_count',
-      sql: Prisma.sql`
-      select count(*)::int as cnt
-      from system_leads
-      where organization_id::text = ${String(params.organizationId)}
-        and status = ${String(existingKey)}
+      query: `
+        select count(*)::int as cnt
+        from system_leads
+        where organization_id = $1::uuid
+          and status = $2::text
       `,
+      values: [String(params.organizationId), String(existingKey)],
     });
     const leadCount = Number(leadCountRows?.[0]?.cnt ?? 0);
     if (leadCount > 0) {
       return { ok: false, message: 'לא ניתן למחוק שלב שיש בו לידים' };
     }
 
-    await executeRawOrgScopedSql(prisma, {
+    await executeRawOrgScoped(prisma, {
       organizationId: params.organizationId,
       reason: 'system_pipeline_stages_delete',
-      sql: Prisma.sql`
+      query: `
         delete from system_pipeline_stages
-        where id::text = ${String(existingId)}
-          and organization_id::text = ${String(params.organizationId)}
+        where organization_id = $1::uuid
+          and id::text = $2::text
       `,
+      values: [String(params.organizationId), String(existingId)],
     });
 
     return { ok: true };
@@ -347,17 +352,18 @@ export async function assertSystemPipelineStageExistsForOrganizationId(params: {
 
   const key = String(params.key || '').trim();
   if (!key) return { ok: false, message: 'סטטוס חסר' };
-  const rows = await queryRawOrgScopedSql<{ id: string }[]>(prisma, {
+  const rows = await queryRawOrgScoped<{ id: string }[]>(prisma, {
     organizationId: params.organizationId,
     reason: 'system_pipeline_stages_assert_exists',
-    sql: Prisma.sql`
+    query: `
       select id
       from system_pipeline_stages
-      where organization_id::text = ${String(params.organizationId)}
-        and "key" = ${String(key)}
+      where organization_id = $1::uuid
+        and "key" = $2::text
         and coalesce(is_active, true) = true
       limit 1
     `,
+    values: [String(params.organizationId), String(key)],
   });
 
   if (!rows?.[0]?.id) return { ok: false, message: 'סטטוס לא קיים במערכת' };

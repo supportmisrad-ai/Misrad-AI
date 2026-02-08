@@ -365,11 +365,17 @@ function asRawSqlClient(value: unknown): RawSqlClient | null {
 }
 
 const prismaRaw: RawSqlClient = prisma;
+const prismaRawProto = asRawSqlClient(Object.getPrototypeOf(prismaRaw));
+const prismaClientProto = asRawSqlClient(PrismaClient.prototype);
 
-const _rawQueryUnsafeOriginal = prismaRaw.$queryRawUnsafe;
-const _rawExecuteUnsafeOriginal = prismaRaw.$executeRawUnsafe;
-const _rawQueryOriginal = prismaRaw.$queryRaw;
-const _rawExecuteOriginal = prismaRaw.$executeRaw;
+// IMPORTANT: in dev/HMR the instance methods may already be patched/guarded.
+// Prefer prototype methods that Prisma defines on PrismaClient.prototype.
+const _rawQueryUnsafeOriginal =
+  prismaClientProto?.$queryRawUnsafe ?? prismaRawProto?.$queryRawUnsafe ?? prismaRaw.$queryRawUnsafe;
+const _rawExecuteUnsafeOriginal =
+  prismaClientProto?.$executeRawUnsafe ?? prismaRawProto?.$executeRawUnsafe ?? prismaRaw.$executeRawUnsafe;
+const _rawQueryOriginal = prismaClientProto?.$queryRaw ?? prismaRawProto?.$queryRaw ?? prismaRaw.$queryRaw;
+const _rawExecuteOriginal = prismaClientProto?.$executeRaw ?? prismaRawProto?.$executeRaw ?? prismaRaw.$executeRaw;
 
 function getQueryRawUnsafe(db: unknown): RawQueryUnsafe | undefined {
   const client = asRawSqlClient(db);

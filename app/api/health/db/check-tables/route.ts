@@ -5,6 +5,7 @@ import { requireSuperAdmin } from '../../../../../lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 import { getErrorMessage } from '@/lib/shared/unknown';
+const IS_PROD = process.env.NODE_ENV === 'production';
 function isSafeTableName(name: string): boolean {
     return /^[a-zA-Z0-9_]+$/.test(name);
 }
@@ -21,7 +22,8 @@ function getErrorCode(error: unknown): string {
     if (typeof direct === 'string') return direct;
     const meta = asRecord(rec.meta);
     return typeof meta?.code === 'string' ? String(meta.code) : '';
-}
+}
+
 
 function isPgMissingTableError(error: unknown): boolean {
     const code = getErrorCode(error);
@@ -47,7 +49,11 @@ async function GETHandler(request: NextRequest) {
     try {
         await requireSuperAdmin();
     } catch (e: unknown) {
-        return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
+        const safeMsg = 'Forbidden - Super Admin required';
+        return NextResponse.json(
+            { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+            { status: 403 }
+        );
     }
 
     const results: Record<string, { exists: boolean; count?: number; error?: string }> = {};
@@ -101,7 +107,8 @@ async function GETHandler(request: NextRequest) {
                 if (isPgMissingTableError(error)) {
                     results[table] = { exists: false, error: 'Table does not exist' };
                 } else {
-                    results[table] = { exists: false, error: getErrorMessage(error) };
+                    const safeMsg = 'Internal server error';
+                    results[table] = { exists: false, error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg };
                 }
             }
         }

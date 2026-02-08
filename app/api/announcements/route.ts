@@ -160,8 +160,9 @@ async function GETHandler(request: NextRequest) {
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        const msg = getErrorMessage(error) || 'שגיאה בטעינת הודעות';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'שגיאה בטעינת הודעות';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 
@@ -286,8 +287,9 @@ async function POSTHandler(request: NextRequest) {
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        const msg = getErrorMessage(error) || 'שגיאה ביצירת הודעה';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'שגיאה ביצירת הודעה';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

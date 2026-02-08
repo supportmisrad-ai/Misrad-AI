@@ -8,6 +8,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
   const obj = asObject(value);
   const fn = obj?.[name];
@@ -71,8 +73,9 @@ async function POSTHandler(req: NextRequest) {
         take: limit,
       });
     } catch (e: unknown) {
+      const safeMsg = 'Failed to query social_users';
       return NextResponse.json(
-        { ok: false, error: getErrorMessage(e) || 'Failed to query social_users' },
+        { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
         { status: 500 }
       );
     }
@@ -132,8 +135,9 @@ async function POSTHandler(req: NextRequest) {
         select: { organization_id: true },
       });
     } catch (e: unknown) {
+      const safeMsg = 'Failed to query subscriptions';
       return NextResponse.json(
-        { ok: false, error: getErrorMessage(e) || 'Failed to query subscriptions' },
+        { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
         { status: 500 }
       );
     }
@@ -253,7 +257,11 @@ async function POSTHandler(req: NextRequest) {
       results,
     });
   } catch (e: unknown) {
-    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Unknown error' }, { status: 500 });
+    const safeMsg = 'Unknown error';
+    return NextResponse.json(
+      { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 500 }
+    );
   }
 }
 

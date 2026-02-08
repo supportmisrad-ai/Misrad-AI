@@ -31,7 +31,8 @@ async function GETHandler(
     workspace?: { id: string; name?: string; slug?: string | null; entitlements?: WorkspaceEntitlements };
   }
 ) {
-  const { orgSlug } = ctx.params;
+  const resolvedParams = await Promise.resolve(ctx.params);
+  const { orgSlug } = resolvedParams;
 
   const workspace = ctx.workspace;
   if (!workspace?.id) {

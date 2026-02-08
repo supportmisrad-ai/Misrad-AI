@@ -20,6 +20,8 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function selectDbUserId(params: { workspaceId: string; email: string | null | undefined }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
@@ -63,13 +65,26 @@ async function GETHandler(request: NextRequest) {
 
     } catch (error: unknown) {
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
         if (message.includes('[SchemaMismatch]')) {
-            return NextResponse.json({ error: message }, { status: 500 });
+            const safeMsg = 'Internal server error';
+            return NextResponse.json({ error: IS_PROD ? safeMsg : message }, { status: 500 });
         }
-        console.warn('[API] Error fetching drive files (non-critical):', message);
+        if (IS_PROD) console.warn('[API] Error fetching drive files (non-critical)');
+        else console.warn('[API] Error fetching drive files (non-critical):', message);
         return NextResponse.json({ files: [], nextPageToken: undefined });
     }
 }

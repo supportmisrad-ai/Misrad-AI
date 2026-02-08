@@ -132,11 +132,23 @@ async function GETHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/features GET');
         else console.error('[API] Error in /api/features GET:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'שגיאה בטעינת בקשות פיצ\'רים';
         return NextResponse.json(
-            { error: message || 'שגיאה בטעינת בקשות פיצ\'רים' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
@@ -194,11 +206,23 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/features POST');
         else console.error('[API] Error in /api/features POST:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'שגיאה ביצירת בקשת פיצ\'ר';
         return NextResponse.json(
-            { error: message || 'שגיאה ביצירת בקשת פיצ\'ר' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }

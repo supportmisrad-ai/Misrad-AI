@@ -40,7 +40,15 @@ async function GETHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/subscription/modules');
         else console.error('[API] Error in /api/subscription/modules:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json({ error: IS_PROD ? safeMsg : error.message || safeMsg }, { status: error.status });
         }
         const message = getErrorMessage(error);
         const safeMsg = 'Internal server error';

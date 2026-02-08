@@ -17,6 +17,8 @@ import type { Prisma } from '@prisma/client';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
     const fn = obj?.[name];
@@ -262,9 +264,19 @@ async function GETHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/team-events GET');
         else console.error('[API] Error in /api/team-events GET:', { message: msg });
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
+            const safeMsg = error.status === 401 ? 'Unauthorized' : 'Forbidden';
+            return apiError(IS_PROD ? safeMsg : error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : msg || error.message || safeMsg,
+            });
         }
         if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                return apiError(error, {
+                    status: 500,
+                    message: `[SchemaMismatch] team-events query failed (${msg || 'missing tenant scoping column'})`,
+                });
+            }
             return apiSuccess({ events: [] }, { status: 200 });
         }
         const safeMsg = 'שגיאה בטעינת אירועים';
@@ -489,7 +501,11 @@ async function POSTHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/team-events POST');
         else console.error('[API] Error in /api/team-events POST:', { message: msg });
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
+            const safeMsg = error.status === 401 ? 'Unauthorized' : 'Forbidden';
+            return apiError(IS_PROD ? safeMsg : error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : msg || error.message || safeMsg,
+            });
         }
         const safeMsg = 'שגיאה ביצירת אירוע';
         return apiError(IS_PROD ? safeMsg : error, {

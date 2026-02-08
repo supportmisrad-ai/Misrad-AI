@@ -173,11 +173,23 @@ async function PATCHHandler(
         if (IS_PROD) console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH');
         else console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH:', error);
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'שגיאה בעדכון נוכחות';
         return NextResponse.json(
-            { error: message || 'שגיאה בעדכון נוכחות' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }

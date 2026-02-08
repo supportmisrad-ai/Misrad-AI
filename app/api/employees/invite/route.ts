@@ -24,6 +24,7 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
@@ -323,7 +324,12 @@ async function POSTHandler(request: NextRequest) {
                 },
             });
         } catch (createError: unknown) {
-            console.error('[API] Error creating employee invitation link:', createError);
+            if (IS_PROD) console.error('[API] Error creating employee invitation link');
+            else console.error('[API] Error creating employee invitation link:', createError);
+
+            const safeMsg = 'שגיאה ביצירת קישור הזמנה';
+            const details = String(getErrorMessage(createError) || '').trim();
+            const devMsg = details ? `${safeMsg}: ${details}` : safeMsg;
 
             await logAuditEvent('data.write', 'employees.invite', {
                 success: false,
@@ -331,10 +337,10 @@ async function POSTHandler(request: NextRequest) {
                     organizationId,
                     employeeEmail: normalizedEmployeeEmail,
                 },
-                error: getErrorMessage(createError),
+                error: IS_PROD ? safeMsg : getErrorMessage(createError) || safeMsg,
             });
 
-            return apiError('שגיאה ביצירת קישור הזמנה: ' + String(getErrorMessage(createError) || ''), { status: 500 });
+            return apiError(IS_PROD ? safeMsg : devMsg, { status: 500 });
         }
 
         // 10. Generate invitation URL
@@ -357,10 +363,12 @@ async function POSTHandler(request: NextRequest) {
             });
 
             if (!enqueueRes.queued) {
-                console.warn('[Employee Invitation] Failed to enqueue email:', enqueueRes.error);
+                if (IS_PROD) console.warn('[Employee Invitation] Failed to enqueue email');
+                else console.warn('[Employee Invitation] Failed to enqueue email:', enqueueRes.error);
             }
         } catch (emailError: unknown) {
-            console.warn('[Employee Invitation] Error enqueueing email:', emailError);
+            if (IS_PROD) console.warn('[Employee Invitation] Error enqueueing email');
+            else console.warn('[Employee Invitation] Error enqueueing email:', emailError);
         }
 
         // 12. Create notification for manager (optional - to track)
@@ -388,7 +396,8 @@ async function POSTHandler(request: NextRequest) {
             if (isMissingRelationOrColumnError(notifError) && !ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(notifError) || 'missing relation'})`);
             }
-            console.warn('[API] Could not create notification:', notifError);
+            if (IS_PROD) console.warn('[API] Could not create notification');
+            else console.warn('[API] Could not create notification:', notifError);
             // Don't fail the request if notification fails
         }
 
@@ -419,7 +428,15 @@ async function POSTHandler(request: NextRequest) {
 
     } catch (error: unknown) {
         if (error instanceof APIError) {
-            return apiError(error.message || 'Forbidden', { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return apiError(error, { status: error.status, message: IS_PROD ? safeMsg : error.message || safeMsg });
         }
         const status = getErrorMessage(error).includes('Unauthorized') ? 401 : 500;
         return apiError(error, { status, message: 'שגיאה ביצירת קישור הזמנה' });

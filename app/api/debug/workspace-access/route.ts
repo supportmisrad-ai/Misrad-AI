@@ -5,9 +5,12 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function getErrorStatus(error: unknown, fallback = 403): number {
   const status = asObject(error)?.status;
   return typeof status === 'number' ? status : fallback;
@@ -44,7 +47,11 @@ async function GETHandler(req: NextRequest) {
     try {
       await requireSuperAdmin();
     } catch (e: unknown) {
-      return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
+      const safeMsg = 'Forbidden - Super Admin required';
+      return NextResponse.json(
+        { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+        { status: 403 }
+      );
     }
 
     const clerkUserId = await getCurrentUserId();
@@ -60,13 +67,17 @@ async function GETHandler(req: NextRequest) {
     try {
       await getWorkspaceByOrgKeyOrThrow(orgSlug);
     } catch (e: unknown) {
+      const safeMsg = 'Forbidden';
       await logAuditEvent('data.read', 'debug.workspace-access', {
         success: false,
         details: { orgSlug, clerkUserId },
-        error: getErrorMessage(e) || 'Forbidden',
+        error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
       });
 
-      return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden' }, { status: getErrorStatus(e, 403) });
+      return NextResponse.json(
+        { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+        { status: getErrorStatus(e, 403) }
+      );
     }
 
     let socialUser: Record<string, unknown> | null = null;
@@ -118,9 +129,19 @@ async function GETHandler(req: NextRequest) {
       orgSlug,
       clerkUserId,
       socialUser,
-      socialUserError: socialUserError ? { message: getErrorMessage(socialUserError), code: String(asObject(socialUserError)?.code || '') } : null,
+      socialUserError: socialUserError
+        ? {
+            message: IS_PROD ? 'Internal server error' : getErrorMessage(socialUserError),
+            code: String(asObject(socialUserError)?.code || ''),
+          }
+        : null,
       org,
-      orgError: orgError ? { message: getErrorMessage(orgError), code: String(asObject(orgError)?.code || '') } : null,
+      orgError: orgError
+        ? {
+            message: IS_PROD ? 'Internal server error' : getErrorMessage(orgError),
+            code: String(asObject(orgError)?.code || ''),
+          }
+        : null,
       access: {
         isOwner,
         isPrimary,
@@ -129,8 +150,9 @@ async function GETHandler(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
+    const safeMsg = 'Internal server error';
     return NextResponse.json(
-      { ok: false, error: getErrorMessage(error) || 'Unknown error', stack: asObject(error)?.stack },
+      { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg, stack: IS_PROD ? undefined : asObject(error)?.stack },
       { status: 500 }
     );
   }

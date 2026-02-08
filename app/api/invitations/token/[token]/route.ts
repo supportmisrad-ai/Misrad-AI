@@ -136,15 +136,17 @@ async function GETHandler(
         } catch (error: unknown) {
             if (IS_PROD) console.error('[API] Error fetching invitation');
             else console.error('[API] Error fetching invitation:', error);
-            const errorMessage = getUnknownErrorMessage(error) || 'שגיאה בטעינת הקישור';
-            return apiError(errorMessage, { status: 500 });
+            const safeMsg = 'שגיאה בטעינת הקישור';
+            const msg = getUnknownErrorMessage(error) || safeMsg;
+            return apiError(IS_PROD ? safeMsg : msg, { status: 500 });
         }
 
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error getting invitation link');
         else console.error('[API] Error getting invitation link:', error);
-        const msg = getUnknownErrorMessage(error) || 'שגיאה בטעינת הקישור';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'שגיאה בטעינת הקישור';
+        const msg = getUnknownErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

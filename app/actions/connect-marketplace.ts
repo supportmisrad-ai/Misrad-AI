@@ -5,9 +5,30 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { getBaseUrl } from '@/lib/utils';
 import { MisradNotificationType, Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+type ConnectMarketplaceListingDelegate = {
+  findUnique: (args: unknown) => Promise<unknown>;
+  findFirst: (args: unknown) => Promise<unknown>;
+  findMany: (args: unknown) => Promise<unknown[]>;
+  create: (args: unknown) => Promise<unknown>;
+  update: (args: unknown) => Promise<unknown>;
+};
+
+function isConnectMarketplaceListingDelegate(value: unknown): value is ConnectMarketplaceListingDelegate {
+  const obj = asObject(value);
+  if (!obj) return false;
+  return (
+    typeof obj.findUnique === 'function' &&
+    typeof obj.findFirst === 'function' &&
+    typeof obj.findMany === 'function' &&
+    typeof obj.create === 'function' &&
+    typeof obj.update === 'function'
+  );
+}
+
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
   const value = obj[key];
   if (value == null) return fallback;
@@ -37,13 +58,13 @@ function getConnectMarketplaceListingDelegate() {
     );
   }
 
-  return delegate as unknown as {
-    findUnique: (args: unknown) => Promise<unknown>;
-    findFirst: (args: unknown) => Promise<unknown>;
-    findMany: (args: unknown) => Promise<unknown[]>;
-    create: (args: unknown) => Promise<unknown>;
-    update: (args: unknown) => Promise<unknown>;
-  };
+  if (!isConnectMarketplaceListingDelegate(delegate)) {
+    throw new Error(
+      'Prisma Client ConnectMarketplaceListing delegate is missing required methods. Run Prisma generate and restart the TS server.'
+    );
+  }
+
+  return delegate;
 }
 
 async function generateConnectMarketplaceToken(): Promise<string> {

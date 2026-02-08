@@ -6,6 +6,8 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(req: Request) {
   try {
     await requireSuperAdmin();
@@ -46,7 +48,8 @@ async function GETHandler(req: Request) {
   } catch (e: unknown) {
     const msg = getErrorMessage(e) || String(e ?? '');
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
-    return NextResponse.json({ error: msg }, { status });
+    const safeMsg = status === 401 ? 'Unauthorized' : status === 403 ? 'Forbidden' : 'Internal server error';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status });
   }
 }
 

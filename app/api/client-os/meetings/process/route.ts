@@ -16,6 +16,8 @@ import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspac
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function normalizeLocation(value: unknown): 'ZOOM' | 'FRONTAL' | 'PHONE' {
   const v = String(value ?? '').toUpperCase();
   if (v === 'FRONTAL' || v === 'PHONE') return v;
@@ -106,7 +108,8 @@ async function POSTHandler(req: Request) {
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
-      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
+      const safeMsg = 'Forbidden';
+      return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
     }
 
     const abuse = await enforceAiAbuseGuard({
@@ -132,7 +135,8 @@ async function POSTHandler(req: Request) {
 
     const { data: downloadData, error: downloadError } = await supabase.storage.from(bucket).download(storagePath);
     if (downloadError || !downloadData) {
-      return apiError(downloadError?.message || 'Failed to download from storage', { status: 500 });
+      const safeMsg = 'Failed to download from storage';
+      return apiError(IS_PROD ? safeMsg : downloadError?.message || safeMsg, { status: 500 });
     }
 
     const arrayBuffer = await downloadData.arrayBuffer();

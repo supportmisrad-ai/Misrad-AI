@@ -5,6 +5,8 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(req: Request) {
   const url = new URL(req.url);
   const moduleId = url.searchParams.get('module_id');
@@ -26,7 +28,11 @@ async function GETHandler(req: Request) {
 
     return NextResponse.json({ items: items || [] });
   } catch (e: unknown) {
-    return NextResponse.json({ error: getErrorMessage(e) || 'Failed' }, { status: 500 });
+    const safeMsg = 'Failed';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 500 }
+    );
   }
 }
 

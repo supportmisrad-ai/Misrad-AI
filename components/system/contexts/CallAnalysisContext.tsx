@@ -1,9 +1,69 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
-import { CallAnalysisState, CallAnalysisResult } from '../types';
+import { CallAnalysisState, CallAnalysisResult, CallAnalysisTask } from '../types';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { usePathname } from 'next/navigation';
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  const v = obj?.[key];
+  return typeof v === 'string' ? v : null;
+}
+
+function getNumberProp(obj: Record<string, unknown> | null, key: string): number | null {
+  const v = obj?.[key];
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function coerceStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v)).filter(Boolean);
+}
+
+function coerceCallAnalysisIntent(value: unknown): CallAnalysisResult['intent'] {
+  const v = typeof value === 'string' ? value : '';
+  if (v === 'buying' || v === 'window_shopping' || v === 'angry' || v === 'churn_risk') return v;
+  return 'window_shopping';
+}
+
+function coerceObjections(value: unknown): CallAnalysisResult['objections'] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      const o = asObject(item);
+      const objection = getStringProp(o, 'objection') ?? '';
+      const reply = getStringProp(o, 'reply') ?? '';
+      const next_question = getStringProp(o, 'next_question') ?? undefined;
+      if (!objection && !reply) return null;
+      return { objection, reply, ...(next_question ? { next_question } : {}) };
+    })
+    .filter((v): v is NonNullable<typeof v> => Boolean(v));
+}
+
+function coerceTranscript(value: unknown): CallAnalysisResult['transcript'] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      const o = asObject(item);
+      const speakerRaw = getStringProp(o, 'speaker');
+      const speaker: 'Agent' | 'Customer' = speakerRaw === 'Agent' ? 'Agent' : speakerRaw === 'Customer' ? 'Customer' : 'Customer';
+      const text = getStringProp(o, 'text') ?? '';
+      const timestamp = getNumberProp(o, 'timestamp') ?? 0;
+      const sentimentRaw = getStringProp(o, 'sentiment');
+      const sentiment: 'positive' | 'negative' | 'neutral' =
+        sentimentRaw === 'positive' ? 'positive' : sentimentRaw === 'negative' ? 'negative' : sentimentRaw === 'neutral' ? 'neutral' : 'neutral';
+      if (!text) return null;
+      return { speaker, text, timestamp, sentiment };
+    })
+    .filter((v): v is NonNullable<typeof v> => Boolean(v));
+}
 
 interface CallAnalysisContextType {
   state: CallAnalysisState;
@@ -84,7 +144,7 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   };
 
-  const normalizeTasks = (rawTasks: any): any[] => {
+  const normalizeTasks = (rawTasks: unknown): Array<string | CallAnalysisTask> => {
     if (!Array.isArray(rawTasks)) return [];
     return rawTasks
       .map((t) => {
@@ -92,27 +152,34 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
           const s = String(t).trim();
           return s ? s : null;
         }
-        if (t && typeof t === 'object') {
-          const title = String((t as any).title || '').trim();
-          if (!title) return null;
-          const dueAtSuggestionRaw = (t as any).dueAtSuggestion;
-          const dueAtSuggestion = dueAtSuggestionRaw == null ? null : String(dueAtSuggestionRaw);
-          const dueAtConfidence = Number.isFinite(Number((t as any).dueAtConfidence)) ? Number((t as any).dueAtConfidence) : 0;
-          const dueAtRationale = String((t as any).dueAtRationale || '');
-          return {
-            ...t,
-            title,
-            dueAtSuggestion,
-            dueAtConfidence,
-            dueAtRationale,
-            confirmedDueAt: (t as any).confirmedDueAt == null ? null : String((t as any).confirmedDueAt),
-            systemTaskId: (t as any).systemTaskId == null ? null : String((t as any).systemTaskId),
-            dismissed: Boolean((t as any).dismissed),
-          };
-        }
-        return null;
+
+        const obj = asObject(t);
+        if (!obj) return null;
+
+        const title = String(getStringProp(obj, 'title') ?? '').trim();
+        if (!title) return null;
+
+        const dueAtSuggestionRaw = obj.dueAtSuggestion;
+        const dueAtSuggestion = dueAtSuggestionRaw == null ? null : String(dueAtSuggestionRaw);
+        const dueAtConfidence = getNumberProp(obj, 'dueAtConfidence') ?? 0;
+        const dueAtRationale = String(getStringProp(obj, 'dueAtRationale') ?? '');
+        const confirmedDueAt = obj.confirmedDueAt == null ? null : String(obj.confirmedDueAt);
+        const systemTaskId = obj.systemTaskId == null ? null : String(obj.systemTaskId);
+        const dismissed = Boolean(obj.dismissed);
+
+        const task: CallAnalysisTask = {
+          title,
+          dueAtSuggestion,
+          dueAtConfidence,
+          dueAtRationale,
+          ...(confirmedDueAt != null ? { confirmedDueAt } : {}),
+          ...(systemTaskId != null ? { systemTaskId } : {}),
+          ...(dismissed ? { dismissed } : {}),
+        };
+
+        return task;
       })
-      .filter(Boolean);
+      .filter((v): v is NonNullable<typeof v> => Boolean(v));
   };
 
   const analyzeTranscriptText = async (
@@ -161,50 +228,53 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (!suggestRes.ok) {
-        const err = await suggestRes.json().catch(() => ({} as any));
-        throw new Error(err?.error || 'שגיאה בניתוח');
+        const errJson = (await suggestRes.json().catch(() => ({}))) as unknown;
+        const msg = getStringProp(asObject(errJson), 'error') ?? '';
+        throw new Error(msg || 'שגיאה בניתוח');
       }
 
-      const suggestJson = (await suggestRes.json()) as {
-        result?: any;
+      const suggestJson = (await suggestRes.json()) as unknown;
+      const aiResult = asObject(asObject(suggestJson)?.result) ?? {};
+      const topicsRaw = asObject(aiResult.topics) ?? {};
+      const normalizedTopics = {
+        promises: coerceStringArray(topicsRaw.promises),
+        painPoints: coerceStringArray(topicsRaw.painPoints),
+        likes: coerceStringArray(topicsRaw.likes),
+        slang: coerceStringArray(topicsRaw.slang),
+        stories: coerceStringArray(topicsRaw.stories),
+        decisions: coerceStringArray(topicsRaw.decisions),
+        tasks: normalizeTasks(topicsRaw.tasks),
       };
 
-      const aiResult = (suggestJson as any)?.result || {};
-
-      const topicsRaw = (aiResult as any)?.topics || {};
-      const normalizedTopics = {
-        promises: Array.isArray(topicsRaw.promises) ? topicsRaw.promises : [],
-        painPoints: Array.isArray(topicsRaw.painPoints) ? topicsRaw.painPoints : [],
-        likes: Array.isArray(topicsRaw.likes) ? topicsRaw.likes : [],
-        slang: Array.isArray(topicsRaw.slang) ? topicsRaw.slang : [],
-        stories: Array.isArray(topicsRaw.stories) ? topicsRaw.stories : [],
-        decisions: Array.isArray(topicsRaw.decisions) ? topicsRaw.decisions : [],
-        tasks: normalizeTasks(topicsRaw.tasks),
+      const feedbackObj = asObject(aiResult.feedback);
+      const feedback: CallAnalysisResult['feedback'] = {
+        positive: Array.isArray(feedbackObj?.positive) ? feedbackObj!.positive.map((v) => String(v)) : [],
+        improvements: Array.isArray(feedbackObj?.improvements) ? feedbackObj!.improvements.map((v) => String(v)) : [],
       };
 
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
         fileName: opts?.fileName ? String(opts.fileName) : 'Live',
         title: opts?.title ? String(opts.title) : (opts?.fileName ? String(opts.fileName) : 'שיחה חיה'),
-        createdAt: new Date().toISOString(),
         audioUrl: opts?.audioUrl ? String(opts.audioUrl) : '',
         date: new Date().toISOString(),
         duration: '0:00',
         summary: String(aiResult.summary || ''),
-        score: Number.isFinite(Number(aiResult.score)) ? Number(aiResult.score) : 0,
-        intent: (aiResult.intent as any) || 'window_shopping',
-        objections: Array.isArray(aiResult.objections) ? aiResult.objections : [],
-        transcript: Array.isArray(aiResult.transcript) ? aiResult.transcript : [],
-        topics: normalizedTopics as any,
-        feedback: aiResult.feedback || { positive: [], improvements: [] },
+        score: getNumberProp(aiResult, 'score') ?? 0,
+        intent: coerceCallAnalysisIntent(aiResult.intent),
+        objections: coerceObjections(aiResult.objections),
+        transcript: coerceTranscript(aiResult.transcript),
+        topics: normalizedTopics,
+        feedback,
         leadId: opts?.leadId == null ? undefined : String(opts.leadId),
-      } as any;
+      };
 
       setHistory((prev) => [finalResult, ...prev]);
       setState((prev) => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Analysis error:', error);
-      setState((prev) => ({ ...prev, isProcessing: false, currentStep: error?.message || 'שגיאה בניתוח', progress: 0 }));
+      const message = error instanceof Error ? error.message : '';
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: message || 'שגיאה בניתוח', progress: 0 }));
     }
   };
 
@@ -245,15 +315,13 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (!transcribeRes.ok) {
-        const err = await transcribeRes.json().catch(() => ({} as any));
-        throw new Error(err?.error || 'שגיאה בתמלול');
+        const errJson = (await transcribeRes.json().catch(() => ({}))) as unknown;
+        const msg = getStringProp(asObject(errJson), 'error') ?? '';
+        throw new Error(msg || 'שגיאה בתמלול');
       }
 
-      const transcribeJson = (await transcribeRes.json()) as {
-        transcriptText: string;
-      };
-
-      const transcriptText = String(transcribeJson.transcriptText || '').trim();
+      const transcribeJson = (await transcribeRes.json()) as unknown;
+      const transcriptText = String(getStringProp(asObject(transcribeJson), 'transcriptText') ?? '').trim();
       if (!transcriptText) {
         throw new Error('תמלול ריק');
       }
@@ -275,49 +343,52 @@ export const CallAnalysisProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       if (!suggestRes.ok) {
-        const err = await suggestRes.json().catch(() => ({} as any));
-        throw new Error(err?.error || 'שגיאה בניתוח');
+        const errJson = (await suggestRes.json().catch(() => ({}))) as unknown;
+        const msg = getStringProp(asObject(errJson), 'error') ?? '';
+        throw new Error(msg || 'שגיאה בניתוח');
       }
 
-      const suggestJson = (await suggestRes.json()) as {
-        result?: any;
+      const suggestJson = (await suggestRes.json()) as unknown;
+      const aiResult = asObject(asObject(suggestJson)?.result) ?? {};
+      const topicsRaw = asObject(aiResult.topics) ?? {};
+      const normalizedTopics = {
+        promises: coerceStringArray(topicsRaw.promises),
+        painPoints: coerceStringArray(topicsRaw.painPoints),
+        likes: coerceStringArray(topicsRaw.likes),
+        slang: coerceStringArray(topicsRaw.slang),
+        stories: coerceStringArray(topicsRaw.stories),
+        decisions: coerceStringArray(topicsRaw.decisions),
+        tasks: normalizeTasks(topicsRaw.tasks),
       };
 
-      const aiResult = (suggestJson as any)?.result || {};
-
-      const topicsRaw = (aiResult as any)?.topics || {};
-      const normalizedTopics = {
-        promises: Array.isArray(topicsRaw.promises) ? topicsRaw.promises : [],
-        painPoints: Array.isArray(topicsRaw.painPoints) ? topicsRaw.painPoints : [],
-        likes: Array.isArray(topicsRaw.likes) ? topicsRaw.likes : [],
-        slang: Array.isArray(topicsRaw.slang) ? topicsRaw.slang : [],
-        stories: Array.isArray(topicsRaw.stories) ? topicsRaw.stories : [],
-        decisions: Array.isArray(topicsRaw.decisions) ? topicsRaw.decisions : [],
-        tasks: normalizeTasks(topicsRaw.tasks),
+      const feedbackObj = asObject(aiResult.feedback);
+      const feedback: CallAnalysisResult['feedback'] = {
+        positive: Array.isArray(feedbackObj?.positive) ? feedbackObj!.positive.map((v) => String(v)) : [],
+        improvements: Array.isArray(feedbackObj?.improvements) ? feedbackObj!.improvements.map((v) => String(v)) : [],
       };
 
       const finalResult: CallAnalysisResult = {
         id: `analysis_${Date.now()}`,
         fileName: file.name,
         title: file.name,
-        createdAt: new Date().toISOString(),
         audioUrl,
         date: new Date().toISOString(),
         duration: '0:00',
         summary: String(aiResult.summary || ''),
-        score: Number.isFinite(Number(aiResult.score)) ? Number(aiResult.score) : 0,
-        intent: (aiResult.intent as any) || 'window_shopping',
-        objections: Array.isArray(aiResult.objections) ? aiResult.objections : [],
-        transcript: Array.isArray(aiResult.transcript) ? aiResult.transcript : [],
-        topics: normalizedTopics as any,
-        feedback: aiResult.feedback || { positive: [], improvements: [] },
-      } as any;
+        score: getNumberProp(aiResult, 'score') ?? 0,
+        intent: coerceCallAnalysisIntent(aiResult.intent),
+        objections: coerceObjections(aiResult.objections),
+        transcript: coerceTranscript(aiResult.transcript),
+        topics: normalizedTopics,
+        feedback,
+      };
 
       setHistory((prev) => [finalResult, ...prev]);
       setState((prev) => ({ ...prev, progress: 100, currentStep: 'הניתוח הושלם!', result: finalResult, isProcessing: false }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Analysis error:', error);
-      setState((prev) => ({ ...prev, isProcessing: false, currentStep: error?.message || 'שגיאה בניתוח', progress: 0 }));
+      const message = error instanceof Error ? error.message : '';
+      setState((prev) => ({ ...prev, isProcessing: false, currentStep: message || 'שגיאה בניתוח', progress: 0 }));
     }
   };
 

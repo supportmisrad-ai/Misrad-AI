@@ -6,6 +6,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
@@ -14,7 +16,7 @@ function formatError(err: unknown) {
   if (!err) return null;
   const obj = asObject(err) ?? {};
   return {
-    message: getErrorMessage(err) ?? null,
+    message: IS_PROD ? null : getErrorMessage(err) ?? null,
     name: err instanceof Error ? err.name : typeof obj.name === 'string' ? obj.name : null,
     status: typeof obj.status === 'number' ? obj.status : null,
     code: typeof obj.code === 'string' ? obj.code : null,
@@ -113,6 +115,10 @@ export async function POST(req: Request) {
       },
     });
   } catch (e: unknown) {
-    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Storage cross-org check failed' }, { status: 500 });
+    const safeMsg = 'Storage cross-org check failed';
+    return NextResponse.json(
+      { ok: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+      { status: 500 }
+    );
   }
 }

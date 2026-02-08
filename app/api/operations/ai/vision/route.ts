@@ -18,7 +18,8 @@ async function POSTHandler(request: NextRequest) {
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'חסר OPENAI_API_KEY' }, { status: 500 });
+      const safeMsg = 'שגיאה כללית';
+      return NextResponse.json({ error: IS_PROD ? safeMsg : 'חסר OPENAI_API_KEY' }, { status: 500 });
     }
 
     const formData = await request.formData();
@@ -63,7 +64,9 @@ async function POSTHandler(request: NextRequest) {
 
     if (!res.ok) {
       const txt = await res.text().catch(() => '');
-      return NextResponse.json({ error: `OpenAI error (${res.status}): ${txt}` }, { status: 502 });
+      const safeMsg = 'שגיאה כללית';
+      const msg = `OpenAI error (${res.status}): ${txt}`;
+      return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 502 });
     }
 
     const json: unknown = await res.json().catch(() => null);

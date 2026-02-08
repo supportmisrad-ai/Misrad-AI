@@ -2,14 +2,19 @@ import { NextResponse } from 'next/server';
 import { testConnection, isSupabaseConfigured } from '../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../lib/auth';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';
+const IS_PROD = process.env.NODE_ENV === 'production';
 async function GETHandler() {
     try {
         try {
             await requireSuperAdmin();
         } catch (e: unknown) {
-            return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
+            const safeMsg = 'Forbidden - Super Admin required';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+                { status: 403 }
+            );
         }
 
         const configured = isSupabaseConfigured();
@@ -27,8 +32,9 @@ async function GETHandler() {
             timestamp: new Date().toISOString()
         });
     } catch (error: unknown) {
+        const safeMsg = 'Internal server error';
         return NextResponse.json({
-            error: getErrorMessage(error),
+            error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg,
             supabase: {
                 configured: false,
                 connected: false

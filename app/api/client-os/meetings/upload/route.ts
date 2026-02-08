@@ -14,6 +14,8 @@ import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspac
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function normalizeLocation(value: unknown): 'ZOOM' | 'FRONTAL' | 'PHONE' {
   const v = String(value ?? '').toUpperCase();
   if (v === 'FRONTAL' || v === 'PHONE') return v;
@@ -116,7 +118,9 @@ async function POSTHandler(req: Request) {
         mimeType = file.type || '';
         inputBuf = await fileToBuffer(file);
       } catch (e: unknown) {
-        return apiError(`Failed to parse multipart form data. Try JSON upload. (${getErrorMessage(e) ?? String(e)})`, { status: 400 });
+        const safeMsg = 'Failed to parse multipart form data. Try JSON upload.';
+        const message = IS_PROD ? safeMsg : `${safeMsg} (${getErrorMessage(e) ?? String(e)})`;
+        return apiError(message, { status: 400 });
       }
     }
 
@@ -130,7 +134,8 @@ async function POSTHandler(req: Request) {
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
-      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
+      const safeMsg = 'Forbidden';
+      return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
     }
 
     const abuse = await enforceAiAbuseGuard({

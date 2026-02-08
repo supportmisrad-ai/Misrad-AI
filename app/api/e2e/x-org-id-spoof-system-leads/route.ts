@@ -9,6 +9,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 export async function GET(req: Request) {
   try {
     const expected = process.env.E2E_API_KEY;
@@ -45,11 +47,12 @@ export async function GET(req: Request) {
   } catch (e: unknown) {
     const obj = asObject(e) ?? {};
     const status = typeof obj.status === 'number' ? obj.status : 500;
+    const safeMsg = 'Unknown error';
     return NextResponse.json(
       {
         ok: false,
         blocked: true,
-        error: getErrorMessage(e) || 'Unknown error',
+        error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
       },
       { status }
     );

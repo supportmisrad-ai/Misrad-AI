@@ -670,7 +670,11 @@ async function PATCHHandler(
         const status =
             (obj && typeof obj['status'] === 'number' ? (obj['status'] as number) : null) ??
             (getErrorMessage(error).includes('Unauthorized') ? 401 : 500);
-        return apiError(error, { status, message: 'שגיאה בעדכון בקשת חופש' });
+        const safeMsg = 'שגיאה בעדכון בקשת חופש';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status,
+            message: safeMsg,
+        });
     }
 }
 
@@ -804,9 +808,10 @@ async function DELETEHandler(
         if (IS_PROD) console.error('[API] Error in /api/leave-requests/[id] DELETE');
         else console.error('[API] Error in /api/leave-requests/[id] DELETE:', error);
         const message = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה במחיקת בקשת חופש';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: message.includes('Unauthorized') ? 401 : 500,
-            message: 'שגיאה במחיקת בקשת חופש',
+            message: safeMsg,
         });
     }
 }

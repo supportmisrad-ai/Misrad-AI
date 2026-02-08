@@ -8,6 +8,8 @@ import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function safeNumber(v: string | null, fallback: number): number {
   const n = Number(v);
   if (!Number.isFinite(n)) return fallback;
@@ -43,7 +45,8 @@ async function processQueue(req: NextRequest) {
       job = JSON.parse(String(raw || '')) as EmployeeInviteEmailJob;
     } catch (e: unknown) {
       failed += 1;
-      errors.push({ error: getErrorMessage(e) || 'Invalid job JSON' });
+      const safeMsg = 'Invalid job JSON';
+      errors.push({ error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
       continue;
     }
 
@@ -80,7 +83,7 @@ async function processQueue(req: NextRequest) {
     }
 
     failed += 1;
-    errors.push({ invitationId, error: sendRes.error || 'send_failed' });
+    errors.push({ invitationId, error: IS_PROD ? 'send_failed' : sendRes.error || 'send_failed' });
 
     if (attempts < 4) {
       await redis.del(lockKey);

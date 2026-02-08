@@ -5,6 +5,8 @@ import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { resolveOrganizationForWorkspaceAccessApi } from '@/lib/server/workspace-access/org-resolve';
 import { decodeMaybeRepeatedly, decodeOnce, getErrorMessage, getErrorStatus, isUuidLike } from '@/lib/server/workspace-access/utils';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function isAuthorizedE2e(req: Request): boolean {
   const expected = String(process.env.E2E_API_KEY || '').trim();
   const provided = String(req.headers.get('x-e2e-key') || '').trim();
@@ -48,11 +50,12 @@ async function GETHandler(
         org = { id: decodedOrgSlug };
       } else {
         const status = getErrorStatus(e) ?? 404;
+        const safeMsg = 'Organization not found';
         return NextResponse.json(
           {
             ok: false,
             blocked: false,
-            error: getErrorMessage(e) || 'Organization not found',
+            error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
           },
           { status }
         );
@@ -77,23 +80,25 @@ async function GETHandler(
         { status: 200 }
       );
     } catch (e: unknown) {
-      const msg = getErrorMessage(e) || 'Unknown error';
+      const safeMsg = 'Unknown error';
+      const msg = getErrorMessage(e) || safeMsg;
       const isTenantGuard = msg.includes('Tenant Guard Violation!');
       return NextResponse.json(
         {
           ok: isTenantGuard,
           blocked: isTenantGuard,
-          error: msg,
+          error: IS_PROD ? (isTenantGuard ? 'Blocked' : safeMsg) : msg,
         },
         { status: 500 }
       );
     }
   } catch (e: unknown) {
+    const safeMsg = 'Unknown error';
     return NextResponse.json(
       {
         ok: false,
         blocked: false,
-        error: getErrorMessage(e) || 'Unknown error',
+        error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
       },
       { status: 500 }
     );

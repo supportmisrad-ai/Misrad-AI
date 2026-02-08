@@ -102,13 +102,25 @@ function iso(d: unknown): string | undefined {
 }
 
 function toJsonInput(value: unknown): Prisma.InputJsonValue {
-  if (value == null) return {} as Prisma.InputJsonValue;
+  if (value == null) return {};
   if (typeof value === 'string') return value;
   if (typeof value === 'number') return value;
   if (typeof value === 'boolean') return value;
-  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
+
+  if (Array.isArray(value)) {
+    return value.map((v) => toJsonInput(v));
+  }
+
   const obj = asObject(value);
-  return (obj ?? {}) as Prisma.InputJsonValue;
+  if (!obj) return {};
+
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = toJsonInput(v);
+  }
+  return out;
 }
 
 function toNullableJsonUpdateValue(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {

@@ -136,3 +136,26 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     entitlements,
   };
 });
+
+export const requireWorkspaceIdByOrgSlugApiCached = cache(async (clerkUserId: string, orgSlug: string): Promise<{ id: string }> => {
+  if (!orgSlug) {
+    throw setErrorStatus(new Error('Missing workspace context'), 400);
+  }
+
+  const decodedOrgSlug = decodeMaybeRepeatedly(orgSlug);
+  const decodedOnceOrgSlug = decodeOnce(orgSlug);
+
+  const { socialUser, isSuperAdmin } = await resolveWorkspaceActorApi(clerkUserId);
+  const org = await resolveOrganizationForWorkspaceAccessApi({
+    orgSlug,
+    decodedOrgSlug,
+    decodedOnceOrgSlug,
+  });
+
+  const membership = await checkWorkspaceMembership({ org, socialUser, isSuperAdmin });
+  if (!membership.allowed) {
+    throw setErrorStatus(new Error('Forbidden'), 403);
+  }
+
+  return { id: String(org.id) };
+});

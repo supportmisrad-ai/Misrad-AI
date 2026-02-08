@@ -45,6 +45,14 @@ const htmlReportOutputFolder =
     ? path.join('playwright-report', `run-${Date.now()}`)
     : 'playwright-report';
 
+const htmlReporter: ['html', { open: 'never'; outputFolder: string }] = [
+  'html',
+  { open: 'never', outputFolder: htmlReportOutputFolder },
+];
+
+const listReporter: ['list', Record<string, never>] = ['list', {}];
+const reporter = disableHtmlReport ? [listReporter] : [htmlReporter, listReporter];
+
 export default defineConfig({
   timeout: Number(process.env.E2E_TEST_TIMEOUT_MS || 120_000),
   testDir: 'tests/e2e',
@@ -53,10 +61,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : Number(process.env.E2E_WORKERS || 1),
-  reporter: [
-    ...(disableHtmlReport ? [] : [['html', { open: 'never', outputFolder: htmlReportOutputFolder }]]),
-    ['list'],
-  ],
+  reporter,
   webServer: useExistingServer
     ? undefined
     : {

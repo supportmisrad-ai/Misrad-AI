@@ -139,9 +139,10 @@ async function GETHandler(request: NextRequest, { params }: { params: { id: stri
     if (error instanceof APIError) {
       return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
     }
-    return apiError(error, {
+    const safeMsg = 'שגיאה בטעינת היסטוריית הקריאה';
+    return apiError(IS_PROD ? safeMsg : error, {
       status: 500,
-      message: 'שגיאה בטעינת היסטוריית הקריאה',
+      message: safeMsg,
     });
   }
 }

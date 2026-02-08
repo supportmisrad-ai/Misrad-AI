@@ -13,12 +13,17 @@ import { requireSuperAdmin } from '../../../../../lib/auth';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+const IS_PROD = process.env.NODE_ENV === 'production';
 async function GETHandler(request: NextRequest) {
     try {
         try {
             await requireSuperAdmin();
         } catch (e: unknown) {
-            return NextResponse.json({ configured: false, error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
+            const safeMsg = 'Forbidden - Super Admin required';
+            return NextResponse.json(
+                { configured: false, error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg },
+                { status: 403 }
+            );
         }
 
         const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -45,7 +50,8 @@ async function GETHandler(request: NextRequest) {
                 clientCreated = true;
             }
         } catch (error: unknown) {
-            clientError = getErrorMessage(error) || 'Failed to create OAuth client';
+            const safeMsg = 'Failed to create OAuth client';
+            clientError = IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg;
         }
 
         // Check if client ID has correct format
@@ -87,9 +93,10 @@ async function GETHandler(request: NextRequest) {
     } catch (error: unknown) {
         const obj = asObject(error);
         const stack = error instanceof Error ? error.stack : typeof obj?.stack === 'string' ? obj.stack : undefined;
+        const safeMsg = 'Internal server error';
         return NextResponse.json({
             configured: false,
-            error: getErrorMessage(error),
+            error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg,
             stack: process.env.NODE_ENV === 'development' ? stack : undefined
         }, { status: 500 });
     }

@@ -5,16 +5,18 @@ import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace
 import { logAuditEvent } from '@/lib/audit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 async function GETHandler(
   _req: Request,
-  { params }: { params: { orgSlug: string } }
+  { params }: { params: Promise<{ orgSlug: string }> | { orgSlug: string } }
 ) {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { orgSlug } = params;
+  const { orgSlug } = await params;
   if (!orgSlug) {
     return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
   }
@@ -24,10 +26,19 @@ async function GETHandler(
     ({ workspace } = await getWorkspaceContextOrThrow(_req, { params: { orgSlug } }));
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json({ error: IS_PROD ? safeMsg : e.message || safeMsg }, { status: e.status });
     }
-    const msg = e instanceof Error ? e.message : 'Internal server error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const safeMsg = 'Internal server error';
+    const msg = e instanceof Error ? e.message : safeMsg;
+    return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 500 });
   }
   const [socialUser, org] = await Promise.all([
     prisma.organizationUser.findUnique({

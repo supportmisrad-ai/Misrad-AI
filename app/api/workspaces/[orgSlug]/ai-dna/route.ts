@@ -33,12 +33,13 @@ async function GETHandler(
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = params;
+    const resolvedParams = await Promise.resolve(params);
+    const { orgSlug } = resolvedParams;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
 
-    const { workspace } = await getWorkspaceContextOrThrow(_req, { params });
+    const { workspace } = await getWorkspaceContextOrThrow(_req, { params: resolvedParams });
 
     const data = await prisma.organization_settings.findUnique({
       where: { organization_id: String(workspace.id) },
@@ -58,7 +59,15 @@ async function GETHandler(
     return apiSuccess({ aiDna });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e.message || 'Forbidden', { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     return apiError(e, { status: 500, message: 'Failed to load ai_dna' });
   }
@@ -81,12 +90,13 @@ async function PUTHandler(
       return apiError('Forbidden', { status: 403 });
     }
 
-    const { orgSlug } = params;
+    const resolvedParams = await Promise.resolve(params);
+    const { orgSlug } = resolvedParams;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
 
-    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params: resolvedParams });
 
     const body: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(body) ?? {};
@@ -146,7 +156,15 @@ async function PUTHandler(
     return apiSuccess({ ok: true });
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e.message || 'Forbidden', { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     return apiError(e, { status: 500, message: 'Failed to save ai_dna' });
   }

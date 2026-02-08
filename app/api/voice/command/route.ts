@@ -9,6 +9,8 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type VoiceAction =
   | 'create_lead'
   | 'create_task'
@@ -20,7 +22,8 @@ type VoiceAction =
 type VoiceCommandPayload = {
   action: VoiceAction;
   data?: unknown;
-};
+};
+
 
 function safeJsonParse(text: string): unknown {
   try {
@@ -634,8 +637,9 @@ async function POSTHandler(req: Request) {
       organizationId: workspace.id,
     });
   } catch (e: unknown) {
-    const msg = getErrorMessage(e) || 'שגיאה כללית';
-    return NextResponse.json({ ok: false, message: msg }, { status: 500 });
+    const safeMsg = 'שגיאה כללית';
+    const msg = getErrorMessage(e) || safeMsg;
+    return NextResponse.json({ ok: false, message: IS_PROD ? safeMsg : msg }, { status: 500 });
   }
 }
 

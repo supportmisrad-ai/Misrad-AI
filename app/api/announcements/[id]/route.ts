@@ -99,8 +99,9 @@ async function DELETEHandler(
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        const msg = getErrorMessage(error) || 'שגיאה במחיקת הודעה';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'שגיאה במחיקת הודעה';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 
@@ -158,8 +159,9 @@ async function PATCHHandler(
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        const msg = getErrorMessage(error) || 'שגיאה בעדכון הודעה';
-        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
+        const safeMsg = 'שגיאה בעדכון הודעה';
+        const msg = getErrorMessage(error) || safeMsg;
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

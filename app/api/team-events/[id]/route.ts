@@ -256,9 +256,10 @@ async function PATCHHandler(
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה בעדכון אירוע';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה בעדכון אירוע',
+            message: safeMsg,
         });
     }
 }
@@ -332,9 +333,10 @@ async function DELETEHandler(
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה במחיקת אירוע';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה במחיקת אירוע',
+            message: safeMsg,
         });
     }
 }

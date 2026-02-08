@@ -10,11 +10,13 @@ import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 export type OSRoomId = 'social' | 'nexus' | 'system' | 'finance' | 'client';
 
 type RoomsPayload = Partial<Record<OSRoomId, boolean>>;
 
-type OrganizationRoomsUpdateData = Parameters<typeof prisma.organization.update>[0]['data'];
+type OrganizationRoomsUpdateData = Parameters<typeof prisma.organization.update>[0]['data'];
 
 function toRoomsPayload(body: unknown): RoomsPayload {
   const obj = asObject(body);
@@ -132,15 +134,17 @@ async function GETHandler(req: NextRequest) {
     }
     return apiError('Organization not found', { status: 404 });
   } catch (error: unknown) {
+    const safeMsg = 'Failed to load rooms';
+    const msg = getUnknownErrorMessage(error) || safeMsg;
     try {
       await logAuditEvent('data.read', 'os.rooms', {
         success: false,
-        error: getUnknownErrorMessage(error) || 'Unknown error',
+        error: IS_PROD ? safeMsg : msg,
       });
     } catch {
       // ignore
     }
-    return apiError(getUnknownErrorMessage(error) || 'Failed to load rooms', { status: 500 });
+    return apiError(IS_PROD ? safeMsg : msg, { status: 500 });
   }
 }
 
@@ -149,7 +153,8 @@ async function POSTHandler(req: NextRequest) {
     try {
       await requireSuperAdmin();
     } catch (e: unknown) {
-      return apiError(getUnknownErrorMessage(e) || 'Forbidden - Super Admin required', { status: 403 });
+      const safeMsg = 'Forbidden - Super Admin required';
+      return apiError(IS_PROD ? safeMsg : getUnknownErrorMessage(e) || safeMsg, { status: 403 });
     }
 
     const clerkUserId = await getCurrentUserId();
@@ -228,15 +233,17 @@ async function POSTHandler(req: NextRequest) {
 
     return apiSuccess({ organizationId });
   } catch (error: unknown) {
+    const safeMsg = 'Internal error';
+    const msg = getUnknownErrorMessage(error) || safeMsg;
     try {
       await logAuditEvent('data.write', 'os.rooms', {
         success: false,
-        error: getUnknownErrorMessage(error) || 'Internal error',
+        error: IS_PROD ? safeMsg : msg,
       });
     } catch {
       // ignore
     }
-    return apiError(getUnknownErrorMessage(error) || 'Internal error', { status: 500 });
+    return apiError(IS_PROD ? safeMsg : msg, { status: 500 });
   }
 }
 

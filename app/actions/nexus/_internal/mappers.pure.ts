@@ -10,9 +10,8 @@ import {
   toTimeHHmmStringMaybe,
 } from './utils.pure';
 
-export function mapUserRow(row: unknown): User {
+export function mapUserRow(row: unknown, now: Date = new Date()): User {
   const obj = asObject(row) ?? {};
-  const now = new Date();
   const organizationId =
     (obj.organization_id ?? obj.organizationId ?? obj.tenant_id ?? obj.tenantId) == null
       ? undefined
@@ -90,7 +89,7 @@ export function toTaskDto(row: unknown): Task {
     audioUrl: obj.audio_url ?? obj.audioUrl ?? undefined,
     snoozeCount: obj.snooze_count ?? obj.snoozeCount ?? undefined,
     isFocus: obj.is_focus ?? obj.isFocus ?? undefined,
-    completionDetails: parseJson(obj.completion_details ?? obj.completionDetails) as unknown as Task['completionDetails'],
+    completionDetails: parseJson(obj.completion_details ?? obj.completionDetails),
     department: obj.department ?? undefined,
   } as Task;
 }

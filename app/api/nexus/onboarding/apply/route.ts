@@ -10,6 +10,8 @@ import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function isUUID(id: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 }
@@ -108,9 +110,24 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ ok: true, createdTaskIds: rows.map((r) => r.id) });
   } catch (error: unknown) {
     if (error instanceof APIError) {
-      return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+      const safeMsg =
+        error.status === 400
+          ? 'Bad request'
+          : error.status === 401
+            ? 'Unauthorized'
+            : error.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return NextResponse.json(
+        { error: IS_PROD ? safeMsg : error.message || safeMsg },
+        { status: error.status }
+      );
     }
-    return NextResponse.json({ error: getErrorMessage(error) || 'Internal server error' }, { status: 500 });
+    const safeMsg = 'Internal server error';
+    return NextResponse.json(
+      { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
+      { status: 500 }
+    );
   }
 }
 

@@ -534,12 +534,26 @@ async function GETHandler(request: NextRequest) {
         if (IS_PROD) console.error('[API] Error in /api/leave-requests GET');
         else console.error('[API] Error in /api/leave-requests GET:', error);
         if (error instanceof APIError) {
-            return apiError(error, { status: error.status, message: msg || 'Forbidden' });
+            const safeMsg = error.status === 401 ? 'Unauthorized' : 'Forbidden';
+            return apiError(IS_PROD ? safeMsg : error, {
+                status: error.status,
+                message: IS_PROD ? safeMsg : msg || error.message || safeMsg,
+            });
         }
         if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                return apiError(error, {
+                    status: 500,
+                    message: `[SchemaMismatch] leave-requests query failed (${msg || 'missing tenant scoping column'})`,
+                });
+            }
             return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
         }
-        return apiError(error, { status: msg.includes('Unauthorized') ? 401 : 500, message: msg || 'שגיאה בטעינת בקשות חופש' });
+        const safeMsg = 'שגיאה בטעינת בקשות חופש';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 
@@ -785,7 +799,11 @@ async function POSTHandler(request: NextRequest) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, { status: msg.includes('Unauthorized') ? 401 : 500, message: msg || 'שגיאה ביצירת בקשת חופש' });
+        const safeMsg = 'שגיאה ביצירת בקשת חופש';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 

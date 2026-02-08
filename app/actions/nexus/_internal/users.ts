@@ -106,7 +106,8 @@ export async function listNexusUsers(params: {
     });
   }
 
-  const mapped = rows.map(mapUserRow);
+  const now = new Date();
+  const mapped = rows.map((row) => mapUserRow(row, now));
 
   if (params.userId) {
     const target = mapped[0];

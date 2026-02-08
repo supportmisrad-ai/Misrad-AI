@@ -8,6 +8,8 @@ import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGu
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type LiveInsightRequestBody = {
   transcriptText?: string;
 };
@@ -16,7 +18,10 @@ function asString(value: unknown): string {
   return value == null ? '' : String(value);
 }
 
-async function POSTHandler(req: Request, { params }: { params: { orgSlug: string } }) {
+async function POSTHandler(
+  req: Request,
+  { params }: { params: Promise<{ orgSlug: string }> | { orgSlug: string } }
+) {
   try {
     await getAuthenticatedUser();
 
@@ -25,12 +30,13 @@ async function POSTHandler(req: Request, { params }: { params: { orgSlug: string
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = params;
+    const resolvedParams = await Promise.resolve(params);
+    const { orgSlug } = resolvedParams;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
 
-    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
+    const { workspace } = await getWorkspaceContextOrThrow(req, { params: resolvedParams });
 
     const abuse = await enforceAiAbuseGuard({
       req,
@@ -95,7 +101,15 @@ ${truncated}`;
     );
   } catch (e: unknown) {
     if (e instanceof APIError) {
-      return apiError(e.message || 'Forbidden', { status: e.status });
+      const safeMsg =
+        e.status === 400
+          ? 'Bad request'
+          : e.status === 401
+            ? 'Unauthorized'
+            : e.status === 404
+              ? 'Not found'
+              : 'Forbidden';
+      return apiError(e, { status: e.status, message: IS_PROD ? safeMsg : e.message || safeMsg });
     }
     return apiError(e, { message: 'Failed to generate live insight' });
   }

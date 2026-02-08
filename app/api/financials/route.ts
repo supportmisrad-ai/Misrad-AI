@@ -13,6 +13,8 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -98,13 +100,30 @@ async function GETHandler(request: NextRequest) {
         
     } catch (error: unknown) {
         const message = getErrorMessage(error);
+
+        const safeAuditError = message.includes('Unauthorized')
+            ? 'Unauthorized'
+            : message.includes('Forbidden')
+                ? 'Forbidden'
+                : 'Internal server error';
         await logAuditEvent('data.read', 'financial', {
             success: false,
-            error: message
+            error: IS_PROD ? safeAuditError : message
         });
 
         if (error instanceof APIError) {
-            return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
+            const safeMsg =
+                error.status === 400
+                    ? 'Bad request'
+                    : error.status === 401
+                        ? 'Unauthorized'
+                        : error.status === 404
+                            ? 'Not found'
+                            : 'Forbidden';
+            return NextResponse.json(
+                { error: IS_PROD ? safeMsg : error.message || safeMsg },
+                { status: error.status }
+            );
         }
         
         if (message.includes('Unauthorized')) {

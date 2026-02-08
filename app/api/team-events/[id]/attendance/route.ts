@@ -195,9 +195,10 @@ async function GETHandler(
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה בטעינת נוכחות';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה בטעינת נוכחות',
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }
@@ -308,9 +309,10 @@ async function POSTHandler(
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה בשמירת הגעה';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה בשמירת הגעה',
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }

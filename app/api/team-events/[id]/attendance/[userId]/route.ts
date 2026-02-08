@@ -226,9 +226,10 @@ async function PATCHHandler(
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
-        return apiError(error, {
+        const safeMsg = 'שגיאה בעדכון נוכחות';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה בעדכון נוכחות',
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }
