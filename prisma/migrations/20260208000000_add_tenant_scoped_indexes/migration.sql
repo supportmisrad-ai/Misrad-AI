@@ -61,8 +61,12 @@ CREATE INDEX IF NOT EXISTS idx_support_tickets_tenant_user_created_at
 CREATE INDEX IF NOT EXISTS idx_support_tickets_tenant_status_created_at
   ON public.misrad_support_tickets (tenant_id, status, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_support_ticket_events_tenant_ticket_created_at
-  ON public.support_ticket_events (tenant_id, ticket_id, created_at);
+do $$
+begin
+  if to_regclass('public.support_ticket_events') is not null then
+    execute 'CREATE INDEX IF NOT EXISTS idx_support_ticket_events_tenant_ticket_created_at ON public.support_ticket_events (tenant_id, ticket_id, created_at)';
+  end if;
+end $$;
 
 CREATE INDEX IF NOT EXISTS idx_nexus_tasks_org_due_created_at
   ON public.nexus_tasks (organization_id, due_date, created_at DESC);
