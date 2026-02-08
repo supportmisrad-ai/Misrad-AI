@@ -249,15 +249,15 @@ export const AppProvider: React.FC<AppProviderProps> = ({
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   
-  const [clients, setClients] = useState<Client[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.clients as any) : []));
+  const [clients, setClients] = useState<Client[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.clients : []));
   const [pinnedClientIds, setPinnedClientIds] = useState<string[]>([]);
-  const [posts, setPosts] = useState<SocialPost[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.posts as any) : []));
-  const [tasks, setTasks] = useState<SocialTask[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.tasks as any) : []));
-  const [team, setTeam] = useState<TeamMember[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.team as any) : []));
-  const [clientRequests, setClientRequests] = useState<ClientRequest[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.clientRequests as any) : []));
-  const [managerRequests, setManagerRequests] = useState<ManagerRequest[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.managerRequests as any) : []));
-  const [conversations, setConversations] = useState<Conversation[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.conversations as any) : []));
-  const [ideas, setIdeas] = useState<Idea[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? (initialSocialData.ideas as any) : []));
+  const [posts, setPosts] = useState<SocialPost[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.posts : []));
+  const [tasks, setTasks] = useState<SocialTask[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.tasks : []));
+  const [team, setTeam] = useState<TeamMember[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.team : []));
+  const [clientRequests, setClientRequests] = useState<ClientRequest[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.clientRequests : []));
+  const [managerRequests, setManagerRequests] = useState<ManagerRequest[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.managerRequests : []));
+  const [conversations, setConversations] = useState<Conversation[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.conversations : []));
+  const [ideas, setIdeas] = useState<Idea[]>(() => (initialSocialData && hasInitialDataForOrg(initialSocialData) ? initialSocialData.ideas : []));
   const [isLoadingData, setIsLoadingData] = useState(() => !(initialSocialData && hasInitialDataForOrg(initialSocialData)));
   const [toasts, setToasts] = useState<Toast[]>([]);
   
@@ -275,18 +275,18 @@ export const AppProvider: React.FC<AppProviderProps> = ({
     initialDataAppliedRef.current = true;
 
     if (Array.isArray(initialSocialData.clients)) {
-      setClients(initialSocialData.clients as any);
+      setClients(initialSocialData.clients);
       if (initialSocialData.clients.length > 0) {
-        setPinnedClientIds((initialSocialData.clients as any).slice(0, 2).map((c: any) => c.id));
+        setPinnedClientIds(initialSocialData.clients.slice(0, 2).map((c) => c.id));
       }
     }
-    if (Array.isArray(initialSocialData.team)) setTeam(initialSocialData.team as any);
-    if (Array.isArray(initialSocialData.posts)) setPosts(initialSocialData.posts as any);
-    if (Array.isArray(initialSocialData.tasks)) setTasks(initialSocialData.tasks as any);
-    if (Array.isArray(initialSocialData.conversations)) setConversations(initialSocialData.conversations as any);
-    if (Array.isArray(initialSocialData.clientRequests)) setClientRequests(initialSocialData.clientRequests as any);
-    if (Array.isArray(initialSocialData.managerRequests)) setManagerRequests(initialSocialData.managerRequests as any);
-    if (Array.isArray(initialSocialData.ideas)) setIdeas(initialSocialData.ideas as any);
+    if (Array.isArray(initialSocialData.team)) setTeam(initialSocialData.team);
+    if (Array.isArray(initialSocialData.posts)) setPosts(initialSocialData.posts);
+    if (Array.isArray(initialSocialData.tasks)) setTasks(initialSocialData.tasks);
+    if (Array.isArray(initialSocialData.conversations)) setConversations(initialSocialData.conversations);
+    if (Array.isArray(initialSocialData.clientRequests)) setClientRequests(initialSocialData.clientRequests);
+    if (Array.isArray(initialSocialData.managerRequests)) setManagerRequests(initialSocialData.managerRequests);
+    if (Array.isArray(initialSocialData.ideas)) setIdeas(initialSocialData.ideas);
 
     setIsLoadingData(false);
   }, [initialSocialData, effectiveOrgSlug]);
