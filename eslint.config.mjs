@@ -14,6 +14,7 @@ const eslintConfig = defineConfig([
     "**/build/**",
     "android/**/build/**",
     "next-env.d.ts",
+    "test-tenant-guard-fix.js",
   ]),
 
   // Prisma-First (Tenant Isolation): soft-block new direct Supabase DB usage.

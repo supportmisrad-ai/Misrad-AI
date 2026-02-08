@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
+import * as path from 'path';
 
 const overrideEnv =
   String(process.env.E2E_ENV_OVERRIDE || '').toLowerCase() === '1' ||
@@ -35,6 +36,15 @@ const defaultWebServerCommand = process.platform === 'win32' ? 'npm.cmd run dev'
 const webServerCommand = process.env.E2E_WEBSERVER_COMMAND || defaultWebServerCommand;
 const webServerTimeout = Number(process.env.E2E_WEBSERVER_TIMEOUT_MS || 600_000);
 
+const disableHtmlReport =
+  String(process.env.E2E_DISABLE_HTML_REPORT || '').toLowerCase() === '1' ||
+  String(process.env.E2E_DISABLE_HTML_REPORT || '').toLowerCase() === 'true';
+
+const htmlReportOutputFolder =
+  process.platform === 'win32'
+    ? path.join('playwright-report', `run-${Date.now()}`)
+    : 'playwright-report';
+
 export default defineConfig({
   timeout: Number(process.env.E2E_TEST_TIMEOUT_MS || 120_000),
   testDir: 'tests/e2e',
@@ -43,7 +53,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : Number(process.env.E2E_WORKERS || 1),
-  reporter: [['html', { open: 'never' }], ['list']],
+  reporter: [
+    ...(disableHtmlReport ? [] : [['html', { open: 'never', outputFolder: htmlReportOutputFolder }]]),
+    ['list'],
+  ],
   webServer: useExistingServer
     ? undefined
     : {

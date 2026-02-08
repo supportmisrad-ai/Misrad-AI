@@ -267,7 +267,11 @@ async function GETHandler(request: NextRequest) {
         if (msg.includes('Tenant Isolation') || msg.includes('No tenant scoping column')) {
             return apiSuccess({ events: [] }, { status: 200 });
         }
-        return apiError(msg || 'שגיאה בטעינת אירועים', { status: msg.includes('Unauthorized') ? 401 : 500 });
+        const safeMsg = 'שגיאה בטעינת אירועים';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: safeMsg,
+        });
     }
 }
 
@@ -487,9 +491,10 @@ async function POSTHandler(request: NextRequest) {
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
         }
-        return apiError(msg || 'שגיאה ביצירת אירוע', {
+        const safeMsg = 'שגיאה ביצירת אירוע';
+        return apiError(IS_PROD ? safeMsg : error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה ביצירת אירוע',
+            message: safeMsg,
         });
     }
 }
