@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getNexusOnboardingTemplate, setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { isCeoRole } from '@/lib/constants/roles';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
@@ -19,8 +20,18 @@ async function GETHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    const template = await getNexusOnboardingTemplate(workspace.id);
-    return NextResponse.json({ template });
+    const orgId = String(workspace.id);
+    return await withTenantIsolationContext(
+      {
+        source: 'api_nexus_onboarding_template',
+        reason: 'GET',
+        organizationId: orgId,
+      },
+      async () => {
+        const template = await getNexusOnboardingTemplate(orgId);
+        return NextResponse.json({ template });
+      }
+    );
   } catch (error: unknown) {
     if (error instanceof APIError) {
       const safeMsg =
@@ -69,12 +80,22 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid templateKey' }, { status: 400 });
     }
 
-    await setNexusOnboardingTemplate({
-      workspaceId: workspace.id,
-      templateKey,
-    });
+    const orgId = String(workspace.id);
+    return await withTenantIsolationContext(
+      {
+        source: 'api_nexus_onboarding_template',
+        reason: 'POST',
+        organizationId: orgId,
+      },
+      async () => {
+        await setNexusOnboardingTemplate({
+          workspaceId: orgId,
+          templateKey,
+        });
 
-    return NextResponse.json({ ok: true });
+        return NextResponse.json({ ok: true });
+      }
+    );
   } catch (error: unknown) {
     if (error instanceof APIError) {
       const safeMsg =

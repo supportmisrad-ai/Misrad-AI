@@ -1,14 +1,7 @@
 import 'server-only';
 import prisma from '@/lib/prisma';
 
-import { asObject } from '@/lib/shared/unknown';
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function isMissingColumnError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -234,6 +227,8 @@ export async function getFinanceOverviewData(params: {
     const dateTo = params.dateRange?.to;
     const dateFromDate = parseDateOnlyToDate(dateFrom);
     const dateToDate = parseDateOnlyToDate(dateTo);
+    const dateFromStr = dateFromDate ? toDateOnlyString(dateFromDate) : '';
+    const dateToStr = dateToDate ? toDateOnlyString(dateToDate) : '';
 
     const whereEntries = {
       organizationId: params.organizationId,
@@ -258,16 +253,34 @@ export async function getFinanceOverviewData(params: {
           where: whereEntries,
           _sum: { durationMinutes: true },
         }),
-        prisma.misradInvoice.groupBy({
-          by: ['status'],
-          where: {
-            organization_id: params.organizationId,
-            ...(dateFromDate ? { dateAt: { gte: dateFromDate } } : {}),
-            ...(dateToDate ? { dateAt: { lte: dateToDate } } : {}),
-          },
-          _sum: { amount: true },
-          _count: { _all: true },
-        }),
+        prisma.misradInvoice
+          .groupBy({
+            by: ['status'],
+            orderBy: { status: 'asc' },
+            where: {
+              organization_id: params.organizationId,
+              ...(dateFromDate ? { dateAt: { gte: dateFromDate } } : {}),
+              ...(dateToDate ? { dateAt: { lte: dateToDate } } : {}),
+            },
+            _sum: { amount: true },
+            _count: { _all: true },
+          })
+          .catch(async (error: unknown) => {
+            if (isSchemaMismatchError(error)) {
+              return prisma.misradInvoice.groupBy({
+                by: ['status'],
+                orderBy: { status: 'asc' },
+                where: {
+                  organization_id: params.organizationId,
+                  ...(dateFromStr ? { date: { gte: dateFromStr } } : {}),
+                  ...(dateToStr ? { date: { lte: dateToStr } } : {}),
+                },
+                _sum: { amount: true },
+                _count: { _all: true },
+              });
+            }
+            throw error;
+          }),
       ]);
     } catch (error: unknown) {
       if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
@@ -417,20 +430,61 @@ export async function getFinanceInvoices(params: {
   organizationId: string;
   limit?: number;
 }): Promise<FinanceInvoice[]> {
+  const limit = Math.max(1, Math.min(200, Number(params.limit ?? 50) || 50));
+
   try {
-    const limit = Math.min(200, Math.max(1, Math.floor(params.limit ?? 200)));
+    let rows:
+      | Array<{
+          id: string;
+          number: string;
+          amount: number;
+          date: string;
+          dueDate: string;
+          status: string;
+          downloadUrl: string;
+          client: { name: string } | null;
+        }>
+      | [] = [];
 
-    const rows = await prisma.misradInvoice.findMany({
-      where: { organization_id: params.organizationId },
-      include: { client: { select: { name: true } } },
-      orderBy: [{ dateAt: 'desc' }, { id: 'desc' }],
-      take: limit,
-    });
+    try {
+      rows = await prisma.misradInvoice.findMany({
+        where: { organization_id: params.organizationId },
+        select: {
+          id: true,
+          number: true,
+          amount: true,
+          date: true,
+          dueDate: true,
+          status: true,
+          downloadUrl: true,
+          client: { select: { name: true } },
+        },
+        orderBy: [{ dateAt: 'desc' }, { id: 'desc' }],
+        take: limit,
+      });
+    } catch (error: unknown) {
+      if (!isSchemaMismatchError(error)) throw error;
+      rows = await prisma.misradInvoice.findMany({
+        where: { organization_id: params.organizationId },
+        select: {
+          id: true,
+          number: true,
+          amount: true,
+          date: true,
+          dueDate: true,
+          status: true,
+          downloadUrl: true,
+          client: { select: { name: true } },
+        },
+        orderBy: [{ date: 'desc' }, { id: 'desc' }],
+        take: limit,
+      });
+    }
 
-    return rows.map((row) => ({
+    return (rows || []).map((row) => ({
       id: String(row.id),
-      number: String(row.number ?? ''),
-      amount: Number(row.amount ?? 0),
+      number: String(row.number || ''),
+      amount: Number(row.amount || 0),
       date: String(row.date ?? ''),
       dueDate: String(row.dueDate ?? ''),
       status: String(row.status ?? ''),

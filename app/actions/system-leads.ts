@@ -225,12 +225,13 @@ export async function getSystemCalendarEventsRange(params: {
 
       try {
         const where: Prisma.SystemCalendarEventWhereInput = {
-          lead: { organizationId },
+          organizationId,
           date: { gte: fromDateStr, lt: toDateStr },
         };
 
         const rows = await prisma.systemCalendarEvent.findMany({
           where,
+          select: SYSTEM_CALENDAR_EVENT_SELECT,
           orderBy: { createdAt: 'desc' },
           take,
         });
@@ -245,9 +246,10 @@ export async function getSystemCalendarEventsRange(params: {
         console.error('[system-leads] getSystemCalendarEventsRange failed; fallback to legacy date filter', e);
         const rows = await prisma.systemCalendarEvent.findMany({
           where: {
-            lead: { organizationId },
+            organizationId,
             date: { gte: fromDateStr, lt: toDateStr },
           },
+          select: SYSTEM_CALENDAR_EVENT_SELECT,
           orderBy: { createdAt: 'desc' },
           take,
         });
@@ -335,7 +337,40 @@ export type SystemCalendarEventDTO = {
   post_meeting: Prisma.JsonValue | null;
 };
 
-function toCalendarEventDto(row: SystemCalendarEvent): SystemCalendarEventDTO {
+ type SystemCalendarEventRow = Pick<
+   SystemCalendarEvent,
+   | 'id'
+   | 'leadId'
+   | 'title'
+   | 'leadName'
+   | 'leadCompany'
+   | 'dayName'
+   | 'date'
+   | 'time'
+   | 'type'
+   | 'location'
+   | 'participants'
+   | 'reminders'
+   | 'postMeeting'
+ >;
+
+ const SYSTEM_CALENDAR_EVENT_SELECT: Prisma.SystemCalendarEventSelect = {
+   id: true,
+   leadId: true,
+   title: true,
+   leadName: true,
+   leadCompany: true,
+   dayName: true,
+   date: true,
+   time: true,
+   type: true,
+   location: true,
+   participants: true,
+   reminders: true,
+   postMeeting: true,
+ };
+
+function toCalendarEventDto(row: SystemCalendarEventRow): SystemCalendarEventDTO {
   return {
     id: String(row.id),
     lead_id: row.leadId ? String(row.leadId) : null,
@@ -365,7 +400,8 @@ export async function getSystemCalendarEvents(params: {
 
       try {
         const rows = await prisma.systemCalendarEvent.findMany({
-          where: { lead: { organizationId } },
+          where: { organizationId },
+          select: SYSTEM_CALENDAR_EVENT_SELECT,
           orderBy: { createdAt: 'desc' },
           take,
         });
@@ -373,7 +409,8 @@ export async function getSystemCalendarEvents(params: {
       } catch (e: unknown) {
         // Backwards-compatible fallback for DBs that don't have occurs_at yet.
         const rows = await prisma.systemCalendarEvent.findMany({
-          where: { lead: { organizationId } },
+          where: { organizationId },
+          select: SYSTEM_CALENDAR_EVENT_SELECT,
           orderBy: { createdAt: 'desc' },
           take,
         });
@@ -450,6 +487,7 @@ export async function createSystemCalendarEvent(params: {
                   ? Prisma.DbNull
                   : params.postMeeting,
           },
+          select: SYSTEM_CALENDAR_EVENT_SELECT,
         });
 
         return { ok: true, event: toCalendarEventDto(created) };
