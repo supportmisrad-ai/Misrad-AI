@@ -9,10 +9,11 @@ import { sendOrganizationWelcomeEmail } from '@/lib/email';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { getUnknownErrorMessage } from '@/lib/shared/unknown';
 
-type SocialOrganizationsCreateData = Parameters<typeof prisma.social_organizations.create>[0]['data'];
-type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.social_organizations.updateMany>[0]['data'];
-type SocialUsersUpdateManyData = Parameters<typeof prisma.social_users.updateMany>[0]['data'];
+type OrganizationCreateData = Parameters<typeof prisma.organization.create>[0]['data'];
+type OrganizationUpdateManyData = Parameters<typeof prisma.organization.updateMany>[0]['data'];
+type UserUpdateManyData = Parameters<typeof prisma.organizationUser.updateMany>[0]['data'];
 type OrgSignupInvitationCreateData = Parameters<typeof prisma.organization_signup_invitations.create>[0]['data'];
 
 export type OrganizationRecord = {
@@ -36,7 +37,7 @@ export type OrganizationRecord = {
   updated_at: string | Date | null;
 };
 
-export type SocialUserLite = {
+export type UserLite = {
   id: string;
   clerk_user_id: string;
   email: string | null;
@@ -45,20 +46,12 @@ export type SocialUserLite = {
   organization_id: string | null;
 };
 
+export type SocialUserLite = UserLite;
+
 export type OrganizationWithOwner = OrganizationRecord & {
-  owner?: Pick<SocialUserLite, 'id' | 'email' | 'full_name' | 'clerk_user_id' | 'role'> | null;
+  owner?: Pick<UserLite, 'id' | 'email' | 'full_name' | 'clerk_user_id' | 'role'> | null;
   membersCount?: number;
 };
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  if (error && typeof error === 'object' && 'message' in error) {
-    const msg = (error as { message?: unknown }).message;
-    return typeof msg === 'string' ? msg : 'שגיאה לא צפויה';
-  }
-  return 'שגיאה לא צפויה';
-}
 
 function normalizeEmail(input: string): string {
   return String(input || '')
@@ -99,7 +92,7 @@ export async function getOrganizations(params?: {
   limit?: number;
 }): Promise<{ success: boolean; data?: OrganizationWithOwner[]; error?: string }> {
   return await withTenantIsolationContext(
-    { suppressReporting: true, source: 'admin-organizations' },
+    { suppressReporting: true, reason: 'admin_organizations_load', source: 'admin-organizations' },
     async () => {
       try {
         const guard = await requireSuperAdmin();
@@ -107,7 +100,7 @@ export async function getOrganizations(params?: {
         const query = (params?.query || '').trim();
         const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
 
-        const orgs = await prisma.social_organizations.findMany({
+        const orgs = await prisma.organization.findMany({
           where: query
             ? {
                 OR: [
@@ -142,44 +135,56 @@ export async function getOrganizations(params?: {
 
         const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
 
-        const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
-        if (ownerIds.length) {
-          const owners = await prisma.social_users.findMany(
-            withPrismaTenantIsolationOverride({
-              where: { id: { in: ownerIds } },
-              select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
-            }, { suppressReporting: true })
-          );
+        const { ownersById, membersCountByOrg } = await withTenantIsolationContext(
+          {
+            suppressReporting: true,
+            reason: 'admin_organizations_hydrate_owners_and_counts',
+            source: 'admin-organizations',
+            mode: 'global_admin',
+            isSuperAdmin: true,
+          },
+          async () => {
+            const ownersById: Record<string, { id: string; email: string | null; full_name: string | null; clerk_user_id: string; role: string | null }> = {};
+            if (ownerIds.length) {
+              const owners = await prisma.organizationUser.findMany(
+                withPrismaTenantIsolationOverride({
+                  where: { id: { in: ownerIds } },
+                  select: { id: true, email: true, full_name: true, clerk_user_id: true, role: true },
+                }, { suppressReporting: true, reason: 'admin_organizations_lookup_owners_by_id_list', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
+              );
 
-          for (const o of owners || []) {
-            ownersById[String(o.id)] = {
-              id: String(o.id),
-              email: o.email == null ? null : String(o.email),
-              full_name: o.full_name == null ? null : String(o.full_name),
-              clerk_user_id: String(o.clerk_user_id),
-              role: o.role == null ? null : String(o.role),
-            };
+              for (const o of owners || []) {
+                ownersById[String(o.id)] = {
+                  id: String(o.id),
+                  email: o.email == null ? null : String(o.email),
+                  full_name: o.full_name == null ? null : String(o.full_name),
+                  clerk_user_id: String(o.clerk_user_id),
+                  role: o.role == null ? null : String(o.role),
+                };
+              }
+            }
+
+            const orgIds = (orgs || []).map((o) => o.id);
+            const membersCountByOrg: Record<string, number> = {};
+            if (orgIds.length) {
+              const group = await prisma.organizationUser.groupBy(
+                withPrismaTenantIsolationOverride({
+                  by: ['organization_id'],
+                  where: { organization_id: { in: orgIds } },
+                  _count: { _all: true },
+                }, { suppressReporting: true, reason: 'admin_organizations_group_members_count_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
+              );
+
+              for (const g of group || []) {
+                const key = String(g.organization_id || '');
+                if (!key) continue;
+                membersCountByOrg[key] = Number(g._count?._all || 0);
+              }
+            }
+
+            return { ownersById, membersCountByOrg };
           }
-        }
-
-        const orgIds = (orgs || []).map((o) => o.id);
-
-        const membersCountByOrg: Record<string, number> = {};
-        if (orgIds.length) {
-          const group = await prisma.social_users.groupBy(
-            withPrismaTenantIsolationOverride({
-              by: ['organization_id'],
-              where: { organization_id: { in: orgIds } },
-              _count: { _all: true },
-            }, { suppressReporting: true })
-          );
-
-          for (const g of group || []) {
-            const key = String(g.organization_id || '');
-            if (!key) continue;
-            membersCountByOrg[key] = Number(g._count._all || 0);
-          }
-        }
+        );
 
     function toIsoOrNull(value: unknown): string | null {
           if (!value) return null;
@@ -219,12 +224,12 @@ export async function getOrganizations(params?: {
   );
 }
 
-export async function getSocialUsersLite(params?: {
+export async function getUsersLite(params?: {
   query?: string;
   limit?: number;
-}): Promise<{ success: boolean; data?: SocialUserLite[]; error?: string }> {
+}): Promise<{ success: boolean; data?: UserLite[]; error?: string }> {
   return await withTenantIsolationContext(
-    { suppressReporting: true, source: 'admin-social-users-lite' },
+    { suppressReporting: true, reason: 'admin_users_lite_load', source: 'admin-social-users-lite' },
     async () => {
       try {
         const guard = await requireSuperAdmin();
@@ -232,21 +237,32 @@ export async function getSocialUsersLite(params?: {
         const query = (params?.query || '').trim();
         const limit = Math.min(Math.max(params?.limit || 200, 1), 500);
 
-        const data = await prisma.social_users.findMany(
-          withPrismaTenantIsolationOverride({
-            where: query
-              ? {
-                  OR: [
-                    { email: { contains: query, mode: 'insensitive' as const } },
-                    { full_name: { contains: query, mode: 'insensitive' as const } },
-                    { clerk_user_id: { contains: query, mode: 'insensitive' as const } },
-                  ],
-                }
-              : undefined,
-            select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true },
-            orderBy: { created_at: 'desc' as const },
-            take: limit,
-          }, { suppressReporting: true })
+        const data = await withTenantIsolationContext(
+          {
+            suppressReporting: true,
+            reason: 'admin_users_lite_query_global_admin',
+            source: 'admin-social-users-lite',
+            mode: 'global_admin',
+            isSuperAdmin: true,
+          },
+          async () => {
+            return await prisma.organizationUser.findMany(
+              withPrismaTenantIsolationOverride({
+                where: query
+                  ? {
+                      OR: [
+                        { email: { contains: query, mode: 'insensitive' as const } },
+                        { full_name: { contains: query, mode: 'insensitive' as const } },
+                        { clerk_user_id: { contains: query, mode: 'insensitive' as const } },
+                      ],
+                    }
+                  : undefined,
+                select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true },
+                orderBy: { created_at: 'desc' as const },
+                take: limit,
+              }, { suppressReporting: true, reason: 'admin_social_users_lite_list', source: 'admin-social-users-lite', mode: 'global_admin', isSuperAdmin: true })
+            );
+          }
         );
 
         return createSuccessResponse(data || []);
@@ -255,6 +271,13 @@ export async function getSocialUsersLite(params?: {
       }
     }
   );
+}
+
+export async function getSocialUsersLite(params?: {
+  query?: string;
+  limit?: number;
+}): Promise<{ success: boolean; data?: SocialUserLite[]; error?: string }> {
+  return await getUsersLite(params);
 }
 
 export async function createOrganization(input: {
@@ -288,7 +311,7 @@ export async function createOrganization(input: {
 
     const now = new Date();
 
-    const createdOrg = await prisma.social_organizations.create({
+    const createdOrg = await prisma.organization.create({
       data: {
         name,
         slug: finalSlug,
@@ -305,18 +328,18 @@ export async function createOrganization(input: {
         trial_days: input.trial_days ?? DEFAULT_TRIAL_DAYS,
         created_at: now,
         updated_at: now,
-      } satisfies SocialOrganizationsCreateData,
+      } satisfies OrganizationCreateData,
       select: { id: true },
     });
 
-    await prisma.social_users.updateMany({
+    await prisma.organizationUser.updateMany({
       where: { id: ownerUserId },
-      data: { organization_id: createdOrg.id, updated_at: now } satisfies SocialUsersUpdateManyData,
+      data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
     });
 
     // Best-effort: send welcome email with portal link
     try {
-      const owner = await prisma.social_users.findFirst({
+      const owner = await prisma.organizationUser.findFirst({
         where: { id: ownerUserId },
         select: { email: true, full_name: true },
       });
@@ -367,7 +390,7 @@ export async function createOrganizationOrInviteOwner(input: {
       return { success: false, error: createErrorResponse(null, 'אימייל בעלים לא תקין').error || 'אימייל בעלים לא תקין' };
     }
 
-    const existingOrgBySlug = await prisma.social_organizations.findFirst({
+    const existingOrgBySlug = await prisma.organization.findFirst({
       where: { slug: desiredSlug },
       select: { id: true },
     });
@@ -376,7 +399,7 @@ export async function createOrganizationOrInviteOwner(input: {
       return { success: false, error: createErrorResponse(null, 'Slug כבר תפוס').error || 'Slug כבר תפוס' };
     }
 
-    const existingOwner = await prisma.social_users.findFirst({
+    const existingOwner = await prisma.organizationUser.findFirst({
       where: { email: ownerEmail },
       select: { id: true, email: true, full_name: true },
     });
@@ -384,7 +407,7 @@ export async function createOrganizationOrInviteOwner(input: {
     if (existingOwner?.id) {
       const now = new Date();
 
-      const createdOrg = await prisma.social_organizations.create({
+      const createdOrg = await prisma.organization.create({
         data: {
           name,
           slug: desiredSlug,
@@ -401,13 +424,13 @@ export async function createOrganizationOrInviteOwner(input: {
           trial_days: DEFAULT_TRIAL_DAYS,
           created_at: now,
           updated_at: now,
-        } satisfies SocialOrganizationsCreateData,
+        } satisfies OrganizationCreateData,
         select: { id: true },
       });
 
-      await prisma.social_users.updateMany({
+      await prisma.organizationUser.updateMany({
         where: { id: String(existingOwner.id) },
-        data: { organization_id: createdOrg.id, updated_at: now } satisfies SocialUsersUpdateManyData,
+        data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
       });
 
       try {
@@ -485,7 +508,7 @@ export async function updateOrganization(input: {
     const organizationId = (input.organizationId || '').trim();
     if (!organizationId) return createErrorResponse(null, 'organizationId חסר');
 
-    const patch = { updated_at: new Date() } as unknown as SocialOrganizationsUpdateManyData;
+    const patch = { updated_at: new Date() } as unknown as OrganizationUpdateManyData;
 
     if (input.name !== undefined) patch.name = String(input.name).trim();
 
@@ -497,7 +520,7 @@ export async function updateOrganization(input: {
       const desired = generateOrgSlug(String(input.slug));
       if (!desired) return createErrorResponse(null, 'Slug לא תקין');
 
-      const existing = await prisma.social_organizations.findFirst({
+      const existing = await prisma.organization.findFirst({
         where: { slug: desired, id: { not: organizationId } },
         select: { id: true },
       });
@@ -517,7 +540,7 @@ export async function updateOrganization(input: {
     if (input.subscription_status !== undefined) patch.subscription_status = input.subscription_status;
     if (input.subscription_plan !== undefined) patch.subscription_plan = input.subscription_plan;
 
-    await prisma.social_organizations.updateMany({
+    await prisma.organization.updateMany({
       where: { id: organizationId },
       data: patch,
     });
@@ -544,14 +567,14 @@ export async function setOrganizationOwner(input: {
 
     const now = new Date();
 
-    await prisma.social_organizations.updateMany({
+    await prisma.organization.updateMany({
       where: { id: organizationId },
-      data: { owner_id: ownerUserId, updated_at: now } satisfies SocialOrganizationsUpdateManyData,
+      data: { owner_id: ownerUserId, updated_at: now } satisfies OrganizationUpdateManyData,
     });
 
-    await prisma.social_users.updateMany({
+    await prisma.organizationUser.updateMany({
       where: { id: ownerUserId },
-      data: { organization_id: organizationId, updated_at: now } satisfies SocialUsersUpdateManyData,
+      data: { organization_id: organizationId, updated_at: now } satisfies UserUpdateManyData,
     });
 
     return createSuccessResponse(true);
@@ -573,9 +596,9 @@ export async function setUserOrganization(input: {
 
     const organizationId = input.organizationId ? String(input.organizationId).trim() : null;
 
-    await prisma.social_users.updateMany({
+    await prisma.organizationUser.updateMany({
       where: { id: userId },
-      data: { organization_id: organizationId, updated_at: new Date() } satisfies SocialUsersUpdateManyData,
+      data: { organization_id: organizationId, updated_at: new Date() } satisfies UserUpdateManyData,
     });
 
     return createSuccessResponse(true);

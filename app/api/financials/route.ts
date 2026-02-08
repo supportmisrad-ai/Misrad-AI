@@ -10,6 +10,7 @@ import { getAuthenticatedUser, hasPermission } from '../../../lib/auth';
 import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
 import { getFinanceOverviewData } from '@/lib/services/finance-service';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
@@ -72,13 +73,18 @@ async function GETHandler(request: NextRequest) {
         });
 
         if (userId) {
-            const userFinancials = financialData.users.find((u: any) => String(u.user?.id) === String(userId));
+            const userFinancials = financialData.users.find((u) => {
+                const uObj = asObject(u) ?? {};
+                const uUserObj = asObject(uObj.user) ?? {};
+                return String(uUserObj.id ?? '') === String(userId);
+            });
             if (!userFinancials) {
                 return NextResponse.json({ error: 'User not found' }, { status: 404 });
             }
+            const userFinancialsObj = asObject(userFinancials) ?? {};
             return NextResponse.json({
                 user: userFinancials,
-                totalCost: userFinancials.estimatedCost || 0,
+                totalCost: Number(userFinancialsObj.estimatedCost ?? 0) || 0,
             });
         }
         
@@ -90,21 +96,22 @@ async function GETHandler(request: NextRequest) {
             timestamp: new Date().toISOString()
         });
         
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
         await logAuditEvent('data.read', 'financial', {
             success: false,
-            error: error.message
+            error: message
         });
 
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
         
-        if (error.message.includes('Unauthorized')) {
+        if (message.includes('Unauthorized')) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
         
-        if (error.message.includes('Forbidden')) {
+        if (message.includes('Forbidden')) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         

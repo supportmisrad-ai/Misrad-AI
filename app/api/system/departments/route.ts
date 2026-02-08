@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 const FLAG_KEY_DEPARTMENTS = '__departments_v1';
 const FLAG_KEY_DEPARTMENT_HISTORY = '__department_history_v1';
 
@@ -17,24 +19,11 @@ type DepartmentHistory = {
   oldValue?: string;
   newValue?: string;
   changedBy: string;
-};
-
-function asObject(input: unknown): Record<string, unknown> | null {
-  if (!input || typeof input !== 'object') return null;
-  if (Array.isArray(input)) return null;
-  return input as Record<string, unknown>;
-}
+};
 
 function readAiDnaObject(input: unknown): Record<string, unknown> {
   return asObject(input) ?? {};
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+}
 
 async function GETHandler(request: NextRequest) {
   try {
@@ -104,11 +93,11 @@ async function PATCHHandler(request: NextRequest) {
       where: { organization_id: String(workspace.id) },
       create: {
         organization_id: String(workspace.id),
-        ai_dna: nextAiDna as any,
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },
       update: {
-        ai_dna: nextAiDna as any,
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },
     });

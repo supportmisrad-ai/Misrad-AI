@@ -9,9 +9,10 @@ export const dynamic = 'force-dynamic';
 export default async function SystemModuleHome({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -31,7 +32,7 @@ export default async function SystemModuleHome({
     orgSlug,
     from: startOfMonth.toISOString(),
     to: startOfNextMonth.toISOString(),
-    take: 500,
+    take: 200,
   }).catch(() => []);
 
   const tasksRes: TasksRes = await listNexusTasksByOrgSlug({ orgSlug, page: 1, pageSize: 200 }).catch(() => ({

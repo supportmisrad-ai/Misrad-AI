@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Tenant by ID
  * 
@@ -8,28 +9,42 @@ import { NextRequest } from 'next/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import { Tenant } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
+import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapTenantRow(row: any): Tenant {
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+type UnknownRecord = Record<string, unknown>;
+type NexusTenantUpdateArgs = NonNullable<Parameters<typeof prisma.nexusTenant.update>[0]>;
+type NexusTenantUpdateData = NexusTenantUpdateArgs['data'];
+
+
+function asString(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+
+function mapTenantRow(row: unknown): Tenant {
+    const obj = asObject(row);
     return {
-        id: String(row?.id ?? ''),
-        name: row?.name,
-        ownerEmail: row?.ownerEmail ?? row?.owner_email,
-        subdomain: row?.subdomain,
-        plan: row?.plan,
-        status: row?.status,
-        joinedAt: row?.joinedAt ?? row?.joined_at,
-        mrr: row?.mrr || 0,
-        usersCount: (row?.usersCount ?? row?.users_count) || 0,
-        logo: row?.logo,
-        modules: row?.modules || [],
-        region: row?.region,
-        version: row?.version,
-        allowedEmails: (row?.allowedEmails ?? row?.allowed_emails) || [],
-        requireApproval: (row?.requireApproval ?? row?.require_approval) || false,
+        id: String(obj?.id ?? ''),
+        name: obj?.name as Tenant['name'],
+        ownerEmail: (obj?.ownerEmail ?? obj?.owner_email) as Tenant['ownerEmail'],
+        subdomain: obj?.subdomain as Tenant['subdomain'],
+        plan: obj?.plan as Tenant['plan'],
+        status: obj?.status as Tenant['status'],
+        joinedAt: (obj?.joinedAt ?? obj?.joined_at) as Tenant['joinedAt'],
+        mrr: Number(obj?.mrr ?? 0),
+        usersCount: Number((obj?.usersCount ?? obj?.users_count) ?? 0),
+        logo: obj?.logo as Tenant['logo'],
+        modules: (obj?.modules as Tenant['modules']) || [],
+        region: obj?.region as Tenant['region'],
+        version: obj?.version as Tenant['version'],
+        allowedEmails: ((obj?.allowedEmails ?? obj?.allowed_emails) as Tenant['allowedEmails']) || [],
+        requireApproval: Boolean((obj?.requireApproval ?? obj?.require_approval) ?? false),
     } as Tenant;
 }
 
@@ -45,8 +60,8 @@ async function loadTenantById(params: { tenantId: string }): Promise<Tenant | nu
     });
 }
 
-function buildTenantDbUpdates(updateData: Partial<Tenant>): any {
-    const dbUpdates: any = {};
+function buildTenantDbUpdates(updateData: Partial<Tenant>): NexusTenantUpdateData {
+    const dbUpdates: NexusTenantUpdateData = {};
 
     if (updateData.name !== undefined) dbUpdates.name = updateData.name;
     if (updateData.ownerEmail !== undefined) dbUpdates.ownerEmail = updateData.ownerEmail;
@@ -65,12 +80,12 @@ function buildTenantDbUpdates(updateData: Partial<Tenant>): any {
     return dbUpdates;
 }
 
-async function PATCHHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function PATCHHandler(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         await requireSuperAdmin();
         const user = await getAuthenticatedUser();
 
-        const { id: tenantId } = await params;
+        const { id: tenantId } = params;
         if (!tenantId) {
             return apiError('Tenant ID is required', { status: 400 });
         }
@@ -80,54 +95,59 @@ async function PATCHHandler(request: NextRequest, { params }: { params: Promise<
             return apiError('Tenant not found', { status: 404 });
         }
 
-        const body = await request.json();
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
 
-        if (body.ownerEmail) {
+        const ownerEmail = bodyObj.ownerEmail;
+        if (typeof ownerEmail === 'string' && ownerEmail) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(body.ownerEmail)) {
+            if (!emailRegex.test(ownerEmail)) {
                 return apiError('Invalid email format', { status: 400 });
             }
         }
 
-        if (body.region) {
+        const region = bodyObj.region;
+        if (typeof region === 'string' && region) {
             const validRegions = ['il-central', 'eu-west', 'us-east'];
-            if (!validRegions.includes(body.region)) {
+            if (!validRegions.includes(region)) {
                 return apiError('Invalid region. Must be one of: il-central, eu-west, us-east', { status: 400 });
             }
         }
 
-        if (body.status) {
+        const status = bodyObj.status;
+        if (typeof status === 'string' && status) {
             const validStatuses = ['Provisioning', 'Active', 'Trial', 'Churned'];
-            if (!validStatuses.includes(body.status)) {
+            if (!validStatuses.includes(status)) {
                 return apiError('Invalid status. Must be one of: Provisioning, Active, Trial, Churned', { status: 400 });
             }
         }
 
         const updateData: Partial<Tenant> = {};
 
-        if (body.name !== undefined) updateData.name = body.name;
-        if (body.ownerEmail !== undefined) updateData.ownerEmail = body.ownerEmail;
-        if (body.subdomain !== undefined) updateData.subdomain = String(body.subdomain ?? '').toLowerCase().replace(/\s+/g, '-');
-        if (body.plan !== undefined) updateData.plan = body.plan;
-        if (body.region !== undefined) updateData.region = body.region;
-        if (body.status !== undefined) updateData.status = body.status as any;
-        if (body.mrr !== undefined) updateData.mrr = body.mrr;
-        if (body.modules !== undefined) updateData.modules = body.modules;
-        if (body.version !== undefined) updateData.version = body.version;
-        if (body.allowedEmails !== undefined) updateData.allowedEmails = body.allowedEmails;
-        if (body.requireApproval !== undefined) updateData.requireApproval = body.requireApproval;
-        if (body.logo !== undefined) updateData.logo = body.logo;
-        if (body.usersCount !== undefined) updateData.usersCount = body.usersCount;
+        if (bodyObj.name !== undefined) updateData.name = bodyObj.name as Tenant['name'];
+        if (bodyObj.ownerEmail !== undefined) updateData.ownerEmail = bodyObj.ownerEmail as Tenant['ownerEmail'];
+        if (bodyObj.subdomain !== undefined)
+            updateData.subdomain = asString(bodyObj.subdomain).toLowerCase().replace(/\s+/g, '-');
+        if (bodyObj.plan !== undefined) updateData.plan = bodyObj.plan as Tenant['plan'];
+        if (bodyObj.region !== undefined) updateData.region = bodyObj.region as Tenant['region'];
+        if (bodyObj.status !== undefined) updateData.status = bodyObj.status as Tenant['status'];
+        if (bodyObj.mrr !== undefined) updateData.mrr = bodyObj.mrr as Tenant['mrr'];
+        if (bodyObj.modules !== undefined) updateData.modules = bodyObj.modules as Tenant['modules'];
+        if (bodyObj.version !== undefined) updateData.version = bodyObj.version as Tenant['version'];
+        if (bodyObj.allowedEmails !== undefined) updateData.allowedEmails = bodyObj.allowedEmails as Tenant['allowedEmails'];
+        if (bodyObj.requireApproval !== undefined) updateData.requireApproval = bodyObj.requireApproval as Tenant['requireApproval'];
+        if (bodyObj.logo !== undefined) updateData.logo = bodyObj.logo as Tenant['logo'];
+        if (bodyObj.usersCount !== undefined) updateData.usersCount = bodyObj.usersCount as Tenant['usersCount'];
 
         const dbUpdates = buildTenantDbUpdates(updateData);
-        let updatedRow: any;
+        let updatedRow: Awaited<ReturnType<typeof prisma.nexusTenant.update>>;
         try {
             updatedRow = await prisma.nexusTenant.update({
                 where: { id: String(tenantId) },
                 data: dbUpdates,
             });
-        } catch (e: any) {
-            if (String(e?.code || '') === 'P2002') {
+        } catch (e: unknown) {
+            if (e instanceof Prisma.PrismaClientKnownRequestError && String(e.code || '') === 'P2002') {
                 return apiError('Tenant with this subdomain already exists', { status: 409 });
             }
             throw e;
@@ -149,18 +169,24 @@ async function PATCHHandler(request: NextRequest, { params }: { params: Promise<
         });
 
         return apiSuccessCompat({ tenant: updatedTenant });
-    } catch (error: any) {
-        console.error('[API] Error updating tenant:', error);
-        return apiError(error, { status: error.message?.includes('Forbidden') ? 403 : 500 });
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error updating tenant');
+        else console.error('[API] Error updating tenant:', error);
+        const msg = getUnknownErrorMessage(error);
+        const safeMsg = 'שגיאה בעדכון טננט';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Forbidden') ? 403 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 
-async function DELETEHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function DELETEHandler(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         await requireSuperAdmin();
         const user = await getAuthenticatedUser();
 
-        const { id: tenantId } = await params;
+        const { id: tenantId } = params;
         if (!tenantId) {
             return apiError('Tenant ID is required', { status: 400 });
         }
@@ -183,9 +209,15 @@ async function DELETEHandler(request: NextRequest, { params }: { params: Promise
         });
 
         return apiSuccessCompat({ message: `Tenant ${tenantName} deleted successfully` });
-    } catch (error: any) {
-        console.error('[API] Error deleting tenant:', error);
-        return apiError(error, { status: error.message?.includes('Forbidden') ? 403 : 500 });
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error deleting tenant');
+        else console.error('[API] Error deleting tenant:', error);
+        const msg = getUnknownErrorMessage(error);
+        const safeMsg = 'שגיאה במחיקת טננט';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Forbidden') ? 403 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 

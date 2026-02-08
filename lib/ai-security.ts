@@ -1,3 +1,4 @@
+import { asObject } from '@/lib/shared/unknown';
 /**
  * AI Security & Data Filtering
  * 
@@ -6,13 +7,7 @@
 
 import { PermissionId } from '../types';
 import { hasPermission, filterSensitiveData } from './auth';
-import { logAuditEvent } from './audit';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+import { logAuditEvent } from './audit';
 
 // Fields that should NEVER be sent to AI
 const SENSITIVE_FIELDS = [

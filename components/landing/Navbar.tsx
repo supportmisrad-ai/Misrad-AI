@@ -93,7 +93,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                     onClick={() => setIsFabOpen((v) => !v)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
+                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
                     aria-label="עזרה ונגישות"
                     aria-expanded={isFabOpen}
                 >

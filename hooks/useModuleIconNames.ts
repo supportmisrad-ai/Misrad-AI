@@ -15,6 +15,26 @@ let bc: BroadcastChannel | null = null;
 
 const subscribers = new Set<(icons: ModuleIconNames) => void>();
 
+let cleanupFn: (() => void) | null = null;
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function toModuleIconNames(value: unknown): ModuleIconNames {
+  const obj = asObject(value);
+  if (!obj) return {};
+  const out: ModuleIconNames = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (typeof v === 'string') {
+      out[k as OSModuleKey] = v;
+    }
+  }
+  return out;
+}
+
 function notify() {
   subscribers.forEach((fn) => fn(cachedModuleIcons));
 }
@@ -37,7 +57,7 @@ async function loadModuleIcons(params?: { force?: boolean }) {
       if (!res.ok) return;
       const data = await res.json().catch(() => null);
       if (data && typeof data === 'object' && data.moduleIcons && typeof data.moduleIcons === 'object') {
-        cachedModuleIcons = data.moduleIcons as any;
+        cachedModuleIcons = toModuleIconNames((data as Record<string, unknown>).moduleIcons);
         lastFetchedAt = Date.now();
         notify();
       }
@@ -69,17 +89,22 @@ function start() {
     if (document.visibilityState === 'visible') void loadModuleIcons();
   };
   const onUpdated = () => void loadModuleIcons({ force: true });
+  const onUpdatedEvent: EventListener = (ev) => {
+    if (ev instanceof CustomEvent && ev.type === 'os:module-icons-updated') {
+      onUpdated();
+    }
+  };
 
   window.addEventListener('focus', onFocus);
   document.addEventListener('visibilitychange', onVisibility);
-  window.addEventListener('os:module-icons-updated', onUpdated as any);
+  window.addEventListener('os:module-icons-updated', onUpdatedEvent);
 
   intervalId = setInterval(() => void loadModuleIcons(), 15_000);
 
-  (start as any)._cleanup = () => {
+  cleanupFn = () => {
     window.removeEventListener('focus', onFocus);
     document.removeEventListener('visibilitychange', onVisibility);
-    window.removeEventListener('os:module-icons-updated', onUpdated as any);
+    window.removeEventListener('os:module-icons-updated', onUpdatedEvent);
     if (intervalId) clearInterval(intervalId);
     intervalId = null;
     try {
@@ -94,8 +119,8 @@ function start() {
 function stop() {
   if (!started) return;
   started = false;
-  const cleanup = (start as any)._cleanup as undefined | (() => void);
-  if (cleanup) cleanup();
+  cleanupFn?.();
+  cleanupFn = null;
 }
 
 export function useModuleIconNames() {

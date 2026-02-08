@@ -3,7 +3,7 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, firstRowField, getUnknownErrorMessage, toNumberSafe } from '@/lib/services/operations/shared';
+import { asObject, firstRowField, getUnknownErrorMessage, logOperationsError, toNumberSafe } from '@/lib/services/operations/shared';
 import { ensureOperationsPrimaryWarehouseHolderId, ensureOperationsVehicleHolderId } from '@/lib/services/operations/stock-holders';
 
 export async function transferOperationsStockToVehicleForOrganizationId(params: {
@@ -100,7 +100,7 @@ export async function transferOperationsStockToVehicleForOrganizationId(params: 
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] transferOperationsStockToVehicle failed', e);
+    logOperationsError('[operations] transferOperationsStockToVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהעברת מלאי לרכב' };
   }
 }
@@ -262,7 +262,7 @@ export async function addOperationsStockToActiveVehicleForOrganizationId(params:
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsStockToActiveVehicle failed', e);
+    logOperationsError('[operations] addOperationsStockToActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקליטת מלאי לרכב' };
   }
 }

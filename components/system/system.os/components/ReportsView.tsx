@@ -31,12 +31,12 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
     );
 
     const totalRevenue = useMemo(
-      () => leads.reduce((sum, l) => (String(l.status).toLowerCase() === 'won' ? sum + (Number((l as any).value) || 0) : sum), 0),
+      () => leads.reduce((sum, l) => (String(l.status).toLowerCase() === 'won' ? sum + (Number(l.value) || 0) : sum), 0),
       [leads]
     );
 
     const totalSpent = useMemo(
-      () => campaigns.reduce((sum, c) => sum + (Number((c as any).spent) || 0), 0),
+      () => campaigns.reduce((sum, c) => sum + (Number(c.spent) || 0), 0),
       [campaigns]
     );
 
@@ -84,14 +84,14 @@ const ReportsView: React.FC<ReportsViewProps> = ({ leads, campaigns, tasks }) =>
                 
                 <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
                     <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex">
-                        {[
+                        {([
                             { id: 'month', label: 'החודש' },
                             { id: 'quarter', label: 'רבעון' },
                             { id: 'year', label: 'שנתי' }
-                        ].map((p) => (
+                        ] as const).map((p) => (
                             <button
                                 key={p.id}
-                                onClick={() => setPeriod(p.id as any)}
+                                onClick={() => setPeriod(p.id)}
                                 className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                                     period === p.id 
                                     ? 'bg-slate-900 text-white shadow-lg' 

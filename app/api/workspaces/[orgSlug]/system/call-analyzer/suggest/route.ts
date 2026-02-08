@@ -13,7 +13,7 @@ type SuggestRequestBody = {
   transcriptText?: string;
 };
 
-async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug: string }> }) {
+async function POSTHandler(req: Request, { params }: { params: { orgSlug: string } }) {
   try {
     await getAuthenticatedUser();
 
@@ -22,7 +22,7 @@ async function POSTHandler(req: Request, { params }: { params: Promise<{ orgSlug
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = await params;
+    const { orgSlug } = params;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
@@ -109,7 +109,7 @@ ${transcriptText.slice(0, 24000)}
       model: out.model,
       chargedCents: out.chargedCents,
     }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });
     }

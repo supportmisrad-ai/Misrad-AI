@@ -2,10 +2,13 @@
  * Utility Functions
  */
 
-import { supabase } from './supabase';
 import { NextRequest } from 'next/server';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function normalizeBaseUrl(input: string): string {
     const raw = (input || '').trim();
@@ -57,66 +60,59 @@ export function getBaseUrl(request?: NextRequest): string {
  * Generate a unique invitation token
  */
 export async function generateInvitationToken(): Promise<string> {
-    if (!supabase) {
-        throw new Error('Database not configured');
-    }
-    
     let token = '';
-    let isUnique = false;
     let attempts = 0;
     const maxAttempts = 10;
 
-    while (!isUnique && attempts < maxAttempts) {
-        // Generate random token (32 characters, alphanumeric uppercase)
-        const randomBytes = new Uint8Array(16);
-        crypto.getRandomValues(randomBytes);
-        token = Array.from(randomBytes)
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('')
-            .toUpperCase()
-            .substring(0, 32);
+    while (attempts < maxAttempts) {
+        try {
+            const uuid = crypto.randomUUID();
+            token = uuid.replace(/-/g, '').toUpperCase().slice(0, 32);
+        } catch {
+            const randomBytes = new Uint8Array(16);
+            crypto.getRandomValues(randomBytes);
+            token = Array.from(randomBytes)
+                .map(b => b.toString(16).padStart(2, '0'))
+                .join('')
+                .toUpperCase();
+        }
 
         if (!token) {
             throw new Error('Failed to generate token');
         }
 
-        // Check if token exists
-        const { data, error } = await supabase
-            .from('system_invitation_links')
-            .select('token')
-            .eq('token', token)
-            .single();
+        try {
+            const { default: prisma } = await import('@/lib/prisma');
+            const rows = await prisma.$queryRaw<Array<{ token: string }>>`
+                select token
+                from system_invitation_links
+                where token = ${token}
+                limit 1
+            `;
+            const existing = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 
-        if (error && error.code === 'PGRST116') {
-            // Token doesn't exist (PGRST116 = no rows returned)
-            isUnique = true;
-        } else if (error && error.code !== 'PGRST116') {
-            // Other error - log but continue
+            if (!existing) {
+                return token;
+            }
+        } catch (error: unknown) {
             if (!IS_PROD) console.error('[Utils] Error checking token uniqueness:', error);
             else console.error('[Utils] Error checking token uniqueness');
-            // If table doesn't exist, assume token is unique
-            if (error.message?.includes('does not exist') || error.code === '42P01') {
-                isUnique = true;
-            } else {
-                attempts++;
-                continue;
+            const message = getErrorMessage(error);
+            const errObj = asObject(error) ?? {};
+            const codeRaw = errObj.code;
+            const code = typeof codeRaw === 'string' ? codeRaw.toLowerCase() : String(codeRaw ?? '').toLowerCase();
+            const msgLower = String(message || '').toLowerCase();
+            const isMissingTable = code === '42p01' || msgLower.includes('42p01') || msgLower.includes('does not exist') || msgLower.includes('undefined_table');
+            if (isMissingTable) {
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] system_invitation_links missing table (${message || 'missing relation'})`);
+                }
+                return token;
             }
-        } else if (!error && data) {
-            // Token exists, try again
-            attempts++;
-            continue;
-        } else {
-            // No error and no data - token is unique
-            isUnique = true;
         }
 
         attempts++;
     }
 
-    if (!isUnique || !token) {
-        throw new Error('Failed to generate unique token after multiple attempts');
-    }
-
-    return token;
+    return Promise.reject(new Error('Failed to generate unique token after multiple attempts'));
 }
-

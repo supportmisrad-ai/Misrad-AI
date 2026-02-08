@@ -4,13 +4,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 async function requireSuperAdminOrFail(): Promise<
   | { success: false; error: string }
   | {
@@ -79,10 +75,19 @@ export async function adminUpdateGlobalDownloadLinks(input: {
     }
 
     const { setGlobalDownloadLinksUnsafe } = await import('@/lib/server/globalDownloadLinks');
-    const next = await setGlobalDownloadLinksUnsafe({
-      windowsDownloadUrl: parsed.data.windowsDownloadUrl,
-      androidDownloadUrl: parsed.data.androidDownloadUrl,
-    });
+    const next = await withTenantIsolationContext(
+      {
+        source: 'admin_update_global_download_links',
+        reason: 'set_global_download_links',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await setGlobalDownloadLinksUnsafe({
+          windowsDownloadUrl: parsed.data.windowsDownloadUrl,
+          androidDownloadUrl: parsed.data.androidDownloadUrl,
+        })
+    );
 
     return createSuccessResponse({
       windowsDownloadUrl: next.windowsDownloadUrl,

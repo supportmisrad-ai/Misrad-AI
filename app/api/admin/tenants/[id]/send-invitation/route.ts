@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Send Tenant Invitation Email
  * POST /api/admin/tenants/[id]/send-invitation
@@ -11,22 +12,11 @@ import prisma from '@/lib/prisma';
 import { sendTenantInvitationEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function getNullableString(obj: Record<string, unknown>, key: string): string | null {
     const v = obj[key];
@@ -34,12 +24,12 @@ function getNullableString(obj: Record<string, unknown>, key: string): string | 
     return typeof v === 'string' ? v : String(v);
 }
 
-async function POSTHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function POSTHandler(request: NextRequest, { params }: { params: { id: string } }) {
     try {
         await requireSuperAdmin();
         const user = await getAuthenticatedUser();
 
-        const { id: tenantId } = await params;
+        const { id: tenantId } = params;
         if (!tenantId) {
             return apiError('Tenant ID is required', { status: 400 });
         }
@@ -71,24 +61,28 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
         });
 
         if (!emailResult.success) {
-            console.error('[Tenant Invitation] Failed to send email:', emailResult.error);
+            if (IS_PROD) console.error('[Tenant Invitation] Failed to send email');
+            else console.error('[Tenant Invitation] Failed to send email:', emailResult.error);
         } else {
-            console.log('[Tenant Invitation] Email sent successfully:', {
-                tenantId,
-                sentByUserId: user.id,
-            });
+            if (!IS_PROD) {
+                console.log('[Tenant Invitation] Email sent successfully:', {
+                    tenantId,
+                    sentByUserId: user.id,
+                });
+            }
         }
 
         try {
-            const metadata = {
+            const metadata: Prisma.InputJsonValue = {
                 invitationSent: true,
                 invitationSentAt: new Date().toISOString(),
                 invitationSentBy: user.id,
             };
 
-            await prisma.$executeRaw`update nexus_tenants set metadata = coalesce(metadata, '{}'::jsonb) || ${metadata as any} where id = ${tenantId}::uuid`;
+            await prisma.$executeRaw`update nexus_tenants set metadata = coalesce(metadata, '{}'::jsonb) || ${metadata} where id = ${tenantId}::uuid`;
         } catch (updateError: unknown) {
-            console.error('[API] Error updating tenant metadata:', { message: getErrorMessage(updateError) });
+            if (IS_PROD) console.error('[API] Error updating tenant metadata');
+            else console.error('[API] Error updating tenant metadata:', { message: getErrorMessage(updateError) });
         }
 
         return apiSuccessCompat({
@@ -102,8 +96,13 @@ async function POSTHandler(request: NextRequest, { params }: { params: Promise<{
         });
     } catch (error: unknown) {
         const msg = getErrorMessage(error);
-        console.error('[API] Error sending tenant invitation:', { message: msg });
-        return apiError(error, { status: msg.includes('Forbidden') ? 403 : 500 });
+        if (IS_PROD) console.error('[API] Error sending tenant invitation');
+        else console.error('[API] Error sending tenant invitation:', { message: msg });
+        const safeMsg = 'שגיאה בשליחת הזמנה';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Forbidden') ? 403 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 

@@ -2,14 +2,12 @@
 
 import { requireAuth, createErrorResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
+import { getContentByKey as getContentByKeyService } from '@/lib/services/site-content';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 type UnknownRecord = Record<string, unknown>;
 
-function asObject(value: unknown): UnknownRecord | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as UnknownRecord;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function getUnknownErrorCode(error: unknown): string {
   const obj = asObject(error);
@@ -18,19 +16,28 @@ function getUnknownErrorCode(error: unknown): string {
 }
 
 function isMissingTableError(error: unknown) {
-  return String(getUnknownErrorCode(error) || '').toUpperCase() === '42P01';
+  const code = String(getUnknownErrorCode(error) || '').toUpperCase();
+  return code === '42P01' || code === 'P2021';
+}
+
+function isMissingRelationOrColumnError(error: unknown): boolean {
+  const code = String(getUnknownErrorCode(error) || '').toUpperCase();
+  return code === '42P01' || code === '42703' || code === 'P2021' || code === 'P2022';
 }
 
 async function bestEffortResolveUpdatedByUserId(clerkUserId: string): Promise<string | null> {
   const v = String(clerkUserId || '').trim();
   if (!v) return null;
   try {
-    const user = await prisma.social_users.findUnique({
+    const user = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: v },
       select: { id: true },
     });
     return user?.id ? String(user.id) : null;
-  } catch {
+  } catch (e: unknown) {
+    if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] organizationUser lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return null;
   }
 }
@@ -71,7 +78,7 @@ export async function getSiteContent(
       orderBy: [{ section: 'asc' }, { key: 'asc' }],
     });
 
-    const out: SiteContent[] = (Array.isArray(rows) ? rows : []).map((row: any) => ({
+    const out: SiteContent[] = (Array.isArray(rows) ? rows : []).map((row) => ({
       id: String(row.id),
       page: String(row.page) as SiteContent['page'],
       section: String(row.section),
@@ -83,8 +90,10 @@ export async function getSiteContent(
 
     return { success: true, data: out };
   } catch (error) {
-    // If table doesn't exist, return empty array
     if (isMissingTableError(error)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_site_content missing table (${getErrorMessage(error) || 'missing table'})`);
+      }
       return { success: true, data: [] };
     }
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
@@ -176,25 +185,5 @@ export async function getContentByKey(
   section: string,
   key: string
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
-  try {
-    const row = await prisma.social_site_content.findFirst({
-      where: { page: String(page), section: String(section), key: String(key) },
-      select: { content: true },
-    });
-
-    if (!row?.content) {
-      return { success: true, data: null };
-    }
-
-    // Try to parse JSON, if fails return as string
-    try {
-      return { success: true, data: JSON.parse(String(row.content ?? '')) };
-    } catch {
-      return { success: true, data: row.content };
-    }
-  } catch (error) {
-    const res = createErrorResponse(error, 'שגיאה בטעינת תוכן');
-    return { success: false, error: res.error };
-  }
+  return (await getContentByKeyService(page, section, key)) as { success: boolean; data?: unknown; error?: string };
 }
-

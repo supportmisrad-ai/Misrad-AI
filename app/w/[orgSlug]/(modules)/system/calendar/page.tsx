@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function SystemCalendarPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
 
@@ -16,7 +16,7 @@ export default async function SystemCalendarPage({
 
   const [leadsRes, initialEvents] = await Promise.all([
     getSystemLeadsPage({ orgSlug, pageSize: 200 }),
-    getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 500 }),
+    getSystemCalendarEventsRange({ orgSlug, from: startOfMonth.toISOString(), to: startOfNextMonth.toISOString(), take: 200 }),
   ]);
 
   const initialLeads = leadsRes.success ? leadsRes.data.leads : [];

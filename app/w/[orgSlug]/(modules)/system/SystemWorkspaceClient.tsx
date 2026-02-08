@@ -6,7 +6,7 @@ import WorkspaceHub from '@/components/system/WorkspaceHub';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import NewMeetingModal from '@/components/system/NewMeetingModal';
-import type { Lead, CalendarEvent, Campaign, Task, TaskPriority, TaskStatus } from '@/components/system/types';
+import type { Activity, Lead, CalendarEvent, Campaign, Task, TaskPriority, TaskStatus } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import {
   createSystemLead,
@@ -17,12 +17,13 @@ import {
   type SystemCalendarEventDTO,
 } from '@/app/actions/system-leads';
 import type { Campaign as WorkspaceCampaignDTO } from '@/app/actions/campaigns';
-import type { Task as NexusTask } from '@/types';
+import { Priority, Status, type Task as NexusTask } from '@/types';
 import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import type { SystemNotificationDTO } from '@/app/actions/system-notifications';
 
 import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function mapNexusTaskToUiTask(row: NexusTask): Task {
   const due = row.dueDate ? new Date(String(row.dueDate)) : new Date();
@@ -42,7 +43,7 @@ function mapNexusTaskToUiTask(row: NexusTask): Task {
 
 function normalizeCampaignStatus(value: string): Campaign['status'] {
   const v = String(value || '').toLowerCase();
-  if (v === 'active' || v === 'paused' || v === 'draft') return v as any;
+  if (v === 'active' || v === 'paused' || v === 'draft') return v;
   if (v === 'completed') return 'paused';
   return 'active';
 }
@@ -51,15 +52,83 @@ function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
   return {
     id: String(dto.id),
     name: String(dto.name || ''),
-    platform: String((dto as any).objective || ''),
-    status: normalizeCampaignStatus(String((dto as any).status || 'active')),
+    platform: String(dto.objective || ''),
+    status: normalizeCampaignStatus(String(dto.status || 'active')),
     budget: Number(dto.budget || 0),
     spent: Number(dto.spent || 0),
     leads: 0,
     cpl: 0,
     roas: Number(dto.roas || 0),
-    impressions: Number((dto as any).impressions || 0),
+    impressions: Number(dto.impressions || 0),
   };
+}
+
+function normalizeCalendarEventType(value: unknown): CalendarEvent['type'] {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'frontal') return 'frontal';
+  if (v === 'group_session') return 'group_session';
+  return 'zoom';
+}
+
+function parseCalendarReminders(value: unknown): CalendarEvent['reminders'] | undefined {
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  const whatsapp = obj.whatsapp;
+  const sms = obj.sms;
+  const email = obj.email;
+  const timing = obj.timing;
+  const timingStr = typeof timing === 'string' ? timing : '';
+  const timingOk = timingStr === 'immediate' || timingStr === '1h_before' || timingStr === '24h_before';
+  if (!timingOk) return undefined;
+  return {
+    whatsapp: Boolean(whatsapp),
+    sms: Boolean(sms),
+    email: Boolean(email),
+    timing: timingStr,
+  };
+}
+
+function parseCalendarPostMeeting(value: unknown): CalendarEvent['postMeeting'] | undefined {
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  const enabledRaw = obj.enabled;
+  const typeRaw = obj.type;
+  const delayRaw = obj.delay;
+  const channelRaw = obj.channel;
+  const typeStr = typeof typeRaw === 'string' ? typeRaw : '';
+  const typeOk = typeStr === 'thank_you' || typeStr === 'summary' || typeStr === 'proposal_link';
+  if (!typeOk) return undefined;
+
+  const delayStr = typeof delayRaw === 'string' ? delayRaw : '';
+  const delayOk = delayStr === '1h_after' || delayStr === 'morning_after';
+  if (!delayOk) return undefined;
+
+  const channelStr = typeof channelRaw === 'string' ? channelRaw : '';
+  const channelOk = channelStr === 'whatsapp' || channelStr === 'email';
+  if (!channelOk) return undefined;
+
+  return {
+    enabled: Boolean(enabledRaw),
+    type: typeStr,
+    delay: delayStr,
+    channel: channelStr,
+  };
+}
+
+function toNexusPriority(value: TaskPriority): Priority {
+  const v = String(value || '').toLowerCase();
+  if (v === 'low') return Priority.LOW;
+  if (v === 'high') return Priority.HIGH;
+  if (v === 'critical') return Priority.URGENT;
+  return Priority.MEDIUM;
+}
+
+function toNexusStatus(value: TaskStatus): Status {
+  const v = String(value || '').toLowerCase();
+  if (v === 'in_progress') return Status.IN_PROGRESS;
+  if (v === 'review') return Status.WAITING;
+  if (v === 'done') return Status.DONE;
+  return Status.TODO;
 }
 
 function mapDtoToCalendarEvent(dto: SystemCalendarEventDTO): CalendarEvent {
@@ -72,12 +141,12 @@ function mapDtoToCalendarEvent(dto: SystemCalendarEventDTO): CalendarEvent {
     dayName: String(dto.day_name || ''),
     date: String(dto.date || ''),
     time: String(dto.time || ''),
-    type: (String(dto.type || 'zoom') as any) || 'zoom',
+    type: normalizeCalendarEventType(dto.type),
     location: String(dto.location || ''),
     participants: dto.participants == null ? undefined : Number(dto.participants),
-    reminders: dto.reminders ?? undefined,
-    postMeeting: dto.post_meeting ?? undefined,
-  } as any;
+    reminders: parseCalendarReminders(dto.reminders) ?? undefined,
+    postMeeting: parseCalendarPostMeeting(dto.post_meeting) ?? undefined,
+  };
 }
 
 export default function SystemWorkspaceClient({
@@ -144,12 +213,12 @@ export default function SystemWorkspaceClient({
       });
       setLeadsDto((prev) => [created, ...prev]);
       addToast('ליד נוצר', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת ליד', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת ליד', 'error');
     }
   };
 
-  const handleAddActivity = async (leadId: string, activity: any) => {
+  const handleAddActivity = async (leadId: string, activity: Activity) => {
     const res = await createSystemLeadActivity({
       orgSlug,
       leadId: String(leadId),
@@ -164,8 +233,8 @@ export default function SystemWorkspaceClient({
       return;
     }
 
-    if ((res as any).lead) {
-      const updated = (res as any).lead as SystemLeadDTO;
+    if (res.lead) {
+      const updated = res.lead;
       setLeadsDto((prev) => prev.map((l) => (String(l.id) === String(updated.id) ? updated : l)));
     }
 
@@ -218,9 +287,9 @@ export default function SystemWorkspaceClient({
       time: String(event.time || '').trim(),
       type: String(event.type || 'zoom'),
       location: String(event.location || '').trim(),
-      participants: (event as any).participants ?? null,
-      reminders: (event as any).reminders ?? null,
-      postMeeting: (event as any).postMeeting ?? null,
+      participants: event.participants ?? null,
+      reminders: event.reminders ?? null,
+      postMeeting: event.postMeeting ?? null,
     });
 
     if (!res.ok) {
@@ -243,16 +312,16 @@ export default function SystemWorkspaceClient({
           assigneeId: task.assigneeId,
           assigneeIds: [task.assigneeId],
           dueDate: task.dueDate.toISOString().slice(0, 10),
-          priority: task.priority,
-          status: task.status,
+          priority: toNexusPriority(task.priority),
+          status: toNexusStatus(task.status),
           tags: task.tags,
-        } as any,
+        },
       });
 
       const next = mapNexusTaskToUiTask(updated);
       setTasks((prev) => prev.map((t) => (String(t.id) === String(next.id) ? next : t)));
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון משימה', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון משימה', 'error');
     }
   };
 
@@ -263,8 +332,8 @@ export default function SystemWorkspaceClient({
         input: {
           title: task.title,
           description: task.description ?? '',
-          status: task.status,
-          priority: task.priority,
+          status: toNexusStatus(task.status),
+          priority: toNexusPriority(task.priority),
           assigneeId: task.assigneeId,
           assigneeIds: [task.assigneeId],
           tags: task.tags,
@@ -273,13 +342,13 @@ export default function SystemWorkspaceClient({
           isTimerRunning: false,
           messages: [],
           createdAt: new Date().toISOString(),
-        } as any,
+        },
       });
 
       const next = mapNexusTaskToUiTask(created);
       setTasks((prev) => [next, ...prev]);
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת משימה', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
       return;
     }
   };

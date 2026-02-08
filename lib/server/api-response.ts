@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
 import { translateError } from '@/lib/errorTranslations';
 
+import { asObject } from '@/lib/shared/unknown';
 export type ApiSuccess<T> = { success: true; data: T };
 export type ApiFailure = { success: false; error: string };
 export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function getNumberProp(obj: Record<string, unknown> | null, key: string): number | null {
   const v = obj?.[key];
@@ -39,7 +35,7 @@ function getErrorStatus(error: unknown): number {
   return 500;
 }
 
-function getErrorMessage(error: unknown, fallback: string): string {
+function formatErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return translateError(error.message) || error.message || fallback;
   }
@@ -75,7 +71,7 @@ export function apiError(
   }
 ): NextResponse<ApiFailure> {
   const status = typeof opts?.status === 'number' ? opts.status : getErrorStatus(error);
-  const message = getErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
+  const message = formatErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
   return NextResponse.json({ success: false, error: message }, { status, headers: opts?.headers });
 }
 
@@ -89,7 +85,7 @@ export function apiErrorCompat(
   }
 ): NextResponse<ApiFailure & Record<string, unknown>> {
   const status = typeof opts?.status === 'number' ? opts.status : getErrorStatus(error);
-  const message = getErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
+  const message = formatErrorMessage(error, opts?.message || 'שגיאה לא צפויה');
   return NextResponse.json(
     { success: false, error: message, ...(opts?.extra || {}) },
     { status, headers: opts?.headers }

@@ -5,6 +5,7 @@ import { APIError, getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/s
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import { Type } from '@google/genai';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -87,11 +88,11 @@ async function POSTHandler(req: Request) {
 
     const insight = asString(aiOut.result?.insight).trim() || 'המשך להקשיב, עדיין אין מספיק הקשר.';
     return apiSuccessCompat({ insight }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });
     }
-    return apiError(e, { status: 500, message: 'Live insight failed' });
+    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Live insight failed' });
   }
 }
 

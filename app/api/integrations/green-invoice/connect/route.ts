@@ -9,8 +9,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { Prisma } from '@prisma/client';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -33,7 +37,7 @@ async function POSTHandler(request: NextRequest) {
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -58,8 +62,9 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 3. Parse request body
-        const body = await request.json();
-        const { apiKey } = body;
+        const bodyJson: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(bodyJson) ?? {};
+        const apiKey = bodyObj.apiKey;
 
         if (!apiKey || typeof apiKey !== 'string') {
             return NextResponse.json(
@@ -97,7 +102,7 @@ async function POSTHandler(request: NextRequest) {
                     is_active: true,
                     metadata: {
                         connectedAt: new Date().toISOString(),
-                    } as any,
+                    } as Prisma.InputJsonValue,
                     created_at: new Date(),
                     updated_at: new Date(),
                 },
@@ -109,13 +114,15 @@ async function POSTHandler(request: NextRequest) {
             message: 'Green Invoice account connected successfully'
         });
 
-    } catch (error: any) {
-        console.error('[API] Error connecting Green Invoice:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error connecting Green Invoice');
+        else console.error('[API] Error connecting Green Invoice:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const safeMsg = 'Failed to connect Green Invoice';
         return NextResponse.json(
-            { error: error.message || 'Failed to connect Green Invoice' },
+            { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
             { status: 500 }
         );
     }

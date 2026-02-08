@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 async function getCurrentOrganizationKey(): Promise<{ organizationId: string; organizationKey: string }> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    redirect('/sign-in');
+    redirect('/login?redirect=/workspaces/onboarding');
   }
 
   const profile = await prisma.profile.findFirst({
@@ -38,7 +38,7 @@ async function getCurrentOrganizationKey(): Promise<{ organizationId: string; or
     redirect('/workspaces/new');
   }
 
-  const org = await prisma.social_organizations.findUnique({
+  const org = await prisma.organization.findUnique({
     where: { id: String(organizationId) },
     select: { id: true, slug: true },
   });

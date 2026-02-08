@@ -3,6 +3,27 @@ import { getNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-serv
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error);
+  const code = String(obj?.code ?? '').toUpperCase();
+  const message = String(getErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
+
 export type NexusBillingCadence = 'monthly' | 'ad_hoc';
 
 export type NexusBillingItem = {
@@ -23,12 +44,6 @@ type NexusBillingItemRow = Prisma.nexus_billing_itemsGetPayload<{
   select: { item_key: true; title: true; cadence: true; amount: true; currency: true; updated_at: true };
 }>;
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
 function decimalToNumber(value: unknown): number {
   const obj = asObject(value);
   const toNumber = obj?.toNumber;
@@ -36,14 +51,6 @@ function decimalToNumber(value: unknown): number {
     return Number((toNumber as () => unknown)());
   }
   return Number(value);
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
 }
 
 function isTemplateKey(value: unknown): value is NexusBillingItemsPayload['templateKey'] {
@@ -137,15 +144,21 @@ export function buildNexusBillingItemsForTemplate(templateKey: 'retainer_fixed' 
 
 export async function getNexusBillingItems(workspaceId: string): Promise<NexusBillingItemsPayload | null> {
   try {
+    const take = 200;
     const rows: NexusBillingItemRow[] = await prisma.nexus_billing_items.findMany({
       where: { organization_id: workspaceId },
       orderBy: { created_at: 'asc' },
       select: { item_key: true, title: true, cadence: true, amount: true, currency: true, updated_at: true },
-      take: 500,
+      take,
     });
 
     if (Array.isArray(rows) && rows.length > 0) {
-      const onboarding = await getNexusOnboardingTemplate(workspaceId).catch(() => null);
+      const onboarding = await getNexusOnboardingTemplate(workspaceId).catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(`[SchemaMismatch] nexus onboarding template lookup failed (${getErrorMessage(error) || 'missing relation'})`);
+        }
+        return null;
+      });
       const templateKey = (onboarding?.key === 'retainer_fixed' || onboarding?.key === 'deliverables_package')
         ? onboarding.key
         : 'retainer_fixed';
@@ -175,14 +188,25 @@ export async function getNexusBillingItems(workspaceId: string): Promise<NexusBi
     if (!isMissingPrismaRelationError(tableError) && !isMissingRelationError(tableError)) {
       throw new Error(getErrorMessage(tableError) || String(tableError));
     }
+    if (!ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(tableError) || 'missing relation'})`);
+    }
   }
 
   // Fallback: legacy storage
   const key = getNexusBillingItemsSettingsKey(workspaceId);
-  const legacy = await prisma.social_system_settings.findUnique({
-    where: { key },
-    select: { value: true },
-  });
+  let legacy: { value: unknown } | null = null;
+  try {
+    legacy = await prisma.social_system_settings.findUnique({
+      where: { key },
+      select: { value: true },
+    });
+  } catch (error: unknown) {
+    if ((isMissingPrismaRelationError(error) || isMissingRelationError(error)) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+    }
+    throw error;
+  }
 
   if (!legacy?.value) return null;
   return coerceBillingItemsPayload(legacy.value);
@@ -232,6 +256,9 @@ export async function setNexusBillingItems(params: {
   } catch (upsertError: unknown) {
     if (!isMissingPrismaRelationError(upsertError) && !isMissingRelationError(upsertError)) {
       throw new Error(getErrorMessage(upsertError) || String(upsertError));
+    }
+    if (!ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(upsertError) || 'missing relation'})`);
     }
   }
 

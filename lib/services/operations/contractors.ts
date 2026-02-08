@@ -4,8 +4,8 @@ import crypto from 'crypto';
 
 import { allowlistedQuery, orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
 import { setOperationsWorkOrderCompletionSignatureUnsafe } from '@/lib/services/operations/work-orders';
-import { asObject, getUnknownErrorMessage, isUuidLike, toIsoDate } from '@/lib/services/operations/shared';
-import { resolveStorageUrlMaybe } from '@/lib/services/operations/storage';
+import { asObject, getUnknownErrorMessage, isUuidLike, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
+import { resolveStorageUrlMaybe, resolveStorageUrlsMaybeBatched } from '@/lib/services/operations/storage';
 import type { OperationsWorkOrderAttachmentRow, OperationsWorkOrderCheckinRow, OperationsWorkOrderStatus } from '@/lib/services/operations/types';
 
 function generatePortalToken(): string {
@@ -65,7 +65,7 @@ export async function contractorResolveTokenForApi(params: {
     }
     return { success: true, organizationId: tokenOut.organizationId, tokenHash: tokenOut.tokenHash };
   } catch (e: unknown) {
-    console.error('[operations] contractorResolveTokenForApi failed', e);
+    logOperationsError('[operations] contractorResolveTokenForApi failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה באימות טוקן' };
   }
 }
@@ -91,7 +91,7 @@ export async function contractorValidateWorkOrderAccess(params: {
 
     return { success: true, organizationId: tokenOut.organizationId };
   } catch (e: unknown) {
-    console.error('[operations] contractorValidateWorkOrderAccess failed', e);
+    logOperationsError('[operations] contractorValidateWorkOrderAccess failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה באימות גישה' };
   }
 }
@@ -129,23 +129,28 @@ export async function contractorGetWorkOrderAttachments(params: {
     );
 
     const ttlSeconds = 60 * 60;
-    const data = await Promise.all(
-      (rows || []).map(async (r) => {
-        const obj = asObject(r) ?? {};
-        const rawUrl = String(obj.url || '');
-        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds, { organizationId });
-        return {
-          id: String(obj.id),
-          url: resolved || rawUrl,
-          mimeType: obj.mime_type ? String(obj.mime_type) : null,
-          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
-        };
-      })
-    );
+    const rawUrls = (rows || []).map((r) => {
+      const obj = asObject(r) ?? {};
+      return String(obj.url || '');
+    });
+
+    const resolvedUrls = await resolveStorageUrlsMaybeBatched(rawUrls, ttlSeconds, { organizationId });
+
+    const data = (rows || []).map((r, idx) => {
+      const obj = asObject(r) ?? {};
+      const rawUrl = String(obj.url || '');
+      const resolved = resolvedUrls[idx] ?? null;
+      return {
+        id: String(obj.id),
+        url: resolved || rawUrl,
+        mimeType: obj.mime_type ? String(obj.mime_type) : null,
+        createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+      };
+    });
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] contractorGetWorkOrderAttachments failed', e);
+    logOperationsError('[operations] contractorGetWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים' };
   }
 }
@@ -206,7 +211,7 @@ export async function contractorAddWorkOrderAttachment(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] contractorAddWorkOrderAttachment failed', e);
+    logOperationsError('[operations] contractorAddWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ' };
   }
 }
@@ -256,7 +261,7 @@ export async function contractorGetWorkOrderCheckins(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] contractorGetWorkOrderCheckins failed', e);
+    logOperationsError('[operations] contractorGetWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-Ins' };
   }
 }
@@ -305,7 +310,7 @@ export async function contractorAddWorkOrderCheckin(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] contractorAddWorkOrderCheckin failed', e);
+    logOperationsError('[operations] contractorAddWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }
@@ -331,7 +336,7 @@ export async function createOperationsContractorTokenForOrganizationId(params: {
 
     return { success: true, token };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsContractorToken failed', e);
+    logOperationsError('[operations] createOperationsContractorToken failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה ביצירת טוקן קבלן',
@@ -370,14 +375,14 @@ export async function getOperationsContractorPortalDataByToken(params: {
     let orgSlug: string | null = null;
 
     if (isUuidLike(organizationKey)) {
-      const org = await prisma.social_organizations.findFirst({
+      const org = await prisma.organization.findFirst({
         where: { id: organizationKey },
         select: { id: true, slug: true },
       });
       if (org?.id) organizationId = String(org.id);
       orgSlug = org?.slug ? String(org.slug) : null;
     } else {
-      const org = await prisma.social_organizations.findFirst({
+      const org = await prisma.organization.findFirst({
         where: { slug: organizationKey },
         select: { id: true, slug: true },
       });
@@ -418,7 +423,7 @@ export async function getOperationsContractorPortalDataByToken(params: {
       },
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsContractorPortalData failed', e);
+    logOperationsError('[operations] getOperationsContractorPortalData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת פורטל קבלן',
@@ -452,7 +457,7 @@ export async function contractorMarkWorkOrderDoneByToken(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] contractorMarkWorkOrderDone failed', e);
+    logOperationsError('[operations] contractorMarkWorkOrderDone failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס',
@@ -489,7 +494,7 @@ export async function contractorSetWorkOrderCompletionSignatureByToken(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] contractorSetWorkOrderCompletionSignature failed', e);
+    logOperationsError('[operations] contractorSetWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }

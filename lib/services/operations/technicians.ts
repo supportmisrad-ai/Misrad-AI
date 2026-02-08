@@ -3,20 +3,41 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError } from '@/lib/services/operations/shared';
 import { ensureOperationsVehicleHolderIdTx } from '@/lib/services/operations/stock-holders';
 import type { OperationsTechnicianOption } from '@/lib/services/operations/types';
+
+type TechnicianProfileRow = { id: string; email: string | null; fullName: string | null };
 
 export async function getOperationsTechnicianOptionsForOrganizationId(params: {
   organizationId: string;
 }): Promise<{ success: boolean; data?: OperationsTechnicianOption[]; error?: string }> {
   try {
-    const profiles = await prisma.profile.findMany({
-      where: { organizationId: params.organizationId },
-      select: { id: true, email: true, fullName: true },
-      orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }],
-      take: 2000,
-    });
+    const pageSize = 200;
+    const maxTotal = 2000;
+    let cursorId: string | null = null;
+    const profiles: Array<{ id: string; email: string | null; fullName: string | null }> = [];
+
+    for (;;) {
+      const rows = (await prisma.profile.findMany({
+        where: { organizationId: params.organizationId },
+        select: { id: true, email: true, fullName: true },
+        orderBy: [{ fullName: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+        ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
+        take: pageSize,
+      })) as TechnicianProfileRow[];
+
+      const list: TechnicianProfileRow[] = Array.isArray(rows) ? rows : [];
+      if (list.length === 0) break;
+      profiles.push(
+        ...list.map((r: TechnicianProfileRow) => ({ id: String(r.id), email: r.email ?? null, fullName: r.fullName ?? null }))
+      );
+      if (profiles.length >= maxTotal) break;
+      if (list.length < pageSize) break;
+      const last: TechnicianProfileRow | undefined = list[list.length - 1];
+      cursorId = last?.id ? String(last.id) : null;
+      if (!cursorId) break;
+    }
 
     const options: OperationsTechnicianOption[] = (profiles || [])
       .map((p) => {
@@ -32,7 +53,7 @@ export async function getOperationsTechnicianOptionsForOrganizationId(params: {
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
     return { success: true, data: options };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsTechnicianOptions failed', e);
+    logOperationsError('[operations] getOperationsTechnicianOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הטכנאים' };
   }
 }
@@ -105,7 +126,7 @@ export async function setOperationsTechnicianActiveVehicleForOrganizationId(para
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsTechnicianActiveVehicle failed', e);
+    logOperationsError('[operations] setOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת רכב פעיל' };
   }
 }

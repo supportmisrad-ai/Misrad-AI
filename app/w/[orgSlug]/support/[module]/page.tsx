@@ -369,11 +369,12 @@ export default async function WorkspaceSupportModulePage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string; module: string }>;
-  searchParams?: Promise<{ video?: string | string[] }>;
+  params: Promise<{ orgSlug: string; module: string }> | { orgSlug: string; module: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const { orgSlug, module } = await params;
-  const sp = await searchParams;
+  const resolvedParams = await params;
+  const { orgSlug, module } = resolvedParams;
+  const sp = searchParams;
 
   await requireWorkspaceAccessByOrgSlug(orgSlug);
 

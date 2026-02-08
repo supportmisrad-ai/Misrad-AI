@@ -1,6 +1,7 @@
 'use server';
 
 import prisma from '@/lib/prisma';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 /**
  * Debug function to check Supabase connection
@@ -8,7 +9,7 @@ import prisma from '@/lib/prisma';
  */
 export async function debugSupabaseConnection(): Promise<{
   success: boolean;
-  details: any;
+  details: Record<string, unknown>;
 }> {
   try {
     const isProd = process.env.NODE_ENV === 'production';
@@ -46,24 +47,29 @@ export async function debugSupabaseConnection(): Promise<{
           },
         },
       };
-    } catch (queryError: any) {
+    } catch (queryError: unknown) {
+      const qObj = asObject(queryError);
+      const stack = queryError instanceof Error ? queryError.stack : typeof qObj?.stack === 'string' ? qObj.stack : null;
       return {
         success: false,
         details: {
           step: 'prisma_test',
-          error: queryError.message,
+          error: getErrorMessage(queryError),
+          stack,
           envCheck,
         },
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const eObj = asObject(error);
+    const stack = error instanceof Error ? error.stack : typeof eObj?.stack === 'string' ? eObj.stack : null;
     console.error('[debugSupabaseConnection] Unexpected error:', error);
     return {
       success: false,
       details: {
         step: 'unexpected_error',
-        error: error.message,
-        stack: error.stack,
+        error: getErrorMessage(error),
+        stack,
       },
     };
   }

@@ -8,21 +8,9 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
-import { getBaseUrl } from '@/lib/utils';
+import { getBaseUrl } from '@/lib/utils';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 /**
  * Server Action: Send team member invitation via Clerk
@@ -71,14 +59,14 @@ export async function inviteTeamMember(
 
     const clerkUserId = await getCurrentUserId();
     if (clerkUserId) {
-      const socialUser = await prisma.social_users.findUnique({
+      const socialUser = await prisma.organizationUser.findUnique({
         where: { clerk_user_id: clerkUserId },
         select: { id: true },
       });
 
       const socialUserId = socialUser?.id ? String(socialUser.id) : null;
       if (socialUserId) {
-        const tm = await prisma.social_team_members.findFirst({
+        const tm = await prisma.teamMember.findFirst({
           where: {
             user_id: String(socialUserId),
             organization_id: String(ws.id),

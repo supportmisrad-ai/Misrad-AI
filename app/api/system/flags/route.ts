@@ -3,8 +3,12 @@ import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
 import prisma from '@/lib/prisma';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { logAuditEvent } from '@/lib/audit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function getOrgKeyFromHeader(request: NextRequest): string | null {
   const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
@@ -24,14 +28,14 @@ async function GETHandler(request: NextRequest) {
 
         // Try to get authenticated user, but don't fail if it doesn't work
         // This allows the API to work even if user is not fully synced
-        let user;
+        let _user;
         try {
-            user = await getAuthenticatedUser();
-        } catch (authError: any) {
+            _user = await getAuthenticatedUser();
+        } catch (authError: unknown) {
             // In development, allow access without full user sync
             if (process.env.NODE_ENV === 'development') {
-                console.warn('[API] Could not get authenticated user, using defaults:', authError.message);
-                user = {
+                console.warn('[API] Could not get authenticated user, using defaults:', getErrorMessage(authError));
+                _user = {
                     id: userId,
                     email: null,
                     firstName: null,
@@ -92,8 +96,9 @@ async function GETHandler(request: NextRequest) {
 
         // Return defaults if no settings found
         return NextResponse.json({ systemFlags: defaultFlags });
-    } catch (error: any) {
-        console.error('[API] Error fetching system flags:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error fetching system flags');
+        else console.error('[API] Error fetching system flags:', error);
         return NextResponse.json(
             { error: 'שגיאה בטעינת הגדרות מערכת' },
             { status: 500 }
@@ -114,11 +119,9 @@ async function PATCHHandler(request: NextRequest) {
 
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
-            return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+        } catch (e: unknown) {
+            return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
         }
-
-        const user = await getAuthenticatedUser();
 
         const body = await request.json();
         const { screenId, status, organizationId: _providedOrganizationId, tenantId: _providedTenantId } = body;
@@ -175,8 +178,14 @@ async function PATCHHandler(request: NextRequest) {
             },
         });
 
-        // Log the change
-        console.log(`[System Flag] ${screenId} → ${status} by userId=${user.id} for tenant ${workspacePrimary.id}`);
+        await logAuditEvent('data.write', 'system.flags', {
+            resourceId: String(screenId),
+            details: {
+                screenId,
+                status,
+                tenantId: String(workspacePrimary.id),
+            },
+        });
 
         return NextResponse.json({
             success: true,
@@ -185,8 +194,9 @@ async function PATCHHandler(request: NextRequest) {
             status,
             systemFlags: updatedFlags
         });
-    } catch (error: any) {
-        console.error('[API] Error updating system flag:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error updating system flag');
+        else console.error('[API] Error updating system flag:', error);
         return NextResponse.json(
             { error: 'שגיאה בעדכון הגדרות מערכת' },
             { status: 500 }

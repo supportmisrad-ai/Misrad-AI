@@ -4,23 +4,12 @@ import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { Prisma } from '@prisma/client';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 type SuperAdminCheckResult =
   | { success: true; userId: string }
   | { success: false; error?: string; errors?: unknown };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
 
 function getErrorCode(error: unknown): string {
   const obj = asObject(error);
@@ -36,6 +25,23 @@ function getBooleanProp(obj: unknown, key: string): boolean {
 function getJsonObject(value: unknown): Record<string, unknown> {
   const obj = asObject(value);
   return obj ?? {};
+}
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue {
+  if (value === null || value === undefined) return {};
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return value;
+  if (typeof value === 'bigint') return value.toString();
+  if (value instanceof Date) return value.toISOString();
+  if (Array.isArray(value)) return value.map((v) => toInputJsonValue(v));
+
+  const obj = asObject(value);
+  if (!obj) return {};
+
+  const out: Record<string, Prisma.InputJsonValue> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = toInputJsonValue(v);
+  }
+  return out;
 }
 
  function isUuidLike(value: string | null | undefined): boolean {
@@ -64,7 +70,7 @@ async function resolveOrganizationIdFromTenantKey(tenantKey: string): Promise<st
   const key = String(tenantKey || '').trim();
   if (!key) return null;
 
-  const directOrg = await prisma.social_organizations.findFirst({
+  const directOrg = await prisma.organization.findFirst({
     where: isUuidLike(key) ? { OR: [{ id: key }, { slug: key }] } : { slug: key },
     select: { id: true },
   });
@@ -84,13 +90,13 @@ async function resolveOrganizationIdFromTenantKey(tenantKey: string): Promise<st
   const subdomain = tenantById?.subdomain ? String(tenantById.subdomain) : '';
 
   if (ownerEmail) {
-    const ownerSocialUser = await prisma.social_users.findFirst({
+    const ownerSocialUser = await prisma.organizationUser.findFirst({
       where: { email: { equals: ownerEmail, mode: 'insensitive' } },
       select: { id: true },
     });
 
     if (ownerSocialUser?.id) {
-      const orgByOwner = await prisma.social_organizations.findFirst({
+      const orgByOwner = await prisma.organization.findFirst({
         where: { owner_id: String(ownerSocialUser.id) },
         select: { id: true },
       });
@@ -103,7 +109,7 @@ async function resolveOrganizationIdFromTenantKey(tenantKey: string): Promise<st
 
   if (!subdomain) return null;
 
-  const orgBySlug = await prisma.social_organizations.findFirst({
+  const orgBySlug = await prisma.organization.findFirst({
     where: { slug: subdomain },
     select: { id: true },
   });
@@ -121,12 +127,6 @@ async function resolveTenantIdFromKey(tenantKey: string): Promise<string | null>
   });
 
   return tenant?.id ? String(tenant.id) : null;
-}
-
-function isMissingOrganizationIdColumnError(err: unknown): boolean {
-  const message = String(getErrorMessage(err) || '').toLowerCase();
-  const code = String(getErrorCode(err) || '').toLowerCase();
-  return code === '42703' || (message.includes('column') && message.includes('organization_id'));
 }
 
 async function deleteByUserIdScoped(params: {
@@ -148,8 +148,8 @@ async function deleteByUserIdScoped(params: {
       return {};
     }
     if (params.table === 'social_team_members') {
-      await prisma.social_team_members.deleteMany({
-        where: { user_id: params.userId, organization_id: params.organizationId } as unknown as Prisma.social_team_membersWhereInput,
+      await prisma.teamMember.deleteMany({
+        where: { user_id: params.userId, organization_id: params.organizationId },
       });
       return {};
     }
@@ -161,8 +161,8 @@ async function deleteByUserIdScoped(params: {
 
 async function deleteUserRowScoped(params: { userId: string; organizationId: string }): Promise<{ error?: unknown }> {
   try {
-    await prisma.social_users.deleteMany({
-      where: { id: params.userId, organization_id: params.organizationId } as unknown as Prisma.social_usersWhereInput,
+    await prisma.organizationUser.deleteMany({
+      where: { id: params.userId, organization_id: params.organizationId },
     });
     return {};
   } catch (error: unknown) {
@@ -176,6 +176,8 @@ export type AdminSocialTeamUser = {
   email: string;
   role: 'super_admin' | 'owner' | 'team_member';
 };
+
+export type AdminTeamUser = AdminSocialTeamUser;
 
 export type AdminSocialQuotas = {
   maxPostsPerMonth: number;
@@ -196,7 +198,7 @@ export type AdminSocialAutomation = {
   allowExternalWebhooks: boolean;
 };
 
-export async function getSocialTeam(tenantId: string): Promise<{ success: boolean; data?: AdminSocialTeamUser[]; error?: string }> {
+export async function getTeam(tenantId: string): Promise<{ success: boolean; data?: AdminTeamUser[]; error?: string }> {
   try {
     const adminCheck = await requireSuperAdminOrFail();
     if (!adminCheck.success) return adminCheck;
@@ -206,15 +208,15 @@ export async function getSocialTeam(tenantId: string): Promise<{ success: boolea
       return createSuccessResponse([]);
     }
 
-    const teamMembers = await prisma.social_team_members.findMany({
+    const teamMembers = await prisma.teamMember.findMany({
       where: { organization_id: organizationId },
       select: { user_id: true },
     });
 
     const memberIds = (teamMembers || []).map((r) => r.user_id).filter(Boolean).map((v) => String(v));
 
-    const socialUsers = await prisma.social_users.findMany({
-      where: { organization_id: organizationId } as unknown as Prisma.social_usersWhereInput,
+    const socialUsers = await prisma.organizationUser.findMany({
+      where: { organization_id: organizationId },
       select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true, created_at: true },
       orderBy: { created_at: 'desc' },
     });
@@ -262,8 +264,14 @@ export async function getSocialTeam(tenantId: string): Promise<{ success: boolea
 
     return createSuccessResponse(mapped);
   } catch (error) {
-    return createErrorResponse(error, 'שגיאה בטעינת צוות סושיאל');
+    return createErrorResponse(error, 'שגיאה בטעינת צוות');
   }
+}
+
+export async function getSocialTeam(
+  tenantId: string
+): Promise<{ success: boolean; data?: AdminSocialTeamUser[]; error?: string }> {
+  return await getTeam(tenantId);
 }
 
 function normalizeAutomation(input: unknown): AdminSocialAutomation {
@@ -286,11 +294,20 @@ export async function getSocialAutomation(
       return createSuccessResponse(normalizeAutomation(null));
     }
 
-    const row = await prisma.system_settings.findFirst({
-      where: { tenant_id: resolvedTenantId },
-      select: { id: true, system_flags: true },
-      orderBy: { updated_at: 'desc' },
-    });
+    const row = await withTenantIsolationContext(
+      {
+        source: 'admin_social_get_social_automation',
+        reason: 'read_system_settings',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.system_settings.findFirst({
+          where: { tenant_id: resolvedTenantId },
+          select: { id: true, system_flags: true },
+          orderBy: { updated_at: 'desc' },
+        })
+    );
 
     const flags = getJsonObject(row?.system_flags);
     const automation = normalizeAutomation(flags.socialAutomation);
@@ -313,29 +330,47 @@ export async function updateSocialAutomation(
       return createErrorResponse('Tenant not found', 'טננט לא נמצא');
     }
 
-    const existingRow = await prisma.system_settings.findFirst({
-      where: { tenant_id: resolvedTenantId },
-      select: { id: true, system_flags: true },
-      orderBy: { updated_at: 'desc' },
-    });
+    await withTenantIsolationContext(
+      {
+        source: 'admin_social_update_social_automation',
+        reason: 'write_system_settings',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+        const existingRow = await prisma.system_settings.findFirst({
+          where: { tenant_id: resolvedTenantId },
+          select: { id: true, system_flags: true },
+          orderBy: { updated_at: 'desc' },
+        });
 
-    const now = new Date();
-    const nextFlags = {
-      ...getJsonObject(existingRow?.system_flags),
-      socialAutomation: normalizeAutomation(automation),
-    };
+        const now = new Date();
+        const nextFlags = {
+          ...getJsonObject(existingRow?.system_flags),
+          socialAutomation: normalizeAutomation(automation),
+        };
 
-    if (existingRow?.id) {
-      await prisma.system_settings.update({
-        where: { id: String(existingRow.id) },
-        data: { system_flags: nextFlags as unknown as Prisma.InputJsonValue, updated_at: now },
-      });
-      return createSuccessResponse(true);
-    }
+        if (existingRow?.id) {
+          await prisma.system_settings.updateMany({
+            where: { id: String(existingRow.id), tenant_id: resolvedTenantId },
+            data: {
+              system_flags: toInputJsonValue(nextFlags),
+              updated_at: now,
+            },
+          });
+          return;
+        }
 
-    await prisma.system_settings.create({
-      data: { tenant_id: resolvedTenantId, system_flags: nextFlags as unknown as Prisma.InputJsonValue, created_at: now, updated_at: now },
-    });
+        await prisma.system_settings.create({
+          data: {
+            tenant_id: resolvedTenantId,
+            system_flags: toInputJsonValue(nextFlags),
+            created_at: now,
+            updated_at: now,
+          },
+        });
+      }
+    );
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -343,7 +378,7 @@ export async function updateSocialAutomation(
   }
 }
 
-export async function updateSocialUserRole(
+export async function updateUserRole(
   tenantId: string,
   userId: string,
   role: AdminSocialTeamUser['role']
@@ -367,7 +402,7 @@ export async function updateSocialUserRole(
       return createErrorResponse('Missing userId', 'משתמש לא תקין');
     }
 
-    const userRow = await prisma.social_users.findFirst({
+    const userRow = await prisma.organizationUser.findFirst({
       where: { id: resolvedUserId },
       select: { id: true, organization_id: true },
     });
@@ -380,9 +415,9 @@ export async function updateSocialUserRole(
       return createErrorResponse('Forbidden', 'המשתמש לא שייך לטננט הזה');
     }
 
-    await prisma.social_users.updateMany({
-      where: { id: resolvedUserId, organization_id: organizationId } as unknown as Prisma.social_usersWhereInput,
-      data: { role: resolvedRole } as unknown as Prisma.social_usersUpdateManyMutationInput,
+    await prisma.organizationUser.updateMany({
+      where: { id: resolvedUserId, organization_id: organizationId },
+      data: { role: resolvedRole },
     });
 
     return createSuccessResponse(true);
@@ -391,7 +426,15 @@ export async function updateSocialUserRole(
   }
 }
 
-export async function removeSocialUser(
+export async function updateSocialUserRole(
+  tenantId: string,
+  userId: string,
+  role: AdminSocialTeamUser['role']
+): Promise<{ success: boolean; error?: string }> {
+  return await updateUserRole(tenantId, userId, role);
+}
+
+export async function removeUserFromTeam(
   tenantId: string,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
@@ -409,7 +452,7 @@ export async function removeSocialUser(
       return createErrorResponse('Missing userId', 'משתמש לא תקין');
     }
 
-    const orgRow = await prisma.social_organizations.findFirst({
+    const orgRow = await prisma.organization.findFirst({
       where: { id: organizationId },
       select: { owner_id: true },
     });
@@ -418,7 +461,7 @@ export async function removeSocialUser(
       return createErrorResponse('Forbidden', 'לא ניתן להסיר את בעל הארגון');
     }
 
-    const userRow = await prisma.social_users.findFirst({
+    const userRow = await prisma.organizationUser.findFirst({
       where: { id: resolvedUserId },
       select: { id: true, organization_id: true },
     });
@@ -462,6 +505,13 @@ export async function removeSocialUser(
   }
 }
 
+export async function removeSocialUser(
+  tenantId: string,
+  userId: string
+): Promise<{ success: boolean; error?: string }> {
+  return await removeUserFromTeam(tenantId, userId);
+}
+
 function normalizeQuotas(input: unknown): AdminSocialQuotas {
   const obj = asObject(input) ?? {};
   const maxPostsPerMonth = Number(obj.maxPostsPerMonth);
@@ -487,11 +537,20 @@ export async function getSocialQuotas(
       return createSuccessResponse(normalizeQuotas(null));
     }
 
-    const row = await prisma.system_settings.findFirst({
-      where: { tenant_id: resolvedTenantId },
-      select: { system_flags: true },
-      orderBy: { updated_at: 'desc' },
-    });
+    const row = await withTenantIsolationContext(
+      {
+        source: 'admin_social_get_social_quotas',
+        reason: 'read_system_settings',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.system_settings.findFirst({
+          where: { tenant_id: resolvedTenantId },
+          select: { system_flags: true },
+          orderBy: { updated_at: 'desc' },
+        })
+    );
 
     const flags = getJsonObject(row?.system_flags);
     const quotas = normalizeQuotas(flags.socialQuotas);
@@ -514,29 +573,47 @@ export async function updateSocialQuotas(
       return createErrorResponse('Tenant not found', 'טננט לא נמצא');
     }
 
-    const existingRow = await prisma.system_settings.findFirst({
-      where: { tenant_id: resolvedTenantId },
-      select: { id: true, system_flags: true },
-      orderBy: { updated_at: 'desc' },
-    });
+    await withTenantIsolationContext(
+      {
+        source: 'admin_social_update_social_quotas',
+        reason: 'write_system_settings',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+        const existingRow = await prisma.system_settings.findFirst({
+          where: { tenant_id: resolvedTenantId },
+          select: { id: true, system_flags: true },
+          orderBy: { updated_at: 'desc' },
+        });
 
-    const now = new Date();
-    const nextFlags = {
-      ...getJsonObject(existingRow?.system_flags),
-      socialQuotas: normalizeQuotas(quotas),
-    };
+        const now = new Date();
+        const nextFlags = {
+          ...getJsonObject(existingRow?.system_flags),
+          socialQuotas: normalizeQuotas(quotas),
+        };
 
-    if (existingRow?.id) {
-      await prisma.system_settings.update({
-        where: { id: String(existingRow.id) },
-        data: { system_flags: nextFlags as unknown as Prisma.InputJsonValue, updated_at: now },
-      });
-      return createSuccessResponse(true);
-    }
+        if (existingRow?.id) {
+          await prisma.system_settings.updateMany({
+            where: { id: String(existingRow.id), tenant_id: resolvedTenantId },
+            data: {
+              system_flags: toInputJsonValue(nextFlags),
+              updated_at: now,
+            },
+          });
+          return;
+        }
 
-    await prisma.system_settings.create({
-      data: { tenant_id: resolvedTenantId, system_flags: nextFlags as unknown as Prisma.InputJsonValue, created_at: now, updated_at: now },
-    });
+        await prisma.system_settings.create({
+          data: {
+            tenant_id: resolvedTenantId,
+            system_flags: toInputJsonValue(nextFlags),
+            created_at: now,
+            updated_at: now,
+          },
+        });
+      }
+    );
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -560,8 +637,8 @@ export async function getSocialIntegrations(
       ]);
     }
 
-    const socialUsers = await prisma.social_users.findMany({
-      where: { organization_id: organizationId } as unknown as Prisma.social_usersWhereInput,
+    const socialUsers = await prisma.organizationUser.findMany({
+      where: { organization_id: organizationId },
       select: { id: true },
     });
 
@@ -575,7 +652,7 @@ export async function getSocialIntegrations(
     }
 
     const tokens = await prisma.social_oauth_tokens.findMany({
-      where: { user_id: { in: userIds } } as unknown as Prisma.social_oauth_tokensWhereInput,
+      where: { user_id: { in: userIds } },
       select: { integration_name: true, expires_at: true, created_at: true, updated_at: true },
     });
 
@@ -635,8 +712,8 @@ export async function disconnectSocialIntegration(
       return createErrorResponse('Organization not found', 'טננט לא נמצא');
     }
 
-    const socialUsers = await prisma.social_users.findMany({
-      where: { organization_id: organizationId } as unknown as Prisma.social_usersWhereInput,
+    const socialUsers = await prisma.organizationUser.findMany({
+      where: { organization_id: organizationId },
       select: { id: true },
     });
 
@@ -650,7 +727,7 @@ export async function disconnectSocialIntegration(
       where: {
         user_id: { in: userIds },
         integration_name: { contains: providerLike, mode: 'insensitive' },
-      } as unknown as Prisma.social_oauth_tokensWhereInput,
+      },
     });
 
     return createSuccessResponse({ deleted: Number(deleted.count || 0) });

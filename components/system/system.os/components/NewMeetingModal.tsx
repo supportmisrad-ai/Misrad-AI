@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Video, MapPin, User, Save, Bell, MessageSquare, Mail, Smartphone, ArrowRight, Zap, CalendarClock, CheckCircle2, ChevronDown, Loader2, ExternalLink, CheckCircle } from 'lucide-react';
-import { Lead } from '../types';
+import { CalendarEvent, Lead } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NewMeetingModalProps {
   leads: Lead[];
   initialLeadId?: string;
   onClose: () => void;
-  onSave: (meeting: any) => void;
+  onSave: (meeting: CalendarEvent) => void;
   userId?: string;
   organizationId?: string;
 }
@@ -33,25 +33,35 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
     location: ''
   });
 
-  const [reminders, setReminders] = useState({
-      whatsapp: true,
-      sms: false,
-      email: true,
-      timing: 'immediate' as 'immediate' | '1h_before' | '24h_before'
-  });
-
-  const [postMeeting, setPostMeeting] = useState({
-      enabled: false,
-      type: 'thank_you' as 'thank_you' | 'summary' | 'proposal_link',
-      delay: '1h_after' as '1h_after' | 'morning_after',
-      channel: 'whatsapp' as 'whatsapp' | 'email'
-  });
-
   const timingOptions = [
       { id: 'immediate', label: 'מיד לאחר הקביעה (אישור)', icon: Zap, color: 'text-amber-500' },
       { id: '1h_before', label: 'שעה לפני הפגישה', icon: Clock, color: 'text-indigo-500' },
       { id: '24h_before', label: '24 שעות לפני הפגישה', icon: CalendarClock, color: 'text-slate-500' },
-  ];
+  ] as const;
+
+  type ReminderTiming = (typeof timingOptions)[number]['id'];
+
+  const [reminders, setReminders] = useState({
+      whatsapp: true,
+      sms: false,
+      email: true,
+      timing: 'immediate' as ReminderTiming
+  });
+
+  type PostMeetingType = 'thank_you' | 'summary' | 'proposal_link';
+
+  const postMeetingTypeOptions = [
+      { id: 'thank_you', label: 'תודה' },
+      { id: 'summary', label: 'סיכום AI' },
+      { id: 'proposal_link', label: 'הצעה' },
+  ] satisfies ReadonlyArray<{ id: PostMeetingType; label: string }>;
+
+  const [postMeeting, setPostMeeting] = useState({
+      enabled: false,
+      type: 'thank_you' as PostMeetingType,
+      delay: '1h_after' as '1h_after' | 'morning_after',
+      channel: 'whatsapp' as 'whatsapp' | 'email'
+  });
 
   const currentTiming = timingOptions.find(o => o.id === reminders.timing) || timingOptions[0];
 
@@ -332,7 +342,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                                             key={opt.id}
                                                             type="button"
                                                             onClick={() => {
-                                                                setReminders({...reminders, timing: opt.id as any});
+                                                                setReminders({ ...reminders, timing: opt.id });
                                                                 setIsTimingOpen(false);
                                                             }}
                                                             className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-right group ${reminders.timing === opt.id ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}
@@ -370,15 +380,11 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                         {postMeeting.enabled && (
                             <div className="space-y-5 animate-fade-in">
                                 <div className="grid grid-cols-3 gap-2">
-                                    {[
-                                        { id: 'thank_you', label: 'תודה' },
-                                        { id: 'summary', label: 'סיכום AI' },
-                                        { id: 'proposal_link', label: 'הצעה' },
-                                    ].map(opt => (
+                                    {postMeetingTypeOptions.map(opt => (
                                         <button
                                             key={opt.id}
                                             type="button"
-                                            onClick={() => setPostMeeting({...postMeeting, type: opt.id as any})}
+                                            onClick={() => setPostMeeting({ ...postMeeting, type: opt.id })}
                                             className={`py-2 rounded-xl text-[10px] font-bold border transition-colors ${postMeeting.type === opt.id ? 'bg-white border-emerald-300 text-emerald-700 shadow-md scale-105' : 'bg-emerald-100/30 border-transparent text-emerald-600'}`}
                                         >
                                             {opt.label}
@@ -391,7 +397,7 @@ const NewMeetingModal: React.FC<NewMeetingModalProps> = ({ leads, initialLeadId,
                                         <label className="text-[10px] font-bold text-emerald-700 uppercase mr-1">מתי?</label>
                                         <select 
                                             value={postMeeting.delay}
-                                            onChange={(e) => setPostMeeting({...postMeeting, delay: e.target.value as any})}
+                                            onChange={(e) => setPostMeeting({ ...postMeeting, delay: e.target.value === '1h_after' || e.target.value === 'morning_after' ? e.target.value : postMeeting.delay })}
                                             className="w-full bg-white border border-emerald-100 text-xs font-bold text-emerald-800 rounded-xl py-2.5 px-3 focus:ring-0 cursor-pointer"
                                         >
                                             <option value="1h_after">שעה אחרי</option>

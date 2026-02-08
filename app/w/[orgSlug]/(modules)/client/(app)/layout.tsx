@@ -9,6 +9,7 @@ import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { getClientOSClients, getOrganizationSessions } from '@/app/actions/client-portal-clinic';
 import ClientOsAppLayoutClient from '@/components/client-os-full/app-router/ClientOsAppLayoutClient';
 import { getSystemMetadata } from '@/lib/metadata';
+import { asObject } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export default async function ClientAppLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
 
@@ -27,13 +28,18 @@ export default async function ClientAppLayout({
 
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    redirect('/sign-in');
+    redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client`)}`);
   }
 
   const clerkUser = await currentUser();
+
+  const clerkPublicMeta = asObject(clerkUser?.publicMetadata);
+  const clerkPrivateMeta = asObject(clerkUser?.privateMetadata);
+  const clerkUnsafeMeta = asObject(clerkUser?.unsafeMetadata);
+
   const clerkIsSuperAdmin =
-    Boolean((clerkUser as any)?.publicMetadata?.isSuperAdmin) ||
-    String((clerkUser as any)?.publicMetadata?.role || '').toLowerCase() === 'super_admin';
+    Boolean(clerkPublicMeta?.isSuperAdmin) ||
+    String(clerkPublicMeta?.role || '').toLowerCase() === 'super_admin';
   const userInfo = await getCurrentUserInfo();
 
   const fallbackUser = userInfo.success
@@ -43,9 +49,9 @@ export default async function ClientAppLayout({
       }
     : null;
 
-  let user: any = null;
+  let user: { organization_id: string | null; role: string | null } | null = null;
   try {
-    user = await prisma.social_users.findFirst({
+    user = await prisma.organizationUser.findFirst({
       where: { clerk_user_id: clerkUserId },
       select: { organization_id: true, role: true },
     });
@@ -54,15 +60,16 @@ export default async function ClientAppLayout({
   }
 
   const roleFromClerk =
-    (clerkUser as any)?.publicMetadata?.role ??
-    (clerkUser as any)?.privateMetadata?.role ??
-    (clerkUser as any)?.unsafeMetadata?.role;
-  const normalizedRoleFromClerk = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? null;
+    clerkPublicMeta?.role ??
+    clerkPrivateMeta?.role ??
+    clerkUnsafeMeta?.role;
+
+  const normalizedRoleFromClerk = typeof roleFromClerk === 'string' ? roleFromClerk : (asObject(roleFromClerk)?.role ?? null);
   const KNOWN_ROLES = new Set(['super_admin', 'owner', 'team_member', 'admin']);
   const safeRoleFromClerk =
     typeof normalizedRoleFromClerk === 'string' && KNOWN_ROLES.has(normalizedRoleFromClerk) ? normalizedRoleFromClerk : null;
 
-  const role = ((fallbackUser as any)?.role ?? safeRoleFromClerk ?? (user as any)?.role ?? null) as string | null;
+  const role = ((fallbackUser?.role ?? safeRoleFromClerk ?? user?.role ?? null) as string | null) ?? null;
   const isAdmin = clerkIsSuperAdmin || role === 'admin' || role === 'super_admin' || role === 'owner';
 
   const organizationId = String(workspace?.id || '');
@@ -71,7 +78,7 @@ export default async function ClientAppLayout({
       ? {
           id: organizationId,
           name: String(workspace?.name || 'Workspace'),
-          logo: (workspace as any)?.logo ?? null,
+          logo: (asObject(workspace)?.logo as string | null | undefined) ?? null,
           has_client: Boolean(workspace?.entitlements?.client),
         }
       : null;
@@ -114,8 +121,8 @@ export default async function ClientAppLayout({
       initialCurrentUser={initialCurrentUser}
       initialOrganization={initialOrganization}
       initialOrgId={organizationId}
-      initialClients={initialClients as any}
-      initialMeetings={initialMeetings as any}
+      initialClients={initialClients}
+      initialMeetings={initialMeetings}
     >
       {children}
     </ClientOsAppLayoutClient>

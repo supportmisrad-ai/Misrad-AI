@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Announcements API
  * 
@@ -15,20 +16,11 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type UnknownRecord = Record<string, unknown>;
-
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
 
 function expectObject(value: unknown, message: string): UnknownRecord {
     const obj = asObject(value);
@@ -150,20 +142,26 @@ async function GETHandler(request: NextRequest) {
             );
         } catch (error: unknown) {
             if (isMissingTableOrSchemaError(error)) {
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+                }
                 return apiSuccess({ announcements: [] }, { status: 200 });
             }
-            console.error('[API] Error fetching announcements:', error);
+            if (IS_PROD) console.error('[API] Error fetching announcements');
+            else console.error('[API] Error fetching announcements:', error);
             return apiError('שגיאה בטעינת הודעות', { status: 500 });
         }
 
         return apiSuccess({ announcements: announcements || [] }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in GET /api/announcements:', error);
+        if (IS_PROD) console.error('[API] Error in GET /api/announcements');
+        else console.error('[API] Error in GET /api/announcements:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה בטעינת הודעות' });
+        const msg = getErrorMessage(error) || 'שגיאה בטעינת הודעות';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 
@@ -216,9 +214,13 @@ async function POSTHandler(request: NextRequest) {
             announcement = first ? expectObject(first, 'Announcement insert failed') : null;
         } catch (error: unknown) {
             if (isMissingTableOrSchemaError(error)) {
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+                }
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
-            console.error('[API] Error creating announcement:', error);
+            if (IS_PROD) console.error('[API] Error creating announcement');
+            else console.error('[API] Error creating announcement:', error);
             return apiError('שגיאה ביצירת הודעה', { status: 500 });
         }
 
@@ -263,8 +265,13 @@ async function POSTHandler(request: NextRequest) {
                     `
                 );
             } catch (notifError: unknown) {
-                if (!isMissingTableOrSchemaError(notifError)) {
-                    console.error('[API] Error creating notifications:', notifError);
+                if (isMissingTableOrSchemaError(notifError)) {
+                    if (!ALLOW_SCHEMA_FALLBACKS) {
+                        throw new Error(`[SchemaMismatch] misrad_notifications missing table/column (${getErrorMessage(notifError) || 'missing relation'})`);
+                    }
+                } else {
+                    if (IS_PROD) console.error('[API] Error creating notifications');
+                    else console.error('[API] Error creating notifications:', notifError);
                 }
             }
 
@@ -274,11 +281,13 @@ async function POSTHandler(request: NextRequest) {
         return apiSuccess({ announcement }, { status: 201 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in POST /api/announcements:', error);
+        if (IS_PROD) console.error('[API] Error in POST /api/announcements');
+        else console.error('[API] Error in POST /api/announcements:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה ביצירת הודעה' });
+        const msg = getErrorMessage(error) || 'שגיאה ביצירת הודעה';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 

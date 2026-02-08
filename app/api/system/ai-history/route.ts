@@ -7,6 +7,7 @@ import type { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 const FLAG_KEY_AI_HISTORY_BY_USER = '__ai_history_by_user_v1';
 
 type AnalysisReport = {
@@ -23,20 +24,7 @@ type AnalysisReport = {
   personalTasksAnalysis?: unknown;
 };
 
-type UnknownRecord = Record<string, unknown>;
-
-function asObject(input: unknown): UnknownRecord | null {
-  if (!input || typeof input !== 'object') return null;
-  if (Array.isArray(input)) return null;
-  return input as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+type UnknownRecord = Record<string, unknown>;
 
 function readAiDnaObject(input: unknown): UnknownRecord {
   return asObject(input) ?? {};

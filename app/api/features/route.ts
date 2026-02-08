@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Feature Requests
  * GET /api/features - Get feature requests
@@ -14,20 +15,9 @@ import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type UnknownRecord = Record<string, unknown>;
-
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
 
 const VALID_TYPES: readonly FeatureRequestType[] = ['feature', 'bug', 'improvement', 'integration'] as const;
 const VALID_STATUSES: readonly FeatureRequestStatus[] = ['pending', 'under_review', 'planned', 'in_progress', 'completed', 'rejected'] as const;
@@ -139,7 +129,8 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.json({ requests: transformedRequests });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/features GET:', error);
+        if (IS_PROD) console.error('[API] Error in /api/features GET');
+        else console.error('[API] Error in /api/features GET:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
@@ -200,7 +191,8 @@ async function POSTHandler(request: NextRequest) {
         }, { status: 201 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/features POST:', error);
+        if (IS_PROD) console.error('[API] Error in /api/features POST');
+        else console.error('[API] Error in /api/features POST:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }

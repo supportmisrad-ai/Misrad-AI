@@ -4,25 +4,15 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import prisma from '@/lib/prisma';
 import { AIService } from '@/lib/services/ai/AIService';
-import { contractorResolveTokenForApi } from '@/app/actions/operations';
+import { contractorResolveTokenForApi } from '@/lib/services/operations/contractors';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
 import type { Prisma } from '@prisma/client';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue | undefined {
   if (value == null) return undefined;
@@ -123,7 +113,7 @@ async function POSTHandler(req: Request) {
     let currentUsage = 0;
     if (!token && organizationId) {
       try {
-        const orgRow = await prisma.social_organizations.findUnique({
+        const orgRow = await prisma.organization.findUnique({
           where: { id: String(organizationId) },
           select: { subscription_status: true },
         });
@@ -226,8 +216,13 @@ async function POSTHandler(req: Request) {
 
     return apiSuccess({ name, isFaulty }, { headers: abuse.headers });
   } catch (e: unknown) {
-    console.error('[ai.vision.identify] failed', e);
-    return apiError(e, { status: 500, message: getErrorMessage(e) || 'שגיאה כללית' });
+    if (IS_PROD) console.error('[ai.vision.identify] failed');
+    else console.error('[ai.vision.identify] failed', e);
+    const safeMsg = 'שגיאה כללית';
+    return apiError(IS_PROD ? safeMsg : e, {
+      status: 500,
+      message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg,
+    });
   }
 }
 

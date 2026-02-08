@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Role Management (by ID)
  * 
@@ -10,22 +11,34 @@ import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { RoleDefinition, PermissionId } from '../../../../types';
 import { logAuditEvent } from '../../../../lib/audit';
 import prisma from '@/lib/prisma';
+import type { scale_roles } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function mapRoleRow(row: any): RoleDefinition {
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+type RoleUpdateData = Parameters<typeof prisma.scale_roles.update>[0]['data'];
+
+function getUnknownErrorStatus(error: unknown): 401 | 403 | null {
+    const msg = getUnknownErrorMessage(error);
+    if (msg.includes('Forbidden')) return 403;
+    if (msg.includes('Unauthorized')) return 401;
+    return null;
+}
+
+function mapRoleRow(row: Pick<scale_roles, 'id' | 'name' | 'permissions' | 'is_system' | 'description'>): RoleDefinition {
     return {
-        id: row?.id,
-        name: row?.name,
-        permissions: (row?.permissions || []) as any,
-        isSystem: row?.is_system || false,
-        description: row?.description,
-    } as any;
+        id: String(row.id),
+        name: String(row.name),
+        permissions: (Array.isArray(row.permissions) ? row.permissions : []).map(String) as PermissionId[],
+        isSystem: Boolean(row.is_system),
+        description: row.description ?? undefined,
+    };
 }
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -33,38 +46,46 @@ async function PATCHHandler(
         // Only users with manage_system permission can update roles
         await requirePermission('manage_system');
         
-        const { id: roleId } = await params;
-        const body = await request.json();
+        const { id: roleId } = params;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
         
         // Validate updates
-        const allowedUpdates: Partial<RoleDefinition> = {};
-        if (body.name !== undefined) {
-            if (typeof body.name !== 'string' || !body.name.trim()) {
+        const allowedUpdates: { name?: string; permissions?: PermissionId[]; description?: string | null } = {};
+        if (bodyObj.name !== undefined) {
+            if (typeof bodyObj.name !== 'string' || !bodyObj.name.trim()) {
                 return NextResponse.json(
                     { error: 'Role name must be a non-empty string' },
                     { status: 400 }
                 );
             }
-            allowedUpdates.name = body.name.trim();
+            allowedUpdates.name = bodyObj.name.trim();
         }
-        if (body.permissions !== undefined) {
-            if (!Array.isArray(body.permissions)) {
+        if (bodyObj.permissions !== undefined) {
+            if (!Array.isArray(bodyObj.permissions)) {
                 return NextResponse.json(
                     { error: 'Permissions must be an array' },
                     { status: 400 }
                 );
             }
-            allowedUpdates.permissions = body.permissions as PermissionId[];
+            const normalized = bodyObj.permissions.filter((p) => typeof p === 'string').map((p) => String(p));
+            allowedUpdates.permissions = normalized as PermissionId[];
         }
-        if (body.isSystem !== undefined) {
+        if (bodyObj.isSystem !== undefined) {
             // Prevent changing isSystem flag (security)
             return NextResponse.json(
                 { error: 'Cannot change isSystem flag' },
                 { status: 400 }
             );
         }
-        if (body.description !== undefined) {
-            (allowedUpdates as any).description = body.description;
+        if (bodyObj.description !== undefined) {
+            if (bodyObj.description == null) {
+                allowedUpdates.description = null;
+            } else if (typeof bodyObj.description === 'string') {
+                allowedUpdates.description = bodyObj.description;
+            } else {
+                allowedUpdates.description = String(bodyObj.description);
+            }
         }
         
         if (Object.keys(allowedUpdates).length === 0) {
@@ -74,10 +95,10 @@ async function PATCHHandler(
             );
         }
 
-        const dbUpdates: any = {};
+        const dbUpdates: RoleUpdateData = {};
         if (allowedUpdates.name !== undefined) dbUpdates.name = allowedUpdates.name;
         if (allowedUpdates.permissions !== undefined) dbUpdates.permissions = allowedUpdates.permissions;
-        if ((allowedUpdates as any).description !== undefined) dbUpdates.description = (allowedUpdates as any).description;
+        if (allowedUpdates.description !== undefined) dbUpdates.description = allowedUpdates.description;
         dbUpdates.updated_at = new Date();
 
         const data = await prisma.scale_roles.update({
@@ -85,10 +106,7 @@ async function PATCHHandler(
             data: dbUpdates,
         });
 
-        const updatedRole = mapRoleRow({
-            ...data,
-            is_system: (data as any)?.is_system,
-        });
+        const updatedRole = mapRoleRow(data);
         
         await logAuditEvent('role.update', 'role', {
             resourceId: updatedRole.id,
@@ -100,18 +118,21 @@ async function PATCHHandler(
         
         return NextResponse.json({ success: true, role: updatedRole });
         
-    } catch (error: any) {
-        console.error('[API] Error updating role:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error updating role');
+        else console.error('[API] Error updating role:', error);
         
-        if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+        const authStatus = getUnknownErrorStatus(error);
+        if (authStatus) {
+            const msg = getUnknownErrorMessage(error);
             return NextResponse.json(
-                { error: error.message },
-                { status: error.message.includes('Forbidden') ? 403 : 401 }
+                { error: msg },
+                { status: authStatus }
             );
         }
         
         return NextResponse.json(
-            { error: error.message || 'Failed to update role' },
+            { error: getUnknownErrorMessage(error) || 'Failed to update role' },
             { status: 500 }
         );
     }
@@ -119,7 +140,7 @@ async function PATCHHandler(
 
 async function DELETEHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -127,7 +148,7 @@ async function DELETEHandler(
         // Only users with manage_system permission can delete roles
         await requirePermission('manage_system');
         
-        const { id: roleId } = await params;
+        const { id: roleId } = params;
 
         // Check if role is system role
         const roleRow = await prisma.scale_roles.findUnique({
@@ -139,7 +160,7 @@ async function DELETEHandler(
             return NextResponse.json({ error: 'Role not found' }, { status: 404 });
         }
 
-        if ((roleRow as any)?.is_system) {
+        if (roleRow.is_system) {
             throw new Error('Cannot delete system role');
         }
 
@@ -154,17 +175,21 @@ async function DELETEHandler(
         
         return NextResponse.json({ success: true, message: 'Role deleted successfully' });
         
-    } catch (error: any) {
-        console.error('[API] Error deleting role:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error deleting role');
+        else console.error('[API] Error deleting role:', error);
         
-        if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+        const authStatus = getUnknownErrorStatus(error);
+        if (authStatus) {
+            const msg = getUnknownErrorMessage(error);
             return NextResponse.json(
-                { error: error.message },
-                { status: error.message.includes('Forbidden') ? 403 : 401 }
+                { error: msg },
+                { status: authStatus }
             );
         }
         
-        if (error.message?.includes('system role')) {
+        const msg = getUnknownErrorMessage(error);
+        if (msg.includes('system role')) {
             return NextResponse.json(
                 { error: 'Cannot delete system role' },
                 { status: 400 }
@@ -172,7 +197,7 @@ async function DELETEHandler(
         }
         
         return NextResponse.json(
-            { error: error.message || 'Failed to delete role' },
+            { error: msg || 'Failed to delete role' },
             { status: 500 }
         );
     }

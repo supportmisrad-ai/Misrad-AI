@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 export default async function SocialMePage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
 

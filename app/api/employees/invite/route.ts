@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Create Employee Invitation Link
  * POST /api/employees/invite
@@ -22,23 +23,20 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
     const v = obj[key];
     return typeof v === 'string' ? v : v == null ? fallback : String(v);
 }
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
+
+function isMissingRelationOrColumnError(error: unknown): boolean {
+    const obj = asObject(error) ?? {};
+    const code = String(obj['code'] ?? '').toLowerCase();
+    const message = String(obj['message'] ?? '').toLowerCase();
+    return code === '42p01' || code === '42703' || message.includes('does not exist') || message.includes('relation') || message.includes('column');
 }
 
 type WorkspaceUserRow = {
@@ -239,6 +237,9 @@ async function POSTHandler(request: NextRequest) {
             if (getErrorMessage(e).includes('[SchemaMismatch]')) {
                 throw e;
             }
+            if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] organizations.seats_allowed query failed (${getErrorMessage(e) || 'missing relation'})`);
+            }
             seatsAllowedOverride = null;
         }
 
@@ -384,6 +385,9 @@ async function POSTHandler(request: NextRequest) {
                 },
             });
         } catch (notifError: unknown) {
+            if (isMissingRelationOrColumnError(notifError) && !ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(notifError) || 'missing relation'})`);
+            }
             console.warn('[API] Could not create notification:', notifError);
             // Don't fail the request if notification fails
         }

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Complete Employee Invitation
  * POST /api/employees/invite/[token]/complete
@@ -15,20 +16,10 @@ import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type UnknownRecord = Record<string, unknown>;
 
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
 
 type WorkspaceUserRow = {
     id: string;
@@ -223,10 +214,10 @@ async function insertNotification(params: { workspaceId: string; notification: u
 }
 async function POSTHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ token: string }> }
+    { params }: { params: { token: string } }
 ) {
     try {
-        const { token } = await params;
+        const { token } = params;
 
         if (!token) {
             return apiError('Token is required', { status: 400 });
@@ -238,6 +229,7 @@ async function POSTHandler(
             key: `${ip}:${String(token)}`,
             limit: 10,
             windowMs: 10 * 60 * 1000,
+            mode: 'degraded',
         });
         if (!rl.ok) {
             return apiError('Too many requests', {
@@ -280,7 +272,7 @@ async function POSTHandler(
             return apiError('הזמנה לא משויכת לארגון', { status: 400 });
         }
 
-        const org = await prisma.social_organizations.findUnique({
+        const org = await prisma.organization.findUnique({
             where: { id: String(organizationId) },
             select: {
                 has_nexus: true,
@@ -421,7 +413,8 @@ async function POSTHandler(
                     },
                 });
             } catch (notifError: unknown) {
-                console.warn('[API] Could not create notification:', notifError);
+                if (IS_PROD) console.warn('[API] Could not create notification');
+                else console.warn('[API] Could not create notification:', notifError);
             }
         }
 
@@ -443,8 +436,11 @@ async function POSTHandler(
         }, { status: 201 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/employees/invite/[token]/complete POST:', error);
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה בהשלמת ההרשמה' });
+        if (IS_PROD) console.error('[API] Error in /api/employees/invite/[token]/complete POST');
+        else console.error('[API] Error in /api/employees/invite/[token]/complete POST:', error);
+        const msg = getErrorMessage(error) || 'שגיאה בהשלמת ההרשמה';
+        const safeMsg = 'שגיאה בהשלמת ההרשמה';
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

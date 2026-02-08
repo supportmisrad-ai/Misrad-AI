@@ -14,8 +14,13 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -59,7 +64,7 @@ async function GETHandler(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const service = searchParams.get('service');
 
-        let integrations: any[] = [];
+        let integrations: Awaited<ReturnType<typeof prisma.scale_integrations.findMany>> = [];
         try {
             integrations = await prisma.scale_integrations.findMany({
                 where: {
@@ -74,10 +79,14 @@ async function GETHandler(request: NextRequest) {
                                 : { in: ['google_calendar', 'google_drive'] },
                 },
             });
-        } catch (error: any) {
-            const msg = String(error?.message || '');
+        } catch (error: unknown) {
+            const msg = getErrorMessage(error);
             if (msg.includes('does not exist') || msg.includes('42P01')) {
-                console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] scale_integrations missing table (${msg || 'missing relation'})`);
+                }
+                if (IS_PROD) console.warn('[API] Integrations table not found');
+                else console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
                 return apiSuccess({
                     status: {
                         calendar: { connected: false },
@@ -94,22 +103,25 @@ async function GETHandler(request: NextRequest) {
         }
 
         // Return status without sensitive tokens
+        const calendarIntegration = integrations.find((i) => i.service_type === 'google_calendar');
+        const driveIntegration = integrations.find((i) => i.service_type === 'google_drive');
+
         const status = {
-            calendar: integrations?.find((i: any) => i.service_type === 'google_calendar') ? {
+            calendar: calendarIntegration ? {
                 connected: true,
-                lastSynced: integrations.find((i: any) => i.service_type === 'google_calendar')?.last_synced_at,
-                metadata: integrations.find((i: any) => i.service_type === 'google_calendar')?.metadata
+                lastSynced: calendarIntegration.last_synced_at,
+                metadata: calendarIntegration.metadata
             } : { connected: false },
-            drive: integrations?.find((i: any) => i.service_type === 'google_drive') ? {
+            drive: driveIntegration ? {
                 connected: true,
-                lastSynced: integrations.find((i: any) => i.service_type === 'google_drive')?.last_synced_at,
-                metadata: integrations.find((i: any) => i.service_type === 'google_drive')?.metadata
+                lastSynced: driveIntegration.last_synced_at,
+                metadata: driveIntegration.metadata
             } : { connected: false }
         };
 
         return apiSuccess({ status });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof APIError) {
             // Status endpoints are optional; on screens like /login we may not have workspace context.
             if (error.status === 400) {
@@ -122,7 +134,8 @@ async function GETHandler(request: NextRequest) {
             }
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        console.warn('[API] Error getting Google integration status (non-critical):', error.message);
+        if (IS_PROD) console.warn('[API] Error getting Google integration status (non-critical)');
+        else console.warn('[API] Error getting Google integration status (non-critical):', getErrorMessage(error));
         return apiSuccess({
             status: {
                 calendar: { connected: false },

@@ -13,11 +13,12 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { Redis } from '@upstash/redis';
-import { MisradInvoiceStatus } from '@prisma/client';
+import { MisradInvoiceStatus, Prisma } from '@prisma/client';
 
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { getErrorMessage } from '@/lib/shared/unknown';
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export const runtime = 'nodejs';
@@ -83,14 +84,8 @@ function getErrorName(e: unknown): string {
   if (e instanceof Error && typeof e.name === 'string') return e.name;
   if (isRecord(e) && typeof e.name === 'string') return e.name;
   return '';
-}
+}
 
-function getErrorMessage(e: unknown): string {
-  if (e instanceof Error) return String(e.message || '');
-  if (typeof e === 'string') return e;
-  if (isRecord(e) && typeof e.message === 'string') return e.message;
-  return '';
-}
 
 const _g = globalThis as _ChatGlobalCaches;
 
@@ -263,6 +258,7 @@ async function enforceRateLimit(params: { namespace: string; key: string; limit:
         retryAfterSeconds: rl.retryAfterSeconds,
         label: params.label,
       }),
+      reason: rl.reason,
     };
   }
   return {
@@ -366,7 +362,7 @@ async function getHelpVideoSuggestion(params: { organizationId: string; pathname
   const pathname = String(params.pathname || '/');
   const normalized = normalizeRoute(pathname);
 
-  const where: any = {};
+  const where: Prisma.help_videosWhereInput = {};
   const mk = String(params.moduleKey || '').trim().toLowerCase();
   if (mk && ['nexus', 'system', 'social', 'finance', 'client', 'operations'].includes(mk)) {
     where.module_key = mk;
@@ -485,15 +481,43 @@ async function POSTHandler(req: Request) {
 
     const ip = getClientIpFromRequest(req);
     const marketingRequest = hasExplicitPathname && isMarketingPathname(normalizedPathname);
-    const earlyRateLimit = await enforceRateLimit({
-      namespace: marketingRequest ? 'ai.chat.marketing.ip_min' : 'ai.chat.anon.ip_min',
-      key: ip,
-      limit: marketingRequest ? 10 : 20,
-      windowMs: 60_000,
-      label: 'ip-min',
-    });
+    const earlyRateLimit = await (async () => {
+      const rl = await rateLimit({
+        namespace: marketingRequest ? 'ai.chat.marketing.ip_min' : 'ai.chat.anon.ip_min',
+        key: ip,
+        limit: marketingRequest ? 10 : 20,
+        windowMs: 60_000,
+        mode: 'fail_closed',
+      });
+
+      if (!rl.ok) {
+        return {
+          ok: false as const,
+          headers: buildRateLimitHeaders({
+            limit: marketingRequest ? 10 : 20,
+            remaining: 0,
+            resetAt: rl.resetAt,
+            retryAfterSeconds: rl.retryAfterSeconds,
+            label: 'ip-min',
+          }),
+          reason: rl.reason,
+        };
+      }
+
+      return {
+        ok: true as const,
+        headers: buildRateLimitHeaders({
+          limit: marketingRequest ? 10 : 20,
+          remaining: rl.remaining,
+          resetAt: rl.resetAt,
+          label: 'ip-min',
+        }),
+      };
+    })();
     if (!earlyRateLimit.ok) {
-      return jsonError('Rate limit exceeded', 429, earlyRateLimit.headers);
+      const status = earlyRateLimit.reason === 'unavailable' ? 503 : 429;
+      const msg = earlyRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded';
+      return jsonError(msg, status, earlyRateLimit.headers);
     }
 
     if (marketingRequest) {
@@ -812,14 +836,14 @@ async function POSTHandler(req: Request) {
             const misradInvoicesOpenThisMonth = Number(misradInvoicesAgg._sum?.amount || 0);
 
             let recurringMonthly = 0;
-            const billingRows = await prisma.nexus_billing_items.findMany({
-              where: { organization_id: organizationId },
-              select: { cadence: true, amount: true },
-              take: 500,
+            const billingAgg = await prisma.nexus_billing_items.aggregate({
+              where: { organization_id: organizationId, cadence: 'monthly' },
+              _sum: { amount: true },
             });
-            recurringMonthly = (billingRows || [])
-              .filter((r: any) => String((r as any).cadence || '').toLowerCase() === 'monthly')
-              .reduce((sum: number, r: any) => sum + Number((r as any).amount || 0), 0);
+
+            const rm = billingAgg._sum?.amount;
+            const rmNum = rm == null ? 0 : rm instanceof Prisma.Decimal ? rm.toNumber() : Number(rm);
+            recurringMonthly = Math.round((Number.isFinite(rmNum) ? rmNum : 0) * 100) / 100;
 
             const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;
             moduleSnapshotText = safeJsonStringify(

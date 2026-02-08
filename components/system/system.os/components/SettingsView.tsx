@@ -18,12 +18,14 @@ interface SettingsViewProps {
   leads?: Lead[];
 }
 
+type SettingsTabId = 'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications';
+
 const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   const { canAccess, user } = useAuth();
   const { addToast } = useToast();
   const { brandName, brandLogo, setBrandName, setBrandLogo } = useBrand();
   
-  const [activeTab, setActiveTab] = useState<'general' | 'targets' | 'pipeline' | 'team' | 'billing' | 'notifications'>('general');
+  const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
   const [teamMembers, setTeamMembers] = useState(INITIAL_AGENTS);
   
   // Local state for brand editing
@@ -72,14 +74,22 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
   };
 
   // Filter Tabs based on RBAC
-  const TABS = [
+  const TABS = (
+    [
       { id: 'general', label: 'על העסק', icon: Building, desc: 'פרטים ומיתוג', allowed: true },
       { id: 'targets', label: 'יעדים', icon: Target, desc: 'ניהול יעדי מכירות', allowed: true },
       { id: 'pipeline', label: 'תהליך המכירה', icon: Kanban, desc: 'עריכת שלבים', allowed: canAccess('settings_team') },
       { id: 'team', label: 'צוות והרשאות', icon: Users, desc: 'מי במערכת', allowed: canAccess('settings_team') },
       { id: 'billing', label: 'תוכנית ותשלום', icon: CreditCard, desc: 'חשבוניות', allowed: canAccess('billing') },
       { id: 'notifications', label: 'התראות', icon: Bell, desc: 'מתי להציק לך', allowed: true },
-  ].filter(tab => tab.allowed);
+    ] satisfies Array<{
+      id: SettingsTabId;
+      label: string;
+      icon: React.ComponentType<{ size?: number; className?: string }>;
+      desc: string;
+      allowed: boolean;
+    }>
+  ).filter((tab) => tab.allowed);
 
   const userRole = user?.role;
 
@@ -114,7 +124,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ leads = [] }) => {
                       {TABS.map(tab => (
                           <button
                               key={tab.id}
-                              onClick={() => setActiveTab(tab.id as any)}
+                              onClick={() => setActiveTab(tab.id)}
                               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-right group ${
                                   activeTab === tab.id 
                                   ? 'bg-rose-50 text-primary shadow-sm ring-1 ring-rose-100' 

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { buildAiBrainExport } from '@/app/actions/admin-ai-brain-export';
+import { buildAiBrainExport } from '@/lib/services/ai/admin-ai-brain-export';
 import { requireSuperAdmin } from '@/lib/auth';
 import { apiError } from '@/lib/server/api-response';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -25,8 +26,8 @@ async function GETHandler(req: Request) {
         'Cache-Control': 'no-store',
       },
     });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e) || String(e ?? '');
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
     return apiError(e, { status });
   }

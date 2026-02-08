@@ -4,19 +4,17 @@ import { NextResponse } from 'next/server';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
-import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/app/actions/users';
+import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/lib/services/auth/clerk-webhook';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug } from '@/lib/server/orgSlug';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
 
+import { asObject } from '@/lib/shared/unknown';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 async function POSTHandler(req: Request) {
   // Get the Svix headers for verification
@@ -396,6 +394,10 @@ async function POSTHandler(req: Request) {
       if (attemptErrorObj) {
         const code = typeof attemptErrorObj.code === 'string' ? String(attemptErrorObj.code) : String(attemptErrorObj.code ?? '');
         if (code === '42703') {
+          if (!ALLOW_SCHEMA_FALLBACKS) {
+            const msg = typeof attemptErrorObj.message === 'string' ? String(attemptErrorObj.message) : 'missing column';
+            throw new Error(`[SchemaMismatch] social_users missing column (${msg || '42703'})`);
+          }
           const baseFallback = scoped ? scoped.from('social_users') : supabase.from('social_users');
           let fallbackQuery = baseFallback
             .update({ updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)
@@ -447,4 +449,6 @@ async function POSTHandler(req: Request) {
 }
 
 
-export const POST = shabbatGuard(POSTHandler);
+export const POST = shabbatGuard((req: Request) =>
+  withWebhookGlobalAdminContext({ source: 'webhook_clerk' }, () => POSTHandler(req))
+);

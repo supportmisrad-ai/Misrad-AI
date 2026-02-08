@@ -1,14 +1,10 @@
 import NexusModuleClient from '../NexusModuleClient';
 import { currentUser } from '@clerk/nextjs/server';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { asObject } from '@/lib/shared/unknown';
+import type { ModuleId, OrganizationProfile } from '@/types';
 
 export const dynamic = 'force-dynamic';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function getStringFromMetadata(value: unknown): string | null {
   if (typeof value === 'string') return value;
@@ -20,7 +16,7 @@ function getStringFromMetadata(value: unknown): string | null {
 export default async function NexusCatchAllPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; path: string[] }>;
+  params: Promise<{ orgSlug: string; path: string[] }> | { orgSlug: string; path: string[] };
 }) {
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
@@ -50,17 +46,20 @@ export default async function NexusCatchAllPage({
     tenantId: workspace.id,
   };
 
-  const initialOrganization = {
+  const optionalModule = (enabled: boolean | undefined, id: ModuleId): ModuleId[] => (enabled ? [id] : []);
+  const enabledModules: ModuleId[] = [
+    'crm',
+    'ai',
+    'team',
+    ...(workspace.entitlements?.finance ? (['finance'] as ModuleId[]) : []),
+    ...(workspace.entitlements?.operations ? (['operations'] as ModuleId[]) : []),
+  ];
+
+  const initialOrganization: Partial<OrganizationProfile> = {
     name: workspace.name,
     logo: workspace.logo || '',
     primaryColor: '#000000',
-    enabledModules: [
-      'crm',
-      'ai',
-      'team',
-      ...(workspace.entitlements?.finance ? (['finance'] as const) : []),
-      ...(workspace.entitlements?.operations ? (['operations'] as const) : []),
-    ],
+    enabledModules,
   };
 
   return (

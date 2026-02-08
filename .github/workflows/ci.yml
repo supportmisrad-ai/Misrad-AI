@@ -1,0 +1,190 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: misrad_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d misrad_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/misrad_ci?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/misrad_ci?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Ensure .env.local exists
+        run: |
+          test -f .env.local || printf "" > .env.local
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Prepare database roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role NOLOGIN;
+            END IF;
+          END
+          $$;
+          SQL
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  security_e2e:
+    name: Playwright Security
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: misrad_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d misrad_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/misrad_ci?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/misrad_ci?schema=public
+      IS_E2E_TESTING: "true"
+      E2E_DISABLE_GLOBAL_SETUP: "true"
+      MISRAD_RATE_LIMIT_DISABLE_REDIS: "true"
+      E2E_API_KEY: ci-e2e-key
+      E2E_ORG_SLUG: 00000000-0000-0000-0000-000000000001
+      E2E_PUBLIC_LEADS_API_KEY: ci-public-leads-key
+      E2E_BASE_URL: http://127.0.0.1:4000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Ensure .env.local exists
+        run: |
+          test -f .env.local || printf "" > .env.local
+
+      - name: Install psql
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Prepare database roles
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role NOLOGIN;
+            END IF;
+          END
+          $$;
+          SQL
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run migrations
+        run: npm run prisma:migrate:deploy:ci
+
+      - name: Seed api_keys for public leads test
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d misrad_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE IF NOT EXISTS api_keys (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            name TEXT NOT NULL,
+            key TEXT NOT NULL UNIQUE,
+            is_active BOOLEAN DEFAULT true,
+            rate_limit_per_minute INTEGER DEFAULT 10,
+            allowed_endpoints TEXT[] DEFAULT ARRAY['public_leads'],
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW(),
+            last_used_at TIMESTAMPTZ
+          );
+
+          INSERT INTO api_keys (name, key, is_active, rate_limit_per_minute, allowed_endpoints)
+          VALUES (
+            'CI Public Leads API',
+            'ci-public-leads-key',
+            true,
+            10,
+            ARRAY['public_leads']
+          )
+          ON CONFLICT (key)
+          DO UPDATE SET
+            is_active = EXCLUDED.is_active,
+            rate_limit_per_minute = EXCLUDED.rate_limit_per_minute,
+            allowed_endpoints = EXCLUDED.allowed_endpoints,
+            updated_at = NOW();
+          SQL
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright security tests
+        run: npm run test:e2e -- tests/e2e/security --workers=1
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-security
+          path: |
+            playwright-report
+            test-results

@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
 type VoiceAction =
@@ -19,20 +20,7 @@ type VoiceAction =
 type VoiceCommandPayload = {
   action: VoiceAction;
   data?: unknown;
-};
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+};
 
 function safeJsonParse(text: string): unknown {
   try {
@@ -272,7 +260,7 @@ async function executeCommand(params: {
         lastContact: now,
         isHot: false,
         score: 50,
-      } as any,
+      },
       select: {
         id: true,
         name: true,
@@ -296,7 +284,7 @@ async function executeCommand(params: {
           content: noteText,
           direction: null,
           metadata: { source: 'voice' },
-        } as any,
+        },
       });
     }
 
@@ -311,7 +299,7 @@ async function executeCommand(params: {
           data: {
             nextActionDate: dt,
             nextActionNote,
-          } as any,
+          },
         });
       }
     }
@@ -351,7 +339,7 @@ async function executeCommand(params: {
         dueDate: parsedDue.dueDate,
         dueTime: parsedDue.dueTime,
         department: null,
-      } as any,
+      },
       select: { id: true, title: true, dueDate: true },
     });
 
@@ -390,7 +378,7 @@ async function executeCommand(params: {
         where: {
           organization_id: params.workspaceId,
           name: { contains: clientName, mode: 'insensitive' },
-        } as any,
+        },
         select: { id: true },
       });
       if (foundClient?.id) {
@@ -411,7 +399,7 @@ async function executeCommand(params: {
         addressNormalized: address || null,
         source: 'voice',
         sourceRefId: null,
-      } as any,
+      },
       select: { id: true },
     });
 
@@ -428,7 +416,7 @@ async function executeCommand(params: {
         addressNormalized: address || null,
         scheduledStart,
         assignedTechnicianId: params.actorUserId,
-      } as any,
+      },
       select: { id: true, title: true },
     });
 
@@ -455,11 +443,18 @@ async function executeCommand(params: {
       };
     }
 
+    if (amount == null) {
+      return {
+        message: 'כדי להכין טיוטת חשבונית חסר: amount_ils',
+        actionResult: { ok: false, missingFields: ['amount_ils'] },
+      };
+    }
+
     const match = await prisma.misradClient.findFirst({
       where: {
         organizationId: params.workspaceId,
         name: { contains: clientName, mode: 'insensitive' },
-      } as any,
+      },
       select: { id: true, name: true },
     });
 
@@ -481,7 +476,7 @@ async function executeCommand(params: {
 
     const draftNumber = `DRAFT-${Date.now()}`;
 
-    let invoice: { id: string; number: string; amount: any };
+    let invoice: { id: string; number: string; amount: number };
 
     try {
       invoice = await prisma.misradInvoice.create({
@@ -495,7 +490,7 @@ async function executeCommand(params: {
           status: 'DRAFT',
           downloadUrl: '',
           draftDescription: description || null,
-        } as any,
+        },
         select: { id: true, number: true, amount: true },
       });
     } catch (e) {
@@ -509,7 +504,7 @@ async function executeCommand(params: {
           dueDate: dueStr,
           status: 'PENDING',
           downloadUrl: '',
-        } as any,
+        },
         select: { id: true, number: true, amount: true },
       });
 
@@ -525,7 +520,7 @@ async function executeCommand(params: {
           description: activityDescription,
           date: dateStr,
           isRisk: false,
-        } as any,
+        },
         select: { id: true },
       });
     }

@@ -11,6 +11,7 @@ import { Redis } from '@upstash/redis';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 type IncomingMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -37,41 +38,29 @@ type CachedChatResponse = {
 
 type CacheEntry = { expiresAt: number; value: CachedChatResponse };
 
-type GlobalStore = Record<string, unknown>;
-
-function globalMap<K, V>(key: string): Map<K, V> {
-  const g = globalThis as unknown as GlobalStore;
-  const existing = g[key];
-  if (existing instanceof Map) {
-    return existing as Map<K, V>;
-  }
-  const created = new Map<K, V>();
-  g[key] = created;
-  return created;
+declare global {
+  var __MISRAD_CHAT_API_RESPONSE_CACHE__: Map<string, CacheEntry> | undefined;
+  var __MISRAD_CHAT_API_INFLIGHT__: Map<string, Promise<CachedChatResponse>> | undefined;
+  var __MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__: Map<string, number> | undefined;
 }
 
-const responseCache: Map<string, CacheEntry> = globalMap<string, CacheEntry>('__MISRAD_CHAT_API_RESPONSE_CACHE__');
-const inflightByKey: Map<string, Promise<CachedChatResponse>> = globalMap<string, Promise<CachedChatResponse>>('__MISRAD_CHAT_API_INFLIGHT__');
-const localOrgInFlight: Map<string, number> = globalMap<string, number>('__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__');
+const responseCache: Map<string, CacheEntry> =
+  globalThis.__MISRAD_CHAT_API_RESPONSE_CACHE__ ??
+  (globalThis.__MISRAD_CHAT_API_RESPONSE_CACHE__ = new Map<string, CacheEntry>());
+
+const inflightByKey: Map<string, Promise<CachedChatResponse>> =
+  globalThis.__MISRAD_CHAT_API_INFLIGHT__ ??
+  (globalThis.__MISRAD_CHAT_API_INFLIGHT__ = new Map<string, Promise<CachedChatResponse>>());
+
+const localOrgInFlight: Map<string, number> =
+  globalThis.__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__ ??
+  (globalThis.__MISRAD_CHAT_API_LOCAL_ORG_INFLIGHT__ = new Map<string, number>());
 
 type OverloadedError = Error & { status: number; retryAfterSeconds: number };
 
 function overloadedError(): OverloadedError {
   return Object.assign(new Error('Overloaded'), { status: 503, retryAfterSeconds: 3 });
-}
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+}
 
 function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
@@ -194,6 +183,7 @@ async function enforceRateLimit(params: { namespace: string; key: string; limit:
         retryAfterSeconds: rl.retryAfterSeconds,
         label: params.label,
       }),
+      reason: rl.reason,
     };
   }
   return {
@@ -257,7 +247,9 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
       label: 'ip-min',
     });
     if (!earlyRateLimit.ok) {
-      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429, headers: earlyRateLimit.headers });
+      const status = earlyRateLimit.reason === 'unavailable' ? 503 : 429;
+      const msg = earlyRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded';
+      return NextResponse.json({ error: msg }, { status, headers: earlyRateLimit.headers });
     }
 
     const { messages, clientContext }: {
@@ -319,8 +311,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     });
     if (!userRateLimit.ok) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers } }
+        { error: userRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
+        { status: userRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers } }
       );
     }
 
@@ -333,8 +325,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     });
     if (!userDayRateLimit.ok) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers } }
+        { error: userDayRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
+        { status: userDayRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers } }
       );
     }
 
@@ -347,8 +339,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     });
     if (!orgRateLimit.ok) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers } }
+        { error: orgRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
+        { status: orgRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers } }
       );
     }
 
@@ -361,8 +353,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
     });
     if (!orgDayRateLimit.ok) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers, ...orgDayRateLimit.headers } }
+        { error: orgDayRateLimit.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Rate limit exceeded' },
+        { status: orgDayRateLimit.reason === 'unavailable' ? 503 : 429, headers: { ...earlyRateLimit.headers, ...userRateLimit.headers, ...userDayRateLimit.headers, ...orgRateLimit.headers, ...orgDayRateLimit.headers } }
       );
     }
 

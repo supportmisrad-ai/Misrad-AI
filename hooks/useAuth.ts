@@ -42,6 +42,11 @@ function getClerkRole(clerkUser: unknown): string | undefined {
     return typeof role === 'string' && role.trim() ? role : undefined;
 }
 
+function getUnknownProp(obj: unknown, key: string): unknown {
+    const o = asObject(obj);
+    return o ? o[key] : undefined;
+}
+
 export const useAuth = (
     addToast: (msg: string, type?: ToastKind) => void,
     initialCurrentUser?: User
@@ -201,7 +206,11 @@ export const useAuth = (
             presenceFailureCountRef.current = 0;
             presenceSuccessCountRef.current += 1;
             if (presenceSuccessCountRef.current === 1) {
-                console.info('Presence heartbeat ok', { orgSlug, serverTime: (result as any)?.serverTime, debug: (result as any)?.debug });
+                console.info('Presence heartbeat ok', {
+                    orgSlug,
+                    serverTime: getUnknownProp(result, 'serverTime'),
+                    debug: getUnknownProp(result, 'debug'),
+                });
             }
             setCurrentUser((prev) => (prev.online ? prev : { ...prev, online: true }));
         } catch (error) {

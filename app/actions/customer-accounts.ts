@@ -58,8 +58,8 @@ export async function getCustomerAccountForCurrentOrganization(params: { orgSlug
       phone: row.phone ? String(row.phone) : null,
       email: row.email ? String(row.email) : null,
     });
-  } catch (error: any) {
-    return createErrorResponse(error, error?.message || 'שגיאה בטעינת פרטי העסק');
+  } catch (error: unknown) {
+    return createErrorResponse(error, 'שגיאה בטעינת פרטי העסק');
   }
 }
 
@@ -123,7 +123,7 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
     }
 
     try {
-      await prisma.social_organizations.update({
+      await prisma.organization.update({
         where: { id: String(organizationId) },
         data: { name: companyName, updated_at: now },
       });
@@ -132,7 +132,7 @@ export async function upsertCustomerAccountForCurrentOrganization(input: {
     }
 
     return createSuccessResponse(true);
-  } catch (error: any) {
-    return createErrorResponse(error, error?.message || 'שגיאה בשמירת פרטי העסק');
+  } catch (error: unknown) {
+    return createErrorResponse(error, 'שגיאה בשמירת פרטי העסק');
   }
 }

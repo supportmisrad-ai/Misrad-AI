@@ -10,6 +10,20 @@ export type WorkspaceProfileIdentity = {
   profileCompleted: boolean;
 };
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  const v = obj?.[key];
+  if (v == null) return null;
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return null;
+}
+
 export function useWorkspaceProfileIdentity(orgSlug: string | null | undefined): {
   identity: WorkspaceProfileIdentity | null;
   isLoading: boolean;
@@ -31,13 +45,14 @@ export function useWorkspaceProfileIdentity(orgSlug: string | null | undefined):
         const res = await getMyProfile({ orgSlug });
         if (!mounted) return;
         if (!res.success || !res.data?.profile) return;
-        const p: any = res.data.profile;
-        const rawCompleted = p?.ui_preferences?.profileCompleted;
+        const p = asObject(res.data.profile);
+        const uiPrefs = asObject(p?.ui_preferences);
+        const rawCompleted = uiPrefs?.profileCompleted;
         const profileCompleted = typeof rawCompleted === 'boolean' ? rawCompleted : true;
         setIdentity({
-          name: p.full_name ? String(p.full_name) : null,
-          role: p.role ? String(p.role) : null,
-          avatarUrl: p.avatar_url ? String(p.avatar_url) : null,
+          name: getStringProp(p, 'full_name'),
+          role: getStringProp(p, 'role'),
+          avatarUrl: getStringProp(p, 'avatar_url'),
           profileCompleted,
         });
       } catch {

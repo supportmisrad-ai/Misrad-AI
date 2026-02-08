@@ -1,4 +1,5 @@
 import { AIProviderError } from '../errors';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export class DeepgramProvider {
   private readonly apiKey: string;
@@ -22,7 +23,7 @@ export class DeepgramProvider {
           Authorization: `Token ${this.apiKey}`,
           'Content-Type': params.mimeType,
         },
-        body: params.audioBuffer as any,
+        body: params.audioBuffer,
         signal: ac.signal,
       });
 
@@ -31,15 +32,32 @@ export class DeepgramProvider {
         throw new AIProviderError({ provider: 'deepgram', status: res.status, message: `Deepgram error (${res.status}): ${text}` });
       }
 
-      const json: any = await res.json();
-      const transcript =
-        json?.results?.channels?.[0]?.alternatives?.[0]?.transcript ||
-        json?.results?.utterances?.map((u: any) => u.transcript).join('\n') ||
-        '';
+      const json: unknown = await res.json().catch(() => null);
+      const jsonObj = asObject(json) ?? {};
+      const resultsObj = asObject(jsonObj.results) ?? {};
+
+      const channels = Array.isArray(resultsObj.channels) ? resultsObj.channels : [];
+      const firstChannelObj = channels.length > 0 ? asObject(channels[0]) : null;
+      const alternatives = Array.isArray(firstChannelObj?.alternatives) ? firstChannelObj?.alternatives : [];
+      const firstAltObj = alternatives.length > 0 ? asObject(alternatives[0]) : null;
+      const transcriptFromChannels = typeof firstAltObj?.transcript === 'string' ? firstAltObj.transcript : '';
+
+      const utterances = Array.isArray(resultsObj.utterances) ? resultsObj.utterances : [];
+      const transcriptFromUtterances = utterances
+        .map((u) => {
+          const uObj = asObject(u) ?? {};
+          return typeof uObj.transcript === 'string' ? uObj.transcript : '';
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      const transcript = transcriptFromChannels || transcriptFromUtterances || '';
 
       return { text: transcript };
-    } catch (err: any) {
-      if (String(err?.name || '') === 'AbortError') {
+    } catch (err: unknown) {
+      const obj = asObject(err) ?? {};
+      const errName = typeof obj.name === 'string' ? obj.name : err instanceof Error ? err.name : '';
+      if (String(errName || '') === 'AbortError') {
         throw new AIProviderError({
           provider: 'deepgram',
           status: 504,
@@ -47,7 +65,7 @@ export class DeepgramProvider {
           cause: err,
         });
       }
-      throw err;
+      throw err instanceof Error ? err : new Error(getErrorMessage(err) || 'Deepgram request failed');
     } finally {
       clearTimeout(timeout);
     }

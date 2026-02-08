@@ -5,6 +5,8 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 import { isCeoRole } from '@/lib/constants/roles';
+import { Prisma } from '@prisma/client';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -44,8 +46,9 @@ async function POSTHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    const body = await request.json();
-    const templateKey = String(body?.templateKey || '').trim();
+    const bodyJson: unknown = await request.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
+    const templateKey = String(bodyObj.templateKey || '').trim();
 
     if (templateKey !== 'retainer_fixed' && templateKey !== 'deliverables_package') {
       return NextResponse.json({ error: 'Invalid templateKey' }, { status: 400 });
@@ -71,7 +74,7 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'User not found in database. Please sync your account first.' }, { status: 400 });
     }
 
-    const rows = templateTasks(templateKey).map((t) => ({
+    const rows: Prisma.NexusTaskCreateManyInput[] = templateTasks(templateKey).map((t) => ({
       id: randomUUID(),
       organizationId: workspace.id,
       title: t.title,
@@ -90,24 +93,24 @@ async function POSTHandler(request: NextRequest) {
       estimatedTime: null,
       approvalStatus: null,
       isTimerRunning: false,
-      messages: [],
+      messages: [] as Prisma.InputJsonValue,
       clientId: null,
       isPrivate: false,
       audioUrl: null,
       snoozeCount: 0,
       isFocus: false,
-      completionDetails: null,
+      completionDetails: Prisma.DbNull,
       department: user?.role || null,
     }));
 
-    await prisma.nexusTask.createMany({ data: rows as any });
+    await prisma.nexusTask.createMany({ data: rows });
 
     return NextResponse.json({ ok: true, createdTaskIds: rows.map((r) => r.id) });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof APIError) {
       return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
     }
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) || 'Internal server error' }, { status: 500 });
   }
 }
 

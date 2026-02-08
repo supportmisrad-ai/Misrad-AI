@@ -38,7 +38,7 @@ async function safeUpdateLastLocation({
     return;
   }
 
-  await prisma.social_users.update({
+  await prisma.organizationUser.update({
     where: { clerk_user_id: clerkUserId },
     data: updateData,
   });
@@ -50,7 +50,7 @@ async function GETHandler() {
     return apiError('Unauthorized', { status: 401 });
   }
 
-  const data = await prisma.social_users.findUnique({
+  const data = await prisma.organizationUser.findUnique({
     where: { clerk_user_id: clerkUserId },
     select: { last_location_org: true, last_module: true },
   });

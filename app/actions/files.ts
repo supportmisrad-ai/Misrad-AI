@@ -1,26 +1,13 @@
 'use server';
 
-import { createClient } from '@/lib/supabase';
+import { createStorageClient } from '@/lib/supabase';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import { auth } from '@clerk/nextjs/server';
 import { translateError } from '@/lib/errorTranslations';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -39,7 +26,7 @@ export interface UploadResult {
   error?: string;
 }
 
-async function ensureBucketExists(supabase: ReturnType<typeof createClient>, bucketName: string) {
+async function ensureBucketExists(supabase: ReturnType<typeof createStorageClient>, bucketName: string) {
   const { data: buckets, error: listError } = await supabase.storage.listBuckets();
   if (listError) {
     throw new Error(listError.message || 'Failed to list storage buckets');
@@ -98,7 +85,7 @@ export async function uploadFile(
       };
     }
 
-    const supabase = createClient();
+    const supabase = createStorageClient();
 
     const resolvedOrgSlug = String(orgSlug || '').trim();
     if (!resolvedOrgSlug) {
@@ -203,7 +190,7 @@ export async function uploadCallRecordingFile(
       return { success: false, error: 'סוג קובץ לא נתמך. מותר: קבצי אודיו בלבד (MP3/WAV/M4A וכו׳).' };
     }
 
-    const supabase = createClient();
+    const supabase = createStorageClient();
     await ensureBucketExists(supabase, CALL_RECORDINGS_BUCKET);
 
     const timestamp = Date.now();
@@ -262,7 +249,7 @@ export async function deleteFile(filePath: string): Promise<{ success: boolean; 
       return { success: false, error: 'לא מחובר' };
     }
 
-    const supabase = createClient();
+    const supabase = createStorageClient();
 
     // Extract bucket and path
     const { data, error } = await supabase.storage

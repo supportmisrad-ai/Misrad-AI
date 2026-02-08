@@ -2,6 +2,9 @@ import 'server-only';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 export type NexusOnboardingTemplateKey = 'retainer_fixed' | 'deliverables_package';
 
 export type NexusOnboardingTemplatePayload = {
@@ -11,21 +14,7 @@ export type NexusOnboardingTemplatePayload = {
 
 export function getNexusOnboardingSettingsKey(workspaceId: string): string {
   return `nexus_onboarding_template:${workspaceId}`;
-}
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+}
 
 function isTemplateKey(value: unknown): value is NexusOnboardingTemplateKey {
   return value === 'retainer_fixed' || value === 'deliverables_package';
@@ -72,14 +61,25 @@ export async function getNexusOnboardingTemplate(workspaceId: string): Promise<N
     if (!isMissingPrismaRelationError(error) && !isMissingRelationError(error)) {
       throw new Error(getErrorMessage(error) || String(error));
     }
+    if (!ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] nexus_onboarding_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+    }
   }
 
   // Fallback: legacy storage
   const legacyKey = getNexusOnboardingSettingsKey(workspaceId);
-  const legacy = await prisma.social_system_settings.findUnique({
-    where: { key: legacyKey },
-    select: { value: true },
-  });
+  let legacy: { value: unknown } | null = null;
+  try {
+    legacy = await prisma.social_system_settings.findUnique({
+      where: { key: legacyKey },
+      select: { value: true },
+    });
+  } catch (error: unknown) {
+    if ((isMissingPrismaRelationError(error) || isMissingRelationError(error)) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+    }
+    throw error;
+  }
 
   return coerceTemplatePayload(legacy?.value);
 }
@@ -111,6 +111,9 @@ export async function setNexusOnboardingTemplate(params: {
   } catch (error: unknown) {
     if (!isMissingPrismaRelationError(error) && !isMissingRelationError(error)) {
       throw new Error(getErrorMessage(error) || String(error));
+    }
+    if (!ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] nexus_onboarding_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
     }
   }
 

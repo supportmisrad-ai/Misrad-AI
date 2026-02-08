@@ -4,6 +4,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -79,11 +80,11 @@ async function POSTHandler(req: Request) {
     });
 
     return apiSuccessCompat({ text: out.text }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });
     }
-    return apiError(e, { status: 500, message: 'Live transcription failed' });
+    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Live transcription failed' });
   }
 }
 

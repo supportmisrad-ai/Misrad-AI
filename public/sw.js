@@ -1,11 +1,6 @@
+import { asObject } from '@/lib/shared/unknown';
 // Service Worker for Nexus PWA
-const CACHE_NAME = 'nexus-v1';
-
-function asObject(value) {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value;
-}
+const CACHE_NAME = 'nexus-v1';
 
 function getString(obj, key, fallback) {
   const v = obj && obj[key];

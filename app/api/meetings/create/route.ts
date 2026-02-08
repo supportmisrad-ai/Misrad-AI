@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createMeeting } from '@/lib/services/meeting-service';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 /**
  * Create a meeting with automatic platform selection (Zoom or Meet)
@@ -21,11 +24,27 @@ export async function POST(request: NextRequest) {
 
     const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
 
-    const body = await request.json();
-    const { title, startTime, duration, description, preferredPlatform } = body;
+    const bodyJson: unknown = await request.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
+    const title = String(bodyObj.title || '').trim();
+    const startTimeRaw = bodyObj.startTime;
+    const duration = Number(bodyObj.duration);
+    const description = bodyObj.description == null ? undefined : String(bodyObj.description);
+    const preferredPlatformCandidate = bodyObj.preferredPlatform == null ? undefined : String(bodyObj.preferredPlatform);
+    const preferredPlatform =
+      preferredPlatformCandidate === 'zoom' || preferredPlatformCandidate === 'meet' || preferredPlatformCandidate === 'none'
+        ? preferredPlatformCandidate
+        : undefined;
+
+    const startDate =
+      startTimeRaw instanceof Date
+        ? startTimeRaw
+        : typeof startTimeRaw === 'string' || typeof startTimeRaw === 'number'
+          ? new Date(startTimeRaw)
+          : null;
 
     // Validate required fields
-    if (!title || !startTime || !duration) {
+    if (!title || !startDate || !Number.isFinite(duration) || duration <= 0) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -37,17 +56,19 @@ export async function POST(request: NextRequest) {
       userId: clerkUserId,
       organizationId,
       title,
-      startTime: new Date(startTime),
+      startTime: startDate,
       duration,
       description,
-      preferredPlatform: preferredPlatform || undefined,
+      preferredPlatform,
     });
 
     return NextResponse.json(meeting);
-  } catch (error: any) {
-    console.error('[Meeting Create] Error:', error);
+  } catch (error: unknown) {
+    if (IS_PROD) console.error('[Meeting Create] Error');
+    else console.error('[Meeting Create] Error:', error);
+    const safeMsg = 'Failed to create meeting';
     return NextResponse.json(
-      { error: error.message || 'Failed to create meeting' },
+      { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
       { status: 500 }
     );
   }

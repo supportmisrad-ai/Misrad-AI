@@ -1,4 +1,42 @@
 import { AIProviderError } from '../errors';
+import { z } from 'zod';
+
+import { asObject } from '@/lib/shared/unknown';
+const OpenAIEmbeddingsResponseSchema = z
+  .object({
+    data: z.array(
+      z
+        .object({
+          embedding: z.array(z.number()),
+        })
+        .passthrough()
+    ),
+  })
+  .passthrough();
+
+const OpenAIChatCompletionResponseSchema = z
+  .object({
+    choices: z.array(
+      z
+        .object({
+          message: z
+            .object({
+              content: z.string().nullable().optional(),
+            })
+            .passthrough(),
+        })
+        .passthrough()
+    ),
+  })
+  .passthrough();
+
+type OpenAIResponseFormat = { type: 'json_object' };
+
+function isAbortError(err: unknown): boolean {
+  const obj = asObject(err);
+  const name = err instanceof Error ? err.name : typeof obj?.name === 'string' ? obj.name : '';
+  return name === 'AbortError';
+}
 
 export class OpenAIProvider {
   private readonly apiKey: string;
@@ -30,16 +68,17 @@ export class OpenAIProvider {
         throw new AIProviderError({ provider: 'openai', status: res.status, message: `OpenAI embeddings error (${res.status}): ${txt}` });
       }
 
-      const json: any = await res.json();
-      const embedding = json?.data?.[0]?.embedding;
+      const json: unknown = await res.json();
+      const parsed = OpenAIEmbeddingsResponseSchema.safeParse(json);
+      const embedding = parsed.success ? parsed.data.data?.[0]?.embedding : null;
 
       if (!Array.isArray(embedding) || embedding.length === 0) {
         throw new AIProviderError({ provider: 'openai', message: 'OpenAI embeddings returned empty vector' });
       }
 
-      return { embedding: embedding as number[] };
-    } catch (err: any) {
-      if (String(err?.name || '') === 'AbortError') {
+      return { embedding };
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
         throw new AIProviderError({
           provider: 'openai',
           status: 504,
@@ -94,7 +133,7 @@ export class OpenAIProvider {
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         model: params.model,
         messages: [
           ...(params.systemInstruction ? [{ role: 'system', content: params.systemInstruction }] : []),
@@ -124,16 +163,17 @@ export class OpenAIProvider {
         throw new AIProviderError({ provider: 'openai', status: res.status, message: `OpenAI error (${res.status}): ${txt}` });
       }
 
-      const json: any = await res.json();
-      const text = json?.choices?.[0]?.message?.content;
+      const json: unknown = await res.json();
+      const parsed = OpenAIChatCompletionResponseSchema.safeParse(json);
+      const text = parsed.success ? parsed.data.choices?.[0]?.message?.content : null;
 
       if (!text) {
         throw new AIProviderError({ provider: 'openai', message: 'OpenAI returned empty response' });
       }
 
       return { text };
-    } catch (err: any) {
-      if (String(err?.name || '') === 'AbortError') {
+    } catch (err: unknown) {
+      if (isAbortError(err)) {
         throw new AIProviderError({
           provider: 'openai',
           status: 504,
@@ -152,13 +192,13 @@ export class OpenAIProvider {
     prompt: string;
     systemInstruction?: string;
     timeoutMs: number;
-    responseFormat?: any;
+    responseFormat?: OpenAIResponseFormat;
   }): Promise<{ text: string }> {
     const ac = new AbortController();
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
     try {
-      const body: any = {
+      const body: Record<string, unknown> = {
         model: params.model,
         messages: [
           ...(params.systemInstruction ? [{ role: 'system', content: params.systemInstruction }] : []),
@@ -185,8 +225,9 @@ export class OpenAIProvider {
         throw new AIProviderError({ provider: 'openai', status: res.status, message: `OpenAI error (${res.status}): ${txt}` });
       }
 
-      const json: any = await res.json();
-      const text = json?.choices?.[0]?.message?.content;
+      const json: unknown = await res.json();
+      const parsed = OpenAIChatCompletionResponseSchema.safeParse(json);
+      const text = parsed.success ? parsed.data.choices?.[0]?.message?.content : null;
 
       if (!text) {
         throw new AIProviderError({ provider: 'openai', message: 'OpenAI returned empty response' });

@@ -10,8 +10,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '../../../../lib/auth';
 import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -19,11 +23,16 @@ async function POSTHandler(request: NextRequest) {
 
         // 2. Parse form data
         const formData = await request.formData();
-        const file = formData.get('file') as File;
-        const bucket = formData.get('bucket') as string || 'attachments';
-        const folder = formData.get('folder') as string || undefined;
-        const orgSlugRaw = formData.get('orgSlug') as string | null;
-        const requestedUserId = formData.get('userId') as string | null;
+        const fileValue = formData.get('file');
+        const file = fileValue instanceof File ? fileValue : null;
+        const bucketValue = formData.get('bucket');
+        const bucket = typeof bucketValue === 'string' && bucketValue ? bucketValue : 'attachments';
+        const folderValue = formData.get('folder');
+        const folder = typeof folderValue === 'string' && folderValue ? folderValue : undefined;
+        const orgSlugValue = formData.get('orgSlug');
+        const orgSlugRaw = typeof orgSlugValue === 'string' ? orgSlugValue : null;
+        const requestedUserIdValue = formData.get('userId');
+        const requestedUserId = typeof requestedUserIdValue === 'string' ? requestedUserIdValue : null;
         const userId = user.isSuperAdmin && requestedUserId ? requestedUserId : user.id;
 
         if (!file) {
@@ -66,9 +75,9 @@ async function POSTHandler(request: NextRequest) {
             let workspace;
             try {
                 ({ workspace } = await getWorkspaceByOrgKeyOrThrow(String(orgSlugRaw)));
-            } catch (e: any) {
-                const status = typeof e?.status === 'number' ? e.status : 403;
-                return NextResponse.json({ error: e?.message || 'Forbidden' }, { status });
+            } catch (e: unknown) {
+                const status = getErrorStatus(e) ?? 403;
+                return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden' }, { status });
             }
 
             let decodedOrgSlug = String(orgSlugRaw);
@@ -143,10 +152,12 @@ async function POSTHandler(request: NextRequest) {
             fileType: file.type
         });
 
-    } catch (error: any) {
-        console.error('[API] Upload error:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Upload error');
+        else console.error('[API] Upload error:', error);
+        const safeMsg = 'Upload failed';
         return NextResponse.json(
-            { error: error.message || 'Upload failed' },
+            { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
             { status: 500 }
         );
     }

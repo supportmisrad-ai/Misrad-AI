@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { requireSuperAdmin } from '@/lib/auth';
+import { createServiceRoleStorageClient } from '@/lib/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 export async function POST(request: NextRequest) {
   try {
     await requireSuperAdmin();
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const type = formData.get('type') as string || 'image'; // 'image', 'video', 'cover'
+
+    const fileValue: unknown = formData.get('file');
+    const file = fileValue instanceof File ? fileValue : null;
+
+    const typeValue: unknown = formData.get('type');
+    const type = typeof typeValue === 'string' && typeValue ? typeValue : 'image'; // 'image', 'video', 'cover'
     
     if (!file) {
       return NextResponse.json(
@@ -19,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'landing_upload_public_assets' });
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -37,7 +42,8 @@ export async function POST(request: NextRequest) {
       });
 
     if (error) {
-      console.error('Supabase upload error:', error);
+      if (IS_PROD) console.error('Supabase upload error');
+      else console.error('Supabase upload error:', error);
       return NextResponse.json(
         { error: 'Failed to upload image' },
         { status: 500 }
@@ -53,9 +59,10 @@ export async function POST(request: NextRequest) {
       url: urlData.publicUrl,
       path: filePath,
     });
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    const status = error instanceof Error && error.message.includes('Forbidden') ? 403 : 500;
+  } catch (error: unknown) {
+    if (IS_PROD) console.error('Error uploading image');
+    else console.error('Error uploading image:', error);
+    const status = getUnknownErrorMessage(error).includes('Forbidden') ? 403 : 500;
     return NextResponse.json(
       { error: 'Failed to upload image' },
       { status }

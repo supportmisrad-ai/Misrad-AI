@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toNumberSafe } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError, toNumberSafe } from '@/lib/services/operations/shared';
 import { ensureOperationsVehicleHolderId } from '@/lib/services/operations/stock-holders';
 import type { OperationsHolderStockRow } from '@/lib/services/operations/types';
 
@@ -61,7 +61,7 @@ export async function getOperationsVehicleStockBalancesForOrganizationId(params:
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsVehicleStockBalances failed', e);
+    logOperationsError('[operations] getOperationsVehicleStockBalances failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי רכב' };
   }
 }

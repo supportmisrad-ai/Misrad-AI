@@ -3,6 +3,24 @@
 import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
+
+import { asObject } from '@/lib/shared/unknown';
+function isNavSection(value: unknown): value is NavigationItem['section'] {
+  return value === 'global' || value === 'client' || value === 'management' || value === 'settings' || value === 'admin';
+}
+
+function normalizeRequiresRole(value: unknown): string[] | undefined {
+  if (value == null) return undefined;
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    if (Array.isArray(parsed)) return parsed.map((x) => String(x)).filter(Boolean);
+    if (typeof parsed === 'string') return [parsed];
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface NavigationItem {
   id: string;
@@ -30,35 +48,24 @@ export async function getNavigationMenu(): Promise<{
       orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
 
-    const items: NavigationItem[] = (data || []).map((item: any) => {
-      let requiresRole = null;
-      try {
-        if (item.requires_role) {
-          requiresRole = Array.isArray(item.requires_role)
-            ? item.requires_role
-            : typeof item.requires_role === 'string'
-              ? JSON.parse(item.requires_role)
-              : item.requires_role;
-        }
-      } catch {
-        requiresRole = null;
-      }
+    const items: NavigationItem[] = (data || []).map((item) => {
+      const requiresRole = normalizeRequiresRole(item.requires_role);
       
       return {
-        id: item.id,
-        label: item.label,
-        icon: item.icon,
-        view: item.view,
-        section: item.section,
-        order: item.order || 0,
+        id: String(item.id),
+        label: String(item.label),
+        icon: String(item.icon),
+        view: String(item.view),
+        section: isNavSection(item.section) ? item.section : 'global',
+        order: Number(item.order) || 0,
         isVisible: item.is_visible !== false,
-        requiresClient: item.requires_client || false,
-        requiresRole,
+        requiresClient: Boolean(item.requires_client),
+        requiresRole: requiresRole ?? undefined,
       };
     });
 
     // Do not expose role-restricted items in the public menu endpoint.
-    const publicItems = items.filter((i: any) => !Array.isArray(i.requiresRole) || i.requiresRole.length === 0);
+    const publicItems = items.filter((i) => !Array.isArray(i.requiresRole) || i.requiresRole.length === 0);
     return createSuccessResponse(publicItems);
   } catch (error) {
     return createErrorResponse(error, 'שגיאה בטעינת תפריט');
@@ -74,7 +81,7 @@ export async function updateNavigationMenu(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -92,7 +99,7 @@ export async function updateNavigationMenu(
             order: Number(item.order) || 0,
             is_visible: item.isVisible !== false,
             requires_client: Boolean(item.requiresClient),
-            requires_role: (item.requiresRole ? item.requiresRole : null) as any,
+            requires_role: (item.requiresRole ? item.requiresRole : Prisma.DbNull) as Prisma.InputJsonValue,
             updated_at: new Date(),
           },
           update: {
@@ -103,7 +110,7 @@ export async function updateNavigationMenu(
             order: Number(item.order) || 0,
             is_visible: item.isVisible !== false,
             requires_client: Boolean(item.requiresClient),
-            requires_role: (item.requiresRole ? item.requiresRole : null) as any,
+            requires_role: (item.requiresRole ? item.requiresRole : Prisma.DbNull) as Prisma.InputJsonValue,
             updated_at: new Date(),
           },
         });
@@ -127,7 +134,7 @@ export async function getAllNavigationItems(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -136,21 +143,20 @@ export async function getAllNavigationItems(): Promise<{
       orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
 
-    const items: NavigationItem[] = (data || []).map((item: any) => ({
-      id: item.id,
-      label: item.label,
-      icon: item.icon,
-      view: item.view,
-      section: item.section,
-      order: item.order,
-      isVisible: item.is_visible,
-      requiresClient: item.requires_client,
-      requiresRole: Array.isArray(item.requires_role)
-        ? item.requires_role
-        : item.requires_role
-          ? [String(item.requires_role)]
-          : null,
-    }));
+    const items: NavigationItem[] = (data || []).map((item) => {
+      const requiresRole = normalizeRequiresRole(item.requires_role);
+      return {
+        id: String(item.id),
+        label: String(item.label),
+        icon: String(item.icon),
+        view: String(item.view),
+        section: isNavSection(item.section) ? item.section : 'global',
+        order: Number(item.order) || 0,
+        isVisible: item.is_visible !== false,
+        requiresClient: Boolean(item.requires_client),
+        requiresRole: requiresRole ?? undefined,
+      };
+    });
 
     return createSuccessResponse(items);
   } catch (error) {

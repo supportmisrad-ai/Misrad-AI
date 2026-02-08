@@ -4,14 +4,29 @@ import { requireSuperAdmin } from '../../../../../lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+import { getErrorMessage } from '@/lib/shared/unknown';
 function isSafeTableName(name: string): boolean {
     return /^[a-zA-Z0-9_]+$/.test(name);
 }
 
-function isPgMissingTableError(error: any): boolean {
-    const code = String(error?.code || error?.meta?.code || '');
+function asRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') return null;
+    return value as Record<string, unknown>;
+}
+
+function getErrorCode(error: unknown): string {
+    const rec = asRecord(error);
+    if (!rec) return '';
+    const direct = rec.code;
+    if (typeof direct === 'string') return direct;
+    const meta = asRecord(rec.meta);
+    return typeof meta?.code === 'string' ? String(meta.code) : '';
+}
+
+function isPgMissingTableError(error: unknown): boolean {
+    const code = getErrorCode(error);
     if (code === '42P01') return true;
-    const msg = String(error?.message || '').toLowerCase();
+    const msg = getErrorMessage(error).toLowerCase();
     return msg.includes('does not exist') || msg.includes('undefined_table');
 }
 
@@ -31,8 +46,8 @@ async function countTableRecords(table: string): Promise<number> {
 async function GETHandler(request: NextRequest) {
     try {
         await requireSuperAdmin();
-    } catch (e: any) {
-        return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+    } catch (e: unknown) {
+        return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
     }
 
     const results: Record<string, { exists: boolean; count?: number; error?: string }> = {};
@@ -82,11 +97,11 @@ async function GETHandler(request: NextRequest) {
                 });
                 const actualCount = await countTableRecords(table);
                 results[table] = { exists: true, count: actualCount || 0 };
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (isPgMissingTableError(error)) {
                     results[table] = { exists: false, error: 'Table does not exist' };
                 } else {
-                    results[table] = { exists: false, error: error?.message || 'Unknown error' };
+                    results[table] = { exists: false, error: getErrorMessage(error) };
                 }
             }
         }

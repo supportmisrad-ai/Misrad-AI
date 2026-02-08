@@ -10,8 +10,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -32,14 +36,19 @@ async function GETHandler(request: NextRequest) {
                 : 'מפתח AI לא מוגדר. הוסף API_KEY ל-.env.local או ב-Vercel'
         });
         
-    } catch (error: any) {
-        console.error('[API] Error checking AI key status:', {
-            message: error?.message,
-            name: error?.name
-        });
+    } catch (error: unknown) {
+        const message = getErrorMessage(error);
+        const obj = asObject(error) ?? {};
+        const name = typeof obj.name === 'string' ? obj.name : undefined;
+        if (IS_PROD) console.error('[API] Error checking AI key status');
+        else
+            console.error('[API] Error checking AI key status:', {
+                message,
+                name,
+            });
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: error.message?.includes('Forbidden') ? 403 : 500 }
+            { error: message || 'Internal server error' },
+            { status: message.includes('Forbidden') ? 403 : 500 }
         );
     }
 }

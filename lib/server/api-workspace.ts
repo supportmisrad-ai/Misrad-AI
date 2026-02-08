@@ -1,10 +1,5 @@
-import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function normalizeOrgKey(orgKey: string): string {
   const raw = String(orgKey).trim();
@@ -21,15 +16,7 @@ function getErrorStatus(error: unknown): number | null {
   const obj = asObject(error);
   const status = obj?.status;
   return typeof status === 'number' && Number.isFinite(status) ? status : null;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+}
 
 export class APIError extends Error {
   status: number;

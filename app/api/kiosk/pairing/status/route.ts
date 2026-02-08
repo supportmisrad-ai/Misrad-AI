@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { asObject } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 async function POSTHandler(request: NextRequest) {
@@ -15,15 +16,16 @@ async function POSTHandler(request: NextRequest) {
     }
   }
 
-  const body = await request.json().catch(() => ({} as any));
-  const code = String(body?.code || '').trim().toUpperCase();
-  const deviceNonce = String(body?.deviceNonce || '').trim();
+  const bodyJson: unknown = await request.json().catch(() => ({}));
+  const bodyObj = asObject(bodyJson) ?? {};
+  const code = String(bodyObj.code || '').trim().toUpperCase();
+  const deviceNonce = String(bodyObj.deviceNonce || '').trim();
 
   if (!code || !deviceNonce) {
     return apiError('Missing code/deviceNonce', { status: 400 });
   }
 
-  let row: any = null;
+  let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findFirst>> | null = null;
   try {
     row = await prisma.devicePairingToken.findFirst({
       where: { code: String(code), deviceNonce: String(deviceNonce) },
@@ -37,7 +39,7 @@ async function POSTHandler(request: NextRequest) {
   }
 
   const now = new Date();
-  const expiresAt = row.expiresAt ? new Date(String(row.expiresAt)) : null;
+  const expiresAt = row.expiresAt ? new Date(row.expiresAt) : null;
   const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
 
   if (isExpired && String(row.status || '').toUpperCase() === 'PENDING') {

@@ -11,8 +11,13 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -38,9 +43,20 @@ async function deactivateInvitation(params: { workspaceId: string; invitationId:
             `
         );
         return Number(res || 0);
-    } catch (error: any) {
-        const code = String((error as any)?.code || (error as any)?.meta?.code || '');
+    } catch (error: unknown) {
+        const errObj = asObject(error) ?? {};
+        const metaObj = asObject(errObj.meta) ?? {};
+        const code = String(errObj.code ?? metaObj.code ?? '');
+        if (code === '42P01') {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
+            }
+            throw error;
+        }
         if (code === '42703') {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
+            }
             const res = await prisma.$executeRaw(
                 Prisma.sql`
                     UPDATE system_invitation_links
@@ -56,21 +72,21 @@ async function deactivateInvitation(params: { workspaceId: string; invitationId:
 }
 async function POSTHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         // 1. Authenticate user
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch {
             return apiError('Unauthorized', { status: 401 });
         }
 
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
-            return apiError(e?.message || 'Forbidden - Super Admin required', { status: 403 });
+        } catch (e: unknown) {
+            return apiError(getErrorMessage(e) || 'Forbidden - Super Admin required', { status: 403 });
         }
 
         if (!clerkUser.email) {
@@ -88,13 +104,16 @@ async function POSTHandler(
 
         // Super admin already validated above
 
-        const { id } = await params;
+        const { id } = params;
 
         let updatedCount = 0;
         try {
-            updatedCount = await deactivateInvitation({ workspaceId: String(workspace.id), invitationId: String(id) });
-        } catch (updateError: any) {
-            console.error('[API] Error deactivating invitation:', updateError);
+            updatedCount = await deactivateInvitation({
+                workspaceId: String(workspace.id), invitationId: String(id)
+            });
+        } catch (updateError: unknown) {
+            if (IS_PROD) console.error('[API] Error deactivating invitation');
+            else console.error('[API] Error deactivating invitation:', updateError);
             return apiError('Failed to deactivate invitation', { status: 500 });
         }
 
@@ -104,12 +123,14 @@ async function POSTHandler(
 
         return apiSuccess({ message: 'Invitation link deactivated' });
 
-    } catch (error: any) {
-        console.error('[API] Error deactivating invitation:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error deactivating invitation');
+        else console.error('[API] Error deactivating invitation:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: error.message || 'Failed to deactivate invitation' });
+        const msg = getErrorMessage(error) || 'Failed to deactivate invitation';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 

@@ -9,6 +9,7 @@ import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
 import PipelineBoard from '@/components/system/PipelineBoard';
 import { STAGES } from '@/components/system/constants';
+import { getErrorMessage } from '@/lib/shared/unknown';
 import {
   createSystemLead,
   createSystemLeadActivity,
@@ -31,15 +32,6 @@ function isSameLocalDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  if (typeof error === 'string') return error;
-  if (error && typeof error === 'object') {
-    const msg = (error as Record<string, unknown>).message;
-    if (typeof msg === 'string') return msg;
-  }
-  return '';
-}
 
 function isPipelineStage(value: unknown): value is PipelineStage {
   return (

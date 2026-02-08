@@ -31,6 +31,10 @@ local.properties
 keystore.properties
 *.jks
 *.pem
+*.bak
+*.bak.*
+*.backup
+*.backup.*
 /backups/
 /tmp_db_schema.prisma
 /prisma/_prisma_diff_full.sql

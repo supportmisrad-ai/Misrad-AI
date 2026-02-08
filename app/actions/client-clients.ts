@@ -5,10 +5,12 @@ import { createClientSchema, validateWithSchema } from '@/lib/validation';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
-import type { Client, ClientStatus, PricingPlan } from '@/types/social';
+import type { BusinessMetrics, Client, ClientDNA, ClientStatus, PricingPlan, StrategicCharacterization } from '@/types/social';
 import { createClinicClient, updateClinicClient } from '@/app/actions/client-clinic';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
+import { getErrorMessageFromErrorOr as getErrorMessage } from '@/lib/shared/unknown';
 type ClientClientsRow = {
   id: string;
   organization_id: string;
@@ -29,6 +31,24 @@ export type ClientLite = {
   onboardingStatus?: string;
   status?: string;
 };
+
+type ClientLiteRow = Prisma.ClientClientGetPayload<{
+  select: { id: true; fullName: true; metadata: true };
+}>;
+
+type ClientPageRow = Prisma.ClientClientGetPayload<{
+  select: {
+    id: true;
+    organizationId: true;
+    fullName: true;
+    phone: true;
+    email: true;
+    notes: true;
+    metadata: true;
+    createdAt: true;
+    updatedAt: true;
+  };
+}>;
 
 function safeString(v: unknown, fallback = ''): string {
   return typeof v === 'string' ? v : fallback;
@@ -57,15 +77,88 @@ function optionalPaymentStatus(v: unknown): Client['paymentStatus'] {
   return v === 'paid' || v === 'pending' || v === 'overdue' ? v : undefined;
 }
 
+function normalizeStrategy(value: unknown): StrategicCharacterization | undefined {
+  const obj = value && typeof value === 'object' && !Array.isArray(value) ? asRecord(value) : null;
+  if (!obj) return undefined;
+
+  return {
+    targetAudience: safeString(obj.targetAudience, ''),
+    painPoints: safeString(obj.painPoints, ''),
+    uniqueValue: safeString(obj.uniqueValue, ''),
+    competitors: safeString(obj.competitors, ''),
+    mainGoal: safeString(obj.mainGoal, ''),
+    ...(typeof obj.aiStrategySummary === 'string' ? { aiStrategySummary: obj.aiStrategySummary } : {}),
+  };
+}
+
+function normalizeClientDna(value: unknown): ClientDNA {
+  const base: ClientDNA = {
+    brandSummary: '',
+    voice: { formal: 50, funny: 50, length: 50 },
+    vocabulary: { loved: [], forbidden: [] },
+    colors: { primary: '#1e293b', secondary: '#334155' },
+  };
+
+  const obj = value && typeof value === 'object' && !Array.isArray(value) ? asRecord(value) : null;
+  if (!obj) return base;
+
+  const voiceObj = obj.voice && typeof obj.voice === 'object' && !Array.isArray(obj.voice) ? asRecord(obj.voice) : null;
+  const vocabularyObj =
+    obj.vocabulary && typeof obj.vocabulary === 'object' && !Array.isArray(obj.vocabulary) ? asRecord(obj.vocabulary) : null;
+  const colorsObj = obj.colors && typeof obj.colors === 'object' && !Array.isArray(obj.colors) ? asRecord(obj.colors) : null;
+
+  const strategy = normalizeStrategy(obj.strategy);
+
+  return {
+    brandSummary: safeString(obj.brandSummary, base.brandSummary),
+    voice: {
+      formal: safeNumber(voiceObj?.formal, base.voice.formal),
+      funny: safeNumber(voiceObj?.funny, base.voice.funny),
+      length: safeNumber(voiceObj?.length, base.voice.length),
+    },
+    vocabulary: {
+      loved: Array.isArray(vocabularyObj?.loved) ? vocabularyObj.loved.map((v) => String(v)) : base.vocabulary.loved,
+      forbidden: Array.isArray(vocabularyObj?.forbidden)
+        ? vocabularyObj.forbidden.map((v) => String(v))
+        : base.vocabulary.forbidden,
+    },
+    colors: {
+      primary: safeString(colorsObj?.primary, base.colors.primary),
+      secondary: safeString(colorsObj?.secondary, base.colors.secondary),
+    },
+    ...(strategy ? { strategy } : {}),
+  };
+}
+
+function normalizeBusinessMetrics(value: unknown): BusinessMetrics {
+  const base: BusinessMetrics = {
+    timeSpentMinutes: 0,
+    expectedHours: 0,
+    punctualityScore: 100,
+    responsivenessScore: 100,
+    revisionCount: 0,
+  };
+
+  const obj = value && typeof value === 'object' && !Array.isArray(value) ? asRecord(value) : null;
+  if (!obj) return base;
+
+  return {
+    timeSpentMinutes: safeNumber(obj.timeSpentMinutes, base.timeSpentMinutes),
+    expectedHours: safeNumber(obj.expectedHours, base.expectedHours),
+    punctualityScore: safeNumber(obj.punctualityScore, base.punctualityScore),
+    responsivenessScore: safeNumber(obj.responsivenessScore, base.responsivenessScore),
+    revisionCount: safeNumber(obj.revisionCount, base.revisionCount),
+    ...(typeof obj.lastAIBusinessAudit === 'string' ? { lastAIBusinessAudit: obj.lastAIBusinessAudit } : {}),
+    ...(obj.daysOverdue != null ? { daysOverdue: safeNumber(obj.daysOverdue, 0) } : {}),
+  };
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object') return {};
   if (Array.isArray(value)) return {};
   return value as Record<string, unknown>;
 }
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 export async function getClientsLite(
   clerkUserId?: string,
@@ -82,20 +175,15 @@ export async function getClientsLite(
       take: 200,
     });
 
-    const list: ClientLite[] = (data || []).map((row: any) => {
-      const rec: Record<string, unknown> = {
-        id: row?.id,
-        full_name: row?.fullName,
-        metadata: row?.metadata,
-      };
-      const md = asRecord(rec.metadata);
-      const companyName = safeString(md.companyName, safeString(md.name, safeString(rec.full_name, '')));
-      const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(String(rec.id))}`);
+    const list: ClientLite[] = (data as ClientLiteRow[]).map((row) => {
+      const md = asRecord(row.metadata);
+      const companyName = safeString(md.companyName, safeString(md.name, safeString(row.fullName, '')));
+      const avatar = safeString(md.avatar, `https://i.pravatar.cc/150?u=${encodeURIComponent(String(row.id))}`);
       const postingRhythm = safeString(md.postingRhythm, '3 פעמים בשבוע');
       const onboardingStatus = optionalString(md.onboardingStatus);
       const status = optionalString(md.status);
       return {
-        id: String(rec.id),
+        id: String(row.id),
         companyName,
         avatar,
         postingRhythm,
@@ -147,7 +235,7 @@ export async function getClientsPage(params: {
 
     const hasMore = rows.length > pageSize;
     const trimmed = hasMore ? rows.slice(0, pageSize) : rows;
-    const clients = trimmed.map((row: any) =>
+    const clients = (trimmed as ClientPageRow[]).map((row) =>
       mapClientClientsRowToSocialClient({
         id: String(row.id),
         organization_id: String(row.organizationId),
@@ -189,15 +277,7 @@ function mapClientClientsRowToSocialClient(row: ClientClientsRow): Client {
     email: row.email ?? undefined,
     avatar,
     brandVoice: safeString(md.brandVoice, ''),
-    dna:
-      md.dna && typeof md.dna === 'object' && !Array.isArray(md.dna)
-        ? (md.dna as unknown as Client['dna'])
-        : {
-            brandSummary: '',
-            voice: { formal: 50, funny: 50, length: 50 },
-            vocabulary: { loved: [], forbidden: [] },
-            colors: { primary: '#1e293b', secondary: '#334155' },
-          },
+    dna: normalizeClientDna(md.dna),
     credentials: Array.isArray(md.credentials) ? (md.credentials as Client['credentials']) : [],
     postingRhythm: safeString(md.postingRhythm, '3 פעמים בשבוע'),
     status: (md.status as ClientStatus) || 'Onboarding',
@@ -214,16 +294,7 @@ function mapClientClientsRowToSocialClient(row: ClientClientsRow): Client {
     paymentStatus: optionalPaymentStatus(md.paymentStatus),
     autoRemindersEnabled: safeBoolean(md.autoRemindersEnabled, true),
     savedCardThumbnail: optionalString(md.savedCardThumbnail),
-    businessMetrics:
-      md.businessMetrics && typeof md.businessMetrics === 'object' && !Array.isArray(md.businessMetrics)
-        ? (md.businessMetrics as unknown as Client['businessMetrics'])
-        : {
-            timeSpentMinutes: 0,
-            expectedHours: 0,
-            punctualityScore: 100,
-            responsivenessScore: 100,
-            revisionCount: 0,
-          },
+    businessMetrics: normalizeBusinessMetrics(md.businessMetrics),
     internalNotes: optionalString(md.internalNotes),
     organizationId: row.organization_id,
   };
@@ -379,13 +450,13 @@ export async function updateClient(
 
     const nextMetadata: Record<string, unknown> = {
       ...asRecord(existingRow.metadata),
-      ...(updates as unknown as Record<string, unknown>),
+      ...asRecord(updates),
     };
 
-    // ...
+    const updatesRec = asRecord(updates);
 
     const nextFullName = safeString(
-      (updates.companyName as any) ?? (updates.name as any) ?? (nextMetadata.companyName as any) ?? existingRow.full_name,
+      updatesRec.companyName ?? updatesRec.name ?? nextMetadata.companyName ?? existingRow.full_name,
       existingRow.full_name
     );
 
@@ -396,7 +467,7 @@ export async function updateClient(
         fullName: nextFullName,
         phone: updates.phone ?? existingRow.phone ?? null,
         email: updates.email ?? existingRow.email ?? null,
-        notes: (updates.internalNotes as any) ?? existingRow.notes ?? null,
+        notes: updates.internalNotes ?? existingRow.notes ?? null,
         metadata: nextMetadata,
       },
     });
@@ -502,10 +573,12 @@ export async function getClientByInvitationToken(
       return createErrorResponse(new Error('טוקן הזמנה חסר'), 'טוקן הזמנה חסר');
     }
 
+    const where: Prisma.ClientClientWhereInput = {
+      metadata: { path: ['invitationToken'], equals: String(invitationToken) } satisfies Prisma.JsonNullableFilter,
+    };
+
     const row = await prisma.clientClient.findFirst({
-      where: {
-        metadata: { path: ['invitationToken'], equals: String(invitationToken) },
-      } as any,
+      where,
       select: {
         id: true,
         organizationId: true,
@@ -566,7 +639,10 @@ export async function linkPortalClientToCanonical(params: {
     }
 
     const existing = await prisma.clientClient.findFirst({
-      where: { organizationId, id: String(params.portalClientId) },
+      where: {
+        organizationId,
+        metadata: { path: ['canonicalClientId'], equals: String(params.canonicalClientId) } satisfies Prisma.JsonNullableFilter,
+      },
       select: { id: true, organizationId: true, fullName: true, phone: true, email: true, notes: true, metadata: true, createdAt: true, updatedAt: true },
     });
 
@@ -575,7 +651,7 @@ export async function linkPortalClientToCanonical(params: {
     }
 
     const nextMetadata = {
-      ...asRecord((existing as any).metadata),
+      ...asRecord(existing.metadata),
       canonicalClientId: params.canonicalClientId,
     };
 
@@ -585,10 +661,10 @@ export async function linkPortalClientToCanonical(params: {
       orgId: organizationId,
       clientId: String(params.portalClientId),
       updates: {
-        fullName: String((existing as any).fullName ?? ''),
-        phone: (existing as any).phone ?? null,
-        email: (existing as any).email ?? null,
-        notes: (existing as any).notes ?? null,
+        fullName: String(existing.fullName ?? ''),
+        phone: existing.phone ?? null,
+        email: existing.email ?? null,
+        notes: existing.notes ?? null,
         metadata: nextMetadata,
       },
     });
@@ -638,11 +714,13 @@ export async function ensurePortalClientForCanonical(params: {
       return createErrorResponse(new Error('ארגון לא נמצא'), 'ארגון לא נמצא');
     }
 
+    const where: Prisma.ClientClientWhereInput = {
+      organizationId,
+      metadata: { path: ['canonicalClientId'], equals: String(params.canonicalClientId) },
+    };
+
     const existing = await prisma.clientClient.findFirst({
-      where: {
-        organizationId,
-        metadata: { path: ['canonicalClientId'], equals: String(params.canonicalClientId) },
-      } as any,
+      where,
       select: { id: true, organizationId: true, fullName: true, phone: true, email: true, notes: true, metadata: true, createdAt: true, updatedAt: true },
     });
 
@@ -664,7 +742,7 @@ export async function ensurePortalClientForCanonical(params: {
     }
 
     const canonical = await prisma.clients.findFirst({
-      where: { organization_id: organizationId, id: String(params.canonicalClientId) } as any,
+      where: { organization_id: organizationId, id: String(params.canonicalClientId) },
       select: {
         id: true,
         name: true,

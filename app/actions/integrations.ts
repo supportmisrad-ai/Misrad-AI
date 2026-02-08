@@ -1,6 +1,6 @@
 'use server';
 
-import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
+import { getOrCreateOrganizationUserAction } from '@/app/actions/social-users';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { auth } from '@clerk/nextjs/server';
@@ -11,30 +11,38 @@ import { encryptObject, decryptObject } from '@/lib/encryption';
 import crypto from 'crypto';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
+import { saveGoogleTokensForOrganizationUser } from '@/lib/services/integrations/google-tokens';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toLowerCase();
+  const message = String(getErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'p2021' ||
+    code === 'p2022' ||
+    code === '42p01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
 }
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
 async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: string }) {
   const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
   const organizationId = requireOrganizationId('requireOrganizationOwner', workspace.id);
 
-  const userResult = await getOrCreateSocialSupabaseUserAction(params.clerkUserId);
+  const userResult = await getOrCreateOrganizationUserAction(params.clerkUserId);
   if (!userResult.success || !userResult.userId) {
     throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
   }
 
-  const org = await prisma.social_organizations.findFirst({
+  const org = await prisma.organization.findFirst({
     where: { id: organizationId },
     select: { owner_id: true },
   });
@@ -47,7 +55,7 @@ async function requireOrganizationOwner(params: { orgSlug: string; clerkUserId: 
     throw new Error('רק בעל הארגון יכול לצפות או לשנות את מפתח Morning');
   }
 
-  return { workspace, organizationId, socialUserId: String(userResult.userId) };
+  return { workspace, organizationId, organizationUserId: String(userResult.userId) };
 }
 
 export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey: string) {
@@ -62,14 +70,14 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
       return { success: false, error: 'orgSlug חסר' };
     }
 
-    const { organizationId, socialUserId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
+    const { organizationId, organizationUserId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
 
     const encryptedApiKey = await encryptObject({ api_key: apiKey });
     const encrypted_data: Prisma.InputJsonValue = { encrypted: encryptedApiKey };
     const metadata: Prisma.InputJsonValue = {
       scope: 'organization',
       organizationId,
-      savedBy: socialUserId,
+      savedBy: organizationUserId,
     };
 
     const existing = await prisma.social_integration_credentials.findFirst({
@@ -132,7 +140,10 @@ export async function hasMorningCredentialsForWorkspace(
     });
 
     return { success: true, connected: Boolean(row?.id) };
-  } catch {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] social_integration_credentials missing table/column (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return { success: true, connected: false };
   }
 }
@@ -216,7 +227,7 @@ export async function getIntegrationStatus(integrationName: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -287,47 +298,19 @@ export async function saveGoogleTokens(
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
 
-    const tokenRow = await prisma.social_oauth_tokens.findFirst({
-      where: { user_id: supabaseUserId, integration_name: integrationName },
-      select: { id: true },
-    });
-
-    if (tokenRow?.id) {
-      await prisma.social_oauth_tokens.updateMany({
-        where: { id: tokenRow.id },
-        data: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: expiresAt,
-          scope: scope || '',
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      await prisma.social_oauth_tokens.create({
-        data: {
-          user_id: supabaseUserId,
-          integration_name: integrationName,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: expiresAt,
-          scope: scope || '',
-          created_at: new Date(),
-          updated_at: new Date(),
-        },
-      });
-    }
-
-    await prisma.social_integration_status.upsert({
-      where: { name: integrationName },
-      create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
-      update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
+    await saveGoogleTokensForOrganizationUser({
+      organizationUserId: String(supabaseUserId),
+      integrationName,
+      accessToken,
+      refreshToken,
+      expiresAt,
+      scope,
     });
 
     return { success: true };
@@ -347,7 +330,7 @@ export async function syncGoogleCalendar() {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -425,7 +408,7 @@ export async function syncGoogleDrive(clientId?: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -496,7 +479,7 @@ export async function disconnectIntegration(integrationName: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -537,7 +520,7 @@ export async function triggerWebhookEvent(params: {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -623,7 +606,7 @@ export async function saveWebhookConfig(
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -686,7 +669,7 @@ export async function saveMorningCredentials(apiKey: string) {
       throw new Error('לא מחובר');
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
@@ -748,7 +731,7 @@ export async function getMorningApiKey(): Promise<string | null> {
       return null;
     }
 
-    const userResult = await getOrCreateSocialSupabaseUserAction(userId);
+    const userResult = await getOrCreateOrganizationUserAction(userId);
     if (!userResult.success || !userResult.userId) {
       return null;
     }

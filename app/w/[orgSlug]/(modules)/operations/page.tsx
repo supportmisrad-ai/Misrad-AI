@@ -16,12 +16,14 @@ export default async function OperationsModuleHome({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug } = await params;
 
-  const sp = (await searchParams) ?? {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const flashRaw = sp.flash;
   const flash = flashRaw ? String(Array.isArray(flashRaw) ? flashRaw[0] : flashRaw) : null;
 

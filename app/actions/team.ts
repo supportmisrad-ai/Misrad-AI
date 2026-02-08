@@ -2,21 +2,9 @@
 
 import type { MemberType, TeamMember, TeamMemberRole } from '@/types/social';
 import prisma from '@/lib/prisma';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 type TeamMemberRow = {
   id: string;
@@ -60,7 +48,7 @@ export async function getTeamMembers(orgSlug: string): Promise<{ success: boolea
       return { success: false, error: 'Missing organizationId' };
     }
 
-    const rows = (await prisma.social_team_members.findMany({
+    const rows = (await prisma.teamMember.findMany({
       where: { organization_id: String(organizationId) },
       select: {
         id: true,

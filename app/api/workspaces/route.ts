@@ -8,6 +8,8 @@ import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type WorkspaceApiItem = {
   id: string;
   slug: string;
@@ -29,12 +31,13 @@ async function GETHandler() {
 
   let socialUser: { id: string; organization_id: string | null } | null = null;
   try {
-    socialUser = await prisma.social_users.findUnique({
+    socialUser = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: clerkUserId },
       select: { id: true, organization_id: true },
     });
   } catch (err) {
-    console.error('GET /api/workspaces failed to query social_users', err);
+    if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
+    else console.error('GET /api/workspaces failed to query social_users', err);
     return apiError('שגיאה לא צפויה', { status: 500 });
   }
 
@@ -48,7 +51,7 @@ async function GETHandler() {
     orgIds.add(String(socialUser.organization_id));
   }
 
-  const ownedOrgs = await prisma.social_organizations.findMany({
+  const ownedOrgs = await prisma.organization.findMany({
     where: { owner_id: socialUser.id },
     select: { id: true },
   });
@@ -57,7 +60,7 @@ async function GETHandler() {
     if (org?.id) orgIds.add(String(org.id));
   }
 
-  const membershipRows = await prisma.social_team_members.findMany({
+  const membershipRows = await prisma.teamMember.findMany({
     where: { user_id: socialUser.id },
     select: { organization_id: true },
   });
@@ -73,7 +76,7 @@ async function GETHandler() {
 
   const systemFlags = await getSystemFeatureFlags();
 
-  const orgs = await prisma.social_organizations.findMany({
+  const orgs = await prisma.organization.findMany({
     where: { id: { in: ids } },
     select: {
       id: true,

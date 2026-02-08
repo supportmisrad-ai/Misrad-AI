@@ -3,10 +3,37 @@ import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 import { setNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
-import { setNexusBillingItems, buildNexusBillingItemsForTemplate } from '@/lib/services/nexus-billing-service';
+import { setNexusBillingItems, buildNexusBillingItemsForTemplate, type NexusBillingItem } from '@/lib/services/nexus-billing-service';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+type UnknownRecord = Record<string, unknown>;
+
+function isTemplateKey(value: unknown): value is 'retainer_fixed' | 'deliverables_package' {
+  return value === 'retainer_fixed' || value === 'deliverables_package';
+}
+
+function coerceBillingItems(value: unknown): NexusBillingItem[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  const items: NexusBillingItem[] = value
+    .map((it): NexusBillingItem | null => {
+      const obj = asObject(it);
+      if (!obj) return null;
+      const key = String(obj.key || '').trim();
+      const title = String(obj.title || '').trim();
+      const cadenceRaw = String(obj.cadence || '').trim();
+      const cadence: NexusBillingItem['cadence'] = cadenceRaw === 'monthly' ? 'monthly' : 'ad_hoc';
+      const amount = obj.amount == null ? null : Number(obj.amount);
+      const currency = String(obj.currency || 'ILS');
+      if (!key || !title) return null;
+      return { key, title, cadence, amount: Number.isFinite(amount as number) ? amount : null, currency };
+    })
+    .filter((x): x is NexusBillingItem => Boolean(x));
+
+  return items.length ? items : null;
+}
 
 function legacyKeyOnboarding(workspaceId: string) {
   return `nexus_onboarding_template:${workspaceId}`;
@@ -27,20 +54,26 @@ async function POSTHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    let onboardingLegacy: any = null;
-    try {
-      onboardingLegacy = await prisma.social_system_settings.findUnique({
-        where: { key: legacyKeyOnboarding(workspace.id) },
-        select: { value: true },
-      });
-    } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
+    const onboardingLegacy = await prisma.social_system_settings.findUnique({
+      where: { key: legacyKeyOnboarding(workspace.id) },
+      select: { value: true },
+    }).catch((e: unknown) => {
+      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
+    });
+
+    if (onboardingLegacy instanceof NextResponse) {
+      return onboardingLegacy;
     }
 
-    const onboardingTemplateKey = String((onboardingLegacy?.value as any)?.key || '').trim();
-    const onboardingSelectedAt = String((onboardingLegacy?.value as any)?.selectedAt || '').trim();
+    const onboardingValue = onboardingLegacy?.value ?? null;
+    const onboardingObj = asObject(onboardingValue);
+    const onboardingTemplateKeyRaw = onboardingObj?.key;
+    const onboardingSelectedAtRaw = onboardingObj?.selectedAt;
 
-    if (onboardingTemplateKey === 'retainer_fixed' || onboardingTemplateKey === 'deliverables_package') {
+    const onboardingTemplateKey = String(onboardingTemplateKeyRaw || '').trim();
+    const onboardingSelectedAt = String(onboardingSelectedAtRaw || '').trim();
+
+    if (isTemplateKey(onboardingTemplateKey)) {
       await setNexusOnboardingTemplate({
         workspaceId: workspace.id,
         templateKey: onboardingTemplateKey,
@@ -48,25 +81,29 @@ async function POSTHandler(request: NextRequest) {
       });
     }
 
-    let billingLegacy: any = null;
-    try {
-      billingLegacy = await prisma.social_system_settings.findUnique({
-        where: { key: legacyKeyBilling(workspace.id) },
-        select: { value: true },
-      });
-    } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
+    const billingLegacy = await prisma.social_system_settings.findUnique({
+      where: { key: legacyKeyBilling(workspace.id) },
+      select: { value: true },
+    }).catch((e: unknown) => {
+      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
+    });
+
+    if (billingLegacy instanceof NextResponse) {
+      return billingLegacy;
     }
 
-    const legacyBillingTemplateKey = String((billingLegacy?.value as any)?.templateKey || '').trim();
-    const items = (billingLegacy?.value as any)?.items;
+    const billingValue = billingLegacy?.value ?? null;
+    const billingObj = asObject(billingValue);
+    const legacyBillingTemplateKey = String(billingObj?.templateKey || '').trim();
+    const legacyItemsRaw = billingObj?.items;
+    const coercedItems = coerceBillingItems(legacyItemsRaw);
 
-    if (legacyBillingTemplateKey === 'retainer_fixed' || legacyBillingTemplateKey === 'deliverables_package') {
-      if (Array.isArray(items) && items.length > 0) {
+    if (isTemplateKey(legacyBillingTemplateKey)) {
+      if (coercedItems && coercedItems.length > 0) {
         await setNexusBillingItems({
           workspaceId: workspace.id,
           templateKey: legacyBillingTemplateKey,
-          items: items,
+          items: coercedItems,
         });
       } else {
         // If billing key exists but items missing, rebuild defaults from template
@@ -83,11 +120,11 @@ async function POSTHandler(request: NextRequest) {
       migrated: {
         onboardingTemplate: onboardingTemplateKey || null,
         billingTemplate: legacyBillingTemplateKey || null,
-        billingItemsCount: Array.isArray(items) ? items.length : null,
+        billingItemsCount: coercedItems ? coercedItems.length : null,
       },
     });
-  } catch (error: any) {
-    const msg = error?.message || 'Internal server error';
+  } catch (error: unknown) {
+    const msg = getUnknownErrorMessage(error) || 'Internal server error';
     const status = msg.toLowerCase().includes('forbidden') ? 403 : 500;
     if (error instanceof APIError) {
       return NextResponse.json({ error: msg }, { status: error.status });

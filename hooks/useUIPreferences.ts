@@ -17,7 +17,7 @@ import {
 
 interface UseUIPreferencesOptions {
     userId?: string;
-    updateUserAPI?: (userId: string, updates: any) => Promise<any>;
+    updateUserAPI?: (userId: string, updates: unknown) => Promise<unknown>;
     syncToDB?: boolean; // Whether to sync to DB (default: true if userId provided)
     debounceMs?: number; // Debounce DB sync (default: 1000ms)
 }

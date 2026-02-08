@@ -34,7 +34,11 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
   useEffect(() => {
     const loadRooms = async () => {
       try {
-        const response = await fetch('/api/os/rooms', { cache: 'no-store' });
+        const orgSlug = pathname && pathname.startsWith('/w/') ? String(pathname.split('/').filter(Boolean)[1] || '') : '';
+        const response = await fetch('/api/os/rooms', {
+          cache: 'no-store',
+          headers: orgSlug ? { 'x-org-id': encodeURIComponent(orgSlug) } : undefined,
+        });
         if (!response.ok) return;
         const data = await response.json();
         const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
@@ -47,7 +51,7 @@ export function RoomSwitcher({ className = '' }: { className?: string }) {
     };
 
     loadRooms();
-  }, []);
+  }, [pathname]);
 
   const navigateTo = (route: string) => {
     if (typeof window !== 'undefined') {

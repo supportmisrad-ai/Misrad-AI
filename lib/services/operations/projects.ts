@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/services/operations/db';
-import { getUnknownErrorMessage, normalizeAddress } from '@/lib/services/operations/shared';
+import { getUnknownErrorMessage, logOperationsError, normalizeAddress } from '@/lib/services/operations/shared';
 import type { OperationsProjectOption, OperationsProjectsData } from '@/lib/services/operations/types';
 
 export async function resolveOperationsClientNamesByCanonicalId(
@@ -85,7 +85,7 @@ export async function getOperationsProjectsDataForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsProjectsData failed', e);
+    logOperationsError('[operations] getOperationsProjectsData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הפרויקטים',
@@ -108,7 +108,7 @@ export async function getOperationsProjectOptionsForOrganizationId(params: {
       data: rows.map((p) => ({ id: p.id, title: p.title })),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsProjectOptions failed', e);
+    logOperationsError('[operations] getOperationsProjectOptions failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הפרויקטים',
@@ -149,7 +149,7 @@ export async function createOperationsProjectForOrganizationId(params: {
 
     return { success: true, id: created.id };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsProject failed', e);
+    logOperationsError('[operations] createOperationsProject failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פרויקט',

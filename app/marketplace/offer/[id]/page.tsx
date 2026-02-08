@@ -31,9 +31,9 @@ function formatStatus(status: string): { label: string; className: string; isClo
 export default async function MarketplaceOfferPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
 
   const res = await getPublicWorkListingById({ id: String(id) });
   if (!res.ok) {

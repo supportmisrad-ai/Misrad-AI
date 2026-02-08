@@ -19,9 +19,10 @@ export default async function FinanceModuleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'finance' });
   const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'finance' }).catch(() => undefined);
   await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);

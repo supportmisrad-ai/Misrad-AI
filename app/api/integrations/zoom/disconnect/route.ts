@@ -4,6 +4,8 @@ import { auth } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 /**
  * Disconnect Zoom integration
  * Removes stored tokens from database
@@ -47,7 +49,8 @@ export async function POST() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[Zoom Disconnect] Error:', error);
+    if (IS_PROD) console.error('[Zoom Disconnect] Error');
+    else console.error('[Zoom Disconnect] Error:', error);
     return NextResponse.json(
       { error: 'Failed to disconnect Zoom' },
       { status: 500 }

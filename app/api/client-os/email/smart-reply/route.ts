@@ -4,6 +4,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard } from '@/lib/server/aiAbuseGuard';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -29,15 +30,12 @@ async function POSTHandler(req: Request) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429, headers: abuse.headers });
     }
 
-    const body = (await req.json()) as {
-      emailBody?: string;
-      senderName?: string;
-      tone?: string;
-    };
+    const bodyJson: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
 
-    const emailBody = String(body.emailBody || '');
-    const senderName = String(body.senderName || '');
-    const tone = String(body.tone || 'professional');
+    const emailBody = String(bodyObj.emailBody || '');
+    const senderName = String(bodyObj.senderName || '');
+    const tone = String(bodyObj.tone || 'professional');
 
     if (!emailBody.trim()) return NextResponse.json({ error: 'emailBody is required' }, { status: 400 });
 
@@ -51,11 +49,11 @@ async function POSTHandler(req: Request) {
     });
 
     return NextResponse.json({ draft: out.text || '' }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }
-    return NextResponse.json({ error: e?.message ?? 'Failed to generate reply' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(e) || 'Failed to generate reply' }, { status: 500 });
   }
 }
 

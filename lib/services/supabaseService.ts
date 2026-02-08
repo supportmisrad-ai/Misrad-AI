@@ -1,4 +1,4 @@
-import type { Client, SocialPost, SocialTask, TeamMember, ClientRequest, ManagerRequest, Conversation, Idea } from '@/types/social';
+import type { Campaign, Client, SocialPost, SocialTask, TeamMember, ClientRequest, ManagerRequest, Conversation, Idea } from '@/types/social';
 
 // ============================================
 // CLIENTS
@@ -16,7 +16,7 @@ export async function fetchActivePlatforms(clientId: string): Promise<string[]> 
 // CAMPAIGNS
 // ============================================
 
-export async function fetchCampaigns(clientId?: string): Promise<any[]> {
+export async function fetchCampaigns(clientId?: string): Promise<Campaign[]> {
   return [];
 }
 

@@ -2,6 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
 
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+type UnknownRecord = Record<string, unknown>;
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function getStringField(obj: UnknownRecord, key: string): string {
+  const v = obj[key];
+  return typeof v === 'string' ? v : '';
+}
+
+function getNullableStringField(obj: UnknownRecord, key: string): string | null {
+  const v = obj[key];
+  if (v == null) return null;
+  if (typeof v === 'string') return v;
+  return String(v);
+}
+
+function getRequiredStringField(obj: UnknownRecord, key: string): string {
+  const v = obj[key];
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  return String(v);
+}
+
+function getNumberField(obj: UnknownRecord, key: string, fallback: number): number {
+  const raw = obj[key];
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 export async function GET() {
   try {
     const testimonials = await prisma.landing_testimonials.findMany({
@@ -35,8 +65,9 @@ export async function GET() {
         sortOrder: t.sort_order,
       }))
     });
-  } catch (error) {
-    console.error('Error fetching testimonials:', error);
+  } catch (error: unknown) {
+    if (IS_PROD) console.error('Error fetching testimonials');
+    else console.error('Error fetching testimonials:', error);
     return NextResponse.json(
       { error: 'Failed to fetch testimonials' },
       { status: 500 }
@@ -47,59 +78,91 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     await requireSuperAdmin();
-    const body = await request.json();
-    const { action, testimonial, testimonials } = body;
+    const body: unknown = await request.json();
+    const bodyObj = asObject(body) ?? {};
+    const action = typeof bodyObj.action === 'string' ? bodyObj.action : '';
+    const testimonial = asObject(bodyObj.testimonial) ?? {};
+    const testimonials = Array.isArray(bodyObj.testimonials) ? bodyObj.testimonials : null;
 
     if (action === 'create') {
+      const name = getRequiredStringField(testimonial, 'name').trim();
+      const role = getRequiredStringField(testimonial, 'role').trim();
+      const company = getRequiredStringField(testimonial, 'company').trim();
+      const content = getRequiredStringField(testimonial, 'content').trim();
+
+      if (!name || !role || !company || !content) {
+        return NextResponse.json({ error: 'Invalid testimonial payload' }, { status: 400 });
+      }
       const created = await prisma.landing_testimonials.create({
         data: {
-          name: testimonial.name,
-          role: testimonial.role,
-          company: testimonial.company,
-          content: testimonial.content,
-          rating: testimonial.rating || 5,
-          image_url: testimonial.imageUrl,
-          video_url: testimonial.videoUrl,
-          cover_image_url: testimonial.coverImageUrl,
-          sort_order: testimonial.sortOrder || 0,
+          name,
+          role,
+          company,
+          content,
+          rating: getNumberField(testimonial, 'rating', 5),
+          image_url: getNullableStringField(testimonial, 'imageUrl'),
+          video_url: getNullableStringField(testimonial, 'videoUrl'),
+          cover_image_url: getNullableStringField(testimonial, 'coverImageUrl'),
+          sort_order: getNumberField(testimonial, 'sortOrder', 0),
         },
       });
       return NextResponse.json({ success: true, testimonial: created });
     }
 
     if (action === 'update') {
+      const id = getStringField(testimonial, 'id');
+      if (!id.trim()) {
+        return NextResponse.json({ error: 'Invalid testimonial payload' }, { status: 400 });
+      }
+
+      const name = getRequiredStringField(testimonial, 'name').trim();
+      const role = getRequiredStringField(testimonial, 'role').trim();
+      const company = getRequiredStringField(testimonial, 'company').trim();
+      const content = getRequiredStringField(testimonial, 'content').trim();
+
+      if (!name || !role || !company || !content) {
+        return NextResponse.json({ error: 'Invalid testimonial payload' }, { status: 400 });
+      }
+
       const updated = await prisma.landing_testimonials.update({
-        where: { id: testimonial.id },
+        where: { id },
         data: {
-          name: testimonial.name,
-          role: testimonial.role,
-          company: testimonial.company,
-          content: testimonial.content,
-          rating: testimonial.rating,
-          image_url: testimonial.imageUrl,
-          video_url: testimonial.videoUrl,
-          cover_image_url: testimonial.coverImageUrl,
-          sort_order: testimonial.sortOrder,
+          name,
+          role,
+          company,
+          content,
+          rating: getNumberField(testimonial, 'rating', 5),
+          image_url: getNullableStringField(testimonial, 'imageUrl'),
+          video_url: getNullableStringField(testimonial, 'videoUrl'),
+          cover_image_url: getNullableStringField(testimonial, 'coverImageUrl'),
+          sort_order: getNumberField(testimonial, 'sortOrder', 0),
         },
       });
       return NextResponse.json({ success: true, testimonial: updated });
     }
 
     if (action === 'delete') {
+      const id = getStringField(testimonial, 'id');
+      if (!id.trim()) {
+        return NextResponse.json({ error: 'Invalid testimonial payload' }, { status: 400 });
+      }
       await prisma.landing_testimonials.delete({
-        where: { id: testimonial.id },
+        where: { id },
       });
       return NextResponse.json({ success: true });
     }
 
     if (action === 'reorder' && testimonials) {
       await Promise.all(
-        testimonials.map((t: any, index: number) =>
-          prisma.landing_testimonials.update({
-            where: { id: t.id },
+        testimonials.map((t, index: number) => {
+          const row = asObject(t) ?? {};
+          const id = row.id ? String(row.id) : '';
+          if (!id) return Promise.resolve();
+          return prisma.landing_testimonials.update({
+            where: { id },
             data: { sort_order: index },
-          })
-        )
+          });
+        })
       );
       return NextResponse.json({ success: true });
     }
@@ -108,9 +171,10 @@ export async function POST(request: NextRequest) {
       { error: 'Invalid action' },
       { status: 400 }
     );
-  } catch (error) {
-    console.error('Error saving testimonials:', error);
-    const status = error instanceof Error && error.message.includes('Forbidden') ? 403 : 500;
+  } catch (error: unknown) {
+    if (IS_PROD) console.error('Error saving testimonials');
+    else console.error('Error saving testimonials:', error);
+    const status = getUnknownErrorMessage(error).includes('Forbidden') ? 403 : 500;
     return NextResponse.json(
       { error: 'Failed to save testimonials' },
       { status }

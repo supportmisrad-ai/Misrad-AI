@@ -14,7 +14,7 @@ export async function getSocialStats(): Promise<SocialStats> {
   try {
     const [usersCount, postsCount, orgsCount] = await Promise.all([
       // Count active users (users who have created posts or are in organizations)
-      prisma.social_users.count({
+      prisma.organizationUser.count({
         where: {
           organization_id: { not: null },
         },
@@ -24,7 +24,7 @@ export async function getSocialStats(): Promise<SocialStats> {
       prisma.socialPost.count(),
       
       // Count organizations using social module
-      prisma.social_organizations.count(),
+      prisma.organization.count(),
     ]);
 
     // Calculate average time saved (estimate based on posts)

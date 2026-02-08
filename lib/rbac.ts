@@ -107,12 +107,11 @@ export async function getUserRole(
     
     // Get or create user in Supabase (Server Action - bypasses RLS)
     if (isSocialContext) {
-      // Use social-specific functions
-      const { getOrCreateSocialSupabaseUserAction, getSocialUserRoleFromSupabaseAction } = await import('@/app/actions/social-users');
-      const userResult = await getOrCreateSocialSupabaseUserAction(clerkUserId, email, fullName, imageUrl);
+      const { getOrCreateOrganizationUserAction, getOrganizationUserRoleFromSupabaseAction } = await import('@/app/actions/social-users');
+      const userResult = await getOrCreateOrganizationUserAction(clerkUserId, email, fullName, imageUrl);
       
       if (!userResult.success || !userResult.userId) {
-        console.error('[getUserRole] Failed to get/create user via Social Server Action:', {
+        console.error('[getUserRole] Failed to get/create user:', {
           success: userResult.success,
           userId: userResult.userId,
           error: userResult.error || 'Unknown error (error field missing)',
@@ -125,10 +124,10 @@ export async function getUserRole(
       }
       
       // Get role from social_users table
-      const roleResult = await getSocialUserRoleFromSupabaseAction(userResult.userId);
+      const roleResult = await getOrganizationUserRoleFromSupabaseAction(userResult.userId);
       
       if (!roleResult.success || !roleResult.role) {
-        console.error('[getUserRole] Failed to get role via Social Server Action:', {
+        console.error('[getUserRole] Failed to get role:', {
           success: roleResult.success,
           role: roleResult.role,
           error: roleResult.error || 'Unknown error',

@@ -8,7 +8,7 @@ export type ChatSource = {
   similarity: number;
   chunkIndex: number;
   content?: string;
-  metadata?: any;
+  metadata?: unknown;
 };
 
 export function ChatSources({ sources }: { sources: ChatSource[] }) {

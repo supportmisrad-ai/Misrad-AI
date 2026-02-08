@@ -9,8 +9,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { TelephonyService } from '../../../../lib/services/telephony';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 /**
  * Helper function to get tenantId from request/user
@@ -83,10 +86,12 @@ async function POSTHandler(request: NextRequest) {
             sessionId: result.sessionId
         });
         
-    } catch (error: any) {
-        console.error('[API] Error initiating call:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error initiating call');
+        else console.error('[API] Error initiating call:', error);
+        const safeMsg = 'Internal server error';
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
             { status: 500 }
         );
     }

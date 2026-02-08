@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGoogleOAuthClient } from '@/lib/googleAuth';
-import { saveGoogleTokens } from '@/app/actions/integrations';
+import { saveGoogleTokensApi } from '@/lib/services/integrations/google-tokens-api';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(request: NextRequest) {
   try {
     try {
       await getAuthenticatedUser();
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errParam = IS_PROD ? 'unauthorized' : (getErrorMessage(e) || 'unauthorized');
       return NextResponse.redirect(
-        new URL(`/settings?tab=integrations&error=${encodeURIComponent(e?.message || 'unauthorized')}`, request.url)
+        new URL(`/settings?tab=integrations&error=${encodeURIComponent(errParam)}`, request.url)
       );
     }
 
@@ -49,7 +54,7 @@ async function GETHandler(request: NextRequest) {
       : new Date(Date.now() + 3600 * 1000); // Default 1 hour
 
     // Save tokens
-    const result = await saveGoogleTokens(
+    const result = await saveGoogleTokensApi(
       integrationName,
       tokens.access_token,
       tokens.refresh_token || '',
@@ -66,10 +71,12 @@ async function GETHandler(request: NextRequest) {
     return NextResponse.redirect(
       new URL('/settings?tab=integrations&success=connected', request.url)
     );
-  } catch (error: any) {
-    console.error('Google OAuth callback error:', error);
+  } catch (error: unknown) {
+    const errParam = IS_PROD ? 'oauth_callback_failed' : (getErrorMessage(error) || 'unknown');
+    if (IS_PROD) console.error('Google OAuth callback error');
+    else console.error('Google OAuth callback error:', error);
     return NextResponse.redirect(
-      new URL(`/settings?tab=integrations&error=${encodeURIComponent(error.message || 'unknown')}`, request.url)
+      new URL(`/settings?tab=integrations&error=${encodeURIComponent(errParam)}`, request.url)
     );
   }
 }

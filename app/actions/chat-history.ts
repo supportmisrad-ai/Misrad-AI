@@ -2,7 +2,27 @@
 
 import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 import { headers } from 'next/headers';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toLowerCase();
+  const message = String(getErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'p2021' ||
+    code === 'p2022' ||
+    code === '42p01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
 
 type ChatMessage = {
   id: string;
@@ -24,6 +44,52 @@ type GetChatHistoryParams = {
   limit?: number;
 };
 
+type ModuleChatHistoryRow = {
+  chat_session_id: unknown;
+  title: unknown;
+  preview: unknown;
+  messages: unknown;
+  messages_count: unknown;
+  updated_at: unknown;
+};
+
+function coerceChatMessage(value: unknown, index: number): ChatMessage | null {
+  const obj = value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+  if (!obj) return null;
+
+  const role = obj.role;
+  if (role !== 'user' && role !== 'assistant') return null;
+
+  const content = obj.content;
+  if (typeof content !== 'string') return null;
+
+  const id = typeof obj.id === 'string' && obj.id ? obj.id : `msg-${index}`;
+
+  const ts = obj.timestamp;
+  const timestamp =
+    typeof ts === 'number' ? ts :
+    typeof ts === 'string' ? Number(ts) :
+    0;
+
+  return { id, role, content, timestamp: Number.isFinite(timestamp) ? timestamp : 0 };
+}
+
+function coerceChatMessages(value: unknown): ChatMessage[] {
+  const arr: unknown[] =
+    Array.isArray(value) ? value :
+    typeof value === 'string' ? (() => {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    })() :
+    [];
+
+  return arr.map((v, i) => coerceChatMessage(v, i)).filter((v): v is ChatMessage => Boolean(v));
+}
+
 /**
  * שמירת היסטוריית צ'אט עם tenant isolation מלא
  */
@@ -43,7 +109,7 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
     }
 
     // קבלת organization_id בפועל
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where: {
         OR: [
           { id: orgSlug },
@@ -94,7 +160,10 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
     );
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
     console.error('Error saving chat history:', error);
     return { success: false, error: String(error) };
   }
@@ -119,7 +188,7 @@ export async function getChatHistory(params: GetChatHistoryParams) {
     }
 
     // קבלת organization_id בפועל
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where: {
         OR: [
           { id: orgSlug },
@@ -137,7 +206,7 @@ export async function getChatHistory(params: GetChatHistoryParams) {
     const limit = params.limit || 20;
 
     // שאילתה עם tenant isolation מלא: organization + user + module
-    const history = await prisma.$queryRawUnsafe<any[]>(`
+    const history = await prisma.$queryRawUnsafe<ModuleChatHistoryRow[]>(`
       SELECT
         id,
         chat_session_id,
@@ -166,12 +235,15 @@ export async function getChatHistory(params: GetChatHistoryParams) {
         id: String(h.chat_session_id),
         title: String(h.title),
         preview: String(h.preview || ''),
-        timestamp: new Date(h.updated_at).getTime(),
+        timestamp: new Date(String(h.updated_at)).getTime(),
         messagesCount: Number(h.messages_count || 0),
-        messages: h.messages || []
+        messages: coerceChatMessages(h.messages)
       }))
     };
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
     console.error('Error getting chat history:', error);
     return { success: false, error: String(error), data: [] };
   }
@@ -195,7 +267,7 @@ export async function deleteChatHistory(params: { moduleKey: string; chatSession
       return { success: false, error: 'No organization context - missing x-org-id header' };
     }
 
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where: {
         OR: [
           { id: orgSlug },
@@ -226,7 +298,10 @@ export async function deleteChatHistory(params: { moduleKey: string; chatSession
     );
 
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
     console.error('Error deleting chat history:', error);
     return { success: false, error: String(error) };
   }

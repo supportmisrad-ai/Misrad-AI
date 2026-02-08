@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { getErrorMessage } from '@/lib/shared/unknown';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 export const runtime = 'nodejs';
 
@@ -24,13 +27,15 @@ export async function POST(req: Request) {
 
     // שמירת feedback למסד הנתונים
     // כרגע רק לוג - אפשר להוסיף פריזמה אחר כך
-    console.log('[AI Feedback]', {
-      sessionId,
-      rating,
-      helpful,
-      feedback: feedback?.substring(0, 100),
-      timestamp: new Date().toISOString(),
-    });
+    if (!IS_PROD) {
+      console.log('[AI Feedback]', {
+        sessionId,
+        rating,
+        helpful,
+        feedback: feedback?.substring(0, 100),
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     // TODO: שמירה בפועל למסד נתונים
     // await prisma.$executeRaw`
@@ -44,7 +49,9 @@ export async function POST(req: Request) {
       message: 'תודה על המשוב! 💚'
     });
   } catch (error) {
-    console.error('[AI Feedback Error]', error);
+    const msg = getErrorMessage(error);
+    if (IS_PROD) console.error('[AI Feedback Error]');
+    else console.error('[AI Feedback Error]', error);
     if (error instanceof Error && error.message.includes('Unauthorized')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

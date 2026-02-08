@@ -10,13 +10,12 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
   // Use server-side auth to check session state
   const { userId } = await auth();
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
-
+  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : undefined;
   const planRaw = resolvedSearchParams ? resolvedSearchParams['plan'] : undefined;
   const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
   const planKey = String(plan || '').trim();

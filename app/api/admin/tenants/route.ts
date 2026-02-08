@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Tenants
  * 
@@ -11,15 +12,12 @@ import { logAuditEvent } from '@/lib/audit';
 import { sendTenantInvitationEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { apiError, apiErrorCompat, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
     const v = obj[key];
@@ -30,14 +28,6 @@ function getNullableString(obj: Record<string, unknown>, key: string): string | 
     const v = obj[key];
     if (v == null) return null;
     return typeof v === 'string' ? v : String(v);
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
 }
 
 function isTenantRegion(value: unknown): value is NonNullable<Tenant['region']> {
@@ -100,7 +90,7 @@ function mapTenantRow(row: unknown): Tenant {
 async function selectTenants(params: {
     filters: { tenantId?: string; status?: string; ownerEmail?: string; subdomain?: string };
 }): Promise<Tenant[]> {
-    const where: any = {};
+    const where: Prisma.NexusTenantWhereInput = {};
     if (params.filters.tenantId) where.id = String(params.filters.tenantId);
     if (params.filters.status) where.status = String(params.filters.status);
     if (params.filters.ownerEmail) where.ownerEmail = String(params.filters.ownerEmail);
@@ -111,11 +101,11 @@ async function selectTenants(params: {
         orderBy: { createdAt: 'desc' },
     });
 
-    const mapped = (Array.isArray(rows) ? rows : []).map((r: any) =>
+    const mapped = (Array.isArray(rows) ? rows : []).map((r) =>
         mapTenantRow({
             ...r,
-            joinedAt: r?.joinedAt ? new Date(r.joinedAt).toISOString() : null,
-            mrr: r?.mrr == null ? 0 : Number(r.mrr),
+            joinedAt: r.joinedAt ? new Date(r.joinedAt).toISOString() : null,
+            mrr: r.mrr == null ? 0 : Number(r.mrr),
         })
     );
 
@@ -171,9 +161,14 @@ async function GETHandler(request: NextRequest) {
 
         return apiSuccessCompat({ tenants });
     } catch (error: unknown) {
-        console.error('[API] Error fetching tenants:', error);
+        if (IS_PROD) console.error('[API] Error fetching tenants');
+        else console.error('[API] Error fetching tenants:', error);
         const msg = getErrorMessage(error);
-        return apiError(error, { status: msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500 });
+        const safeMsg = 'שגיאה בטעינת רשימת טננטים';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 
@@ -244,7 +239,7 @@ async function POSTHandler(request: NextRequest) {
             requireApproval: Boolean(bodyObj['requireApproval'] ?? false),
         };
 
-        let inserted: any;
+        let inserted: Awaited<ReturnType<typeof prisma.nexusTenant.create>> | null = null;
         try {
             inserted = await prisma.nexusTenant.create({
                 data: {
@@ -264,11 +259,16 @@ async function POSTHandler(request: NextRequest) {
                     requireApproval: tenantData.requireApproval,
                 },
             });
-        } catch (e: any) {
-            if (String(e?.code || '') === 'P2002') {
+        } catch (e: unknown) {
+            const obj = asObject(e) ?? {};
+            if (String(obj.code || '') === 'P2002') {
                 return apiError('Tenant with this subdomain already exists', { status: 409 });
             }
             throw e;
+        }
+
+        if (!inserted) {
+            throw new Error('Failed to create tenant');
         }
 
         const newTenant = mapTenantRow({
@@ -303,7 +303,7 @@ async function POSTHandler(request: NextRequest) {
                 invitationSent = Boolean(emailResult.success);
 
                 try {
-                    const metadata = {
+                    const metadata: Prisma.InputJsonValue = {
                         invitationSent,
                         invitationSentAt: invitationSent ? new Date().toISOString() : null,
                         invitationSentBy: user.id,
@@ -311,7 +311,7 @@ async function POSTHandler(request: NextRequest) {
                     };
 
                     try {
-                        await prisma.$executeRaw`update nexus_tenants set metadata = ${metadata as any} where id = ${newTenant.id}::uuid`;
+                        await prisma.$executeRaw`update nexus_tenants set metadata = ${metadata} where id = ${newTenant.id}::uuid`;
                     } catch {
                         // ignore
                     }
@@ -319,7 +319,8 @@ async function POSTHandler(request: NextRequest) {
                     // ignore
                 }
             } catch (emailError: unknown) {
-                console.error('[API] Error auto-sending invitation email:', emailError);
+                if (IS_PROD) console.error('[API] Error auto-sending invitation email');
+                else console.error('[API] Error auto-sending invitation email:', emailError);
             }
         }
 
@@ -333,14 +334,19 @@ async function POSTHandler(request: NextRequest) {
             { status: 201 }
         );
     } catch (error: unknown) {
-        console.error('[API] Error creating tenant:', error);
+        if (IS_PROD) console.error('[API] Error creating tenant');
+        else console.error('[API] Error creating tenant:', error);
         const msg = getErrorMessage(error);
 
         if (error instanceof SyntaxError || msg.includes('JSON')) {
             return apiError('Invalid JSON in request body', { status: 400 });
         }
 
-        return apiError(error, { status: msg.includes('Forbidden') ? 403 : 500 });
+        const safeMsg = 'שגיאה ביצירת טננט';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Forbidden') ? 403 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
+        });
     }
 }
 

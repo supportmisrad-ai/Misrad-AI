@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function POSTHandler(request: NextRequest) {
   try {
@@ -19,7 +22,8 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get('image') as File | null;
+    const imageValue = formData.get('image');
+    const file = imageValue instanceof File ? imageValue : null;
     const promptRaw = formData.get('prompt');
     const prompt = promptRaw ? String(promptRaw) : "תאר בקצרה ובדיוק מה מופיע בתמונה, כדי שאוכל למלא שדה 'תיאור פריט'.";
 
@@ -62,17 +66,24 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: `OpenAI error (${res.status}): ${txt}` }, { status: 502 });
     }
 
-    const json: any = await res.json();
-    const description = json?.choices?.[0]?.message?.content ? String(json.choices[0].message.content) : '';
+    const json: unknown = await res.json().catch(() => null);
+    const jsonObj = asObject(json) ?? {};
+    const choices = Array.isArray(jsonObj.choices) ? jsonObj.choices : [];
+    const firstChoice = choices.length > 0 ? asObject(choices[0]) : null;
+    const messageObj = asObject(firstChoice?.message);
+    const content = messageObj?.content;
+    const description = typeof content === 'string' ? content : '';
 
     if (!description) {
       return NextResponse.json({ error: 'תשובת AI ריקה' }, { status: 502 });
     }
 
     return NextResponse.json({ success: true, description });
-  } catch (e: any) {
-    console.error('[operations.ai.vision] failed', e);
-    return NextResponse.json({ error: e?.message || 'שגיאה כללית' }, { status: 500 });
+  } catch (e: unknown) {
+    if (IS_PROD) console.error('[operations.ai.vision] failed');
+    else console.error('[operations.ai.vision] failed', e);
+    const safeMsg = 'שגיאה כללית';
+    return NextResponse.json({ error: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg }, { status: 500 });
   }
 }
 

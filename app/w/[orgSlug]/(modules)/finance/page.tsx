@@ -5,8 +5,9 @@ export const dynamic = 'force-dynamic';
 export default async function FinanceModuleHome({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
   redirect(`/w/${encodeURIComponent(orgSlug)}/finance/overview`);
 }

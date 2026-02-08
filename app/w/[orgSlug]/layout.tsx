@@ -18,7 +18,7 @@ export default async function WorkspaceLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const decodedOrgSlug = safeDecodeURIComponent(orgSlug);
@@ -30,7 +30,7 @@ export default async function WorkspaceLayout({
       data-workspace-slug={decodedOrgSlug}
       className="min-h-screen"
     >
-      <WorkspaceCanonicalRedirect currentOrgSlug={decodedOrgSlug} canonicalSlug={(workspace as any).slug ?? null} />
+      <WorkspaceCanonicalRedirect currentOrgSlug={decodedOrgSlug} canonicalSlug={workspace.slug ?? null} />
       {children}
     </div>
   );

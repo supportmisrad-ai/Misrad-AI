@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+import { asObject } from '@/lib/shared/unknown';
 async function GETHandler() {
   try {
     const row = await prisma.social_system_settings.findUnique({
@@ -10,19 +11,19 @@ async function GETHandler() {
       select: { value: true },
     });
 
-    const rawValue = (row as any)?.value;
-    let parsedValue: any = null;
+    const rawValue: unknown = row?.value;
+    let parsedValue: unknown = null;
     if (rawValue && typeof rawValue === 'string') {
       try {
-        parsedValue = JSON.parse(rawValue);
+        parsedValue = JSON.parse(rawValue) as unknown;
       } catch {
         parsedValue = null;
       }
-    } else if (rawValue && typeof rawValue === 'object') {
+    } else if (asObject(rawValue)) {
       parsedValue = rawValue;
     }
 
-    const moduleIcons = parsedValue && typeof parsedValue === 'object' ? parsedValue : {};
+    const moduleIcons = asObject(parsedValue) ?? {};
 
     return NextResponse.json(
       { moduleIcons },

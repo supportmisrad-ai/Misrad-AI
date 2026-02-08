@@ -2,13 +2,9 @@
 
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 export type PartnerPortalOrg = {
   id: string;
   name: string;
@@ -48,13 +44,13 @@ export async function getPartnerPortalSummary(input: {
       return createErrorResponse(null, 'קוד שותף לא נמצא');
     }
 
-    const orgs = await prisma.social_organizations.findMany({
+    const orgs = await prisma.organization.findMany({
       where: { partnerId: String(partnerRow.id) },
       select: { id: true, name: true, slug: true, created_at: true },
       orderBy: { created_at: 'desc' },
     });
 
-    const organizations: PartnerPortalOrg[] = (Array.isArray(orgs) ? orgs : []).map((o: any) => ({
+    const organizations: PartnerPortalOrg[] = (Array.isArray(orgs) ? orgs : []).map((o) => ({
       id: String(o.id ?? ''),
       name: String(o.name ?? ''),
       slug: o.slug == null ? null : String(o.slug),
@@ -77,9 +73,9 @@ export async function getPartnerPortalSummary(input: {
 
       paidOrdersCount = Number(agg?._count?._all ?? 0) || 0;
 
-      const sumAmount: any = (agg as any)?._sum?.amount;
-      if (sumAmount != null) {
-        const n = typeof sumAmount?.toNumber === 'function' ? sumAmount.toNumber() : Number(sumAmount);
+      const sumAmountRaw = agg?._sum?.amount ?? null;
+      if (sumAmountRaw != null) {
+        const n = sumAmountRaw instanceof Prisma.Decimal ? sumAmountRaw.toNumber() : Number(sumAmountRaw);
         if (Number.isFinite(n)) paidRevenueTotal = n;
       }
     }

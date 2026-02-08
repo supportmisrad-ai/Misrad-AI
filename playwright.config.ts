@@ -15,6 +15,10 @@ const forceRestartServer =
   String(process.env.E2E_RESTART_SERVER || '').toLowerCase() === '1' ||
   String(process.env.E2E_RESTART_SERVER || '').toLowerCase() === 'true';
 
+const disableGlobalSetup =
+  String(process.env.E2E_DISABLE_GLOBAL_SETUP || '').toLowerCase() === '1' ||
+  String(process.env.E2E_DISABLE_GLOBAL_SETUP || '').toLowerCase() === 'true';
+
 const useExistingServer =
   String(process.env.E2E_USE_EXISTING_SERVER || '').toLowerCase() === '1' ||
   String(process.env.E2E_USE_EXISTING_SERVER || '').toLowerCase() === 'true';
@@ -48,6 +52,7 @@ export default defineConfig({
           ...webServerEnv,
           PORT: baseUrlPort,
           NEXT_TELEMETRY_DISABLED: String(process.env.NEXT_TELEMETRY_DISABLED || '1'),
+          MISRAD_RATE_LIMIT_DISABLE_REDIS: String(process.env.MISRAD_RATE_LIMIT_DISABLE_REDIS || 'true'),
         },
         url: baseURL,
         reuseExistingServer: !forceRestartServer,
@@ -60,9 +65,12 @@ export default defineConfig({
     video: 'retain-on-failure',
     actionTimeout: 15_000,
     navigationTimeout: Number(process.env.E2E_NAVIGATION_TIMEOUT_MS || 120_000),
-    storageState: isAuthSetupRun ? undefined : (process.env.E2E_STORAGE_STATE || 'tests/e2e/.auth/storageState.json'),
+    storageState:
+      isAuthSetupRun || disableGlobalSetup
+        ? undefined
+        : (process.env.E2E_STORAGE_STATE || 'tests/e2e/.auth/storageState.json'),
   },
-  globalSetup: require.resolve('./tests/e2e/global-setup'),
+  globalSetup: disableGlobalSetup ? undefined : require.resolve('./tests/e2e/global-setup'),
   projects: [
     {
       name: 'chromium',

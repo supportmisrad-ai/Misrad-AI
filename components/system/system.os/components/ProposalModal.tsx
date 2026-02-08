@@ -13,7 +13,7 @@ declare const confetti: any;
 interface ProposalModalProps {
   lead: Lead;
   onClose: () => void;
-  onSend: (proposal: any) => void;
+  onSend: (proposal: unknown) => void;
   onDealWon?: () => void;
 }
 
@@ -320,7 +320,7 @@ const ProposalModal: React.FC<ProposalModalProps> = ({ lead, onClose, onSend, on
                             <button onClick={copyLink} className="p-3 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600"><Copy size={18} /></button>
                         </div>
                         <button 
-                            onClick={() => window.open(`https://wa.me/${String((lead as any)?.phone ?? '').replace(/-/g, '')}?text=${encodeURIComponent(`היי ${String((lead as any)?.name ?? '').split(' ')[0]}, הנה הסכם העבודה לחתימה דיגיטלית: ${generatedLink}`)}`, '_blank')}
+                            onClick={() => window.open(`https://wa.me/${String(lead.phone ?? '').replace(/-/g, '')}?text=${encodeURIComponent(`היי ${String(lead.name ?? '').split(' ')[0]}, הנה הסכם העבודה לחתימה דיגיטלית: ${generatedLink}`)}`, '_blank')}
                             className="w-full bg-[#25D366] text-white font-bold py-3.5 rounded-xl hover:bg-[#128C7E] transition-all shadow-lg flex items-center justify-center gap-2"
                         >
                             <Send size={18} /> שלח בוואטסאפ

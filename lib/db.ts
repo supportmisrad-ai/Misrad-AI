@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -15,20 +16,7 @@ type RoleDefinition = {
     name: string;
     description?: string | null;
     permissions?: PermissionId[];
-} & UnknownRecord;
-
-function asObject(value: unknown): UnknownRecord | null {
-    if (value && typeof value === 'object' && !Array.isArray(value)) return value as UnknownRecord;
-    return null;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : 'Unknown error';
-}
+} & UnknownRecord;
 
 function getErrorCode(error: unknown): string | null {
     const obj = asObject(error);

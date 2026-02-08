@@ -6,8 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function POSTHandler(request: NextRequest) {
     try {
         // 1. Authenticate user
@@ -28,8 +32,9 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 2. Parse request body
-        const body = await request.json();
-        const { name } = body;
+        const bodyJson: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(bodyJson) ?? {};
+        const name = bodyObj.name == null ? undefined : String(bodyObj.name);
 
         // 3. Create passkey using Clerk's backend API
         // Note: This requires Clerk's backend SDK
@@ -60,25 +65,29 @@ async function POSTHandler(request: NextRequest) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Clerk API error:', errorData);
+            const errorJson: unknown = await response.json().catch(() => null);
+            const errorObj = asObject(errorJson) ?? {};
+            const errorMessage = typeof errorObj.error === 'string' ? errorObj.error : getErrorMessage(errorJson);
+            if (IS_PROD) console.error('Clerk API error');
+            else console.error('Clerk API error:', errorJson);
             return NextResponse.json(
-                { error: errorData.error || 'Failed to create passkey' },
+                { error: errorMessage || 'Failed to create passkey' },
                 { status: response.status }
             );
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json().catch(() => null);
         
         return NextResponse.json({
             success: true,
             passkey: data,
         });
 
-    } catch (error: any) {
-        console.error('Passkey creation error:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('Passkey creation error');
+        else console.error('Passkey creation error:', error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
+            { error: getErrorMessage(error) || 'Internal server error' },
             { status: 500 }
         );
     }

@@ -1,7 +1,6 @@
 'use server';
 
 import prisma from '@/lib/prisma';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { createClientForWorkspace } from '@/app/actions/clients';
 import { auth } from '@clerk/nextjs/server';
 import { AIService } from '@/lib/services/ai/AIService';
@@ -9,6 +8,33 @@ import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { Prisma } from '@prisma/client';
 import type { SystemCalendarEvent, SystemLead, SystemLeadActivity } from '@prisma/client';
 import type { Client } from '@/types/social';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
+
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+import {
+  decodeSystemLeadsCursor,
+  encodeSystemLeadsCursor,
+  parseFollowUpDateFromHebrew,
+} from '@/lib/server/system-leads-utils';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
+  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
 
 export type SystemLeadDTO = {
   id: string;
@@ -34,21 +60,6 @@ export type SystemLeadDTO = {
   next_action_date_rationale?: string | null;
   activities?: SystemLeadActivityDTO[];
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
 
 type SystemLeadRow = SystemLead & { activities?: SystemLeadActivity[] };
 
@@ -77,51 +88,6 @@ function toDto(row: SystemLeadRow): SystemLeadDTO {
     next_action_date_rationale: row.nextActionDateRationale != null ? String(row.nextActionDateRationale) : null,
     activities: Array.isArray(row.activities) ? row.activities.map(toActivityDto) : [],
   };
-}
-
-function parseFollowUpDateFromHebrew(text: string, now: Date): { date: Date; rationale: string } | null {
-  const content = String(text || '').trim();
-  if (!content) return null;
-
-  const normalized = content.replace(/\s+/g, ' ');
-  const lower = normalized.toLowerCase();
-
-  if (lower.includes('מחר')) {
-    const d = new Date(now);
-    d.setDate(d.getDate() + 1);
-    d.setHours(10, 0, 0, 0);
-    return { date: d, rationale: 'זוהתה בקשה ל-follow-up מחר; הוצעה שעה 10:00 כברירת מחדל.' };
-  }
-
-  if (lower.includes('היום')) {
-    const d = new Date(now);
-    d.setHours(16, 0, 0, 0);
-    return { date: d, rationale: 'זוהתה בקשה ל-follow-up היום; הוצעה שעה 16:00 כברירת מחדל.' };
-  }
-
-  const days: Array<{ key: string; idx: number }> = [
-    { key: 'ראשון', idx: 0 },
-    { key: 'שני', idx: 1 },
-    { key: 'שלישי', idx: 2 },
-    { key: 'רביעי', idx: 3 },
-    { key: 'חמישי', idx: 4 },
-    { key: 'שישי', idx: 5 },
-    { key: 'שבת', idx: 6 },
-  ];
-
-  const hasTalkToMe = normalized.includes('דבר איתי') || normalized.includes('תדבר איתי') || normalized.includes('תחזור אליי');
-  if (!hasTalkToMe) return null;
-
-  const found = days.find((d) => normalized.includes(`יום ${d.key}`) || normalized.includes(`ביום ${d.key}`));
-  if (!found) return null;
-
-  const target = new Date(now);
-  target.setHours(10, 0, 0, 0);
-  const currentDow = target.getDay();
-  let diff = (found.idx - currentDow + 7) % 7;
-  if (diff === 0) diff = 7;
-  target.setDate(target.getDate() + diff);
-  return { date: target, rationale: `זוהתה בקשה ל-follow-up ביום ${found.key}; הוצעה שעה 10:00 כברירת מחדל.` };
 }
 
 async function upsertCanonicalClientByEmail(params: {
@@ -154,6 +120,9 @@ async function upsertCanonicalClientByEmail(params: {
       select: { id: true },
     });
   } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clients lookup failed (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
     findError = e;
   }
 
@@ -228,81 +197,66 @@ export async function getSystemLeads(orgSlug: string): Promise<SystemLeadDTO[]> 
   return res.data.leads;
 }
 
-type SystemLeadsCursor = {
-  createdAt: string;
-  id: string;
-};
-function encodeSystemLeadsCursor(cursor: SystemLeadsCursor): string {
-  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64');
-}
-
-function decodeSystemLeadsCursor(raw?: string | null): SystemLeadsCursor | null {
-  const v = String(raw || '').trim();
-  if (!v) return null;
-  try {
-    const parsed: unknown = JSON.parse(Buffer.from(v, 'base64').toString('utf8'));
-    const obj = asObject(parsed);
-    const createdAt = String(obj?.createdAt || '').trim();
-    const id = String(obj?.id || '').trim();
-    if (!createdAt || !id) return null;
-    const d = new Date(createdAt);
-    if (Number.isNaN(d.getTime())) return null;
-    return { createdAt: d.toISOString(), id };
-  } catch {
-    return null;
-  }
-}
-
 export async function getSystemCalendarEventsRange(params: {
   orgSlug: string;
   from: string;
   to: string;
   take?: number;
 }): Promise<SystemCalendarEventDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  requireOrganizationId('getSystemCalendarEventsRange', workspace?.id);
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      requireOrganizationId('getSystemCalendarEventsRange', organizationId);
 
-  const fromRaw = String(params.from || '').trim();
-  const toRaw = String(params.to || '').trim();
-  if (!fromRaw || !toRaw) return [];
+      const fromRaw = String(params.from || '').trim();
+      const toRaw = String(params.to || '').trim();
+      if (!fromRaw || !toRaw) return [];
 
-  const fromDate = new Date(fromRaw);
-  const toDate = new Date(toRaw);
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return [];
+      const fromDate = new Date(fromRaw);
+      const toDate = new Date(toRaw);
+      if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return [];
 
-  const take = Math.max(1, Math.min(500, Math.floor(params.take ?? 400)));
+      const take = Math.max(1, Math.min(200, Math.floor(params.take ?? 200)));
 
-  // Prefer occursAt (indexed), but include legacy rows where occursAt is null and date is in range.
-  // `date` is stored as ISO YYYY-MM-DD so lexical comparisons are safe.
-  const fromDateStr = fromDate.toISOString().slice(0, 10);
-  const toDateStr = toDate.toISOString().slice(0, 10);
+      // Prefer occursAt (indexed), but include legacy rows where occursAt is null and date is in range.
+      // `date` is stored as ISO YYYY-MM-DD so lexical comparisons are safe.
+      const fromDateStr = fromDate.toISOString().slice(0, 10);
+      const toDateStr = toDate.toISOString().slice(0, 10);
 
-  try {
-    const where: Prisma.SystemCalendarEventWhereInput = {
-      lead: { organizationId: workspace.id },
-      date: { gte: fromDateStr, lt: toDateStr },
-    };
+      try {
+        const where: Prisma.SystemCalendarEventWhereInput = {
+          lead: { organizationId },
+          date: { gte: fromDateStr, lt: toDateStr },
+        };
 
-    const rows = await prisma.systemCalendarEvent.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
+        const rows = await prisma.systemCalendarEvent.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          take,
+        });
 
-    return rows.map(toCalendarEventDto);
-  } catch (e: unknown) {
-    console.error('[system-leads] getSystemCalendarEventsRange failed; fallback to legacy date filter', e);
-    const rows = await prisma.systemCalendarEvent.findMany({
-      where: {
-        lead: { organizationId: workspace.id },
-        date: { gte: fromDateStr, lt: toDateStr },
-      },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
+        return rows.map(toCalendarEventDto);
+      } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] systemCalendarEvent query failed (${getUnknownErrorMessage(e) || 'missing relation'})`
+          );
+        }
+        console.error('[system-leads] getSystemCalendarEventsRange failed; fallback to legacy date filter', e);
+        const rows = await prisma.systemCalendarEvent.findMany({
+          where: {
+            lead: { organizationId },
+            date: { gte: fromDateStr, lt: toDateStr },
+          },
+          orderBy: { createdAt: 'desc' },
+          take,
+        });
 
-    return rows.map(toCalendarEventDto);
-  }
+        return rows.map(toCalendarEventDto);
+      }
+    },
+    { source: 'server_actions_system_leads', reason: 'getSystemCalendarEventsRange' }
+  );
 }
 
 export async function getSystemLeadsPage(params: {
@@ -317,44 +271,49 @@ export async function getSystemLeadsPage(params: {
     const orgSlug = String(params.orgSlug || '').trim();
     if (!orgSlug) return { success: false, error: 'orgSlug חסר' };
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-    requireOrganizationId('getSystemLeadsPage', workspace?.id);
+    return await withWorkspaceTenantContext(
+      orgSlug,
+      async ({ organizationId }) => {
+        requireOrganizationId('getSystemLeadsPage', organizationId);
 
-    const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
-    const cursor = decodeSystemLeadsCursor(params.cursor);
+        const pageSize = Math.min(200, Math.max(1, Math.floor(params.pageSize ?? 60)));
+        const cursor = decodeSystemLeadsCursor(params.cursor);
 
-    const where: Prisma.SystemLeadWhereInput = {
-      organizationId: workspace.id,
-      ...(cursor
-        ? {
-            OR: [
-              { createdAt: { lt: new Date(cursor.createdAt) } },
-              { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
-            ],
-          }
-        : {}),
-    };
+        const where: Prisma.SystemLeadWhereInput = {
+          organizationId,
+          ...(cursor
+            ? {
+                OR: [
+                  { createdAt: { lt: new Date(cursor.createdAt) } },
+                  { createdAt: { equals: new Date(cursor.createdAt) }, id: { lt: cursor.id } },
+                ],
+              }
+            : {}),
+        };
 
-    const rows = await prisma.systemLead.findMany({
-      where,
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      take: pageSize + 1,
-    });
+        const rows = await prisma.systemLead.findMany({
+          where,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: pageSize + 1,
+        });
 
-    const list = Array.isArray(rows) ? rows : [];
-    const hasMore = list.length > pageSize;
-    const trimmed = hasMore ? list.slice(0, pageSize) : list;
+        const list = Array.isArray(rows) ? rows : [];
+        const hasMore = list.length > pageSize;
+        const trimmed = hasMore ? list.slice(0, pageSize) : list;
 
-    const leads = trimmed.map((r) => toDto(r));
+        const leads = trimmed.map((r) => toDto(r));
 
-    const last = trimmed[trimmed.length - 1];
-    const lastCreatedAt = last?.createdAt ? new Date(last.createdAt) : last?.lastContact ? new Date(last.lastContact) : null;
-    const nextCursor =
-      hasMore && last?.id && lastCreatedAt && !Number.isNaN(lastCreatedAt.getTime())
-        ? encodeSystemLeadsCursor({ createdAt: lastCreatedAt.toISOString(), id: String(last.id) })
-        : null;
+        const last = trimmed[trimmed.length - 1];
+        const lastCreatedAt = last?.createdAt ? new Date(last.createdAt) : last?.lastContact ? new Date(last.lastContact) : null;
+        const nextCursor =
+          hasMore && last?.id && lastCreatedAt && !Number.isNaN(lastCreatedAt.getTime())
+            ? encodeSystemLeadsCursor({ createdAt: lastCreatedAt.toISOString(), id: String(last.id) })
+            : null;
 
-    return { success: true, data: { leads, nextCursor, hasMore } };
+        return { success: true, data: { leads, nextCursor, hasMore } };
+      },
+      { source: 'server_actions_system_leads', reason: 'getSystemLeadsPage' }
+    );
   } catch (e: unknown) {
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת לידים' };
   }
@@ -398,26 +357,31 @@ export async function getSystemCalendarEvents(params: {
   orgSlug: string;
   take?: number;
 }): Promise<SystemCalendarEventDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  requireOrganizationId('getSystemCalendarEvents', workspace?.id);
-  const take = Math.max(1, Math.min(500, Math.floor(params.take ?? 200)));
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      requireOrganizationId('getSystemCalendarEvents', organizationId);
+      const take = Math.max(1, Math.min(200, Math.floor(params.take ?? 200)));
 
-  try {
-    const rows = await prisma.systemCalendarEvent.findMany({
-      where: { lead: { organizationId: workspace.id } },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
-    return rows.map(toCalendarEventDto);
-  } catch (e: unknown) {
-    // Backwards-compatible fallback for DBs that don't have occurs_at yet.
-    const rows = await prisma.systemCalendarEvent.findMany({
-      where: { lead: { organizationId: workspace.id } },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
-    return rows.map(toCalendarEventDto);
-  }
+      try {
+        const rows = await prisma.systemCalendarEvent.findMany({
+          where: { lead: { organizationId } },
+          orderBy: { createdAt: 'desc' },
+          take,
+        });
+        return rows.map(toCalendarEventDto);
+      } catch (e: unknown) {
+        // Backwards-compatible fallback for DBs that don't have occurs_at yet.
+        const rows = await prisma.systemCalendarEvent.findMany({
+          where: { lead: { organizationId } },
+          orderBy: { createdAt: 'desc' },
+          take,
+        });
+        return rows.map(toCalendarEventDto);
+      }
+    },
+    { source: 'server_actions_system_leads', reason: 'getSystemCalendarEvents' }
+  );
 }
 
 export async function createSystemCalendarEvent(params: {
@@ -436,57 +400,62 @@ export async function createSystemCalendarEvent(params: {
   postMeeting?: Prisma.InputJsonValue | null;
 }): Promise<{ ok: true; event: SystemCalendarEventDTO } | { ok: false; message: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    requireOrganizationId('createSystemCalendarEvent', workspace?.id);
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        requireOrganizationId('createSystemCalendarEvent', organizationId);
 
-    const title = String(params.title || '').trim();
-    const leadName = String(params.leadName || '').trim();
-    const leadCompany = String(params.leadCompany || '').trim();
-    const dayName = String(params.dayName || '').trim();
-    const date = String(params.date || '').trim();
-    const time = String(params.time || '').trim();
-    const type = String(params.type || '').trim();
-    const location = String(params.location || '').trim();
+        const title = String(params.title || '').trim();
+        const leadName = String(params.leadName || '').trim();
+        const leadCompany = String(params.leadCompany || '').trim();
+        const dayName = String(params.dayName || '').trim();
+        const date = String(params.date || '').trim();
+        const time = String(params.time || '').trim();
+        const type = String(params.type || '').trim();
+        const location = String(params.location || '').trim();
 
-    if (!title) return { ok: false, message: 'חובה להזין כותרת' };
-    if (!date) return { ok: false, message: 'חובה להזין תאריך' };
-    if (!time) return { ok: false, message: 'חובה להזין שעה' };
+        if (!title) return { ok: false, message: 'חובה להזין כותרת' };
+        if (!date) return { ok: false, message: 'חובה להזין תאריך' };
+        if (!time) return { ok: false, message: 'חובה להזין שעה' };
 
-    const leadId = params.leadId ? String(params.leadId).trim() : null;
-    if (leadId) {
-      const lead = await prisma.systemLead.findFirst({ where: { id: leadId, organizationId: workspace.id }, select: { id: true } });
-      if (!lead?.id) return { ok: false, message: 'Lead not found' };
-    }
+        const leadId = params.leadId ? String(params.leadId).trim() : null;
+        if (leadId) {
+          const lead = await prisma.systemLead.findFirst({ where: { id: leadId, organizationId }, select: { id: true } });
+          if (!lead?.id) return { ok: false, message: 'Lead not found' };
+        }
 
-    const created = await prisma.systemCalendarEvent.create({
-      data: {
-        organizationId: workspace.id,
-        leadId,
-        title,
-        leadName,
-        leadCompany,
-        dayName,
-        date,
-        time,
-        type,
-        location,
-        participants: params.participants == null ? null : Number(params.participants),
-        reminders:
-          params.reminders === undefined
-            ? undefined
-            : params.reminders === null
-              ? Prisma.DbNull
-              : params.reminders,
-        postMeeting:
-          params.postMeeting === undefined
-            ? undefined
-            : params.postMeeting === null
-              ? Prisma.DbNull
-              : params.postMeeting,
+        const created = await prisma.systemCalendarEvent.create({
+          data: {
+            organizationId,
+            leadId,
+            title,
+            leadName,
+            leadCompany,
+            dayName,
+            date,
+            time,
+            type,
+            location,
+            participants: params.participants == null ? null : Number(params.participants),
+            reminders:
+              params.reminders === undefined
+                ? undefined
+                : params.reminders === null
+                  ? Prisma.DbNull
+                  : params.reminders,
+            postMeeting:
+              params.postMeeting === undefined
+                ? undefined
+                : params.postMeeting === null
+                  ? Prisma.DbNull
+                  : params.postMeeting,
+          },
+        });
+
+        return { ok: true, event: toCalendarEventDto(created) };
       },
-    });
-
-    return { ok: true, event: toCalendarEventDto(created) };
+      { source: 'server_actions_system_leads', reason: 'createSystemCalendarEvent' }
+    );
   } catch (e: unknown) {
     console.error('[system-leads] createSystemCalendarEvent failed', e);
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת אירוע' };
@@ -505,27 +474,31 @@ export async function updateSystemLeadFollowUp(params: {
     if (!orgSlug) throw new Error('orgSlug is required');
     if (!leadId) throw new Error('leadId is required');
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    return await withWorkspaceTenantContext(
+      orgSlug,
+      async ({ organizationId }) => {
+        const nextActionNote = params.nextActionNote == null ? null : String(params.nextActionNote);
+        const nextActionDateRaw = params.nextActionDate == null ? null : String(params.nextActionDate).trim();
+        const nextActionDate = nextActionDateRaw ? new Date(nextActionDateRaw) : null;
+        if (nextActionDate && Number.isNaN(nextActionDate.getTime())) {
+          return { ok: false, message: 'תאריך follow-up לא תקין' };
+        }
 
-    const nextActionNote = params.nextActionNote == null ? null : String(params.nextActionNote);
-    const nextActionDateRaw = params.nextActionDate == null ? null : String(params.nextActionDate).trim();
-    const nextActionDate = nextActionDateRaw ? new Date(nextActionDateRaw) : null;
-    if (nextActionDate && Number.isNaN(nextActionDate.getTime())) {
-      return { ok: false, message: 'תאריך follow-up לא תקין' };
-    }
+        const updated = await prisma.systemLead.updateMany({
+          where: { id: leadId, organizationId },
+          data: { nextActionDate, nextActionNote, nextActionDateSuggestion: null, nextActionDateRationale: null },
+        });
 
-    const updated = await prisma.systemLead.updateMany({
-      where: { id: leadId, organizationId: workspace.id },
-      data: { nextActionDate, nextActionNote, nextActionDateSuggestion: null, nextActionDateRationale: null },
-    });
+        if (!updated.count) {
+          return { ok: false, message: 'Lead not found' };
+        }
 
-    if (!updated.count) {
-      return { ok: false, message: 'Lead not found' };
-    }
-
-    const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
-    if (!hydrated) return { ok: false, message: 'Lead not found' };
-    return { ok: true, lead: hydrated };
+        const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
+        if (!hydrated) return { ok: false, message: 'Lead not found' };
+        return { ok: true, lead: hydrated };
+      },
+      { source: 'server_actions_system_leads', reason: 'updateSystemLeadFollowUp' }
+    );
   } catch (e: unknown) {
     console.error('[system-leads] updateSystemLeadFollowUp failed', e);
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון follow-up' };
@@ -545,43 +518,48 @@ export async function createSystemLead(
     productInterest?: string;
   }
 ): Promise<SystemLeadDTO> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-  requireOrganizationId('createSystemLead', workspace?.id);
+  return await withWorkspaceTenantContext(
+    orgSlug,
+    async ({ organizationId }) => {
+      requireOrganizationId('createSystemLead', organizationId);
 
-  const name = String(input.name || '').trim();
-  const phone = String(input.phone || '').trim();
-  const email = String(input.email || '').trim();
+      const name = String(input.name || '').trim();
+      const phone = String(input.phone || '').trim();
+      const email = String(input.email || '').trim();
 
-  if (!name) throw new Error('Name is required');
-  if (!phone) throw new Error('Phone is required');
-  // Email is optional at lead creation time; it's required only when converting to client/portal.
+      if (!name) throw new Error('Name is required');
+      if (!phone) throw new Error('Phone is required');
+      // Email is optional at lead creation time; it's required only when converting to client/portal.
 
-  const now = new Date();
+      const now = new Date();
 
-  const company = input.company?.trim() || null;
-  const source = input.source?.trim() || 'manual';
-  const value = input.value ?? 0;
-  const isHot = Boolean(input.isHot);
-  const productInterest = input.productInterest || null;
+      const company = input.company?.trim() || null;
+      const source = input.source?.trim() || 'manual';
+      const value = input.value ?? 0;
+      const isHot = Boolean(input.isHot);
+      const productInterest = input.productInterest || null;
 
-  const row = await prisma.systemLead.create({
-    data: {
-      organizationId: workspace.id,
-      name,
-      company,
-      phone,
-      email: email || '',
-      source,
-      status: 'incoming',
-      value,
-      lastContact: now,
-      isHot,
-      score: 50,
-      productInterest,
+      const row = await prisma.systemLead.create({
+        data: {
+          organizationId,
+          name,
+          company,
+          phone,
+          email: email || '',
+          source,
+          status: 'incoming',
+          value,
+          lastContact: now,
+          isHot,
+          score: 50,
+          productInterest,
+        },
+      });
+
+      return toDto(row);
     },
-  });
-
-  return toDto(row);
+    { source: 'server_actions_system_leads', reason: 'createSystemLead' }
+  );
 }
 
 export type UpdateSystemLeadStatusResult =
@@ -662,64 +640,79 @@ export async function getSystemLeadActivities(params: {
   leadId: string;
   take?: number;
 }): Promise<SystemLeadActivityDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const leadId = String(params.leadId || '').trim();
-  if (!leadId) throw new Error('leadId is required');
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const leadId = String(params.leadId || '').trim();
+      if (!leadId) throw new Error('leadId is required');
 
-  const rows = await prisma.systemLeadActivity.findMany({
-    where: { leadId, lead: { organizationId: workspace.id } },
-    orderBy: { timestamp: 'desc' },
-    take: Math.max(1, Math.min(200, Math.floor(params.take ?? 50))),
-  });
+      const rows = await prisma.systemLeadActivity.findMany({
+        where: { leadId, lead: { organizationId } },
+        orderBy: { timestamp: 'desc' },
+        take: Math.max(1, Math.min(200, Math.floor(params.take ?? 50))),
+      });
 
-  return rows.map(toActivityDto);
+      return rows.map(toActivityDto);
+    },
+    { source: 'server_actions_system_leads', reason: 'getSystemLeadActivities' }
+  );
 }
 
 export async function getSystemCallHistory(params: {
   orgSlug: string;
   take?: number;
 }): Promise<SystemCallHistoryDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const rows: SystemCallHistoryRow[] = await prisma.systemLeadActivity.findMany({
-    where: {
-      type: 'call',
-      lead: { organizationId: workspace.id },
-    },
-    include: {
-      lead: { select: { id: true, name: true, phone: true } },
-    },
-    orderBy: { timestamp: 'desc' },
-    take: Math.max(1, Math.min(500, Math.floor(params.take ?? 100))),
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const rows: SystemCallHistoryRow[] = await prisma.systemLeadActivity.findMany({
+        where: {
+          type: 'call',
+          lead: { organizationId },
+        },
+        include: {
+          lead: { select: { id: true, name: true, phone: true } },
+        },
+        orderBy: { timestamp: 'desc' },
+        take: Math.max(1, Math.min(200, Math.floor(params.take ?? 100))),
+      });
 
-  return rows.map((r) => ({
-    id: String(r.id),
-    lead_id: String(r.leadId),
-    lead_name: String(r.lead?.name || ''),
-    lead_phone: String(r.lead?.phone || ''),
-    content: String(r.content || ''),
-    timestamp: new Date(r.timestamp ?? r.createdAt ?? new Date()).toISOString(),
-    direction: r.direction != null ? String(r.direction) : null,
-  }));
+      return rows.map((r) => ({
+        id: String(r.id),
+        lead_id: String(r.leadId),
+        lead_name: String(r.lead?.name || ''),
+        lead_phone: String(r.lead?.phone || ''),
+        content: String(r.content || ''),
+        timestamp: new Date(r.timestamp ?? r.createdAt ?? new Date()).toISOString(),
+        direction: r.direction != null ? String(r.direction) : null,
+      }));
+    },
+    { source: 'server_actions_system_leads', reason: 'getSystemCallHistory' }
+  );
 }
 
 export async function getSystemLeadAssignees(params: {
   orgSlug: string;
 }): Promise<Array<{ id: string; name: string; email: string | null; avatarUrl: string | null }>> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const rows = await prisma.profile.findMany({
-    where: { organizationId: workspace.id },
-    select: { id: true, fullName: true, email: true, avatarUrl: true },
-    orderBy: [{ fullName: 'asc' }, { email: 'asc' }],
-    take: 200,
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const rows = await prisma.profile.findMany({
+        where: { organizationId },
+        select: { id: true, fullName: true, email: true, avatarUrl: true },
+        orderBy: [{ fullName: 'asc' }, { email: 'asc' }],
+        take: 200,
+      });
 
-  return rows.map((r) => ({
-    id: String(r.id),
-    name: String(r.fullName || r.email || r.id),
-    email: r.email ? String(r.email) : null,
-    avatarUrl: r.avatarUrl ? String(r.avatarUrl) : null,
-  }));
+      return rows.map((r) => ({
+        id: String(r.id),
+        name: String(r.fullName || r.email || r.id),
+        email: r.email ? String(r.email) : null,
+        avatarUrl: r.avatarUrl ? String(r.avatarUrl) : null,
+      }));
+    },
+    { source: 'server_actions_system_leads', reason: 'getSystemLeadAssignees' }
+  );
 }
 
 export async function updateSystemLead(params: {
@@ -738,66 +731,70 @@ export async function updateSystemLead(params: {
     if (!orgSlug) throw new Error('orgSlug is required');
     if (!leadId) throw new Error('leadId is required');
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    return await withWorkspaceTenantContext(
+      orgSlug,
+      async ({ organizationId }) => {
+        const data: Prisma.SystemLeadUpdateManyMutationInput = {};
 
-    const data: Prisma.SystemLeadUpdateManyMutationInput = {};
+        if (params.name !== undefined) {
+          const name = String(params.name || '').trim();
+          if (!name) return { ok: false, message: 'חובה להזין שם' };
+          data.name = name;
+        }
 
-    if (params.name !== undefined) {
-      const name = String(params.name || '').trim();
-      if (!name) return { ok: false, message: 'חובה להזין שם' };
-      data.name = name;
-    }
+        if (params.phone !== undefined) {
+          const phone = String(params.phone || '').trim();
+          if (!phone) return { ok: false, message: 'חובה להזין טלפון' };
+          data.phone = phone;
+        }
 
-    if (params.phone !== undefined) {
-      const phone = String(params.phone || '').trim();
-      if (!phone) return { ok: false, message: 'חובה להזין טלפון' };
-      data.phone = phone;
-    }
+        if (params.email !== undefined) {
+          const email = params.email == null ? '' : String(params.email || '').trim();
+          data.email = email;
+        }
 
-    if (params.email !== undefined) {
-      const email = params.email == null ? '' : String(params.email || '').trim();
-      data.email = email;
-    }
+        if (params.assignedAgentId !== undefined) {
+          data.assignedAgentId = params.assignedAgentId == null ? null : String(params.assignedAgentId);
+        }
 
-    if (params.assignedAgentId !== undefined) {
-      data.assignedAgentId = params.assignedAgentId == null ? null : String(params.assignedAgentId);
-    }
+        if (params.nextActionDate !== undefined) {
+          const nextActionDateRaw = params.nextActionDate == null ? null : String(params.nextActionDate).trim();
+          const nextActionDate = nextActionDateRaw ? new Date(nextActionDateRaw) : null;
+          if (nextActionDate && Number.isNaN(nextActionDate.getTime())) {
+            return { ok: false, message: 'תאריך follow-up לא תקין' };
+          }
+          data.nextActionDate = nextActionDate;
+          data.nextActionDateSuggestion = null;
+          data.nextActionDateRationale = null;
+        }
 
-    if (params.nextActionDate !== undefined) {
-      const nextActionDateRaw = params.nextActionDate == null ? null : String(params.nextActionDate).trim();
-      const nextActionDate = nextActionDateRaw ? new Date(nextActionDateRaw) : null;
-      if (nextActionDate && Number.isNaN(nextActionDate.getTime())) {
-        return { ok: false, message: 'תאריך follow-up לא תקין' };
-      }
-      data.nextActionDate = nextActionDate;
-      data.nextActionDateSuggestion = null;
-      data.nextActionDateRationale = null;
-    }
+        if (params.nextActionNote !== undefined) {
+          data.nextActionNote = params.nextActionNote == null ? null : String(params.nextActionNote);
+        }
 
-    if (params.nextActionNote !== undefined) {
-      data.nextActionNote = params.nextActionNote == null ? null : String(params.nextActionNote);
-    }
+        if (Object.keys(data).length === 0) {
+          const existingLead = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
+          if (!existingLead) return { ok: false, message: 'Lead not found' };
+          return { ok: true, lead: existingLead };
+        }
 
-    if (Object.keys(data).length === 0) {
-      const existingLead = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
-      if (!existingLead) return { ok: false, message: 'Lead not found' };
-      return { ok: true, lead: existingLead };
-    }
+        data.lastContact = new Date();
 
-    data.lastContact = new Date();
+        const updated = await prisma.systemLead.updateMany({
+          where: { id: leadId, organizationId },
+          data,
+        });
 
-    const updated = await prisma.systemLead.updateMany({
-      where: { id: leadId, organizationId: workspace.id },
-      data,
-    });
+        if (!updated.count) {
+          return { ok: false, message: 'Lead not found' };
+        }
 
-    if (!updated.count) {
-      return { ok: false, message: 'Lead not found' };
-    }
-
-    const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
-    if (!hydrated) return { ok: false, message: 'Lead not found' };
-    return { ok: true, lead: hydrated };
+        const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
+        if (!hydrated) return { ok: false, message: 'Lead not found' };
+        return { ok: true, lead: hydrated };
+      },
+      { source: 'server_actions_system_leads', reason: 'updateSystemLead' }
+    );
   } catch (e: unknown) {
     console.error('[system-leads] updateSystemLead failed', e);
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בעדכון ליד' };
@@ -814,47 +811,48 @@ export async function recomputeSystemLeadAiScore(params: {
     if (!orgSlug) throw new Error('orgSlug is required');
     if (!leadId) throw new Error('leadId is required');
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+    return await withWorkspaceTenantContext(
+      orgSlug,
+      async ({ organizationId }) => {
+        const leadRow = await prisma.systemLead.findFirst({
+          where: { id: leadId, organizationId },
+          select: {
+            id: true,
+            name: true,
+            company: true,
+            phone: true,
+            email: true,
+            status: true,
+            value: true,
+            source: true,
+            isHot: true,
+            score: true,
+          },
+        });
 
-    const leadRow = await prisma.systemLead.findFirst({
-      where: { id: leadId, organizationId: workspace.id },
-      select: {
-        id: true,
-        name: true,
-        company: true,
-        phone: true,
-        email: true,
-        status: true,
-        value: true,
-        source: true,
-        isHot: true,
-        score: true,
-      },
-    });
+        if (!leadRow?.id) {
+          return { ok: false, message: 'Lead not found' };
+        }
 
-    if (!leadRow?.id) {
-      return { ok: false, message: 'Lead not found' };
-    }
+        const activities = await prisma.systemLeadActivity.findMany({
+          where: { leadId, lead: { organizationId } },
+          orderBy: { timestamp: 'desc' },
+          take: 30,
+          select: { type: true, content: true, timestamp: true, direction: true },
+        });
 
-    const activities = await prisma.systemLeadActivity.findMany({
-      where: { leadId, lead: { organizationId: workspace.id } },
-      orderBy: { timestamp: 'desc' },
-      take: 30,
-      select: { type: true, content: true, timestamp: true, direction: true },
-    });
+        const history = activities
+          .slice(0, 20)
+          .map((a) => {
+            const when = a.timestamp ? new Date(a.timestamp).toISOString() : '';
+            const dir = a.direction ? `(${String(a.direction)})` : '';
+            return `${when} ${String(a.type || '')}${dir}: ${String(a.content || '')}`;
+          })
+          .join('\n');
 
-    const history = activities
-      .slice(0, 20)
-      .map((a) => {
-        const when = a.timestamp ? new Date(a.timestamp).toISOString() : '';
-        const dir = a.direction ? `(${String(a.direction)})` : '';
-        return `${when} ${String(a.type || '')}${dir}: ${String(a.content || '')}`;
-      })
-      .join('\n');
+        const ai = AIService.getInstance();
 
-    const ai = AIService.getInstance();
-
-    const prompt = `חשב ציון ליד (AI Score) בין 0 ל-100 עבור ליד מכירות.
+        const prompt = `חשב ציון ליד (AI Score) בין 0 ל-100 עבור ליד מכירות.
 
 נתוני ליד:
 שם: ${String(leadRow.name || '')}
@@ -874,53 +872,56 @@ ${history || 'אין אינטראקציות עדיין'}
 - tags: עד 6 תגיות קצרות בעברית
 - אם אין כמעט אינטראקציות: score נמוך יחסית`;
 
-    const out = await ai.generateJson<{ score: number; isHot: boolean; tags: string[] }>({
-      featureKey: 'system.leads.score',
-      organizationId: workspace.id,
-      prompt,
-      responseSchema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          score: { type: 'number' },
-          isHot: { type: 'boolean' },
-          tags: { type: 'array', items: { type: 'string' } },
-        },
-        required: ['score', 'isHot', 'tags'],
+        const out = await ai.generateJson<{ score: number; isHot: boolean; tags: string[] }>({
+          featureKey: 'system.leads.score',
+          organizationId,
+          prompt,
+          responseSchema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              score: { type: 'number' },
+              isHot: { type: 'boolean' },
+              tags: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['score', 'isHot', 'tags'],
+          },
+          meta: {
+            module: 'system',
+            kind: 'lead_score',
+            leadId,
+          },
+        });
+
+        const nextScoreRaw = out?.result?.score;
+        const nextScore = Math.max(0, Math.min(100, Math.round(Number(nextScoreRaw ?? 0))));
+        const nextIsHot = Boolean(out?.result?.isHot);
+        const nextTags = Array.isArray(out?.result?.tags)
+          ? out.result.tags.map((t) => String(t || '').trim()).filter(Boolean).slice(0, 12)
+          : [];
+
+        const updated = await prisma.systemLead.updateMany({
+          where: { id: leadId, organizationId },
+          data: {
+            score: nextScore,
+            isHot: nextIsHot,
+            aiTags: nextTags,
+          },
+        });
+
+        if (!updated.count) {
+          return { ok: false, message: 'Lead not found' };
+        }
+
+        const hydrated = await loadLeadDtoWithActivities({ organizationId, leadId, takeActivities: 50 });
+        if (!hydrated) {
+          return { ok: false, message: 'Lead not found' };
+        }
+
+        return { ok: true, lead: hydrated };
       },
-      meta: {
-        module: 'system',
-        kind: 'lead_score',
-        leadId,
-      },
-    });
-
-    const nextScoreRaw = out?.result?.score;
-    const nextScore = Math.max(0, Math.min(100, Math.round(Number(nextScoreRaw ?? 0))));
-    const nextIsHot = Boolean(out?.result?.isHot);
-    const nextTags = Array.isArray(out?.result?.tags)
-      ? out.result.tags.map((t) => String(t || '').trim()).filter(Boolean).slice(0, 12)
-      : [];
-
-    const updated = await prisma.systemLead.updateMany({
-      where: { id: leadId, organizationId: workspace.id },
-      data: {
-        score: nextScore,
-        isHot: nextIsHot,
-        aiTags: nextTags,
-      },
-    });
-
-    if (!updated.count) {
-      return { ok: false, message: 'Lead not found' };
-    }
-
-    const hydrated = await loadLeadDtoWithActivities({ organizationId: workspace.id, leadId, takeActivities: 50 });
-    if (!hydrated) {
-      return { ok: false, message: 'Lead not found' };
-    }
-
-    return { ok: true, lead: hydrated };
+      { source: 'server_actions_system_leads', reason: 'recomputeSystemLeadAiScore' }
+    );
   } catch (e: unknown) {
     console.error('[system-leads] recomputeSystemLeadAiScore failed', e);
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה בחישוב AI Score' };
@@ -947,66 +948,81 @@ export async function createSystemLeadActivity(params: {
     if (!type) throw new Error('type is required');
     if (!content) throw new Error('content is required');
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-    requireOrganizationId('createSystemLeadActivity', workspace?.id);
-    const existing = await prisma.systemLead.findFirst({
-      where: { id: leadId, organizationId: workspace.id },
-      select: { id: true, nextActionDate: true, nextActionNote: true, nextActionDateSuggestion: true },
-    });
-    if (!existing) throw new Error('Lead not found');
+    return await withWorkspaceTenantContext(
+      orgSlug,
+      async ({ organizationId }) => {
+        requireOrganizationId('createSystemLeadActivity', organizationId);
 
-    const row = await prisma.systemLeadActivity.create({
-      data: {
-        organizationId: workspace.id,
-        leadId,
-        type,
-        content,
-        direction: params.direction ? String(params.direction) : null,
-        metadata:
-          params.metadata === undefined
-            ? undefined
-            : params.metadata === null
-              ? Prisma.DbNull
-              : params.metadata,
+        const now = new Date();
+        const existing = await prisma.systemLead.findFirst({
+          where: { id: leadId, organizationId },
+          select: { id: true, nextActionDate: true, nextActionDateSuggestion: true },
+        });
+        if (!existing?.id) throw new Error('Lead not found');
+
+        const row = await prisma.systemLeadActivity.create({
+          data: {
+            organizationId,
+            leadId,
+            type,
+            content,
+            direction: params.direction ? String(params.direction) : null,
+            metadata:
+              params.metadata === undefined
+                ? undefined
+                : params.metadata === null
+                  ? Prisma.DbNull
+                  : params.metadata,
+          },
+        });
+
+        const touched = await prisma.systemLead.updateMany({
+          where: { id: leadId, organizationId },
+          data: { lastContact: now },
+        });
+
+        if (!touched.count) {
+          return { ok: false, message: 'Lead not found' };
+        }
+
+        if (!existing.nextActionDate && !existing.nextActionDateSuggestion) {
+          const maybeFollowUp = parseFollowUpDateFromHebrew(content, now);
+          if (maybeFollowUp) {
+            await prisma.systemLead.updateMany({
+              where: { id: leadId, organizationId },
+              data: {
+                nextActionDateSuggestion: maybeFollowUp.date,
+                nextActionDateRationale: maybeFollowUp.rationale,
+              },
+            });
+          }
+        }
+
+        const baseLeadDto = await loadLeadDtoWithActivities({
+          organizationId,
+          leadId,
+          takeActivities: 50,
+        });
+        let leadDto: SystemLeadDTO | undefined = baseLeadDto ?? undefined;
+
+        if (params.recomputeScore !== false) {
+          const scored = await recomputeSystemLeadAiScore({ orgSlug, leadId }).catch((error: unknown) => {
+            if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+              throw new Error(
+                `[SchemaMismatch] recomputeSystemLeadAiScore failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+              );
+            }
+            return null;
+          });
+          if (scored && scored.ok) {
+            leadDto = scored.lead;
+          }
+        }
+
+        return { ok: true, activity: toActivityDto(row), lead: leadDto };
       },
-    });
-
-    const touched = await prisma.systemLead.updateMany({
-      where: { id: leadId, organizationId: workspace.id },
-      data: { lastContact: new Date() },
-    });
-
-    if (!touched.count) {
-      throw new Error('Lead not found');
-    }
-
-    const now = new Date();
-    const maybeFollowUp = type === 'call' ? parseFollowUpDateFromHebrew(content, now) : null;
-    if (maybeFollowUp && !existing.nextActionDate && !existing.nextActionDateSuggestion) {
-      await prisma.systemLead.updateMany({
-        where: { id: leadId, organizationId: workspace.id },
-        data: {
-          nextActionDateSuggestion: maybeFollowUp.date,
-          nextActionDateRationale: maybeFollowUp.rationale,
-        },
-      });
-    }
-
-    const baseLeadDto = await loadLeadDtoWithActivities({
-      organizationId: workspace.id,
-      leadId,
-      takeActivities: 50,
-    });
-    let leadDto: SystemLeadDTO | undefined = baseLeadDto ?? undefined;
-
-    if (params.recomputeScore !== false) {
-      const scored = await recomputeSystemLeadAiScore({ orgSlug, leadId }).catch(() => null);
-      if (scored && scored.ok) {
-        leadDto = scored.lead;
-      }
-    }
-
-    return { ok: true, activity: toActivityDto(row), lead: leadDto };
+      { source: 'server_actions_system_leads', reason: 'createSystemLeadActivity' }
+    );
   } catch (e: unknown) {
     console.error('[system-leads] createSystemLeadActivity failed', e);
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת פעילות' };
@@ -1085,160 +1101,164 @@ export async function updateSystemLeadStatus(params: {
     throw new Error('Unauthorized');
   }
 
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-
-  const existing = await prisma.systemLead.findFirst({
-    where: { id: leadId, organizationId: workspace.id },
-  });
-
-  if (!existing) {
-    throw new Error('Lead not found');
-  }
-
-  if (status !== 'won') {
-    const updated = await prisma.systemLead.updateMany({
-      where: { id: leadId, organizationId: workspace.id },
-      data: {
-        status,
-        lastContact: new Date(),
-      },
-    });
-
-    if (!updated.count) {
-      throw new Error('Lead not found');
-    }
-
-    const row = await prisma.systemLead.findFirst({
-      where: { id: leadId, organizationId: workspace.id },
-    });
-    if (!row) {
-      throw new Error('Lead not found');
-    }
-
-    return { ok: true, lead: toDto(row), syncedClientId: null };
-  }
-
-  const email = String(existing.email || '').trim();
-  if (!email) {
-    return {
-      ok: false,
-      reason: 'blocked_no_email',
-      message: 'לא ניתן לסגור ליד כ-לקוח כי אין לו אימייל. יש להוסיף אימייל לליד ואז לסגור מחדש.',
-    };
-  }
-
-  const nextInstallationAddressRaw =
-    typeof params.installationAddress === 'string' ? params.installationAddress : existing.installationAddress;
-  const nextInstallationAddress = String(nextInstallationAddressRaw || '').trim();
-  if (!nextInstallationAddress) {
-    return {
-      ok: false,
-      reason: 'blocked_no_installation_address',
-      message: 'כדי לסגור עסקה ל-WON חייבים להזין כתובת לביצוע (installation_address).',
-    };
-  }
-
-  const updated = await prisma.systemLead.updateMany({
-    where: { id: leadId, organizationId: workspace.id },
-    data: {
-      status,
-      lastContact: new Date(),
-      installationAddress: nextInstallationAddress,
-    },
-  });
-
-  if (!updated.count) {
-    throw new Error('Lead not found');
-  }
-
-  const row = await prisma.systemLead.findFirst({
-    where: { id: leadId, organizationId: workspace.id },
-  });
-  if (!row) {
-    throw new Error('Lead not found');
-  }
-
-  const lead = toDto(row);
-
-  const canonical = await upsertCanonicalClientByEmail({
+  return await withWorkspaceTenantContext(
     orgSlug,
-    organizationId: workspace.id,
-    clerkUserId,
-    email,
-    fullName: lead.name,
-    companyName: lead.company?.trim() ? lead.company.trim() : lead.name,
-    phone: lead.phone || null,
-  });
+    async ({ organizationId, workspace }) => {
+      const existing = await prisma.systemLead.findFirst({
+        where: { id: leadId, organizationId },
+      });
 
-  const synced = await upsertClientClientByEmail({
-    organizationId: workspace.id,
-    fullName: lead.company?.trim() ? lead.company.trim() : lead.name,
-    email,
-    phone: lead.phone || null,
-    metadata: {
-      source: 'system_leads',
-      systemLeadId: lead.id,
-      canonicalClientId: canonical.canonicalClientId,
-    },
-  });
+      if (!existing) {
+        throw new Error('Lead not found');
+      }
 
-  const canonicalClientId = canonical.canonicalClientId;
+      if (status !== 'won') {
+        const updated = await prisma.systemLead.updateMany({
+          where: { id: leadId, organizationId },
+          data: {
+            status,
+            lastContact: new Date(),
+          },
+        });
 
-  if (workspace.entitlements?.operations && canonicalClientId) {
-    try {
-      const existingProject = await prisma.operationsProject.findFirst({
-        where: {
-          organizationId: workspace.id,
-          source: 'system_lead',
-          sourceRefId: lead.id,
+        if (!updated.count) {
+          throw new Error('Lead not found');
+        }
+
+        const row = await prisma.systemLead.findFirst({
+          where: { id: leadId, organizationId },
+        });
+        if (!row) {
+          throw new Error('Lead not found');
+        }
+
+        return { ok: true, lead: toDto(row), syncedClientId: null };
+      }
+
+      const email = String(existing.email || '').trim();
+      if (!email) {
+        return {
+          ok: false,
+          reason: 'blocked_no_email',
+          message: 'לא ניתן לסגור ליד כ-לקוח כי אין לו אימייל. יש להוסיף אימייל לליד ואז לסגור מחדש.',
+        };
+      }
+
+      const nextInstallationAddressRaw =
+        typeof params.installationAddress === 'string' ? params.installationAddress : existing.installationAddress;
+      const nextInstallationAddress = String(nextInstallationAddressRaw || '').trim();
+      if (!nextInstallationAddress) {
+        return {
+          ok: false,
+          reason: 'blocked_no_installation_address',
+          message: 'כדי לסגור עסקה ל-WON חייבים להזין כתובת לביצוע (installation_address).',
+        };
+      }
+
+      const updated = await prisma.systemLead.updateMany({
+        where: { id: leadId, organizationId },
+        data: {
+          status,
+          lastContact: new Date(),
+          installationAddress: nextInstallationAddress,
         },
-        select: { id: true },
       });
 
-      if (!existingProject?.id) {
-        await prisma.operationsProject.create({
-          data: {
-            organizationId: workspace.id,
-            canonicalClientId,
-            title: lead.company?.trim() ? lead.company.trim() : lead.name,
-            status: 'ACTIVE',
-            installationAddress: nextInstallationAddress,
-            addressNormalized: nextInstallationAddress ? normalizeAddress(nextInstallationAddress) : null,
-            source: 'system_lead',
-            sourceRefId: lead.id,
-          },
-          select: { id: true },
-        });
+      if (!updated.count) {
+        throw new Error('Lead not found');
       }
-    } catch (e: unknown) {
-      console.error('[system-leads] failed to auto-create operations project', e);
-    }
-  }
 
-  if (workspace.entitlements?.finance) {
-    try {
-      const existingInvoice = await prisma.systemInvoice.findFirst({
-        where: { leadId: lead.id, organizationId: workspace.id },
-        select: { id: true },
+      const row = await prisma.systemLead.findFirst({
+        where: { id: leadId, organizationId },
+      });
+      if (!row) {
+        throw new Error('Lead not found');
+      }
+
+      const lead = toDto(row);
+
+      const canonical = await upsertCanonicalClientByEmail({
+        orgSlug,
+        organizationId,
+        clerkUserId,
+        email,
+        fullName: lead.name,
+        companyName: lead.company?.trim() ? lead.company.trim() : lead.name,
+        phone: lead.phone || null,
       });
 
-      if (!existingInvoice?.id) {
-        await prisma.systemInvoice.create({
-          data: {
-            organizationId: workspace.id,
-            leadId: lead.id,
-            client: lead.company?.trim() ? lead.company.trim() : lead.name,
-            amount: new Prisma.Decimal(Number(lead.value || 0)),
-            status: 'pending',
-            item: 'מכירה (System)',
-          },
-          select: { id: true },
-        });
-      }
-    } catch (e: unknown) {
-      console.error('[system-leads] failed to auto-create system invoice', e);
-    }
-  }
+      const synced = await upsertClientClientByEmail({
+        organizationId,
+        fullName: lead.company?.trim() ? lead.company.trim() : lead.name,
+        email,
+        phone: lead.phone || null,
+        metadata: {
+          source: 'system_leads',
+          systemLeadId: lead.id,
+          canonicalClientId: canonical.canonicalClientId,
+        },
+      });
 
-  return { ok: true, lead, syncedClientId: synced.clientId };
+      const canonicalClientId = canonical.canonicalClientId;
+
+      if (workspace.entitlements?.operations && canonicalClientId) {
+        try {
+          const existingProject = await prisma.operationsProject.findFirst({
+            where: {
+              organizationId,
+              source: 'system_lead',
+              sourceRefId: lead.id,
+            },
+            select: { id: true },
+          });
+
+          if (!existingProject?.id) {
+            await prisma.operationsProject.create({
+              data: {
+                organizationId,
+                canonicalClientId,
+                title: lead.company?.trim() ? lead.company.trim() : lead.name,
+                status: 'ACTIVE',
+                installationAddress: nextInstallationAddress,
+                addressNormalized: nextInstallationAddress ? normalizeAddress(nextInstallationAddress) : null,
+                source: 'system_lead',
+                sourceRefId: lead.id,
+              },
+              select: { id: true },
+            });
+          }
+        } catch (e: unknown) {
+          console.error('[system-leads] failed to auto-create operations project', e);
+        }
+      }
+
+      if (workspace.entitlements?.finance) {
+        try {
+          const existingInvoice = await prisma.systemInvoice.findFirst({
+            where: { leadId: lead.id, organizationId },
+            select: { id: true },
+          });
+
+          if (!existingInvoice?.id) {
+            await prisma.systemInvoice.create({
+              data: {
+                organizationId,
+                leadId: lead.id,
+                client: lead.company?.trim() ? lead.company.trim() : lead.name,
+                amount: new Prisma.Decimal(Number(lead.value || 0)),
+                status: 'pending',
+                item: 'מכירה (System)',
+              },
+              select: { id: true },
+            });
+          }
+        } catch (e: unknown) {
+          console.error('[system-leads] failed to auto-create system invoice', e);
+        }
+      }
+
+      return { ok: true, lead, syncedClientId: synced.clientId };
+    },
+    { source: 'server_actions_system_leads', reason: 'updateSystemLeadStatus' }
+  );
 }

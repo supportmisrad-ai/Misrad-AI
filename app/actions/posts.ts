@@ -11,20 +11,14 @@ import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/e
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { triggerWebhookEvent } from './integrations';
 import { Prisma } from '@prisma/client';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { createStorageClient } from '@/lib/supabase';
+import {
+  assertStoragePathScoped,
+  parseSbRef,
+  resolveStorageUrlsMaybeBatchedWithClient,
+  toSbRefMaybe,
+} from '@/lib/services/operations/storage';
 
 function isSocialPlatform(value: unknown): value is SocialPlatform {
   return (
@@ -129,7 +123,7 @@ export async function getPosts(params: {
       orderBy: { createdAt: 'desc' },
     });
 
-    const posts: SocialPost[] = (rows || []).map((post) => {
+    const rawPosts: SocialPost[] = (rows || []).map((post) => {
       const platforms = (post.social_post_platforms || [])
         .map((pp) => pp.platform)
         .filter(isSocialPlatform);
@@ -146,6 +140,32 @@ export async function getPosts(params: {
         publishedAt: post.published_at ? new Date(post.published_at).toISOString() : undefined,
         platforms,
         createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : undefined,
+      };
+    });
+
+    const ttlSeconds = 60 * 60;
+    const refsOrUrls = rawPosts.map((p) => {
+      const raw = p.mediaUrl ? String(p.mediaUrl).trim() : '';
+      if (!raw) return null;
+      return toSbRefMaybe(raw) || raw;
+    });
+
+    let resolved: (string | null)[] = refsOrUrls.map(() => null);
+    try {
+      const supabase = createStorageClient();
+      resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, refsOrUrls, ttlSeconds, { organizationId });
+    } catch {
+      resolved = refsOrUrls.map(() => null);
+    }
+
+    const posts: SocialPost[] = rawPosts.map((p, idx) => {
+      const raw = p.mediaUrl ? String(p.mediaUrl).trim() : '';
+      const stable = raw ? (toSbRefMaybe(raw) || (raw.startsWith('sb://') ? raw : null)) : null;
+      const url = resolved[idx] || (raw && !raw.startsWith('sb://') ? raw : undefined);
+      return {
+        ...p,
+        mediaRef: stable || undefined,
+        mediaUrl: url,
       };
     });
 
@@ -208,6 +228,10 @@ export async function createPost(
 
     // Upload media file if provided
     let mediaUrl = postData.mediaUrl;
+    if (mediaUrl) {
+      const stable = toSbRefMaybe(String(mediaUrl));
+      if (stable) mediaUrl = stable;
+    }
     if (postData.mediaFile) {
       const uploadResult = await uploadFile(
         postData.mediaFile,
@@ -317,6 +341,10 @@ export async function updatePost(
 
     // Upload new media file if provided
     let mediaUrl = updates.mediaUrl;
+    if (mediaUrl) {
+      const stable = toSbRefMaybe(String(mediaUrl));
+      if (stable) mediaUrl = stable;
+    }
     if (updates.mediaFile) {
       const uploadResult = await uploadFile(
         updates.mediaFile,
@@ -441,13 +469,31 @@ export async function deletePost(postId: string, orgSlug: string): Promise<{ suc
     // Delete media file from storage if exists
     if (post?.media_url) {
       try {
-        // Extract file path from URL
-        // URL format: https://[project].supabase.co/storage/v1/object/public/media/[path]
-        const urlParts = post.media_url.split('/media/');
-        if (urlParts.length > 1) {
-          const filePath = urlParts[1];
-          const { deleteFile } = await import('./files');
-          await deleteFile(filePath);
+        const rawUrl = String(post.media_url || '').trim();
+        const stableRef = toSbRefMaybe(rawUrl) || (rawUrl.startsWith('sb://') ? rawUrl : null);
+
+        if (stableRef) {
+          const parsed = parseSbRef(stableRef);
+          if (parsed && parsed.bucket === 'media') {
+            assertStoragePathScoped({ rawRef: stableRef, path: parsed.path, organizationId });
+            const { deleteFile } = await import('./files');
+            await deleteFile(parsed.path);
+          }
+        } else {
+          const base = String(process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+          const isSupabaseObjectUrl =
+            !!base &&
+            (rawUrl.startsWith(base) || rawUrl.includes('/storage/v1/object/'));
+
+          if (isSupabaseObjectUrl) {
+            const urlParts = rawUrl.split('/media/');
+            if (urlParts.length > 1) {
+              const filePath = urlParts[1];
+              assertStoragePathScoped({ rawRef: `sb://media/${filePath}`, path: filePath, organizationId });
+              const { deleteFile } = await import('./files');
+              await deleteFile(filePath);
+            }
+          }
         }
       } catch (fileError) {
         // Log error but don't fail the post deletion
@@ -501,6 +547,21 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
 
     const platforms = (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform);
 
+    const rawMedia = post.media_url ? String(post.media_url) : null;
+    const stableRef = rawMedia ? (toSbRefMaybe(rawMedia) || (rawMedia.startsWith('sb://') ? rawMedia : null)) : null;
+    let resolvedMediaUrl: string | null = rawMedia;
+    if (stableRef) {
+      try {
+        const supabase = createStorageClient();
+        const resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, [stableRef], 60 * 60, { organizationId });
+        const rawIsSb = rawMedia ? rawMedia.startsWith('sb://') : false;
+        resolvedMediaUrl = resolved[0] || (rawIsSb ? null : rawMedia);
+      } catch {
+        const rawIsSb = rawMedia ? rawMedia.startsWith('sb://') : false;
+        resolvedMediaUrl = rawIsSb ? null : rawMedia;
+      }
+    }
+
     const webhookResult = await triggerWebhookEvent({
       eventType: 'post_published',
       payload: {
@@ -508,7 +569,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
           id: post.id,
           clientId: post.clientId,
           content: post.content,
-          mediaUrl: post.media_url || null,
+          mediaUrl: resolvedMediaUrl,
           platforms,
           scheduledAt: post.scheduled_at ? new Date(post.scheduled_at).toISOString() : null,
         },

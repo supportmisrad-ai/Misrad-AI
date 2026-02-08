@@ -12,7 +12,7 @@ export type SystemBootstrap = {
     online: boolean;
     capacity: number;
     email: string;
-    phone: string | null;
+    phone?: string;
     isSuperAdmin: boolean;
     tenantId: string;
   };
@@ -27,6 +27,10 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
   const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  const normalizedCurrentUser = {
+    ...initialCurrentUser,
+    ...(initialCurrentUser.phone != null ? { phone: initialCurrentUser.phone } : { phone: undefined }),
+  };
 
   const initialOrganization = {
     name: workspace.name,
@@ -34,5 +38,5 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
     primaryColor: '#000000',
   };
 
-  return { initialCurrentUser, initialOrganization };
+  return { initialCurrentUser: normalizedCurrentUser, initialOrganization };
 }

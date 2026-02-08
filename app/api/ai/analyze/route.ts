@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Secure AI Analysis API
  * 
@@ -18,17 +19,10 @@ import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGu
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
+function asString(value: unknown): string {
+    return typeof value === 'string' ? value : '';
 }
 
 async function POSTHandler(request: NextRequest) {
@@ -43,13 +37,14 @@ async function POSTHandler(request: NextRequest) {
         }
         let callerOrganizationId: string | null = null;
         try {
-            const socialUser = await (prisma as any).social_users.findUnique({
+            const socialUser = await prisma.social_users.findUnique({
                 where: { clerk_user_id: String(clerkUserId) },
                 select: { organization_id: true },
             });
-            callerOrganizationId = (socialUser as any)?.organization_id ? String((socialUser as any).organization_id) : null;
-        } catch (e: any) {
-            console.error('[AI SECURITY] Failed to resolve social_user org:', e);
+            callerOrganizationId = socialUser?.organization_id ? String(socialUser.organization_id) : null;
+        } catch (e: unknown) {
+            if (IS_PROD) console.error('[AI SECURITY] Failed to resolve social_user org');
+            else console.error('[AI SECURITY] Failed to resolve social_user org:', e);
         }
 
         if (!callerOrganizationId) {
@@ -70,10 +65,13 @@ async function POSTHandler(request: NextRequest) {
         }
         
         // 2. Parse request
-        const body = await request.json();
-        const { query, rawData: initialRawData } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const queryRaw = bodyObj.query;
+        const initialRawData = bodyObj.rawData;
         
-        if (!query) {
+        const queryStr = asString(queryRaw).trim();
+        if (!queryStr) {
             return apiError('Query is required', { status: 400 });
         }
         
@@ -81,7 +79,7 @@ async function POSTHandler(request: NextRequest) {
         const isManager = await hasPermission('manage_team') || await hasPermission('view_financials');
         
         // 4. Fetch users from secure API if needed (for manager view)
-        let rawData = initialRawData || {};
+        let rawData: unknown = initialRawData ?? {};
 
         // 4.1 Organization scoping enforcement
         // If the caller has an org, ensure any explicitly provided org context matches.
@@ -101,31 +99,33 @@ async function POSTHandler(request: NextRequest) {
                     select: { id: true, organizationId: true },
                 });
                 leadOrgId = lead?.organizationId ? String(lead.organizationId) : null;
-            } catch (e: any) {
-                console.error('[AI SECURITY] Failed lead org check:', e);
+            } catch (e: unknown) {
+                if (IS_PROD) console.error('[AI SECURITY] Failed lead org check');
+                else console.error('[AI SECURITY] Failed lead org check:', e);
                 return apiError('Forbidden', { status: 403 });
             }
             if (!leadOrgId || String(leadOrgId) !== String(callerOrganizationId)) {
                 return apiError('Forbidden - lead organization mismatch', { status: 403 });
             }
         }
-        if (isManager && (!rawData?.users || rawData.users.length === 0)) {
+        const rawUsers = rawDataObj.users;
+        if (isManager && (!Array.isArray(rawUsers) || rawUsers.length === 0)) {
             // In production, fetch users from the secure users data source here
             // For now, we'll use empty array - users should be provided in rawData
-            rawData = { ...rawData, users: [] };
+            rawData = { ...rawDataObj, users: [] };
         }
         
         // 5. Prepare safe context (filters sensitive data)
         const safeContext = await prepareAIContext(
             user.role,
             isManager,
-            rawData || {}
+            asObject(rawData) ?? {}
         );
         
         // 6. Log AI access
         await logAuditEvent('ai.query', 'intelligence', {
             details: {
-                query: query.substring(0, 100), // Truncate for logging
+                query: queryStr.substring(0, 100), // Truncate for logging
                 isManager,
                 organizationId: callerOrganizationId,
                 dataTypes: Object.keys(safeContext)
@@ -212,7 +212,7 @@ async function POSTHandler(request: NextRequest) {
                    
                    Context: ${JSON.stringify(safeContext)}
                    
-                   Query: ${query}`;
+                   Query: ${queryStr}`;
         
         const aiOut = await withAiLoadIsolation({
             namespace: 'ai.generate_json',
@@ -245,7 +245,8 @@ async function POSTHandler(request: NextRequest) {
             error: getErrorMessage(error)
         });
 
-        console.error('[AI SECURITY] Error processing AI request:', error);
+        if (IS_PROD) console.error('[AI SECURITY] Error processing AI request');
+        else console.error('[AI SECURITY] Error processing AI request:', error);
         return apiError('Internal server error', { status: 500 });
     }
 }

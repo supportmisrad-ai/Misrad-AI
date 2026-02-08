@@ -3,17 +3,61 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { LifeBuoy } from 'lucide-react';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function unwrapData(value: unknown): unknown {
   const obj = asObject(value);
   const data = obj?.data;
   if (data && typeof data === 'object') return data;
   return value;
+}
+
+function getPayloadError(value: unknown): string | null {
+  const obj = asObject(value);
+  const err = obj?.error;
+  return typeof err === 'string' && err.trim() ? err : null;
+}
+
+function parseTicket(value: unknown): Ticket | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+
+  const id = typeof obj.id === 'string' ? obj.id : String(obj.id ?? '');
+  const ticket_number = typeof obj.ticket_number === 'string' ? obj.ticket_number : String(obj.ticket_number ?? '');
+  if (!id || !ticket_number) return null;
+
+  return {
+    id,
+    ticket_number,
+    subject: typeof obj.subject === 'string' ? obj.subject : String(obj.subject ?? ''),
+    message: typeof obj.message === 'string' ? obj.message : String(obj.message ?? ''),
+    category: typeof obj.category === 'string' ? obj.category : String(obj.category ?? ''),
+    status: typeof obj.status === 'string' ? obj.status : String(obj.status ?? ''),
+    created_at: typeof obj.created_at === 'string' ? obj.created_at : String(obj.created_at ?? ''),
+    sla_deadline: typeof obj.sla_deadline === 'string' ? obj.sla_deadline : undefined,
+    first_response_at: typeof obj.first_response_at === 'string' ? obj.first_response_at : undefined,
+    resolution_time_minutes:
+      typeof obj.resolution_time_minutes === 'number' && Number.isFinite(obj.resolution_time_minutes)
+        ? obj.resolution_time_minutes
+        : undefined,
+  };
+}
+
+function parseEventRow(value: unknown): EventRow | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+  const id = typeof obj.id === 'string' ? obj.id : String(obj.id ?? '');
+  if (!id) return null;
+  const action = typeof obj.action === 'string' ? obj.action : String(obj.action ?? '');
+  const created_at = typeof obj.created_at === 'string' ? obj.created_at : String(obj.created_at ?? '');
+  const content = obj.content == null ? null : typeof obj.content === 'string' ? obj.content : String(obj.content);
+  const metadata = asObject(obj.metadata) ?? undefined;
+  return { id, action, created_at, content, metadata };
+}
+
+function getStringMeta(md: Record<string, unknown> | undefined, key: string): string {
+  const v = md?.[key];
+  return typeof v === 'string' ? v : String(v ?? '');
 }
 
 function formatStatusHe(s: string) {
@@ -72,12 +116,11 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
         const payload = unwrapData(raw);
 
         if (!res.ok) {
-          throw new Error(String((asObject(payload) as any)?.error || 'שגיאה בטעינת הקריאה'));
+          throw new Error(getPayloadError(payload) || 'שגיאה בטעינת הקריאה');
         }
 
-        const obj = asObject(payload);
-        const normalized = obj ? (obj as any) : payload;
-        if (!cancelled) setTicket(normalized as any);
+        const parsed = parseTicket(payload);
+        if (!cancelled) setTicket(parsed);
       } catch {
         if (!cancelled) setTicket(null);
       } finally {
@@ -106,8 +149,11 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
         });
         const raw: unknown = await res.json().catch(() => null);
         const payload = unwrapData(raw);
-        const rows = Array.isArray((payload as any)?.events) ? ((payload as any)?.events as any[]) : [];
-        if (!cancelled) setEvents(rows as any);
+        const obj = asObject(payload);
+        const eventsRaw = obj?.events;
+        const rows = Array.isArray(eventsRaw) ? eventsRaw : [];
+        const parsed = rows.map(parseEventRow).filter((v): v is EventRow => Boolean(v));
+        if (!cancelled) setEvents(parsed);
       } catch {
         if (!cancelled) setEvents([]);
       } finally {
@@ -124,13 +170,13 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
 
   const timeline = useMemo(() => {
     return (events || []).map((ev) => {
-      const md = ev?.metadata && typeof ev.metadata === 'object' ? ev.metadata : {};
-      const actor = String((md as any)?.actor_name || 'System');
+      const md = ev?.metadata;
+      const actor = getStringMeta(md, 'actor_name') || 'System';
       const ts = ev?.created_at ? new Date(String(ev.created_at)) : null;
       const when = ts && !Number.isNaN(ts.getTime()) ? ts.toLocaleString('he-IL') : '';
 
       if (ev.action === 'COMMENT') {
-        const role = String((md as any)?.role || '').toLowerCase();
+        const role = getStringMeta(md, 'role').toLowerCase();
         const roleHe = role === 'admin' ? 'צוות' : role === 'customer' ? 'מדווח' : 'משתמש';
         return {
           id: ev.id,
@@ -145,8 +191,8 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
         return { id: ev.id, dot: 'bg-slate-400', title: `${actor} פתח קריאה`, subtitle: when };
       }
       if (ev.action === 'status_changed') {
-        const from = formatStatusHe(String((md as any)?.from || ''));
-        const to = formatStatusHe(String((md as any)?.to || ''));
+        const from = formatStatusHe(getStringMeta(md, 'from'));
+        const to = formatStatusHe(getStringMeta(md, 'to'));
         return { id: ev.id, dot: 'bg-indigo-600', title: `${actor} שינה סטטוס`, subtitle: `${from} → ${to}${when ? ` · ${when}` : ''}` };
       }
       if (ev.action === 'admin_replied') {
@@ -175,11 +221,12 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
       const raw: unknown = await res.json().catch(() => null);
       const payload = unwrapData(raw);
       if (!res.ok) {
-        throw new Error(String((asObject(payload) as any)?.error || 'משהו השתבש, נסה שוב'));
+        throw new Error(getPayloadError(payload) || 'משהו השתבש, נסה שוב');
       }
       setCommentText('');
       setReloadNonce((x) => x + 1);
-    } catch {
+    } catch (error: unknown) {
+      console.error('[support] submitComment failed', { message: getErrorMessage(error) });
     } finally {
       setCommentSubmitting(false);
     }
@@ -271,9 +318,9 @@ export function SupportTicketDetailClient(props: { orgSlug: string; ticketId: st
                   <div className="min-w-0">
                     <div className="text-sm font-black text-slate-900 leading-snug">{t.title}</div>
                     <div className="mt-1 text-xs font-bold text-slate-500">{t.subtitle}</div>
-                    {(t as any)?.content ? (
+                    {t.content ? (
                       <div className="mt-2 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 whitespace-pre-wrap">
-                        {(t as any).content}
+                        {t.content}
                       </div>
                     ) : null}
                   </div>

@@ -4,6 +4,14 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { getErrorMessage } from '@/lib/shared/unknown';
+
+function getErrorCode(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const rec = error as Record<string, unknown>;
+  const code = rec.code ?? (rec.meta && typeof rec.meta === 'object' ? (rec.meta as Record<string, unknown>).code : undefined);
+  return typeof code === 'string' ? code : '';
+}
 
 async function GETHandler(request: NextRequest) {
   try {
@@ -13,7 +21,7 @@ async function GETHandler(request: NextRequest) {
     try {
       const ws = await getWorkspaceOrThrow(request);
       workspaceId = String(ws.workspaceId || '').trim();
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (e instanceof APIError) {
         return NextResponse.json({ ok: false, error: e.message || 'Missing x-org-id header' }, { status: e.status });
       }
@@ -22,13 +30,13 @@ async function GETHandler(request: NextRequest) {
 
     const checks: Record<string, { ok: boolean; error?: string }> = {};
 
-    const runCheck = async (name: string, fn: () => PromiseLike<any>) => {
+    const runCheck = async (name: string, fn: () => PromiseLike<unknown>) => {
       try {
         await fn();
         checks[name] = { ok: true };
-      } catch (e: any) {
-        const code = String(e?.code || '');
-        const msg = String(e?.message || e || 'Unknown error');
+      } catch (e: unknown) {
+        const code = getErrorCode(e);
+        const msg = getErrorMessage(e);
         if (code === 'P2022') {
           checks[name] = { ok: false, error: `[SchemaMismatch] ${name}: missing column (${msg})` };
           return;
@@ -78,8 +86,8 @@ async function GETHandler(request: NextRequest) {
     }
 
     return NextResponse.json({ ok: true, checks, timestamp: new Date().toISOString() });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'Forbidden' }, { status: 403 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Forbidden' }, { status: 403 });
   }
 }
 

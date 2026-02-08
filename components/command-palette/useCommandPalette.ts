@@ -2,15 +2,38 @@ import { useState, useEffect, useRef } from 'react';
 import { useData } from '@/context/DataContext';
 import { Lead } from '@/types';
 import { NAV_ITEMS, QUICK_ASSETS } from '@/constants';
-import { CommandPaletteMode } from './command-palette.types';
+import { CommandPaletteMode, type CommandPaletteNavItem, type CommandPaletteQuickAsset } from './command-palette.types';
 import { useAIModuleChat, type AIModuleId } from './useAIModuleChat';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { asObject } from '@/lib/shared/unknown';
+
+function isNavItem(value: unknown): value is CommandPaletteNavItem {
+  const obj = asObject(value);
+  if (!obj) return false;
+  return typeof obj.id === 'string' && typeof obj.label === 'string' && typeof obj.icon === 'function';
+}
+
+function toQuickAsset(value: unknown): CommandPaletteQuickAsset | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+  const id = typeof obj.id === 'string' ? obj.id : String(obj.id ?? '');
+  const label = typeof obj.label === 'string' ? obj.label : String(obj.label ?? '');
+  if (!id || !label) return null;
+
+  const rawValue = obj.value;
+  const v = typeof rawValue === 'string' && rawValue.trim() ? rawValue : label;
+
+  const typeRaw = obj.type;
+  const type = typeRaw === 'link' || typeRaw === 'text' ? typeRaw : 'text';
+
+  return { id, label, value: v, type };
+}
 
 export function useCommandPalette(
   isOpen: boolean,
   mode: CommandPaletteMode,
   options?: {
-    navItems?: any[];
+    navItems?: CommandPaletteNavItem[];
     hideLeads?: boolean;
     hideAssets?: boolean;
     moduleKey?: OSModuleKey;
@@ -22,19 +45,29 @@ export function useCommandPalette(
   const messagesEndRef = useRef<HTMLDivElement>(null!);
   const lastQueryRef = useRef<string>('');
 
-  const navSource = options?.navItems || NAV_ITEMS;
-  const assetsSource = options?.hideAssets ? [] : QUICK_ASSETS;
+  const navSource: CommandPaletteNavItem[] = (options?.navItems || NAV_ITEMS).filter(isNavItem);
+  const assetsSource: CommandPaletteQuickAsset[] = (options?.hideAssets ? [] : QUICK_ASSETS)
+    .map(toQuickAsset)
+    .filter((v): v is CommandPaletteQuickAsset => Boolean(v));
+
+  const moduleOverride: AIModuleId = (() => {
+    const v = options?.moduleKey;
+    return v === 'nexus' || v === 'system' || v === 'social' || v === 'client' || v === 'finance' || v === 'operations' || v === 'global'
+      ? v
+      : 'nexus';
+  })();
 
   const {
     messages,
     isLoading: isThinking,
     error,
     sendText,
-  } = useAIModuleChat({ moduleOverride: ((options?.moduleKey ?? 'nexus') as unknown as AIModuleId) });
+  } = useAIModuleChat({ moduleOverride });
 
   useEffect(() => {
     if (error) {
-      addToast('שגיאה בצ\'אט: ' + (error?.message || 'בעיה בהתחברות לשרת'), 'error');
+      const message = error instanceof Error && error.message ? error.message : 'בעיה בהתחברות לשרת';
+      addToast("שגיאה בצ'אט: " + message, 'error');
     }
   }, [addToast, error]);
 
@@ -81,23 +114,30 @@ export function useCommandPalette(
   }, [query, mode]);
 
   // Helper to extract message text
-  const extractMessageText = (message: any): string => {
-    if (typeof message.content === 'string') {
-      return message.content;
+  const extractMessageText = (message: unknown): string => {
+    const obj = asObject(message);
+    if (!obj) return '';
+
+    if (typeof obj.content === 'string') {
+      return obj.content;
     }
-    if (message.parts && Array.isArray(message.parts)) {
+
+    const parts = obj.parts;
+    if (Array.isArray(parts)) {
       let text = '';
-      for (const part of message.parts) {
-        if (part.type === 'text' && part.text) {
-          text += part.text;
+      for (const part of parts) {
+        const pObj = asObject(part);
+        if (pObj?.type === 'text' && typeof pObj.text === 'string' && pObj.text) {
+          text += pObj.text;
         } else if (typeof part === 'string') {
-          text += part;
+          text += String(part);
         }
       }
       return text;
     }
-    if (typeof message.text === 'string') {
-      return message.text;
+
+    if (typeof obj.text === 'string') {
+      return obj.text;
     }
     return '';
   };

@@ -6,11 +6,12 @@ import { NAV_GROUPS } from '../constants';
 import { useBrand } from '../contexts/BrandContext';
 import { BusinessSwitcher } from '../../../BusinessSwitcher';
 import OSAppSwitcher from '../../../shared/OSAppSwitcher';
+import type { UserProfile } from '../../types';
 
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (id: string) => void;
-  user: any;
+  user: UserProfile;
   logout: () => void;
   mobile?: boolean;
   onClose?: () => void;
@@ -142,7 +143,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout: _logout, mo
             </div>
             <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-900 truncate">{safeUserName}</p>
-                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' ? 'הבוס' : 'סוכן'}</p>
+                <p className="text-[10px] text-slate-500 truncate uppercase tracking-wider font-bold mt-0.5">{user.role === 'admin' ? 'הבוס' : user.role === 'agent' ? 'סוכן' : 'צופה'}</p>
             </div>
          </div>
       </div>

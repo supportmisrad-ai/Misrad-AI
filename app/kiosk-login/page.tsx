@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
+import { asObject } from '@/lib/shared/unknown';
 
 type PairingCreateResponse = {
   code: string;
@@ -15,12 +16,6 @@ type PairingStatusResponse =
   | { status: 'EXPIRED' }
   | { status: 'NOT_FOUND' }
   | { status: 'APPROVED'; signInToken: string; organizationId: string | null };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function unwrapData(value: unknown): unknown {
   const obj = asObject(value);

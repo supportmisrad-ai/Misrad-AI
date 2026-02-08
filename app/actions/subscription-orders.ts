@@ -8,23 +8,25 @@ import { uploadFile } from '@/app/actions/files';
 import { calculateOrderAmount } from '@/lib/billing/pricing';
 import { CouponEngine } from '@/lib/server/couponEngine';
 import prisma from '@/lib/prisma';
+import { Prisma, type subscription_orders } from '@prisma/client';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
+
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
-export type BillingCycle = 'monthly' | 'yearly';
+export type BillingCycle = 'monthly' | 'yearly';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
+function captureActionException(error: unknown, context: Record<string, unknown>) {
+  Sentry.withScope((scope) => {
+    scope.setTag('layer', 'server_action');
+    scope.setTag('domain', 'subscription_orders');
+    for (const [k, v] of Object.entries(context)) {
+      scope.setExtra(k, v);
+    }
+    Sentry.captureException(error);
+  });
 }
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
@@ -56,6 +58,29 @@ export type CreateSubscriptionOrderInput = {
   couponCode?: string;
 };
 
+const BillingCycleSchema = z.enum(['monthly', 'yearly']);
+const CreateSubscriptionOrderInputSchema = z.object({
+  organizationId: z.string().optional(),
+  packageType: z.string().optional(),
+  soloModuleKey: z.string().optional(),
+  billingCycle: BillingCycleSchema,
+  amount: z.number().finite().optional(),
+  currency: z.string().optional(),
+  customerName: z.string().min(1),
+  customerEmail: z.string().min(1),
+  customerPhone: z.string().min(1),
+  seats: z.number().finite().optional(),
+  partnerReferralCode: z.string().optional(),
+  couponCode: z.string().optional(),
+});
+
+const OrderIdSchema = z.object({ orderId: z.string().min(1) });
+
+const SubmitProofSchema = z.object({
+  orderId: z.string().min(1),
+  proofFile: z.instanceof(File).nullable().optional(),
+});
+
 export type SubscriptionOrder = {
   id: string;
   clerkUserId: string | null;
@@ -84,6 +109,18 @@ export async function createSubscriptionOrder(
   input: CreateSubscriptionOrderInput
 ): Promise<{ success: boolean; data?: SubscriptionOrder; error?: string }> {
   try {
+    const parsed = CreateSubscriptionOrderInputSchema.safeParse({
+      ...input,
+      billingCycle: input?.billingCycle,
+      customerName: input?.customerName,
+      customerEmail: input?.customerEmail,
+      customerPhone: input?.customerPhone,
+    });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'createSubscriptionOrder', stage: 'validate_input' });
+      return createErrorResponse(null, 'קלט לא תקין ליצירת הזמנת מנוי');
+    }
+
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
@@ -101,7 +138,7 @@ export async function createSubscriptionOrder(
     }
 
     const socialUser = clerkUserId
-      ? await prisma.social_users.findUnique({
+      ? await prisma.organizationUser.findUnique({
           where: { clerk_user_id: String(clerkUserId) },
           select: { id: true, organization_id: true },
         })
@@ -137,7 +174,8 @@ export async function createSubscriptionOrder(
         seats,
       });
       calculatedAmount = calc.amount;
-    } catch (error) {
+    } catch (error: unknown) {
+      captureActionException(error, { action: 'createSubscriptionOrder', stage: 'calculate_order_amount' });
       const errorMessage = getUnknownErrorMessage(error);
       return createErrorResponse(error, errorMessage || 'שגיאה בחישוב מחיר');
     }
@@ -190,7 +228,7 @@ export async function createSubscriptionOrder(
 
     let finalAmount = calculatedAmount;
 
-    const createData: Record<string, unknown> = {
+    const createData: Prisma.subscription_ordersUncheckedCreateInput = {
       id,
       clerk_user_id: clerkUserId,
       social_user_id: socialUser?.id || null,
@@ -207,18 +245,20 @@ export async function createSubscriptionOrder(
       customer_phone: customerPhone,
       created_at: now,
       updated_at: now,
+      ...(seats ? { seats } : {}),
     };
-
-    if (seats) createData.seats = seats;
 
     try {
       await prisma.$transaction(async (tx) => {
         try {
-          await tx.subscription_orders.create({ data: createData as any });
+          await tx.subscription_orders.create({ data: createData });
         } catch (error: unknown) {
           if (seats && isMissingColumnError(error, 'seats')) {
-            delete (createData as any).seats;
-            await tx.subscription_orders.create({ data: createData as any });
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+              throw new Error(`[SchemaMismatch] subscription_orders.seats missing column (${getUnknownErrorMessage(error) || 'missing column'})`);
+            }
+            createData.seats = undefined;
+            await tx.subscription_orders.create({ data: createData });
           } else {
             throw error;
           }
@@ -242,6 +282,7 @@ export async function createSubscriptionOrder(
         }
       });
     } catch (error: unknown) {
+      captureActionException(error, { action: 'createSubscriptionOrder', stage: 'db_transaction', orderId: id });
       if (error instanceof CouponApplyError) {
         return createErrorResponse(error, error.message);
       }
@@ -257,7 +298,8 @@ export async function createSubscriptionOrder(
           select: { id: true },
         });
         partnerId = partner?.id ? String(partner.id) : null;
-      } catch {
+      } catch (error: unknown) {
+        captureActionException(error, { action: 'createSubscriptionOrder', stage: 'resolve_partner_referral' });
         partnerId = null;
       }
 
@@ -269,7 +311,8 @@ export async function createSubscriptionOrder(
             select: { id: true },
           });
           partnerId = partner?.id ? String(partner.id) : null;
-        } catch {
+        } catch (error: unknown) {
+          captureActionException(error, { action: 'createSubscriptionOrder', stage: 'resolve_partner_referral_upper' });
           partnerId = null;
         }
       }
@@ -280,11 +323,12 @@ export async function createSubscriptionOrder(
 
       if (organizationId) {
         try {
-          await prisma.social_organizations.updateMany({
+          await prisma.organization.updateMany({
             where: { id: organizationId },
-            data: { partnerId: partnerId } as any,
+            data: { partnerId } satisfies Prisma.social_organizationsUncheckedUpdateManyInput,
           });
-        } catch (error) {
+        } catch (error: unknown) {
+          captureActionException(error, { action: 'createSubscriptionOrder', stage: 'apply_partner_to_org', organizationId });
           return createErrorResponse(error, 'שגיאה בעדכון שיוך שותף');
         }
       }
@@ -306,7 +350,8 @@ export async function createSubscriptionOrder(
     };
 
     return createSuccessResponse(order);
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'createSubscriptionOrder', stage: 'outer' });
     const errorMessage = getUnknownErrorMessage(error);
     return createErrorResponse(error, errorMessage || 'שגיאה ביצירת הזמנת מנוי');
   }
@@ -314,12 +359,18 @@ export async function createSubscriptionOrder(
 
 export async function getSubscriptionOrder(
   orderId: string
-): Promise<{ success: boolean; data?: unknown; error?: string }> {
+): Promise<{ success: boolean; data?: subscription_orders; error?: string }> {
   try {
+    const parsed = OrderIdSchema.safeParse({ orderId });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'getSubscriptionOrder', stage: 'validate_input' });
+      return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנת מנוי');
+    }
+
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const id = String(orderId || '').trim();
+    const id = String(parsed.data.orderId || '').trim();
     if (!id) return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנת מנוי');
 
     const row = await prisma.subscription_orders.findFirst({
@@ -330,8 +381,9 @@ export async function getSubscriptionOrder(
       return createErrorResponse('Not found', 'שגיאה בטעינת הזמנת מנוי');
     }
 
-    return createSuccessResponse(row as any);
-  } catch (error) {
+    return createSuccessResponse(row);
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'getSubscriptionOrder' });
     const errorMessage = getUnknownErrorMessage(error);
     return createErrorResponse(error, errorMessage || 'שגיאה בטעינת הזמנת מנוי');
   }
@@ -368,7 +420,8 @@ export async function getSubscriptionPaymentConfig(
       paymentMethod: normalizePaymentMethod(data.payment_method),
       externalPaymentUrl: data.external_payment_url == null ? null : String(data.external_payment_url),
     } satisfies SubscriptionPaymentConfig);
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'getSubscriptionPaymentConfig', packageType: String(packageType) });
     const errorMessage = getUnknownErrorMessage(error);
     return createErrorResponse(error, errorMessage || 'שגיאה בטעינת הגדרות תשלום');
   }
@@ -379,10 +432,16 @@ export async function submitSubscriptionPaymentProof(input: {
   proofFile?: File | null;
 }): Promise<{ success: boolean; data?: { url?: string; path?: string } ; error?: string }> {
   try {
+    const parsed = SubmitProofSchema.safeParse({ orderId: input?.orderId, proofFile: input?.proofFile ?? null });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'submitSubscriptionPaymentProof', stage: 'validate_input' });
+      return createErrorResponse('Invalid input', 'קלט לא תקין');
+    }
+
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
-    const orderId = String(input.orderId || '').trim();
+    const orderId = String(parsed.data.orderId || '').trim();
     if (!orderId) {
       return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנה');
     }
@@ -403,13 +462,13 @@ export async function submitSubscriptionPaymentProof(input: {
     const now = new Date();
 
     let proof: { url?: string; path?: string } = {};
-    if (input.proofFile) {
+    if (parsed.data.proofFile) {
       const organizationId = order.organization_id ? String(order.organization_id) : '';
       if (!organizationId) {
         return createErrorResponse(new Error('Missing organization'), 'חסרה חברה להזמנה');
       }
 
-      const organization = await prisma.social_organizations.findFirst({
+      const organization = await prisma.organization.findFirst({
         where: { id: organizationId },
         select: { slug: true },
       });
@@ -419,8 +478,8 @@ export async function submitSubscriptionPaymentProof(input: {
         return createErrorResponse(new Error('Missing organization slug'), 'לא נמצא מזהה ארגון');
       }
 
-      const fileName = `subscription-proof-${input.orderId}`;
-      const upload = await uploadFile(input.proofFile, fileName, 'media', orgSlug);
+      const fileName = `subscription-proof-${parsed.data.orderId}`;
+      const upload = await uploadFile(parsed.data.proofFile, fileName, 'media', orgSlug);
       if (!upload.success || !upload.url || !upload.path) {
         return createErrorResponse(new Error(upload.error || 'Upload failed'), upload.error || 'שגיאה בהעלאת הוכחה');
       }
@@ -438,12 +497,14 @@ export async function submitSubscriptionPaymentProof(input: {
           updated_at: now,
         },
       });
-    } catch (updateError) {
+    } catch (updateError: unknown) {
+      captureActionException(updateError, { action: 'submitSubscriptionPaymentProof', stage: 'update_order', orderId });
       return createErrorResponse(updateError, 'שגיאה בעדכון הזמנה');
     }
 
     return createSuccessResponse(proof);
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'submitSubscriptionPaymentProof', stage: 'outer' });
     return createErrorResponse(error, 'שגיאה בשליחת הוכחת תשלום');
   }
 }

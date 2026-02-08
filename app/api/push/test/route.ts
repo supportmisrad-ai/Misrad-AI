@@ -3,14 +3,9 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-import { sendWebPushNotificationToEmails } from '@/lib/server/web-push';
+import { sendWebPushNotificationToEmails } from '@/lib/server/web-push';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
   const v = obj?.[key];
   return typeof v === 'string' ? v : v == null ? fallback : String(v);

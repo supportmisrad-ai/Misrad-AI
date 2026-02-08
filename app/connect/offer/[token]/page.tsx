@@ -31,9 +31,9 @@ function formatStatus(status: string): { label: string; className: string; isClo
 export default async function ConnectOfferPage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: { token: string };
 }) {
-  const { token } = await params;
+  const { token } = params;
 
   const res = await getConnectOfferByToken({ token: String(token) });
   if (!res.ok) {

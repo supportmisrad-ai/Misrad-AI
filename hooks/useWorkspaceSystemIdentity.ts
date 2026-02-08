@@ -16,29 +16,48 @@ function safeString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-function buildClerkFullName(clerkUser: any): string {
-  const full = safeString(clerkUser?.fullName);
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') return null;
+  if (Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
+  const v = obj?.[key];
+  return typeof v === 'string' ? v : null;
+}
+
+function buildClerkFullName(clerkUser: unknown): string {
+  const clerkObj = asObject(clerkUser);
+  const full = safeString(getStringProp(clerkObj, 'fullName'));
   if (full) return full;
-  const first = safeString(clerkUser?.firstName);
-  const last = safeString(clerkUser?.lastName);
+  const first = safeString(getStringProp(clerkObj, 'firstName'));
+  const last = safeString(getStringProp(clerkObj, 'lastName'));
   const combined = `${first} ${last}`.trim();
   if (combined) return combined;
-  const username = safeString(clerkUser?.username);
+  const username = safeString(getStringProp(clerkObj, 'username'));
   if (username) return username;
-  const email = safeString(clerkUser?.primaryEmailAddress?.emailAddress);
+  const primaryEmail = asObject(clerkObj?.primaryEmailAddress);
+  const email = safeString(getStringProp(primaryEmail, 'emailAddress'));
   if (email.includes('@')) return email.split('@')[0] || 'משתמש';
   return email || 'משתמש';
 }
 
-function buildClerkRole(clerkUser: any): string | null {
-  const roleFromClerk =
-    (clerkUser as any)?.publicMetadata?.role ??
-    (clerkUser as any)?.privateMetadata?.role ??
-    (clerkUser as any)?.unsafeMetadata?.role ??
-    null;
+function normalizeRoleValue(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  const obj = asObject(value);
+  const role = getStringProp(obj, 'role');
+  return role && role.trim() ? role.trim() : null;
+}
 
-  const normalized = typeof roleFromClerk === 'string' ? roleFromClerk : (roleFromClerk as any)?.role ?? null;
-  return typeof normalized === 'string' && normalized.trim() ? normalized.trim() : null;
+function buildClerkRole(clerkUser: unknown): string | null {
+  const clerkObj = asObject(clerkUser);
+  const publicMetadata = asObject(clerkObj?.publicMetadata);
+  const privateMetadata = asObject(clerkObj?.privateMetadata);
+  const unsafeMetadata = asObject(clerkObj?.unsafeMetadata);
+
+  const roleFromClerk = publicMetadata?.role ?? privateMetadata?.role ?? unsafeMetadata?.role ?? null;
+  return normalizeRoleValue(roleFromClerk);
 }
 
 function hasMeaningfulIdentityValue(value: string | null | undefined): boolean {
@@ -52,7 +71,7 @@ export function useWorkspaceSystemIdentity(
   identity: WorkspaceSystemIdentity | null;
   isLoading: boolean;
 } {
-  let clerkUser: any = null;
+  let clerkUser: unknown = null;
   let isClerkLoaded = false;
   try {
     const clerk = useUser();
@@ -77,10 +96,10 @@ export function useWorkspaceSystemIdentity(
 
     const clerkName = buildClerkFullName(clerkUser);
     const clerkRole = buildClerkRole(clerkUser);
-    const clerkAvatar = safeString((clerkUser as any)?.imageUrl);
+    const clerkAvatar = safeString(getStringProp(asObject(clerkUser), 'imageUrl'));
 
     const name = profileName || (isClerkLoaded ? clerkName : '') || fallbackName || 'משתמש';
-    const role = (profileRole || (isClerkLoaded ? clerkRole : null) || fallbackRole || null) as string | null;
+    const role = profileRole || (isClerkLoaded ? clerkRole : null) || fallbackRole || null;
     const avatarUrl = profileAvatar || (isClerkLoaded ? clerkAvatar : '') || fallbackAvatar || null;
 
     const profileCompleted = profileIdentity ? Boolean(profileIdentity.profileCompleted) : true;

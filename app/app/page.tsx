@@ -21,7 +21,7 @@ export const dynamic = 'force-dynamic';
 export default async function AppEntryPage() {
   const userId = await getCurrentUserId();
   if (!userId) {
-    redirect('/sign-in');
+    redirect('/login?redirect=/app');
   }
 
   try {
@@ -30,23 +30,23 @@ export default async function AppEntryPage() {
       const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
       let socialUser = await withTimeout(
-        prisma.social_users.findUnique({
+        prisma.organizationUser.findUnique({
           where: { clerk_user_id: userId },
           select: { id: true, organization_id: true },
         }),
         8000,
-        'prisma.social_users.findUnique'
+        'prisma.organizationUser.findUnique'
       );
 
       if (!socialUser?.id) {
         await sleep(1000);
         socialUser = await withTimeout(
-          prisma.social_users.findUnique({
+          prisma.organizationUser.findUnique({
             where: { clerk_user_id: userId },
             select: { id: true, organization_id: true },
           }),
           8000,
-          'prisma.social_users.findUnique(retry)'
+          'prisma.organizationUser.findUnique(retry)'
         );
       }
 
@@ -60,12 +60,12 @@ export default async function AppEntryPage() {
       }
 
       const ownedOrgs = await withTimeout(
-        prisma.social_organizations.findMany({
+        prisma.organization.findMany({
           where: { owner_id: String(socialUser.id) },
           select: { id: true },
         }),
         8000,
-        'prisma.social_organizations.findMany(owned)'
+        'prisma.organization.findMany(owned)'
       );
 
       for (const org of ownedOrgs || []) {
@@ -73,12 +73,12 @@ export default async function AppEntryPage() {
       }
 
       const memberships = await withTimeout(
-        prisma.social_team_members.findMany({
+        prisma.teamMember.findMany({
           where: { user_id: String(socialUser.id) },
           select: { organization_id: true },
         }),
         8000,
-        'prisma.social_team_members.findMany'
+        'prisma.teamMember.findMany'
       );
 
       for (const row of memberships || []) {
@@ -89,12 +89,12 @@ export default async function AppEntryPage() {
       if (ids.length === 1) {
         const onlyOrgId = ids[0];
         const org = await withTimeout(
-          prisma.social_organizations.findUnique({
+          prisma.organization.findUnique({
             where: { id: String(onlyOrgId) },
             select: { id: true, slug: true },
           }),
           8000,
-          'prisma.social_organizations.findUnique'
+          'prisma.organization.findUnique'
         );
 
         const onlyOrgSlug = String(org?.slug || org?.id || onlyOrgId);

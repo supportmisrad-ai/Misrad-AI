@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignIn } from '@clerk/nextjs';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { asObject } from '@/lib/shared/unknown';
 
 type DeviceLoginResponse = {
   success?: boolean;
@@ -11,12 +12,6 @@ type DeviceLoginResponse = {
   signInToken?: string;
   organizationId?: string | null;
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function toDeviceLoginResponse(value: unknown): DeviceLoginResponse {
   const obj = asObject(value) ?? {};

@@ -1,24 +1,33 @@
 'use server';
 
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { currentUser, clerkClient } from '@clerk/nextjs/server';
 import { requireSuperAdmin } from '@/lib/auth';
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { Prisma } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
 
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
+  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
 }
 
 function isOSModuleKey(value: unknown): value is OSModuleKey {
@@ -251,7 +260,7 @@ export async function getAllUsers(): Promise<{
           });
           
           if (supabaseResult.success && supabaseResult.userId) {
-            const socialRow = await prisma.social_users.findFirst({
+            const socialRow = await prisma.organizationUser.findFirst({
               where: { clerk_user_id: clerkUserId },
               select: { organization_id: true },
             });
@@ -291,7 +300,7 @@ export async function getAllUsers(): Promise<{
                 role: 'account_manager',
                 avatar: typeof clerkObj.imageUrl === 'string' && clerkObj.imageUrl ? clerkObj.imageUrl : `https://i.pravatar.cc/150?u=${email}`,
                 createdAt,
-              } as any,
+              } satisfies Prisma.NexusUserCreateInput,
             });
 
             console.log('[getAllUsers] ✅ Synced user to nexus_users:', email);
@@ -423,7 +432,7 @@ export async function getDeletedItems(): Promise<{
       take: 200,
     });
 
-    const clientIds = Array.from(new Set((posts || []).map((p: any) => String(p.clientId || '')).filter(Boolean)));
+    const clientIds = Array.from(new Set((posts || []).map((p) => String(p.clientId || '')).filter(Boolean)));
     const clientNamesById = new Map<string, string>();
     if (clientIds.length > 0) {
       const clientRows = await prisma.clients.findMany({
@@ -431,19 +440,18 @@ export async function getDeletedItems(): Promise<{
         select: { id: true, company_name: true },
       });
       for (const c of clientRows || []) {
-        clientNamesById.set(String((c as any).id), String((c as any).company_name || ''));
+        clientNamesById.set(String(c.id), String(c.company_name || ''));
       }
     }
 
     const deletedItems = [
       ...posts.map((p) => {
-        const obj = asObject(p) ?? {};
-        const content = obj.content == null ? '' : String(obj.content);
-        const deletedAt = obj.deleted_at == null ? new Date().toISOString() : String(obj.deleted_at);
-        const deletedBy = obj.deleted_by == null ? 'מערכת' : String(obj.deleted_by);
-        const clientName = clientNamesById.get(String((obj as any).clientId || '')) || 'לא ידוע';
+        const content = p.content == null ? '' : String(p.content);
+        const deletedAt = p.deleted_at == null ? new Date().toISOString() : String(p.deleted_at);
+        const deletedBy = p.deleted_by == null ? 'מערכת' : String(p.deleted_by);
+        const clientName = clientNamesById.get(String(p.clientId || '')) || 'לא ידוע';
         return {
-          id: String(obj.id ?? ''),
+          id: String(p.id ?? ''),
           type: 'post' as const,
           name: (content.substring(0, 50) || 'פוסט').trim() || 'פוסט',
           clientName,
@@ -490,7 +498,10 @@ export async function restoreDeletedItem(
       return createErrorResponse(null, 'Tenant Isolation lockdown: post ללא organization_id (דרך client) לא ניתן לשחזור');
     }
 
-    await prisma.socialPost.updateMany({ where: { id: itemId, clientId: clientIdForPost }, data: { deleted_at: null, deleted_by: null } as any });
+    await prisma.socialPost.updateMany({
+      where: { id: itemId, clientId: clientIdForPost },
+      data: { deleted_at: null, deleted_by: null } satisfies Prisma.SocialPostUpdateManyMutationInput,
+    });
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -649,8 +660,15 @@ export async function getFeatureFlags(): Promise<{
 
     await requireSuperAdmin();
     const flags = await prisma.social_system_settings
-      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const flagsObj = asObject(flags) ?? {};
     const rawValue = flagsObj.value;
@@ -692,7 +710,12 @@ export async function getFeatureFlags(): Promise<{
         };
       })(),
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+      );
+    }
     // If table doesn't exist, return defaults
     return createSuccessResponse({
       maintenanceMode: false,
@@ -735,8 +758,15 @@ export async function updateFeatureFlags(
 
     await requireSuperAdmin();
     const existing = await prisma.social_system_settings
-      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const existingObj = asObject(existing) ?? {};
     const existingRaw = existingObj.value;
@@ -793,24 +823,35 @@ export async function updateFeatureFlags(
       launch_scope_modules: requestedScope ?? existingScope,
     };
 
-    await prisma.social_system_settings.upsert({
-      where: { key: 'feature_flags' },
-      create: {
-        key: 'feature_flags',
-        maintenance_mode: nextFlags.maintenanceMode,
-        ai_enabled: nextFlags.aiEnabled,
-        banner_message: nextFlags.bannerMessage,
-        value: nextFlags as any,
-        updated_at: new Date(),
-      } as any,
-      update: {
-        maintenance_mode: nextFlags.maintenanceMode,
-        ai_enabled: nextFlags.aiEnabled,
-        banner_message: nextFlags.bannerMessage,
-        value: nextFlags as any,
-        updated_at: new Date(),
-      } as any,
-    });
+    const nextFlagsJson = JSON.parse(JSON.stringify(nextFlags)) as Prisma.InputJsonObject;
+
+    await withTenantIsolationContext(
+      {
+        source: 'admin_cockpit_update_feature_flags',
+        reason: 'upsert_feature_flags',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.social_system_settings.upsert({
+          where: { key: 'feature_flags' },
+          create: {
+            key: 'feature_flags',
+            maintenance_mode: nextFlags.maintenanceMode,
+            ai_enabled: nextFlags.aiEnabled,
+            banner_message: nextFlags.bannerMessage,
+            value: nextFlagsJson,
+            updated_at: new Date(),
+          },
+          update: {
+            maintenance_mode: nextFlags.maintenanceMode,
+            ai_enabled: nextFlags.aiEnabled,
+            banner_message: nextFlags.bannerMessage,
+            value: nextFlagsJson,
+            updated_at: new Date(),
+          },
+        })
+    );
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -834,8 +875,15 @@ export async function getSystemEmailSettings(): Promise<{
 
     await requireSuperAdmin();
     const row = await prisma.social_system_settings
-      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const rowObj = asObject(row) ?? {};
     const rawValue = rowObj.value;
@@ -860,7 +908,12 @@ export async function getSystemEmailSettings(): Promise<{
       supportEmail,
       migrationEmail,
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+      );
+    }
     const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
     return createSuccessResponse({
@@ -882,8 +935,15 @@ export async function updateSystemEmailSettings(input: {
 
     await requireSuperAdmin();
     const existing = await prisma.social_system_settings
-      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const existingObj = asObject(existing) ?? {};
     const existingRaw = existingObj.value;
@@ -904,11 +964,21 @@ export async function updateSystemEmailSettings(input: {
       migrationEmail: migrationEmail ? String(migrationEmail).trim() : null,
     };
 
-    await prisma.social_system_settings.upsert({
-      where: { key: 'system_email_settings' },
-      create: { key: 'system_email_settings', value: nextValue as any, updated_at: new Date() } as any,
-      update: { value: nextValue as any, updated_at: new Date() } as any,
-    });
+    const nextValueJson = JSON.parse(JSON.stringify(nextValue)) as Prisma.InputJsonObject;
+    await withTenantIsolationContext(
+      {
+        source: 'admin_cockpit_update_system_email_settings',
+        reason: 'upsert_system_email_settings',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.social_system_settings.upsert({
+          where: { key: 'system_email_settings' },
+          create: { key: 'system_email_settings', value: nextValueJson, updated_at: new Date() },
+          update: { value: nextValueJson, updated_at: new Date() },
+        })
+    );
 
     return createSuccessResponse(true);
   } catch (error: unknown) {
@@ -929,8 +999,15 @@ export async function getModuleIcons(): Promise<{
 
     await requireSuperAdmin();
     const row = await prisma.social_system_settings
-      .findUnique({ where: { key: 'module_icons' }, select: { value: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'module_icons' }, select: { value: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const rowObj = asObject(row) ?? {};
     const rawValue = rowObj.value;
@@ -949,7 +1026,12 @@ export async function getModuleIcons(): Promise<{
       }
     }
     return createSuccessResponse(out);
-  } catch (error) {
+  } catch (error: unknown) {
+    if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+      );
+    }
     return createSuccessResponse({});
   }
 }
@@ -965,8 +1047,15 @@ export async function updateModuleIcons(params: {
 
     await requireSuperAdmin();
     const existing = await prisma.social_system_settings
-      .findUnique({ where: { key: 'module_icons' }, select: { value: true } as any })
-      .catch(() => null);
+      .findUnique({ where: { key: 'module_icons' }, select: { value: true } })
+      .catch((error: unknown) => {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        return null;
+      });
 
     const existingObj = asObject(existing) ?? {};
     const existingRaw = existingObj.value;
@@ -990,11 +1079,21 @@ export async function updateModuleIcons(params: {
       }
     }
 
-    await prisma.social_system_settings.upsert({
-      where: { key: 'module_icons' },
-      create: { key: 'module_icons', value: nextValue as any, updated_at: new Date() } as any,
-      update: { value: nextValue as any, updated_at: new Date() } as any,
-    });
+    const nextValueJson = JSON.parse(JSON.stringify(nextValue)) as Prisma.InputJsonObject;
+    await withTenantIsolationContext(
+      {
+        source: 'admin_cockpit_update_module_icons',
+        reason: 'upsert_module_icons',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.social_system_settings.upsert({
+          where: { key: 'module_icons' },
+          create: { key: 'module_icons', value: nextValueJson, updated_at: new Date() },
+          update: { value: nextValueJson, updated_at: new Date() },
+        })
+    );
 
     return createSuccessResponse(true);
   } catch (error: unknown) {

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * Integration API: Onboard Client
  * 
@@ -14,10 +15,30 @@ import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import { createHash, timingSafeEqual } from 'crypto';
 import prisma from '@/lib/prisma';
 import { APIError, getOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const runtime = 'nodejs';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+type UnknownRecord = Record<string, unknown>;
+type IdempotencyCreateArgs = NonNullable<Parameters<typeof prisma.integration_idempotency_keys.create>[0]>;
+type IdempotencyCreateData = IdempotencyCreateArgs['data'];
+type IdempotencyUpdateManyArgs = NonNullable<Parameters<typeof prisma.integration_idempotency_keys.updateMany>[0]>;
+type IdempotencyUpdateManyData = IdempotencyUpdateManyArgs['data'];
+
+
+function asString(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+
+function getUnknownErrorCode(error: unknown): string {
+    const obj = asObject(error);
+    return typeof obj?.code === 'string' ? obj.code : '';
+}
 
 function isUuid(input: string): boolean {
     const s = String(input || '').trim();
@@ -102,6 +123,7 @@ async function POSTHandler(request: NextRequest) {
             key: ip,
             limit: 60,
             windowMs: 60 * 1000,
+            mode: 'fail_closed',
         });
         if (!rlIp.ok) {
             await logIntegrationEvent('security.unauthorized', 'integration', {
@@ -112,9 +134,9 @@ async function POSTHandler(request: NextRequest) {
             });
 
             return NextResponse.json(
-                { error: 'Too many requests' },
+                { error: rlIp.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Too many requests' },
                 {
-                    status: 429,
+                    status: rlIp.reason === 'unavailable' ? 503 : 429,
                     headers: {
                         'Retry-After': String(rlIp.retryAfterSeconds),
                     },
@@ -124,27 +146,28 @@ async function POSTHandler(request: NextRequest) {
 
         async function updateIdempotency(params: {
             status: number;
-            body: any;
+            body: Prisma.InputJsonValue;
             clientId?: string | null;
         }): Promise<void> {
             if (!idempotencyRowId || !organizationId) return;
+            const data: IdempotencyUpdateManyData = {
+                responseStatus: params.status,
+                responseBody: params.body,
+                clientId: params.clientId ?? null,
+                updatedAt: new Date(),
+            };
             await prisma.integration_idempotency_keys.updateMany({
                 where: {
                     id: String(idempotencyRowId),
                     organizationId: String(organizationId),
                 },
-                data: {
-                    responseStatus: params.status,
-                    responseBody: params.body,
-                    clientId: params.clientId ?? null,
-                    updatedAt: new Date(),
-                },
+                data,
             });
         }
 
         async function respondWithIdempotency(params: {
             status: number;
-            body: any;
+            body: Prisma.InputJsonValue;
             clientId?: string | null;
         }) {
             await updateIdempotency(params);
@@ -180,6 +203,7 @@ async function POSTHandler(request: NextRequest) {
             key: `${organizationId}:${apiKey}`,
             limit: 20,
             windowMs: 60 * 1000,
+            mode: 'fail_closed',
         });
         if (!rlKey.ok) {
             await logIntegrationEvent('security.unauthorized', 'integration', {
@@ -190,9 +214,9 @@ async function POSTHandler(request: NextRequest) {
             });
 
             return NextResponse.json(
-                { error: 'Too many requests' },
+                { error: rlKey.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : 'Too many requests' },
                 {
-                    status: 429,
+                    status: rlKey.reason === 'unavailable' ? 503 : 429,
                     headers: {
                         'Retry-After': String(rlKey.retryAfterSeconds),
                     },
@@ -206,7 +230,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         const rawBody = await request.text();
-        let body: any;
+        let body: unknown;
         try {
             body = rawBody ? JSON.parse(rawBody) : {};
         } catch {
@@ -215,6 +239,8 @@ async function POSTHandler(request: NextRequest) {
                 { status: 400 }
             );
         }
+
+        const bodyObj = asObject(body) ?? {};
 
         const requestHash = createHash('sha256').update(rawBody || '').digest('hex');
 
@@ -240,9 +266,9 @@ async function POSTHandler(request: NextRequest) {
             }
 
             const respStatus = (existingIdemRow.responseStatus ?? null) as number | null;
-            const respBody = (existingIdemRow.responseBody ?? null) as any;
+            const respBody = existingIdemRow.responseBody as unknown;
             if (typeof respStatus === 'number' && respBody) {
-                return NextResponse.json(respBody, { status: respStatus });
+                return NextResponse.json(respBody as Prisma.InputJsonValue, { status: respStatus });
             }
 
             return NextResponse.json(
@@ -260,12 +286,12 @@ async function POSTHandler(request: NextRequest) {
                     requestHash,
                     responseStatus: null,
                     updatedAt: new Date(),
-                },
+                } satisfies IdempotencyCreateData,
                 select: { id: true },
             });
             idempotencyRowId = String(insertedIdem.id);
-        } catch (e: any) {
-            const code = String(e?.code || '');
+        } catch (e: unknown) {
+            const code = e instanceof Prisma.PrismaClientKnownRequestError ? String(e.code || '') : getUnknownErrorCode(e);
             if (code !== 'P2002') throw e;
 
             const racedRow = await prisma.integration_idempotency_keys.findFirst({
@@ -288,7 +314,7 @@ async function POSTHandler(request: NextRequest) {
                 typeof racedRow.responseStatus === 'number' &&
                 racedRow.responseBody
             ) {
-                return NextResponse.json(racedRow.responseBody as any, { status: Number(racedRow.responseStatus) });
+                return NextResponse.json(racedRow.responseBody as Prisma.InputJsonValue, { status: Number(racedRow.responseStatus) });
             }
 
             return NextResponse.json(
@@ -298,17 +324,21 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // 2. Parse and validate request body
-        const { 
-            companyName, 
-            contactName, 
-            email, 
-            phone, 
-            plan,
-            companyLogo, // Optional: logo from leads system
-            companyAddress, // Optional
-            companyWebsite, // Optional
-            additionalNotes // Optional
-        } = body;
+        const companyNameRaw = bodyObj.companyName;
+        const contactNameRaw = bodyObj.contactName;
+        const emailRaw = bodyObj.email;
+        const phoneRaw = bodyObj.phone;
+        const planRaw = bodyObj.plan;
+        const companyLogoRaw = bodyObj.companyLogo;
+        const companyAddressRaw = bodyObj.companyAddress;
+        const companyWebsiteRaw = bodyObj.companyWebsite;
+        const additionalNotesRaw = bodyObj.additionalNotes;
+
+        const companyName = asString(companyNameRaw).trim();
+        const contactName = asString(contactNameRaw).trim();
+        const email = asString(emailRaw).trim();
+        const phone = asString(phoneRaw).trim();
+        const plan = asString(planRaw).trim();
 
         // Validate required fields
         if (!companyName || !contactName || !email || !phone || !plan) {
@@ -319,7 +349,7 @@ async function POSTHandler(request: NextRequest) {
             return respondWithIdempotency({ status: 400, body: responseBody });
         }
 
-        const normalizedPlan = String(plan || '').trim();
+        const normalizedPlan = plan;
         const allowedPlans = Object.keys(BILLING_PACKAGES);
         if (!allowedPlans.includes(normalizedPlan)) {
             const responseBody = { error: 'Invalid plan', allowedPlans };
@@ -333,8 +363,13 @@ async function POSTHandler(request: NextRequest) {
             return respondWithIdempotency({ status: 400, body: responseBody });
         }
 
-        const normalizedEmail = String(email || '').trim().toLowerCase();
-        const normalizedPhone = String(phone || '').trim();
+        const normalizedEmail = email.toLowerCase();
+        const normalizedPhone = phone;
+
+        const companyLogo = asString(companyLogoRaw).trim();
+        const companyAddress = asString(companyAddressRaw).trim();
+        const companyWebsite = asString(companyWebsiteRaw).trim();
+        const additionalNotes = asString(additionalNotesRaw).trim();
 
         const existingClient = await prisma.nexusClient.findFirst({
             where: {
@@ -426,8 +461,8 @@ async function POSTHandler(request: NextRequest) {
                 select: { id: true },
             });
             newClientId = String(insertedClient.id);
-        } catch (e: any) {
-            const code = String(e?.code || '');
+        } catch (e: unknown) {
+            const code = e instanceof Prisma.PrismaClientKnownRequestError ? String(e.code || '') : getUnknownErrorCode(e);
             if (code !== 'P2002') throw e;
 
             const existing = await prisma.nexusClient.findFirst({
@@ -464,7 +499,7 @@ async function POSTHandler(request: NextRequest) {
             phone: normalizedPhone,
             joinedAt: clientData.joinedAt,
             source: 'integration',
-        } as any;
+        };
 
         // 4. Create automatic invitation link for the new client
         let invitationUrl: string | null = null;
@@ -489,10 +524,10 @@ async function POSTHandler(request: NextRequest) {
                     ceo_email: normalizedEmail,
                     ceo_phone: normalizedPhone,
                     company_name: companyName,
-                    company_logo: companyLogo || null,
-                    company_address: companyAddress || null,
-                    company_website: companyWebsite || null,
-                    additional_notes: additionalNotes || null,
+                    company_logo: companyLogo ? String(companyLogo) : null,
+                    company_address: companyAddress ? String(companyAddress) : null,
+                    company_website: companyWebsite ? String(companyWebsite) : null,
+                    additional_notes: additionalNotes ? String(additionalNotes) : null,
                     metadata: {
                         createdVia: 'webhook',
                         webhookData: {
@@ -509,9 +544,10 @@ async function POSTHandler(request: NextRequest) {
             const baseUrl = getBaseUrl(request);
             invitationUrl = `${baseUrl}/invite/${token}`;
 
-            console.log('[API] Created automatic invitation link for client:', newClient.id);
-        } catch (invitationError: any) {
-            console.error('[API] Error creating automatic invitation link:', invitationError);
+            if (!IS_PROD) console.log('[API] Created automatic invitation link for client:', newClient.id);
+        } catch (invitationError: unknown) {
+            if (IS_PROD) console.error('[API] Error creating automatic invitation link (ignored)');
+            else console.error('[API] Error creating automatic invitation link:', invitationError);
             // Don't fail the request if invitation creation fails
         }
 
@@ -545,8 +581,9 @@ async function POSTHandler(request: NextRequest) {
         // 6. Return success response with invitation link
         return NextResponse.json(responseBody, { status: 201 });
 
-    } catch (error: any) {
-        console.error('[API] Error onboarding client:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error onboarding client');
+        else console.error('[API] Error onboarding client:', error);
 
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });

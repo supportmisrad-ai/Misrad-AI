@@ -7,19 +7,8 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { requireSuperAdmin } from '@/lib/auth';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 function toIsoDate(value: unknown): string | null {
   if (!value) return null;
   const d = value instanceof Date ? value : new Date(String(value));
@@ -241,7 +230,7 @@ export async function getAdminWorkListings(params?: {
     await requireSuperAdmin();
 
     const workListing = getWorkListingDelegate();
-    const limit = Math.max(1, Math.min(500, Number(params?.limit ?? 200)));
+    const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 200)));
     const status = params?.status ? String(params.status).trim() : '';
 
     const rows = await workListing.findMany({

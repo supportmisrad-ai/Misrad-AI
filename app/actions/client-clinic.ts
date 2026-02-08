@@ -2,6 +2,28 @@
 
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { Prisma } from '@prisma/client';
+import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toLowerCase();
+  const message = String(getErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'p2021' ||
+    code === 'p2022' ||
+    code === '42p01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
 
 export type ClinicClient = {
   id: string;
@@ -10,7 +32,7 @@ export type ClinicClient = {
   phone?: string | null;
   email?: string | null;
   notes?: string | null;
-  metadata?: any;
+  metadata?: unknown;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -26,7 +48,7 @@ export type ClinicTask = {
   dueAt?: string | null;
   assignedTo?: string | null;
   createdBy?: string | null;
-  metadata?: any;
+  metadata?: unknown;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -42,7 +64,7 @@ export type ClinicSession = {
   location?: string | null;
   summary?: string | null;
   createdBy?: string | null;
-  metadata?: any;
+  metadata?: unknown;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -54,7 +76,7 @@ export type ClinicPortalContent = {
   kind: string;
   title: string;
   body?: string | null;
-  data?: any;
+  data?: unknown;
   isPublished?: boolean | null;
   publishedAt?: string | null;
   createdBy?: string | null;
@@ -68,7 +90,7 @@ export type ClinicFeedback = {
   clientId: string;
   rating: number;
   comment?: string | null;
-  metadata?: any;
+  metadata?: unknown;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -77,6 +99,21 @@ function iso(d: unknown): string | undefined {
   if (!d) return undefined;
   if (d instanceof Date) return d.toISOString();
   return String(d);
+}
+
+function toJsonInput(value: unknown): Prisma.InputJsonValue {
+  if (value == null) return {} as Prisma.InputJsonValue;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'boolean') return value;
+  if (Array.isArray(value)) return value as unknown as Prisma.InputJsonValue;
+  const obj = asObject(value);
+  return (obj ?? {}) as Prisma.InputJsonValue;
+}
+
+function toNullableJsonUpdateValue(value: unknown): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput {
+  if (value === null) return Prisma.JsonNull;
+  return toJsonInput(value);
 }
 
 export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
@@ -105,7 +142,7 @@ export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
       orderBy: { createdAt: 'desc' },
     });
 
-    const clients = (data || []).map((r: any) => ({
+    const clients = (data || []).map((r) => ({
       id: r.id,
       organizationId: r.organizationId,
       fullName: r.fullName,
@@ -124,10 +161,15 @@ export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
     });
 
     return clients;
-  } catch (e: any) {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientClient.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
+    const eObj = asObject(e);
+    const stack = e instanceof Error ? e.stack : typeof eObj?.stack === 'string' ? eObj.stack : null;
     console.error('[getClinicClients] unexpected error', {
-      message: e?.message,
-      stack: e?.stack,
+      message: getErrorMessage(e),
+      stack,
     });
     return [];
   }
@@ -160,14 +202,17 @@ export async function getClinicClient(orgId: string, clientId: string): Promise<
       id: data.id,
       organizationId: data.organizationId,
       fullName: data.fullName,
-      phone: (data as any).phone ?? null,
-      email: (data as any).email ?? null,
-      notes: (data as any).notes ?? null,
-      metadata: (data as any).metadata ?? undefined,
-      createdAt: iso((data as any).createdAt),
-      updatedAt: iso((data as any).updatedAt),
+      phone: data.phone ?? null,
+      email: data.email ?? null,
+      notes: data.notes ?? null,
+      metadata: data.metadata ?? undefined,
+      createdAt: iso(data.createdAt),
+      updatedAt: iso(data.updatedAt),
     };
-  } catch {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientClient.findFirst failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return null;
   }
 }
@@ -178,7 +223,7 @@ export async function createClinicClient(params: {
   phone?: string | null;
   email?: string | null;
   notes?: string | null;
-  metadata?: any;
+  metadata?: unknown;
 }): Promise<{ id: string }> {
   const { orgId, fullName, phone, email, notes, metadata } = params;
   if (!orgId) throw new Error('orgId is required');
@@ -193,7 +238,7 @@ export async function createClinicClient(params: {
       phone: phone ?? null,
       email: email ?? null,
       notes: notes ?? null,
-      metadata: metadata ?? {},
+      metadata: toJsonInput(metadata),
     },
     select: { id: true },
   });
@@ -213,12 +258,13 @@ export async function updateClinicClient(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const patch: any = {};
+  type ClientClientUpdateManyData = NonNullable<Parameters<typeof prisma.clientClient.updateMany>[0]>['data'];
+  const patch: ClientClientUpdateManyData = {};
   if (updates.fullName !== undefined) patch.fullName = updates.fullName;
   if (updates.phone !== undefined) patch.phone = updates.phone;
   if (updates.email !== undefined) patch.email = updates.email;
   if (updates.notes !== undefined) patch.notes = updates.notes;
-  if (updates.metadata !== undefined) patch.metadata = updates.metadata;
+  if (updates.metadata !== undefined) patch.metadata = toNullableJsonUpdateValue(updates.metadata);
 
   await prisma.clientClient.updateMany({
     where: { organizationId: workspace.id, id: clientId },
@@ -248,7 +294,7 @@ export async function listClinicTasks(params: {
       orderBy: [{ dueAt: 'asc' }, { createdAt: 'desc' }],
     });
 
-    return (data || []).map((r: any) => ({
+    return (data || []).map((r) => ({
       id: r.id,
       organizationId: r.organizationId,
       clientId: r.clientId,
@@ -263,7 +309,10 @@ export async function listClinicTasks(params: {
       createdAt: iso(r.createdAt),
       updatedAt: iso(r.updatedAt),
     }));
-  } catch {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientTask.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return [];
   }
 }
@@ -278,7 +327,7 @@ export async function createClinicTask(params: {
   dueAt?: string | null;
   assignedTo?: string | null;
   createdBy?: string | null;
-  metadata?: any;
+  metadata?: unknown;
 }): Promise<{ id: string }> {
   const { orgId, clientId, title, description, status, priority, dueAt, assignedTo, createdBy, metadata } = params;
   if (!orgId) throw new Error('orgId is required');
@@ -298,7 +347,7 @@ export async function createClinicTask(params: {
       dueAt: dueAt ? new Date(dueAt) : null,
       assignedTo: assignedTo ?? null,
       createdBy: createdBy ?? null,
-      metadata: metadata ?? {},
+      metadata: toJsonInput(metadata),
     },
     select: { id: true },
   });
@@ -317,14 +366,15 @@ export async function updateClinicTask(params: {
   if (!taskId) throw new Error('taskId is required');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
-  const patch: any = {};
+  type ClientTaskUpdateManyData = NonNullable<Parameters<typeof prisma.clientTask.updateMany>[0]>['data'];
+  const patch: ClientTaskUpdateManyData = {};
   if (updates.title !== undefined) patch.title = updates.title;
   if (updates.description !== undefined) patch.description = updates.description;
   if (updates.status !== undefined) patch.status = updates.status;
   if (updates.priority !== undefined) patch.priority = updates.priority;
   if (updates.dueAt !== undefined) patch.dueAt = updates.dueAt ? new Date(updates.dueAt) : null;
   if (updates.assignedTo !== undefined) patch.assignedTo = updates.assignedTo;
-  if (updates.metadata !== undefined) patch.metadata = updates.metadata;
+  if (updates.metadata !== undefined) patch.metadata = toNullableJsonUpdateValue(updates.metadata);
 
   await prisma.clientTask.updateMany({
     where: { organizationId: workspace.id, id: taskId },
@@ -352,11 +402,11 @@ export async function listClinicSessions(params: {
       orderBy: { startAt: 'desc' },
     });
 
-    return (data || []).map((r: any) => ({
+    return (data || []).map((r) => ({
       id: r.id,
       organizationId: r.organizationId,
       clientId: r.clientId,
-      startAt: iso(r.startAt) as string,
+      startAt: iso(r.startAt) ?? '',
       endAt: iso(r.endAt) ?? null,
       status: r.status,
       sessionType: r.sessionType ?? null,
@@ -367,7 +417,10 @@ export async function listClinicSessions(params: {
       createdAt: iso(r.createdAt),
       updatedAt: iso(r.updatedAt),
     }));
-  } catch {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientSession.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return [];
   }
 }
@@ -382,7 +435,7 @@ export async function createClinicSession(params: {
   location?: string | null;
   summary?: string | null;
   createdBy?: string | null;
-  metadata?: any;
+  metadata?: unknown;
 }): Promise<{ id: string }> {
   const { orgId, clientId, startAt, endAt, status, sessionType, location, summary, createdBy, metadata } = params;
   if (!orgId) throw new Error('orgId is required');
@@ -391,24 +444,18 @@ export async function createClinicSession(params: {
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
 
-  const created = await prisma.clientSession.create({
-    data: {
-      organizationId: workspace.id,
-      clientId,
-      startAt: new Date(startAt),
-      endAt: endAt ? new Date(endAt) : null,
-      status: status ?? 'scheduled',
-      sessionType: sessionType ?? null,
-      location: location ?? null,
-      summary: summary ?? null,
-      createdBy: createdBy ?? null,
-      metadata: metadata ?? {},
-    },
-    select: { id: true },
+  return await createClinicSessionForOrganizationId({
+    organizationId: workspace.id,
+    clientId,
+    startAt,
+    endAt,
+    status,
+    sessionType,
+    location,
+    summary,
+    createdBy,
+    metadata,
   });
-
-  if (!created?.id) throw new Error('Failed to create session');
-  return { id: created.id };
 }
 
 export async function listClinicPortalContent(params: {
@@ -433,7 +480,7 @@ export async function listClinicPortalContent(params: {
       orderBy: { createdAt: 'desc' },
     });
 
-    return (data || []).map((r: any) => ({
+    return (data || []).map((r) => ({
       id: r.id,
       organizationId: r.organizationId,
       clientId: r.clientId,
@@ -447,7 +494,10 @@ export async function listClinicPortalContent(params: {
       createdAt: iso(r.createdAt),
       updatedAt: iso(r.updatedAt),
     }));
-  } catch {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientPortalContent.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     return [];
   }
 }
@@ -458,7 +508,7 @@ export async function createClinicPortalContent(params: {
   kind: string;
   title: string;
   body?: string | null;
-  data?: any;
+  data?: unknown;
   isPublished?: boolean;
   publishedAt?: string | null;
   createdBy?: string | null;
@@ -478,7 +528,7 @@ export async function createClinicPortalContent(params: {
       kind,
       title,
       body: body ?? null,
-      data: data ?? {},
+      data: toJsonInput(data),
       isPublished: isPublished ?? false,
       publishedAt: publishedAt ? new Date(publishedAt) : null,
       createdBy: createdBy ?? null,
@@ -508,7 +558,7 @@ export async function listClinicFeedbacks(params: {
       orderBy: { createdAt: 'desc' },
     });
 
-    return (data || []).map((r: any) => ({
+    return (data || []).map((r) => ({
       id: r.id,
       organizationId: r.organizationId,
       clientId: r.clientId,
@@ -518,9 +568,12 @@ export async function listClinicFeedbacks(params: {
       createdAt: iso(r.createdAt),
       updatedAt: iso(r.updatedAt),
     }));
-  } catch (e: any) {
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientFeedback.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
     console.error('[listClinicFeedbacks] unexpected error', {
-      message: e?.message,
+      message: getErrorMessage(e),
     });
     return [];
   }
@@ -531,7 +584,7 @@ export async function createClinicFeedback(params: {
   clientId: string;
   rating: number;
   comment?: string | null;
-  metadata?: any;
+  metadata?: unknown;
 }): Promise<{ id: string }> {
   const { orgId, clientId, rating, comment, metadata } = params;
   if (!orgId) throw new Error('orgId is required');
@@ -546,7 +599,7 @@ export async function createClinicFeedback(params: {
       clientId,
       rating,
       comment: comment ?? null,
-      metadata: metadata ?? {},
+      metadata: toJsonInput(metadata),
     },
     select: { id: true },
   });

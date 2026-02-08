@@ -7,6 +7,7 @@ import NewLeadModal from '@/components/system/NewLeadModal';
 import { Lead } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { createSystemLead, SystemLeadDTO, updateSystemLeadStatus } from '@/app/actions/system-leads';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 export default function SystemLeadsClient({
   orgSlug,
@@ -77,8 +78,8 @@ export default function SystemLeadsClient({
       }
       setLeads(prev => prev.map(l => (l.id === leadId ? res.lead : l)));
       setMessage('הליד נסגר בהצלחה ונפתח לקוח בפורטל.');
-    } catch (e: any) {
-      setMessage(e?.message || 'שגיאה בסגירת ליד');
+    } catch (e: unknown) {
+      setMessage(getErrorMessage(e) || 'שגיאה בסגירת ליד');
     } finally {
       setIsSaving(false);
     }

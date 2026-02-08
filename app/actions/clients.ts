@@ -10,6 +10,7 @@ import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 
+import { getErrorMessageFromErrorOr as getErrorMessage } from '@/lib/shared/unknown';
 const clientClientSelect = {
   id: true,
   organizationId: true,
@@ -36,6 +37,81 @@ type ClientClientPageRow = Prisma.ClientClientGetPayload<{ select: typeof client
 
 type JsonObjectInput = Record<string, Prisma.InputJsonValue | null>;
 
+function normalizeStrategy(value: unknown): Client['dna']['strategy'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const obj = value as Record<string, unknown>;
+  return {
+    targetAudience: safeString(obj.targetAudience, ''),
+    painPoints: safeString(obj.painPoints, ''),
+    uniqueValue: safeString(obj.uniqueValue, ''),
+    competitors: safeString(obj.competitors, ''),
+    mainGoal: safeString(obj.mainGoal, ''),
+    ...(typeof obj.aiStrategySummary === 'string' ? { aiStrategySummary: obj.aiStrategySummary } : {}),
+  };
+}
+
+function normalizeClientDna(value: unknown): Client['dna'] {
+  const base: Client['dna'] = {
+    brandSummary: '',
+    voice: { formal: 50, funny: 50, length: 50 },
+    vocabulary: { loved: [], forbidden: [] },
+    colors: { primary: '#1e293b', secondary: '#334155' },
+  };
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return base;
+  const obj = value as Record<string, unknown>;
+
+  const voiceObj = obj.voice && typeof obj.voice === 'object' && !Array.isArray(obj.voice) ? (obj.voice as Record<string, unknown>) : null;
+  const vocabObj =
+    obj.vocabulary && typeof obj.vocabulary === 'object' && !Array.isArray(obj.vocabulary)
+      ? (obj.vocabulary as Record<string, unknown>)
+      : null;
+  const colorsObj = obj.colors && typeof obj.colors === 'object' && !Array.isArray(obj.colors) ? (obj.colors as Record<string, unknown>) : null;
+
+  const strategy = normalizeStrategy(obj.strategy);
+
+  return {
+    brandSummary: safeString(obj.brandSummary, base.brandSummary),
+    voice: {
+      formal: safeNumber(voiceObj?.formal, base.voice.formal),
+      funny: safeNumber(voiceObj?.funny, base.voice.funny),
+      length: safeNumber(voiceObj?.length, base.voice.length),
+    },
+    vocabulary: {
+      loved: Array.isArray(vocabObj?.loved) ? vocabObj.loved.map((v) => String(v)) : base.vocabulary.loved,
+      forbidden: Array.isArray(vocabObj?.forbidden) ? vocabObj.forbidden.map((v) => String(v)) : base.vocabulary.forbidden,
+    },
+    colors: {
+      primary: safeString(colorsObj?.primary, base.colors.primary),
+      secondary: safeString(colorsObj?.secondary, base.colors.secondary),
+    },
+    ...(strategy ? { strategy } : {}),
+  };
+}
+
+function normalizeBusinessMetrics(value: unknown): Client['businessMetrics'] {
+  const base: Client['businessMetrics'] = {
+    timeSpentMinutes: 0,
+    expectedHours: 0,
+    punctualityScore: 100,
+    responsivenessScore: 100,
+    revisionCount: 0,
+  };
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return base;
+  const obj = value as Record<string, unknown>;
+
+  return {
+    timeSpentMinutes: safeNumber(obj.timeSpentMinutes, base.timeSpentMinutes),
+    expectedHours: safeNumber(obj.expectedHours, base.expectedHours),
+    punctualityScore: safeNumber(obj.punctualityScore, base.punctualityScore),
+    responsivenessScore: safeNumber(obj.responsivenessScore, base.responsivenessScore),
+    revisionCount: safeNumber(obj.revisionCount, base.revisionCount),
+    ...(typeof obj.lastAIBusinessAudit === 'string' ? { lastAIBusinessAudit: obj.lastAIBusinessAudit } : {}),
+    ...(obj.daysOverdue != null ? { daysOverdue: safeNumber(obj.daysOverdue, 0) } : {}),
+  };
+}
+
 function safeString(v: unknown, fallback = ''): string {
   return typeof v === 'string' ? v : fallback;
 }
@@ -49,9 +125,6 @@ function safeBoolean(v: unknown, fallback = false): boolean {
   return typeof v === 'boolean' ? v : fallback;
 }
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
 
 function optionalString(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
@@ -74,7 +147,11 @@ function randomToken(len = 22): string {
 function asRecord(value: unknown): JsonObjectInput {
   if (!value || typeof value !== 'object') return {};
   if (Array.isArray(value)) return {};
-  return value as unknown as JsonObjectInput;
+  const out: JsonObjectInput = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = toJsonInput(val);
+  }
+  return out;
 }
 
 function toJsonInput(value: unknown): Prisma.InputJsonValue {
@@ -108,26 +185,9 @@ function mapClientClientToSocialClient(row: {
 
   const businessId = optionalString(md.businessId ?? md.business_id);
 
-  const dna: Client['dna'] =
-    md.dna && typeof md.dna === 'object' && !Array.isArray(md.dna)
-      ? (md.dna as unknown as Client['dna'])
-      : {
-          brandSummary: '',
-          voice: { formal: 50, funny: 50, length: 50 },
-          vocabulary: { loved: [], forbidden: [] },
-          colors: { primary: '#1e293b', secondary: '#334155' },
-        };
+  const dna = normalizeClientDna(md.dna);
 
-  const businessMetrics: Client['businessMetrics'] =
-    md.businessMetrics && typeof md.businessMetrics === 'object' && !Array.isArray(md.businessMetrics)
-      ? (md.businessMetrics as unknown as Client['businessMetrics'])
-      : {
-          timeSpentMinutes: 0,
-          expectedHours: 0,
-          punctualityScore: 100,
-          responsivenessScore: 100,
-          revisionCount: 0,
-        };
+  const businessMetrics = normalizeBusinessMetrics(md.businessMetrics);
 
   const internalNotes = row.notes ?? optionalString(md.internalNotes);
 

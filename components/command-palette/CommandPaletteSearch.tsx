@@ -5,6 +5,8 @@ import { Search, Link, Copy, Send, LayoutGrid, ArrowRight, User } from 'lucide-r
 import { Lead, LeadStatus } from '@/types';
 import { useData } from '@/context/DataContext';
 import { Skeleton } from '@/components/ui/skeletons';
+import type { CommandPaletteNavItem, CommandPaletteQuickAsset } from './command-palette.types';
+import { asObject } from '@/lib/shared/unknown';
 
 interface CommandPaletteSearchProps {
   query: string;
@@ -12,9 +14,9 @@ interface CommandPaletteSearchProps {
   isThinking: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
   onKeyDown: (e: React.KeyboardEvent) => void;
-  filteredNav: any[];
+  filteredNav: CommandPaletteNavItem[];
   filteredLeads: Lead[];
-  filteredAssets: any[];
+  filteredAssets: CommandPaletteQuickAsset[];
   onNavigate: (tabId: string) => void;
   onSelectLead: (lead: Lead) => void;
   onClose: () => void;
@@ -161,7 +163,7 @@ export function CommandPaletteSearch({
             </div>
             <div className="space-y-2">
               {filteredLeads.map(lead => {
-                const isHot = Boolean((lead as any)?.isHot);
+                const isHot = Boolean(asObject(lead)?.isHot);
                 return (
                 <button 
                   key={lead.id}

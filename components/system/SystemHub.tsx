@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { WebhookLog, Lead, FieldAgent } from './types';
+import { type Activity, type Task, WebhookLog, Lead, FieldAgent } from './types';
 import { Settings, Webhook, Sparkles } from 'lucide-react';
 import IntegrationsView from './IntegrationsView';
 import AIAnalyticsView from './AIAnalyticsView';
@@ -12,8 +12,8 @@ interface SystemHubProps {
     logs: WebhookLog[];
     leads: Lead[];
     agents: FieldAgent[];
-    onAddTask?: (task: any) => void;
-    onAddActivity?: (leadId: string, activity: any) => void;
+    onAddTask?: (task: Task) => void;
+    onAddActivity?: (leadId: string, activity: Activity) => void;
 }
 
 const SystemHub: React.FC<SystemHubProps> = ({ logs, leads, agents, onAddTask, onAddActivity }) => {

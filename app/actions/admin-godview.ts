@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { Prisma } from '@prisma/client';
 
 export type AdminGodViewKpis = {
   totalOrganizations: number;
@@ -68,7 +69,7 @@ async function sumAiCreditsUsedTodayCents(): Promise<number> {
 }
 
 async function getRecentOrganizationsWithPrimaryClientId(): Promise<AdminGodViewRecentOrganization[]> {
-  const orgs = await prisma.social_organizations.findMany({
+  const orgs = await prisma.organization.findMany({
     select: { id: true, name: true, slug: true, created_at: true, subscription_status: true },
     orderBy: { created_at: 'desc' },
     take: 5,
@@ -78,28 +79,32 @@ async function getRecentOrganizationsWithPrimaryClientId(): Promise<AdminGodView
 
   const orgIds = orgs.map((o) => String(o.id)).filter(Boolean);
 
-  const clients = await prisma.clientClient.findMany({
-    where: { organizationId: { in: orgIds } },
-    select: { id: true, organizationId: true, createdAt: true },
-    orderBy: { createdAt: 'asc' },
-    take: 500,
-  });
+  const primaryClients = await Promise.all(
+    orgIds.map(async (orgId) => {
+      const row = await prisma.clientClient.findFirst({
+        where: { organizationId: orgId },
+        select: { id: true, organizationId: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      return row ? { orgId: String(row.organizationId), clientId: String(row.id) } : { orgId, clientId: '' };
+    })
+  );
 
   const primaryClientByOrgId = new Map<string, string>();
-  for (const c of Array.isArray(clients) ? clients : []) {
-    const orgId = (c as any)?.organizationId ? String((c as any).organizationId) : '';
-    const clientId = (c as any)?.id ? String((c as any).id) : '';
+  for (const c of primaryClients) {
+    const orgId = String(c.orgId || '').trim();
+    const clientId = String(c.clientId || '').trim();
     if (!orgId || !clientId) continue;
-    if (!primaryClientByOrgId.has(orgId)) primaryClientByOrgId.set(orgId, clientId);
+    primaryClientByOrgId.set(orgId, clientId);
   }
 
-  return orgs.map((o: any) => {
+  return orgs.map((o) => {
     const id = String(o.id);
     return {
       id,
       name: String(o.name || ''),
       slug: o.slug ? String(o.slug) : null,
-      createdAt: o.created_at ? new Date(o.created_at as any).toISOString() : null,
+      createdAt: o.created_at ? new Date(o.created_at).toISOString() : null,
       subscriptionStatus: o.subscription_status ? String(o.subscription_status) : null,
       primaryClientId: primaryClientByOrgId.get(id) || null,
     };
@@ -108,7 +113,7 @@ async function getRecentOrganizationsWithPrimaryClientId(): Promise<AdminGodView
 
 async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
   return await withTenantIsolationContext(
-    { suppressReporting: true, source: 'admin-godview-alerts' },
+    { suppressReporting: true, reason: 'admin_godview_alerts_load', source: 'admin-godview-alerts' },
     async () => {
       const alerts: AdminGodViewAlert[] = [];
 
@@ -122,24 +127,24 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
               select: { organization_id: true, ai_quota_cents: true },
               take: 30,
             },
-            { suppressReporting: true }
+            { suppressReporting: true, reason: 'admin_godview_alerts_list_org_settings_ai_quota', source: 'admin-godview-alerts', mode: 'global_admin', isSuperAdmin: true }
           )
         );
 
         const orgIds = (Array.isArray(settingsRows) ? settingsRows : [])
-          .map((r: any) => (r?.organization_id ? String(r.organization_id) : null))
-          .filter(Boolean) as string[];
+          .map((r) => (r?.organization_id ? String(r.organization_id) : null))
+          .filter((v): v is string => Boolean(v));
 
         const orgsById = new Map<string, { name: string; slug: string | null }>();
         if (orgIds.length) {
-          const orgs = await prisma.social_organizations.findMany({
+          const orgs = await prisma.organization.findMany({
             where: { id: { in: orgIds } },
             select: { id: true, name: true, slug: true },
           });
 
           for (const o of Array.isArray(orgs) ? orgs : []) {
-            const id = String((o as any).id);
-            orgsById.set(id, { name: String((o as any).name || ''), slug: (o as any).slug ? String((o as any).slug) : null });
+            const id = String(o.id);
+            orgsById.set(id, { name: String(o.name || ''), slug: o.slug ? String(o.slug) : null });
           }
         }
 
@@ -157,8 +162,8 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
 
         const usedCentsByOrgId = new Map<string, number>();
         for (const row of Array.isArray(usageByOrg) ? usageByOrg : []) {
-          const orgId = (row as any)?.organization_id ? String((row as any).organization_id) : '';
-          const used = (row as any)?._sum?.charged_cents === null || (row as any)?._sum?.charged_cents === undefined ? 0 : Number((row as any)._sum.charged_cents);
+          const orgId = row?.organization_id ? String(row.organization_id) : '';
+          const used = row?._sum?.charged_cents === null || row?._sum?.charged_cents === undefined ? 0 : Number(row._sum.charged_cents);
           if (orgId) usedCentsByOrgId.set(orgId, used);
         }
 
@@ -193,7 +198,7 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
             metadata: {
               path: ['paymentStatus'],
               equals: 'overdue',
-            } as any,
+            } satisfies Prisma.JsonFilter,
           },
           select: { organizationId: true },
           distinct: ['organizationId'],
@@ -201,11 +206,11 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
         });
 
         const orgIds = (Array.isArray(overdueOrgs) ? overdueOrgs : [])
-          .map((r: any) => (r?.organizationId ? String(r.organizationId) : null))
-          .filter(Boolean) as string[];
+          .map((r) => (r?.organizationId ? String(r.organizationId) : null))
+          .filter((v): v is string => Boolean(v));
 
         if (orgIds.length) {
-          const orgs = await prisma.social_organizations.findMany({
+          const orgs = await prisma.organization.findMany({
             where: { id: { in: orgIds } },
             select: { id: true, name: true, slug: true },
           });
@@ -213,10 +218,10 @@ async function getSystemAlerts(): Promise<AdminGodViewAlert[]> {
           for (const o of Array.isArray(orgs) ? orgs : []) {
             alerts.push({
               type: 'payment_overdue',
-              title: `תשלום באיחור - ${String((o as any).name || '')}`,
+              title: `תשלום באיחור - ${String(o.name || '')}`,
               details: 'לפי סטטוס תשלום בנתוני הלקוח (paymentStatus=overdue)',
-              organizationId: String((o as any).id),
-              organizationSlug: (o as any).slug ? String((o as any).slug) : null,
+              organizationId: String(o.id),
+              organizationSlug: o.slug ? String(o.slug) : null,
             });
             if (alerts.length >= 15) break;
           }
@@ -240,21 +245,31 @@ export async function getAdminGodView(): Promise<{
   error?: string;
 }> {
   return await withTenantIsolationContext(
-    { suppressReporting: true, source: 'admin-godview-kpis' },
+    { suppressReporting: true, reason: 'admin_godview_kpis_load', source: 'admin-godview-kpis' },
     async () => {
       try {
         const authCheck = await requireAuth();
         if (!authCheck.success) {
-          return authCheck as any;
+          return { success: false, error: authCheck.error || 'נדרשת התחברות' };
         }
 
         await requireSuperAdmin();
 
         const [totalOrganizations, totalProfiles, revenuePaidThisMonth, aiCreditsUsedTodayCents, recentOrganizations, alerts] =
           await Promise.all([
-            prisma.social_organizations.count(),
+            prisma.organization.count(),
             prisma.profile.count(
-              withPrismaTenantIsolationOverride({}, { suppressReporting: true, organizationId: 'super-admin-override' })
+              withPrismaTenantIsolationOverride(
+                {},
+                {
+                  suppressReporting: true,
+                  reason: 'admin_godview_count_profiles_global',
+                  source: 'admin-godview-kpis',
+                  mode: 'global_admin',
+                  isSuperAdmin: true,
+                  organizationId: 'super-admin-override',
+                }
+              )
             ),
             sumPaidInvoicesThisMonth(),
             sumAiCreditsUsedTodayCents(),

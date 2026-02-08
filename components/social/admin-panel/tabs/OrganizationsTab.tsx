@@ -8,11 +8,11 @@ import { generateOrgSlug } from '@/lib/shared/orgSlug';
 import {
   createOrganization,
   getOrganizations,
-  getSocialUsersLite,
+  getUsersLite,
   setOrganizationOwner,
   updateOrganization,
   type OrganizationWithOwner,
-  type SocialUserLite,
+  type UserLite,
 } from '@/app/actions/admin-organizations';
 import { Button } from '@/components/ui/button';
 
@@ -50,7 +50,7 @@ export default function OrganizationsTab() {
   const [query, setQuery] = useState('');
   const [organizations, setOrganizations] = useState<OrganizationWithOwner[]>([]);
   const [usersQuery, setUsersQuery] = useState('');
-  const [users, setUsers] = useState<SocialUserLite[]>([]);
+  const [users, setUsers] = useState<UserLite[]>([]);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createSlugTouched, setCreateSlugTouched] = useState(false);
@@ -90,7 +90,7 @@ export default function OrganizationsTab() {
     try {
       const [orgsRes, usersRes] = await Promise.all([
         getOrganizations({ limit: 500 }),
-        getSocialUsersLite({ query: usersQuery, limit: 500 }),
+        getUsersLite({ query: usersQuery, limit: 500 }),
       ]);
 
       if (orgsRes.success && orgsRes.data) {

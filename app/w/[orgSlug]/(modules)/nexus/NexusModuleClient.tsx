@@ -2,15 +2,16 @@
 
 import { NexusWorkspaceApp } from '@/components/nexus/NexusWorkspaceApp';
 import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
+import type { OrganizationProfile, User } from '@/types';
 
 export default function NexusModuleClient({
   initialCurrentUser,
   initialOrganization,
   initialOwnerDashboard,
 }: {
-  initialCurrentUser?: any;
-  initialOrganization?: any;
-  initialOwnerDashboard?: any;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
+  initialOwnerDashboard?: unknown;
 }) {
   return (
     <ReactQueryProvider>

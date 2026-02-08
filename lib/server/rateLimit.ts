@@ -1,15 +1,28 @@
 import { createHash } from 'crypto';
 import { Redis } from '@upstash/redis';
 
+export type RateLimitMode = 'normal' | 'fail_closed' | 'degraded';
+
 type RateLimitResult =
-  | { ok: true; remaining: number; resetAt: number }
-  | { ok: false; remaining: 0; resetAt: number; retryAfterSeconds: number };
+  | { ok: true; remaining: number; resetAt: number; degraded?: boolean }
+  | {
+      ok: false;
+      remaining: 0;
+      resetAt: number;
+      retryAfterSeconds: number;
+      reason: 'limited' | 'unavailable';
+      degraded?: boolean;
+    };
 
 type RateLimitOptions = {
   namespace: string;
   key: string;
   limit: number;
   windowMs: number;
+  mode?: RateLimitMode;
+  degradedLimit?: number;
+  degradedWindowMs?: number;
+  unavailableRetryAfterSeconds?: number;
 };
 
 type InMemoryBucket = {
@@ -22,15 +35,14 @@ type RedisBucket = {
   pttl: number; // milliseconds
 };
 
-type GlobalWithRateLimitBuckets = typeof globalThis & {
-  __MISRAD_RATE_LIMIT_BUCKETS__?: Map<string, InMemoryBucket>;
-};
+declare global {
+  var __MISRAD_RATE_LIMIT_BUCKETS__: Map<string, InMemoryBucket> | undefined;
+}
 
 const globalBuckets: Map<string, InMemoryBucket> = (() => {
-  const g = globalThis as unknown as GlobalWithRateLimitBuckets;
-  if (g.__MISRAD_RATE_LIMIT_BUCKETS__) return g.__MISRAD_RATE_LIMIT_BUCKETS__;
+  if (globalThis.__MISRAD_RATE_LIMIT_BUCKETS__) return globalThis.__MISRAD_RATE_LIMIT_BUCKETS__;
   const m = new Map<string, InMemoryBucket>();
-  g.__MISRAD_RATE_LIMIT_BUCKETS__ = m;
+  globalThis.__MISRAD_RATE_LIMIT_BUCKETS__ = m;
   return m;
 })();
 
@@ -50,11 +62,35 @@ export function getClientIpFromRequest(req: Request): string {
   return 'unknown';
 }
 
+export function buildRateLimitHeaders(params: {
+  limit: number;
+  remaining: number;
+  resetAt: number;
+  retryAfterSeconds?: number;
+  label?: string;
+}): Record<string, string> {
+  const suffix = params.label ? `-${params.label}` : '';
+  const headers: Record<string, string> = {
+    [`X-RateLimit-Limit${suffix}`]: String(params.limit),
+    [`X-RateLimit-Remaining${suffix}`]: String(Math.max(0, params.remaining)),
+    [`X-RateLimit-Reset${suffix}`]: String(Math.floor(params.resetAt / 1000)),
+  };
+  if (params.retryAfterSeconds) headers['Retry-After'] = String(params.retryAfterSeconds);
+  return headers;
+}
+
 function stableHash(input: string): string {
   return createHash('sha256').update(input).digest('hex');
 }
 
+function isRedisDisabledExplicitly(): boolean {
+  const disabled = String(process.env.MISRAD_RATE_LIMIT_DISABLE_REDIS || '').toLowerCase();
+  return disabled === '1' || disabled === 'true';
+}
+
 function getRedisClient(): Redis | null {
+  if (isRedisDisabledExplicitly()) return null;
+
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
@@ -94,7 +130,29 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
   const now = Date.now();
   const bucketKey = stableHash(`${opts.namespace}:${opts.key}`);
 
+  const mode: RateLimitMode = opts.mode ?? 'normal';
+  const unavailableRetryAfterSeconds =
+    typeof opts.unavailableRetryAfterSeconds === 'number' && Number.isFinite(opts.unavailableRetryAfterSeconds) && opts.unavailableRetryAfterSeconds > 0
+      ? Math.floor(opts.unavailableRetryAfterSeconds)
+      : 3;
+
+  const redisDisabled = isRedisDisabledExplicitly();
+  const isE2eTesting = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' || String(process.env.IS_E2E_TESTING || '') === '1';
+  const enforceFailClosed = mode === 'fail_closed' && !redisDisabled && !isE2eTesting;
+
   const redis = getRedisClient();
+  if (!redis && enforceFailClosed) {
+    return {
+      ok: false,
+      remaining: 0,
+      resetAt: now + unavailableRetryAfterSeconds * 1000,
+      retryAfterSeconds: unavailableRetryAfterSeconds,
+      reason: 'unavailable',
+      degraded: false,
+    };
+  }
+
+  let redisFailed = false;
   if (redis) {
     try {
       const redisKey = `rl:${bucketKey}`;
@@ -107,33 +165,77 @@ export async function rateLimit(opts: RateLimitOptions): Promise<RateLimitResult
       const resetAt = now + Math.max(0, pttl);
       if (count > opts.limit) {
         const retryAfterSeconds = Math.max(1, Math.ceil(Math.max(0, pttl) / 1000));
-        return { ok: false, remaining: 0, resetAt, retryAfterSeconds };
+        return { ok: false, remaining: 0, resetAt, retryAfterSeconds, reason: 'limited', degraded: false };
       }
 
       return {
         ok: true,
         remaining: Math.max(0, opts.limit - count),
         resetAt,
+        degraded: false,
       };
     } catch {
-      // Fallback to in-memory below
+      redisFailed = true;
     }
   }
 
-  const existing = globalBuckets.get(bucketKey);
-  if (!existing || existing.resetAt <= now) {
-    const resetAt = now + opts.windowMs;
-    const next: InMemoryBucket = { count: 1, resetAt };
-    globalBuckets.set(bucketKey, next);
-    return { ok: true, remaining: Math.max(0, opts.limit - 1), resetAt };
+  if (enforceFailClosed && redisFailed) {
+    return {
+      ok: false,
+      remaining: 0,
+      resetAt: now + unavailableRetryAfterSeconds * 1000,
+      retryAfterSeconds: unavailableRetryAfterSeconds,
+      reason: 'unavailable',
+      degraded: false,
+    };
   }
 
-  if (existing.count >= opts.limit) {
+  const isDegraded = !redis || redisFailed;
+  const effectiveWindowMs =
+    mode === 'degraded' && isDegraded
+      ? typeof opts.degradedWindowMs === 'number' && Number.isFinite(opts.degradedWindowMs) && opts.degradedWindowMs > 0
+        ? Math.floor(opts.degradedWindowMs)
+        : Math.min(opts.windowMs, 30_000)
+      : opts.windowMs;
+
+  const effectiveLimit =
+    mode === 'degraded' && isDegraded
+      ? typeof opts.degradedLimit === 'number' && Number.isFinite(opts.degradedLimit) && opts.degradedLimit > 0
+        ? Math.floor(opts.degradedLimit)
+        : Math.max(1, Math.floor(opts.limit / 5))
+      : opts.limit;
+
+  const existing = globalBuckets.get(bucketKey);
+  if (!existing || existing.resetAt <= now) {
+    const resetAt = now + effectiveWindowMs;
+    const next: InMemoryBucket = { count: 1, resetAt };
+    globalBuckets.set(bucketKey, next);
+    return {
+      ok: true,
+      remaining: Math.max(0, effectiveLimit - 1),
+      resetAt,
+      degraded: isDegraded,
+    };
+  }
+
+  if (existing.count >= effectiveLimit) {
     const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
-    return { ok: false, remaining: 0, resetAt: existing.resetAt, retryAfterSeconds };
+    return {
+      ok: false,
+      remaining: 0,
+      resetAt: existing.resetAt,
+      retryAfterSeconds,
+      reason: 'limited',
+      degraded: isDegraded,
+    };
   }
 
   existing.count += 1;
   globalBuckets.set(bucketKey, existing);
-  return { ok: true, remaining: Math.max(0, opts.limit - existing.count), resetAt: existing.resetAt };
+  return {
+    ok: true,
+    remaining: Math.max(0, effectiveLimit - existing.count),
+    resetAt: existing.resetAt,
+    degraded: isDegraded,
+  };
 }

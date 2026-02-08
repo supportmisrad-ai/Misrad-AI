@@ -15,12 +15,12 @@ type WorkspaceItem = {
 async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    redirect('/sign-in');
+    redirect('/login?redirect=/workspaces');
   }
 
   let socialUser: { id: string; organization_id: string | null } | null = null;
   try {
-    socialUser = await prisma.social_users.findUnique({
+    socialUser = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: clerkUserId },
       select: { id: true, organization_id: true },
     });
@@ -38,7 +38,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     orgIds.add(String(socialUser.organization_id));
   }
 
-  const ownedOrgs = await prisma.social_organizations.findMany({
+  const ownedOrgs = await prisma.organization.findMany({
     where: { owner_id: socialUser.id },
     select: { id: true },
   });
@@ -46,7 +46,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     if (org?.id) orgIds.add(String(org.id));
   }
 
-  const membershipRows = await prisma.social_team_members.findMany({
+  const membershipRows = await prisma.teamMember.findMany({
     where: { user_id: socialUser.id },
     select: { organization_id: true },
   });
@@ -58,7 +58,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
     return [];
   }
 
-  const orgs = await prisma.social_organizations.findMany({
+  const orgs = await prisma.organization.findMany({
     where: { id: { in: Array.from(orgIds) } },
     select: {
       id: true,

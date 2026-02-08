@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma, { executeRawAllowlisted, queryRawAllowlisted } from '@/lib/prisma';
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -24,15 +26,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'NoAuthSession' }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => null);
-    const expectedOrgId = safeString(body?.expectedOrgId);
-    const otherOrgId = safeString(body?.otherOrgId);
-    const expectedClientId = safeString(body?.expectedClientId);
-    const otherClientId = safeString(body?.otherClientId);
-    const expectedLeadId = safeString(body?.expectedLeadId);
-    const otherLeadId = safeString(body?.otherLeadId);
-    const expectedPostId = safeString(body?.expectedPostId);
-    const otherPostId = safeString(body?.otherPostId);
+    const bodyJson: unknown = await req.json().catch(() => null);
+    const bodyObj = asObject(bodyJson) ?? {};
+    const expectedOrgId = safeString(bodyObj.expectedOrgId);
+    const otherOrgId = safeString(bodyObj.otherOrgId);
+    const expectedClientId = safeString(bodyObj.expectedClientId);
+    const otherClientId = safeString(bodyObj.otherClientId);
+    const expectedLeadId = safeString(bodyObj.expectedLeadId);
+    const otherLeadId = safeString(bodyObj.otherLeadId);
+    const expectedPostId = safeString(bodyObj.expectedPostId);
+    const otherPostId = safeString(bodyObj.otherPostId);
 
     if (!expectedOrgId || !otherOrgId) {
       return NextResponse.json({ ok: false, error: 'expectedOrgId and otherOrgId are required' }, { status: 400 });
@@ -48,7 +51,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const membership = await prisma.social_users.findUnique({
+    const membership = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: String(userId) },
       select: { organization_id: true },
     });
@@ -67,6 +70,11 @@ export async function POST(req: Request) {
     if (!organizationId) {
       return NextResponse.json({ ok: false, error: 'Failed to resolve organizationId for user' }, { status: 500 });
     }
+
+    enterTenantIsolationContext({
+      source: 'e2e_rls_check',
+      organizationId,
+    });
 
     const claims = JSON.stringify({
       role: 'authenticated',
@@ -196,7 +204,7 @@ select
       },
       rpcError: null,
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'RLS check failed' }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'RLS check failed' }, { status: 500 });
   }
 }

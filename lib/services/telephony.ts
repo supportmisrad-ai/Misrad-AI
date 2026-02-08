@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Telephony Service
  * 
@@ -13,19 +14,7 @@
 import { Buffer } from 'buffer';
 import { prisma, queryRawTenantScoped } from '../prisma';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function getStringField(obj: Record<string, unknown> | null, key: string): string | undefined {
     if (!obj) return undefined;
@@ -120,7 +109,12 @@ export class TelephonyService {
                     };
             }
         } catch (error: unknown) {
-            console.error('[TelephonyService] Error initiating call:', error);
+            const msg = getErrorMessage(error);
+            if (IS_PROD) {
+                console.error('[TelephonyService] Error initiating call:', msg);
+            } else {
+                console.error('[TelephonyService] Error initiating call:', error);
+            }
             return {
                 success: false,
                 error: getErrorMessage(error) || 'Failed to initiate call'
@@ -194,8 +188,6 @@ export class TelephonyService {
                 console.error('[TelephonyService] Voicenter API error:', {
                     status: response.status,
                     statusText: response.statusText,
-                    error: errorText,
-                    payload: payload
                 });
                 
                 return {
@@ -228,7 +220,12 @@ export class TelephonyService {
                 message
             };
         } catch (error: unknown) {
-            console.error('[TelephonyService] Error in Voicenter call initiation:', error);
+            const msg = getErrorMessage(error);
+            if (IS_PROD) {
+                console.error('[TelephonyService] Error in Voicenter call initiation:', msg);
+            } else {
+                console.error('[TelephonyService] Error in Voicenter call initiation:', error);
+            }
             return {
                 success: false,
                 error: `Failed to initiate Voicenter call: ${getErrorMessage(error)}`
@@ -286,10 +283,12 @@ export class TelephonyService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+                if (!IS_PROD) {
+                    void errorText;
+                }
                 console.error('[TelephonyService] Twilio API error:', {
                     status: response.status,
                     statusText: response.statusText,
-                    error: errorText
                 });
                 return {
                     success: false,
@@ -307,7 +306,12 @@ export class TelephonyService {
                 message: 'Call initiated successfully'
             };
         } catch (error: unknown) {
-            console.error('[TelephonyService] Error in Twilio call initiation:', error);
+            const msg = getErrorMessage(error);
+            if (IS_PROD) {
+                console.error('[TelephonyService] Error in Twilio call initiation:', msg);
+            } else {
+                console.error('[TelephonyService] Error in Twilio call initiation:', error);
+            }
             return {
                 success: false,
                 error: `Failed to initiate Twilio call: ${getErrorMessage(error)}`

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { LoginView } from "../../views/LoginView";
 import { useEffect } from "react";
 import CustomAuth from '@/components/social/CustomAuth';
+import { normalizeLegacyRedirectPath, toWorkspacePathForOrgSlug } from '@/lib/os/legacy-routing';
 
 export default function LoginPageClient({ initialUserId }: { initialUserId: string | null }) {
   const { isSignedIn, isLoaded, userId } = useAuth();
@@ -24,18 +25,6 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
     }
   };
 
-  const toVillaPath = (orgSlug: string, path: string): string => {
-    const base = `/w/${encodeURIComponent(String(orgSlug))}`;
-    if (path === '/client-os' || path.startsWith('/client-os/')) return `${base}/client`;
-    if (path === '/finance-os' || path.startsWith('/finance-os/')) return `${base}/finance`;
-    if (path === '/system' || path.startsWith('/system/')) return `${base}/system`;
-    if (path === '/social' || path.startsWith('/social/')) return `${base}/social`;
-    if (path === '/app' || path.startsWith('/app/')) return `${base}/nexus`;
-    if (path === '/nexus-os' || path.startsWith('/nexus-os/')) return `${base}/nexus`;
-    if (path === '/pipeline' || path.startsWith('/pipeline/')) return `${base}/system`;
-    return path;
-  };
-
   useEffect(() => {
     // Wait for Clerk to load
     if (!isLoaded) {
@@ -50,16 +39,17 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         searchParams.get('redirect') ||
         searchParams.get('redirect_url') ||
         searchParams.get('redirectUrl');
+      const normalizedRedirectPath = redirectPath ? (normalizeLegacyRedirectPath(redirectPath) || redirectPath) : null;
       
       // If redirect parameter exists and is valid, go there
-      if (redirectPath && redirectPath.startsWith('/') && !redirectPath.startsWith('//')) {
+      if (normalizedRedirectPath && normalizedRedirectPath.startsWith('/') && !normalizedRedirectPath.startsWith('//')) {
         (async () => {
           const orgSlug = await resolveFirstOrgSlug();
           if (orgSlug) {
-            router.push(toVillaPath(orgSlug, redirectPath));
+            router.push(toWorkspacePathForOrgSlug(orgSlug, normalizedRedirectPath));
             return;
           }
-          router.push(redirectPath);
+          router.push(normalizedRedirectPath);
         })();
       } else {
         (async () => {
@@ -70,7 +60,12 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
               return;
             }
 
-            const res = await fetch('/api/os/rooms', { cache: 'no-store' });
+            const res = await fetch('/api/os/rooms', {
+              cache: 'no-store',
+              headers: {
+                'x-org-id': encodeURIComponent(String(orgSlug)),
+              },
+            });
             if (!res.ok) {
               router.push('/workspaces');
               return;

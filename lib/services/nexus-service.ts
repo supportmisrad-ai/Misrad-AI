@@ -44,26 +44,33 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
   };
 
   if (entitlements.nexus) {
-    const list = await prisma.nexusTask.findMany({
-      where: { organizationId: workspace.id },
-      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
-      take: 200,
-      select: { id: true, title: true, status: true, priority: true, dueDate: true, createdAt: true },
-    });
-
-    const open = list.filter((t) => {
-      const s = String(t.status ?? '').toLowerCase();
-      return s !== 'done' && s !== 'completed' && s !== 'canceled' && s !== 'cancelled';
-    });
-
-    const urgent = open.filter((t) => String(t.priority ?? '').toLowerCase() === 'urgent');
-
-    kpis.nexus = {
-      tasksOpen: open.length,
-      tasksUrgent: urgent.length,
+    const openWhere = {
+      organizationId: String(workspace.id),
+      status: { notIn: ['Done', 'done', 'Completed', 'completed', 'Canceled', 'canceled', 'Cancelled', 'cancelled'] },
     };
 
-    urgent.slice(0, 4).forEach((t) => {
+    const urgentWhere = {
+      ...openWhere,
+      priority: { in: ['urgent', 'Urgent'] },
+    };
+
+    const [tasksOpen, tasksUrgent, urgentTasks] = await Promise.all([
+      prisma.nexusTask.count({ where: openWhere }),
+      prisma.nexusTask.count({ where: urgentWhere }),
+      prisma.nexusTask.findMany({
+        where: urgentWhere,
+        select: { id: true, title: true, dueDate: true, createdAt: true },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+        take: 4,
+      }),
+    ]);
+
+    kpis.nexus = {
+      tasksOpen,
+      tasksUrgent,
+    };
+
+    urgentTasks.forEach((t) => {
       actions.push({
         id: `nexus-task-${t.id}`,
         source: 'nexus',
@@ -76,67 +83,71 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
   }
 
   if (entitlements.system) {
-    const leads = await prisma.systemLead.findMany({
-      where: { organizationId: workspace.id },
-      orderBy: { createdAt: 'desc' },
-      take: 250,
-    });
-
-    const total = leads.length;
-    const hot = leads.filter((l) => Boolean(l.isHot)).length;
-    const incoming = leads.filter((l) => String(l.status ?? '').toLowerCase() === 'incoming').length;
+    const [leadsTotal, leadsHot, leadsIncoming, hotLeads] = await Promise.all([
+      prisma.systemLead.count({ where: { organizationId: workspace.id } }),
+      prisma.systemLead.count({ where: { organizationId: workspace.id, isHot: true } }),
+      prisma.systemLead.count({
+        where: { organizationId: workspace.id, status: { equals: 'incoming', mode: 'insensitive' } },
+      }),
+      prisma.systemLead.findMany({
+        where: { organizationId: workspace.id, isHot: true },
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 3,
+        select: { id: true, name: true, company: true },
+      }),
+    ]);
 
     kpis.system = {
-      leadsTotal: total,
-      leadsHot: hot,
-      leadsIncoming: incoming,
+      leadsTotal,
+      leadsHot,
+      leadsIncoming,
     };
 
-    leads
-      .filter((l) => Boolean(l.isHot))
-      .slice(0, 3)
-      .forEach((l) => {
-        const leadId = String(l.id);
-        actions.push({
-          id: `system-lead-${leadId}`,
-          source: 'system',
-          title: `${l.name || 'ליד חם'}${l.company ? ` · ${l.company}` : ''}`,
-          subtitle: 'System · ליד חם',
-          href: `/w/${encodeURIComponent(orgSlug)}/system?leadId=${encodeURIComponent(leadId)}`,
-          priority: 'high',
-        });
+    hotLeads.forEach((l) => {
+      const leadId = String(l.id);
+      actions.push({
+        id: `system-lead-${leadId}`,
+        source: 'system',
+        title: `${l.name || 'ליד חם'}${l.company ? ` · ${l.company}` : ''}`,
+        subtitle: 'System · ליד חם',
+        href: `/w/${encodeURIComponent(orgSlug)}/system?leadId=${encodeURIComponent(leadId)}`,
+        priority: 'high',
       });
+    });
   }
 
   if (entitlements.social) {
-    const list = await prisma.socialPost.findMany({
-      where: { organizationId: workspace.id },
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-      select: { id: true, status: true, scheduled_at: true, published_at: true },
-    });
-    const statusCount = (s: string) => list.filter((p) => String(p.status ?? '').toLowerCase() === s).length;
+    const orgId = String(workspace.id);
+    const [postsTotal, postsDraft, postsScheduled, postsPublished, scheduledPosts] = await Promise.all([
+      prisma.socialPost.count({ where: { organizationId: orgId } }),
+      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'draft', mode: 'insensitive' } } }),
+      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } } }),
+      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'published', mode: 'insensitive' } } }),
+      prisma.socialPost.findMany({
+        where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } },
+        select: { id: true },
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+      }),
+    ]);
 
     kpis.social = {
-      postsTotal: list.length,
-      postsDraft: statusCount('draft'),
-      postsScheduled: statusCount('scheduled'),
-      postsPublished: statusCount('published'),
+      postsTotal,
+      postsDraft,
+      postsScheduled,
+      postsPublished,
     };
 
-    list
-      .filter((p) => String(p.status ?? '').toLowerCase() === 'scheduled')
-      .slice(0, 2)
-      .forEach((p) => {
-        actions.push({
-          id: `social-post-${p.id}`,
-          source: 'social',
-          title: 'פוסט מתוזמן ממתין לפרסום',
-          subtitle: 'Social · Scheduled',
-          href: `/w/${encodeURIComponent(orgSlug)}/social`,
-          priority: 'normal',
-        });
+    scheduledPosts.forEach((p) => {
+      actions.push({
+        id: `social-post-${p.id}`,
+        source: 'social',
+        title: 'פוסט מתוזמן ממתין לפרסום',
+        subtitle: 'Social · Scheduled',
+        href: `/w/${encodeURIComponent(orgSlug)}/social`,
+        priority: 'normal',
       });
+    });
   }
 
   if (entitlements.client) {
@@ -151,12 +162,11 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
     const canViewFinancials = await hasPermission('view_financials');
 
     if (canViewFinancials) {
-      const entriesList = await prisma.nexusTimeEntry.findMany({
-        where: { organizationId: workspace.id },
-        select: { durationMinutes: true },
-        take: 1000,
+      const agg = await prisma.nexusTimeEntry.aggregate({
+        where: { organizationId: String(workspace.id) },
+        _sum: { durationMinutes: true },
       });
-      const total = (entriesList || []).reduce((sum, e) => sum + Number(e.durationMinutes ?? 0), 0);
+      const total = Number(agg._sum?.durationMinutes ?? 0) || 0;
 
       kpis.finance = {
         totalMinutes: total,

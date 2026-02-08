@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/services/operations/db';
-import { getUnknownErrorMessage } from '@/lib/services/operations/shared';
+import { getUnknownErrorMessage, logOperationsError } from '@/lib/services/operations/shared';
 import type { OperationsClientOption } from '@/lib/services/operations/types';
 
 export async function getOperationsClientOptionsForOrganizationId(params: {
@@ -56,7 +56,7 @@ export async function getOperationsClientOptionsForOrganizationId(params: {
     options.sort((a, b) => a.label.localeCompare(b.label, 'he'));
     return { success: true, data: options };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsClientOptions failed', e);
+    logOperationsError('[operations] getOperationsClientOptions failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הלקוחות',

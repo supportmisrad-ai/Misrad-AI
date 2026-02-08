@@ -41,7 +41,7 @@ export async function getCurrentUserTrialInfo(): Promise<{
       return { success: false, error: 'נדרשת התחברות' };
     }
 
-    const member = await prisma.social_team_members.findUnique({
+    const member = await prisma.teamMember.findUnique({
       where: { user_id: String(userId) },
       select: {
         trial_start_date: true,
@@ -98,7 +98,7 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
     const now = new Date();
 
     // Get all users in trial status
-    const trialUsers = await prisma.social_team_members.findMany({
+    const trialUsers = await prisma.teamMember.findMany({
       where: { subscription_status: 'trial' },
       select: { id: true, user_id: true, trial_start_date: true, trial_days: true, subscription_status: true },
     });
@@ -120,7 +120,7 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
       // Check if trial expired
       if (now > trialEndDate) {
         try {
-          await prisma.social_team_members.update({
+          await prisma.teamMember.update({
             where: { id: String(user.id) },
             data: {
               subscription_status: 'expired',
@@ -156,7 +156,7 @@ export async function startSubscription(): Promise<{
 
     const now = new Date();
 
-    await prisma.social_team_members.updateMany({
+    await prisma.teamMember.updateMany({
       where: { user_id: String(authCheck.userId) },
       data: {
         subscription_status: 'active',
@@ -188,7 +188,7 @@ export async function cancelSubscription(): Promise<{
 
     const now = new Date();
 
-    await prisma.social_team_members.updateMany({
+    await prisma.teamMember.updateMany({
       where: { user_id: String(authCheck.userId) },
       data: {
         subscription_status: 'cancelled',

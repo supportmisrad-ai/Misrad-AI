@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
 
 type IngestHistoryRequest = {
@@ -15,20 +16,7 @@ type IngestHistoryRequest = {
     nexusClients?: boolean;
   };
   limitPerType?: number;
-};
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : String(error ?? '');
-}
+};
 
 function safeJson(obj: unknown): string {
   try {
@@ -61,7 +49,7 @@ async function POSTHandler(req: Request) {
     const normalizedOrgKey = String(orgKey || '').trim();
     const isAll = normalizedOrgKey.toLowerCase() === 'all';
     const orgIds: string[] = isAll
-      ? (await prisma.social_organizations.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
+      ? (await prisma.organization.findMany({ select: { id: true }, orderBy: { created_at: 'asc' } })).map((o) => String(o.id))
       : [String((await getWorkspaceByOrgKeyOrThrow(normalizedOrgKey)).workspaceId)];
 
     const results: {

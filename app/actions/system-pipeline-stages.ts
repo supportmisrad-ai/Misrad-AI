@@ -1,6 +1,6 @@
 'use server';
 
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import {
   assertSystemPipelineStageExistsForOrganizationId,
   createSystemPipelineStageForOrganizationId,
@@ -20,8 +20,11 @@ export type SystemPipelineStageDTO = {
 };
 
 export async function getSystemPipelineStages(params: { orgSlug: string }): Promise<SystemPipelineStageDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return await getSystemPipelineStagesForOrganizationId({ organizationId: workspace.id });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => await getSystemPipelineStagesForOrganizationId({ organizationId }),
+    { source: 'server_actions_system_pipeline_stages', reason: 'getSystemPipelineStages' }
+  );
 }
 
 export async function createSystemPipelineStage(params: {
@@ -32,15 +35,19 @@ export async function createSystemPipelineStage(params: {
   accent?: string | null;
   order?: number | null;
 }): Promise<{ ok: true; stage: SystemPipelineStageDTO } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return await createSystemPipelineStageForOrganizationId({
-    organizationId: workspace.id,
-    key: params.key,
-    label: params.label,
-    color: params.color,
-    accent: params.accent,
-    order: params.order,
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) =>
+      await createSystemPipelineStageForOrganizationId({
+        organizationId,
+        key: params.key,
+        label: params.label,
+        color: params.color,
+        accent: params.accent,
+        order: params.order,
+      }),
+    { source: 'server_actions_system_pipeline_stages', reason: 'createSystemPipelineStage' }
+  );
 }
 
 export async function updateSystemPipelineStage(params: {
@@ -52,30 +59,40 @@ export async function updateSystemPipelineStage(params: {
   order?: number | null;
   isActive?: boolean;
 }): Promise<{ ok: true; stage: SystemPipelineStageDTO } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return await updateSystemPipelineStageForOrganizationId({
-    organizationId: workspace.id,
-    id: params.id,
-    label: params.label,
-    color: params.color,
-    accent: params.accent,
-    order: params.order,
-    isActive: params.isActive,
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) =>
+      await updateSystemPipelineStageForOrganizationId({
+        organizationId,
+        id: params.id,
+        label: params.label,
+        color: params.color,
+        accent: params.accent,
+        order: params.order,
+        isActive: params.isActive,
+      }),
+    { source: 'server_actions_system_pipeline_stages', reason: 'updateSystemPipelineStage' }
+  );
 }
 
 export async function deleteSystemPipelineStage(params: {
   orgSlug: string;
   id: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return await deleteSystemPipelineStageForOrganizationId({ organizationId: workspace.id, id: params.id });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => await deleteSystemPipelineStageForOrganizationId({ organizationId, id: params.id }),
+    { source: 'server_actions_system_pipeline_stages', reason: 'deleteSystemPipelineStage' }
+  );
 }
 
 export async function assertSystemPipelineStageExists(params: {
   orgSlug: string;
   key: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  return await assertSystemPipelineStageExistsForOrganizationId({ organizationId: workspace.id, key: params.key });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => await assertSystemPipelineStageExistsForOrganizationId({ organizationId, key: params.key }),
+    { source: 'server_actions_system_pipeline_stages', reason: 'assertSystemPipelineStageExists' }
+  );
 }

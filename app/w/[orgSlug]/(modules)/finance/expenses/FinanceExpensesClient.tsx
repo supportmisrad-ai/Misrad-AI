@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { FinanceExpensesData } from '@/lib/services/finance-service';
+import type { FinanceExpensesData, FinanceExpensesUserRow } from '@/lib/services/finance-service';
 
 export default function FinanceExpensesClient(props: { expenses: FinanceExpensesData | null }) {
   const expenses = props.expenses;
@@ -58,7 +58,7 @@ export default function FinanceExpensesClient(props: { expenses: FinanceExpenses
                       </td>
                     </tr>
                   ) : (
-                    expenses.users.map((u: any) => (
+                    expenses.users.map((u: FinanceExpensesUserRow) => (
                       <tr key={String(u.user?.id)} className="hover:bg-slate-50">
                         <td className="px-4 py-3 text-sm font-black text-slate-900">{String(u.user?.name || '—')}</td>
                         <td className="px-4 py-3 text-sm text-slate-700">{Number(u.totalMinutes || 0).toLocaleString('he-IL')}</td>

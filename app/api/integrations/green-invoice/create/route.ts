@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Create Invoice via Green Invoice
  * POST /api/integrations/green-invoice/create
@@ -10,21 +11,11 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { createInvoice } from '@/lib/integrations/green-invoice';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : String(error ?? '');
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 type InvoiceItemInput = {
     description: string;
@@ -110,13 +101,13 @@ async function POSTHandler(request: NextRequest) {
         let integrationIdForUsage: string | null = null;
         let integrationMetadataForUsage: Record<string, unknown> = {};
         try {
-            const socialUser = await (prisma as any).social_users.findUnique({
+            const socialUser = await prisma.organizationUser.findUnique({
                 where: { clerk_user_id: String(clerkUser.id) },
                 select: { id: true },
             });
-            const socialUserId = (socialUser as any)?.id ? String((socialUser as any).id) : null;
+            const socialUserId = socialUser?.id ? String(socialUser.id) : null;
             if (socialUserId && workspaceId) {
-                const tm = await prisma.social_team_members.findFirst({
+                const tm = await prisma.teamMember.findFirst({
                     where: {
                         user_id: String(socialUserId),
                         organization_id: String(workspaceId),
@@ -139,7 +130,16 @@ async function POSTHandler(request: NextRequest) {
                     });
 
                     integrationIdForUsage = integration?.id ? String(integration.id) : null;
-                    integrationMetadataForUsage = asObject((integration as any)?.metadata) ?? {};
+                    const metadata = integration?.metadata;
+                    if (typeof metadata === 'string') {
+                        try {
+                            integrationMetadataForUsage = asObject(JSON.parse(metadata)) ?? {};
+                        } catch {
+                            integrationMetadataForUsage = {};
+                        }
+                    } else {
+                        integrationMetadataForUsage = asObject(metadata) ?? {};
+                    }
                     const totalTrialInvoices = Number(integrationMetadataForUsage.total_trial_invoices ?? 0);
 
                     if (totalTrialInvoices >= 2) {
@@ -290,7 +290,7 @@ async function POSTHandler(request: NextRequest) {
                         metadata: {
                             ...(integrationMetadataForUsage || {}),
                             total_trial_invoices: nextTotal,
-                        } as any,
+                        } as Prisma.InputJsonValue,
                         last_synced_at: new Date(),
                         updated_at: new Date(),
                     },
@@ -306,13 +306,15 @@ async function POSTHandler(request: NextRequest) {
         }, { status: 201 });
 
     } catch (error: unknown) {
-        console.error('[API] Error creating invoice:', error);
+        if (IS_PROD) console.error('[API] Error creating invoice');
+        else console.error('[API] Error creating invoice:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
         const message = getErrorMessage(error);
+        const safeMsg = 'Failed to create invoice';
         return NextResponse.json(
-            { error: message || 'Failed to create invoice' },
+            { error: IS_PROD ? safeMsg : message || safeMsg },
             { status: 500 }
         );
     }

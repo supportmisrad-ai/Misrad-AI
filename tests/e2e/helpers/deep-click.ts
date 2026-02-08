@@ -1,16 +1,12 @@
 import type { Locator, Page } from '@playwright/test';
 import { expect, waitForAnyDialogOrNavigation } from '../fixtures/guards';
 
+import { getErrorMessage } from '@/lib/shared/unknown';
 type DeepClickOptions = {
   scope?: Locator;
   maxElements?: number;
   timeBudgetMs?: number;
-};
-
-function getErrorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  return String(e || '');
-}
+};
 
 function normalize(s: string) {
   return String(s || '').replace(/\s+/g, ' ').trim();

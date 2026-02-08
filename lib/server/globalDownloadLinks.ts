@@ -3,26 +3,16 @@ import 'server-only';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
   androidDownloadUrl: string | null;
 };
 
 const LEGACY_KEY = 'global_download_links';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
 
 function isMissingRelationError(error: unknown): boolean {
   const obj = asObject(error);
@@ -69,7 +59,12 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     const legacy = await prisma.social_system_settings
       .findUnique({ where: { key: LEGACY_KEY }, select: { value: true } })
       .catch((e: unknown) => {
-        if (isMissingRelationError(e)) return null;
+        if (isMissingRelationError(e)) {
+          if (!ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(e) || 'missing relation'})`);
+          }
+          return null;
+        }
         throw e;
       });
 
@@ -86,7 +81,10 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     }
 
     return envFallback;
-  } catch {
+  } catch (error: unknown) {
+    if (isMissingRelationError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] global_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+    }
     return envFallback;
   }
 }
@@ -124,25 +122,35 @@ export async function setGlobalDownloadLinksUnsafe(input: {
     });
   } catch (error: unknown) {
     if (isMissingRelationError(error)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] global_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+      }
       // Fallback: legacy storage
-      await prisma.social_system_settings.upsert({
-        where: { key: LEGACY_KEY },
-        update: {
-          value: {
-            windowsDownloadUrl: next.windowsDownloadUrl,
-            androidDownloadUrl: next.androidDownloadUrl,
-          } as Prisma.InputJsonValue,
-          updated_at: now,
-        },
-        create: {
-          key: LEGACY_KEY,
-          value: {
-            windowsDownloadUrl: next.windowsDownloadUrl,
-            androidDownloadUrl: next.androidDownloadUrl,
-          } as Prisma.InputJsonValue,
-          updated_at: now,
-        },
-      });
+      try {
+        await prisma.social_system_settings.upsert({
+          where: { key: LEGACY_KEY },
+          update: {
+            value: {
+              windowsDownloadUrl: next.windowsDownloadUrl,
+              androidDownloadUrl: next.androidDownloadUrl,
+            } as Prisma.InputJsonValue,
+            updated_at: now,
+          },
+          create: {
+            key: LEGACY_KEY,
+            value: {
+              windowsDownloadUrl: next.windowsDownloadUrl,
+              androidDownloadUrl: next.androidDownloadUrl,
+            } as Prisma.InputJsonValue,
+            updated_at: now,
+          },
+        });
+      } catch (legacyError: unknown) {
+        if (isMissingRelationError(legacyError) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(legacyError) || 'missing relation'})`);
+        }
+        throw legacyError;
+      }
 
       return next;
     }

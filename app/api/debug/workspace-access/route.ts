@@ -5,21 +5,9 @@ import { requireSuperAdmin } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 function getErrorStatus(error: unknown, fallback = 403): number {
   const status = asObject(error)?.status;
   return typeof status === 'number' ? status : fallback;
@@ -36,13 +24,19 @@ type LegacyDelegate = {
   findFirst?: (args: Record<string, unknown>) => Promise<Record<string, unknown> | null>;
 };
 
+function isLegacyDelegate(value: unknown): value is LegacyDelegate {
+  if (!asObject(value)) return false;
+  const hasAny = hasFunction(value, 'findUnique') || hasFunction(value, 'findFirst');
+  return hasAny;
+}
+
 function getLegacyDelegate(name: string): LegacyDelegate {
   const clientObj = asObject(prisma as unknown);
   const delegate = clientObj?.[name];
-  if (!asObject(delegate)) {
+  if (!isLegacyDelegate(delegate)) {
     throw new Error(`Prisma delegate ${name} is unavailable`);
   }
-  return delegate as unknown as LegacyDelegate;
+  return delegate;
 }
 
 async function GETHandler(req: NextRequest) {

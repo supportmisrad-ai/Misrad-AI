@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import type { ChatSource } from './ChatSources';
+import { asObject } from '@/lib/shared/unknown';
 
 export type AIModuleId = 'nexus' | 'system' | 'social' | 'client' | 'finance' | 'operations' | 'global';
 
@@ -13,6 +14,26 @@ export type AIModuleChatMessage = {
   content: string;
   sources?: ChatSource[];
 };
+
+function coerceChatSource(value: unknown): ChatSource | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+
+  const docKey = typeof obj.docKey === 'string' ? obj.docKey : String(obj.docKey ?? '');
+  const similarityRaw = obj.similarity;
+  const similarity = typeof similarityRaw === 'number' ? similarityRaw : Number(similarityRaw);
+  const chunkIndexRaw = obj.chunkIndex;
+  const chunkIndex = typeof chunkIndexRaw === 'number' ? chunkIndexRaw : Number(chunkIndexRaw);
+  if (!docKey || !Number.isFinite(similarity) || !Number.isFinite(chunkIndex)) return null;
+
+  return {
+    docKey,
+    similarity,
+    chunkIndex,
+    content: typeof obj.content === 'string' ? obj.content : undefined,
+    metadata: obj.metadata,
+  };
+}
 
 function normalizeModuleId(m: string | null | undefined): AIModuleId {
   const v = String(m || '').trim().toLowerCase();
@@ -27,7 +48,7 @@ function makeId(prefix: string) {
 export function useAIModuleChat(opts?: {
   moduleOverride?: AIModuleId;
   orgSlugOverride?: string | null;
-  context?: any;
+  context?: unknown;
   featureKeyOverride?: string;
 }) {
   const pathname = usePathname();
@@ -45,7 +66,7 @@ export function useAIModuleChat(opts?: {
 
   const [messages, setMessages] = useState<AIModuleChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<unknown | null>(null);
 
   const sendText = useCallback(
     async (text: string) => {
@@ -83,22 +104,30 @@ export function useAIModuleChat(opts?: {
           }),
         });
 
-        const data = (await res.json().catch(() => ({}))) as any;
+        const data: unknown = await res.json().catch(() => ({}));
+        const obj = asObject(data) ?? {};
 
         if (!res.ok) {
-          const msg = data?.error || `Chat failed (${res.status})`;
+          const msg = typeof obj.error === 'string' ? obj.error : `Chat failed (${res.status})`;
           throw new Error(String(msg));
         }
+
+        const sourcesRaw = obj.memory;
+        const sources = Array.isArray(sourcesRaw)
+          ? sourcesRaw
+              .map(coerceChatSource)
+              .filter((v): v is ChatSource => Boolean(v))
+          : [];
 
         const assistantMsg: AIModuleChatMessage = {
           id: makeId('assistant'),
           role: 'assistant',
-          content: String(data?.text || ''),
-          sources: Array.isArray(data?.memory) ? (data.memory as ChatSource[]) : [],
+          content: typeof obj.text === 'string' ? obj.text : String(obj.text || ''),
+          sources,
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
-      } catch (e: any) {
+      } catch (e: unknown) {
         setError(e);
       } finally {
         setIsLoading(false);

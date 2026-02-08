@@ -6,11 +6,13 @@ export default async function ClientCatchAllPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string; path: string[] }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string; path: string[] }> | { orgSlug: string; path: string[] };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug, path } = await params;
-  const sp = (await searchParams) || {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
 
   const tab = typeof sp.tab === 'string' ? sp.tab : null;
   const meetingId = typeof sp.meetingId === 'string' ? sp.meetingId : null;

@@ -3,17 +3,24 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { createClient } from '@/lib/supabase';
-import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
-import { createClinicSession } from '@/app/actions/client-clinic';
+import { createStorageClient } from '@/lib/supabase';
+import { analyzeAndStoreMeeting } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
+import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
+
+function normalizeLocation(value: unknown): 'ZOOM' | 'FRONTAL' | 'PHONE' {
+  const v = String(value ?? '').toUpperCase();
+  if (v === 'FRONTAL' || v === 'PHONE') return v;
+  return 'ZOOM';
+}
 
 async function isFfmpegAvailable(): Promise<boolean> {
   try {
@@ -77,25 +84,17 @@ async function POSTHandler(req: Request) {
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const body = (await req.json().catch(() => ({}))) as {
-      orgId?: string;
-      clientId?: string;
-      title?: string;
-      location?: 'ZOOM' | 'FRONTAL' | 'PHONE';
-      bucket?: string;
-      path?: string;
-      mimeType?: string;
-      fileName?: string;
-    };
+    const bodyJson: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
 
-    const orgIdInput = String(body.orgId || '');
-    const clientId = String(body.clientId || '');
-    const title = String(body.title || 'פגישה');
-    const location = (body.location || 'ZOOM') as 'ZOOM' | 'FRONTAL' | 'PHONE';
-    const bucket = String(body.bucket || 'meeting-recordings');
-    const storagePath = String(body.path || '');
-    const mimeType = String(body.mimeType || '');
-    const fileName = String(body.fileName || 'recording');
+    const orgIdInput = String(bodyObj.orgId || '');
+    const clientId = String(bodyObj.clientId || '');
+    const title = String(bodyObj.title || 'פגישה');
+    const location = normalizeLocation(bodyObj.location);
+    const bucket = String(bodyObj.bucket || 'meeting-recordings');
+    const storagePath = String(bodyObj.path || '');
+    const mimeType = String(bodyObj.mimeType || '');
+    const fileName = String(bodyObj.fileName || 'recording');
 
     if (!orgIdInput) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
@@ -105,9 +104,9 @@ async function POSTHandler(req: Request) {
     try {
       const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
-    } catch (e: any) {
-      const status = typeof e?.status === 'number' ? e.status : 403;
-      return apiError(e, { status, message: e?.message || 'Forbidden' });
+    } catch (e: unknown) {
+      const status = getErrorStatus(e) ?? 403;
+      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
     }
 
     const abuse = await enforceAiAbuseGuard({
@@ -129,7 +128,7 @@ async function POSTHandler(req: Request) {
       return apiError('Forbidden', { status: 403 });
     }
 
-    const supabase = createClient();
+    const supabase = createStorageClient();
 
     const { data: downloadData, error: downloadError } = await supabase.storage.from(bucket).download(storagePath);
     if (downloadError || !downloadData) {
@@ -197,19 +196,22 @@ async function POSTHandler(req: Request) {
 
     // Best-effort: also write to client_sessions so Client OS lists can show the recording and analysis.
     try {
-      await createClinicSession({
-        orgId: orgIdInput,
+      const analysisObj = asObject(saved.analysis) ?? {};
+      const summary = typeof analysisObj.summary === 'string' ? analysisObj.summary : null;
+
+      await createClinicSessionForOrganizationId({
+        organizationId: orgId,
         clientId,
         startAt: new Date().toISOString(),
         status: 'completed',
         sessionType: title,
         location,
-        summary: (saved as any)?.analysis?.summary ?? null,
+        summary,
         metadata: {
           meetingId: saved.meetingId,
           recordingUrl,
           transcript,
-          aiAnalysis: (saved as any)?.analysis ?? null,
+          aiAnalysis: saved.analysis ?? null,
         },
       });
     } catch {
@@ -217,7 +219,7 @@ async function POSTHandler(req: Request) {
     }
 
     return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Processing failed' });
   } finally {
     try {

@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { translateClerkError } from '@/lib/errorTranslations';
 import { OAuthStrategy } from '@clerk/types';
 
+const LEGAL_CONSENT_STORAGE_KEY = 'pending_legal_consent_v1';
+
 interface CustomAuthProps {
   mode?: 'sign-in' | 'sign-up';
   onSuccess?: () => void;
@@ -29,6 +31,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
   const [usePasskey, setUsePasskey] = useState(false);
   const [isPasskeySupported, setIsPasskeySupported] = useState(false);
   const [step, setStep] = useState<'form' | 'verify'>('form');
+  const [legalAccepted, setLegalAccepted] = useState(false);
 
   // Check if Passkeys/WebAuthn is supported
   React.useEffect(() => {
@@ -46,6 +49,59 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
       );
     }
   }, [email]);
+
+  const storePendingLegalConsent = () => {
+    try {
+      if (typeof window === 'undefined') return;
+      window.localStorage.setItem(
+        LEGAL_CONSENT_STORAGE_KEY,
+        JSON.stringify({ acceptTerms: true, acceptPrivacy: true, createdAt: new Date().toISOString() })
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const recordLegalConsent = async (): Promise<boolean> => {
+    storePendingLegalConsent();
+    for (let i = 0; i < 6; i++) {
+      try {
+        const res = await fetch('/api/legal/consent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ acceptTerms: true, acceptPrivacy: true }),
+        });
+
+        if (res.ok) {
+          try {
+            if (typeof window !== 'undefined') {
+              window.localStorage.removeItem(LEGAL_CONSENT_STORAGE_KEY);
+            }
+          } catch {
+            // ignore
+          }
+          return true;
+        }
+
+        if (res.status === 409) {
+          await new Promise((r) => setTimeout(r, 750));
+          continue;
+        }
+
+        return false;
+      } catch {
+        await new Promise((r) => setTimeout(r, 750));
+      }
+    }
+    return false;
+  };
+
+  const ensureLegalAcceptedOrError = (): boolean => {
+    if (mode !== 'sign-up') return true;
+    if (legalAccepted) return true;
+    setError('נדרש אישור לתנאי שימוש ולמדיניות פרטיות');
+    return false;
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +148,11 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     setInfo('');
     setIsLoading(true);
 
+    if (!ensureLegalAcceptedOrError()) {
+      setIsLoading(false);
+      return;
+    }
+
     if (!signUpLoaded) {
       setError('מערכת ההרשמה עדיין לא מוכנה');
       setIsLoading(false);
@@ -112,6 +173,9 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             await setActive({ session: sessionId });
           }
         }
+
+        await recordLegalConsent();
+
         if (onSuccess) {
           onSuccess();
         } else {
@@ -138,6 +202,11 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
     setInfo('');
     setIsLoading(true);
 
+    if (!ensureLegalAcceptedOrError()) {
+      setIsLoading(false);
+      return;
+    }
+
     if (!signUpLoaded || !signUp) {
       setError('מערכת ההרשמה עדיין לא מוכנה');
       setIsLoading(false);
@@ -159,6 +228,9 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             await setActive({ session: sessionId });
           }
         }
+
+        await recordLegalConsent();
+
         if (onSuccess) {
           onSuccess();
         } else {
@@ -229,11 +301,17 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
 
     try {
       if (mode === 'sign-up') {
+        if (!ensureLegalAcceptedOrError()) {
+          setIsLoading(false);
+          return;
+        }
         if (!signUpLoaded || !signUp) {
           setError('מערכת ההרשמה עדיין לא מוכנה');
           setIsLoading(false);
           return;
         }
+
+        storePendingLegalConsent();
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl: '/sso-callback',
@@ -260,6 +338,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
   };
 
   const isSignIn = mode === 'sign-in';
+  const isSignUp = mode === 'sign-up';
 
   return (
     <div className="w-full max-w-md" dir="rtl">
@@ -334,6 +413,28 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
           </div>
         )}
 
+        {isSignUp && (
+          <label className="flex items-start gap-3 text-sm font-bold text-slate-600">
+            <input
+              type="checkbox"
+              checked={legalAccepted}
+              onChange={(e) => setLegalAccepted(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300"
+              disabled={isLoading}
+            />
+            <span>
+              אני מאשר/ת שקראתי ואני מסכים/ה ל
+              <a href="/terms" target="_blank" rel="noreferrer" className="text-blue-700 underline font-black">
+                תנאי השימוש
+              </a>
+              ו
+              <a href="/privacy" target="_blank" rel="noreferrer" className="text-blue-700 underline font-black">
+                מדיניות הפרטיות
+              </a>
+            </span>
+          </label>
+        )}
+
         {!isSignIn && step === 'verify' && (
           <div className="flex flex-col gap-3">
             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-2">
@@ -396,7 +497,7 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
         <button
           type="button"
           onClick={() => handleOAuthSignIn('oauth_google')}
-          disabled={isLoading}
+          disabled={isLoading || (isSignUp && !legalAccepted)}
           className="w-full bg-white border-2 border-slate-200 text-slate-900 px-8 py-4 rounded-[24px] font-black text-lg shadow-sm hover:shadow-md hover:border-blue-500 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24">
@@ -426,7 +527,8 @@ export default function CustomAuth({ mode = 'sign-in', onSuccess }: CustomAuthPr
             isLoading ||
             !email ||
             (!usePasskey && !password) ||
-            (!isSignIn && step === 'verify' && !verificationCode)
+            (!isSignIn && step === 'verify' && !verificationCode) ||
+            (!isSignIn && !legalAccepted)
           }
           className="w-full bg-slate-900 text-white px-8 py-5 rounded-[24px] font-black text-lg shadow-xl shadow-slate-200 hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
         >

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Secure Clients API
  * 
@@ -10,15 +11,14 @@ import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
 import { Client } from '../../../types';
 import { getClientOsClients as getClientOsClientsHandler } from '@/lib/server/clientOsClients';
 import prisma, { executeRawOrgScoped } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+export const runtime = 'nodejs';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
     const v = obj[key];
@@ -31,12 +31,37 @@ function getNullableString(obj: Record<string, unknown>, key: string): string | 
     return typeof v === 'string' ? v : String(v);
 }
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
+function isMissingRelationOrColumnError(error: unknown): boolean {
+    const obj = asObject(error) ?? {};
+    const code = String(obj['code'] ?? '').toLowerCase();
+    const message = String(obj['message'] ?? '').toLowerCase();
+    return code === 'p2021' || code === 'p2022' || code === '42p01' || code === '42703' || message.includes('does not exist') || message.includes('relation') || message.includes('column');
+}
+
+type ClientsCursor = {
+    joinedAt: string;
+    id: string;
+};
+
+function encodeClientsCursor(cursor: ClientsCursor): string {
+    return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64');
+}
+
+function decodeClientsCursor(raw?: string | null): ClientsCursor | null {
+    const v = String(raw || '').trim();
+    if (!v) return null;
+    try {
+        const parsed: unknown = JSON.parse(Buffer.from(v, 'base64').toString('utf8'));
+        const obj = asObject(parsed);
+        const joinedAt = String(obj?.joinedAt || '').trim();
+        const id = String(obj?.id || '').trim();
+        if (!joinedAt || !id) return null;
+        const d = new Date(joinedAt);
+        if (Number.isNaN(d.getTime())) return null;
+        return { joinedAt: d.toISOString(), id };
+    } catch {
+        return null;
+    }
 }
 
 function isClientStatus(value: string): value is Client['status'] {
@@ -81,19 +106,23 @@ async function selectCrmManagerIdsInWorkspace(params: { workspaceId: string }): 
 
 function mapClientRow(row: unknown): Client {
     const obj = asObject(row);
+
+    const joinedAtRaw = obj ? (obj['joinedAt'] ?? obj['joined_at']) : null;
+    const joinedAt = joinedAtRaw instanceof Date ? joinedAtRaw.toISOString() : joinedAtRaw == null ? '' : String(joinedAtRaw);
+
     return {
         id: obj ? getString(obj, 'id') : '',
         name: obj ? getString(obj, 'name') : '',
-        companyName: obj ? getString(obj, 'company_name', getString(obj, 'companyName')) : '',
+        companyName: obj ? getString(obj, 'companyName', getString(obj, 'company_name')) : '',
         avatar: obj ? getString(obj, 'avatar') : '',
         package: obj ? getString(obj, 'package', 'Unknown') : 'Unknown',
         status: coerceClientStatus(obj ? obj['status'] : undefined),
-        contactPerson: obj ? getString(obj, 'contact_person') : '',
+        contactPerson: obj ? getString(obj, 'contactPerson', getString(obj, 'contact_person')) : '',
         email: obj ? getString(obj, 'email') : '',
         phone: obj ? getString(obj, 'phone') : '',
-        joinedAt: obj ? getString(obj, 'joined_at') : '',
-        assetsFolderUrl: obj ? (getNullableString(obj, 'assets_folder_url') ?? undefined) : undefined,
-        source: obj ? (getNullableString(obj, 'source') ?? undefined) : undefined,
+        joinedAt,
+        assetsFolderUrl: obj ? ((getNullableString(obj, 'assetsFolderUrl') ?? getNullableString(obj, 'assets_folder_url')) ?? undefined) : undefined,
+        source: obj ? ((getNullableString(obj, 'source') ?? null) ?? undefined) : undefined,
     } as Client;
 }
 async function GETHandler(request: NextRequest) {
@@ -123,13 +152,24 @@ async function GETHandler(request: NextRequest) {
         const clientId = searchParams.get('id');
         const status = searchParams.get('status');
         const searchTerm = searchParams.get('search');
+        const cursorParam = searchParams.get('cursor');
+        const takeParam = searchParams.get('take');
 
         // 5. Fetch clients from database (scoped)
         let clients: Client[] = [];
         try {
-            const where: any = { organizationId: workspace.id };
+            const where: Prisma.NexusClientWhereInput = { organizationId: workspace.id };
             if (clientId) {
                 where.id = String(clientId);
+            }
+            if (status) {
+                const s = String(status).trim();
+                if (s && !isClientStatus(s)) {
+                    return apiError('Invalid status', { status: 400 });
+                }
+                if (s) {
+                    where.status = s;
+                }
             }
             if (searchTerm) {
                 const term = String(searchTerm).trim();
@@ -146,8 +186,42 @@ async function GETHandler(request: NextRequest) {
                 const row = await prisma.nexusClient.findFirst({ where });
                 clients = row ? [mapClientRow(row)] : [];
             } else {
-                const rows = await prisma.nexusClient.findMany({ where, take: 500, orderBy: { createdAt: 'desc' } });
-                clients = (Array.isArray(rows) ? rows : []).map(mapClientRow);
+                const maxTake = 200;
+                const requestedTake = takeParam ? Math.floor(Number(takeParam)) : NaN;
+                const take = Number.isFinite(requestedTake) ? Math.max(1, Math.min(maxTake, requestedTake)) : 100;
+                const cursor = decodeClientsCursor(cursorParam);
+
+                if (cursor) {
+                    const and = Array.isArray(where.AND) ? where.AND : [];
+                    and.push({
+                        OR: [
+                            { joinedAt: { lt: new Date(cursor.joinedAt) } },
+                            { joinedAt: { equals: new Date(cursor.joinedAt) }, id: { lt: cursor.id } },
+                        ],
+                    });
+                    where.AND = and;
+                }
+
+                const rows = await prisma.nexusClient.findMany({
+                    where,
+                    take: Math.min(maxTake + 1, take + 1),
+                    orderBy: [{ joinedAt: 'desc' }, { id: 'desc' }],
+                });
+
+                const list = Array.isArray(rows) ? rows : [];
+                const hasMore = list.length > take;
+                const trimmed = hasMore ? list.slice(0, take) : list;
+
+                const outClients = trimmed.map(mapClientRow);
+
+                const last = trimmed[trimmed.length - 1];
+                const lastJoinedAt = last?.joinedAt ? new Date(last.joinedAt) : null;
+                const nextCursor =
+                    hasMore && last?.id && lastJoinedAt && !Number.isNaN(lastJoinedAt.getTime())
+                        ? encodeClientsCursor({ joinedAt: lastJoinedAt.toISOString(), id: String(last.id) })
+                        : null;
+
+                return apiSuccess({ clients: outClients, nextCursor, hasMore });
             }
         } catch (dbError: unknown) {
             console.error('[API] Error fetching clients from database:', dbError);
@@ -172,11 +246,6 @@ async function GETHandler(request: NextRequest) {
             await logSensitiveAccess('client', clientId, ['email', 'phone', 'contactPerson']);
             
             return apiSuccess(client);
-        }
-        
-        // 7. List clients - filter by status if requested
-        if (status) {
-            clients = clients.filter(c => c.status === status);
         }
         
         // All clients are returned (already filtered by CRM permission)
@@ -249,8 +318,7 @@ async function POSTHandler(request: NextRequest) {
             }
         })();
 
-        const created = await prisma.nexusClient.create({
-            data: {
+        const createData: Prisma.NexusClientUncheckedCreateInput = {
                 organizationId: workspace.id,
                 name: clientData.name,
                 companyName: clientData.companyName,
@@ -263,7 +331,10 @@ async function POSTHandler(request: NextRequest) {
                 joinedAt: joinedAtDate,
                 assetsFolderUrl: clientData.assetsFolderUrl || null,
                 source: clientData.source || null,
-            } as any,
+        };
+
+        const created = await prisma.nexusClient.create({
+            data: createData,
         });
 
         const newClient = mapClientRow(created);
@@ -304,7 +375,10 @@ async function POSTHandler(request: NextRequest) {
                                 nowIso,
                             ],
                         });
-                    } catch {
+                    } catch (fullNotifError: unknown) {
+                        if (isMissingRelationOrColumnError(fullNotifError) && !ALLOW_SCHEMA_FALLBACKS) {
+                            throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(fullNotifError) || 'missing relation'})`);
+                        }
                         try {
                             await executeRawOrgScoped(prisma, {
                                 organizationId: String(workspace.id),
@@ -325,6 +399,9 @@ async function POSTHandler(request: NextRequest) {
                             });
                         } catch (e: unknown) {
                             const msg = getErrorMessage(e);
+                            if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+                                throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${msg || 'missing relation'})`);
+                            }
                             if (String(msg || '').includes('[SchemaMismatch]')) {
                                 throw e instanceof Error ? e : new Error(msg);
                             }
@@ -371,15 +448,15 @@ async function PATCHHandler(request: NextRequest) {
             return apiError('Forbidden', { status: 403 });
         }
 
-        const patch: Record<string, unknown> = {};
-        if (updatesObj['name'] !== undefined) patch.name = updatesObj['name'];
-        if (updatesObj['companyName'] !== undefined) patch.companyName = updatesObj['companyName'];
-        if (updatesObj['avatar'] !== undefined) patch.avatar = updatesObj['avatar'];
-        if (updatesObj['package'] !== undefined) patch.package = updatesObj['package'];
-        if (updatesObj['status'] !== undefined) patch.status = updatesObj['status'];
-        if (updatesObj['contactPerson'] !== undefined) patch.contactPerson = updatesObj['contactPerson'];
-        if (updatesObj['email'] !== undefined) patch.email = updatesObj['email'];
-        if (updatesObj['phone'] !== undefined) patch.phone = updatesObj['phone'];
+        const patch: Prisma.NexusClientUpdateManyMutationInput = {};
+        if (updatesObj['name'] !== undefined) patch.name = String(updatesObj['name'] ?? '');
+        if (updatesObj['companyName'] !== undefined) patch.companyName = String(updatesObj['companyName'] ?? '');
+        if (updatesObj['avatar'] !== undefined) patch.avatar = updatesObj['avatar'] == null ? null : String(updatesObj['avatar']);
+        if (updatesObj['package'] !== undefined) patch.package = updatesObj['package'] == null ? null : String(updatesObj['package']);
+        if (updatesObj['status'] !== undefined) patch.status = coerceClientStatus(updatesObj['status']);
+        if (updatesObj['contactPerson'] !== undefined) patch.contactPerson = String(updatesObj['contactPerson'] ?? '');
+        if (updatesObj['email'] !== undefined) patch.email = String(updatesObj['email'] ?? '');
+        if (updatesObj['phone'] !== undefined) patch.phone = String(updatesObj['phone'] ?? '');
         if (updatesObj['joinedAt'] !== undefined) {
             try {
                 const d = new Date(String(updatesObj['joinedAt']));
@@ -388,14 +465,16 @@ async function PATCHHandler(request: NextRequest) {
                 // ignore
             }
         }
-        if (updatesObj['assetsFolderUrl'] !== undefined) patch.assetsFolderUrl = updatesObj['assetsFolderUrl'];
-        if (updatesObj['source'] !== undefined) patch.source = updatesObj['source'];
+        if (updatesObj['assetsFolderUrl'] !== undefined) {
+            patch.assetsFolderUrl = updatesObj['assetsFolderUrl'] == null ? null : String(updatesObj['assetsFolderUrl']);
+        }
+        if (updatesObj['source'] !== undefined) patch.source = updatesObj['source'] == null ? null : String(updatesObj['source']);
 
         const res = await prisma.nexusClient.updateMany({
             where: { id: clientId, organizationId: workspace.id },
-            data: patch as any,
+            data: patch,
         });
-        if (!res || typeof (res as any).count !== 'number' || (res as any).count < 1) {
+        if (!res || res.count < 1) {
             return apiError('Failed to update client', { status: 500 });
         }
         

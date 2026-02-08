@@ -7,14 +7,14 @@ import { logAuditEvent } from '@/lib/audit';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(
   _req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: { orgSlug: string } }
 ) {
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { orgSlug } = await params;
+  const { orgSlug } = params;
   if (!orgSlug) {
     return NextResponse.json({ error: 'orgSlug is required' }, { status: 400 });
   }
@@ -22,25 +22,26 @@ async function GETHandler(
   let workspace;
   try {
     ({ workspace } = await getWorkspaceContextOrThrow(_req, { params: { orgSlug } }));
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }
-    return NextResponse.json({ error: e?.message || 'Internal server error' }, { status: 500 });
+    const msg = e instanceof Error ? e.message : 'Internal server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
   const [socialUser, org] = await Promise.all([
-    prisma.social_users.findUnique({
+    prisma.organizationUser.findUnique({
       where: { clerk_user_id: String(clerkUserId) },
       select: { id: true, role: true },
     }),
-    prisma.social_organizations.findUnique({
+    prisma.organization.findUnique({
       where: { id: String(workspace.id) },
       select: { owner_id: true },
     }),
   ]);
 
-  const isSuperAdmin = String((socialUser as any)?.role || '').toLowerCase() === 'super_admin';
-  const isOwner = Boolean(org?.owner_id && (socialUser as any)?.id && String(org.owner_id) === String((socialUser as any).id));
+  const isSuperAdmin = String(socialUser?.role || '').toLowerCase() === 'super_admin';
+  const isOwner = Boolean(org?.owner_id && socialUser?.id && String(org.owner_id) === String(socialUser.id));
   const canManageBranding = Boolean(isOwner || isSuperAdmin);
 
   await logAuditEvent('data.read', 'workspaces.access', {

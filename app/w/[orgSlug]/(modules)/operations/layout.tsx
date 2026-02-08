@@ -18,7 +18,7 @@ export default async function OperationsModuleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const workspace = await enforceModuleAccessOrRedirect({ orgSlug, module: 'operations' });

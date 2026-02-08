@@ -51,6 +51,10 @@ export const ClientsView: React.FC = () => {
     const [cachedClients, setCachedClients] = useState<Client[]>(contextClients || []);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [appliedSearch, setAppliedSearch] = useState('');
+    const [nextCursor, setNextCursor] = useState<string | null>(null);
+    const [hasMore, setHasMore] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [isAddClientOpen, setIsAddClientOpen] = useState(false);
     
@@ -96,42 +100,59 @@ export const ClientsView: React.FC = () => {
             setCachedClients(contextClients);
         }
         
-        const loadClients = async () => {
+        setAppliedSearch('');
+    }, [fetchClients]);
+
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setAppliedSearch(String(searchTerm || '').trim());
+        }, 300);
+
+        return () => {
+            clearTimeout(t);
+        };
+    }, [searchTerm]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadFirstPage = async () => {
             setIsRefreshing(true);
             try {
-                const fetchedClients: unknown = await fetchClients();
-                const obj = asObject(fetchedClients);
-                const list = Array.isArray(fetchedClients)
-                    ? fetchedClients
-                    : Array.isArray(obj?.clients)
-                      ? obj?.clients
-                      : [];
-                const newClients: Client[] = list as Client[];
-                setClients(newClients);
-                setCachedClients(newClients);
+                const res: any = await fetchClients({ take: 100, search: appliedSearch || undefined });
+                if (cancelled) return;
+                const list = Array.isArray(res?.clients) ? (res.clients as Client[]) : [];
+                setClients(list);
+                setCachedClients(list);
+                setNextCursor(typeof res?.nextCursor === 'string' ? res.nextCursor : null);
+                setHasMore(Boolean(res?.hasMore));
             } catch (error) {
                 console.error('Failed to load clients:', error);
-                // Keep existing clients on error
+                if (cancelled) return;
                 if (clients.length === 0 && contextClients && contextClients.length > 0) {
                     setClients(contextClients);
+                    setCachedClients(contextClients);
                 }
-                // Keep cached data on error
                 if (cachedClients.length === 0) {
                     setClients([]);
+                    setCachedClients([]);
                 }
+                setNextCursor(null);
+                setHasMore(false);
             } finally {
-                setIsRefreshing(false);
+                if (!cancelled) setIsRefreshing(false);
             }
         };
-        loadClients();
-    }, [fetchClients]);
+
+        void loadFirstPage();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [appliedSearch, fetchClients]);
 
     const [sortConfig, setSortConfig] = useState<{ key: keyof Client; direction: 'asc' | 'desc' }>({ key: 'joinedAt', direction: 'desc' });
 
-    const filteredClients = clients.filter(c => 
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.companyName.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredClients = clients;
 
     const sortedClients = [...filteredClients].sort((a, b) => {
         const aValue = a[sortConfig.key];
@@ -141,6 +162,26 @@ export const ClientsView: React.FC = () => {
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
     });
+
+    const loadMore = async () => {
+        if (!hasMore) return;
+        if (!nextCursor) return;
+        if (isLoadingMore) return;
+
+        setIsLoadingMore(true);
+        try {
+            const res: any = await fetchClients({ take: 100, cursor: nextCursor, search: appliedSearch || undefined });
+            const list = Array.isArray(res?.clients) ? (res.clients as Client[]) : [];
+            setClients((prev) => [...prev, ...list]);
+            setCachedClients((prev) => [...prev, ...list]);
+            setNextCursor(typeof res?.nextCursor === 'string' ? res.nextCursor : null);
+            setHasMore(Boolean(res?.hasMore));
+        } catch (e) {
+            addToast('שגיאה בטעינת לקוחות נוספים', 'error');
+        } finally {
+            setIsLoadingMore(false);
+        }
+    };
 
     const handleSort = (key: keyof Client) => {
         setSortConfig(current => ({
@@ -173,8 +214,15 @@ export const ClientsView: React.FC = () => {
         };
         
         try {
-            const result = await createClientAPI(newClient);
-            const clientId = result.id || `C-${Date.now()}`;
+            const result = (await createClientAPI(newClient)) ?? {};
+            const resultObj = asObject(result) ?? {};
+            const clientIdRaw = resultObj.id;
+            const clientId =
+                typeof clientIdRaw === 'string'
+                    ? clientIdRaw
+                    : clientIdRaw == null
+                        ? `C-${Date.now()}`
+                        : String(clientIdRaw);
             
             // Update local state
             setClients(prev => [...prev, { ...newClient, id: clientId } as Client]);
@@ -579,6 +627,19 @@ export const ClientsView: React.FC = () => {
                             </motion.button>
                         </div>
                     )}
+
+                    {hasMore && (
+                        <div className="pt-6 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => void loadMore()}
+                                disabled={isLoadingMore}
+                                className="bg-white border border-gray-200 text-gray-700 font-bold px-6 py-3 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isLoadingMore ? 'טוען...' : 'טען עוד'}
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
 
@@ -794,6 +855,19 @@ export const ClientsView: React.FC = () => {
                             ))
                         )}
                     </div>
+
+                    {hasMore && (
+                        <div className="pt-6 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => void loadMore()}
+                                disabled={isLoadingMore}
+                                className="bg-white border border-gray-200 text-gray-700 font-bold px-6 py-3 rounded-xl shadow-sm hover:bg-gray-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                                {isLoadingMore ? 'טוען...' : 'טען עוד'}
+                            </button>
+                        </div>
+                    )}
                 </>
             )}
         </div>

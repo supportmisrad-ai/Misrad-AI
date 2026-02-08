@@ -9,9 +9,10 @@ export const dynamic = 'force-dynamic';
 export default async function WorkspaceSupportIndexPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
 
   await requireWorkspaceAccessByOrgSlug(orgSlug);
 

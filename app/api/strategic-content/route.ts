@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const dynamic = 'force-dynamic';
@@ -24,8 +25,8 @@ async function GETHandler(req: Request) {
     });
 
     return NextResponse.json({ items: items || [] });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getErrorMessage(e) || 'Failed' }, { status: 500 });
   }
 }
 

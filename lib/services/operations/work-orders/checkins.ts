@@ -1,7 +1,14 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
+import {
+  ALLOW_SCHEMA_FALLBACKS,
+  asObject,
+  getUnknownErrorMessage,
+  isSchemaMismatchError,
+  logOperationsError,
+  toIsoDate,
+} from '@/lib/services/operations/shared';
 import type { OperationsWorkOrderCheckinRow } from '@/lib/services/operations/types';
 
 export async function getOperationsWorkOrderCheckinsForOrganizationId(params: {
@@ -40,7 +47,12 @@ export async function getOperationsWorkOrderCheckinsForOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderCheckins failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] operations_work_order_checkins missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
+      );
+    }
+    logOperationsError('[operations] getOperationsWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
   }
 }
@@ -83,7 +95,12 @@ export async function addOperationsWorkOrderCheckinForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderCheckin failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] operations_work_order_checkins missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
+      );
+    }
+    logOperationsError('[operations] addOperationsWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }

@@ -2,14 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-import { queryRawOrgScoped } from '@/lib/prisma';
+import { queryRawOrgScoped } from '@/lib/prisma';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 function normalizeTags(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((t) => String(t)).filter(Boolean);
   const obj = asObject(value);

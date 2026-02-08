@@ -8,6 +8,60 @@ import { createSystemCalendarEvent, getSystemCalendarEventsRange, type SystemCal
 import { useToast } from '@/components/system/contexts/ToastContext';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+function normalizeCalendarEventType(value: unknown): CalendarEvent['type'] {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'frontal') return 'frontal';
+  if (v === 'group_session') return 'group_session';
+  return 'zoom';
+}
+
+function parseCalendarReminders(value: unknown): CalendarEvent['reminders'] | undefined {
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  const whatsapp = obj.whatsapp;
+  const sms = obj.sms;
+  const email = obj.email;
+  const timing = obj.timing;
+  const timingStr = typeof timing === 'string' ? timing : '';
+  const timingOk = timingStr === 'immediate' || timingStr === '1h_before' || timingStr === '24h_before';
+  if (!timingOk) return undefined;
+  return {
+    whatsapp: Boolean(whatsapp),
+    sms: Boolean(sms),
+    email: Boolean(email),
+    timing: timingStr,
+  };
+}
+
+function parseCalendarPostMeeting(value: unknown): CalendarEvent['postMeeting'] | undefined {
+  const obj = asObject(value);
+  if (!obj) return undefined;
+  const enabledRaw = obj.enabled;
+  const typeRaw = obj.type;
+  const delayRaw = obj.delay;
+  const channelRaw = obj.channel;
+
+  const typeStr = typeof typeRaw === 'string' ? typeRaw : '';
+  const typeOk = typeStr === 'thank_you' || typeStr === 'summary' || typeStr === 'proposal_link';
+  if (!typeOk) return undefined;
+
+  const delayStr = typeof delayRaw === 'string' ? delayRaw : '';
+  const delayOk = delayStr === '1h_after' || delayStr === 'morning_after';
+  if (!delayOk) return undefined;
+
+  const channelStr = typeof channelRaw === 'string' ? channelRaw : '';
+  const channelOk = channelStr === 'whatsapp' || channelStr === 'email';
+  if (!channelOk) return undefined;
+
+  return {
+    enabled: Boolean(enabledRaw),
+    type: typeStr,
+    delay: delayStr,
+    channel: channelStr,
+  };
+}
 
 function mapDtoToCalendarEvent(dto: SystemCalendarEventDTO): CalendarEvent {
   return {
@@ -19,12 +73,12 @@ function mapDtoToCalendarEvent(dto: SystemCalendarEventDTO): CalendarEvent {
     dayName: String(dto.day_name || ''),
     date: String(dto.date || ''),
     time: String(dto.time || ''),
-    type: (String(dto.type || 'zoom') as any) || 'zoom',
+    type: normalizeCalendarEventType(dto.type),
     location: String(dto.location || ''),
     participants: dto.participants == null ? undefined : Number(dto.participants),
-    reminders: dto.reminders ?? undefined,
-    postMeeting: dto.post_meeting ?? undefined,
-  } as any;
+    reminders: parseCalendarReminders(dto.reminders) ?? undefined,
+    postMeeting: parseCalendarPostMeeting(dto.post_meeting) ?? undefined,
+  };
 }
 
 export default function SystemCalendarClient({
@@ -77,9 +131,9 @@ export default function SystemCalendarClient({
       time: String(event.time || '').trim(),
       type: String(event.type || 'zoom'),
       location: String(event.location || '').trim(),
-      participants: (event as any).participants ?? null,
-      reminders: (event as any).reminders ?? null,
-      postMeeting: (event as any).postMeeting ?? null,
+      participants: event.participants ?? null,
+      reminders: event.reminders ?? null,
+      postMeeting: event.postMeeting ?? null,
     });
 
     if (!res.ok) {
@@ -102,13 +156,13 @@ export default function SystemCalendarClient({
           orgSlug,
           from: range.from.toISOString(),
           to: range.to.toISOString(),
-          take: 500,
+          take: 200,
         });
         if (cancelled) return;
         setEvents((rows || []).map(mapDtoToCalendarEvent));
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (cancelled) return;
-        addToast(e?.message || 'שגיאה בטעינת אירועים', 'error');
+        addToast(getErrorMessage(e) || 'שגיאה בטעינת אירועים', 'error');
       } finally {
         if (!cancelled) setIsLoadingRange(false);
       }
@@ -120,12 +174,12 @@ export default function SystemCalendarClient({
   }, [addToast, orgSlug, range]);
 
   useEffect(() => {
-    const onNewMeeting = () => {
+    const onNewMeeting: EventListener = () => {
       setMeetingPreselectLeadId('');
       setShowNewMeetingModal(true);
     };
 
-    const onNewEvent = () => {
+    const onNewEvent: EventListener = () => {
       setNewEventLeadId('');
       setNewEventTitle('');
       setNewEventDate('');
@@ -134,14 +188,14 @@ export default function SystemCalendarClient({
     };
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('system:calendar:new-meeting', onNewMeeting as any);
-      window.addEventListener('system:calendar:new-event', onNewEvent as any);
+      window.addEventListener('system:calendar:new-meeting', onNewMeeting);
+      window.addEventListener('system:calendar:new-event', onNewEvent);
     }
 
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('system:calendar:new-meeting', onNewMeeting as any);
-        window.removeEventListener('system:calendar:new-event', onNewEvent as any);
+        window.removeEventListener('system:calendar:new-meeting', onNewMeeting);
+        window.removeEventListener('system:calendar:new-event', onNewEvent);
       }
     };
   }, []);
@@ -166,13 +220,13 @@ export default function SystemCalendarClient({
       leadId,
       title: newEventTitle.trim() || String(lead?.name || ''),
       leadName: String(lead?.name || ''),
-      leadCompany: String((lead as any)?.company || 'לקוח פרטי'),
+      leadCompany: String(lead?.company || 'לקוח פרטי'),
       dayName,
       date: newEventDate.trim(),
       time: newEventTime.trim(),
       type: 'zoom',
       location: '',
-    } as any);
+    });
 
     setShowNewEventModal(false);
   };
@@ -180,9 +234,9 @@ export default function SystemCalendarClient({
   return (
     <>
       <CalendarView
-        leads={leads as any}
-        events={events as any}
-        onAddEvent={(event) => void handleAddEvent(event as any)}
+        leads={leads}
+        events={events}
+        onAddEvent={(event) => void handleAddEvent(event)}
         focusDate={focusDate}
         onFocusDateChange={(d) => setFocusDate(d)}
         onRangeChange={(r) => setRange(r)}

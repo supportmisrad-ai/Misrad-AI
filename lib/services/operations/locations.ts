@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
 import type { OperationsLocationRow } from '@/lib/services/operations/types';
 
 export async function getOperationsLocationsByOrganizationId(params: {
@@ -32,7 +32,7 @@ export async function getOperationsLocationsByOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsLocations failed', e);
+    logOperationsError('[operations] getOperationsLocations failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מחסנים' };
   }
 }
@@ -54,7 +54,7 @@ export async function createOperationsLocationForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsLocation failed', e);
+    logOperationsError('[operations] createOperationsLocation failed', e);
     const msg = String(getUnknownErrorMessage(e) || '');
     if (msg.toLowerCase().includes('uq_operations_locations_org_name')) {
       return { success: false, error: 'מחסן בשם הזה כבר קיים' };
@@ -80,7 +80,7 @@ export async function deleteOperationsLocationForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsLocation failed', e);
+    logOperationsError('[operations] deleteOperationsLocation failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת מחסן' };
   }
 }

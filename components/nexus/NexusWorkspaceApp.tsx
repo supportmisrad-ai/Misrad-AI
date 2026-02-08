@@ -24,15 +24,16 @@ import { SalesDashboard } from '@/views/SalesDashboard';
 import { SalesPipeline } from '@/views/SalesPipeline';
 import { SalesTargets } from '@/views/SalesTargets';
 import { getNexusBasePath } from '@/lib/os/nexus-routing';
+import type { OrganizationProfile, User } from '@/types';
 
 export function NexusWorkspaceApp({
   initialCurrentUser,
   initialOrganization,
   initialOwnerDashboard,
 }: {
-  initialCurrentUser?: any;
-  initialOrganization?: any;
-  initialOwnerDashboard?: any;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
+  initialOwnerDashboard?: unknown;
 } = {}) {
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);

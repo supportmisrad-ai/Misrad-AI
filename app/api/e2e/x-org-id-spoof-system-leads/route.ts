@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,13 +42,14 @@ export async function GET(req: Request) {
     );
 
     return NextResponse.json({ ok: true, organizationId, leads }, { status: 200 });
-  } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : 500;
+  } catch (e: unknown) {
+    const obj = asObject(e) ?? {};
+    const status = typeof obj.status === 'number' ? obj.status : 500;
     return NextResponse.json(
       {
         ok: false,
         blocked: true,
-        error: e?.message || 'Unknown error',
+        error: getErrorMessage(e) || 'Unknown error',
       },
       { status }
     );

@@ -6,20 +6,8 @@ import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { Prisma, type social_ideas } from '@prisma/client';
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
   const resolvedOrgSlug = String(orgSlug || '').trim();
@@ -32,7 +20,10 @@ async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string>
 
 async function assertClientInOrganization(params: { clientId: string; organizationId: string }): Promise<void> {
   const row = await prisma.clients.findFirst({
-    where: { id: String(params.clientId), organization_id: String(params.organizationId) } as any,
+    where: {
+      id: String(params.clientId),
+      organization_id: String(params.organizationId),
+    } satisfies Prisma.clientsWhereInput,
     select: { id: true },
   });
 
@@ -44,7 +35,10 @@ async function assertClientInOrganization(params: { clientId: string; organizati
 async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }>
 {
   const idea = await prisma.social_ideas.findFirst({
-    where: { id: String(params.ideaId), organizationId: String(params.organizationId) } as any,
+    where: {
+      id: String(params.ideaId),
+      organizationId: String(params.organizationId),
+    } satisfies Prisma.social_ideasWhereInput,
     select: { id: true, client_id: true },
   });
 
@@ -52,7 +46,7 @@ async function assertIdeaInOrganization(params: { ideaId: string; organizationId
     throw new Error('Forbidden');
   }
 
-  return { clientId: String((idea as any).client_id ?? '') };
+  return { clientId: String(idea.client_id ?? '') };
 }
 
 /**
@@ -74,7 +68,7 @@ export async function getIdeas(
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
-      } as any,
+      } satisfies Prisma.social_ideasWhereInput,
       orderBy: { created_at: 'desc' },
     });
 
@@ -147,14 +141,14 @@ export async function createIdea(
     }
 
     // Insert idea
-    let idea: any = null;
+    let idea: social_ideas | null = null;
     try {
       idea = await prisma.social_ideas.create({
         data: {
           organizationId,
           client_id: String(ideaData.clientId),
           text: `${ideaData.title}\n\n${ideaData.description}`.trim(),
-        } as any,
+        } satisfies Prisma.social_ideasCreateInput,
       });
     } catch (ideaError: unknown) {
       console.error('Error creating idea:', ideaError);
@@ -243,8 +237,12 @@ export async function updateIdea(
 
     try {
       const res = await prisma.social_ideas.updateMany({
-        where: { id: String(ideaId), organizationId: String(organizationId), client_id: String(scoped.clientId) } as any,
-        data: updateData as any,
+        where: {
+          id: String(ideaId),
+          organizationId: String(organizationId),
+          client_id: String(scoped.clientId),
+        } satisfies Prisma.social_ideasWhereInput,
+        data: updateData satisfies Prisma.social_ideasUpdateManyMutationInput,
       });
 
       if (!res?.count) {
@@ -298,7 +296,11 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
 
     try {
       const res = await prisma.social_ideas.deleteMany({
-        where: { id: String(ideaId), organizationId: String(organizationId), client_id: String(scoped.clientId) } as any,
+        where: {
+          id: String(ideaId),
+          organizationId: String(organizationId),
+          client_id: String(scoped.clientId),
+        } satisfies Prisma.social_ideasWhereInput,
       });
 
       if (!res?.count) {

@@ -11,9 +11,9 @@ export const dynamic = 'force-dynamic';
 export default async function ClientViewPage({
   params,
 }: {
-  params: Promise<{ view: string }>;
+  params: { view: string };
 }) {
-  const { view } = await params;
+  const { view } = params;
   const viewKey = String(view || '').trim();
 
   if (viewKey === 'cycles') return <CyclesManager />;

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Leave Requests API
  * 
@@ -17,10 +18,14 @@ import { buildLeaveRequestTeamUrl, sendWebPushNotificationToEmails } from '@/lib
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
 }
 
 async function selectEmailsByUserIdsInOrganization(params: {
@@ -64,12 +69,11 @@ function getNullableString(obj: Record<string, unknown>, key: string): string | 
     return typeof v === 'string' ? v : String(v);
 }
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
+function isMissingRelationOrColumnError(error: unknown): boolean {
+    const obj = asObject(error) ?? {};
+    const code = String(obj['code'] ?? '').toLowerCase();
+    const message = String(obj['message'] ?? '').toLowerCase();
+    return code === '42p01' || code === '42703' || message.includes('does not exist') || message.includes('relation') || message.includes('column');
 }
 
 function toIsoString(value: Date | string | null | undefined): string {
@@ -144,6 +148,10 @@ type NexusLeaveRequestsDelegate = {
     }) => Promise<NexusLeaveRequestRow[]>;
     create: (args: { data: Record<string, unknown> }) => Promise<NexusLeaveRequestRow>;
 };
+
+function isNexusLeaveRequestsDelegate(value: unknown): value is NexusLeaveRequestsDelegate {
+    return asObject(value) !== null && hasFunction(value, 'findMany') && hasFunction(value, 'create');
+}
 
 function mapNexusUserRow(row: unknown): User {
     const obj = asObject(row);
@@ -366,10 +374,10 @@ async function ensureUserByEmailInWorkspace(params: { organizationId: string; em
 function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate {
     const prismaObj = asObject(prisma as unknown);
     const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
-    if (!delegate) {
+    if (!isNexusLeaveRequestsDelegate(delegate)) {
         throw new Error('Prisma Client is missing nexus_leave_requests. Run prisma:generate and restart TS server.');
     }
-    return delegate as unknown as NexusLeaveRequestsDelegate;
+    return delegate;
 }
 
 async function insertNotifications(params: { workspaceId: string; notifications: NotificationInsert[] }) {
@@ -523,7 +531,8 @@ async function GETHandler(request: NextRequest) {
 
     } catch (error: unknown) {
         const msg = getErrorMessage(error);
-        console.error('[API] Error in /api/leave-requests GET:', error);
+        if (IS_PROD) console.error('[API] Error in /api/leave-requests GET');
+        else console.error('[API] Error in /api/leave-requests GET:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: msg || 'Forbidden' });
         }
@@ -720,7 +729,11 @@ async function POSTHandler(request: NextRequest) {
                     try {
                         await insertNotifications({ workspaceId: organizationId, notifications });
                     } catch (e: unknown) {
-                        console.warn('[API] Could not create notifications:', e);
+                        if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+                            throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(e) || 'missing relation'})`);
+                        }
+                        if (IS_PROD) console.warn('[API] Could not create notifications');
+                        else console.warn('[API] Could not create notifications:', e);
                     }
 
                     // Web Push (PWA) - only for urgent requests
@@ -745,7 +758,8 @@ async function POSTHandler(request: NextRequest) {
                                 });
                             }
                         } catch (pushError) {
-                            console.warn('[API] Could not send web push (ignored):', pushError);
+                            if (IS_PROD) console.warn('[API] Could not send web push (ignored)');
+                            else console.warn('[API] Could not send web push (ignored):', pushError);
                         }
                     }
                 }
@@ -754,7 +768,8 @@ async function POSTHandler(request: NextRequest) {
             if (getErrorMessage(notifError).includes('[SchemaMismatch]')) {
                 throw notifError;
             }
-            console.warn('[API] Error sending notifications for leave request:', notifError);
+            if (IS_PROD) console.warn('[API] Error sending notifications for leave request');
+            else console.warn('[API] Error sending notifications for leave request:', notifError);
             // Don't fail the request if notification fails
         }
 
@@ -764,7 +779,8 @@ async function POSTHandler(request: NextRequest) {
         );
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/leave-requests POST:', error);
+        if (IS_PROD) console.error('[API] Error in /api/leave-requests POST');
+        else console.error('[API] Error in /api/leave-requests POST:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }

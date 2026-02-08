@@ -6,11 +6,14 @@ export default async function ClientModuleHome({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { orgSlug } = await params;
-  const sp = (await searchParams) || {};
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
 
   const tab = typeof sp.tab === 'string' ? sp.tab : null;
   const meetingId = typeof sp.meetingId === 'string' ? sp.meetingId : null;

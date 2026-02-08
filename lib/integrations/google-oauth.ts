@@ -9,6 +9,7 @@
 
 import { OAuth2Client } from 'google-auth-library';
 import { Buffer } from 'buffer';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 // Google OAuth configuration
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -93,11 +94,12 @@ export async function getGoogleAuthUrl(
         console.log('[Google OAuth] Redirect URI in auth URL:', redirectUriParam);
         console.log('[Google OAuth] Full auth URL:', authUrl);
         return authUrl;
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const obj = asObject(error) ?? {};
         console.error('[Google OAuth] Error in getGoogleAuthUrl:', error);
         console.error('[Google OAuth] Error details:', {
-            message: error.message,
-            stack: error.stack,
+            message: getErrorMessage(error),
+            stack: typeof obj.stack === 'string' ? obj.stack : undefined,
             hasClientId: !!GOOGLE_CLIENT_ID,
             hasClientSecret: !!GOOGLE_CLIENT_SECRET,
             redirectUri: GOOGLE_REDIRECT_URI

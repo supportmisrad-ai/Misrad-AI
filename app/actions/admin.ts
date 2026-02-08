@@ -8,11 +8,8 @@ import { updateClinicClient } from '@/app/actions/client-clinic';
 import { requireSuperAdmin, requireAuditLogAccess } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asObject } from '@/lib/shared/unknown';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function isMissingOrganizationIdColumnError(err: unknown): boolean {
   const obj = asObject(err) ?? {};
@@ -469,6 +466,10 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
       });
     } catch (sessionError: unknown) {
       // If table doesn't exist / RLS / schema mismatch - still allow navigation, but return token for traceability.
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        const msg = String((sessionError as Error)?.message || sessionError || '').trim();
+        throw new Error(`[SchemaMismatch] social_impersonation_sessions create failed (${msg || 'unknown error'})`);
+      }
       return createSuccessResponse({ impersonationToken: token });
     }
 

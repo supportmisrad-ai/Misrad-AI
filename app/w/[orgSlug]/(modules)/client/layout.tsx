@@ -13,9 +13,10 @@ export default async function ClientModuleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'client' });
   const persistPromise = persistCurrentUserLastLocation({ orgSlug, module: 'client' }).catch(() => undefined);
   await Promise.race([persistPromise, new Promise<void>((resolve) => setTimeout(resolve, 150))]);

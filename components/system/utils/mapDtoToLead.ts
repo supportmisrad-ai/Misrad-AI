@@ -54,9 +54,9 @@ export const mapDtoToLead = (dto: SystemLeadDTO): Lead => {
       : undefined;
 
   const activities: LeadActivity[] = Array.isArray(dto.activities)
-    ? dto.activities.map((a: any) => {
+    ? dto.activities.map((a) => {
         const directionRaw = a?.direction ? String(a.direction) : '';
-        const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? (directionRaw as any) : undefined;
+        const direction = directionRaw === 'inbound' || directionRaw === 'outbound' ? directionRaw : undefined;
         const typeRaw = a?.type;
         const type: LeadActivity['type'] = isLeadActivityType(typeRaw) ? typeRaw : 'note';
 
@@ -87,11 +87,11 @@ export const mapDtoToLead = (dto: SystemLeadDTO): Lead => {
     address: dto.installation_address ? String(dto.installation_address) : undefined,
     assignedAgentId: dto.assigned_agent_id ? String(dto.assigned_agent_id) : undefined,
     subscriptionEndDate: undefined,
-    productInterest: productInterest as any,
-    nextActionDate: toDateOrNull((dto as any).next_action_date),
-    nextActionDateSuggestion: toDateOrNull((dto as any).next_action_date_suggestion),
-    nextActionNote: (dto as any).next_action_note != null ? String((dto as any).next_action_note) : null,
-    nextActionDateRationale: (dto as any).next_action_date_rationale != null ? String((dto as any).next_action_date_rationale) : null,
+    productInterest,
+    nextActionDate: toDateOrNull(dto.next_action_date),
+    nextActionDateSuggestion: toDateOrNull(dto.next_action_date_suggestion),
+    nextActionNote: dto.next_action_note != null ? String(dto.next_action_note) : null,
+    nextActionDateRationale: dto.next_action_date_rationale != null ? String(dto.next_action_date_rationale) : null,
     score: Number(dto.score ?? 0),
     aiTags: Array.isArray(dto.ai_tags) ? dto.ai_tags.map((t) => String(t)).filter(Boolean) : [],
   };

@@ -1,3 +1,4 @@
+import { asObject } from '@/lib/shared/unknown';
 /**
  * Prisma Client Singleton
  * 
@@ -12,6 +13,12 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { installPrismaTenantGuard } from './prisma-tenant-guard';
+
+declare global {
+  var __MISRAD_PRISMA_CLIENT__: PrismaClient | undefined;
+  var __MISRAD_PRISMA_TENANT_GUARD_INSTALLED__: boolean | undefined;
+  var __MISRAD_PRISMA_DATASOURCE_URL__: string | undefined;
+}
 
 type _PrismaClientSanity = {
   systemLead: PrismaClient['systemLead'];
@@ -219,12 +226,6 @@ type _MisradActivityLogCreateData = Parameters<_PrismaClientSanity['misradActivi
 type _AssertMisradActivityLogWhereHasOrgId = _Assert<_HasSomeKey<NonNullable<_MisradActivityLogWhere>, 'organizationId' | 'organization_id'>>;
 type _AssertMisradActivityLogCreateHasOrgId = _Assert<_HasSomeKey<_MisradActivityLogCreateData, 'organizationId' | 'organization_id'>>;
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-  prismaTenantGuardInstalled: boolean | undefined;
-  prismaDatasourceUrl: string | undefined;
-};
-
 function getEffectiveDatabaseUrlForPrisma(): string | null {
   const envDatabaseUrl = String(process.env.DATABASE_URL || '').trim();
   const envDirectUrl = String(process.env.DIRECT_URL || '').trim();
@@ -316,25 +317,41 @@ const _prismaClientOptions: Prisma.PrismaClientOptions = {
   ...(_effectiveDatabaseUrl ? { datasources: { db: { url: _effectiveDatabaseUrl } } } : {}),
 };
 
-const _existingClient = globalForPrisma.prisma;
-const _existingUrl = globalForPrisma.prismaDatasourceUrl;
+let _client = globalThis.__MISRAD_PRISMA_CLIENT__;
+const _existingUrl = globalThis.__MISRAD_PRISMA_DATASOURCE_URL__;
 
 // In development, HMR can keep a stale PrismaClient instance across reloads.
 // If DATABASE_URL changed (e.g. switching from direct DB to pooler), recreate the client.
-if (!_existingClient || _existingUrl !== _effectiveDatabaseUrl) {
-  if (_existingClient) {
-    _existingClient.$disconnect().catch(() => undefined);
-  }
-  globalForPrisma.prisma = new PrismaClient(_prismaClientOptions);
-  globalForPrisma.prismaDatasourceUrl = _effectiveDatabaseUrl;
+if (_client && _existingUrl !== _effectiveDatabaseUrl) {
+  _client.$disconnect().catch(() => undefined);
+  _client = undefined;
+}
+if (!_client) {
+  _client = new PrismaClient(_prismaClientOptions);
+  globalThis.__MISRAD_PRISMA_CLIENT__ = _client;
+  globalThis.__MISRAD_PRISMA_DATASOURCE_URL__ = _effectiveDatabaseUrl;
 }
 
-export const prisma = globalForPrisma.prisma as PrismaClient;
+type PrismaClientWithAliases = PrismaClient & {
+  organization: PrismaClient['social_organizations'];
+  organizationUser: PrismaClient['social_users'];
+  teamMember: PrismaClient['social_team_members'];
+  teamMemberClient: PrismaClient['social_team_member_clients'];
+};
 
-type RawQueryUnsafe = (query: string, ...args: unknown[]) => unknown;
-type RawExecuteUnsafe = (query: string, ...args: unknown[]) => unknown;
-type RawQuery = (...args: unknown[]) => unknown;
-type RawExecute = (...args: unknown[]) => unknown;
+const _basePrismaClient = _client;
+
+export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, {
+  organization: _basePrismaClient.social_organizations,
+  organizationUser: _basePrismaClient.social_users,
+  teamMember: _basePrismaClient.social_team_members,
+  teamMemberClient: _basePrismaClient.social_team_member_clients,
+});
+
+type RawQueryUnsafe = PrismaClient['$queryRawUnsafe'];
+type RawExecuteUnsafe = PrismaClient['$executeRawUnsafe'];
+type RawQuery = PrismaClient['$queryRaw'];
+type RawExecute = PrismaClient['$executeRaw'];
 
 type RawSqlClient = {
   $queryRawUnsafe?: RawQueryUnsafe;
@@ -343,33 +360,28 @@ type RawSqlClient = {
   $executeRaw?: RawExecute;
 };
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
 function asRawSqlClient(value: unknown): RawSqlClient | null {
   return asObject(value) as RawSqlClient | null;
 }
 
-const prismaRaw = prisma as unknown as RawSqlClient;
+const prismaRaw: RawSqlClient = prisma;
 
-const _rawQueryUnsafeOriginal = (prismaRaw.$queryRawUnsafe as RawQueryUnsafe | undefined);
-const _rawExecuteUnsafeOriginal = (prismaRaw.$executeRawUnsafe as RawExecuteUnsafe | undefined);
-const _rawQueryOriginal = (prismaRaw.$queryRaw as RawQuery | undefined);
-const _rawExecuteOriginal = (prismaRaw.$executeRaw as RawExecute | undefined);
+const _rawQueryUnsafeOriginal = prismaRaw.$queryRawUnsafe;
+const _rawExecuteUnsafeOriginal = prismaRaw.$executeRawUnsafe;
+const _rawQueryOriginal = prismaRaw.$queryRaw;
+const _rawExecuteOriginal = prismaRaw.$executeRaw;
 
 function getQueryRawUnsafe(db: unknown): RawQueryUnsafe | undefined {
   const client = asRawSqlClient(db);
   if (!client) return undefined;
 
   if (typeof _rawQueryUnsafeOriginal === 'function') {
-    return _rawQueryUnsafeOriginal.bind(db as unknown as PrismaClient);
+    return _rawQueryUnsafeOriginal.bind(db) as RawQueryUnsafe;
   }
 
   const fn = client.$queryRawUnsafe;
-  return typeof fn === 'function' ? fn.bind(client) : undefined;
+  if (typeof fn !== 'function') return undefined;
+  return fn.bind(client) as RawQueryUnsafe;
 }
 
 function getExecuteRawUnsafe(db: unknown): RawExecuteUnsafe | undefined {
@@ -377,11 +389,12 @@ function getExecuteRawUnsafe(db: unknown): RawExecuteUnsafe | undefined {
   if (!client) return undefined;
 
   if (typeof _rawExecuteUnsafeOriginal === 'function') {
-    return _rawExecuteUnsafeOriginal.bind(db as unknown as PrismaClient);
+    return _rawExecuteUnsafeOriginal.bind(db) as RawExecuteUnsafe;
   }
 
   const fn = client.$executeRawUnsafe;
-  return typeof fn === 'function' ? fn.bind(client) : undefined;
+  if (typeof fn !== 'function') return undefined;
+  return fn.bind(client) as RawExecuteUnsafe;
 }
 
 function captureTenantIsolation(params: {
@@ -677,7 +690,7 @@ export async function queryRawScoped<T>(
     query: params.query,
     values: params.values,
   });
-  return queryFn(params.query, ...params.values) as unknown as T;
+  return queryFn<T>(params.query, ...params.values);
 }
 
 export async function executeRawAllowlisted(
@@ -712,7 +725,7 @@ export async function executeRawAllowlisted(
     query: params.query,
     values: params.values,
   });
-  return execFn(params.query, ...params.values) as unknown as number;
+  return execFn(params.query, ...params.values);
 }
 
 export async function executeRawScoped(
@@ -741,7 +754,7 @@ export async function executeRawScoped(
     query: params.query,
     values: params.values,
   });
-  return execFn(params.query, ...params.values) as unknown as number;
+  return execFn(params.query, ...params.values);
 }
 
 export async function queryRawOrgScoped<T>(
@@ -1009,21 +1022,21 @@ export async function queryRawAllowlisted<T>(
     query: params.query,
     values: params.values,
   });
-  return queryFn(params.query, ...params.values) as unknown as T;
+  return queryFn<T>(params.query, ...params.values);
 }
 
-if (!globalForPrisma.prismaTenantGuardInstalled) {
+if (!globalThis.__MISRAD_PRISMA_TENANT_GUARD_INSTALLED__) {
   installPrismaTenantGuard(prisma);
 
-  globalForPrisma.prismaTenantGuardInstalled = true;
+  globalThis.__MISRAD_PRISMA_TENANT_GUARD_INSTALLED__ = true;
 }
 
 if (typeof _rawQueryUnsafeOriginal === 'function') {
-  (prismaRaw as RawSqlClient).$queryRawUnsafe = function (this: unknown, query: string, ...args: unknown[]) {
+  prismaRaw.$queryRawUnsafe = ((query: string, ...args: any[]) => {
     const allowlist = [
       /^SELECT \* FROM "auth"\."token"/i,
       /\bset\s+local\s+role\s+authenticated\b/i,
-      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
+      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)\s*/i,
       /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
       /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
       // Public Leads API - api_keys validation
@@ -1035,36 +1048,42 @@ if (typeof _rawQueryUnsafeOriginal === 'function') {
       /\borganization_id\s*=\s*\$\d+::uuid\b/i,
     ];
     if (allowlist.some((pattern) => pattern.test(query))) {
-      return (_rawQueryUnsafeOriginal as RawQueryUnsafe).call(this as unknown, query, ...args);
+      return Reflect.apply(_rawQueryUnsafeOriginal, prismaRaw, [query, ...args]) as Prisma.PrismaPromise<unknown>;
     }
     throw new Error('[TenantIsolation] Prisma $queryRawUnsafe is blocked. Use queryRawOrgScoped/queryRawTenantScoped.');
-  };
+  }) as typeof prismaRaw.$queryRawUnsafe;
 }
 if (typeof _rawExecuteUnsafeOriginal === 'function') {
-  (prismaRaw as RawSqlClient).$executeRawUnsafe = function (this: unknown, query: string, ...args: unknown[]) {
+  const guardedExecuteRawUnsafe: RawExecuteUnsafe = function (
+    this: unknown,
+    query: string,
+    ...args: any[]
+  ): Prisma.PrismaPromise<number> {
     const allowlist = [
       /^SELECT \* FROM "auth"\."token"/i,
       /\bset\s+local\s+role\s+authenticated\b/i,
-      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)/i,
+      /\bset_config\(\s*'role'\s*,\s*'authenticated'\s*,\s*true\s*\)\s*/i,
       /\bset_config\(\s*'request\.jwt\.claims'\s*,/i,
       /\bpublic\.current_organization_id\(\)[\s\S]*\bfrom\s+public\.organizations\b/i,
       // Public Leads API - update last used timestamp
       /\bUPDATE\s+api_keys\s+SET\s+last_used_at\b/i,
       // Public Leads API - rate limiting cleanup
-      /\bDELETE\s+FROM\s+api_rate_limits\b[\s\S]*\bWHERE\s+expires_at\s*<\s*NOW\(\)/i,
+      /\bDELETE\s+FROM\s+api_rate_limits\b[\s\S]*\bWHERE\s+expires_at\s*<\s*NOW\(\)\b/i,
       // Public Leads API - rate limiting update
       /\bUPDATE\s+api_rate_limits\s+SET\s+count\b/i,
       // Public Leads API - rate limiting insert
       /\bINSERT\s+INTO\s+api_rate_limits\b/i,
     ];
     if (allowlist.some((pattern) => pattern.test(query))) {
-      return (_rawExecuteUnsafeOriginal as RawExecuteUnsafe).call(this as unknown, query, ...args);
+      return Reflect.apply(_rawExecuteUnsafeOriginal, this, [query, ...args]) as Prisma.PrismaPromise<number>;
     }
     throw new Error('[TenantIsolation] Prisma $executeRawUnsafe is blocked. Use executeRawOrgScoped/executeRawTenantScoped.');
   };
+
+  prismaRaw.$executeRawUnsafe = guardedExecuteRawUnsafe;
 }
 if (typeof _rawQueryOriginal === 'function') {
-  (prismaRaw as RawSqlClient).$queryRaw = () => {
+  prismaRaw.$queryRaw = () => {
     throwTenantIsolation({
       message: '[TenantIsolation] Prisma $queryRaw is blocked. Use queryRawOrgScoped/queryRawTenantScoped.',
       tags: { tenant_isolation_source: 'prisma_raw_sql' },
@@ -1072,7 +1091,7 @@ if (typeof _rawQueryOriginal === 'function') {
   };
 }
 if (typeof _rawExecuteOriginal === 'function') {
-  (prismaRaw as RawSqlClient).$executeRaw = () => {
+  prismaRaw.$executeRaw = () => {
     throwTenantIsolation({
       message: '[TenantIsolation] Prisma $executeRaw is blocked. Use executeRawOrgScoped/executeRawTenantScoped.',
       tags: { tenant_isolation_source: 'prisma_raw_sql' },
@@ -1080,7 +1099,6 @@ if (typeof _rawExecuteOriginal === 'function') {
   };
 }
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalThis.__MISRAD_PRISMA_CLIENT__ = prisma;
 
 export default prisma;
-

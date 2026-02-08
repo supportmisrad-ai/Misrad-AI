@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Event Attendance API
  * 
@@ -13,23 +14,12 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
     const fn = obj?.[name];
     return typeof fn === 'function';
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
 }
 
 type NexusTeamEventsDelegate = {
@@ -45,22 +35,30 @@ type NexusEventAttendanceDelegate = {
     }) => Promise<Record<string, unknown>>;
 };
 
+function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDelegate {
+    return asObject(value) !== null && hasFunction(value, 'findFirst');
+}
+
+function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAttendanceDelegate {
+    return asObject(value) !== null && hasFunction(value, 'findMany') && hasFunction(value, 'upsert');
+}
+
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const obj = asObject(prisma as unknown);
     const delegate = obj?.['nexus_team_events'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst')) {
+    if (!isNexusTeamEventsDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_team_events is unavailable');
     }
-    return delegate as unknown as NexusTeamEventsDelegate;
+    return delegate;
 }
 
 function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
     const obj = asObject(prisma as unknown);
     const delegate = obj?.['nexus_event_attendance'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'findMany') || !hasFunction(delegate, 'upsert')) {
+    if (!isNexusEventAttendanceDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_event_attendance is unavailable');
     }
-    return delegate as unknown as NexusEventAttendanceDelegate;
+    return delegate;
 }
 
 function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
@@ -109,7 +107,7 @@ async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: 
 }
 async function GETHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -128,7 +126,7 @@ async function GETHandler(
             return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
-        const { id: eventId } = await params;
+        const { id: eventId } = params;
 
         if (!eventId) {
             return apiError('Event ID is required', { status: 400 });
@@ -191,7 +189,8 @@ async function GETHandler(
         return apiSuccess({ attendance: enrichedAttendance }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/team-events/[id]/attendance GET:', error);
+        if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance GET');
+        else console.error('[API] Error in /api/team-events/[id]/attendance GET:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
@@ -205,7 +204,7 @@ async function GETHandler(
 
 async function POSTHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -224,7 +223,7 @@ async function POSTHandler(
             return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
-        const { id: eventId } = await params;
+        const { id: eventId } = params;
 
         if (!eventId) {
             return apiError('Event ID is required', { status: 400 });
@@ -303,14 +302,15 @@ async function POSTHandler(
         return apiSuccess({ attendance: row, message: 'אישור הגעה נשמר בהצלחה' }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/team-events/[id]/attendance POST:', error);
+        if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance POST');
+        else console.error('[API] Error in /api/team-events/[id]/attendance POST:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
         const msg = getErrorMessage(error);
         return apiError(error, {
             status: msg.includes('Unauthorized') ? 401 : 500,
-            message: msg || 'שגיאה בשמירת אישור הגעה',
+            message: msg || 'שגיאה בשמירת הגעה',
         });
     }
 }

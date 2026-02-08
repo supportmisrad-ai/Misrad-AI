@@ -3,14 +3,10 @@ import prisma from '@/lib/prisma';
 import { getBaseUrl } from '@/lib/utils';
 import { sendAbandonedSignupFollowupEmail } from '@/lib/email';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { cronGuard } from '@/lib/api-cron-guard';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
   const obj = asObject(value);
@@ -18,25 +14,24 @@ function hasFunction(value: unknown, name: string): value is Record<string, (...
   return typeof fn === 'function';
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
 type LegacyDelegate = {
   findMany?: (args: Record<string, unknown>) => Promise<Array<Record<string, unknown>>>;
   create?: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
 };
 
+function isLegacyDelegate(value: unknown): value is LegacyDelegate {
+  if (!asObject(value)) return false;
+  const anyFn = hasFunction(value, 'findMany') || hasFunction(value, 'create');
+  return anyFn;
+}
+
 function getLegacyDelegate(name: string): LegacyDelegate {
   const clientObj = asObject(prisma as unknown);
   const delegate = clientObj?.[name];
-  if (!asObject(delegate)) {
+  if (!isLegacyDelegate(delegate)) {
     throw new Error(`Prisma delegate ${name} is unavailable`);
   }
-  return delegate as unknown as LegacyDelegate;
+  return delegate;
 }
 
 function safeString(value: unknown): string {
@@ -45,11 +40,6 @@ function safeString(value: unknown): string {
 
 async function POSTHandler(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('x-cron-secret');
-    if (authHeader !== process.env.CRON_SECRET) {
-      return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
     const url = req.nextUrl;
 
     const dryRun = url.searchParams.get('dryRun') === '1' || url.searchParams.get('dryRun') === 'true';
@@ -267,4 +257,4 @@ async function POSTHandler(req: NextRequest) {
   }
 }
 
-export const POST = shabbatGuard(POSTHandler);
+export const POST = shabbatGuard(cronGuard(POSTHandler));

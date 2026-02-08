@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import crypto from 'node:crypto';
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,21 +20,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => null);
-    const orgSlug = String(body?.orgSlug || '').trim();
+    const bodyJson: unknown = await req.json().catch(() => null);
+    const bodyObj = asObject(bodyJson) ?? {};
+    const orgSlug = String(bodyObj.orgSlug || '').trim();
 
     if (!orgSlug) {
       return NextResponse.json({ ok: false, error: 'orgSlug is required' }, { status: 400 });
     }
 
-    const orgWhere = isUuid(orgSlug)
-      ? { OR: [{ slug: orgSlug }, { id: orgSlug }] }
-      : { slug: orgSlug };
-
-    const org = await prisma.social_organizations.findFirst({
-      where: orgWhere as any,
-      select: { id: true },
-    });
+    const org = isUuid(orgSlug)
+      ? await prisma.organization.findFirst({
+          where: { OR: [{ slug: orgSlug }, { id: orgSlug }] },
+          select: { id: true },
+        })
+      : await prisma.organization.findFirst({
+          where: { slug: orgSlug },
+          select: { id: true },
+        });
 
     const isE2E =
       String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true' ||
@@ -56,7 +60,7 @@ export async function POST(req: Request) {
               role: 'owner',
               created_at: new Date(),
               updated_at: new Date(),
-            } as any,
+            },
           });
 
           const createdOrg = await tx.social_organizations.create({
@@ -71,7 +75,7 @@ export async function POST(req: Request) {
               has_finance: true,
               has_client: true,
               has_operations: true,
-            } as any,
+            },
             select: { id: true },
           });
 
@@ -89,8 +93,8 @@ export async function POST(req: Request) {
       }
 
       if (!organizationId) {
-        const again = await prisma.social_organizations.findFirst({
-          where: orgWhere as any,
+        const again = await prisma.organization.findFirst({
+          where: isUuid(orgSlug) ? { OR: [{ slug: orgSlug }, { id: orgSlug }] } : { slug: orgSlug },
           select: { id: true },
         });
         organizationId = again?.id || null;
@@ -101,13 +105,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'Organization not found' }, { status: 404 });
     }
 
+    enterTenantIsolationContext({
+      source: 'e2e_lead_won_chain',
+      organizationId,
+    });
+
     const now = Date.now();
-    const leadName = String(body?.lead?.name || `E2E Lead ${now}`).trim();
-    const phone = String(body?.lead?.phone || `050${String(now).slice(-7)}`).trim();
-    const email = String(body?.lead?.email || `e2e+${now}@misrad.com`).trim();
-    const company = String(body?.lead?.company || 'E2E Company').trim();
-    const value = Number(body?.lead?.value ?? 1000);
-    const installationAddress = String(body?.lead?.installationAddress || 'תל אביב 1').trim();
+    const leadObj = asObject(bodyObj.lead) ?? {};
+    const leadName = String(leadObj.name || `E2E Lead ${now}`).trim();
+    const phone = String(leadObj.phone || `050${String(now).slice(-7)}`).trim();
+    const email = String(leadObj.email || `e2e+${now}@misrad.com`).trim();
+    const company = String(leadObj.company || 'E2E Company').trim();
+    const value = Number(leadObj.value ?? 1000);
+    const installationAddress = String(leadObj.installationAddress || 'תל אביב 1').trim();
 
     if (!leadName) {
       return NextResponse.json({ ok: false, error: 'Lead name is required' }, { status: 400 });
@@ -162,7 +172,7 @@ export async function POST(req: Request) {
         amount: new Prisma.Decimal(value || 0),
         status: 'pending',
         item: 'מכירה (System)',
-      } as any,
+      },
       select: { id: true },
     });
 
@@ -172,11 +182,11 @@ export async function POST(req: Request) {
       operationsProjectId: project.id,
       systemInvoiceId: invoice.id,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return NextResponse.json(
       {
         ok: false,
-        error: e?.message || 'E2E route failed',
+        error: getErrorMessage(e) || 'E2E route failed',
       },
       { status: 500 }
     );

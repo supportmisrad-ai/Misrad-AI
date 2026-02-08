@@ -13,11 +13,13 @@ export default async function OperationsInventoryPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug } = await params;
-  const sp = (await searchParams) ?? {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const qRaw = sp.q;
   const q = qRaw ? String(Array.isArray(qRaw) ? qRaw[0] : qRaw).trim() : '';
 

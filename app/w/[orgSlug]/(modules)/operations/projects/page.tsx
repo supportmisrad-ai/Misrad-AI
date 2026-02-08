@@ -16,7 +16,7 @@ function formatDate(dateIso: string): string {
 export default async function OperationsProjectsPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;

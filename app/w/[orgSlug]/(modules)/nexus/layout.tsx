@@ -14,7 +14,7 @@ export default async function NexusModuleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'nexus' });

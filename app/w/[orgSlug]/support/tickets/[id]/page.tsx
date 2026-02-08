@@ -10,9 +10,10 @@ export const dynamic = 'force-dynamic';
 export default async function SupportTicketDetailPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; id: string }>;
+  params: Promise<{ orgSlug: string; id: string }> | { orgSlug: string; id: string };
 }) {
-  const { orgSlug, id } = await params;
+  const resolvedParams = await params;
+  const { orgSlug, id } = resolvedParams;
 
   await requireWorkspaceAccessByOrgSlug(orgSlug);
 

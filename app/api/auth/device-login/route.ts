@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject } from '@/lib/server/workspace-access/utils';
 
 export const runtime = 'nodejs';
 
@@ -16,14 +17,15 @@ async function POSTHandler(request: NextRequest) {
     }
   }
 
-  const body = await request.json().catch(() => ({} as any));
-  const token = String(body?.token || '').trim();
+  const bodyJson: unknown = await request.json().catch(() => ({}));
+  const bodyObj = asObject(bodyJson) ?? {};
+  const token = String(bodyObj.token || '').trim();
 
   if (!token) {
     return NextResponse.json({ error: 'Missing token' }, { status: 400 });
   }
 
-  let row: any = null;
+  let row: Awaited<ReturnType<typeof prisma.devicePairingToken.findUnique>> | null = null;
   try {
     row = await prisma.devicePairingToken.findUnique({
       where: { token: String(token) },
@@ -42,7 +44,7 @@ async function POSTHandler(request: NextRequest) {
   }
 
   const now = new Date();
-  const expiresAt = row.expiresAt ? new Date(String(row.expiresAt)) : null;
+  const expiresAt = row.expiresAt ? new Date(row.expiresAt) : null;
   const isExpired = expiresAt ? expiresAt.getTime() <= now.getTime() : false;
 
   if (isExpired) {
@@ -79,8 +81,9 @@ async function POSTHandler(request: NextRequest) {
     return NextResponse.json({ error: 'שגיאה ביצירת sign-in token' }, { status: 500 });
   }
 
-  const created = await createTokenRes.json().catch(() => null as any);
-  const signInToken = created?.token ? String(created.token) : null;
+  const createdJson: unknown = await createTokenRes.json().catch(() => null);
+  const createdObj = asObject(createdJson);
+  const signInToken = typeof createdObj?.token === 'string' ? String(createdObj.token) : null;
   if (!signInToken) {
     return NextResponse.json({ error: 'שגיאה ביצירת sign-in token' }, { status: 500 });
   }

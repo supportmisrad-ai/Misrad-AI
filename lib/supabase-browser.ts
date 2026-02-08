@@ -1,14 +1,11 @@
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js';
+import { asObject } from '@/lib/shared/unknown';
 
 type ClerkTokenProvider = () => Promise<string | null | undefined>;
 
-const ORG_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export type SupabaseBrowserStorageClient = Pick<SupabaseClient, 'storage'>;
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+const ORG_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function decodeBase64UrlToUtf8(input: string): string {
   const b64 = String(input || '')
@@ -78,4 +75,54 @@ export function createBrowserClientWithClerk(tokenProvider: ClerkTokenProvider):
       },
     },
   });
+}
+
+function wrapBrowserStorageOnlyClient(client: SupabaseClient, label: string): SupabaseBrowserStorageClient {
+  const clientObj = asObject(client) ?? {};
+  const originalFrom = clientObj.from;
+  const originalRpc = clientObj.rpc;
+  const originalSchema = clientObj.schema;
+  const originalRest = clientObj.rest;
+
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      if (prop === 'from' && typeof originalFrom === 'function') {
+        return (table: string) => {
+          throw new Error(
+            '[Supabase] Browser storage-only client: PostgREST .from(...) is blocked. ' +
+              `label=${String(label)} table=${String(table || '')}`
+          );
+        };
+      }
+
+      if (prop === 'rpc' && typeof originalRpc === 'function') {
+        return (fn: string) => {
+          throw new Error(
+            '[Supabase] Browser storage-only client: PostgREST .rpc(...) is blocked. ' +
+              `label=${String(label)} rpc=${String(fn || '')}`
+          );
+        };
+      }
+
+      if (prop === 'schema' && typeof originalSchema === 'function') {
+        return (schema: string) => {
+          throw new Error(
+            '[Supabase] Browser storage-only client: PostgREST .schema(...) is blocked. ' +
+              `label=${String(label)} schema=${String(schema || '')}`
+          );
+        };
+      }
+
+      if (prop === 'rest' && originalRest) {
+        throw new Error('[Supabase] Browser storage-only client: PostgREST rest client is blocked. ' + `label=${String(label)}`);
+      }
+
+      return Reflect.get(target, prop, receiver);
+    },
+  }) as SupabaseBrowserStorageClient;
+}
+
+export function createBrowserStorageClientWithClerk(tokenProvider: ClerkTokenProvider): SupabaseBrowserStorageClient {
+  const client = createBrowserClientWithClerk(tokenProvider);
+  return wrapBrowserStorageOnlyClient(client, 'createBrowserStorageClientWithClerk');
 }

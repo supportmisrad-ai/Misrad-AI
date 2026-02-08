@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Get Employee Invitation Links
  * GET /api/employees/invitations
@@ -15,8 +16,11 @@ import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
+import type { nexus_employee_invitation_links } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }) {
     const email = String(params.email || '').trim().toLowerCase();
@@ -33,7 +37,7 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
               name: row.name,
               email: row.email,
               role: row.role,
-              isSuperAdmin: Boolean((row as any).isSuperAdmin),
+              isSuperAdmin: Boolean(row.isSuperAdmin),
           }
         : null;
 }
@@ -65,19 +69,19 @@ async function GETHandler(request: NextRequest) {
 
             let seatsAllowedOverride: number | null = null;
             try {
-                const orgSeatsRow = await (prisma as any).social_organizations.findUnique({
+                const orgSeatsRow = await prisma.organization.findUnique({
                     where: { id: String(workspace.id) },
                     select: { seats_allowed: true },
                 });
 
-                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+                seatsAllowedOverride = orgSeatsRow?.seats_allowed ?? null;
 
-            } catch (e: any) {
+            } catch (e: unknown) {
                 seatsAllowedOverride = null;
             }
 
             const caps = computeWorkspaceCapabilities({
-                entitlements: (ws as any)?.entitlements,
+                entitlements: ws.entitlements,
                 fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
                 seatsAllowedOverride,
             });
@@ -91,7 +95,7 @@ async function GETHandler(request: NextRequest) {
         }
 
         // 4. Build query
-        const invitations = await (prisma as any).nexus_employee_invitation_links.findMany({
+        const invitations = await prisma.nexus_employee_invitation_links.findMany({
             where: {
                 organizationId: String(workspace.id),
                 ...(isAdmin ? {} : { created_by: String(user.id) }),
@@ -102,9 +106,9 @@ async function GETHandler(request: NextRequest) {
         // 5. Generate URLs for each invitation
         const baseUrl = getBaseUrl(request);
 
-        const invitationsWithUrls = (invitations || []).map((inv: any) => ({
-            id: inv.id,
-            token: inv.token,
+        const invitationsWithUrls = (invitations || []).map((inv: nexus_employee_invitation_links) => ({
+            id: String(inv.id),
+            token: String(inv.token),
             url: `${baseUrl}/login?mode=sign-up&email=${encodeURIComponent(String(inv.employee_email || ''))}&invited=true&employee=true&redirect=${encodeURIComponent(`/employee-invite/${encodeURIComponent(String(inv.token))}/finalize`)}`,
             employeeEmail: inv.employee_email,
             employeeName: inv.employee_name,
@@ -123,7 +127,7 @@ async function GETHandler(request: NextRequest) {
             usedAt: inv.used_at,
             isUsed: inv.is_used,
             isActive: inv.is_active,
-            metadata: inv.metadata || {}
+            metadata: inv.metadata || {},
         }));
 
         return apiSuccess({
@@ -131,12 +135,15 @@ async function GETHandler(request: NextRequest) {
             seatUsage,
         });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/employees/invitations GET:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/employees/invitations GET');
+        else console.error('[API] Error in /api/employees/invitations GET:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: error.message || 'Failed to fetch invitations' });
+        const msg = getUnknownErrorMessage(error) || 'Failed to fetch invitations';
+        const safeMsg = 'Failed to fetch invitations';
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

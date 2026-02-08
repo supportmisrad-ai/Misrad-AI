@@ -10,6 +10,7 @@
 import { drive_v3, google } from 'googleapis';
 import prisma from '@/lib/prisma';
 import { refreshAccessToken } from './google-oauth';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 /**
  * Get authenticated Google Drive client
@@ -61,8 +62,8 @@ export async function getDriveClient(
                     updated_at: new Date(),
                 },
             });
-        } catch (error) {
-            console.error('[Drive] Failed to refresh token:', error);
+        } catch (error: unknown) {
+            console.error('[Drive] Failed to refresh token:', getErrorMessage(error));
             return null;
         }
     }
@@ -149,8 +150,8 @@ export async function listDriveFiles(
             nextPageToken: response.data.nextPageToken || undefined
         };
 
-    } catch (error: any) {
-        console.error('[Drive] Error listing files:', error);
+    } catch (error: unknown) {
+        console.error('[Drive] Error listing files:', getErrorMessage(error));
         return { files: [] };
     }
 }
@@ -195,8 +196,8 @@ export async function searchDriveFiles(
             webViewLink: file.webViewLink || undefined
         }));
 
-    } catch (error: any) {
-        console.error('[Drive] Error searching files:', error);
+    } catch (error: unknown) {
+        console.error('[Drive] Error searching files:', getErrorMessage(error));
         return [];
     }
 }
@@ -236,8 +237,8 @@ export async function uploadDriveFile(
 
         return response.data.id || null;
 
-    } catch (error: any) {
-        console.error('[Drive] Error uploading file:', error);
+    } catch (error: unknown) {
+        console.error('[Drive] Error uploading file:', getErrorMessage(error));
         return null;
     }
 }

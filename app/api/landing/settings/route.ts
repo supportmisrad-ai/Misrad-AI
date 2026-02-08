@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 const LANDING_SETTINGS_KEY = 'landing_settings';
 
@@ -10,22 +13,28 @@ type LandingSettings = {
   logo?: string | null;
   logoText?: string | null;
   founderImage?: string | null;
-  videos?: any[] | null;
-};
+  videos?: unknown[] | null;
+};
 
-async function readCurrentSettings(supabase: any): Promise<LandingSettings> {
+function toJsonObject(value: unknown): Prisma.InputJsonObject {
+  const normalized: unknown = JSON.parse(JSON.stringify(value ?? {}));
+  return (asObject(normalized) ?? {}) as Prisma.InputJsonObject;
+}
+
+async function readCurrentSettings(): Promise<LandingSettings> {
   const row = await prisma.social_system_settings.findUnique({
     where: { key: LANDING_SETTINGS_KEY },
     select: { value: true },
   });
 
-  const value = ((row as any)?.value || {}) as any;
-  return value && typeof value === 'object' && !Array.isArray(value) ? (value as LandingSettings) : {};
+  const value: unknown = row?.value ?? {};
+  const obj = asObject(value);
+  return obj ? (obj as LandingSettings) : {};
 }
 
 async function GETHandler() {
   try {
-    const current = await readCurrentSettings(null as any);
+    const current = await readCurrentSettings();
 
     return NextResponse.json(
       {
@@ -45,46 +54,61 @@ async function PATCHHandler(request: NextRequest) {
   try {
     await requireSuperAdmin();
 
-    const current = await readCurrentSettings(null as any);
+    const current = await readCurrentSettings();
 
-    const body = (await request.json().catch(() => null)) as Partial<LandingSettings> | null;
+    const body: unknown = await request.json().catch(() => null);
+    const bodyObj = asObject(body);
 
     const next: LandingSettings = {
       ...current,
     };
 
-    if (body && Object.prototype.hasOwnProperty.call(body, 'logo')) {
-      next.logo = body.logo === null ? null : typeof body.logo === 'string' ? body.logo : null;
+    if (bodyObj && Object.prototype.hasOwnProperty.call(bodyObj, 'logo')) {
+      const v = bodyObj.logo;
+      next.logo = v === null ? null : typeof v === 'string' ? v : null;
     }
 
-    if (body && Object.prototype.hasOwnProperty.call(body, 'logoText')) {
-      next.logoText = body.logoText === null ? null : typeof body.logoText === 'string' ? body.logoText : null;
+    if (bodyObj && Object.prototype.hasOwnProperty.call(bodyObj, 'logoText')) {
+      const v = bodyObj.logoText;
+      next.logoText = v === null ? null : typeof v === 'string' ? v : null;
     }
 
-    if (body && Object.prototype.hasOwnProperty.call(body, 'founderImage')) {
-      next.founderImage = body.founderImage === null ? null : typeof body.founderImage === 'string' ? body.founderImage : null;
+    if (bodyObj && Object.prototype.hasOwnProperty.call(bodyObj, 'founderImage')) {
+      const v = bodyObj.founderImage;
+      next.founderImage = v === null ? null : typeof v === 'string' ? v : null;
     }
 
-    if (body && Object.prototype.hasOwnProperty.call(body, 'videos')) {
-      next.videos = Array.isArray(body.videos) ? body.videos : null;
+    if (bodyObj && Object.prototype.hasOwnProperty.call(bodyObj, 'videos')) {
+      const v = bodyObj.videos;
+      next.videos = Array.isArray(v) ? v : null;
     }
 
     try {
-      await prisma.social_system_settings.upsert({
-        where: { key: LANDING_SETTINGS_KEY },
-        create: {
-          key: LANDING_SETTINGS_KEY,
-          value: next as any,
-          updated_at: new Date(),
-          created_at: new Date(),
-        } as any,
-        update: {
-          value: next as any,
-          updated_at: new Date(),
-        } as any,
-      });
-    } catch (e: any) {
-      return NextResponse.json({ error: e?.message || 'Failed' }, { status: 500 });
+      const value = toJsonObject(next);
+      await withTenantIsolationContext(
+        {
+          source: 'api_landing_settings',
+          reason: 'PATCH',
+          mode: 'global_admin',
+          isSuperAdmin: true,
+        },
+        async () =>
+          await prisma.social_system_settings.upsert({
+            where: { key: LANDING_SETTINGS_KEY },
+            create: {
+              key: LANDING_SETTINGS_KEY,
+              value,
+              updated_at: new Date(),
+              created_at: new Date(),
+            },
+            update: {
+              value,
+              updated_at: new Date(),
+            },
+          })
+      );
+    } catch (e: unknown) {
+      return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Failed' }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -97,8 +121,8 @@ async function PATCHHandler(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Forbidden' }, { status: 403 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: getUnknownErrorMessage(e) || 'Forbidden' }, { status: 403 });
   }
 }
 

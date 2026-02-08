@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 /**
  * Get integration status for current user
  * Returns which platforms (Zoom, Meet) are connected
@@ -41,7 +43,8 @@ export async function GET() {
       googleCalendar: platforms.meet, // Meet requires Calendar
     });
   } catch (error) {
-    console.error('[Integration Status] Error:', error);
+    if (IS_PROD) console.error('[Integration Status] Error');
+    else console.error('[Integration Status] Error:', error);
     return NextResponse.json(
       { error: 'Failed to get integration status' },
       { status: 500 }

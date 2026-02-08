@@ -3,9 +3,30 @@
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { ActionResult } from '@/lib/errorHandler';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = typeof obj.code === 'string' ? String(obj.code).toUpperCase() : '';
+  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
+}
 
 type ProfileRecord = {
   id: string;
@@ -26,21 +47,6 @@ type ProfileRecord = {
   created_at: string | null;
   updated_at: string | null;
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
 
 function normalizeJson(value: unknown): Prisma.InputJsonValue {
   if (value == null) return {} as Prisma.InputJsonValue;
@@ -102,105 +108,127 @@ async function getMyProfileRow(params: {
   orgSlug: string;
   clerkUserId: string;
 }): Promise<ActionResult<{ profile: ProfileRecord; workspace: { id: string } }>> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const workspaceId = getWorkspaceId(workspace);
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      try {
+        const row = await prisma.profile.findFirst({
+          where: {
+            organizationId: String(organizationId),
+            clerkUserId: String(params.clerkUserId),
+          },
+        });
 
-  try {
-    const row = await prisma.profile.findFirst({
-      where: {
-        organizationId: String(workspaceId),
-        clerkUserId: String(params.clerkUserId),
-      },
-    });
-
-    const profile = row ? toProfileRecord(row) : ({} as ProfileRecord);
-    return createSuccessResponse({ profile, workspace: { id: String(workspaceId || '') } });
-  } catch (error: unknown) {
-    const msg = getUnknownErrorMessage(error);
-    if (msg && (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles'))) {
-      return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
-        error,
-        'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
-      );
-    }
-    return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה בטעינת פרופיל');
-  }
+        const profile = row ? toProfileRecord(row) : ({} as ProfileRecord);
+        return createSuccessResponse({ profile, workspace: { id: String(organizationId || '') } });
+      } catch (error: unknown) {
+        const msg = getUnknownErrorMessage(error);
+        if (msg && (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles'))) {
+          if (!ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(`[SchemaMismatch] profiles missing table (${msg || 'missing relation'})`);
+          }
+          return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
+            error,
+            'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
+          );
+        }
+        return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה בטעינת פרופיל');
+      }
+    },
+    { source: 'server_actions_profiles', reason: 'getMyProfileRow' }
+  );
 }
 
 async function bootstrapProfile(params: {
   orgSlug: string;
   clerkUserId: string;
 }): Promise<ActionResult<{ profile: ProfileRecord; workspace: { id: string } }>> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const workspaceId = getWorkspaceId(workspace);
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      let socialUser: unknown = null;
+      try {
+        socialUser = await prisma.organizationUser.findUnique({
+          where: { clerk_user_id: String(params.clerkUserId) },
+          select: { email: true, full_name: true, avatar_url: true },
+        });
+      } catch (error: unknown) {
+        if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] organizationUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+          );
+        }
+        socialUser = null;
+      }
 
-  let socialUser: unknown = null;
-  try {
-    socialUser = await prisma.social_users.findUnique({
-      where: { clerk_user_id: String(params.clerkUserId) },
-      select: { email: true, full_name: true, avatar_url: true },
-    });
-  } catch {
-    socialUser = null;
-  }
+      const socialUserObj = asObject(socialUser) ?? {};
 
-  const socialUserObj = asObject(socialUser) ?? {};
+      const email = socialUserObj.email == null ? null : String(socialUserObj.email);
 
-  const email = socialUserObj.email == null ? null : String(socialUserObj.email);
+      let nexusUser: unknown = null;
+      if (email) {
+        try {
+          nexusUser = await prisma.nexusUser.findFirst({
+            where: { email: String(email) },
+            select: {
+              phone: true,
+              location: true,
+              bio: true,
+              notificationPreferences: true,
+              twoFactorEnabled: true,
+              billingInfo: true,
+              uiPreferences: true,
+            },
+          });
+        } catch (error: unknown) {
+          if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(
+              `[SchemaMismatch] nexusUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
+            );
+          }
+          nexusUser = null;
+        }
+      }
 
-  let nexusUser: unknown = null;
-  if (email) {
-    try {
-      nexusUser = await prisma.nexusUser.findFirst({
-        where: { email: String(email) },
-        select: {
-          phone: true,
-          location: true,
-          bio: true,
-          notificationPreferences: true,
-          twoFactorEnabled: true,
-          billingInfo: true,
-          uiPreferences: true,
-        },
-      });
-    } catch {
-      nexusUser = null;
-    }
-  }
+      const nexusUserObj = asObject(nexusUser) ?? {};
 
-  const nexusUserObj = asObject(nexusUser) ?? {};
+      try {
+        const created = await prisma.profile.create({
+          data: {
+            organizationId: String(organizationId),
+            clerkUserId: String(params.clerkUserId),
+            email: email,
+            fullName: socialUserObj.full_name == null ? null : String(socialUserObj.full_name),
+            avatarUrl: socialUserObj.avatar_url == null ? null : String(socialUserObj.avatar_url),
+            role: null,
+            phone: nexusUserObj.phone == null ? null : String(nexusUserObj.phone),
+            location: nexusUserObj.location == null ? null : String(nexusUserObj.location),
+            bio: nexusUserObj.bio == null ? null : String(nexusUserObj.bio),
+            notificationPreferences: normalizeJson(nexusUserObj.notificationPreferences),
+            twoFactorEnabled: nexusUserObj.twoFactorEnabled == null ? false : Boolean(nexusUserObj.twoFactorEnabled),
+            uiPreferences: normalizeJson(nexusUserObj.uiPreferences),
+            socialProfile: {},
+            billingInfo: normalizeJson(nexusUserObj.billingInfo),
+          },
+        });
 
-  try {
-    const created = await prisma.profile.create({
-      data: {
-        organizationId: String(workspaceId),
-        clerkUserId: String(params.clerkUserId),
-        email: email,
-        fullName: socialUserObj.full_name == null ? null : String(socialUserObj.full_name),
-        avatarUrl: socialUserObj.avatar_url == null ? null : String(socialUserObj.avatar_url),
-        role: null,
-        phone: nexusUserObj.phone == null ? null : String(nexusUserObj.phone),
-        location: nexusUserObj.location == null ? null : String(nexusUserObj.location),
-        bio: nexusUserObj.bio == null ? null : String(nexusUserObj.bio),
-        notificationPreferences: normalizeJson(nexusUserObj.notificationPreferences),
-        twoFactorEnabled: nexusUserObj.twoFactorEnabled == null ? false : Boolean(nexusUserObj.twoFactorEnabled),
-        uiPreferences: normalizeJson(nexusUserObj.uiPreferences),
-        socialProfile: {},
-        billingInfo: normalizeJson(nexusUserObj.billingInfo),
-      },
-    });
-
-    return createSuccessResponse({ profile: toProfileRecord(created), workspace: { id: String(workspaceId || '') } });
-  } catch (error: unknown) {
-    const msg = String(getUnknownErrorMessage(error) || '').toLowerCase();
-    if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles')) {
-      return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
-        error,
-        'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
-      );
-    }
-    return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה ביצירת פרופיל');
-  }
+        return createSuccessResponse({ profile: toProfileRecord(created), workspace: { id: String(organizationId || '') } });
+      } catch (error: unknown) {
+        const msg = String(getUnknownErrorMessage(error) || '').toLowerCase();
+        if (msg.includes('does not exist') || msg.includes('relation') || msg.includes('profiles')) {
+          if (!ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(`[SchemaMismatch] profiles missing table (${msg || 'missing relation'})`);
+          }
+          return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
+            error,
+            'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
+          );
+        }
+        return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(error, 'שגיאה ביצירת פרופיל');
+      }
+    },
+    { source: 'server_actions_profiles', reason: 'bootstrapProfile' }
+  );
 }
 
 export async function getMyProfile(params: { orgSlug: string }): Promise<{
@@ -262,45 +290,50 @@ export async function upsertMyProfile(params: {
       return createErrorResponse(ensured.error || 'Failed to load profile', ensured.error || 'שגיאה בטעינת פרופיל');
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => {
+        const patch: Record<string, unknown> = {};
+        if (typeof params.updates.fullName !== 'undefined') patch.fullName = params.updates.fullName;
+        if (typeof params.updates.role !== 'undefined') patch.role = params.updates.role;
+        if (typeof params.updates.avatarUrl !== 'undefined') patch.avatarUrl = params.updates.avatarUrl;
+        if (typeof params.updates.phone !== 'undefined') patch.phone = params.updates.phone;
+        if (typeof params.updates.location !== 'undefined') patch.location = params.updates.location;
+        if (typeof params.updates.bio !== 'undefined') patch.bio = params.updates.bio;
+        if (typeof params.updates.twoFactorEnabled !== 'undefined') patch.twoFactorEnabled = params.updates.twoFactorEnabled;
+        if (typeof params.updates.notificationPreferences !== 'undefined')
+          patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
+        if (typeof params.updates.uiPreferences !== 'undefined') patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
+        if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
+        if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
 
-    const patch: Record<string, unknown> = {};
-    if (typeof params.updates.fullName !== 'undefined') patch.fullName = params.updates.fullName;
-    if (typeof params.updates.role !== 'undefined') patch.role = params.updates.role;
-    if (typeof params.updates.avatarUrl !== 'undefined') patch.avatarUrl = params.updates.avatarUrl;
-    if (typeof params.updates.phone !== 'undefined') patch.phone = params.updates.phone;
-    if (typeof params.updates.location !== 'undefined') patch.location = params.updates.location;
-    if (typeof params.updates.bio !== 'undefined') patch.bio = params.updates.bio;
-    if (typeof params.updates.twoFactorEnabled !== 'undefined') patch.twoFactorEnabled = params.updates.twoFactorEnabled;
-    if (typeof params.updates.notificationPreferences !== 'undefined') patch.notificationPreferences = normalizeJson(params.updates.notificationPreferences);
-    if (typeof params.updates.uiPreferences !== 'undefined') patch.uiPreferences = normalizeJson(params.updates.uiPreferences);
-    if (typeof params.updates.socialProfile !== 'undefined') patch.socialProfile = normalizeJson(params.updates.socialProfile);
-    if (typeof params.updates.billingInfo !== 'undefined') patch.billingInfo = normalizeJson(params.updates.billingInfo);
+        const updatedCount = await prisma.profile.updateMany({
+          where: {
+            id: String(profileId),
+            organizationId: String(organizationId),
+            clerkUserId: String(clerkUserId),
+          },
+          data: patch,
+        });
+        if (!updatedCount.count) {
+          return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
+        }
 
-    const updatedCount = await prisma.profile.updateMany({
-      where: {
-        id: String(profileId),
-        organizationId: String(workspace.id),
-        clerkUserId: String(clerkUserId),
+        const updated = await prisma.profile.findFirst({
+          where: {
+            id: String(profileId),
+            organizationId: String(organizationId),
+            clerkUserId: String(clerkUserId),
+          },
+        });
+        if (!updated) {
+          return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
+        }
+
+        return createSuccessResponse({ profile: toProfileRecord(updated) });
       },
-      data: patch,
-    });
-    if (!updatedCount.count) {
-      return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
-    }
-
-    const updated = await prisma.profile.findFirst({
-      where: {
-        id: String(profileId),
-        organizationId: String(workspace.id),
-        clerkUserId: String(clerkUserId),
-      },
-    });
-    if (!updated) {
-      return createErrorResponse('Failed', 'שגיאה בעדכון פרופיל');
-    }
-
-    return createSuccessResponse({ profile: toProfileRecord(updated) });
+      { source: 'server_actions_profiles', reason: 'upsertMyProfile' }
+    );
   } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בעדכון פרופיל');
   }

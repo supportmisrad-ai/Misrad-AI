@@ -4,20 +4,8 @@ import prisma from '@/lib/prisma';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-export const runtime = 'nodejs';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : String(error ?? '');
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+export const runtime = 'nodejs';
 
 async function GETHandler(req: Request) {
   try {

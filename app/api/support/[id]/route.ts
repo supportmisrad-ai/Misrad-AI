@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Support Ticket by ID
  * PATCH /api/support/[id] - Update support ticket (status, assignment, response)
@@ -17,7 +18,17 @@ import { sendWebPushNotificationToEmails } from '@/lib/server/web-push';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function toIsoString(input: any): string | undefined {
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+type UnknownRecord = Record<string, unknown>;
+type SupportTicketUpdateData = Parameters<typeof prisma.scale_support_tickets.update>[0]['data'];
+
+
+function asString(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+function toIsoString(input: unknown): string | undefined {
     if (!input) return undefined;
     if (input instanceof Date) return input.toISOString();
     if (typeof input === 'string') return input;
@@ -32,23 +43,27 @@ function formatStatusLabel(s: string): string {
     return String(s || '');
 }
 
-function normalizeMetadata(input: any): Record<string, unknown> | undefined {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
-    return input as Record<string, unknown>;
+function normalizeMetadata(input: unknown): Record<string, unknown> | undefined {
+    const obj = asObject(input);
+    return obj ?? undefined;
 }
 
 const SUPPORT_TICKET_CATEGORIES: SupportTicketCategory[] = ['Tech', 'Account', 'Billing', 'Feature'];
 const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = ['open', 'in_progress', 'waiting_for_customer', 'resolved', 'closed'];
 
-function normalizeCategory(input: any): SupportTicketCategory {
-    return SUPPORT_TICKET_CATEGORIES.includes(input) ? input : 'Tech';
+function normalizeCategory(input: unknown): SupportTicketCategory {
+    return typeof input === 'string' && SUPPORT_TICKET_CATEGORIES.includes(input as SupportTicketCategory)
+        ? (input as SupportTicketCategory)
+        : 'Tech';
 }
 
-function normalizeStatus(input: any): SupportTicketStatus {
-    return SUPPORT_TICKET_STATUSES.includes(input) ? input : 'open';
+function normalizeStatus(input: unknown): SupportTicketStatus {
+    return typeof input === 'string' && SUPPORT_TICKET_STATUSES.includes(input as SupportTicketStatus)
+        ? (input as SupportTicketStatus)
+        : 'open';
 }
 
-function normalizePriority(input: any): Priority {
+function normalizePriority(input: unknown): Priority {
     if (input === Priority.LOW || input === 'low') return Priority.LOW;
     if (input === Priority.MEDIUM || input === 'medium') return Priority.MEDIUM;
     if (input === Priority.HIGH || input === 'high') return Priority.HIGH;
@@ -56,7 +71,32 @@ function normalizePriority(input: any): Priority {
     return Priority.MEDIUM;
 }
 
-function normalizeTicket(ticket: any): SupportTicket {
+function normalizeTicket(ticket: {
+    id: string;
+    user_id: string;
+    tenant_id: string | null;
+    category: string;
+    subject: string;
+    message: string;
+    ticket_number: string;
+    status: string;
+    priority: string;
+    assigned_to: string | null;
+    resolved_by: string | null;
+    created_at: Date | null;
+    updated_at: Date | null;
+    resolved_at: Date | null;
+    closed_at: Date | null;
+    read_at: Date | null;
+    handled_at: Date | null;
+    sla_deadline: Date | null;
+    first_response_at: Date | null;
+    resolution_time_minutes: number | null;
+    last_updated_by: string | null;
+    admin_response: string | null;
+    resolution_notes: string | null;
+    metadata: unknown;
+}): SupportTicket {
     return {
         id: String(ticket.id),
         user_id: String(ticket.user_id),
@@ -108,7 +148,7 @@ async function insertTicketEvent(params: {
                 JSON.stringify(params.metadata ?? {}),
             ],
         });
-    } catch (error) {
+    } catch (error: unknown) {
         try {
             await executeRawTenantScoped(prisma, {
                 tenantId: String(params.workspaceId),
@@ -124,7 +164,8 @@ async function insertTicketEvent(params: {
                 ],
             });
         } catch {
-            console.warn('[support][events] insert failed', error);
+            if (IS_PROD) console.warn('[support][events] insert failed');
+            else console.warn('[support][events] insert failed', error);
         }
     }
 }
@@ -157,14 +198,14 @@ async function resolveUserEmail(userId: string): Promise<string | null> {
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
 
         const { workspaceId, orgKey } = await getWorkspaceOrThrow(request);
 
-        const { id: ticketId } = await params;
+        const { id: ticketId } = params;
 
         if (!ticketId) {
             return apiError('Ticket ID is required', { status: 400 });
@@ -178,11 +219,6 @@ async function PATCHHandler(
         if (!existingTicket) {
             return apiError('קריאת תמיכה לא נמצאה', { status: 404 });
         }
-
-        const existingTicketMeta = existingTicket as typeof existingTicket & {
-            handled_at?: Date | null;
-            read_at?: Date | null;
-        };
         if (String(existingTicket.tenant_id || '') !== String(workspaceId)) {
             return apiError('Forbidden', { status: 403 });
         }
@@ -196,11 +232,20 @@ async function PATCHHandler(
             return apiError('אין הרשאה לעדכן קריאת תמיכה זו', { status: 403 });
         }
 
-        const body = await request.json();
-        const { status, priority, assigned_to, admin_response, comment, resolution_notes, read_at, send_email } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const statusRaw = bodyObj.status;
+        const priorityRaw = bodyObj.priority;
+        const assigned_to = bodyObj.assigned_to;
+        const admin_response = bodyObj.admin_response;
+        const comment = bodyObj.comment;
+        const resolution_notes = bodyObj.resolution_notes;
+        const read_at = bodyObj.read_at;
+        const send_email = bodyObj.send_email;
+        const sendEmail = send_email === true;
 
         // Build update data
-        const updateData: any = {};
+        const updateData: SupportTicketUpdateData = {};
         const now = new Date();
         const eventsToWrite: Array<{ action: string; metadata: Record<string, unknown> }> = [];
 
@@ -208,6 +253,7 @@ async function PATCHHandler(
 
         // Only admins can change status, assign, or add responses
         if (isAdmin) {
+            const status = asString(statusRaw);
             if (status) {
                 const validStatuses = ['open', 'in_progress', 'waiting_for_customer', 'resolved', 'closed'];
                 if (validStatuses.includes(status)) {
@@ -215,19 +261,19 @@ async function PATCHHandler(
                     if (status === 'resolved' && !existingTicket.resolved_by) {
                         updateData.resolved_by = user.id;
                     }
-                    if (['in_progress', 'resolved', 'closed'].includes(status) && !existingTicketMeta.handled_at) {
+                    if (['in_progress', 'resolved', 'closed'].includes(status) && !existingTicket.handled_at) {
                         updateData.handled_at = now;
                     }
 
-                    if (status === 'resolved' && !(existingTicket as any)?.resolved_at) {
+                    if (status === 'resolved' && !existingTicket.resolved_at) {
                         updateData.resolved_at = now;
                     }
-                    if (status === 'closed' && !(existingTicket as any)?.closed_at) {
+                    if (status === 'closed' && !existingTicket.closed_at) {
                         updateData.closed_at = now;
                     }
 
-                    if ((status === 'resolved' || status === 'closed') && (existingTicket as any)?.resolution_time_minutes == null) {
-                        const mins = minutesBetween((existingTicket as any)?.created_at ?? null, now);
+                    if ((status === 'resolved' || status === 'closed') && existingTicket.resolution_time_minutes == null) {
+                        const mins = minutesBetween(existingTicket.created_at ?? null, now);
                         if (mins != null) updateData.resolution_time_minutes = mins;
                     }
 
@@ -243,6 +289,7 @@ async function PATCHHandler(
                     }
                 }
             }
+            const priority = asString(priorityRaw);
             if (priority) {
                 const validPriorities = ['low', 'medium', 'high', 'urgent'];
                 if (validPriorities.includes(priority)) {
@@ -250,40 +297,41 @@ async function PATCHHandler(
                 }
             }
             if (assigned_to !== undefined) {
-                updateData.assigned_to = assigned_to || null;
+                updateData.assigned_to = typeof assigned_to === 'string' && assigned_to.trim() ? assigned_to : null;
             }
             if (admin_response !== undefined) {
-                updateData.admin_response = admin_response;
-                if (admin_response && !existingTicketMeta.handled_at) {
+                const normalizedAdminResponse = admin_response == null ? null : String(admin_response);
+                updateData.admin_response = normalizedAdminResponse;
+                if (normalizedAdminResponse && !existingTicket.handled_at) {
                     updateData.handled_at = now;
                 }
 
-                const prev = String((existingTicket as any)?.admin_response || '').trim();
-                const next = String(admin_response || '').trim();
+                const prev = String(existingTicket.admin_response || '').trim();
+                const next = String(normalizedAdminResponse || '').trim();
                 if (next && !prev) {
-                    if (!(existingTicket as any)?.first_response_at) {
+                    if (!existingTicket.first_response_at) {
                         updateData.first_response_at = now;
                     }
                     eventsToWrite.push({
                         action: 'admin_replied',
                         metadata: {
-                            via: send_email ? 'email+portal' : 'portal',
+                            via: sendEmail ? 'email+portal' : 'portal',
                         },
                     });
                 } else if (next && prev && next !== prev) {
                     eventsToWrite.push({
                         action: 'admin_replied',
                         metadata: {
-                            via: send_email ? 'email+portal' : 'portal',
+                            via: sendEmail ? 'email+portal' : 'portal',
                             edited: true,
                         },
                     });
                 }
             }
             if (resolution_notes !== undefined) {
-                updateData.resolution_notes = resolution_notes;
+                updateData.resolution_notes = resolution_notes == null ? null : String(resolution_notes);
             }
-            if (read_at === true && !existingTicketMeta.read_at) {
+            if (read_at === true && !existingTicket.read_at) {
                 updateData.read_at = now;
                 eventsToWrite.push({ action: 'marked_read', metadata: {} });
             }
@@ -292,10 +340,10 @@ async function PATCHHandler(
                 if (!updateData.status) {
                     updateData.status = 'waiting_for_customer';
                 }
-                if (!existingTicketMeta.handled_at) {
+                if (!existingTicket.handled_at) {
                     updateData.handled_at = now;
                 }
-                if (!(existingTicket as any)?.first_response_at) {
+                if (!existingTicket.first_response_at) {
                     updateData.first_response_at = now;
                 }
             }
@@ -303,16 +351,16 @@ async function PATCHHandler(
 
         // Users can only update their own open tickets (subject/message)
         if (isOwner && existingTicket.status === 'open') {
-            if (body.subject) updateData.subject = body.subject;
-            if (body.message) updateData.message = body.message;
+            if (typeof bodyObj.subject === 'string' && bodyObj.subject.trim()) updateData.subject = bodyObj.subject;
+            if (typeof bodyObj.message === 'string' && bodyObj.message.trim()) updateData.message = bodyObj.message;
 
-            if (body.subject || body.message) {
+            if (bodyObj.subject || bodyObj.message) {
                 eventsToWrite.push({
                     action: 'updated',
                     metadata: {
                         fields: {
-                            subject: body.subject ? true : false,
-                            message: body.message ? true : false,
+                            subject: bodyObj.subject ? true : false,
+                            message: bodyObj.message ? true : false,
                         },
                     },
                 });
@@ -381,7 +429,7 @@ async function PATCHHandler(
             });
         }
 
-        if (isAdmin && commentText && send_email) {
+        if (isAdmin && commentText && sendEmail) {
             const userEmail = await resolveUserEmail(String(existingTicket.user_id));
             if (userEmail) {
                 await sendSupportTicketReplyEmail({
@@ -416,7 +464,8 @@ async function PATCHHandler(
             }
         }
 
-        if (isAdmin && admin_response && send_email) {
+        const normalizedAdminResponseForEmail = admin_response == null ? '' : String(admin_response).trim();
+        if (isAdmin && normalizedAdminResponseForEmail && sendEmail) {
             const userEmail = await resolveUserEmail(String(existingTicket.user_id));
             if (userEmail) {
                 await sendSupportTicketReplyEmail({
@@ -424,7 +473,7 @@ async function PATCHHandler(
                     name: null,
                     ticketNumber: transformedTicket.ticket_number,
                     subject: transformedTicket.subject,
-                    reply: String(admin_response),
+                    reply: normalizedAdminResponseForEmail,
                     orgSlug: String(orgKey || workspaceId),
                 });
             }
@@ -435,14 +484,17 @@ async function PATCHHandler(
             message: 'קריאת תמיכה עודכנה בהצלחה'
         });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/support/[id] PATCH:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/support/[id] PATCH');
+        else console.error('[API] Error in /api/support/[id] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בעדכון קריאת תמיכה',
+        const msg = getUnknownErrorMessage(error);
+        const safeMsg = 'שגיאה בעדכון קריאת תמיכה';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }

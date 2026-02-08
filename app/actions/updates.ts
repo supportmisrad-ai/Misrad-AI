@@ -5,36 +5,49 @@ import { translateError } from '@/lib/errorTranslations';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
   return typeof v === 'string' ? v : v == null ? '' : String(v);
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
 function isMissingTableError(error: unknown, tableName: string) {
   const obj = asObject(error);
   const msg = String(obj?.message || '');
-  return msg.includes(`Could not find the table 'public.${tableName}' in the schema cache`);
+  const code = String(obj?.code || '').toLowerCase();
+  return (
+    code === 'p2021' ||
+    code === '42p01' ||
+    msg.includes(`Could not find the table 'public.${tableName}' in the schema cache`)
+  );
 }
 
-async function getOrCreateSocialUserIdForClerkUserId(clerkUserId: string): Promise<string | null> {
+function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toLowerCase();
+  const msg = String(obj.message ?? '').toLowerCase();
+  return (
+    code === 'p2021' ||
+    code === 'p2022' ||
+    code === '42p01' ||
+    code === '42703' ||
+    msg.includes('could not find the table') ||
+    msg.includes('schema cache') ||
+    msg.includes('does not exist') ||
+    msg.includes('relation') ||
+    msg.includes('column')
+  );
+}
+
+async function getOrCreateOrganizationUserIdForClerkUserId(clerkUserId: string): Promise<string | null> {
   const id = String(clerkUserId || '').trim();
   if (!id) return null;
 
   try {
-    const existing = await prisma.social_users.findUnique({
+    const existing = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: id },
       select: { id: true },
     });
@@ -45,7 +58,7 @@ async function getOrCreateSocialUserIdForClerkUserId(clerkUserId: string): Promi
 
   const now = new Date();
   try {
-    const created = await prisma.social_users.create({
+    const created = await prisma.organizationUser.create({
       data: {
         clerk_user_id: id,
         role: 'team_member',
@@ -60,7 +73,7 @@ async function getOrCreateSocialUserIdForClerkUserId(clerkUserId: string): Promi
     const code = getStringProp(errorObj, 'code');
     if (code === 'P2002') {
       try {
-        const existingAfter = await prisma.social_users.findUnique({
+        const existingAfter = await prisma.organizationUser.findUnique({
           where: { clerk_user_id: id },
           select: { id: true },
         });
@@ -71,6 +84,10 @@ async function getOrCreateSocialUserIdForClerkUserId(clerkUserId: string): Promi
     }
     throw error;
   }
+}
+
+async function getOrCreateSocialUserIdForClerkUserId(clerkUserId: string): Promise<string | null> {
+  return await getOrCreateOrganizationUserIdForClerkUserId(clerkUserId);
 }
 
 export interface AppUpdate {
@@ -112,7 +129,10 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
     console.error('Error getting updates:', error);
-    if (isMissingTableError(error, 'app_updates')) {
+    if (isMissingTableError(error, 'app_updates') || isSchemaMismatchError(error)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] app_updates missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+      }
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -173,7 +193,10 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
     return { success: true, data: formattedUpdates };
   } catch (error: unknown) {
     console.error('Error getting updates with status:', error);
-    if (isMissingTableError(error, 'app_updates')) {
+    if (isMissingTableError(error, 'app_updates') || isSchemaMismatchError(error)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] app_updates/user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+      }
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -218,7 +241,10 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
     return { success: true };
   } catch (error: unknown) {
     console.error('Error marking update as viewed:', error);
-    if (isMissingTableError(error, 'user_update_views')) {
+    if (isMissingTableError(error, 'user_update_views') || isSchemaMismatchError(error)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+      }
       return { success: true };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסימון עדכון') };
@@ -268,7 +294,14 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
     return { success: true, count: unreadCount };
   } catch (error: unknown) {
     console.error('Error getting unread count:', error);
-    if (isMissingTableError(error, 'app_updates') || isMissingTableError(error, 'user_update_views')) {
+    if (
+      isMissingTableError(error, 'app_updates') ||
+      isMissingTableError(error, 'user_update_views') ||
+      isSchemaMismatchError(error)
+    ) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] app_updates/user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+      }
       return { success: true, count: 0 };
     }
     return { success: true, count: 0 }; // Return 0 on error to not block UI

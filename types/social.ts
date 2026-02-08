@@ -190,6 +190,7 @@ export interface SocialPost {
   clientId: string;
   content: string;
   mediaUrl?: string;
+  mediaRef?: string;
   platforms: SocialPlatform[];
   status: PostStatus;
   scheduledAt: string;
@@ -207,6 +208,7 @@ export interface AIOpportunity {
   type: 'event' | 'gap' | 'trend' | 'payment_alert' | 'client_request';
   draftContent?: string;
   mediaUrl?: string;
+  mediaRef?: string;
 }
 
 export interface PostVariation {
@@ -236,6 +238,7 @@ export interface Idea {
   description?: string;
   category?: string;
   mediaUrl?: string;
+  mediaRef?: string;
   status?: string;
   createdAt: string;
 }
@@ -297,6 +300,7 @@ export interface ClientRequest {
   type: 'media' | 'text' | 'campaign';
   content: string;
   mediaUrl?: string;
+  mediaRef?: string;
   timestamp: string;
   status: 'new' | 'processed' | 'needs_fix';
   managerComment?: string;

@@ -18,11 +18,13 @@ export default async function OperationsSettingsPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug } = await params;
-  const sp = (await searchParams) ?? {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const errorRaw = sp.error;
   const error = errorRaw ? String(Array.isArray(errorRaw) ? errorRaw[0] : errorRaw) : null;
 

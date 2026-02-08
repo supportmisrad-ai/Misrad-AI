@@ -1,7 +1,7 @@
 'use server';
 
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
-import { getContentByKey, getSiteContent, updateSiteContent } from './site-content';
+import { getContentByKey, getSiteContent, SiteContent, updateSiteContent } from './site-content';
 import { requireSuperAdmin } from '@/lib/auth';
 import { LEGAL_DEFAULTS } from '@/lib/legal-defaults';
 
@@ -15,16 +15,16 @@ function applyDefaultDate(markdown: string) {
 export async function getAllSiteContent(): Promise<{
   success: boolean;
   data?: {
-    landing: any[];
-    pricing: any[];
-    legal: any[];
+    landing: SiteContent[];
+    pricing: SiteContent[];
+    legal: SiteContent[];
   };
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -53,7 +53,7 @@ export async function seedDefaultLegalDocuments(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -62,7 +62,7 @@ export async function seedDefaultLegalDocuments(): Promise<{
     const entries = Object.entries(LEGAL_DEFAULTS) as Array<[string, string]>;
 
     for (const [key, markdown] of entries) {
-      const existing = await getContentByKey('legal', 'documents', key as any);
+      const existing = await getContentByKey('legal', 'documents', key);
       const existingText = typeof existing.data === 'string' ? existing.data.trim() : '';
 
       const needsRepair =
@@ -76,9 +76,9 @@ export async function seedDefaultLegalDocuments(): Promise<{
 
       if (!needsRepair) continue;
 
-      const result = await updateSiteContent('legal', 'documents', key as any, applyDefaultDate(markdown));
+      const result = await updateSiteContent('legal', 'documents', key, applyDefaultDate(markdown));
       if (!result.success) {
-        return result as any;
+        return result;
       }
       seededKeys.push(key);
     }
@@ -97,13 +97,13 @@ export async function bulkUpdateSiteContent(
     page: 'landing' | 'pricing' | 'legal';
     section: string;
     key: string;
-    content: any;
+    content: unknown;
   }>
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();

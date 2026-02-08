@@ -1,10 +1,6 @@
-import type { ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import FinanceModuleClient from './FinanceModuleClient';
 
-export default function FinanceModuleEntryClient(props: {
-  children: ReactNode;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
-}) {
+export default function FinanceModuleEntryClient(props: ComponentProps<typeof FinanceModuleClient>) {
   return <FinanceModuleClient {...props} />;
 }

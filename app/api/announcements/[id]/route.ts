@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Announcement Management API
  * 
@@ -13,20 +14,11 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 type UnknownRecord = Record<string, unknown>;
-
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
 
 function isMissingTableOrSchemaError(error: unknown): boolean {
     const errObj = asObject(error);
@@ -61,7 +53,7 @@ async function updateAnnouncementInWorkspace(params: { announcementId: string; w
 
 async function DELETEHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -73,7 +65,7 @@ async function DELETEHandler(
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const { id } = await params;
+        const { id } = params;
 
         // Soft delete - set is_active to false
         let updated: unknown;
@@ -85,9 +77,13 @@ async function DELETEHandler(
             });
         } catch (error: unknown) {
             if (isMissingTableOrSchemaError(error)) {
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+                }
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
-            console.error('[API] Error deleting announcement:', error);
+            if (IS_PROD) console.error('[API] Error deleting announcement');
+            else console.error('[API] Error deleting announcement:', error);
             return apiError('שגיאה במחיקת הודעה', { status: 500 });
         }
 
@@ -98,17 +94,19 @@ async function DELETEHandler(
         return apiSuccess({ ok: true }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in DELETE /api/announcements/[id]:', error);
+        if (IS_PROD) console.error('[API] Error in DELETE /api/announcements/[id]');
+        else console.error('[API] Error in DELETE /api/announcements/[id]:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה במחיקת הודעה' });
+        const msg = getErrorMessage(error) || 'שגיאה במחיקת הודעה';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -120,7 +118,7 @@ async function PATCHHandler(
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const { id } = await params;
+        const { id } = params;
         const body: unknown = await request.json();
         const bodyObj = asObject(body) ?? {};
 
@@ -138,9 +136,13 @@ async function PATCHHandler(
             });
         } catch (error: unknown) {
             if (isMissingTableOrSchemaError(error)) {
+                if (!ALLOW_SCHEMA_FALLBACKS) {
+                    throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+                }
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
-            console.error('[API] Error updating announcement:', error);
+            if (IS_PROD) console.error('[API] Error updating announcement');
+            else console.error('[API] Error updating announcement:', error);
             return apiError('שגיאה בעדכון הודעה', { status: 500 });
         }
 
@@ -151,11 +153,13 @@ async function PATCHHandler(
         return apiSuccess({ announcement }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in PATCH /api/announcements/[id]:', error);
+        if (IS_PROD) console.error('[API] Error in PATCH /api/announcements/[id]');
+        else console.error('[API] Error in PATCH /api/announcements/[id]:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'שגיאה בעדכון הודעה' });
+        const msg = getErrorMessage(error) || 'שגיאה בעדכון הודעה';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 

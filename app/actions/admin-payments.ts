@@ -5,19 +5,37 @@ import type { ActionResult } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 function toNumber(value: unknown): number {
   if (typeof value === 'number') return value;
   if (value instanceof Prisma.Decimal) return value.toNumber();
   const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 }
+
+function captureActionException(error: unknown, context: Record<string, unknown>) {
+  Sentry.withScope((scope) => {
+    scope.setTag('layer', 'server_action');
+    scope.setTag('domain', 'admin_payments');
+    for (const [k, v] of Object.entries(context)) {
+      scope.setExtra(k, v);
+    }
+    Sentry.captureException(error);
+  });
+}
+
+const UpdatePaymentOrderStatusInputSchema = z.object({
+  orderId: z.string().min(1),
+  status: z.enum(['pending', 'paid', 'cancelled']),
+});
+
+const UpdateInvoiceStatusInputSchema = z.object({
+  invoiceId: z.string().min(1),
+  status: z.enum(['paid', 'pending', 'overdue']),
+});
 
 async function logAdminPaymentAction(params: {
   userId: string;
@@ -44,8 +62,8 @@ async function logAdminPaymentAction(params: {
       },
       select: { id: true },
     });
-  } catch {
-    // ignore
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'logAdminPaymentAction', stage: 'write_log', userId: params.userId });
   }
 }
 
@@ -135,7 +153,8 @@ export async function getAllPayments(): Promise<
       invoices: invoices || [],
       subscriptionOrders: subscriptionOrdersOut || [],
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'getAllPayments' });
     return createErrorResponse(error, 'שגיאה בטעינת תשלומים');
   }
 }
@@ -148,6 +167,12 @@ export async function updatePaymentOrderStatus(
   status: 'pending' | 'paid' | 'cancelled'
 ): Promise<ActionResult<true>> {
   try {
+    const parsed = UpdatePaymentOrderStatusInputSchema.safeParse({ orderId, status });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'updatePaymentOrderStatus', stage: 'validate_input' });
+      return createErrorResponse(null, 'קלט לא תקין');
+    }
+
     const authCheck = await requireAuth();
     if (!authCheck.success) {
       return createErrorResponse(authCheck.error || 'נדרשת התחברות', authCheck.error || 'נדרשת התחברות');
@@ -156,7 +181,7 @@ export async function updatePaymentOrderStatus(
     await requireSuperAdmin();
 
     const existing = await prisma.social_payment_orders.findUnique({
-      where: { id: String(orderId) },
+      where: { id: String(parsed.data.orderId) },
       select: { id: true, client_id: true },
     });
 
@@ -176,19 +201,20 @@ export async function updatePaymentOrderStatus(
     }
 
     await prisma.social_payment_orders.update({
-      where: { id: String(orderId) },
-      data: { status, updated_at: new Date() },
+      where: { id: String(parsed.data.orderId) },
+      data: { status: parsed.data.status, updated_at: new Date() },
     });
 
     await logAdminPaymentAction({
       userId: String(authCheck.userId),
-      action: `עדכון סטטוס תשלום: ${orderId} ל-${status}`,
+      action: `עדכון סטטוס תשלום: ${parsed.data.orderId} ל-${parsed.data.status}`,
       organizationId,
-      metadata: { orderId: String(orderId), status },
+      metadata: { orderId: String(parsed.data.orderId), status: parsed.data.status },
     });
 
     return createSuccessResponse(true);
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'updatePaymentOrderStatus', orderId: String(orderId) });
     return createErrorResponse(error, 'שגיאה בעדכון סטטוס תשלום');
   }
 }
@@ -201,6 +227,12 @@ export async function updateInvoiceStatus(
   status: 'paid' | 'pending' | 'overdue'
 ): Promise<ActionResult<true>> {
   try {
+    const parsed = UpdateInvoiceStatusInputSchema.safeParse({ invoiceId, status });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'updateInvoiceStatus', stage: 'validate_input' });
+      return createErrorResponse(null, 'קלט לא תקין');
+    }
+
     const authCheck = await requireAuth();
     if (!authCheck.success) {
       return createErrorResponse(authCheck.error || 'נדרשת התחברות', authCheck.error || 'נדרשת התחברות');
@@ -209,7 +241,7 @@ export async function updateInvoiceStatus(
     await requireSuperAdmin();
 
     const existing = await prisma.social_invoices.findUnique({
-      where: { id: String(invoiceId) },
+      where: { id: String(parsed.data.invoiceId) },
       select: { id: true, client_id: true },
     });
 
@@ -229,19 +261,20 @@ export async function updateInvoiceStatus(
     }
 
     await prisma.social_invoices.update({
-      where: { id: String(invoiceId) },
-      data: { status },
+      where: { id: String(parsed.data.invoiceId) },
+      data: { status: parsed.data.status },
     });
 
     await logAdminPaymentAction({
       userId: String(authCheck.userId),
-      action: `עדכון סטטוס חשבונית: ${invoiceId} ל-${status}`,
+      action: `עדכון סטטוס חשבונית: ${parsed.data.invoiceId} ל-${parsed.data.status}`,
       organizationId,
-      metadata: { invoiceId: String(invoiceId), status },
+      metadata: { invoiceId: String(parsed.data.invoiceId), status: parsed.data.status },
     });
 
     return createSuccessResponse(true);
-  } catch (error) {
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'updateInvoiceStatus', invoiceId: String(invoiceId) });
     return createErrorResponse(error, 'שגיאה בעדכון סטטוס חשבונית');
   }
 }

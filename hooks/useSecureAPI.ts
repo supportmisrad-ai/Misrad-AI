@@ -335,6 +335,9 @@ export function useSecureAPI() {
     const fetchClients = useCallback(async (options?: {
         clientId?: string;
         status?: string;
+        cursor?: string | null;
+        take?: number;
+        search?: string;
     }) => {
         setIsLoading(true);
         setError(null);
@@ -343,6 +346,9 @@ export function useSecureAPI() {
             const params = new URLSearchParams();
             if (options?.clientId) params.append('id', String(options.clientId));
             if (options?.status) params.append('status', String(options.status));
+            if (options?.cursor) params.append('cursor', String(options.cursor));
+            if (options?.take != null) params.append('take', String(options.take));
+            if (options?.search) params.append('search', String(options.search));
             
             const response = await secureFetch(`/api/clients?${params.toString()}`);
             
@@ -357,10 +363,18 @@ export function useSecureAPI() {
                 throw new Error('שגיאה בטעינת הלקוחות');
             }
             
-            const data: unknown = await response.json();
-            const dataObj = asObject(data) ?? {};
-            const clients = Array.isArray(dataObj.clients) ? (dataObj.clients as Client[]) : [];
-            return options?.clientId ? data : clients;
+            const raw: unknown = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+
+            if (options?.clientId) {
+                return payload;
+            }
+
+            const payloadObj = asObject(payload) ?? {};
+            const clients = Array.isArray(payloadObj.clients) ? (payloadObj.clients as Client[]) : [];
+            const nextCursor = typeof payloadObj.nextCursor === 'string' ? payloadObj.nextCursor : null;
+            const hasMore = Boolean(payloadObj.hasMore);
+            return { clients, nextCursor, hasMore };
             
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err) || 'שגיאה בטעינת הלקוחות';
@@ -452,9 +466,12 @@ export function useSecureAPI() {
                 throw new Error('שגיאה ביצירת הלקוח');
             }
             
-            const data = await response.json();
+            const raw: unknown = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+            const payloadObj = asObject(payload) ?? {};
+            const created = asObject(payloadObj.client) ?? payloadObj;
             addToast('לקוח נוצר בהצלחה', 'success');
-            return data;
+            return created;
             
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err) || 'שגיאה ביצירת לקוח';

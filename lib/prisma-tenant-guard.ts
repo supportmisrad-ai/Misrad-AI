@@ -5,12 +5,29 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 const ORG_KEYS = new Set(['organizationId', 'organization_id']);
 const TENANT_KEYS = new Set(['tenantId', 'tenant_id']);
 
+declare global {
+  var __MISRAD_PRISMA_TENANT_ISOLATION_OVERRIDE_COUNT__: number | undefined;
+}
+
 type TenantIsolationContext = {
   suppressReporting?: boolean;
+  reason?: string;
   source?: string;
   organizationId?: string | null;
   tenantId?: string | null;
+  mode?: 'default' | 'global_admin';
+  isSuperAdmin?: boolean;
 };
+
+type TenantIsolationOverrideContext = TenantIsolationContext & {
+  reason: string;
+};
+
+function incPrismaTenantIsolationOverrideCount(): number {
+  const next = (globalThis.__MISRAD_PRISMA_TENANT_ISOLATION_OVERRIDE_COUNT__ ?? 0) + 1;
+  globalThis.__MISRAD_PRISMA_TENANT_ISOLATION_OVERRIDE_COUNT__ = next;
+  return next;
+}
 
 const tenantIsolationAls = new AsyncLocalStorage<TenantIsolationContext>();
 
@@ -18,9 +35,118 @@ const TENANT_ISOLATION_OVERRIDE = Symbol.for('misrad.prismaTenantIsolationOverri
 
 export function withPrismaTenantIsolationOverride<T extends Record<string, unknown>>(
   args: T,
-  ctx: TenantIsolationContext
+  ctx: TenantIsolationOverrideContext
 ): T {
-  (args as unknown as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] = ctx;
+  const reason = String(ctx?.reason || '').trim();
+  if (!reason) {
+    throw new Error('[TenantIsolation] withPrismaTenantIsolationOverride blocked: missing reason');
+  }
+
+  const allowlistRaw = String(process.env.PRISMA_TENANT_ISOLATION_OVERRIDE_ALLOWED_REASONS || '').trim();
+  if (process.env.NODE_ENV === 'production' && allowlistRaw) {
+    const allowed = new Set(
+      allowlistRaw
+        .split(',')
+        .map((x) => String(x || '').trim())
+        .filter(Boolean)
+    );
+    if (!allowed.has(reason)) {
+      throw new Error(`[TenantIsolation] withPrismaTenantIsolationOverride blocked: reason not allowlisted (${reason})`);
+    }
+  }
+
+  const count = incPrismaTenantIsolationOverrideCount();
+  const shouldReport = shouldReportTenantIsolation(ctx);
+
+  try {
+    const normalizeStackPath = (p: string): string =>
+      String(p || '').replaceAll('\\', '/').replaceAll('\r', '').trim();
+
+    const extractCallerFileFromStack = (stack: string | undefined): string | null => {
+      const s = String(stack || '');
+      if (!s) return null;
+      const lines = s.split('\n').map((x) => x.trim()).filter(Boolean);
+      for (const line of lines) {
+        const mParen = line.match(/\((.*?):\d+:\d+\)$/);
+        const mBare = line.match(/at\s+([^\s]+?):\d+:\d+$/);
+        const fileRaw = mParen?.[1] ?? mBare?.[1];
+        if (!fileRaw) continue;
+
+        const file = normalizeStackPath(fileRaw);
+        if (!file) continue;
+        if (file.includes('/node_modules/')) continue;
+        if (file.includes('/internal/')) continue;
+        if (file.endsWith('/lib/prisma-tenant-guard.ts')) continue;
+        if (file.includes('/lib/prisma-tenant-guard.ts:')) continue;
+
+        return file;
+      }
+      return null;
+    };
+
+    const stack = new Error().stack;
+    const callerFile = extractCallerFileFromStack(stack);
+
+    if (shouldReport && process.env.NODE_ENV !== 'production') {
+      try {
+        console.warn('[TenantIsolation][Override]', {
+          count,
+          reason,
+          source: ctx?.source ?? null,
+          callerFile,
+          organizationId: ctx?.organizationId ?? null,
+          tenantId: ctx?.tenantId ?? null,
+          mode: ctx?.mode ?? null,
+          isSuperAdmin: ctx?.isSuperAdmin ?? null,
+        });
+      } catch {
+      }
+    }
+
+    if (shouldReport) {
+      void import('./audit')
+        .then((m) =>
+          m.logAuditEvent('permission.check', 'prisma_tenant_isolation_override', {
+            details: {
+              count,
+              reason,
+              source: ctx?.source ?? null,
+              callerFile,
+              organizationId: ctx?.organizationId ?? null,
+              tenantId: ctx?.tenantId ?? null,
+              mode: ctx?.mode ?? null,
+              isSuperAdmin: ctx?.isSuperAdmin ?? null,
+            },
+            success: true,
+          })
+        )
+        .catch(() => null);
+
+      Sentry.withScope((scope) => {
+        scope.setTag('security_event', 'prisma_tenant_isolation_override');
+        scope.setTag('tenant_isolation_override_reason', reason);
+        const source = ctx?.source ?? tenantIsolationAls.getStore()?.source;
+        if (source) scope.setTag('tenant_isolation_context', source);
+        if (callerFile) scope.setTag('tenant_isolation_override_caller_file', callerFile);
+        scope.setLevel('warning');
+        scope.setExtra('tenant_isolation_override', {
+          count,
+          reason,
+          source,
+          callerFile,
+          organizationId: ctx?.organizationId ?? null,
+          tenantId: ctx?.tenantId ?? null,
+          mode: ctx?.mode ?? null,
+          isSuperAdmin: ctx?.isSuperAdmin ?? null,
+          nodeEnv: process.env.NODE_ENV,
+        });
+        Sentry.captureMessage('Prisma tenant isolation override used', 'warning');
+      });
+    }
+  } catch {
+  }
+
+  (args as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] = ctx;
   return args;
 }
 
@@ -30,6 +156,50 @@ export async function withTenantIsolationContext<T>(
 ): Promise<T> {
   const current = tenantIsolationAls.getStore() ?? {};
   return tenantIsolationAls.run({ ...current, ...ctx }, fn);
+}
+
+export function enterTenantIsolationContext(ctx: TenantIsolationContext): void {
+  const current = tenantIsolationAls.getStore() ?? {};
+
+  const currentOrg = normalizeScopeId(current.organizationId);
+  const nextOrg = normalizeScopeId(ctx.organizationId);
+  if (currentOrg) {
+    if (ctx.organizationId === null || (typeof ctx.organizationId === 'string' && !ctx.organizationId.trim())) {
+      throw new Error('[TenantIsolation] enterTenantIsolationContext blocked: attempted to clear organizationId');
+    }
+    if (nextOrg && nextOrg !== currentOrg) {
+      throw new Error(
+        `[TenantIsolation] enterTenantIsolationContext blocked: attempted to overwrite organizationId (${currentOrg} -> ${nextOrg})`
+      );
+    }
+  }
+
+  const currentTenant = normalizeScopeId(current.tenantId);
+  const nextTenant = normalizeScopeId(ctx.tenantId);
+  if (currentTenant) {
+    if (ctx.tenantId === null || (typeof ctx.tenantId === 'string' && !ctx.tenantId.trim())) {
+      throw new Error('[TenantIsolation] enterTenantIsolationContext blocked: attempted to clear tenantId');
+    }
+    if (nextTenant && nextTenant !== currentTenant) {
+      throw new Error(
+        `[TenantIsolation] enterTenantIsolationContext blocked: attempted to overwrite tenantId (${currentTenant} -> ${nextTenant})`
+      );
+    }
+  }
+
+  if (current.mode && ctx.mode && current.mode !== ctx.mode) {
+    throw new Error(
+      `[TenantIsolation] enterTenantIsolationContext blocked: attempted to overwrite mode (${String(current.mode)} -> ${String(ctx.mode)})`
+    );
+  }
+
+  if (current.isSuperAdmin !== undefined && ctx.isSuperAdmin !== undefined && current.isSuperAdmin !== ctx.isSuperAdmin) {
+    throw new Error(
+      `[TenantIsolation] enterTenantIsolationContext blocked: attempted to overwrite isSuperAdmin (${String(current.isSuperAdmin)} -> ${String(ctx.isSuperAdmin)})`
+    );
+  }
+
+  tenantIsolationAls.enterWith({ ...current, ...ctx });
 }
 
 function shouldReportTenantIsolation(override?: TenantIsolationContext): boolean {
@@ -68,6 +238,13 @@ function getExpectedScope(override?: TenantIsolationContext): { organizationId: 
     organizationId: normalizeScopeId(override?.organizationId ?? store?.organizationId),
     tenantId: normalizeScopeId(override?.tenantId ?? store?.tenantId),
   };
+}
+
+function isGlobalAdminContextAllowed(override?: TenantIsolationContext): boolean {
+  const store = tenantIsolationAls.getStore();
+  const mode = override?.mode ?? store?.mode;
+  if (mode !== 'global_admin') return false;
+  return (override?.isSuperAdmin ?? store?.isSuperAdmin) === true;
 }
 
 function captureTenantIsolation(params: {
@@ -119,6 +296,242 @@ function reportTenantIsolationBlocked(params: {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && value !== undefined && typeof value === 'object' && !Array.isArray(value);
+}
+
+const SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS = new Set<string>([
+  'feature_flags',
+  'landing_settings',
+  'module_icons',
+  'system_email_settings',
+  'global_branding',
+  'maintenance_settings',
+  'global_download_links',
+]);
+
+const SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES = ['nexus_onboarding_template:', 'nexus_billing_items:'];
+
+function extractScalarEquals(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+  const obj = value as Record<string, unknown>;
+  if (Object.prototype.hasOwnProperty.call(obj, 'equals')) return obj.equals;
+  return value;
+}
+
+function getDirectWhereFieldValue(where: unknown, field: string): unknown {
+  if (!where || typeof where !== 'object' || Array.isArray(where)) return undefined;
+  const obj = where as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(obj, field)) return undefined;
+  return extractScalarEquals(obj[field]);
+}
+
+function isWriteAction(action: string): boolean {
+  return new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'upsert', 'delete', 'deleteMany']).has(
+    action
+  );
+}
+
+function extractKeyValueFromArgs(action: string, args: Record<string, unknown>, field: string): unknown {
+  const where = args.where;
+  const data = args.data;
+  const create = args.create;
+  const update = args.update;
+
+  const fromWhere = getDirectWhereFieldValue(where, field);
+  if (fromWhere !== undefined) return fromWhere;
+
+  if (action === 'create' || action === 'createMany' || action === 'createManyAndReturn' || action === 'update' || action === 'updateMany') {
+    const fromData = getDirectWhereFieldValue(data, field);
+    if (fromData !== undefined) return fromData;
+  }
+
+  if (action === 'upsert') {
+    const fromCreate = getDirectWhereFieldValue(create, field);
+    if (fromCreate !== undefined) return fromCreate;
+    const fromUpdate = getDirectWhereFieldValue(update, field);
+    if (fromUpdate !== undefined) return fromUpdate;
+  }
+
+  return undefined;
+}
+
+function enforceSocialSystemSettingsAccess(params: {
+  action: string;
+  args: Record<string, unknown>;
+  expectedOrganizationId: string | null;
+  isGlobalAdmin: boolean;
+  override?: TenantIsolationContext;
+}): void {
+  const action = params.action;
+  const keyRaw = extractKeyValueFromArgs(action, params.args, 'key');
+  const key = typeof keyRaw === 'string' ? keyRaw.trim() : '';
+
+  if (!key) {
+    const message = `[TenantIsolation] social_system_settings blocked: missing key. (social_system_settings.${action})`;
+    reportTenantIsolationBlocked({ message, model: 'social_system_settings', action, reason: 'missing_key', override: params.override });
+    throw new Error(message);
+  }
+
+  const isOrgKey = SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES.some((p) => key.startsWith(p));
+  const isGlobalKey = SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS.has(key);
+
+  if (isOrgKey) {
+    const expected = params.expectedOrganizationId;
+    if (!expected) {
+      const message = `[TenantIsolation] social_system_settings blocked: missing organization context. (social_system_settings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'social_system_settings',
+        action,
+        reason: 'missing_organization_context',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+
+    if (!key.endsWith(`:${expected}`)) {
+      const message = `[TenantIsolation] social_system_settings blocked: key scope mismatch. (social_system_settings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'social_system_settings',
+        action,
+        reason: 'key_scope_mismatch',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+  } else if (!isGlobalKey && !params.isGlobalAdmin) {
+    const message = `[TenantIsolation] social_system_settings blocked: key not allowlisted. (social_system_settings.${action})`;
+    reportTenantIsolationBlocked({
+      message,
+      model: 'social_system_settings',
+      action,
+      reason: 'key_not_allowlisted',
+      override: params.override,
+    });
+    throw new Error(message);
+  }
+
+  if (isWriteAction(action)) {
+    if (!isOrgKey && !params.isGlobalAdmin) {
+      const message = `[TenantIsolation] social_system_settings blocked: global write requires global_admin. (social_system_settings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'social_system_settings',
+        action,
+        reason: 'global_write_requires_global_admin',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+  }
+}
+
+function enforceGlobalSettingsAccess(params: {
+  action: string;
+  args: Record<string, unknown>;
+  isGlobalAdmin: boolean;
+  override?: TenantIsolationContext;
+}): void {
+  const action = params.action;
+  const idRaw = extractKeyValueFromArgs(action, params.args, 'id');
+  const id = typeof idRaw === 'string' ? idRaw.trim() : '';
+
+  if (!id) {
+    const message = `[TenantIsolation] global_settings blocked: missing id. (global_settings.${action})`;
+    reportTenantIsolationBlocked({ message, model: 'global_settings', action, reason: 'missing_id', override: params.override });
+    throw new Error(message);
+  }
+
+  if (id !== 'global') {
+    const message = `[TenantIsolation] global_settings blocked: id not allowlisted. (global_settings.${action})`;
+    reportTenantIsolationBlocked({ message, model: 'global_settings', action, reason: 'id_not_allowlisted', override: params.override });
+    throw new Error(message);
+  }
+
+  if (isWriteAction(action) && !params.isGlobalAdmin) {
+    const message = `[TenantIsolation] global_settings blocked: write requires global_admin. (global_settings.${action})`;
+    reportTenantIsolationBlocked({
+      message,
+      model: 'global_settings',
+      action,
+      reason: 'write_requires_global_admin',
+      override: params.override,
+    });
+    throw new Error(message);
+  }
+}
+
+function enforceSystemSettingsAccess(params: {
+  action: string;
+  args: Record<string, unknown>;
+  expectedOrganizationId: string | null;
+  isGlobalAdmin: boolean;
+  override?: TenantIsolationContext;
+}): void {
+  const action = params.action;
+  const tenantRaw = extractKeyValueFromArgs(action, params.args, 'tenant_id');
+
+  if (tenantRaw === undefined) {
+    if (params.isGlobalAdmin) {
+      const idRaw = extractKeyValueFromArgs(action, params.args, 'id');
+      const id = typeof idRaw === 'string' ? idRaw.trim() : '';
+      const idOnlyAllowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'update', 'delete']);
+      if (id && idOnlyAllowedActions.has(action)) {
+        return;
+      }
+    }
+
+    const message = `[TenantIsolation] system_settings blocked: missing tenant_id. (system_settings.${action})`;
+    reportTenantIsolationBlocked({ message, model: 'system_settings', action, reason: 'missing_tenant_id', override: params.override });
+    throw new Error(message);
+  }
+
+  const tenantId = tenantRaw == null ? null : normalizeScopeId(tenantRaw);
+  const expectedOrg = params.expectedOrganizationId;
+
+  if (tenantId === null) {
+    if (isWriteAction(action) && !params.isGlobalAdmin) {
+      const message = `[TenantIsolation] system_settings blocked: global write requires global_admin. (system_settings.${action})`;
+      reportTenantIsolationBlocked({
+        message,
+        model: 'system_settings',
+        action,
+        reason: 'global_write_requires_global_admin',
+        override: params.override,
+      });
+      throw new Error(message);
+    }
+
+    return;
+  }
+
+  if (params.isGlobalAdmin) {
+    return;
+  }
+
+  if (!expectedOrg) {
+    const message = `[TenantIsolation] system_settings blocked: tenant access requires context or global_admin. (system_settings.${action})`;
+    reportTenantIsolationBlocked({
+      message,
+      model: 'system_settings',
+      action,
+      reason: 'tenant_access_requires_context',
+      override: params.override,
+    });
+    throw new Error(message);
+  }
+
+  if (tenantId !== expectedOrg) {
+    const message = `[TenantIsolation] system_settings blocked: tenant_id scope mismatch. (system_settings.${action})`;
+    reportTenantIsolationBlocked({
+      message,
+      model: 'system_settings',
+      action,
+      reason: 'tenant_id_scope_mismatch',
+      override: params.override,
+    });
+    throw new Error(message);
+  }
 }
 
 function valueMatchesScope(expected: string, v: unknown): boolean {
@@ -363,10 +776,21 @@ function isSocialUserLookupByClerkUserIdUnscopedAllowed(params: {
   const modelLower = String(params.model || '').toLowerCase();
   if (modelLower !== 'social_users' && modelLower !== 'socialusers') return false;
   if (!params.where || typeof params.where !== 'object') return false;
-  const allowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'update']);
+  const allowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'update', 'updateMany']);
   if (!allowedActions.has(params.action)) return false;
   if (hasDirectKey(params.where, 'OR')) return false;
-  return hasDirectKey(params.where, 'clerk_user_id') || hasDirectKey(params.where, 'clerkUserId');
+  if (!isPlainObject(params.where)) return false;
+  const keys = Object.keys(params.where);
+  if (keys.length !== 1) return false;
+  const k = keys[0];
+  if (k !== 'clerk_user_id' && k !== 'clerkUserId') return false;
+  const v = params.where[k];
+  if (typeof v === 'string') return v.trim().length > 0;
+  if (!isPlainObject(v)) return false;
+  const vKeys = Object.keys(v);
+  if (vKeys.length !== 1 || vKeys[0] !== 'equals') return false;
+  const equals = v.equals;
+  return typeof equals === 'string' && equals.trim().length > 0;
 }
 
 function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params: {
@@ -424,14 +848,47 @@ export function installPrismaTenantGuard(
     'system_settings',
     'social_system_settings',
     'global_settings',
-    'User',
-    'users',
     ...(options?.excludedModels ?? []),
   ]);
 
   prisma.$use(async (params, next) => {
     const model = params.model;
-    if (!model || excludedModels.has(model)) {
+    if (!model) {
+      return next(params);
+    }
+
+    const args = (params.args ?? {}) as Record<string, unknown>;
+    const override = (args as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] as TenantIsolationOverrideContext | undefined;
+    const expected = getExpectedScope(override);
+    const isGlobalAdmin = isGlobalAdminContextAllowed(override);
+
+    const modelLower = String(model).toLowerCase();
+    if (modelLower === 'social_system_settings') {
+      enforceSocialSystemSettingsAccess({
+        action: params.action,
+        args,
+        expectedOrganizationId: expected.organizationId,
+        isGlobalAdmin,
+        override,
+      });
+      return next(params);
+    }
+    if (modelLower === 'global_settings') {
+      enforceGlobalSettingsAccess({ action: params.action, args, isGlobalAdmin, override });
+      return next(params);
+    }
+    if (modelLower === 'system_settings') {
+      enforceSystemSettingsAccess({
+        action: params.action,
+        args,
+        expectedOrganizationId: expected.organizationId,
+        isGlobalAdmin,
+        override,
+      });
+      return next(params);
+    }
+
+    if (excludedModels.has(model)) {
       return next(params);
     }
 
@@ -440,12 +897,8 @@ export function installPrismaTenantGuard(
       return next(params);
     }
 
-    const args = (params.args ?? {}) as Record<string, unknown>;
-    const override = (args as unknown as Record<PropertyKey, unknown>)[TENANT_ISOLATION_OVERRIDE] as TenantIsolationContext | undefined;
     const where = (args as { where?: unknown }).where;
     const action = params.action;
-
-    const expected = getExpectedScope(override);
 
     const actionsRequiringWhere = new Set([
       'findUnique',
@@ -464,7 +917,7 @@ export function installPrismaTenantGuard(
     ]);
 
     if (actionsRequiringWhere.has(action)) {
-      if (req.requiresOrg && !isWhereScoped(where, ORG_KEYS)) {
+      if (!isGlobalAdmin && req.requiresOrg && !isWhereScoped(where, ORG_KEYS)) {
         if (!expected.organizationId) {
           if (isProfileLookupByClerkUserIdUnscopedAllowed({ model, action, where })) {
             return next(params);
@@ -498,7 +951,7 @@ export function installPrismaTenantGuard(
         reportTenantIsolationBlocked({ message, model, action, reason: 'missing_organizationId_where', override });
         throw new Error(message);
       }
-      if (req.requiresOrg && expected.organizationId && !whereMatchesScope(where, ORG_KEYS, expected.organizationId)) {
+      if (!isGlobalAdmin && req.requiresOrg && expected.organizationId && !whereMatchesScope(where, ORG_KEYS, expected.organizationId)) {
         const message = `Tenant Guard Violation! Organization scope mismatch. (${model}.${action})`;
         reportTenantIsolationBlocked({ message, model, action, reason: 'organizationId_mismatch_where', override });
         throw new Error(message);

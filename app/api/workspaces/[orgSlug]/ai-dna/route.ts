@@ -1,5 +1,6 @@
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
@@ -8,23 +9,21 @@ import { AIService } from '@/lib/services/ai/AIService';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function toJsonObject(value: unknown): Prisma.InputJsonObject {
+  const obj = asObject(value) ?? {};
+  // Ensure the stored value is JSON-serializable (drops undefined / functions)
+  const normalized: unknown = JSON.parse(JSON.stringify(obj));
+  return (asObject(normalized) ?? {}) as Prisma.InputJsonObject;
 }
 
 async function GETHandler(
   _req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: { orgSlug: string } }
 ) {
   try {
     await getAuthenticatedUser();
@@ -34,7 +33,7 @@ async function GETHandler(
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = await params;
+    const { orgSlug } = params;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
@@ -67,7 +66,7 @@ async function GETHandler(
 
 async function PUTHandler(
   req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: { orgSlug: string } }
 ) {
   try {
     await getAuthenticatedUser();
@@ -82,7 +81,7 @@ async function PUTHandler(
       return apiError('Forbidden', { status: 403 });
     }
 
-    const { orgSlug } = await params;
+    const { orgSlug } = params;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
@@ -92,7 +91,7 @@ async function PUTHandler(
     const body: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(body) ?? {};
     const aiDnaRaw = bodyObj.aiDna;
-    const aiDna = asObject(aiDnaRaw) ?? {};
+    const aiDna = toJsonObject(aiDnaRaw);
 
     if (aiDnaRaw === null || typeof aiDnaRaw !== 'object' || Array.isArray(aiDnaRaw)) {
       return apiError('aiDna must be a JSON object', { status: 400 });
@@ -102,11 +101,11 @@ async function PUTHandler(
       where: { organization_id: String(workspace.id) },
       create: {
         organization_id: String(workspace.id),
-        ai_dna: aiDna as any,
+        ai_dna: aiDna,
         updated_at: new Date(),
       },
       update: {
-        ai_dna: aiDna as any,
+        ai_dna: aiDna,
         updated_at: new Date(),
       },
     });
@@ -127,9 +126,13 @@ async function PUTHandler(
         },
       });
     } catch (e: unknown) {
-      console.warn('[ai-dna] pgvector ingest skipped/failed (non-fatal)', {
-        message: getErrorMessage(e) || String(e),
-      });
+      if (IS_PROD) {
+        console.warn('[ai-dna] pgvector ingest skipped/failed (non-fatal)');
+      } else {
+        console.warn('[ai-dna] pgvector ingest skipped/failed (non-fatal)', {
+          message: getErrorMessage(e) || String(e),
+        });
+      }
     }
 
     await logAuditEvent('data.write', 'organization_settings.ai_dna', {

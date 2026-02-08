@@ -1,4 +1,5 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+import prisma from '@/lib/prisma';
+import { isSupabaseConfigured } from './supabase';
 
 /**
  * Get or create user in Supabase users table from Clerk user ID
@@ -10,57 +11,51 @@ export async function getOrCreateSupabaseUser(
   fullName?: string,
   imageUrl?: string
 ): Promise<string | null> {
-  if (!isSupabaseConfigured() || !supabase) {
+  if (!isSupabaseConfigured()) {
     console.warn('Supabase not configured');
     return null;
   }
 
   try {
-    // First, try to find existing user
-    const { data: existingUser, error: findError } = await supabase
-      .from('users')
-      .select('id, avatar_url')
-      .eq('clerk_user_id', clerkUserId)
-      .single();
+    const now = new Date();
 
-    if (existingUser && !findError) {
-      // Update avatar_url if provided and different
+    const existingUser = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: clerkUserId },
+      select: { id: true, avatar_url: true },
+    });
+
+    if (existingUser?.id) {
       if (imageUrl && existingUser.avatar_url !== imageUrl) {
-        await supabase
-          .from('users')
-          .update({ avatar_url: imageUrl })
-          .eq('id', existingUser.id);
+        await prisma.organizationUser.update({
+          where: { clerk_user_id: clerkUserId },
+          data: {
+            ...(email ? { email: String(email).trim().toLowerCase() } : {}),
+            ...(fullName ? { full_name: String(fullName) } : {}),
+            avatar_url: String(imageUrl),
+            updated_at: now,
+          },
+        });
       }
-      return existingUser.id;
+      return String(existingUser.id);
     }
 
-    // If not found, create new user
-    const { data: newUser, error: createError } = await supabase
-      .from('users')
-      .insert({
+    const newUser = await prisma.organizationUser.create({
+      data: {
         clerk_user_id: clerkUserId,
-        email: email,
-        full_name: fullName,
-        avatar_url: imageUrl,
-      })
-      .select('id')
-      .single();
+        email: email ? String(email).trim().toLowerCase() : null,
+        full_name: fullName ? String(fullName) : null,
+        avatar_url: imageUrl ? String(imageUrl) : null,
+        organization_id: null,
+        role: 'owner',
+        created_at: now,
+        updated_at: now,
+      },
+      select: { id: true },
+    });
 
-    if (createError || !newUser) {
-      console.error('Error creating user:', {
-        error: createError,
-        code: createError?.code,
-        message: createError?.message,
-        details: createError?.details,
-        hint: createError?.hint,
-      });
-      return null;
-    }
-
-    return newUser.id;
+    return newUser?.id ? String(newUser.id) : null;
   } catch (error) {
     console.error('Error in getOrCreateSupabaseUser:', error);
     return null;
   }
 }
-

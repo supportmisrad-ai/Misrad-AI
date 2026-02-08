@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Team Event by ID API
  * 
@@ -15,23 +16,12 @@ import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
     const fn = obj?.[name];
     return typeof fn === 'function';
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
 }
 
 type NexusTeamEventsDelegate = {
@@ -40,13 +30,22 @@ type NexusTeamEventsDelegate = {
     deleteMany: (args: { where: Record<string, unknown> }) => Promise<{ count: number }>;
 };
 
+function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDelegate {
+    return (
+        asObject(value) !== null &&
+        hasFunction(value, 'findFirst') &&
+        hasFunction(value, 'updateMany') &&
+        hasFunction(value, 'deleteMany')
+    );
+}
+
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const obj = asObject(prisma as unknown);
     const delegate = obj?.['nexus_team_events'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst') || !hasFunction(delegate, 'updateMany') || !hasFunction(delegate, 'deleteMany')) {
+    if (!isNexusTeamEventsDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_team_events is unavailable');
     }
-    return delegate as unknown as NexusTeamEventsDelegate;
+    return delegate;
 }
 
 function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
@@ -138,7 +137,7 @@ async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: 
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -157,7 +156,7 @@ async function PATCHHandler(
             return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
-        const { id } = await params;
+        const { id } = params;
 
         if (!id) {
             return apiError('Event ID is required', { status: 400 });
@@ -251,7 +250,8 @@ async function PATCHHandler(
         return apiSuccess({ event: updatedRow ? mapTeamEventRow(updatedRow) : null, message: 'אירוע עודכן בהצלחה' }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/team-events/[id] PATCH:', error);
+        if (IS_PROD) console.error('[API] Error in /api/team-events/[id] PATCH');
+        else console.error('[API] Error in /api/team-events/[id] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
@@ -265,7 +265,7 @@ async function PATCHHandler(
 
 async function DELETEHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -284,7 +284,7 @@ async function DELETEHandler(
             return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
-        const { id } = await params;
+        const { id } = params;
 
         if (!id) {
             return apiError('Event ID is required', { status: 400 });
@@ -326,7 +326,8 @@ async function DELETEHandler(
         return apiSuccess({ message: 'אירוע נמחק בהצלחה' }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/team-events/[id] DELETE:', error);
+        if (IS_PROD) console.error('[API] Error in /api/team-events/[id] DELETE');
+        else console.error('[API] Error in /api/team-events/[id] DELETE:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }

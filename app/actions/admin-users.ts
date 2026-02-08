@@ -8,21 +8,10 @@ import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { z } from 'zod';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
+import { asObject, getUnknownErrorMessageOrUnexpected as getUnknownErrorMessage } from '@/lib/shared/unknown';
 const IS_PROD = process.env.NODE_ENV === 'production';
 const DEBUG_ADMIN_USERS = process.env.DEBUG_ADMIN_USERS === 'true' && !IS_PROD;
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object") return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  return typeof obj?.message === 'string' ? obj.message : 'שגיאה לא צפויה';
-}
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   if (value == null) return {} as Prisma.InputJsonValue;
@@ -67,7 +56,7 @@ export async function getAdminUsersPage(params?: {
   search?: string;
 }): Promise<{ success: boolean; data?: { items: Array<{ id: string; name: string; email: string; role: string; plan: 'free'; registeredAt: string | null; lastActivity: string | null; isBanned: false; avatar: string | null }>; total: number }; error?: string }> {
   return await withTenantIsolationContext(
-    { suppressReporting: true, source: 'admin-users-page' },
+    { suppressReporting: true, reason: 'admin_users_page_load', source: 'admin-users-page' },
     async () => {
       try {
         const adminCheck = await requireSuperAdminOrFail();
@@ -78,8 +67,10 @@ export async function getAdminUsersPage(params?: {
           offset: params?.offset,
           search: params?.search,
         });
-        const limit = parsed.success ? parsed.data.limit : 25;
-        const offset = parsed.success ? parsed.data.offset : 0;
+        const limitRaw = parsed.success ? parsed.data.limit : 25;
+        const offsetRaw = parsed.success ? parsed.data.offset : 0;
+        const limit = Math.max(1, Math.min(200, Math.floor(Number(limitRaw ?? 25))));
+        const offset = Math.max(0, Math.floor(Number(offsetRaw ?? 0)));
         const search = parsed.success ? parsed.data.search : undefined;
 
         const s = search && search.trim() ? search.trim() : '';
@@ -94,7 +85,7 @@ export async function getAdminUsersPage(params?: {
 
         const [total, rows] = await prisma.$transaction([
           prisma.nexusUser.count(
-            withPrismaTenantIsolationOverride({ where }, { suppressReporting: true })
+            withPrismaTenantIsolationOverride({ where }, { suppressReporting: true, reason: 'admin_users_page_count_all', source: 'admin-users-page', mode: 'global_admin', isSuperAdmin: true })
           ),
           prisma.nexusUser.findMany(
             withPrismaTenantIsolationOverride({
@@ -102,7 +93,7 @@ export async function getAdminUsersPage(params?: {
               orderBy: { createdAt: 'desc' as const },
               skip: offset,
               take: limit,
-            }, { suppressReporting: true })
+            }, { suppressReporting: true, reason: 'admin_users_page_list_all', source: 'admin-users-page', mode: 'global_admin', isSuperAdmin: true })
           ),
         ]);
 

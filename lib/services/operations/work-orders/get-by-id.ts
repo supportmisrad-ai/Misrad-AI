@@ -1,7 +1,14 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
+import {
+  ALLOW_SCHEMA_FALLBACKS,
+  asObject,
+  getUnknownErrorMessage,
+  isSchemaMismatchError,
+  logOperationsError,
+  toIsoDate,
+} from '@/lib/services/operations/shared';
 import { resolveStorageUrlMaybe } from '@/lib/services/operations/storage';
 import {
   ensureOperationsPrimaryWarehouseHolderId,
@@ -135,7 +142,10 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
       },
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderById failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+    logOperationsError('[operations] getOperationsWorkOrderById failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאה' };
   }
 }

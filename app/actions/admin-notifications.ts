@@ -3,12 +3,15 @@
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { MisradNotificationType } from '@prisma/client';
+import { MisradNotificationType, Prisma } from '@prisma/client';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
-function isMissingOrganizationIdColumnError(err: any): boolean {
-  const message = String(err?.message || '').toLowerCase();
-  const code = String((err as any)?.code || '').toLowerCase();
+function isMissingOrganizationIdColumnError(err: unknown): boolean {
+  const message = String(getErrorMessage(err) || '').toLowerCase();
+  const obj = asObject(err) ?? {};
+  const codeRaw = obj.code;
+  const code = typeof codeRaw === 'string' ? codeRaw.toLowerCase() : String(codeRaw ?? '').toLowerCase();
   return code === '42703' || (message.includes('column') && message.includes('organization_id'));
 }
 
@@ -40,7 +43,7 @@ async function resolveOrganizationIdForNotification(params: {
 
   // Fallback to canonical clients
   const canonical = await prisma.clients.findFirst({
-    where: { id } as any,
+    where: { id: String(id) },
     select: { organization_id: true },
   });
   const canonicalOrg = canonical?.organization_id ? String(canonical.organization_id) : '';
@@ -77,7 +80,7 @@ export async function sendNotification(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -128,13 +131,13 @@ export async function getNotificationHistory(params?: {
   offset?: number;
 }): Promise<{
   success: boolean;
-  data?: any[];
+  data?: Prisma.MisradNotificationGetPayload<Prisma.MisradNotificationDefaultArgs>[];
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();

@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { orgExec, prisma } from '@/lib/services/operations/db';
-import { getUnknownErrorMessage } from '@/lib/services/operations/shared';
+import { getUnknownErrorMessage, logOperationsError } from '@/lib/services/operations/shared';
 import { ensureOperationsPrimaryWarehouseHolderId } from '@/lib/services/operations/stock-holders';
 
 export async function createOperationsItemForOrganizationId(params: {
@@ -52,7 +52,7 @@ export async function createOperationsItemForOrganizationId(params: {
 
     return { success: true, data: { itemId: String(created.id) } };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsItem failed', e);
+    logOperationsError('[operations] createOperationsItem failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
   }
 }

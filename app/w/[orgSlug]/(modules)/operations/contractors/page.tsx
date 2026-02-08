@@ -7,7 +7,7 @@ import { createOperationsContractorToken } from '@/app/actions/operations';
 export default async function OperationsContractorsPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;

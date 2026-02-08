@@ -7,7 +7,7 @@ import { MeetingResultDashboard } from './MeetingResultDashboard';
 import { Video, UploadCloud, Mic, MicOff, Zap, Plus, ArrowRight, LayoutGrid, Users } from 'lucide-react';
 import { createClinicSession, createClinicClient } from '@/app/actions/client-clinic';
 import { useAuth } from '@clerk/nextjs';
-import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
+import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -28,7 +28,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
 }) => {
   const { getToken } = useAuth();
   const supabase = useMemo(() => {
-    return createBrowserClientWithClerk(async () => {
+    return createBrowserStorageClientWithClerk(async () => {
       try {
         return await getToken({ template: 'supabase' });
       } catch {

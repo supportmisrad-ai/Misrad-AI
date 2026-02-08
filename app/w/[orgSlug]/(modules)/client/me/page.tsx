@@ -6,14 +6,9 @@ import { redirect } from 'next/navigation';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import ClientModuleEntryClient from '../ClientModuleEntryClient';
+import { asObject } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function getRoleFromMetadata(value: unknown): string | null {
   if (typeof value === 'string') return value;
@@ -25,7 +20,7 @@ function getRoleFromMetadata(value: unknown): string | null {
 export default async function ClientMePage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
 
@@ -33,7 +28,7 @@ export default async function ClientMePage({
 
   const clerkUserId = await getCurrentUserId();
   if (!clerkUserId) {
-    redirect('/sign-in');
+    redirect(`/login?redirect=${encodeURIComponent(`/w/${encodeURIComponent(orgSlug)}/client/me`)}`);
   }
 
   const clerkUser = await currentUser();
@@ -46,7 +41,7 @@ export default async function ClientMePage({
       }
     : null;
 
-  const user = await prisma.social_users.findFirst({
+  const user = await prisma.organizationUser.findFirst({
     where: { clerk_user_id: clerkUserId },
     select: { organization_id: true, role: true },
   });
@@ -78,7 +73,7 @@ export default async function ClientMePage({
       }
     | null = null;
 
-  const org = await prisma.social_organizations.findUnique({
+  const org = await prisma.organization.findUnique({
     where: { id: organizationId },
     select: { id: true, name: true, logo: true, has_client: true },
   });

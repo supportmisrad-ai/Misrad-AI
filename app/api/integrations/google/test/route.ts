@@ -10,14 +10,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 import { requireSuperAdmin } from '../../../../../lib/auth';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(request: NextRequest) {
     try {
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
-            return NextResponse.json({ configured: false, error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+        } catch (e: unknown) {
+            return NextResponse.json({ configured: false, error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
         }
 
         const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -43,8 +44,8 @@ async function GETHandler(request: NextRequest) {
                 );
                 clientCreated = true;
             }
-        } catch (error: any) {
-            clientError = error.message;
+        } catch (error: unknown) {
+            clientError = getErrorMessage(error) || 'Failed to create OAuth client';
         }
 
         // Check if client ID has correct format
@@ -83,11 +84,13 @@ async function GETHandler(request: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const obj = asObject(error);
+        const stack = error instanceof Error ? error.stack : typeof obj?.stack === 'string' ? obj.stack : undefined;
         return NextResponse.json({
             configured: false,
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: getErrorMessage(error),
+            stack: process.env.NODE_ENV === 'development' ? stack : undefined
         }, { status: 500 });
     }
 }

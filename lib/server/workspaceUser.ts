@@ -4,20 +4,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { findUserGlobalByEmail } from '@/lib/db';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
   const v = obj?.[key];
@@ -242,7 +229,7 @@ async function ensureNexusUserRow(params: {
   };
 
   // Prisma Client might be outdated locally; set lastSeenAt without relying on generated types.
-  (insertRow as unknown as Record<string, unknown>)['lastSeenAt'] = new Date();
+  (insertRow as Record<string, unknown>)['lastSeenAt'] = new Date();
 
   try {
     return await prisma.nexusUser.create({ data: insertRow });
@@ -312,7 +299,7 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const profileObj = asObject(profileRow) ?? {};
   const nexusObj = asObject(nexusUser) ?? {};
   const phoneValue = profileObj['phone'];
-  const resolvedPhone = phoneValue != null ? String(phoneValue) : null;
+  const resolvedPhone = phoneValue != null ? String(phoneValue) : undefined;
   const avatarValue = nexusObj['avatar'];
   const resolvedAvatar = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
   const capacityValue = nexusObj['capacity'];
@@ -320,16 +307,21 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const nexusEmail = typeof nexusObj['email'] === 'string' ? String(nexusObj['email']) : String(email);
   const nexusIsSuperAdmin = Boolean(nexusObj['is_super_admin'] ?? nexusObj['isSuperAdmin'] ?? isSuperAdmin);
 
+  const nexusId = String(nexusObj['id'] ?? '');
+  const profileId = String(profileObj['id'] ?? '');
+  const nameFromDb = String(nexusObj['name'] ?? '');
+  const roleFromDb = String(nexusObj['role'] ?? '');
+
   return {
-    id: String((nexusObj['id'] ?? '') || (nexusUser as unknown as { id?: unknown }).id || ''),
-    profileId: String((profileObj['id'] ?? '') || (profileRow as unknown as { id?: unknown }).id || ''),
-    name: String((nexusObj['name'] ?? '') || (nexusUser as unknown as { name?: unknown }).name || name),
-    role: String((nexusObj['role'] ?? '') || (nexusUser as unknown as { role?: unknown }).role || role || 'עובד'),
+    id: nexusId || '',
+    profileId: profileId || '',
+    name: nameFromDb || name,
+    role: roleFromDb || role || 'עובד',
     avatar: resolvedAvatar,
     online: true,
     capacity,
     email: nexusEmail,
-    phone: resolvedPhone,
+    ...(resolvedPhone !== undefined ? { phone: resolvedPhone } : {}),
     isSuperAdmin: nexusIsSuperAdmin,
     organizationId: workspaceId,
     tenantId: workspaceId,

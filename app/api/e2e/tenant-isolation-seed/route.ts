@@ -6,6 +6,8 @@ import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
@@ -86,11 +88,7 @@ export async function POST(req: Request) {
         })();
 
         const payload = serviceKey ? decodeJwtPayload(String(serviceKey)) : null;
-        const payloadObj = isRecord(payload) ? payload : null;
-        const role = payloadObj && payloadObj.role != null ? safeString(payloadObj.role) : null;
-        const iss = payloadObj && payloadObj.iss != null ? safeString(payloadObj.iss) : null;
-        const ref = payloadObj && payloadObj.ref != null ? safeString(payloadObj.ref) : null;
-        const aud = payloadObj && payloadObj.aud != null ? safeString(payloadObj.aud) : null;
+        const isJwt = Boolean(payload);
 
         const dbUrl = String(process.env.DATABASE_URL || '').trim();
         const directUrl = String(process.env.DIRECT_URL || '').trim();
@@ -109,14 +107,12 @@ export async function POST(req: Request) {
           }
         })();
 
-        console.warn('[E2E][tenant-isolation-seed] supabase host:', host);
-        console.warn('[E2E][tenant-isolation-seed] service role key is jwt:', Boolean(payload));
-        console.warn('[E2E][tenant-isolation-seed] service role key role claim:', role);
-        console.warn('[E2E][tenant-isolation-seed] service role key iss claim:', iss);
-        console.warn('[E2E][tenant-isolation-seed] service role key ref claim:', ref);
-        console.warn('[E2E][tenant-isolation-seed] service role key aud claim:', aud);
-        console.warn('[E2E][tenant-isolation-seed] DATABASE_URL host:', dbHost);
-        console.warn('[E2E][tenant-isolation-seed] DIRECT_URL host:', directHost);
+        if (!IS_PROD) {
+          console.warn('[E2E][tenant-isolation-seed] supabase host:', host);
+          console.warn('[E2E][tenant-isolation-seed] service role key is jwt:', isJwt);
+          console.warn('[E2E][tenant-isolation-seed] DATABASE_URL host:', dbHost);
+          console.warn('[E2E][tenant-isolation-seed] DIRECT_URL host:', directHost);
+        }
       } catch {
         // ignore
       }

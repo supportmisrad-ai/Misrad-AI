@@ -31,6 +31,12 @@ const eslintConfig = defineConfig([
                 "Prisma-First: אל תשתמש ב-@/lib/supabase-client (Supabase singleton). השתמש ב-Prisma או ב-@/lib/supabase רק ל-Auth/Storage/Realtime.",
             },
             {
+              name: "@/lib/supabase-browser",
+              importNames: ["createBrowserClientWithClerk"],
+              message:
+                "Prisma-First: בדפדפן אסור להשתמש ב-createBrowserClientWithClerk (full client). השתמש ב-createBrowserStorageClientWithClerk כדי להימנע מ-accidental PostgREST (.from/.rpc).",
+            },
+            {
               name: "@/lib/db",
               message:
                 "Prisma-First: אל תוסיף שימוש חדש ב-@/lib/db. שכבה זו נעולה (Tenant Isolation) ומיועדת למיגרציה החוצה.",
@@ -75,8 +81,27 @@ const eslintConfig = defineConfig([
           message:
             "Prisma-First: אל תשתמש ישירות ב-supabase.from(...). TODO: Migrate to Prisma.",
         },
+        {
+          selector: "FunctionDeclaration[id.name='asObject']",
+          message: "Utilities: אל תגדיר asObject מקומי. השתמש ב-@/lib/shared/unknown.",
+        },
+        {
+          selector: "FunctionDeclaration[id.name='getErrorMessage']",
+          message: "Utilities: אל תגדיר getErrorMessage מקומי. השתמש ב-@/lib/shared/unknown.",
+        },
+        {
+          selector: "FunctionDeclaration[id.name='getUnknownErrorMessage']",
+          message: "Utilities: אל תגדיר getUnknownErrorMessage מקומי. השתמש ב-@/lib/shared/unknown.",
+        },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
+
+  {
+    files: ["lib/shared/unknown.ts"],
+    rules: {
+      "no-restricted-syntax": "off",
     },
   },
 

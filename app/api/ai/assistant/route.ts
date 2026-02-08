@@ -5,7 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
-import { getContentByKey } from '@/app/actions/site-content';
+import { getContentByKey } from '@/lib/services/site-content';
 import { getAllDocsArticles, getDocsCategory } from '@/config/docs';
 import { getLinksHub } from '@/config/links-hub';
 import UI_MAP from '@/docs/UI_MAP.json';

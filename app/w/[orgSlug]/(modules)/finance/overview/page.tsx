@@ -1,6 +1,6 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { hasPermission } from '@/lib/auth';
-import { getFinanceOverviewData } from '@/lib/services/finance-service';
+import { getFinanceOverviewData, type FinanceOverviewData } from '@/lib/services/finance-service';
 import OverviewView from '@/components/finance/OverviewView';
 
 export const dynamic = 'force-dynamic';
@@ -8,12 +8,12 @@ export const dynamic = 'force-dynamic';
 export default async function FinanceOverviewPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
 
-  let initialFinanceOverview: any = null;
+  let initialFinanceOverview: FinanceOverviewData | null = null;
   const canViewFinancials = await hasPermission('view_financials');
   if (canViewFinancials) {
     const now = new Date();

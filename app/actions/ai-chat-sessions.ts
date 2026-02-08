@@ -157,7 +157,7 @@ export async function getAIInsights(filters?: {
 }) {
   try {
     const whereConditions: string[] = ['1=1'];
-    const params: any[] = [];
+    const params: Array<string | number | boolean | Date | null> = [];
     let paramIndex = 1;
 
     if (filters?.organizationId) {
@@ -184,7 +184,7 @@ export async function getAIInsights(filters?: {
       paramIndex++;
     }
 
-    const stats = await prisma.$queryRawUnsafe<any[]>(`
+    const stats = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
       SELECT
         COUNT(*) as total_sessions,
         AVG(messages_count) as avg_messages,
@@ -199,7 +199,7 @@ export async function getAIInsights(filters?: {
       GROUP BY situation_type
     `, ...params);
 
-    const topObjections = await prisma.$queryRawUnsafe<any[]>(`
+    const topObjections = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
       SELECT 
         jsonb_array_elements_text(detected_objections) as objection,
         COUNT(*) as count
@@ -212,7 +212,7 @@ export async function getAIInsights(filters?: {
       LIMIT 10
     `, ...params);
 
-    const topIndustries = await prisma.$queryRawUnsafe<any[]>(`
+    const topIndustries = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
       SELECT 
         detected_industry as industry,
         COUNT(*) as count

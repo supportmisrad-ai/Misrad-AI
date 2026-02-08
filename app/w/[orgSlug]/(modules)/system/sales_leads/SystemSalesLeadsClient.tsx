@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import type { Lead, PipelineStage } from '@/components/system/types';
+import type { Activity, Lead, PipelineStage } from '@/components/system/types';
 import ContactsView from '@/components/system/ContactsView';
 import LeadModal from '@/components/system/LeadModal';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import { createSystemLeadActivity, getSystemLeadsPage, updateSystemLead, updateSystemLeadStatus } from '@/app/actions/system-leads';
 import { useToast } from '@/components/system/contexts/ToastContext';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 export default function SystemSalesLeadsClient({
   orgSlug,
@@ -67,14 +68,14 @@ export default function SystemSalesLeadsClient({
 
       setNextCursor(res.data.nextCursor);
       setHasMore(Boolean(res.data.hasMore));
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת לידים', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת לידים', 'error');
     } finally {
       setIsLoadingMore(false);
     }
   };
 
-  const handleAddActivity = async (leadId: string, activity: any) => {
+  const handleAddActivity = async (leadId: string, activity: Activity) => {
     const res = await createSystemLeadActivity({
       orgSlug,
       leadId: String(leadId),
@@ -89,8 +90,8 @@ export default function SystemSalesLeadsClient({
       return;
     }
 
-    if ((res as any).lead) {
-      const updated = (res as any).lead as SystemLeadDTO;
+    if (res.lead) {
+      const updated = res.lead;
       setLeadsDto((prev) => prev.map((l) => (String(l.id) === String(updated.id) ? updated : l)));
     }
 
@@ -155,7 +156,7 @@ export default function SystemSalesLeadsClient({
           onScheduleMeeting={() => {
             addToast('קביעת פגישה זמינה ב-Calendar', 'info');
           }}
-          onStatusChange={(id, status) => void handleStatusChange(String(id), status as any)}
+          onStatusChange={(id, status) => void handleStatusChange(String(id), status)}
           onUpdateLead={(p) =>
             void handleUpdateLead({
               leadId: p.leadId,

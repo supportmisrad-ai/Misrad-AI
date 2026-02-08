@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * User Subscription & Purchased Modules
  * 
@@ -6,28 +7,14 @@
  */
 
 import { DEFAULT_OS_MODULE_PRIORITY, isOSModuleKey } from '@/lib/os/modules/registry';
-import { OSModule, OS_MODULES } from '../types/os-modules';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { OSModule, OS_MODULES } from '../types/os-modules';
 
 function getErrorName(error: unknown): string {
   if (error instanceof Error) return error.name;
   const obj = asObject(error);
   const name = obj?.name;
   return typeof name === 'string' ? name : '';
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+}
 
 function resolveOrgSlug(orgSlug?: string | null): string | null {
   if (orgSlug) return String(orgSlug);

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Deactivate Employee Invitation Link
  * POST /api/employees/invitations/[id]/deactivate
@@ -16,6 +17,8 @@ import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: string }) {
     const email = String(params.email || '').trim().toLowerCase();
     if (!email) return null;
@@ -26,25 +29,25 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
     });
 
     return row
-        ? { id: String(row.id), role: String(row.role || 'עובד'), isSuperAdmin: Boolean((row as any).isSuperAdmin) }
+        ? { id: String(row.id), role: String(row.role || 'עובד'), isSuperAdmin: Boolean(row.isSuperAdmin) }
         : null;
 }
 
 async function loadInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return (prisma as any).nexus_employee_invitation_links.findFirst({
+    return prisma.nexus_employee_invitation_links.findFirst({
         where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
     });
 }
 
 async function deactivateInvitationInWorkspace(params: { workspaceId: string; invitationId: string }) {
-    return (prisma as any).nexus_employee_invitation_links.updateMany({
+    return prisma.nexus_employee_invitation_links.updateMany({
         where: { id: String(params.invitationId), organizationId: String(params.workspaceId) },
         data: { is_active: false, updated_at: new Date() },
     });
 }
 async function POSTHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const { workspace } = await getWorkspaceOrThrow(request);
@@ -53,7 +56,7 @@ async function POSTHandler(
         let clerkUser;
         try {
             clerkUser = await getAuthenticatedUser();
-        } catch (authError: any) {
+        } catch (authError: unknown) {
             return apiError('Unauthorized', { status: 401 });
         }
 
@@ -68,7 +71,7 @@ async function POSTHandler(
             return apiError('User not found in database. Please sync your account first.', { status: 404 });
         }
 
-        const { id } = await params;
+        const { id } = params;
 
         // 3. Check if invitation exists and get it
         const invitation = await loadInvitationInWorkspace({ workspaceId: workspace.id, invitationId: id });
@@ -87,19 +90,19 @@ async function POSTHandler(
         try {
             const orgId = String(workspace.id || '');
             if (orgId) {
-                const orgSeatsRow = await (prisma as any).social_organizations.findUnique({
+                const orgSeatsRow = await prisma.organization.findUnique({
                     where: { id: orgId },
                     select: { seats_allowed: true },
                 });
 
-                seatsAllowedOverride = (orgSeatsRow as any)?.seats_allowed ?? null;
+                seatsAllowedOverride = orgSeatsRow?.seats_allowed ?? null;
             }
         } catch {
             seatsAllowedOverride = null;
         }
 
         const caps = computeWorkspaceCapabilities({
-            entitlements: (ws as any)?.entitlements,
+            entitlements: ws.entitlements,
             fullOfficeRequiresFinance: Boolean(flags.fullOfficeRequiresFinance),
             seatsAllowedOverride,
         });
@@ -116,7 +119,7 @@ async function POSTHandler(
 
         // 5. Deactivate invitation
         const updateRes = await deactivateInvitationInWorkspace({ workspaceId: workspace.id, invitationId: id });
-        if (!updateRes || typeof (updateRes as any).count !== 'number' || (updateRes as any).count < 1) {
+        if (!updateRes || typeof updateRes.count !== 'number' || updateRes.count < 1) {
             return apiError('שגיאה בביטול קישור הזמנה', { status: 500 });
         }
 
@@ -124,12 +127,15 @@ async function POSTHandler(
             message: 'קישור הזמנה בוטל בהצלחה'
         });
 
-    } catch (error: any) {
-        console.error('[API] Error deactivating invitation:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error deactivating invitation');
+        else console.error('[API] Error deactivating invitation:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: error.message || 'Failed to deactivate invitation' });
+        const msg = getUnknownErrorMessage(error) || 'Failed to deactivate invitation';
+        const safeMsg = 'Failed to deactivate invitation';
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

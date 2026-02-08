@@ -15,14 +15,14 @@ function mapCampaignDto(dto: WorkspaceCampaignDTO): Campaign {
   return {
     id: String(dto.id),
     name: String(dto.name || ''),
-    platform: String((dto as any).objective || ''),
-    status: normalizeCampaignStatus(String((dto as any).status || 'active')),
+    platform: String(dto.objective || ''),
+    status: normalizeCampaignStatus(String(dto.status || 'active')),
     budget: Number(dto.budget || 0),
     spent: Number(dto.spent || 0),
     leads: 0,
     cpl: 0,
     roas: Number(dto.roas || 0),
-    impressions: Number((dto as any).impressions || 0),
+    impressions: Number(dto.impressions || 0),
   };
 }
 

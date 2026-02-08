@@ -6,8 +6,9 @@ import Dashboard from '@/components/social/Dashboard';
 export default async function SocialModuleHome({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
   return <Dashboard orgSlug={orgSlug} />;
 }

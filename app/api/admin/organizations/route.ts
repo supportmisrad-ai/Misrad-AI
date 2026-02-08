@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { requireSuperAdmin } from '@/lib/auth';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -13,7 +14,7 @@ async function GETHandler(req: Request) {
     const q = (url.searchParams.get('q') || '').trim();
     const limit = Math.max(1, Math.min(500, Number(url.searchParams.get('limit') || 200)));
 
-    const organizations = await prisma.social_organizations.findMany({
+    const organizations = await prisma.organization.findMany({
       where: q
         ? {
             OR: [
@@ -42,8 +43,8 @@ async function GETHandler(req: Request) {
     });
 
     return NextResponse.json({ success: true, organizations: organizations || [] });
-  } catch (e: any) {
-    const msg = String(e?.message || e);
+  } catch (e: unknown) {
+    const msg = getErrorMessage(e) || String(e ?? '');
     const status = msg.toLowerCase().includes('forbidden') ? 403 : msg.toLowerCase().includes('unauthorized') ? 401 : 500;
     return NextResponse.json({ error: msg }, { status });
   }

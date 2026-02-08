@@ -44,7 +44,7 @@ export default function CommandPalette() {
       name: activeClient.name,
       brandVoice: activeClient.brandVoice,
       dna: activeClient.dna,
-      organizationId: workspaceOrgId || (activeClient as any)?.organizationId,
+      organizationId: workspaceOrgId || activeClient.organizationId,
     };
   }, [activeClient, workspaceOrgId]);
 
@@ -148,7 +148,7 @@ export default function CommandPalette() {
 
   const handleSelectClient = (id: string) => {
     setActiveClientId(id);
-    const c = clients.find((x: any) => String(x?.id) === String(id));
+    const c = clients.find((x) => String(x.id) === String(id));
     const name = String(c?.companyName || c?.name || '');
     router.push(
       joinPath(basePath, `/workspace?clientId=${encodeURIComponent(String(id))}&clientName=${encodeURIComponent(name)}`)
@@ -280,7 +280,7 @@ export default function CommandPalette() {
                     </motion.div>
                   )}
                   
-                  {messages.map((message: any, index: number) => (
+                  {messages.map((message, index) => (
                     <motion.div
                       key={message.id}
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
@@ -313,8 +313,8 @@ export default function CommandPalette() {
                           </div>
                         )}
 
-                        {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
-                          <ChatSources sources={(message as any).sources} />
+                        {message.role === 'assistant' && message.sources && message.sources.length ? (
+                          <ChatSources sources={message.sources} />
                         ) : null}
                       </div>
                       

@@ -62,13 +62,15 @@ export default async function OperationsWorkOrderDetailsPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string; id: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string; id: string }> | { orgSlug: string; id: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug, id } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
-  const sp = (await searchParams) ?? {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const tabRaw = sp.tab;
   const tab = (Array.isArray(tabRaw) ? tabRaw[0] : tabRaw) === 'materials' ? 'materials' : 'details';
   const errorRaw = sp.error;
@@ -511,7 +513,7 @@ export default async function OperationsWorkOrderDetailsPage({
                     <div className="text-xs font-black text-slate-700">קבצים</div>
                     <div className="mt-2 space-y-2">
                       {attachments.length ? (
-                        attachments.slice(0, 10).map((a: any) => (
+                        attachments.slice(0, 10).map((a) => (
                           <a
                             key={a.id}
                             href={a.url}
@@ -548,7 +550,7 @@ export default async function OperationsWorkOrderDetailsPage({
                     <div className="text-xs font-black text-slate-700">דיווחי הגעה</div>
                     <div className="mt-2 space-y-2">
                       {checkins.length ? (
-                        checkins.slice(0, 10).map((c: any) => (
+                        checkins.slice(0, 10).map((c) => (
                           <div key={c.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                             <div className="text-[11px] font-black text-slate-600">{new Date(c.createdAt).toLocaleString('he-IL')}</div>
                             <div className="mt-1 text-xs text-slate-600">

@@ -9,6 +9,7 @@ import { DataProvider } from '@/context/DataContext';
 import FinanceShell from './FinanceShell';
 import { useShabbat } from '@/hooks/useShabbat';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
+import type { OrganizationProfile, User } from '@/types';
 
 export default function FinanceModuleClient({
   children,
@@ -16,8 +17,8 @@ export default function FinanceModuleClient({
   initialOrganization,
 }: {
   children: React.ReactNode;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   const { isShabbat, isLoading } = useShabbat();
 
@@ -31,7 +32,7 @@ export default function FinanceModuleClient({
         <AuthProvider initialCurrentUser={initialCurrentUser}>
           <BrandProvider initialBrandName={initialOrganization?.name}>
             <DataProvider initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
-              <FinanceShell initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization}>
+              <FinanceShell initialOrganization={initialOrganization}>
                 {children}
               </FinanceShell>
             </DataProvider>

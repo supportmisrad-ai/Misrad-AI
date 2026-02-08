@@ -13,13 +13,15 @@ export default async function OperationsNewWorkOrderPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;
 
-  const sp = (await searchParams) ?? {};
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
   const projectIdRaw = sp.projectId;
   const initialProjectId = Array.isArray(projectIdRaw) ? projectIdRaw[0] : projectIdRaw;
 

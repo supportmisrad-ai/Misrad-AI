@@ -7,13 +7,8 @@ import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGu
 import { Type } from '@google/genai';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
-export const runtime = 'nodejs';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asObject } from '@/lib/shared/unknown';
+export const runtime = 'nodejs';
 
 function normalizeTaskList(value: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) return [];
@@ -178,14 +173,14 @@ async function POSTHandler(req: Request) {
     // Normalize to UI expected shape (id/status fields for tasks)
     const agencyTasks = normalizeTaskList(dataObj.agencyTasks).map((t, i) => ({
       ...t,
-      id: String((t as any).id || `at-${Date.now()}-${i}`),
-      status: String((t as any).status || 'PENDING'),
+      id: typeof t.id === 'string' && t.id ? t.id : `at-${Date.now()}-${i}`,
+      status: typeof t.status === 'string' && t.status ? t.status : 'PENDING',
     }));
 
     const clientTasks = normalizeTaskList(dataObj.clientTasks).map((t, i) => ({
       ...t,
-      id: String((t as any).id || `ct-${Date.now()}-${i}`),
-      status: String((t as any).status || 'PENDING'),
+      id: typeof t.id === 'string' && t.id ? t.id : `ct-${Date.now()}-${i}`,
+      status: typeof t.status === 'string' && t.status ? t.status : 'PENDING',
     }));
 
     const analysis = {
@@ -200,7 +195,7 @@ async function POSTHandler(req: Request) {
     };
 
     return apiSuccessCompat({ analysis }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e.message || 'Forbidden', { status: e.status });
     }

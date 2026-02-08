@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Update Attendance Status API
  * 
@@ -14,23 +15,12 @@ import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
     const fn = obj?.[name];
     return typeof fn === 'function';
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
 }
 
 type NexusTeamEventsDelegate = {
@@ -43,22 +33,35 @@ type NexusEventAttendanceDelegate = {
     findFirst: (args: { where: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
 };
 
+function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDelegate {
+    return asObject(value) !== null && hasFunction(value, 'findFirst');
+}
+
+function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAttendanceDelegate {
+    return (
+        asObject(value) !== null &&
+        hasFunction(value, 'updateMany') &&
+        hasFunction(value, 'create') &&
+        hasFunction(value, 'findFirst')
+    );
+}
+
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const obj = asObject(prisma as unknown);
     const delegate = obj?.['nexus_team_events'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'findFirst')) {
+    if (!isNexusTeamEventsDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_team_events is unavailable');
     }
-    return delegate as unknown as NexusTeamEventsDelegate;
+    return delegate;
 }
 
 function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
     const obj = asObject(prisma as unknown);
     const delegate = obj?.['nexus_event_attendance'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'updateMany') || !hasFunction(delegate, 'create') || !hasFunction(delegate, 'findFirst')) {
+    if (!isNexusEventAttendanceDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_event_attendance is unavailable');
     }
-    return delegate as unknown as NexusEventAttendanceDelegate;
+    return delegate;
 }
 
 function getString(obj: Record<string, unknown> | null, key: string, fallback = ''): string {
@@ -95,7 +98,7 @@ async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: 
 }
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string; userId: string }> }
+    { params }: { params: { id: string; userId: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -114,7 +117,7 @@ async function PATCHHandler(
             return apiError('Unscoped access forbidden in production', { status: 403 });
         }
 
-        const { id: eventId, userId } = await params;
+        const { id: eventId, userId } = params;
 
         if (!eventId || !userId) {
             return apiError('Event ID and User ID are required', { status: 400 });
@@ -199,7 +202,8 @@ async function PATCHHandler(
                 // If row already exists due to race, ignore.
                 const code = String(asObject(e)?.code || '');
                 if (code !== 'P2002') {
-                    console.error('[API] Error creating attendance:', e);
+                    if (IS_PROD) console.error('[API] Error creating attendance');
+                    else console.error('[API] Error creating attendance:', e);
                     return apiError('שגיאה בעדכון נוכחות', { status: 500 });
                 }
             }
@@ -216,7 +220,8 @@ async function PATCHHandler(
         return apiSuccess({ attendance, message: 'נוכחות עודכנה בהצלחה' }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH:', error);
+        if (IS_PROD) console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH');
+        else console.error('[API] Error in /api/team-events/[id]/attendance/[userId] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }

@@ -2,6 +2,9 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
+import { asObject } from '@/lib/shared/unknown';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 type OrgModuleFlags = {
   has_nexus: boolean;
   has_system: boolean;
@@ -13,6 +16,7 @@ type OrgModuleFlags = {
 
 type SubscriptionItemRow = Prisma.subscription_itemsGetPayload<{
   select: {
+    id: true;
     kind: true;
     module_key: true;
     quantity: true;
@@ -21,12 +25,6 @@ type SubscriptionItemRow = Prisma.subscription_itemsGetPayload<{
     end_at: true;
   };
 }>;
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function isMissingColumnError(error: unknown, columnName: string): boolean {
   const obj = asObject(error);
@@ -63,8 +61,8 @@ async function safeUpdateOrganization(params: {
 }): Promise<void> {
   const patch = { ...params.patch };
   try {
-    type SocialOrganizationsUpdateData = Parameters<typeof prisma.social_organizations.update>[0]['data'];
-    const data: SocialOrganizationsUpdateData = {
+    type OrganizationUpdateData = Parameters<typeof prisma.organization.update>[0]['data'];
+    const data: OrganizationUpdateData = {
       has_nexus: Boolean(patch.has_nexus),
       has_system: Boolean(patch.has_system),
       has_social: Boolean(patch.has_social),
@@ -74,7 +72,7 @@ async function safeUpdateOrganization(params: {
       seats_allowed: patch.seats_allowed == null ? null : Number(patch.seats_allowed),
       updated_at: patch.updated_at ? new Date(String(patch.updated_at)) : new Date(),
     };
-    await prisma.social_organizations.update({
+    await prisma.organization.update({
       where: { id: params.organizationId },
       data,
     });
@@ -83,9 +81,12 @@ async function safeUpdateOrganization(params: {
     const code = String(obj?.code || '');
     const msg = String(obj?.message || '');
     if (code === 'P2022') {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] organization.update: missing column (${msg || 'P2022'})`);
+      }
       // Best-effort: retry without missing columns.
-      type SocialOrganizationsUpdateData = Parameters<typeof prisma.social_organizations.update>[0]['data'];
-      const retryPatch: SocialOrganizationsUpdateData = {
+      type OrganizationUpdateData = Parameters<typeof prisma.organization.update>[0]['data'];
+      const retryPatch: OrganizationUpdateData = {
         has_nexus: Boolean(patch.has_nexus),
         has_system: Boolean(patch.has_system),
         has_social: Boolean(patch.has_social),
@@ -99,7 +100,7 @@ async function safeUpdateOrganization(params: {
       if (!msg.toLowerCase().includes('has_operations')) {
         retryPatch.has_operations = Boolean(patch.has_operations);
       }
-      await prisma.social_organizations.update({
+      await prisma.organization.update({
         where: { id: params.organizationId },
         data: retryPatch,
       });
@@ -113,7 +114,7 @@ async function safeReadOrganizationEntitlements(params: {
   organizationId: string;
 }): Promise<{ seatsAllowed: number; entitlements: OrgModuleFlags }> {
   try {
-    const org = await prisma.social_organizations.findUnique({
+    const org = await prisma.organization.findUnique({
       where: { id: params.organizationId },
       select: {
         has_nexus: true,
@@ -142,6 +143,9 @@ async function safeReadOrganizationEntitlements(params: {
     // Preserve previous fallback behavior if schema is missing.
     const obj = asObject(e);
     if (String(obj?.code || '') === 'P2021' || String(obj?.code || '') === 'P2022') {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] organization.findUnique: missing table/column (${String(obj?.message || '') || String(obj?.code || '')})`);
+      }
       return {
         seatsAllowed: 1,
         entitlements: {
@@ -170,24 +174,48 @@ export async function syncOrganizationAccessFromBilling(params: {
 
   let items: SubscriptionItemRow[] = [];
   try {
-    items = await prisma.subscription_items.findMany({
-      where: {
-        organization_id: organizationId,
-        status: 'active',
-      },
-      select: {
-        kind: true,
-        module_key: true,
-        quantity: true,
-        status: true,
-        start_at: true,
-        end_at: true,
-      },
-      take: 2000,
-    });
+    const pageSize = 200;
+    const maxTotal = 2000;
+    let cursorId: string | null = null;
+    const out: SubscriptionItemRow[] = [];
+
+    for (;;) {
+      const rows: SubscriptionItemRow[] = await prisma.subscription_items.findMany({
+        where: {
+          organization_id: organizationId,
+          status: 'active',
+        },
+        select: {
+          id: true,
+          kind: true,
+          module_key: true,
+          quantity: true,
+          status: true,
+          start_at: true,
+          end_at: true,
+        },
+        orderBy: [{ id: 'asc' }],
+        ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
+        take: pageSize,
+      });
+
+      const list: SubscriptionItemRow[] = Array.isArray(rows) ? rows : [];
+      if (list.length === 0) break;
+      out.push(...list);
+      if (out.length >= maxTotal) break;
+      if (list.length < pageSize) break;
+      const last: SubscriptionItemRow | undefined = list[list.length - 1];
+      cursorId = last?.id ? String(last.id) : null;
+      if (!cursorId) break;
+    }
+
+    items = out.length > maxTotal ? out.slice(0, maxTotal) : out;
   } catch (e: unknown) {
     const obj = asObject(e);
     if (String(obj?.code || '') === 'P2021' || isMissingRelationError(e)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] subscription_items missing table (${String(obj?.message || '') || 'P2021'})`);
+      }
       return {
         seatsAllowed: 1,
         entitlements: {
@@ -261,8 +289,14 @@ export async function syncOrganizationAccessFromBilling(params: {
         } as Prisma.InputJsonValue,
       },
     });
-  } catch {
-    // ignore
+  } catch (e: unknown) {
+    if (isMissingRelationError(e)) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] billing_events missing table (${String(asObject(e)?.message || '') || 'missing relation'})`);
+      }
+      return { seatsAllowed, entitlements: flags };
+    }
+    throw e;
   }
 
   return { seatsAllowed, entitlements: flags };

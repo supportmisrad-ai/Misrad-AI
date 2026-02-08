@@ -16,6 +16,7 @@ import { getAuthenticatedUser } from '../../../../../lib/auth';
 import { listDriveFiles, searchDriveFiles } from '../../../../../lib/integrations/google-drive';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -60,14 +61,15 @@ async function GETHandler(request: NextRequest) {
             return NextResponse.json({ files: result.files || [], nextPageToken: result.nextPageToken });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
-        if (String(error?.message || '').includes('[SchemaMismatch]')) {
-            return NextResponse.json({ error: String(error.message) }, { status: 500 });
+        const message = getErrorMessage(error);
+        if (message.includes('[SchemaMismatch]')) {
+            return NextResponse.json({ error: message }, { status: 500 });
         }
-        console.warn('[API] Error fetching drive files (non-critical):', error.message);
+        console.warn('[API] Error fetching drive files (non-critical):', message);
         return NextResponse.json({ files: [], nextPageToken: undefined });
     }
 }

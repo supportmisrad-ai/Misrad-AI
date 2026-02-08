@@ -1,6 +1,7 @@
 'use client';
 
-import ClientOSApp from '@/components/client-os-full/ClientOSApp';
+import ClientOSApp, { type ClientOSUserData } from '@/components/client-os-full/ClientOSApp';
+import type { OrganizationProfile, User } from '@/types';
 import { useShabbat } from '@/hooks/useShabbat';
 import { ShabbatScreen } from '@/components/ShabbatScreen';
 
@@ -9,9 +10,9 @@ export default function ClientModuleClient({
   initialCurrentUser,
   initialOrganization,
 }: {
-  userData: any;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  userData: ClientOSUserData;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   const { isShabbat, isLoading } = useShabbat();
 

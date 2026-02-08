@@ -1,20 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Shield, Trash2, User } from 'lucide-react';
-import { getSocialTeam, removeSocialUser, updateSocialUserRole } from '@/app/actions/admin-social';
+import { getTeam, removeUserFromTeam, updateUserRole } from '@/app/actions/admin-social';
 import { Button } from '@/components/ui/button';
 import { Toast } from '@/types';
 
-type SocialRole = 'super_admin' | 'owner' | 'team_member';
+type Role = 'super_admin' | 'owner' | 'team_member';
 
-type SocialTeamUser = {
+type TeamUser = {
   id: string;
   name: string;
   email: string;
-  role: SocialRole;
+  role: Role;
 };
 
-function roleLabel(role: SocialRole) {
+function roleLabel(role: Role) {
   switch (role) {
     case 'super_admin':
       return 'Super Admin';
@@ -32,7 +32,7 @@ export function TeamTab({
   tenantId: string | null;
   addToast: (message: string, type?: Toast['type']) => void;
 }) {
-  const [rows, setRows] = useState<SocialTeamUser[]>([]);
+  const [rows, setRows] = useState<TeamUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingRole, setIsUpdatingRole] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
@@ -40,13 +40,13 @@ export function TeamTab({
   const load = async (id: string) => {
     setIsLoading(true);
     try {
-      const res = await getSocialTeam(id);
+      const res = await getTeam(id);
       if (!res.success) {
         throw new Error(res.error || 'שגיאה בטעינת צוות');
       }
       setRows((res.data || []) as any);
     } catch (e: any) {
-      console.error('[TeamTab] Failed to load social team:', e);
+      console.error('[TeamTab] Failed to load team:', e);
       addToast(e?.message || 'שגיאה בטעינת צוות', 'error');
       setRows([]);
     } finally {
@@ -62,11 +62,11 @@ export function TeamTab({
     load(tenantId);
   }, [tenantId, addToast]);
 
-  const onChangeRole = async (userId: string, role: SocialRole) => {
+  const onChangeRole = async (userId: string, role: Role) => {
     if (!tenantId) return;
     setIsUpdatingRole(userId);
     try {
-      const res = await updateSocialUserRole(tenantId, userId, role);
+      const res = await updateUserRole(tenantId, userId, role);
       if (!res.success) {
         throw new Error(res.error || 'שגיאה בעדכון תפקיד');
       }
@@ -87,7 +87,7 @@ export function TeamTab({
 
     setIsRemoving(userId);
     try {
-      const res = await removeSocialUser(tenantId, userId);
+      const res = await removeUserFromTeam(tenantId, userId);
       if (!res.success) {
         throw new Error(res.error || 'שגיאה בהסרת משתמש');
       }
@@ -102,7 +102,7 @@ export function TeamTab({
   };
 
   const sortedRows = useMemo(() => {
-    const order: Record<SocialRole, number> = { super_admin: 0, owner: 1, team_member: 2 };
+    const order: Record<Role, number> = { super_admin: 0, owner: 1, team_member: 2 };
     return [...rows].sort((a, b) => {
       const aO = order[a.role] ?? 9;
       const bO = order[b.role] ?? 9;
@@ -114,9 +114,9 @@ export function TeamTab({
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
       <div className="mb-6">
-        <h2 className="text-xl font-black text-slate-900 mb-1">צוות (Social Roles)</h2>
+        <h2 className="text-xl font-black text-slate-900 mb-1">צוות</h2>
         <p className="text-sm text-slate-600">
-          צפייה בתפקידי Social ברמת טננט.
+          צפייה בתפקידי משתמש ברמת טננט.
         </p>
       </div>
 
@@ -135,7 +135,7 @@ export function TeamTab({
               <tr>
                 <th className="text-right py-3 px-4 text-xs font-black text-slate-600">משתמש</th>
                 <th className="text-right py-3 px-4 text-xs font-black text-slate-600">אימייל</th>
-                <th className="text-right py-3 px-4 text-xs font-black text-slate-600">תפקיד בסושיאל</th>
+                <th className="text-right py-3 px-4 text-xs font-black text-slate-600">תפקיד</th>
                 <th className="text-right py-3 px-4 text-xs font-black text-slate-600">פעולות</th>
               </tr>
             </thead>
@@ -161,7 +161,7 @@ export function TeamTab({
                       </span>
                       <select
                         value={u.role}
-                        onChange={(e) => onChangeRole(u.id, e.target.value as SocialRole)}
+                        onChange={(e) => onChangeRole(u.id, e.target.value as Role)}
                         disabled={isLoading || isRemoving !== null || isUpdatingRole === u.id}
                         className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-black text-slate-900 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-200/60 transition-all"
                       >

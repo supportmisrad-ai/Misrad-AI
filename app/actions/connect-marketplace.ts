@@ -5,21 +5,9 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { getBaseUrl } from '@/lib/utils';
 import { MisradNotificationType, Prisma } from '@prisma/client';
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'crypto';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
-
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
   const value = obj[key];
   if (value == null) return fallback;

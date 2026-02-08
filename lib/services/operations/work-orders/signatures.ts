@@ -1,7 +1,12 @@
 import 'server-only';
 
 import { orgExec, prisma } from '@/lib/services/operations/db';
-import { getUnknownErrorMessage } from '@/lib/services/operations/shared';
+import {
+  ALLOW_SCHEMA_FALLBACKS,
+  getUnknownErrorMessage,
+  isSchemaMismatchError,
+  logOperationsError,
+} from '@/lib/services/operations/shared';
 
 export async function setOperationsWorkOrderCompletionSignatureUnsafe(params: {
   organizationId: string;
@@ -42,7 +47,10 @@ export async function setOperationsWorkOrderCompletionSignatureForOrganizationId
     await setOperationsWorkOrderCompletionSignatureUnsafe({ organizationId: params.organizationId, workOrderId: id, signatureUrl });
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderCompletionSignature failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+    logOperationsError('[operations] setOperationsWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }

@@ -23,6 +23,7 @@ import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { DataProvider } from '@/context/DataContext';
 import { MeView } from '@/views/MeView';
 import Settings from './components/Settings';
+import type { OrganizationProfile, User } from '@/types';
 
 export default function App({
   userData,
@@ -30,8 +31,8 @@ export default function App({
   initialOrganization,
 }: {
   userData?: unknown;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -120,7 +121,8 @@ export default function App({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).__CLIENT_OS_USER__ = userData;
+      const clientWindow = window as Window & { __CLIENT_OS_USER__?: unknown };
+      clientWindow.__CLIENT_OS_USER__ = userData;
       window.dispatchEvent(new CustomEvent('client-os-user-updated', { detail: userData }));
     }
   }, [userData]);
@@ -152,7 +154,13 @@ export default function App({
 
   // Global listener for opening portals
   useEffect(() => {
-    const handlePortalOpen = (e: any) => openPortal(e.detail);
+    const handlePortalOpen = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as unknown;
+      if (detail === null || detail === undefined) return;
+      openPortal(String(detail));
+    };
+
     window.addEventListener('open-client-portal', handlePortalOpen);
     return () => window.removeEventListener('open-client-portal', handlePortalOpen);
   }, []);

@@ -5,7 +5,9 @@ const envPath = '.env.local';
 if (fs.existsSync(envPath)) {
   try {
     const parsed = dotenv.parse(fs.readFileSync(envPath));
-    for (const [k, v] of Object.entries(parsed)) process.env[k] = v;
+    for (const [k, v] of Object.entries(parsed)) {
+      if (process.env[k] === undefined) process.env[k] = v;
+    }
   } catch (e) {
     console.error(`[db-check-prisma-migrations] Failed to load ${envPath}:`, e);
     process.exit(1);

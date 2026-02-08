@@ -6,7 +6,7 @@ export async function countOrganizationActiveUsers(organizationId: string): Prom
   try {
     // NOTE: Prisma schema might not include social_users.is_active in some environments.
     // We still enforce seats using organization scope and excluding deleted users.
-    const count = await prisma.social_users.count({
+    const count = await prisma.organizationUser.count({
       where: {
         organization_id: organizationId,
         role: { not: 'deleted' },

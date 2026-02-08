@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BarChart, FileText, Menu, Mic, TrendingUp, User } from 'lucide-react';
+import { BarChart, FileText, Menu, Mic, TrendingUp, User as UserIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/components/system/contexts/AuthContext';
 import { useRoomBranding } from '@/hooks/useRoomBranding';
@@ -20,11 +20,9 @@ import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 import { ModuleHelpVideos } from '@/components/help-videos/ModuleHelpVideos';
 import { getOSModule } from '@/types/os-modules';
 import type { OrganizationProfile } from '@/types';
-import type { UserProfile } from '@/components/system/types';
 
 export default function FinanceShell(props: {
   children: React.ReactNode;
-  initialCurrentUser?: UserProfile | null;
   initialOrganization?: Partial<OrganizationProfile> | null;
 }) {
   const { user } = useAuth();
@@ -62,7 +60,7 @@ export default function FinanceShell(props: {
       { id: 'overview', label: 'סקירה', href: `${basePath}/overview`, icon: TrendingUp },
       { id: 'invoices', label: 'חשבוניות', href: `${basePath}/invoices`, icon: FileText },
       { id: 'expenses', label: 'הוצאות', href: `${basePath}/expenses`, icon: BarChart },
-      { id: 'me', label: 'פרופיל', href: `${basePath}/me`, icon: User },
+      { id: 'me', label: 'פרופיל', href: `${basePath}/me`, icon: UserIcon },
     ],
     [basePath]
   );
@@ -287,7 +285,7 @@ export default function FinanceShell(props: {
                   aria-label="פרופיל"
                 >
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-gray-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <User size={24} className="sm:w-7 sm:h-7 relative z-10" strokeWidth={2.5} />
+                  <UserIcon size={24} className="sm:w-7 sm:h-7 relative z-10" strokeWidth={2.5} />
                 </button>
                 <span className="text-xs font-bold text-white bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg border border-white/20">פרופיל</span>
               </motion.div>

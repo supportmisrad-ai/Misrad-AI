@@ -6,11 +6,13 @@ export const dynamic = 'force-dynamic';
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
 }) {
   const qs = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(searchParams || {})) {
+  const resolvedSearchParams = await Promise.resolve(searchParams);
+
+  for (const [key, value] of Object.entries(resolvedSearchParams || {})) {
     if (value == null) continue;
     if (Array.isArray(value)) {
       for (const v of value) qs.append(key, String(v));

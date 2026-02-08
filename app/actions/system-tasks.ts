@@ -6,6 +6,7 @@ import { queryRawOrgScoped } from '@/lib/prisma';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
 import type { Prisma } from '@prisma/client';
 
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 export type SystemTaskDTO = {
   id: string;
   title: string;
@@ -16,22 +17,7 @@ export type SystemTaskDTO = {
   status: string;
   tags: string[];
   created_at: string;
-};
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
+};
 
 function toIsoDate(value: unknown): string | null {
   if (!value) return null;

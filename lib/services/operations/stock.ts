@@ -3,7 +3,14 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, firstRowField, getUnknownErrorMessage, toIsoDate, toNumberSafe } from '@/lib/services/operations/shared';
+import {
+  asObject,
+  firstRowField,
+  getUnknownErrorMessage,
+  logOperationsError,
+  toIsoDate,
+  toNumberSafe,
+} from '@/lib/services/operations/shared';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import {
   ensureOperationsPrimaryWarehouseHolderId,
@@ -70,7 +77,7 @@ async function createOperationsItemForOrganizationId(params: {
 
     return { success: true, data: { itemId: String(created.id) } };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsItem failed', e);
+    logOperationsError('[operations] createOperationsItem failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
   }
 }
@@ -96,7 +103,7 @@ async function setOperationsWorkOrderStockSourceToMyActiveVehicleAutoForOrganiza
       technicianId,
     });
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
   }
 }
@@ -164,7 +171,7 @@ async function getOperationsStockSourceOptionsForOrganizationId(params: {
     data.push(...techOptions);
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsStockSourceOptions failed', e);
+    logOperationsError('[operations] getOperationsStockSourceOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מקורות מלאי' };
   }
 }
@@ -218,7 +225,7 @@ async function setOperationsWorkOrderStockSourceForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSource failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSource failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת מקור מלאי' };
   }
 }
@@ -267,7 +274,7 @@ async function setOperationsWorkOrderStockSourceToMyActiveVehicleForOrganization
       holderId,
     });
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
   }
 }
@@ -328,7 +335,7 @@ async function getOperationsVehicleStockBalancesForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsVehicleStockBalances failed', e);
+    logOperationsError('[operations] getOperationsVehicleStockBalances failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי רכב' };
   }
 }
@@ -428,7 +435,7 @@ async function transferOperationsStockToVehicleForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] transferOperationsStockToVehicle failed', e);
+    logOperationsError('[operations] transferOperationsStockToVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהעברת מלאי לרכב' };
   }
 }
@@ -590,7 +597,7 @@ async function addOperationsStockToActiveVehicleForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsStockToActiveVehicle failed', e);
+    logOperationsError('[operations] addOperationsStockToActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקליטת מלאי לרכב' };
   }
 }
@@ -623,7 +630,7 @@ async function getOperationsInventoryOptionsForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptions failed', e);
+    logOperationsError('[operations] getOperationsInventoryOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
   }
 }
@@ -691,7 +698,7 @@ async function getOperationsInventoryOptionsForHolderForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptionsForHolder failed', e);
+    logOperationsError('[operations] getOperationsInventoryOptionsForHolder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי לפי מקור' };
   }
 }
@@ -807,7 +814,7 @@ async function consumeOperationsInventoryForWorkOrderForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] consumeOperationsInventoryForWorkOrder failed', e);
+    logOperationsError('[operations] consumeOperationsInventoryForWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהורדת מלאי' };
   }
 }
@@ -858,7 +865,7 @@ async function getOperationsMaterialsForWorkOrderForOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsMaterialsForWorkOrder failed', e);
+    logOperationsError('[operations] getOperationsMaterialsForWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת חומרים לקריאה' };
   }
 }
@@ -895,7 +902,7 @@ async function getOperationsInventoryDataForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryData failed', e);
+    logOperationsError('[operations] getOperationsInventoryData failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
   }
 }

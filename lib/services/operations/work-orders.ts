@@ -1,8 +1,8 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
-import { resolveStorageUrlMaybe } from '@/lib/services/operations/storage';
+import { asObject, getUnknownErrorMessage, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
+import { resolveStorageUrlMaybe, resolveStorageUrlsMaybeBatched } from '@/lib/services/operations/storage';
 import {
   ensureOperationsPrimaryWarehouseHolderId,
   resolveDefaultOperationsStockSourceHolderIdForTechnician,
@@ -54,7 +54,7 @@ async function setOperationsWorkOrderCompletionSignatureForOrganizationId(params
     await setOperationsWorkOrderCompletionSignatureUnsafe({ organizationId: params.organizationId, workOrderId: id, signatureUrl });
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderCompletionSignature failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
   }
 }
@@ -108,7 +108,7 @@ async function addOperationsWorkOrderAttachmentForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderAttachment failed', e);
+    logOperationsError('[operations] addOperationsWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
   }
 }
@@ -136,26 +136,30 @@ async function getOperationsWorkOrderAttachmentsForOrganizationId(params: {
     );
 
     const ttlSeconds = 60 * 60;
-    const data = await Promise.all(
-      (rows || []).map(async (r) => {
-        const obj = asObject(r) ?? {};
-        const rawUrl = String(obj.url || '');
-        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds, {
-          organizationId: params.organizationId,
-          orgSlug: params.orgSlug || null,
-        });
-        return {
-          id: String(obj.id),
-          url: resolved || rawUrl,
-          mimeType: obj.mime_type ? String(obj.mime_type) : null,
-          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
-        };
-      })
-    );
+    const rawUrls = (rows || []).map((r) => {
+      const obj = asObject(r) ?? {};
+      return String(obj.url || '');
+    });
+    const resolvedUrls = await resolveStorageUrlsMaybeBatched(rawUrls, ttlSeconds, {
+      organizationId: params.organizationId,
+      orgSlug: params.orgSlug || null,
+    });
+
+    const data = (rows || []).map((r, idx) => {
+      const obj = asObject(r) ?? {};
+      const rawUrl = String(obj.url || '');
+      const resolved = resolvedUrls[idx] ?? null;
+      return {
+        id: String(obj.id),
+        url: resolved || rawUrl,
+        mimeType: obj.mime_type ? String(obj.mime_type) : null,
+        createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+      };
+    });
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderAttachments failed', e);
+    logOperationsError('[operations] getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };
   }
 }
@@ -196,7 +200,7 @@ async function getOperationsWorkOrderCheckinsForOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderCheckins failed', e);
+    logOperationsError('[operations] getOperationsWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
   }
 }
@@ -239,7 +243,7 @@ async function addOperationsWorkOrderCheckinForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderCheckin failed', e);
+    logOperationsError('[operations] addOperationsWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
   }
 }
@@ -307,7 +311,7 @@ async function setOperationsWorkOrderAssignedTechnicianForOrganizationId(params:
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderAssignedTechnician failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderAssignedTechnician failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשיוך טכנאי לקריאה' };
   }
 }
@@ -451,7 +455,7 @@ async function getOperationsWorkOrdersDataForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrdersData failed', e);
+    logOperationsError('[operations] getOperationsWorkOrdersData failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאות' };
   }
 }
@@ -522,7 +526,7 @@ async function createOperationsWorkOrderForOrganizationId(params: {
 
     return { success: true, id: created.id };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsWorkOrder failed', e);
+    logOperationsError('[operations] createOperationsWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת קריאה' };
   }
 }
@@ -652,7 +656,7 @@ async function getOperationsWorkOrderByIdForOrganizationId(params: {
       },
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderById failed', e);
+    logOperationsError('[operations] getOperationsWorkOrderById failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאה' };
   }
 }
@@ -678,7 +682,7 @@ async function setOperationsWorkOrderStatusForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStatus failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStatus failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בעדכון סטטוס קריאה' };
   }
 }

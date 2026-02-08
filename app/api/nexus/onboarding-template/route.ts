@@ -4,6 +4,7 @@ import { getNexusOnboardingTemplate, setNexusOnboardingTemplate } from '@/lib/se
 import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { isCeoRole } from '@/lib/constants/roles';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -18,11 +19,11 @@ async function GETHandler(request: NextRequest) {
 
     const template = await getNexusOnboardingTemplate(workspace.id);
     return NextResponse.json({ template });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof APIError) {
       return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
     }
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) || 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -39,9 +40,10 @@ async function POSTHandler(request: NextRequest) {
     }
 
     const { workspace } = await getWorkspaceOrThrow(request);
-    const body = await request.json();
+    const bodyJson: unknown = await request.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
 
-    const templateKey = String(body?.templateKey || '').trim();
+    const templateKey = String(bodyObj.templateKey || '').trim();
     if (!templateKey) {
       return NextResponse.json({ error: 'templateKey is required' }, { status: 400 });
     }
@@ -56,11 +58,11 @@ async function POSTHandler(request: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof APIError) {
       return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
     }
-    return NextResponse.json({ error: error?.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) || 'Internal server error' }, { status: 500 });
   }
 }
 

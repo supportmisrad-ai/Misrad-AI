@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function POSTHandler(request: NextRequest) {
   try {
@@ -12,8 +15,11 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'לא מאומת' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { clientId, month, year } = body;
+    const bodyJson: unknown = await request.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
+    const clientId = bodyObj.clientId == null ? '' : String(bodyObj.clientId);
+    const month = bodyObj.month == null ? '' : String(bodyObj.month);
+    const year = bodyObj.year == null ? '' : String(bodyObj.year);
 
     const { workspaceId } = await getWorkspaceOrThrow(request);
 
@@ -37,13 +43,15 @@ async function POSTHandler(request: NextRequest) {
       pdfUrl: `data:application/pdf;base64,${pdfContent}`,
       filename: `דוח-ביצועים-${month}-${year}.pdf`,
     });
-  } catch (error: any) {
-    console.error('[generatePDF] Error:', error);
+  } catch (error: unknown) {
+    if (IS_PROD) console.error('[generatePDF] Error');
+    else console.error('[generatePDF] Error:', error);
     if (error instanceof APIError) {
       return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
     }
+    const safeMsg = 'שגיאה ביצירת PDF';
     return NextResponse.json(
-      { error: error.message || 'שגיאה ביצירת PDF' },
+      { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
       { status: 500 }
     );
   }

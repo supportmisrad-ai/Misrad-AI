@@ -20,21 +20,12 @@ import { OpenAIProvider } from './providers/OpenAIProvider';
 import { AnthropicProvider } from './providers/AnthropicProvider';
 import { GroqProvider } from './providers/GroqProvider';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
 type LoadedFeatureSettings = {
   settings: AIFeatureSettingsRow;
   modelDisplayName?: string | null;
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') return value as Record<string, unknown>;
-  return null;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '';
-}
 
 function stringifyError(error: unknown): string {
   const obj = asObject(error);
@@ -899,7 +890,7 @@ export class AIService {
       return { organizationId: String(workspace.id), userId: String(effectiveUserId) };
     }
 
-    const data = await prisma.social_users.findUnique({
+    const data = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: effectiveUserId },
       select: { organization_id: true },
     });

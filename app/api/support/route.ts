@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Support Tickets
  * GET /api/support - Get support tickets
@@ -19,7 +20,20 @@ import { sendWebPushNotificationToEmails } from '@/lib/server/web-push';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function toIsoString(input: any): string | undefined {
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+type UnknownRecord = Record<string, unknown>;
+type SupportTicketFindManyArgs = NonNullable<Parameters<typeof prisma.scale_support_tickets.findMany>[0]>;
+type SupportTicketWhere = SupportTicketFindManyArgs['where'];
+type SupportTicketCreateArgs = NonNullable<Parameters<typeof prisma.scale_support_tickets.create>[0]>;
+type SupportTicketCreateData = SupportTicketCreateArgs['data'];
+
+
+function asString(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+function toIsoString(input: unknown): string | undefined {
     if (!input) return undefined;
     if (input instanceof Date) return input.toISOString();
     if (typeof input === 'string') return input;
@@ -34,23 +48,27 @@ function computeSlaPolicy(category: string): { hours: number; priority: string }
     return { hours: 24, priority: 'medium' };
 }
 
-function normalizeMetadata(input: any): Record<string, unknown> | undefined {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) return undefined;
-    return input as Record<string, unknown>;
+function normalizeMetadata(input: unknown): Record<string, unknown> | undefined {
+    const obj = asObject(input);
+    return obj ?? undefined;
 }
 
 const SUPPORT_TICKET_CATEGORIES: SupportTicketCategory[] = ['Tech', 'Account', 'Billing', 'Feature'];
 const SUPPORT_TICKET_STATUSES: SupportTicketStatus[] = ['open', 'in_progress', 'waiting_for_customer', 'resolved', 'closed'];
 
-function normalizeCategory(input: any): SupportTicketCategory {
-    return SUPPORT_TICKET_CATEGORIES.includes(input) ? input : 'Tech';
+function normalizeCategory(input: unknown): SupportTicketCategory {
+    return typeof input === 'string' && SUPPORT_TICKET_CATEGORIES.includes(input as SupportTicketCategory)
+        ? (input as SupportTicketCategory)
+        : 'Tech';
 }
 
-function normalizeStatus(input: any): SupportTicketStatus {
-    return SUPPORT_TICKET_STATUSES.includes(input) ? input : 'open';
+function normalizeStatus(input: unknown): SupportTicketStatus {
+    return typeof input === 'string' && SUPPORT_TICKET_STATUSES.includes(input as SupportTicketStatus)
+        ? (input as SupportTicketStatus)
+        : 'open';
 }
 
-function normalizePriority(input: any): Priority {
+function normalizePriority(input: unknown): Priority {
     if (input === Priority.LOW || input === 'low') return Priority.LOW;
     if (input === Priority.MEDIUM || input === 'medium') return Priority.MEDIUM;
     if (input === Priority.HIGH || input === 'high') return Priority.HIGH;
@@ -58,7 +76,32 @@ function normalizePriority(input: any): Priority {
     return Priority.MEDIUM;
 }
 
-function normalizeTicket(ticket: any): SupportTicket {
+function normalizeTicket(ticket: {
+    id: string;
+    user_id: string;
+    tenant_id: string | null;
+    category: string;
+    subject: string;
+    message: string;
+    ticket_number: string;
+    status: string;
+    priority: string;
+    assigned_to: string | null;
+    resolved_by: string | null;
+    created_at: Date | null;
+    updated_at: Date | null;
+    resolved_at: Date | null;
+    closed_at: Date | null;
+    read_at: Date | null;
+    handled_at: Date | null;
+    sla_deadline: Date | null;
+    first_response_at: Date | null;
+    resolution_time_minutes: number | null;
+    last_updated_by: string | null;
+    admin_response: string | null;
+    resolution_notes: string | null;
+    metadata: unknown;
+}): SupportTicket {
     return {
         id: String(ticket.id),
         user_id: String(ticket.user_id),
@@ -110,7 +153,7 @@ async function insertTicketEvent(params: {
                 JSON.stringify(params.metadata ?? {}),
             ],
         });
-    } catch (error) {
+    } catch (error: unknown) {
         try {
             await executeRawTenantScoped(prisma, {
                 tenantId: String(params.workspaceId),
@@ -126,7 +169,8 @@ async function insertTicketEvent(params: {
                 ],
             });
         } catch {
-            console.warn('[support][events] insert failed', error);
+            if (IS_PROD) console.warn('[support][events] insert failed');
+            else console.warn('[support][events] insert failed', error);
         }
     }
 }
@@ -163,7 +207,7 @@ async function GETHandler(request: NextRequest) {
         // Check if user is admin
         const isAdmin = user.isSuperAdmin || isTenantAdminRole(user.role);
 
-        const where: any = {
+        const where: SupportTicketWhere = {
             tenant_id: String(workspaceId),
         };
 
@@ -198,14 +242,17 @@ async function GETHandler(request: NextRequest) {
 
         return apiSuccess({ tickets: transformedTickets });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/support GET:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/support GET');
+        else console.error('[API] Error in /api/support GET:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה בטעינת קריאות תמיכה',
+        const msg = getUnknownErrorMessage(error);
+        const safeMsg = 'שגיאה בטעינת קריאות תמיכה';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }
@@ -216,8 +263,13 @@ async function POSTHandler(request: NextRequest) {
 
         const { workspaceId, orgKey } = await getWorkspaceOrThrow(request);
         
-        const body = await request.json();
-        const { category, subject, message, priority, screenshot_url } = body;
+        const body: unknown = await request.json();
+        const bodyObj = asObject(body) ?? {};
+        const category = bodyObj.category;
+        const subject = bodyObj.subject;
+        const message = bodyObj.message;
+        const priority = bodyObj.priority;
+        const screenshot_url = bodyObj.screenshot_url;
 
         // Validate required fields
         if (!category || !subject || !message) {
@@ -233,20 +285,21 @@ async function POSTHandler(request: NextRequest) {
 
         // Validate category
         const validCategories = ['Tech', 'Account', 'Billing', 'Feature'];
-        if (!validCategories.includes(category)) {
+        const categoryStr = asString(category);
+        if (!validCategories.includes(categoryStr)) {
             return apiError('קטגוריה לא תקינה', { status: 400 });
         }
 
         // Create ticket
-        const sla = computeSlaPolicy(String(category));
-        const computedPriority = priority || sla.priority;
+        const sla = computeSlaPolicy(categoryStr);
+        const computedPriority = asString(priority) || sla.priority;
         const now = new Date();
 
-        const ticketData = {
+        const ticketData: SupportTicketCreateData = {
             user_id: user.id,
             tenant_id: workspaceId,
-            category: category,
-            subject: subject.trim(),
+            category: categoryStr,
+            subject: String(subject).trim(),
             message: cleanMessage,
             priority: computedPriority,
             status: 'open',
@@ -257,7 +310,7 @@ async function POSTHandler(request: NextRequest) {
         };
 
         const ticket = await prisma.scale_support_tickets.create({
-            data: ticketData as any,
+            data: ticketData,
         });
 
         const transformedTicket: SupportTicket = normalizeTicket(ticket);
@@ -337,14 +390,17 @@ async function POSTHandler(request: NextRequest) {
             { status: 201 }
         );
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/support POST:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/support POST');
+        else console.error('[API] Error in /api/support POST:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, {
-            status: error.message?.includes('Unauthorized') ? 401 : 500,
-            message: error.message || 'שגיאה ביצירת קריאת תמיכה',
+        const msg = getUnknownErrorMessage(error);
+        const safeMsg = 'שגיאה ביצירת קריאת תמיכה';
+        return apiError(IS_PROD ? safeMsg : error, {
+            status: msg.includes('Unauthorized') ? 401 : 500,
+            message: IS_PROD ? safeMsg : msg || safeMsg,
         });
     }
 }

@@ -11,23 +11,9 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { getBaseUrl } from '@/lib/utils';
 import { sendMisradWelcomeEmail } from '@/lib/email';
-import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
-
+import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 function serializeUnknownError(error: unknown) {
   if (!error) return error;
 
@@ -63,7 +49,7 @@ function isUuidLike(value: string | null | undefined): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
 }
 
-async function upsertSocialUserForClerkUser(params: {
+async function upsertOrganizationUserForClerkUser(params: {
   clerkUserId: string;
   organizationId: string;
   email?: string;
@@ -82,7 +68,7 @@ async function upsertSocialUserForClerkUser(params: {
   const role = params.role ? String(params.role) : null;
 
   // וידוא שה-organization קיים לפני יצירת social_user
-  const orgExists = await prisma.social_organizations.findFirst({
+  const orgExists = await prisma.organization.findFirst({
     where: {
       OR: [
         { id: organizationId },
@@ -93,19 +79,19 @@ async function upsertSocialUserForClerkUser(params: {
   });
 
   if (!orgExists?.id) {
-    console.warn(`[upsertSocialUserForClerkUser] organization ${organizationId} not found - skipping social_user creation`);
+    console.warn(`[upsertOrganizationUserForClerkUser] organization ${organizationId} not found - skipping organization_user creation`);
     return null;
   }
 
   const validOrgId = String(orgExists.id);
 
-  const existing = await prisma.social_users.findUnique({
+  const existing = await prisma.organizationUser.findUnique({
     where: { clerk_user_id: clerkUserId },
     select: { id: true, organization_id: true, role: true },
   });
 
   if (existing?.id) {
-    await prisma.social_users.update({
+    await prisma.organizationUser.update({
       where: { clerk_user_id: clerkUserId },
       data: {
         email: emailLower,
@@ -123,7 +109,7 @@ async function upsertSocialUserForClerkUser(params: {
     };
   }
 
-  const created = await prisma.social_users.create({
+  const created = await prisma.organizationUser.create({
     data: {
       clerk_user_id: clerkUserId,
       email: emailLower,
@@ -144,6 +130,17 @@ async function upsertSocialUserForClerkUser(params: {
         role: created.role ? String(created.role) : null,
       }
     : null;
+}
+
+async function upsertSocialUserForClerkUser(params: {
+  clerkUserId: string;
+  organizationId: string;
+  email?: string;
+  fullName?: string;
+  imageUrl?: string;
+  role?: string | null;
+}): Promise<{ id: string; organization_id: string | null; role: string | null } | null> {
+  return await upsertOrganizationUserForClerkUser(params);
 }
 
 async function upsertProfileForClerkUser(params: {
@@ -185,12 +182,12 @@ async function upsertProfileForClerkUser(params: {
 
     if (existingOrgKey) {
       if (isUuidLike(existingOrgKey)) {
-        org = await prisma.social_organizations.findFirst({
+        org = await prisma.organization.findFirst({
           where: { id: existingOrgKey },
           select: { id: true, slug: true },
         });
       } else {
-        org = await prisma.social_organizations.findFirst({
+        org = await prisma.organization.findFirst({
           where: { slug: existingOrgKey },
           select: { id: true, slug: true },
         });
@@ -206,7 +203,7 @@ async function upsertProfileForClerkUser(params: {
     }
 
     if (organizationIdOut) {
-      await upsertSocialUserForClerkUser({
+      await upsertOrganizationUserForClerkUser({
         clerkUserId,
         organizationId: organizationIdOut,
         email: params.email,
@@ -243,7 +240,7 @@ async function upsertProfileForClerkUser(params: {
           slug: preferredKeyRaw,
         };
 
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where,
       select: { id: true, slug: true },
     });
@@ -325,7 +322,7 @@ async function upsertProfileForClerkUser(params: {
     });
 
     const createdOrgKey = String(created.organizationId || '').trim();
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where: isUuidLike(createdOrgKey) ? { id: createdOrgKey } : { slug: createdOrgKey },
       select: { id: true, slug: true },
     });
@@ -362,7 +359,14 @@ async function upsertProfileForClerkUser(params: {
 
   const tempOrgId = crypto.randomUUID();
   const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
-    const createdSocialUser = await tx.social_users.create({
+    const txAliased = tx as typeof tx & {
+      organizationUser: typeof tx.social_users;
+      organization: typeof tx.social_organizations;
+    };
+    (txAliased as unknown as { organizationUser?: unknown }).organizationUser = tx.social_users;
+    (txAliased as unknown as { organization?: unknown }).organization = tx.social_organizations;
+
+    const createdSocialUser = await txAliased.organizationUser.create({
       data: {
         clerk_user_id: clerkUserId,
         email: emailLower,
@@ -376,7 +380,7 @@ async function upsertProfileForClerkUser(params: {
       select: { id: true },
     });
 
-    const createdOrg = await tx.social_organizations.create({
+    const createdOrg = await txAliased.organization.create({
       data: {
         id: tempOrgId,
         name: orgName,
@@ -398,7 +402,7 @@ async function upsertProfileForClerkUser(params: {
       select: { id: true, slug: true },
     });
 
-    await tx.social_users.update({
+    await txAliased.organizationUser.update({
       where: { id: createdSocialUser.id },
       data: { organization_id: createdOrg.id, updated_at: now },
       select: { id: true },
@@ -613,7 +617,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
     // which expects userId to be social_users.id (UUID) for downstream operations.
     const now = new Date();
 
-    const existing = await prisma.social_users.findUnique({
+    const existing = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: clerkUserId },
       select: { id: true },
     });
@@ -631,7 +635,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
     };
 
     if (existing?.id) {
-      await prisma.social_users.update({
+      await prisma.organizationUser.update({
         where: { clerk_user_id: clerkUserId },
         data: updateData,
         select: { id: true },
@@ -656,7 +660,7 @@ export async function getOrCreateSupabaseUserFromClerkWebhookAction(
       updated_at: now,
     };
 
-    const created = await prisma.social_users.create({
+    const created = await prisma.organizationUser.create({
       data: createData,
       select: { id: true },
     });

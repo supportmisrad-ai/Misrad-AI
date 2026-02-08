@@ -33,6 +33,8 @@ function isTargetFile(filePath) {
   const p = filePath.replaceAll('\\', '/');
   if (p.includes('/app/actions/')) return true;
   if (p.endsWith('/page.tsx')) return true;
+  if (p.includes('/components/')) return true;
+  if (p.includes('/contexts/')) return true;
   return false;
 }
 
@@ -43,8 +45,15 @@ function hasIllegalPostgrestUsage(src) {
   const patterns = [
     /\bsupabase\s*\.\s*from\s*\(/i,
     /\bsupabase\s*\.\s*rpc\s*\(/i,
+    /\bsupabase\s*\.\s*schema\s*\(/i,
+    /\bsupabase\s*\.\s*rest\b/i,
     /\bcreateClient\s*\(\s*\)\s*\.\s*from\s*\(/i,
     /\bcreateClient\s*\(\s*\)\s*\.\s*rpc\s*\(/i,
+    /\bcreateClient\s*\(\s*\)\s*\.\s*schema\s*\(/i,
+    /\bcreateClient\s*\(\s*\)\s*\.\s*rest\b/i,
+
+    // Browser full client (can be used to access PostgREST accidentally)
+    /\bcreateBrowserClientWithClerk\s*\(/i,
   ];
 
   return patterns.some((re) => re.test(s));
@@ -53,10 +62,18 @@ function hasIllegalPostgrestUsage(src) {
 function main() {
   const repoRoot = path.resolve(__dirname, '..');
   const appDir = path.join(repoRoot, 'app');
+  const componentsDir = path.join(repoRoot, 'components');
+  const contextsDir = path.join(repoRoot, 'contexts');
 
   const all = [];
   if (fs.existsSync(appDir)) {
     walk(appDir, all);
+  }
+  if (fs.existsSync(componentsDir)) {
+    walk(componentsDir, all);
+  }
+  if (fs.existsSync(contextsDir)) {
+    walk(contextsDir, all);
   }
 
   const targets = all.filter(isTargetFile);
@@ -79,7 +96,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log('[OK] No illegal Supabase PostgREST usage found in app/actions/** or app/**/page.tsx');
+  console.log('[OK] No illegal Supabase PostgREST usage found in restricted locations (app/actions, pages, components, contexts)');
 }
 
 main();

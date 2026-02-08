@@ -1,8 +1,15 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
-import { resolveStorageUrlMaybe } from '@/lib/services/operations/storage';
+import {
+  ALLOW_SCHEMA_FALLBACKS,
+  asObject,
+  getUnknownErrorMessage,
+  isSchemaMismatchError,
+  logOperationsError,
+  toIsoDate,
+} from '@/lib/services/operations/shared';
+import { resolveStorageUrlsMaybeBatched } from '@/lib/services/operations/storage';
 import type { OperationsWorkOrderAttachmentRow } from '@/lib/services/operations/types';
 
 export async function addOperationsWorkOrderAttachmentForOrganizationId(params: {
@@ -54,7 +61,12 @@ export async function addOperationsWorkOrderAttachmentForOrganizationId(params: 
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] addOperationsWorkOrderAttachment failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] operations_work_order_attachments missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
+      );
+    }
+    logOperationsError('[operations] addOperationsWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
   }
 }
@@ -82,26 +94,35 @@ export async function getOperationsWorkOrderAttachmentsForOrganizationId(params:
     );
 
     const ttlSeconds = 60 * 60;
-    const data = await Promise.all(
-      (rows || []).map(async (r) => {
-        const obj = asObject(r) ?? {};
-        const rawUrl = String(obj.url || '');
-        const resolved = await resolveStorageUrlMaybe(rawUrl, ttlSeconds, {
-          organizationId: params.organizationId,
-          orgSlug: params.orgSlug || null,
-        });
-        return {
-          id: String(obj.id),
-          url: resolved || rawUrl,
-          mimeType: obj.mime_type ? String(obj.mime_type) : null,
-          createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
-        };
-      })
-    );
+    const rawUrls = (rows || []).map((r) => {
+      const obj = asObject(r) ?? {};
+      return String(obj.url || '');
+    });
+    const resolvedUrls = await resolveStorageUrlsMaybeBatched(rawUrls, ttlSeconds, {
+      organizationId: params.organizationId,
+      orgSlug: params.orgSlug || null,
+    });
+
+    const data = (rows || []).map((r, idx) => {
+      const obj = asObject(r) ?? {};
+      const rawUrl = String(obj.url || '');
+      const resolved = resolvedUrls[idx] ?? null;
+      return {
+        id: String(obj.id),
+        url: resolved || rawUrl,
+        mimeType: obj.mime_type ? String(obj.mime_type) : null,
+        createdAt: toIsoDate(obj.created_at) ?? new Date().toISOString(),
+      };
+    });
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderAttachments failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(
+        `[SchemaMismatch] operations_work_order_attachments missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
+      );
+    }
+    logOperationsError('[operations] getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };
   }
 }

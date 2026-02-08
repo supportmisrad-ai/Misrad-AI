@@ -1,14 +1,9 @@
 'use server';
 
 import { PostVariation, AIOpportunity, ClientDNA } from "@/types/social";
-import { AIService } from "@/lib/services/ai/AIService";
+import { AIService } from "@/lib/services/ai/AIService";
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
   return typeof v === 'string' ? v : '';

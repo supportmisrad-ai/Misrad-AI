@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrCreateSocialSupabaseUserAction } from '@/app/actions/social-users';
+import { getOrCreateOrganizationUserByClerkUserId } from '@/lib/services/social-users';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { withWebhookTenantContext } from '@/lib/api-webhook-guard';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 function isUuidLike(value: string | null | undefined): boolean {
@@ -21,7 +24,8 @@ function isUuidLike(value: string | null | undefined): boolean {
 async function POSTHandler(request: NextRequest) {
   try {
     const rawBody = await request.text();
-    const body = rawBody ? JSON.parse(rawBody) : {};
+    const body: unknown = rawBody ? JSON.parse(rawBody) : {};
+    const bodyObj = asObject(body) ?? {};
     const signature = request.headers.get('x-zapier-signature');
     const webhookId = request.headers.get('x-zapier-webhook-id');
 
@@ -47,7 +51,7 @@ async function POSTHandler(request: NextRequest) {
     }
 
     // Get user from webhook ID or body
-    const userId = body.user_id || webhookId;
+    const userId = bodyObj.user_id ?? webhookId;
     if (!userId) {
       return NextResponse.json(
         { error: 'Missing user_id' },
@@ -58,7 +62,7 @@ async function POSTHandler(request: NextRequest) {
     const resolvedUserId = String(userId || '').trim();
     let socialUserId: string | null = isUuidLike(resolvedUserId) ? resolvedUserId : null;
     if (!socialUserId) {
-      const userResult = await getOrCreateSocialSupabaseUserAction(resolvedUserId);
+      const userResult = await getOrCreateOrganizationUserByClerkUserId(resolvedUserId);
       if (!userResult.success || !userResult.userId) {
         return NextResponse.json(
           { error: userResult.error || 'User not found' },
@@ -68,7 +72,7 @@ async function POSTHandler(request: NextRequest) {
       socialUserId = userResult.userId;
     }
 
-    const webhookOwner = await prisma.social_users.findFirst({
+    const webhookOwner = await prisma.organizationUser.findFirst({
       where: { id: socialUserId },
       select: { organization_id: true },
     });
@@ -77,31 +81,32 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Webhook user is not linked to an organization' }, { status: 403 });
     }
 
-    // Get webhook config
-    const webhookConfig = await prisma.social_webhook_configs.findFirst({
-      where: {
-        user_id: socialUserId,
-        integration_name: 'zapier',
-        is_active: true,
-      },
-      select: { id: true },
-    });
+    return await withWebhookTenantContext(
+      { source: 'webhook_zapier', organizationId: ownerOrganizationId },
+      async () => {
 
-    if (!webhookConfig) {
-      return NextResponse.json(
-        { error: 'Webhook not configured' },
-        { status: 404 }
-      );
-    }
+        // Get webhook config
+        const webhookConfig = await prisma.social_webhook_configs.findFirst({
+          where: {
+            user_id: socialUserId,
+            integration_name: 'zapier',
+            is_active: true,
+          },
+          select: { id: true },
+        });
 
-    // Update last triggered
-    await prisma.social_webhook_configs.updateMany({
-      where: { id: webhookConfig.id },
-      data: { last_triggered_at: new Date(), updated_at: new Date() },
-    });
+        if (!webhookConfig) {
+          return NextResponse.json({ error: 'Webhook not configured' }, { status: 404 });
+        }
 
-    // Process webhook based on event type
-    const eventType = body.event_type || 'unknown';
+        // Update last triggered
+        await prisma.social_webhook_configs.updateMany({
+          where: { id: webhookConfig.id },
+          data: { last_triggered_at: new Date(), updated_at: new Date() },
+        });
+
+        // Process webhook based on event type
+        const eventType = typeof bodyObj.event_type === 'string' ? String(bodyObj.event_type) : 'unknown';
 
     const normalizeSource = (src: string) => {
       const s = String(src || '').trim().toLowerCase();
@@ -121,7 +126,7 @@ async function POSTHandler(request: NextRequest) {
     const resolveOrgId = async (orgKey: string) => {
       const key = String(orgKey || '').trim();
       if (!key) return null;
-      const row = await prisma.social_organizations.findFirst({
+      const row = await prisma.organization.findFirst({
         where: isUuidLike(key) ? { OR: [{ id: key }, { slug: key }] } : { slug: key },
         select: { id: true },
       });
@@ -134,8 +139,14 @@ async function POSTHandler(request: NextRequest) {
     };
 
     if (isLeadEvent(eventType)) {
-      const payload = (body?.payload && typeof body.payload === 'object' ? body.payload : body) as any;
-      const orgSlug = String(payload.orgSlug || payload.org_slug || payload.organization || payload.organization_id || '').trim();
+      const payloadObj = asObject(bodyObj.payload) ?? bodyObj;
+      const orgSlug = String(
+        payloadObj.orgSlug ??
+          payloadObj.org_slug ??
+          payloadObj.organization ??
+          payloadObj.organization_id ??
+          ''
+      ).trim();
 
       if (orgSlug) {
         const payloadOrganizationId = await resolveOrgId(orgSlug);
@@ -149,11 +160,11 @@ async function POSTHandler(request: NextRequest) {
 
       const organizationId = ownerOrganizationId;
 
-      const name = String(payload.name || payload.full_name || payload.fullName || '').trim();
-      const emailRaw = String(payload.email || payload.email_address || '').trim();
-      const phone = String(payload.phone || payload.phone_number || payload.mobile || '').trim();
+      const name = String(payloadObj.name ?? payloadObj.full_name ?? payloadObj.fullName ?? '').trim();
+      const emailRaw = String(payloadObj.email ?? payloadObj.email_address ?? '').trim();
+      const phone = String(payloadObj.phone ?? payloadObj.phone_number ?? payloadObj.mobile ?? '').trim();
       const phoneDigits = normalizePhoneDigits(phone);
-      const source = normalizeSource(String(payload.source || payload.platform || payload.channel || ''));
+      const source = normalizeSource(String(payloadObj.source ?? payloadObj.platform ?? payloadObj.channel ?? ''));
 
       if (!name || !phone) {
         return NextResponse.json({ error: 'Missing lead name/phone' }, { status: 400 });
@@ -162,7 +173,7 @@ async function POSTHandler(request: NextRequest) {
       const email = emailRaw || '';
       const now = new Date();
 
-      const or: any[] = [];
+      const or: Prisma.SystemLeadWhereInput[] = [];
       if (phone) or.push({ phone });
       if (phoneDigits && phoneDigits !== phone) or.push({ phone: phoneDigits });
       if (email) or.push({ email });
@@ -210,18 +221,20 @@ async function POSTHandler(request: NextRequest) {
       return NextResponse.json({ success: true, leadId: created.id, created: true }, { status: 200 });
     }
 
-    // Log the webhook
-    // Return success
-    return NextResponse.json({
-      success: true,
-      message: 'Webhook received',
-      event_type: eventType,
-    });
-  } catch (error: any) {
+        // Log the webhook
+        // Return success
+        return NextResponse.json({
+          success: true,
+          message: 'Webhook received',
+          event_type: eventType,
+        });
+      }
+    );
+  } catch (error: unknown) {
     if (!IS_PROD) console.error('Zapier webhook error:', error);
     else console.error('Zapier webhook error');
     return NextResponse.json(
-      { error: IS_PROD ? 'Internal server error' : (error?.message || 'Internal server error') },
+      { error: IS_PROD ? 'Internal server error' : (getErrorMessage(error) || 'Internal server error') },
       { status: 500 }
     );
   }

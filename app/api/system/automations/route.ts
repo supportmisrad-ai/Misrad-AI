@@ -4,14 +4,15 @@ import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const AI_DNA_KEY_AUTOMATIONS = '__automations_v1';
+import { asObject } from '@/lib/shared/unknown';
+const AI_DNA_KEY_AUTOMATIONS = '__automations_v1';
 
-function readAiDnaObject(input: any): Record<string, any> {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
-  return input as Record<string, any>;
+function readAiDnaObject(input: unknown): Record<string, unknown> {
+  return asObject(input) ?? {};
 }
 
 async function GETHandler(request: NextRequest) {
@@ -29,12 +30,12 @@ async function GETHandler(request: NextRequest) {
       select: { ai_dna: true },
     });
 
-    const aiDna = readAiDnaObject((row as any)?.ai_dna);
+    const aiDna = readAiDnaObject(row?.ai_dna);
     const automations = Array.isArray(aiDna?.[AI_DNA_KEY_AUTOMATIONS]) ? aiDna[AI_DNA_KEY_AUTOMATIONS] : [];
 
     return apiSuccess({ organizationId: workspace.id, automations }, { status: 200 });
-  } catch (e: any) {
-    const msg = e?.message || 'Internal server error';
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }
@@ -53,15 +54,17 @@ async function PATCHHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    const body = (await request.json().catch(() => null)) as { automations?: any[] } | null;
-    const nextAutomations = Array.isArray(body?.automations) ? body?.automations : [];
+    const bodyJson: unknown = await request.json().catch(() => null);
+    const bodyObj = asObject(bodyJson);
+    const nextAutomationsRaw = bodyObj?.automations;
+    const nextAutomations = Array.isArray(nextAutomationsRaw) ? nextAutomationsRaw : [];
 
     const existing = await prisma.organization_settings.findUnique({
       where: { organization_id: String(workspace.id) },
       select: { ai_dna: true },
     });
 
-    const currentAiDna = readAiDnaObject((existing as any)?.ai_dna);
+    const currentAiDna = readAiDnaObject(existing?.ai_dna);
     const nextAiDna = {
       ...currentAiDna,
       [AI_DNA_KEY_AUTOMATIONS]: nextAutomations,
@@ -71,17 +74,17 @@ async function PATCHHandler(request: NextRequest) {
       where: { organization_id: String(workspace.id) },
       create: {
         organization_id: String(workspace.id),
-        ai_dna: nextAiDna as any,
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
       },
       update: {
-        ai_dna: nextAiDna as any,
+        ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },
     });
 
     return apiSuccess({ organizationId: workspace.id, automations: nextAutomations }, { status: 200 });
-  } catch (e: any) {
-    const msg = e?.message || 'Internal server error';
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : typeof e === 'string' ? e : '';
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }

@@ -9,6 +9,7 @@ import type {
   Client,
   ClientAction,
   ClientDeliverable,
+  FeedbackItem,
   HealthBreakdown,
   EngagementMetrics,
   JourneyStage,
@@ -22,6 +23,7 @@ import type {
   ClientTransformation,
   Email,
 } from '@/components/client-os-full/types';
+import { ClientStatus, ClientType, HealthStatus } from '@/components/client-os-full/types';
 import type { Meeting } from '@/components/client-portal/types';
 
 import {
@@ -39,87 +41,18 @@ import {
   type ClinicFeedback,
 } from '@/app/actions/client-clinic';
 
-import { createClient } from '@/lib/supabase';
+import { createStorageClient } from '@/lib/supabase';
+import { resolveStorageUrlsMaybeBatchedWithClient } from '@/lib/services/operations/storage';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 // Legacy actions are intentionally kept and re-exported for features
 // we haven't migrated to client_* yet.
 import * as legacy from '@/app/actions/client-portal';
 
 const toHeDate = (d: Date) => d.toLocaleDateString('he-IL');
-
-function parseSbRef(ref: string): { bucket: string; path: string } | null {
-  const s = String(ref || '').trim();
-  if (!s.startsWith('sb://')) return null;
-  const rest = s.slice('sb://'.length);
-  const slash = rest.indexOf('/');
-  if (slash <= 0) return null;
-  const bucket = rest.slice(0, slash).trim();
-  const path = rest.slice(slash + 1);
-  if (!bucket || !path) return null;
-  return { bucket, path };
-}
-
-function assertStoragePathScoped(params: {
-  rawRef: string;
-  path: string;
-  organizationId: string;
-  orgSlug?: string | null;
-}) {
-  const orgId = String(params.organizationId || '').trim();
-  if (!orgId) {
-    throw new Error('[TenantIsolation] Missing organizationId for storage scope validation.');
-  }
-
-  const segments = String(params.path || '')
-    .split('/')
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  if (!segments.length || segments[0] !== orgId) {
-    throw new Error(
-      `[TenantIsolation] Storage ref blocked: path must start with organizationId. expected=${orgId} ref=${params.rawRef}`
-    );
-  }
-
-  if (params.orgSlug) {
-    const slug = String(params.orgSlug).trim();
-    if (slug && !segments.includes(slug)) {
-      throw new Error(
-        `[TenantIsolation] Storage ref blocked: orgSlug not present in path. expectedSlug=${slug} ref=${params.rawRef}`
-      );
-    }
-  }
-}
-
-async function resolveStorageUrlMaybe(
-  refOrUrl: string | null | undefined,
-  ttlSeconds: number,
-  scope: { organizationId: string; orgSlug?: string | null }
-): Promise<string | null> {
-  const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
-  if (!raw) return null;
-
-  const parsed = parseSbRef(raw);
-  if (!parsed) return raw;
-
-  try {
-    assertStoragePathScoped({
-      rawRef: raw,
-      path: parsed.path,
-      organizationId: scope.organizationId,
-      orgSlug: scope.orgSlug,
-    });
-    const supabase = createClient();
-    const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, ttlSeconds);
-    if (error || !data?.signedUrl) return null;
-    return String(data.signedUrl);
-  } catch {
-    return null;
-  }
-}
 
 function mapClinicTaskToClientAction(task: ClinicTask): ClientAction {
   // Map clinic task status to ClientAction status
@@ -176,11 +109,20 @@ function mapClinicSessionToMeeting(session: ClinicSession): Meeting {
   const date = session.startAt ? toHeDate(new Date(session.startAt)) : toHeDate(new Date());
 
   // Extract attendees from metadata or use default
-  const attendees: string[] = session.metadata?.attendees || [];
+  const metadataObj = (session.metadata && typeof session.metadata === 'object' && !Array.isArray(session.metadata))
+    ? (session.metadata as Record<string, unknown>)
+    : null;
 
-  const transcript = typeof session.metadata?.transcript === 'string' ? String(session.metadata.transcript) : '';
-  const aiAnalysis = session.metadata?.aiAnalysis ?? undefined;
-  const recordingUrl = typeof session.metadata?.recordingUrl === 'string' ? String(session.metadata.recordingUrl) : undefined;
+  const attendeesRaw = metadataObj?.['attendees'];
+  const attendees: string[] = Array.isArray(attendeesRaw) ? attendeesRaw.filter((x): x is string => typeof x === 'string') : [];
+
+  const transcriptRaw = metadataObj?.['transcript'];
+  const transcript = typeof transcriptRaw === 'string' ? transcriptRaw : '';
+
+  const aiAnalysis = metadataObj?.['aiAnalysis'] as Meeting['aiAnalysis'] | undefined;
+
+  const recordingUrlRaw = metadataObj?.['recordingUrl'];
+  const recordingUrl = typeof recordingUrlRaw === 'string' ? recordingUrlRaw : undefined;
 
   return {
     id: session.id,
@@ -229,9 +171,9 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
     healthScore: 0,
     healthBreakdown: defaultHealthBreakdown(),
     engagementMetrics: defaultEngagement(),
-    healthStatus: 'STABLE' as any,
-    status: 'ACTIVE' as any,
-    type: 'RETAINER' as any,
+    healthStatus: HealthStatus.STABLE,
+    status: ClientStatus.ACTIVE,
+    type: ClientType.RETAINER,
     tags: [],
     pendingActions: [],
     assignedForms: [],
@@ -266,7 +208,7 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
     opportunities: [] as Opportunity[],
     handoffData: undefined,
     roiHistory: [] as ROIRecord[],
-    referralStatus: 'NONE' as any,
+    referralStatus: 'LOCKED',
     assets: [] as ClientAsset[],
     deliverables: [] as ClientDeliverable[],
     transformations: [] as ClientTransformation[],
@@ -277,7 +219,7 @@ function mapClinicClientToClientOS(client: { id: string; fullName: string }): Cl
     cancellationDate: undefined,
     cancellationReason: undefined,
     cancellationNote: undefined,
-  } as any;
+  };
 }
 
 // ---- New routed actions (client_*) ----
@@ -368,9 +310,9 @@ export async function getClientOSTasks(orgId: string, clientId: string): Promise
       taskIds: tasks.slice(0, 5).map((t) => t.id),
     });
     return tasks.map(mapClinicTaskToClientAction);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[getClientOSTasks] error', {
-      message: error?.message || String(error),
+      message: getErrorMessage(error) || String(error),
     });
     return [];
   }
@@ -386,18 +328,21 @@ export async function getClientOSSessions(orgId: string, clientId: string): Prom
     });
     const ttlSeconds = 60 * 60;
     const meetings = sessions.map(mapClinicSessionToMeeting);
-    return await Promise.all(
-      meetings.map(async (m) => {
-        const resolved = await resolveStorageUrlMaybe(m.recordingUrl, ttlSeconds, { organizationId: orgId });
-        return {
-          ...m,
-          recordingUrl: resolved || m.recordingUrl,
-        };
-      })
+    const supabase = createStorageClient();
+    const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
+      supabase,
+      meetings.map((m) => m.recordingUrl),
+      ttlSeconds,
+      { organizationId: orgId }
     );
-  } catch (error: any) {
+
+    return meetings.map((m, idx) => ({
+      ...m,
+      recordingUrl: resolvedUrls[idx] || m.recordingUrl,
+    }));
+  } catch (error: unknown) {
     console.error('[getClientOSSessions] error', {
-      message: error?.message || String(error),
+      message: getErrorMessage(error) || String(error),
     });
     return [];
   }
@@ -413,24 +358,27 @@ export async function getOrganizationSessions(orgId: string): Promise<Meeting[]>
     });
     const ttlSeconds = 60 * 60;
     const meetings = sessions.map(mapClinicSessionToMeeting);
-    return await Promise.all(
-      meetings.map(async (m) => {
-        const resolved = await resolveStorageUrlMaybe(m.recordingUrl, ttlSeconds, { organizationId: orgId });
-        return {
-          ...m,
-          recordingUrl: resolved || m.recordingUrl,
-        };
-      })
+    const supabase = createStorageClient();
+    const resolvedUrls = await resolveStorageUrlsMaybeBatchedWithClient(
+      supabase,
+      meetings.map((m) => m.recordingUrl),
+      ttlSeconds,
+      { organizationId: orgId }
     );
-  } catch (error: any) {
+
+    return meetings.map((m, idx) => ({
+      ...m,
+      recordingUrl: resolvedUrls[idx] || m.recordingUrl,
+    }));
+  } catch (error: unknown) {
     console.error('[getOrganizationSessions] error', {
-      message: error?.message || String(error),
+      message: getErrorMessage(error) || String(error),
     });
     return [];
   }
 }
 
-function mapClinicFeedbackToFeedbackItem(feedback: ClinicFeedback, clientName: string): any {
+function mapClinicFeedbackToFeedbackItem(feedback: ClinicFeedback, clientName: string): FeedbackItem {
   // Determine sentiment based on rating
   let sentiment: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' = 'NEUTRAL';
   if (feedback.rating >= 8) {
@@ -463,7 +411,7 @@ function mapClinicFeedbackToFeedbackItem(feedback: ClinicFeedback, clientName: s
   };
 }
 
-export async function getClientOSFeedbacks(orgId: string, clientId?: string): Promise<any[]> {
+export async function getClientOSFeedbacks(orgId: string, clientId?: string): Promise<FeedbackItem[]> {
   try {
     console.debug('[getClientOSFeedbacks] loading feedbacks', { orgId, clientId });
     const feedbacks = await listClinicFeedbacks({ orgId, clientId });
@@ -477,9 +425,9 @@ export async function getClientOSFeedbacks(orgId: string, clientId?: string): Pr
     const clientMap = new Map(clients.map((c) => [c.id, c.name]));
 
     return feedbacks.map((f) => mapClinicFeedbackToFeedbackItem(f, clientMap.get(f.clientId) || 'לקוח'));
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[getClientOSFeedbacks] error', {
-      message: error?.message || String(error),
+      message: getErrorMessage(error) || String(error),
     });
     return [];
   }
@@ -509,7 +457,7 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
   try {
     const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
     const user = await getAuthenticatedUser();
-    const email = String((user as any)?.email || '').trim();
+    const email = String(user?.email || '').trim();
     
     console.debug('[getClientIdByClerkEmail] searching for client', {
       orgId,
@@ -540,14 +488,14 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
 
     console.debug('[getClientIdByClerkEmail] found client', {
       clientId: data.id,
-      clientName: (data as any).fullName,
+      clientName: data.fullName,
     });
 
     return { clientId: data.id };
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[getClientIdByClerkEmail] unexpected error', {
-      message: error?.message || String(error),
-      stack: error?.stack,
+      message: getErrorMessage(error) || String(error),
+      stack: error instanceof Error ? error.stack : undefined,
     });
     return null;
   }
@@ -555,18 +503,24 @@ export async function getClientIdByClerkEmail(params: { orgId: string }): Promis
 
 // ---- Legacy passthrough (kept intentionally) ----
 
-export async function analyzeAndStoreMeeting(...args: any[]) {
-  return (legacy as any).analyzeAndStoreMeeting(...args);
+export async function analyzeAndStoreMeeting(
+  ...args: Parameters<typeof legacy.analyzeAndStoreMeeting>
+): Promise<Awaited<ReturnType<typeof legacy.analyzeAndStoreMeeting>>> {
+  return await legacy.analyzeAndStoreMeeting(...args);
 }
 
-export async function getInbox(...args: any[]) {
-  return (legacy as any).getInbox(...args);
+export async function getInbox(...args: Parameters<typeof legacy.getInbox>): Promise<Awaited<ReturnType<typeof legacy.getInbox>>> {
+  return await legacy.getInbox(...args);
 }
 
-export async function sendMessage(...args: any[]) {
-  return (legacy as any).sendMessage(...args);
+export async function sendMessage(
+  ...args: Parameters<typeof legacy.sendMessage>
+): Promise<Awaited<ReturnType<typeof legacy.sendMessage>>> {
+  return await legacy.sendMessage(...args);
 }
 
-export async function markAsRead(...args: any[]) {
-  return (legacy as any).markAsRead(...args);
+export async function markAsRead(
+  ...args: Parameters<typeof legacy.markAsRead>
+): Promise<Awaited<ReturnType<typeof legacy.markAsRead>>> {
+  return await legacy.markAsRead(...args);
 }

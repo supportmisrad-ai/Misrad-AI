@@ -1,3 +1,4 @@
+import { asObject } from '@/lib/shared/unknown';
 /**
  * API Shabbat Guard
  * 
@@ -6,14 +7,8 @@
 
 import { isShabbatNow } from './shabbat';
 import { apiError } from '@/lib/server/api-response';
-import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
-import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 
 function getErrorStatus(error: unknown): number | null {
   const obj = asObject(error);
@@ -66,10 +61,8 @@ export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) 
       }
 
       if (workspaceId) {
-        return await withTenantIsolationContext(
-          { source: 'api_shabbat_guard', organizationId: workspaceId },
-          async () => handler(...args)
-        );
+        enterTenantIsolationContext({ source: 'api_shabbat_guard', organizationId: workspaceId });
+        return await handler(...args);
       }
 
       // Not Shabbat - proceed with the handler

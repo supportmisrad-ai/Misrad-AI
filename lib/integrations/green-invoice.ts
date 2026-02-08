@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Green Invoice (מורנינג) Integration
  * 
@@ -11,9 +12,80 @@
  */
 
 import prisma from '@/lib/prisma';
+import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 // Green Invoice API base URL
 const GREEN_INVOICE_API_URL = 'https://api.greeninvoice.co.il/api/v1';
+
+function captureIntegrationException(error: unknown, context: Record<string, unknown>) {
+    Sentry.withScope((scope) => {
+        scope.setTag('layer', 'integration');
+        scope.setTag('integration', 'green_invoice');
+        for (const [k, v] of Object.entries(context)) {
+            scope.setExtra(k, v);
+        }
+        Sentry.captureException(error);
+    });
+}
+
+const GreenInvoiceApiErrorSchema = z
+    .object({
+        error: z.string().optional(),
+        message: z.string().optional(),
+    })
+    .passthrough();
+
+const GreenInvoiceDocumentResponseSchema = z
+    .object({
+        id: z.union([z.string(), z.number()]),
+        number: z.union([z.string(), z.number()]),
+        url: z.string().optional().nullable(),
+        pdfUrl: z.string().optional().nullable(),
+    })
+    .passthrough();
+
+type GreenInvoiceDocumentResponse = z.infer<typeof GreenInvoiceDocumentResponseSchema>;
+
+const GreenInvoiceDocumentsListResponseSchema = z
+    .object({
+        data: z.array(z.unknown()).optional(),
+    })
+    .passthrough();
+
+type GreenInvoiceDocumentsListResponse = z.infer<typeof GreenInvoiceDocumentsListResponseSchema>;
+
+type GreenInvoiceClientPayload = {
+    name: string;
+    emails: string[];
+    phones: string[];
+};
+
+type GreenInvoiceDocumentItemPayload = {
+    description: string;
+    quantity: number;
+    price: number;
+    vatRate: number;
+};
+
+type GreenInvoiceDocumentCreatePayload = {
+    type: number;
+    client: string | GreenInvoiceClientPayload;
+    payment: {
+        method: string;
+        date: string;
+    };
+    items: GreenInvoiceDocumentItemPayload[];
+    currency: string;
+    notes: string;
+    templateId?: number;
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+    fontFamily?: string;
+    headerText?: string;
+    footerText?: string;
+};
 
 /**
  * Get Green Invoice API key for user
@@ -44,8 +116,9 @@ export async function getGreenInvoiceApiKey(userId: string, organizationId: stri
         }
 
         // In Green Invoice, access_token stores the API key
-        return (integration as any).access_token || null;
-    } catch (error) {
+        return integration.access_token ? String(integration.access_token) : null;
+    } catch (error: unknown) {
+        captureIntegrationException(error, { action: 'getGreenInvoiceApiKey', userId: String(userId), organizationId: orgId });
         console.error('[Green Invoice] Error getting API key:', error);
         return null;
     }
@@ -101,25 +174,27 @@ export async function createInvoice(
 
     try {
         // Prepare invoice payload for Green Invoice API
-        const payload: any = {
+        const payload: GreenInvoiceDocumentCreatePayload = {
             type: 320, // Invoice type (320 = Invoice)
-            client: invoiceData.clientId || {
-                name: invoiceData.clientName,
-                emails: invoiceData.clientEmail ? [invoiceData.clientEmail] : [],
-                phones: invoiceData.clientPhone ? [invoiceData.clientPhone] : []
-            },
+            client: invoiceData.clientId
+                ? String(invoiceData.clientId)
+                : {
+                    name: String(invoiceData.clientName),
+                    emails: invoiceData.clientEmail ? [String(invoiceData.clientEmail)] : [],
+                    phones: invoiceData.clientPhone ? [String(invoiceData.clientPhone)] : [],
+                },
             payment: {
-                method: invoiceData.paymentMethod || 'bank_transfer',
-                date: invoiceData.dueDate || new Date().toISOString().split('T')[0]
+                method: String(invoiceData.paymentMethod || 'bank_transfer'),
+                date: String(invoiceData.dueDate || new Date().toISOString().split('T')[0]),
             },
-            items: invoiceData.items.map(item => ({
-                description: item.description,
-                quantity: item.quantity,
-                price: item.price,
-                vatRate: item.vatRate || 17
+            items: invoiceData.items.map((item): GreenInvoiceDocumentItemPayload => ({
+                description: String(item.description),
+                quantity: Number(item.quantity),
+                price: Number(item.price),
+                vatRate: Number(item.vatRate ?? 17) || 17,
             })),
-            currency: invoiceData.currency || 'ILS',
-            notes: invoiceData.notes || ''
+            currency: String(invoiceData.currency || 'ILS'),
+            notes: String(invoiceData.notes || ''),
         };
 
         // Add custom design options if provided
@@ -158,11 +233,21 @@ export async function createInvoice(
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(errorData.error || `Green Invoice API error: ${response.status}`);
+            const errorJson: unknown = await response.json().catch(() => ({ error: 'Unknown error' }));
+            const parsedErr = GreenInvoiceApiErrorSchema.safeParse(errorJson);
+            const msg = parsedErr.success
+                ? (parsedErr.data.error || parsedErr.data.message || `Green Invoice API error: ${response.status}`)
+                : `Green Invoice API error: ${response.status}`;
+            throw new Error(String(msg));
         }
 
-        const result = await response.json();
+        const resultJson: unknown = await response.json();
+        const parsed = GreenInvoiceDocumentResponseSchema.safeParse(resultJson);
+        if (!parsed.success) {
+            captureIntegrationException(parsed.error, { action: 'createInvoice', stage: 'parse_response' });
+            throw new Error('Green Invoice API returned unexpected response');
+        }
+        const result: GreenInvoiceDocumentResponse = parsed.data;
 
         // Update last sync time
         const orgId = String(organizationId || '').trim();
@@ -177,17 +262,17 @@ export async function createInvoice(
                 select: { id: true, metadata: true },
             });
 
-            const prevMeta = (existing as any)?.metadata || {};
+            const prevMeta = asObject(existing?.metadata) ?? {};
             if (existing?.id) {
                 await prisma.scale_integrations.update({
                     where: { id: String(existing.id) },
                     data: {
                         last_synced_at: new Date(),
                         metadata: {
-                            ...(prevMeta as any),
-                            lastInvoiceId: result.id,
-                            lastInvoiceNumber: result.number,
-                        } as any,
+                            ...prevMeta,
+                            lastInvoiceId: String(result.id),
+                            lastInvoiceNumber: String(result.number),
+                        },
                         updated_at: new Date(),
                     },
                 });
@@ -195,13 +280,14 @@ export async function createInvoice(
         }
 
         return {
-            invoiceId: result.id,
-            invoiceNumber: result.number,
-            invoiceUrl: result.url || '',
-            pdfUrl: result.pdfUrl
+            invoiceId: String(result.id),
+            invoiceNumber: String(result.number),
+            invoiceUrl: result.url ? String(result.url) : '',
+            pdfUrl: result.pdfUrl ? String(result.pdfUrl) : undefined
         };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        captureIntegrationException(error, { action: 'createInvoice', userId: String(userId), organizationId: String(organizationId) });
         console.error('[Green Invoice] Error creating invoice:', error);
         throw error;
     }
@@ -218,7 +304,7 @@ export async function getInvoice(
     userId: string,
     invoiceId: string,
     organizationId: string
-): Promise<any> {
+): Promise<unknown> {
     const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
     
     if (!apiKey) {
@@ -237,7 +323,8 @@ export async function getInvoice(
         }
 
         return await response.json();
-    } catch (error: any) {
+    } catch (error: unknown) {
+        captureIntegrationException(error, { action: 'getInvoice', userId: String(userId), invoiceId: String(invoiceId), organizationId: String(organizationId) });
         console.error('[Green Invoice] Error getting invoice:', error);
         throw error;
     }
@@ -259,7 +346,7 @@ export async function listInvoices(
         status?: 'draft' | 'sent' | 'paid' | 'cancelled';
         limit?: number;
     }
-): Promise<any[]> {
+): Promise<unknown[]> {
     const apiKey = await getGreenInvoiceApiKey(userId, organizationId);
     
     if (!apiKey) {
@@ -283,9 +370,16 @@ export async function listInvoices(
             throw new Error(`Green Invoice API error: ${response.status}`);
         }
 
-        const result = await response.json();
-        return result.data || [];
-    } catch (error: any) {
+        const resultJson: unknown = await response.json();
+        const parsed = GreenInvoiceDocumentsListResponseSchema.safeParse(resultJson);
+        if (!parsed.success) {
+            captureIntegrationException(parsed.error, { action: 'listInvoices', stage: 'parse_response' });
+            return [];
+        }
+        const result: GreenInvoiceDocumentsListResponse = parsed.data;
+        return Array.isArray(result.data) ? result.data : [];
+    } catch (error: unknown) {
+        captureIntegrationException(error, { action: 'listInvoices', userId: String(userId), organizationId: String(organizationId) });
         console.error('[Green Invoice] Error listing invoices:', error);
         throw error;
     }

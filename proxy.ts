@@ -1,10 +1,21 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { isLegacyLoginEntrypointPathname, legacyAppPathnameRedirect, normalizeLegacyRedirectPath } from "@/lib/os/legacy-routing";
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/about(.*)",
+  "/accessibility(.*)",
+  "/contact(.*)",
+  "/privacy(.*)",
+  "/terms(.*)",
+  "/refund-policy(.*)",
+  "/security(.*)",
+  "/support(.*)",
   "/login(.*)",
   "/reset-password(.*)",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
   "/maintenance(.*)",
   "/invite/(.*)",
   "/employee-invite/(.*)",
@@ -14,10 +25,22 @@ const isPublicRoute = createRouteMatcher([
   "/sso-callback",
   "/partner-portal(.*)",
   "/pricing(.*)",
+  "/checkout(.*)",
+  "/subscribe/checkout(.*)",
+  "/solo(.*)",
+  "/kiosk-login(.*)",
+  "/kiosk-scan(.*)",
+  "/kiosk-home(.*)",
   "/the-closer(.*)",
   "/the-authority(.*)",
   "/the-operator(.*)",
   "/the-empire(.*)",
+  "/client(.*)",
+  "/system(.*)",
+  "/nexus(.*)",
+  "/operations(.*)",
+  "/social(.*)",
+  "/finance-landing(.*)",
   "/manifest.json",
   "/sw.js",
   "/manifests/(.*)",
@@ -131,6 +154,14 @@ export default clerkMiddleware(async (auth, req) => {
     ? configuredSignInUrl
     : new URL(configuredSignInUrl, req.nextUrl.origin).toString();
 
+  const legacyAppRedirect = legacyAppPathnameRedirect(pathname);
+  if (legacyAppRedirect) {
+    const url = req?.nextUrl?.clone?.();
+    if (!url) return NextResponse.next();
+    url.pathname = legacyAppRedirect;
+    return NextResponse.redirect(url, 308);
+  }
+
   if (pathname === "/sign-in" || pathname.startsWith("/sign-in/")) {
     const url = req?.nextUrl?.clone?.();
     if (!url) return NextResponse.next();
@@ -143,28 +174,24 @@ export default clerkMiddleware(async (auth, req) => {
   const userId = authStateObj?.userId != null ? String(authStateObj.userId) : null;
   const claims = authStateObj?.sessionClaims;
 
-  // Legacy System.OS -> canonical flow via /login redirect param.
-  // LoginPageClient will convert /system to the villa path using orgSlug.
-  if (pathname === "/system-os" || pathname.startsWith("/system-os/")) {
-    const rest = pathname.slice("/system-os".length) || "";
+  // Legacy entrypoints -> canonical flow via /login redirect param.
+  // LoginPageClient will convert these into workspace paths using orgSlug.
+  if (isLegacyLoginEntrypointPathname(pathname)) {
     const url = req?.nextUrl?.clone?.();
     if (!url) return NextResponse.next();
     url.pathname = "/login";
-    url.searchParams.set("redirect", `/system${rest}`);
+    url.searchParams.set("redirect", normalizeLegacyRedirectPath(pathname) || pathname);
     return NextResponse.redirect(url, 308);
   }
 
-  // Normalize login redirect param if it points to legacy /system-os
+  // Normalize login redirect param if it points to legacy paths
   if (pathname === "/login") {
     const redirectParam = req?.nextUrl?.searchParams?.get("redirect");
-    if (
-      redirectParam &&
-      (redirectParam === "/system-os" || redirectParam.startsWith("/system-os/"))
-    ) {
-      const rest = redirectParam.slice("/system-os".length) || "";
+    const normalized = redirectParam ? normalizeLegacyRedirectPath(redirectParam) : null;
+    if (redirectParam && normalized && normalized !== redirectParam) {
       const url = req?.nextUrl?.clone?.();
       if (!url) return NextResponse.next();
-      url.searchParams.set("redirect", `/system${rest}`);
+      url.searchParams.set("redirect", normalized);
       return NextResponse.redirect(url, 308);
     }
   }

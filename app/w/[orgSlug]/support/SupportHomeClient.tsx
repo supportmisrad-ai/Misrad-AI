@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, ArrowRight, LifeBuoy, Mail, MessageSquare } from 'lucide-react';
 
 import type { OSModuleKey } from '@/lib/os/modules/types';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 type ModuleCard = {
   moduleKey: OSModuleKey;
@@ -27,22 +28,48 @@ type SearchArticle = {
   categoryTitle?: string;
 };
 
+type TicketRow = {
+  id: string;
+  ticket_number: string;
+  subject: string;
+  status: string;
+  created_at: string;
+  category: string;
+};
+
+function unwrapData(value: unknown): unknown {
+  const obj = asObject(value);
+  const data = obj?.data;
+  if (data && typeof data === 'object') return data;
+  return value;
+}
+
+function getPayloadError(value: unknown): string | null {
+  const obj = asObject(value);
+  const err = obj?.error;
+  return typeof err === 'string' && err.trim() ? err : null;
+}
+
+function parseTicketRow(value: unknown): TicketRow | null {
+  const obj = asObject(value);
+  if (!obj) return null;
+  const id = typeof obj.id === 'string' ? obj.id : String(obj.id ?? '');
+  const ticket_number = typeof obj.ticket_number === 'string' ? obj.ticket_number : String(obj.ticket_number ?? '');
+  const subject = typeof obj.subject === 'string' ? obj.subject : String(obj.subject ?? '');
+  const status = typeof obj.status === 'string' ? obj.status : String(obj.status ?? '');
+  const created_at = typeof obj.created_at === 'string' ? obj.created_at : String(obj.created_at ?? '');
+  const category = typeof obj.category === 'string' ? obj.category : String(obj.category ?? '');
+  if (!id || !ticket_number) return null;
+  return { id, ticket_number, subject, status, created_at, category };
+}
+
 export function SupportHomeClient(props: {
   orgSlug: string;
   modules: ModuleCard[];
   articles: SearchArticle[];
 }) {
   const [query, setQuery] = useState('');
-  const [tickets, setTickets] = useState<
-    Array<{
-      id: string;
-      ticket_number: string;
-      subject: string;
-      status: string;
-      created_at: string;
-      category: string;
-    }>
-  >([]);
+  const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [formCategory, setFormCategory] = useState('Tech');
   const [formSubject, setFormSubject] = useState('');
@@ -79,10 +106,13 @@ export function SupportHomeClient(props: {
           },
           cache: 'no-store',
         });
-        const raw = await res.json().catch(() => ({}));
-        const payload = (raw as any)?.data ?? raw;
-        const rows = Array.isArray(payload?.tickets) ? payload.tickets : [];
-        if (!cancelled) setTickets(rows);
+        const raw: unknown = await res.json().catch(() => null);
+        const payload = unwrapData(raw);
+        const payloadObj = asObject(payload);
+        const ticketsRaw = payloadObj?.tickets;
+        const rows = Array.isArray(ticketsRaw) ? ticketsRaw : [];
+        const parsed = rows.map(parseTicketRow).filter((v): v is TicketRow => Boolean(v));
+        if (!cancelled) setTickets(parsed);
       } catch {
         if (!cancelled) setTickets([]);
       } finally {
@@ -146,22 +176,24 @@ export function SupportHomeClient(props: {
       });
 
       const raw = await res.json().catch(() => ({}));
-      const payload = (raw as any)?.data ?? raw;
+      const payload = unwrapData(raw);
       if (!res.ok) {
-        throw new Error((payload as any)?.error || 'שגיאה ביצירת קריאה');
+        throw new Error(getPayloadError(payload) || 'שגיאה ביצירת קריאה');
       }
 
-      const ticketNumber = String((payload as any)?.ticket?.ticket_number || '');
+      const ticketObj = asObject(asObject(payload)?.ticket);
+      const ticketNumber = typeof ticketObj?.ticket_number === 'string' ? ticketObj.ticket_number : String(ticketObj?.ticket_number ?? '');
       setFormSuccess(ticketNumber ? `הדיווח התקבל (#${ticketNumber})` : 'הדיווח התקבל');
       setFormSubject('');
       setFormMessage('');
       setFormScreenshotUrl('');
+      const parsedTicket = parseTicketRow(ticketObj);
       setTickets((prev) => [
-        (payload as any)?.ticket,
+        ...(parsedTicket ? [parsedTicket] : []),
         ...prev,
       ].filter(Boolean));
-    } catch (error: any) {
-      setFormError(error?.message || 'שגיאה ביצירת קריאה');
+    } catch (error: unknown) {
+      setFormError(getErrorMessage(error) || 'שגיאה ביצירת קריאה');
     } finally {
       setIsSubmitting(false);
     }

@@ -4,19 +4,7 @@ import prisma from '@/lib/prisma';
 import { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import type { MisradNotificationType } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
+import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 function toMisradNotificationType(value: unknown): MisradNotificationType {
   const v = String(value || '').toUpperCase();
@@ -197,5 +185,43 @@ export async function deleteSystemNotificationForOrganizationId(params: {
     return { ok: true };
   } catch (e: unknown) {
     return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה במחיקת התראה' };
+  }
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function insertMisradNotificationsForOrganizationId(params: {
+  organizationId: string;
+  recipientIds: string[];
+  type: MisradNotificationType | string;
+  text: string;
+  reason: string;
+}): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    const organizationId = String(params.organizationId || '').trim();
+    const text = String(params.text || '').trim();
+    const type = String(params.type || '').trim().toUpperCase();
+    const reason = String(params.reason || '').trim();
+    const recipientIds = Array.from(new Set((params.recipientIds || []).map((x) => String(x || '').trim()).filter((x) => UUID_RE.test(x))));
+
+    if (!organizationId) return { ok: false, message: 'Missing organizationId' };
+    if (!reason) return { ok: false, message: 'Missing reason' };
+    if (!text) return { ok: true };
+    if (!recipientIds.length) return { ok: true };
+
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason,
+      query: `
+        insert into misrad_notifications (organization_id, recipient_id, type, text, is_read, created_at, updated_at)
+        select $1::uuid, rid::uuid, $3::text, $4::text, false, now(), now()
+        from unnest($2::uuid[]) as rid
+      `,
+      values: [organizationId, recipientIds, type, text],
+    });
+
+    return { ok: true };
+  } catch (e: unknown) {
+    return { ok: false, message: getUnknownErrorMessage(e) || 'שגיאה ביצירת התראות' };
   }
 }

@@ -1,8 +1,8 @@
-
 'use client';
 
 import type { PostVariation, AIOpportunity, Message, ClientDNA, Client, TeamMember } from '@/types/social';
 
+import { asObject } from '@/lib/shared/unknown';
 // Note: Always create a new GoogleGenAI instance right before making an API call 
 // to ensure it uses the most up-to-date API key.
 
@@ -39,13 +39,7 @@ export const generatePostVariations = async (
 
     החזר את התוצאה במבנה JSON array של אובייקטים עם השדות: id, type, content, imageSuggestion.
     הקפד על עברית טבעית, זורמת ומותאמת לקהל הישראלי.
-  `;
-
-  function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-  }
+  `;
 
   function asStringArray(value: unknown): string[] | null {
     if (!Array.isArray(value)) return null;

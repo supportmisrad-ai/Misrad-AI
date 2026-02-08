@@ -4,6 +4,7 @@ import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 export const runtime = 'nodejs';
@@ -72,8 +73,9 @@ async function POSTHandler(request: NextRequest) {
             expiresAt: created.expiresAt ? new Date(created.expiresAt).toISOString() : expiresAt.toISOString(),
           });
         }
-      } catch (e: any) {
-        if (String(e?.code || '') === 'P2002') {
+      } catch (e: unknown) {
+        const obj = asObject(e) ?? {};
+        if (String(obj.code || '') === 'P2002') {
           continue;
         }
         return apiError('שגיאה ביצירת טוקן', { status: 500 });
@@ -81,11 +83,11 @@ async function POSTHandler(request: NextRequest) {
     }
 
     return apiError('שגיאה ביצירת טוקן', { status: 500 });
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }
-    return apiError(e, { status: 500, message: e?.message || 'Internal server error' });
+    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Internal server error' });
   }
 }
 

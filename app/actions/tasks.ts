@@ -4,12 +4,7 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { SocialTask } from '@/types/social';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return '';
-}
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 type SocialTaskRow = Prisma.social_tasksGetPayload<{
   select: {

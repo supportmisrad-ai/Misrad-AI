@@ -1,30 +1,27 @@
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
-import { createClient } from '@/lib/supabase';
+import { createStorageClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
 function sanitizeFileName(name: string): string {
-  return String((name as any) ?? '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
+  return String(name ?? '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
 }
 
 async function POSTHandler(req: Request) {
   try {
     await getAuthenticatedUser();
 
-    const body = (await req.json().catch(() => ({}))) as {
-      orgId?: string;
-      clientId?: string;
-      fileName?: string;
-      mimeType?: string;
-    };
+    const bodyJson: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
 
-    const orgIdInput = String(body.orgId || '');
-    const clientId = String(body.clientId || '');
-    const fileName = String(body.fileName || 'recording');
-    const mimeType = String(body.mimeType || '');
+    const orgIdInput = String(bodyObj.orgId || '');
+    const clientId = String(bodyObj.clientId || '');
+    const fileName = String(bodyObj.fileName || 'recording');
+    const mimeType = String(bodyObj.mimeType || '');
 
     if (!orgIdInput) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
@@ -33,16 +30,16 @@ async function POSTHandler(req: Request) {
     try {
       const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
-    } catch (e: any) {
-      const status = typeof e?.status === 'number' ? e.status : 403;
-      return apiError(e, { status, message: e?.message || 'Forbidden' });
+    } catch (e: unknown) {
+      const status = getErrorStatus(e) ?? 403;
+      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
     }
 
     const bucket = 'meeting-recordings';
     const safeName = sanitizeFileName(fileName);
     const path = `${orgId}/${clientId}/${Date.now()}-${safeName}`;
 
-    const supabase = createClient();
+    const supabase = createStorageClient();
 
     // Best effort: ensure bucket exists
     try {
@@ -60,8 +57,8 @@ async function POSTHandler(req: Request) {
           console.warn('[meeting-recordings] createBucket failed:', createError.message);
         }
       }
-    } catch (e: any) {
-      console.warn('[meeting-recordings] bucket check failed:', e?.message ?? String(e));
+    } catch (e: unknown) {
+      console.warn('[meeting-recordings] bucket check failed:', getErrorMessage(e) || String(e));
     }
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
@@ -76,7 +73,7 @@ async function POSTHandler(req: Request) {
       signedUrl: data.signedUrl,
       token: data.token,
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Failed to prepare upload' });
   }
 }

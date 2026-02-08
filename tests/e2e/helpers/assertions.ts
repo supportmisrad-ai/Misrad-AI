@@ -7,6 +7,26 @@ type NavLoopOptions = {
 export async function gotoAndAssertOk(page: Page, url: string): Promise<Response> {
   const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
   expect(response, `No response returned for navigation to ${url}`).toBeTruthy();
+  if (!response!.ok()) {
+    const status = response!.status();
+    const statusText = response!.statusText();
+    const headers = response!.headers();
+    const location = headers?.location;
+
+    let bodySnippet = '';
+    try {
+      const raw = await response!.text();
+      bodySnippet = String(raw || '').slice(0, 800);
+    } catch {
+      bodySnippet = '';
+    }
+
+    // Keep this as console output (not assertion message) so it shows even when Playwright truncates expect output.
+    console.log(
+      `[e2e] gotoAndAssertOk failed: url=${url} status=${status} ${statusText || ''} finalUrl=${page.url()}${location ? ` location=${location}` : ''}${bodySnippet ? ` bodySnippet=${JSON.stringify(bodySnippet)}` : ''}`
+    );
+  }
+
   expect(response!.ok(), `Expected 2xx for ${url}, got ${response!.status()}`).toBeTruthy();
   return response!;
 }

@@ -2,6 +2,7 @@
 
 import type { NotificationPreferences } from '../types';
 
+import { asObject } from '@/lib/shared/unknown';
 type SubscribeRequestBody = {
   subscription: {
     endpoint: string;
@@ -14,11 +15,6 @@ type SubscribeRequestBody = {
   userAgent: string | null;
 };
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function getString(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
@@ -41,7 +37,7 @@ async function getVapidPublicKey(params: { orgSlug: string }): Promise<string> {
   return key;
 }
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = atob(base64);
@@ -49,8 +45,9 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   for (let i = 0; i < rawData.length; i++) {
     outputArray[i] = rawData.charCodeAt(i);
   }
-  const buffer = (outputArray.buffer as ArrayBuffer).slice(0);
-  return new Uint8Array(buffer);
+  const buffer = new ArrayBuffer(outputArray.length);
+  new Uint8Array(buffer).set(outputArray);
+  return buffer;
 }
 
 function normalizePreferences(prefs: NotificationPreferences | null | undefined): NotificationPreferences {
@@ -81,13 +78,14 @@ async function getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration
 
 async function postSubscription(params: { orgSlug: string; subscription: PushSubscription }): Promise<void> {
   const json = params.subscription.toJSON();
+  const keysObj = asObject(json.keys) ?? {};
   const body: SubscribeRequestBody = {
     subscription: {
       endpoint: String(json.endpoint || ''),
       expirationTime: (json.expirationTime as number | null) ?? null,
       keys: {
-        p256dh: String((json.keys as any)?.p256dh || ''),
-        auth: String((json.keys as any)?.auth || ''),
+        p256dh: String(keysObj.p256dh || ''),
+        auth: String(keysObj.auth || ''),
       },
     },
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
@@ -166,7 +164,7 @@ export async function syncWebPushSubscription(params: {
     existing ||
     (await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as BufferSource,
+      applicationServerKey: urlBase64ToArrayBuffer(vapidPublicKey),
     }));
 
   await postSubscription({ orgSlug: params.orgSlug, subscription: sub });

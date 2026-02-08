@@ -10,6 +10,20 @@ import { LockedModuleUpgradeModal } from '@/components/shared/LockedModuleUpgrad
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { modulesRegistry } from '@/lib/os/modules/registry';
 import { OSModuleIcon } from '@/components/shared/OSModuleIcon';
+import { asObject } from '@/lib/shared/unknown';
+
+function toMetricValue(value: unknown): string | number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s) return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : s;
+  }
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  return null;
+}
 
 const GLOBAL_STARTERS = [
   {
@@ -37,7 +51,7 @@ export default function LobbyClient({
   workspace: { name: string; logoUrl?: string | null };
   user: { name: string; role?: string | null; avatarUrl?: string | null };
   entitlements: Record<OSModuleKey, boolean>;
-  kpis: any;
+  kpis: unknown;
 }) {
   const router = useRouter();
   const [locked, setLocked] = useState<OSModuleKey | null>(null);
@@ -76,11 +90,18 @@ export default function LobbyClient({
     router.push(`/w/${encodeURIComponent(orgSlug)}/${module}`);
   };
 
-  const systemMetric = kpis?.system?.leadsTotal ?? null;
-  const socialMetric = kpis?.social?.postsScheduled ?? kpis?.social?.postsTotal ?? null;
-  const financeMetric = kpis?.finance?.totalHours ?? kpis?.finance?.totalMinutes ?? null;
-  const clientMetric = kpis?.client?.clientsTotal ?? null;
-  const operationsMetric = kpis?.operations?.activeProjects ?? null;
+  const kpisObj = asObject(kpis) ?? {};
+  const systemObj = asObject(kpisObj.system) ?? {};
+  const socialObj = asObject(kpisObj.social) ?? {};
+  const financeObj = asObject(kpisObj.finance) ?? {};
+  const clientObj = asObject(kpisObj.client) ?? {};
+  const operationsObj = asObject(kpisObj.operations) ?? {};
+
+  const systemMetric = toMetricValue(systemObj.leadsTotal);
+  const socialMetric = toMetricValue(socialObj.postsScheduled) ?? toMetricValue(socialObj.postsTotal);
+  const financeMetric = toMetricValue(financeObj.totalHours) ?? toMetricValue(financeObj.totalMinutes);
+  const clientMetric = toMetricValue(clientObj.clientsTotal);
+  const operationsMetric = toMetricValue(operationsObj.activeProjects);
 
   const globalChatGradient = 'from-slate-900 via-slate-800 to-slate-900';
   const globalChatAccent = '#0f172a';
@@ -123,7 +144,7 @@ export default function LobbyClient({
             subtitle={modulesRegistry.operations.labelHe}
             iconSlot={<OSModuleIcon moduleKey="operations" size={44} className="block" />}
             metric={operationsMetric}
-            metricLabel={kpis?.operations?.locked ? 'אין הרשאה' : 'פרויקטים'}
+            metricLabel={Boolean(operationsObj.locked) ? 'אין הרשאה' : 'פרויקטים'}
             onClickAction={() => openModule('operations')}
             className="min-h-[132px]"
           />
@@ -133,7 +154,7 @@ export default function LobbyClient({
             subtitle={modulesRegistry.finance.labelHe}
             iconSlot={<OSModuleIcon moduleKey="finance" size={44} className="block" />}
             metric={financeMetric}
-            metricLabel={kpis?.finance?.locked ? 'אין הרשאה' : 'שעות'}
+            metricLabel={Boolean(financeObj.locked) ? 'אין הרשאה' : 'שעות'}
             onClickAction={() => openModule('finance')}
             className="min-h-[132px]"
           />
@@ -171,7 +192,11 @@ export default function LobbyClient({
             error={error}
             messagesEndRef={messagesEndRef}
             inputRef={inputRef}
-            extractMessageText={(m: any) => String(m?.content || '')}
+            extractMessageText={(m: unknown) => {
+              const obj = asObject(m);
+              const content = obj?.content;
+              return typeof content === 'string' ? content : '';
+            }}
             handleSendMessage={handleSendMessage}
             sendText={(text: string) => sendText(text)}
             starters={GLOBAL_STARTERS}

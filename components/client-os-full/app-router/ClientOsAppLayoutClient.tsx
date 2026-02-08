@@ -10,7 +10,7 @@ import { ToastManager } from '@/components/client-os-full/components/ui/ToastMan
 import { ClientProvider } from '../context/ClientContext';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { useAuth } from '@clerk/nextjs';
-import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
+import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
 import type { Client, Meeting } from '@/components/client-os-full/types';
 import type { ClientOSUserData } from '@/components/client-os-full/ClientOSApp';
 
@@ -29,7 +29,7 @@ type ClientOsOrganization = {
 
 type ClientOsWindow = Window & {
   __CLIENT_OS_USER__?: ClientOSUserData;
-  supabaseForOrgLookup?: ReturnType<typeof createBrowserClientWithClerk>;
+  supabaseForOrgLookup?: ReturnType<typeof createBrowserStorageClientWithClerk>;
 };
 
 export default function ClientOsAppLayoutClient({
@@ -56,7 +56,7 @@ export default function ClientOsAppLayoutClient({
   const { getToken } = useAuth();
 
   const supabase = useMemo(() => {
-    return createBrowserClientWithClerk(async () => {
+    return createBrowserStorageClientWithClerk(async () => {
       try {
         return await getToken({ template: 'supabase' });
       } catch {

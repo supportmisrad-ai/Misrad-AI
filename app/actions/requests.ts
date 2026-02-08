@@ -8,21 +8,10 @@ import { uploadFile } from './files';
 import { updatePost } from './posts';
 import { Prisma } from '@prisma/client';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { createStorageClient } from '@/lib/supabase';
+import { resolveStorageUrlsMaybeBatchedWithClient, toSbRefMaybe } from '@/lib/services/operations/storage';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as Record<string, unknown>;
-  }
-  return null;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
+import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 function normalizeClientRequestType(value: unknown): ClientRequest['type'] {
   const v = String(value ?? '').toLowerCase();
@@ -140,16 +129,48 @@ export async function getClientRequests(
       orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
     });
 
-    const requests: ClientRequest[] = (rows || []).map((req) => ({
-      id: String(req.id ?? ''),
-      clientId: String(req.client_id ?? ''),
-      type: normalizeClientRequestType(req.type),
-      content: String(req.content ?? ''),
-      mediaUrl: req.media_url == null ? undefined : String(req.media_url),
-      timestamp: toIsoStringOrNow(req.created_at),
-      status: normalizeClientRequestStatus(req.status),
-      managerComment: req.manager_comment == null ? undefined : String(req.manager_comment),
-    }));
+    const raw = (rows || []).map((req) => {
+      const mediaRaw = req.media_url == null ? '' : String(req.media_url).trim();
+      const stableRef = mediaRaw ? (toSbRefMaybe(mediaRaw) || (mediaRaw.startsWith('sb://') ? mediaRaw : null)) : null;
+      return {
+        id: String(req.id ?? ''),
+        clientId: String(req.client_id ?? ''),
+        type: normalizeClientRequestType(req.type),
+        content: String(req.content ?? ''),
+        mediaRaw,
+        mediaRef: stableRef,
+        timestamp: toIsoStringOrNow(req.created_at),
+        status: normalizeClientRequestStatus(req.status),
+        managerComment: req.manager_comment == null ? undefined : String(req.manager_comment),
+      };
+    });
+
+    const ttlSeconds = 60 * 60;
+    const refsOrUrls = raw.map((r) => (r.mediaRef ? r.mediaRef : r.mediaRaw ? r.mediaRaw : null));
+
+    let resolved: (string | null)[] = refsOrUrls.map(() => null);
+    try {
+      const supabase = createStorageClient();
+      resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, refsOrUrls, ttlSeconds, { organizationId });
+    } catch {
+      resolved = refsOrUrls.map(() => null);
+    }
+
+    const requests: ClientRequest[] = raw.map((r, idx) => {
+      const rawUrl = r.mediaRaw;
+      const signedOrRaw = resolved[idx] || (rawUrl && !rawUrl.startsWith('sb://') ? rawUrl : undefined);
+      return {
+        id: r.id,
+        clientId: r.clientId,
+        type: r.type,
+        content: r.content,
+        mediaUrl: signedOrRaw,
+        mediaRef: r.mediaRef || undefined,
+        timestamp: r.timestamp,
+        status: r.status,
+        managerComment: r.managerComment,
+      };
+    });
 
     return { success: true, data: requests };
   } catch (error: unknown) {
@@ -235,6 +256,10 @@ export async function createClientRequest(
 
     // Upload media file if provided
     let mediaUrl = requestData.mediaUrl;
+    if (mediaUrl) {
+      const stable = toSbRefMaybe(String(mediaUrl));
+      if (stable) mediaUrl = stable;
+    }
     if (requestData.mediaFile) {
       const uploadResult = await uploadFile(
         requestData.mediaFile,
@@ -263,12 +288,29 @@ export async function createClientRequest(
       },
     });
 
+    const mediaRaw = request.media_url == null ? undefined : String(request.media_url);
+    const stableRef = mediaRaw ? (toSbRefMaybe(mediaRaw) || (mediaRaw.startsWith('sb://') ? mediaRaw : null)) : null;
+
+    let resolvedMediaUrl: string | undefined = undefined;
+    if (stableRef) {
+      try {
+        const supabase = createStorageClient();
+        const resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, [stableRef], 60 * 60, { organizationId });
+        resolvedMediaUrl = resolved[0] || undefined;
+      } catch {
+        resolvedMediaUrl = undefined;
+      }
+    } else if (mediaRaw && !mediaRaw.startsWith('sb://')) {
+      resolvedMediaUrl = mediaRaw;
+    }
+
     const formattedRequest: ClientRequest = {
       id: String(request.id ?? ''),
       clientId: String(request.client_id ?? ''),
       type: normalizeClientRequestType(request.type),
       content: String(request.content ?? ''),
-      mediaUrl: request.media_url == null ? undefined : String(request.media_url),
+      mediaUrl: resolvedMediaUrl,
+      mediaRef: stableRef || undefined,
       timestamp: toIsoStringOrNow(request.created_at),
       status: normalizeClientRequestStatus(request.status),
     };

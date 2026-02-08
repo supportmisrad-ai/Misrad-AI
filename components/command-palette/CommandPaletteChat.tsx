@@ -7,16 +7,18 @@ import { Skeleton } from '@/components/ui/skeletons';
 import { ChatBubble } from '@/components/chat/ChatBubble';
 import { ChatHistoryItem } from '@/components/chat/ChatHistory';
 import { saveChatHistory, getChatHistory, deleteChatHistory } from '@/app/actions/chat-history';
+import type { AIModuleChatMessage } from './useAIModuleChat';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 interface CommandPaletteChatProps {
   query: string;
   setQuery: (query: string) => void;
-  messages: any[];
+  messages: AIModuleChatMessage[];
   isThinking: boolean;
-  error: any;
+  error: unknown;
   messagesEndRef: React.RefObject<HTMLDivElement>;
   inputRef: React.RefObject<HTMLTextAreaElement>;
-  extractMessageText: (message: any) => string;
+  extractMessageText: (message: unknown) => string;
   handleSendMessage: () => void;
   sendText?: (text: string) => void;
   starters?: Array<{ id: string; text: string }>;
@@ -167,9 +169,9 @@ export function CommandPaletteChat({
               name={message.role === 'assistant' ? 'איציק' : undefined}
               timestamp={Date.now()}
             />
-            {message.role === 'assistant' && Array.isArray((message as any)?.sources) && (message as any).sources.length ? (
+            {message.role === 'assistant' && Array.isArray(message.sources) && message.sources.length ? (
               <div className="mr-14 mt-2">
-                <ChatSources sources={(message as any).sources} />
+                <ChatSources sources={message.sources} />
               </div>
             ) : null}
           </div>
@@ -186,9 +188,9 @@ export function CommandPaletteChat({
           </div>
         )}
 
-        {error && (
+        {Boolean(error) && (
           <div className="p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700 text-[14px] relative z-10">
-            <strong>שגיאה:</strong> {error.message || 'אירעה שגיאה. נסה שוב.'}
+            <strong>שגיאה:</strong> {getErrorMessage(error) || 'אירעה שגיאה. נסה שוב.'}
           </div>
         )}
 

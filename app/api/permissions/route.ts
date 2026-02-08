@@ -7,8 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
 import prisma from '@/lib/prisma';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(request: NextRequest) {
     try {
         const user = await getAuthenticatedUser();
@@ -21,7 +25,7 @@ async function GETHandler(request: NextRequest) {
             select: { id: true, label: true, description: true, category: true },
         });
 
-        const permissions = (rows || []).map((p: any) => ({
+        const permissions = (rows || []).map((p) => ({
             id: p.id,
             label: p.label,
             description: p.description,
@@ -30,13 +34,18 @@ async function GETHandler(request: NextRequest) {
         
         return NextResponse.json({ permissions });
         
-    } catch (error: any) {
-        console.error('[API] Error fetching permissions:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error fetching permissions');
+        else console.error('[API] Error fetching permissions:', error);
+
+        const message = getErrorMessage(error);
         
-        if (error.message?.includes('Forbidden') || error.message?.includes('Unauthorized')) {
+        if (message.includes('Forbidden') || message.includes('Unauthorized')) {
+            const status = message.includes('Forbidden') ? 403 : 401;
+            const safeMsg = status === 403 ? 'Forbidden' : 'Unauthorized';
             return NextResponse.json(
-                { error: error.message },
-                { status: error.message.includes('Forbidden') ? 403 : 401 }
+                { error: IS_PROD ? safeMsg : message },
+                { status }
             );
         }
         

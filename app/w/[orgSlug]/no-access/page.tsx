@@ -7,11 +7,12 @@ export default async function NoAccessPage({
   params,
   searchParams,
 }: {
-  params: Promise<{ orgSlug: string }>;
-  searchParams: Promise<{ module?: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
+  searchParams: { module?: string };
 }) {
-  const { orgSlug } = await params;
-  const sp = await searchParams;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
+  const sp = searchParams;
   const requestedModule = sp?.module ? String(sp.module) : null;
 
   return (

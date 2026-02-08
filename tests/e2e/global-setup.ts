@@ -5,6 +5,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+type CookieLike = {
+  name?: unknown;
+  value?: unknown;
+  domain?: unknown;
+};
+
+function getCookieName(cookie: CookieLike): string {
+  return String(cookie?.name || '');
+}
+
+function getCookieValue(cookie: CookieLike): string {
+  return String(cookie?.value || '');
+}
+
 function getJwtExp(jwt: string): number | null {
   try {
     const parts = String(jwt || '').split('.');
@@ -40,28 +54,28 @@ function isSameHost(a: string, b: string): boolean {
   return localhostAliases.has(aa) && localhostAliases.has(bb);
 }
 
-function pickClerkSessionCookie(cookies: Array<Record<string, unknown>>): Record<string, unknown> | undefined {
+function pickClerkSessionCookie(cookies: CookieLike[]): CookieLike | undefined {
   const sessionCookies = cookies
     .filter((c) => {
-      const name = String(c?.name || '');
-      const value = String(c?.value || '');
+      const name = getCookieName(c);
+      const value = getCookieValue(c);
       return Boolean(value) && (name === '__session' || name.startsWith('__session_'));
     })
-    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    .sort((a, b) => getCookieName(a).localeCompare(getCookieName(b)));
 
   if (!sessionCookies.length) return undefined;
 
-  const activeContext = cookies.find((c) => String(c?.name || '') === 'clerk_active_context');
-  const activeContextValue = activeContext ? String(activeContext.value || '') : '';
+  const activeContext = cookies.find((c) => getCookieName(c) === 'clerk_active_context');
+  const activeContextValue = activeContext ? getCookieValue(activeContext) : '';
   if (activeContextValue) {
     const matched = sessionCookies.find((c) => {
-      const name = String(c.name || '');
+      const name = getCookieName(c);
       return name.startsWith('__session_') && activeContextValue.includes(name.replace('__session_', ''));
     });
     if (matched) return matched;
   }
 
-  const specific = sessionCookies.find((c) => String(c.name || '').startsWith('__session_'));
+  const specific = sessionCookies.find((c) => getCookieName(c).startsWith('__session_'));
   return specific || sessionCookies[0];
 }
 
@@ -131,10 +145,11 @@ async function globalSetup(config: FullConfig) {
           const domain = String(c.domain || '').replace(/^\./, '');
           return isSameHost(domain, appHost);
         })
-        .map((c) => c as Record<string, unknown>);
+        .map((c): CookieLike => (isRecord(c) ? c : {}));
       const sessionCookie = pickClerkSessionCookie(appCookies);
+      const sessionCookieName = sessionCookie ? getCookieName(sessionCookie) : '';
 
-      const sessionJwt = sessionCookie ? String(sessionCookie.value || '') : '';
+      const sessionJwt = sessionCookie ? getCookieValue(sessionCookie) : '';
       const exp = sessionJwt ? getJwtExp(sessionJwt) : null;
       const hasValidSession = Boolean((exp && exp > nowSec + 60) || hasRefreshCookie);
 
@@ -144,21 +159,31 @@ async function globalSetup(config: FullConfig) {
           return;
         }
 
-        const hasSpecificSessionCookie = appCookies.some((c) => String(c.name || '').startsWith('__session_'));
         const cookieHeader = cookies
           .filter((c: unknown) => {
             if (!isRecord(c)) return false;
             const domain = String(c.domain || '').replace(/^\./, '');
             const isAppCookie = isSameHost(domain, appHost);
             if (!isAppCookie) return false;
-            const name = String(c.name || '');
-            if (hasSpecificSessionCookie && name === '__session') return false;
-            return Boolean(name) && Boolean(String(c.value || ''));
+
+            const name = String((c as { name?: unknown }).name || '');
+            const value = String((c as { value?: unknown }).value || '');
+            if (!name || !value) return false;
+
+            // If there are multiple Clerk session cookies, only send the active one.
+            // Sending both __session and __session_* can cause Clerk to pick the wrong value.
+            const isSessionCookie = name === '__session' || name.startsWith('__session_');
+            if (isSessionCookie && sessionCookieName && name !== sessionCookieName) return false;
+
+            return true;
           })
           .map((c: unknown) => {
-            const rc = c as Record<string, unknown>;
-            return `${String(rc.name)}=${String(rc.value)}`;
+            if (!isRecord(c)) return '';
+            const name = String(c.name || '');
+            const value = String(c.value || '');
+            return name && value ? `${name}=${value}` : '';
           })
+          .filter(Boolean)
           .join('; ');
 
         try {
@@ -508,6 +533,7 @@ async function globalSetup(config: FullConfig) {
               return (name.startsWith('__refresh_') || name === '__client_uat' || name.startsWith('__client_uat_')) && Boolean(value);
             });
             const sessionCookie = pickClerkSessionCookie(appCookies);
+            const sessionCookieName = sessionCookie ? String(sessionCookie.name || '') : '';
             const sessionJwt = sessionCookie ? String(sessionCookie.value || '') : '';
             const exp = sessionJwt ? getJwtExp(sessionJwt) : null;
             const hasValidSession = Boolean((exp && exp > nowSec + 60) || hasRefreshCookie);
@@ -517,21 +543,29 @@ async function globalSetup(config: FullConfig) {
               if (!key) {
                 skipLoginReason = 'Missing E2E_API_KEY (needed to validate storageState via /api/e2e/whoami)';
               } else {
-                const hasSpecificSessionCookie = appCookies.some((c) => String(c.name || '').startsWith('__session_'));
                 const cookieHeader = cookies
                   .filter((c: unknown) => {
                     if (!isRecord(c)) return false;
                     const domain = String(c.domain || '').replace(/^\./, '');
                     const isAppCookie = isSameHost(domain, appHost);
                     if (!isAppCookie) return false;
+
                     const name = String(c.name || '');
-                    if (hasSpecificSessionCookie && name === '__session') return false;
-                    return Boolean(name) && Boolean(String(c.value || ''));
+                    const value = String(c.value || '');
+                    if (!name || !value) return false;
+
+                    const isSessionCookie = name === '__session' || name.startsWith('__session_');
+                    if (isSessionCookie && sessionCookieName && name !== sessionCookieName) return false;
+
+                    return true;
                   })
                   .map((c: unknown) => {
-                    const rc = c as Record<string, unknown>;
-                    return `${String(rc.name)}=${String(rc.value)}`;
+                    if (!isRecord(c)) return '';
+                    const name = String(c.name || '');
+                    const value = String(c.value || '');
+                    return name && value ? `${name}=${value}` : '';
                   })
+                  .filter(Boolean)
                   .join('; ');
 
                 try {
@@ -566,17 +600,26 @@ async function globalSetup(config: FullConfig) {
                     await refreshPage.waitForTimeout(1_000).catch(() => undefined);
 
                     const refreshedCookies = await refreshContext.cookies().catch(() => []);
-                    const hasSpecificSessionCookieAfterRefresh = refreshedCookies.some((c) =>
-                      isSameHost(String(c.domain || '').replace(/^\./, ''), appHost) && String(c.name || '').startsWith('__session_')
-                    );
+                    const refreshedAppCookies = refreshedCookies
+                      .filter((c) => isSameHost(String(c.domain || '').replace(/^\./, ''), appHost))
+                      .map((c) => c as unknown as Record<string, unknown>);
+                    const refreshedSessionCookie = pickClerkSessionCookie(refreshedAppCookies);
+                    const refreshedSessionCookieName = refreshedSessionCookie ? String(refreshedSessionCookie.name || '') : '';
+
                     const refreshedCookieHeader = refreshedCookies
                       .filter((c) => {
                         const domain = String(c.domain || '').replace(/^\./, '');
                         const isAppCookie = isSameHost(domain, appHost);
                         if (!isAppCookie) return false;
+
                         const name = String(c.name || '');
-                        if (hasSpecificSessionCookieAfterRefresh && name === '__session') return false;
-                        return Boolean(name) && Boolean(String(c.value || ''));
+                        const value = String(c.value || '');
+                        if (!name || !value) return false;
+
+                        const isSessionCookie = name === '__session' || name.startsWith('__session_');
+                        if (isSessionCookie && refreshedSessionCookieName && name !== refreshedSessionCookieName) return false;
+
+                        return true;
                       })
                       .map((c) => `${String(c.name)}=${String(c.value)}`)
                       .join('; ');

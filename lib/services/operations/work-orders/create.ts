@@ -1,7 +1,13 @@
 import 'server-only';
 
 import { orgExec, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage } from '@/lib/services/operations/shared';
+import {
+  ALLOW_SCHEMA_FALLBACKS,
+  asObject,
+  getUnknownErrorMessage,
+  isSchemaMismatchError,
+  logOperationsError,
+} from '@/lib/services/operations/shared';
 
 async function geocodeAddressNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
   const q = String(address || '').trim();
@@ -105,7 +111,10 @@ export async function createOperationsWorkOrderForOrganizationId(params: {
 
     return { success: true, id: created.id };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsWorkOrder failed', e);
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+    logOperationsError('[operations] createOperationsWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת קריאה' };
   }
 }

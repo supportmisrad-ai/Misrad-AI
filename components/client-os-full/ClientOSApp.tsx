@@ -2,6 +2,7 @@
 
 import React from 'react';
 import App from './App';
+import type { OrganizationProfile, User } from '@/types';
 
 export type ClientOSUserData = {
   clerkUserId?: string | null;
@@ -27,8 +28,8 @@ export default function ClientOSApp({
   initialOrganization,
 }: {
   userData: ClientOSUserData;
-  initialCurrentUser?: any;
-  initialOrganization?: any;
+  initialCurrentUser?: User;
+  initialOrganization?: Partial<OrganizationProfile>;
 }) {
   return <App userData={userData} initialCurrentUser={initialCurrentUser} initialOrganization={initialOrganization} />;
 }

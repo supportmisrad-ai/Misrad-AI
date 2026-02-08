@@ -1,6 +1,6 @@
 'use server';
 
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
  
 
 import {
@@ -113,8 +113,11 @@ export async function getOperationsVehicles(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsVehicleRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsVehiclesByOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsVehiclesByOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsVehicles' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsVehicles failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכבים' };
@@ -126,8 +129,11 @@ export async function createOperationsVehicle(params: {
   name: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsVehicleForOrganizationId({ organizationId: workspace.id, name: params.name });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await createOperationsVehicleForOrganizationId({ organizationId, name: params.name }),
+      { source: 'server_actions_operations', reason: 'createOperationsVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהוספת רכב' };
@@ -141,13 +147,17 @@ export async function createOperationsItem(params: {
   unit?: string | null;
 }): Promise<{ success: boolean; data?: { itemId: string }; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsItemForOrganizationId({
-      organizationId: workspace.id,
-      name: params.name,
-      sku: params.sku,
-      unit: params.unit,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await createOperationsItemForOrganizationId({
+          organizationId,
+          name: params.name,
+          sku: params.sku,
+          unit: params.unit,
+        }),
+      { source: 'server_actions_operations', reason: 'createOperationsItem' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsItem failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת פריט' };
@@ -159,8 +169,11 @@ export async function deleteOperationsVehicle(params: {
   id: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await deleteOperationsVehicleForOrganizationId({ organizationId: workspace.id, id: params.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await deleteOperationsVehicleForOrganizationId({ organizationId, id: params.id }),
+      { source: 'server_actions_operations', reason: 'deleteOperationsVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] deleteOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת רכב' };
@@ -173,12 +186,16 @@ export async function setOperationsTechnicianActiveVehicle(params: {
   vehicleId: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsTechnicianActiveVehicleForOrganizationId({
-      organizationId: workspace.id,
-      technicianId: params.technicianId,
-      vehicleId: params.vehicleId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsTechnicianActiveVehicleForOrganizationId({
+          organizationId,
+          technicianId: params.technicianId,
+          vehicleId: params.vehicleId,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsTechnicianActiveVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת רכב פעיל' };
@@ -194,11 +211,15 @@ export async function getOperationsTechnicianActiveVehicle(params: {
   technicianId: string;
 }): Promise<{ success: boolean; data?: { vehicleId: string | null; vehicleName: string | null }; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsTechnicianActiveVehicleByOrganizationId({
-      organizationId: workspace.id,
-      technicianId: params.technicianId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsTechnicianActiveVehicleByOrganizationId({
+          organizationId,
+          technicianId: params.technicianId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsTechnicianActiveVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכב פעיל' };
@@ -209,8 +230,12 @@ export async function getOperationsStockSourceOptions(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsStockSourceOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsStockSourceOptionsAutoForOrganizationId({ organizationId: workspace.id, orgSlug: params.orgSlug });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsStockSourceOptionsAutoForOrganizationId({ organizationId, orgSlug: params.orgSlug }),
+      { source: 'server_actions_operations', reason: 'getOperationsStockSourceOptions' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsStockSourceOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מקורות מלאי' };
@@ -223,12 +248,16 @@ export async function setOperationsWorkOrderStockSource(params: {
   holderId: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsWorkOrderStockSourceForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-      holderId: params.holderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsWorkOrderStockSourceForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+          holderId: params.holderId,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStockSource' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderStockSource failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת מקור מלאי' };
@@ -240,12 +269,16 @@ export async function setOperationsWorkOrderStockSourceToMyActiveVehicle(params:
   workOrderId: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsWorkOrderStockSourceToMyActiveVehicleAutoForOrganizationId({
-      organizationId: workspace.id,
-      orgSlug: params.orgSlug,
-      workOrderId: params.workOrderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsWorkOrderStockSourceToMyActiveVehicleAutoForOrganizationId({
+          organizationId,
+          orgSlug: params.orgSlug,
+          workOrderId: params.workOrderId,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStockSourceToMyActiveVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
@@ -257,11 +290,15 @@ export async function getOperationsVehicleStockBalances(params: {
   vehicleId: string;
 }): Promise<{ success: boolean; data?: OperationsHolderStockRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsVehicleStockBalancesForOrganizationId({
-      organizationId: workspace.id,
-      vehicleId: params.vehicleId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsVehicleStockBalancesForOrganizationId({
+          organizationId,
+          vehicleId: params.vehicleId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsVehicleStockBalances' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsVehicleStockBalances failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי רכב' };
@@ -275,13 +312,17 @@ export async function transferOperationsStockToVehicle(params: {
   qty: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await transferOperationsStockToVehicleForOrganizationId({
-      organizationId: workspace.id,
-      vehicleId: params.vehicleId,
-      itemId: params.itemId,
-      qty: params.qty,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await transferOperationsStockToVehicleForOrganizationId({
+          organizationId,
+          vehicleId: params.vehicleId,
+          itemId: params.itemId,
+          qty: params.qty,
+        }),
+      { source: 'server_actions_operations', reason: 'transferOperationsStockToVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] transferOperationsStockToVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהעברת מלאי לרכב' };
@@ -295,13 +336,17 @@ export async function addOperationsStockToActiveVehicle(params: {
   qty: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await addOperationsStockToActiveVehicleForOrganizationId({
-      organizationId: workspace.id,
-      technicianId: params.technicianId,
-      itemId: params.itemId,
-      qty: params.qty,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await addOperationsStockToActiveVehicleForOrganizationId({
+          organizationId,
+          technicianId: params.technicianId,
+          itemId: params.itemId,
+          qty: params.qty,
+        }),
+      { source: 'server_actions_operations', reason: 'addOperationsStockToActiveVehicle' }
+    );
   } catch (e: unknown) {
     console.error('[operations] addOperationsStockToActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקליטת מלאי לרכב' };
@@ -325,8 +370,11 @@ export async function getOperationsClientOptions(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsClientOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsClientOptionsForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsClientOptionsForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsClientOptions' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsClientOptions failed', e);
     return {
@@ -342,12 +390,16 @@ export async function setOperationsWorkOrderCompletionSignature(params: {
   signatureUrl: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsWorkOrderCompletionSignatureForOrganizationId({
-      organizationId: workspace.id,
-      id: params.id,
-      signatureUrl: params.signatureUrl,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsWorkOrderCompletionSignatureForOrganizationId({
+          organizationId,
+          id: params.id,
+          signatureUrl: params.signatureUrl,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsWorkOrderCompletionSignature' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };
@@ -382,17 +434,21 @@ export async function addOperationsWorkOrderAttachment(params: {
   createdByRef?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await addOperationsWorkOrderAttachmentForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-      storageBucket: params.storageBucket,
-      storagePath: params.storagePath,
-      url: params.url,
-      mimeType: params.mimeType,
-      createdByType: params.createdByType,
-      createdByRef: params.createdByRef,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await addOperationsWorkOrderAttachmentForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+          storageBucket: params.storageBucket,
+          storagePath: params.storagePath,
+          url: params.url,
+          mimeType: params.mimeType,
+          createdByType: params.createdByType,
+          createdByRef: params.createdByRef,
+        }),
+      { source: 'server_actions_operations', reason: 'addOperationsWorkOrderAttachment' }
+    );
   } catch (e: unknown) {
     console.error('[operations] addOperationsWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
@@ -403,8 +459,11 @@ export async function getOperationsLocations(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsLocationRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsLocationsByOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsLocationsByOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsLocations' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsLocations failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מחסנים' };
@@ -416,8 +475,11 @@ export async function createOperationsLocation(params: {
   name: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsLocationForOrganizationId({ organizationId: workspace.id, name: params.name });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await createOperationsLocationForOrganizationId({ organizationId, name: params.name }),
+      { source: 'server_actions_operations', reason: 'createOperationsLocation' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsLocation failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת מחסן' };
@@ -429,8 +491,11 @@ export async function deleteOperationsLocation(params: {
   id: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await deleteOperationsLocationForOrganizationId({ organizationId: workspace.id, id: params.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await deleteOperationsLocationForOrganizationId({ organizationId, id: params.id }),
+      { source: 'server_actions_operations', reason: 'deleteOperationsLocation' }
+    );
   } catch (e: unknown) {
     console.error('[operations] deleteOperationsLocation failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת מחסן' };
@@ -441,8 +506,11 @@ export async function getOperationsWorkOrderTypes(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsWorkOrderTypeRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsWorkOrderTypesByOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsWorkOrderTypesByOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsWorkOrderTypes' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderTypes failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת סוגי קריאות' };
@@ -454,8 +522,11 @@ export async function createOperationsWorkOrderType(params: {
   name: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsWorkOrderTypeForOrganizationId({ organizationId: workspace.id, name: params.name });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await createOperationsWorkOrderTypeForOrganizationId({ organizationId, name: params.name }),
+      { source: 'server_actions_operations', reason: 'createOperationsWorkOrderType' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsWorkOrderType failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת סוג קריאה' };
@@ -467,8 +538,11 @@ export async function deleteOperationsWorkOrderType(params: {
   id: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await deleteOperationsWorkOrderTypeForOrganizationId({ organizationId: workspace.id, id: params.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await deleteOperationsWorkOrderTypeForOrganizationId({ organizationId, id: params.id }),
+      { source: 'server_actions_operations', reason: 'deleteOperationsWorkOrderType' }
+    );
   } catch (e: unknown) {
     console.error('[operations] deleteOperationsWorkOrderType failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת סוג קריאה' };
@@ -479,8 +553,11 @@ export async function getOperationsTechnicianOptions(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsTechnicianOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsTechnicianOptionsForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsTechnicianOptionsForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsTechnicianOptions' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsTechnicianOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת הטכנאים' };
@@ -493,12 +570,16 @@ export async function setOperationsWorkOrderAssignedTechnician(params: {
   technicianId: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsWorkOrderAssignedTechnicianForOrganizationId({
-      organizationId: workspace.id,
-      id: params.id,
-      technicianId: params.technicianId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsWorkOrderAssignedTechnicianForOrganizationId({
+          organizationId,
+          id: params.id,
+          technicianId: params.technicianId,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsWorkOrderAssignedTechnician' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderAssignedTechnician failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשיוך טכנאי לקריאה' };
@@ -510,12 +591,16 @@ export async function getOperationsWorkOrderAttachments(params: {
   workOrderId: string;
 }): Promise<{ success: boolean; data?: OperationsWorkOrderAttachmentRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsWorkOrderAttachmentsForOrganizationId({
-      organizationId: workspace.id,
-      orgSlug: params.orgSlug,
-      workOrderId: params.workOrderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsWorkOrderAttachmentsForOrganizationId({
+          organizationId,
+          orgSlug: params.orgSlug,
+          workOrderId: params.workOrderId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsWorkOrderAttachments' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };
@@ -527,11 +612,15 @@ export async function getOperationsWorkOrderCheckins(params: {
   workOrderId: string;
 }): Promise<{ success: boolean; data?: OperationsWorkOrderCheckinRow[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsWorkOrderCheckinsForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsWorkOrderCheckinsForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsWorkOrderCheckins' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
@@ -548,16 +637,20 @@ export async function addOperationsWorkOrderCheckin(params: {
   createdByRef?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await addOperationsWorkOrderCheckinForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-      lat: params.lat,
-      lng: params.lng,
-      accuracy: params.accuracy,
-      createdByType: params.createdByType,
-      createdByRef: params.createdByRef,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await addOperationsWorkOrderCheckinForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+          lat: params.lat,
+          lng: params.lng,
+          accuracy: params.accuracy,
+          createdByType: params.createdByType,
+          createdByRef: params.createdByRef,
+        }),
+      { source: 'server_actions_operations', reason: 'addOperationsWorkOrderCheckin' }
+    );
   } catch (e: unknown) {
     console.error('[operations] addOperationsWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };
@@ -568,8 +661,11 @@ export async function getOperationsInventoryOptions(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsInventoryOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsInventoryOptionsForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsInventoryOptionsForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsInventoryOptions' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsInventoryOptions failed', e);
     return {
@@ -645,11 +741,15 @@ export async function getOperationsInventoryOptionsForHolder(params: {
   holderId: string;
 }): Promise<{ success: boolean; data?: OperationsInventoryOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsInventoryOptionsForHolderForOrganizationId({
-      organizationId: workspace.id,
-      holderId: params.holderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsInventoryOptionsForHolderForOrganizationId({
+          organizationId,
+          holderId: params.holderId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsInventoryOptionsForHolder' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsInventoryOptionsForHolder failed', e);
     return {
@@ -666,13 +766,17 @@ export async function consumeOperationsInventoryForWorkOrder(params: {
   qty: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await consumeOperationsInventoryForWorkOrderForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-      inventoryId: params.inventoryId,
-      qty: params.qty,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await consumeOperationsInventoryForWorkOrderForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+          inventoryId: params.inventoryId,
+          qty: params.qty,
+        }),
+      { source: 'server_actions_operations', reason: 'consumeOperationsInventoryForWorkOrder' }
+    );
   } catch (e: unknown) {
     console.error('[operations] consumeOperationsInventoryForWorkOrder failed', e);
     return {
@@ -691,11 +795,15 @@ export async function getOperationsMaterialsForWorkOrder(params: {
   error?: string;
 }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsMaterialsForWorkOrderForOrganizationId({
-      organizationId: workspace.id,
-      workOrderId: params.workOrderId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsMaterialsForWorkOrderForOrganizationId({
+          organizationId,
+          workOrderId: params.workOrderId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsMaterialsForWorkOrder' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsMaterialsForWorkOrder failed', e);
     return {
@@ -711,12 +819,16 @@ export async function createOperationsContractorToken(params: {
   ttlHours?: number;
 }): Promise<{ success: boolean; token?: string; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsContractorTokenForOrganizationId({
-      organizationId: workspace.id,
-      contractorLabel: params.contractorLabel,
-      ttlHours: params.ttlHours,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await createOperationsContractorTokenForOrganizationId({
+          organizationId,
+          contractorLabel: params.contractorLabel,
+          ttlHours: params.ttlHours,
+        }),
+      { source: 'server_actions_operations', reason: 'createOperationsContractorToken' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsContractorToken failed', e);
     return {
@@ -778,8 +890,11 @@ export async function getOperationsDashboardData(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsDashboardData; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsDashboardDataForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsDashboardDataForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsDashboardData' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsDashboardData failed', e);
     return {
@@ -793,8 +908,11 @@ export async function getOperationsProjectsData(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsProjectsData; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsProjectsDataForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsProjectsDataForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsProjectsData' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsProjectsData failed', e);
     return {
@@ -808,8 +926,11 @@ export async function getOperationsInventoryData(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsInventoryData; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsInventoryDataForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsInventoryDataForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsInventoryData' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsInventoryData failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
@@ -820,8 +941,11 @@ export async function getOperationsProjectOptions(params: {
   orgSlug: string;
 }): Promise<{ success: boolean; data?: OperationsProjectOption[]; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsProjectOptionsForOrganizationId({ organizationId: workspace.id });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) => await getOperationsProjectOptionsForOrganizationId({ organizationId }),
+      { source: 'server_actions_operations', reason: 'getOperationsProjectOptions' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsProjectOptions failed', e);
     return {
@@ -838,13 +962,17 @@ export async function getOperationsWorkOrdersData(params: {
   assignedTechnicianId?: string;
 }): Promise<{ success: boolean; data?: OperationsWorkOrdersData; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsWorkOrdersDataForOrganizationId({
-      organizationId: workspace.id,
-      status: params.status,
-      projectId: params.projectId,
-      assignedTechnicianId: params.assignedTechnicianId,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsWorkOrdersDataForOrganizationId({
+          organizationId,
+          status: params.status,
+          projectId: params.projectId,
+          assignedTechnicianId: params.assignedTechnicianId,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsWorkOrdersData' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrdersData failed', e);
     return {
@@ -862,14 +990,18 @@ export async function createOperationsWorkOrder(params: {
   scheduledStart?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsWorkOrderForOrganizationId({
-      organizationId: workspace.id,
-      projectId: params.projectId,
-      title: params.title,
-      description: params.description,
-      scheduledStart: params.scheduledStart,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await createOperationsWorkOrderForOrganizationId({
+          organizationId,
+          projectId: params.projectId,
+          title: params.title,
+          description: params.description,
+          scheduledStart: params.scheduledStart,
+        }),
+      { source: 'server_actions_operations', reason: 'createOperationsWorkOrder' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsWorkOrder failed', e);
     return {
@@ -903,12 +1035,16 @@ export async function getOperationsWorkOrderById(params: {
   error?: string;
 }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await getOperationsWorkOrderByIdForOrganizationId({
-      organizationId: workspace.id,
-      orgSlug: params.orgSlug,
-      id: params.id,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await getOperationsWorkOrderByIdForOrganizationId({
+          organizationId,
+          orgSlug: params.orgSlug,
+          id: params.id,
+        }),
+      { source: 'server_actions_operations', reason: 'getOperationsWorkOrderById' }
+    );
   } catch (e: unknown) {
     console.error('[operations] getOperationsWorkOrderById failed', e);
     return {
@@ -924,12 +1060,16 @@ export async function setOperationsWorkOrderStatus(params: {
   status: OperationsWorkOrderStatus;
 }): Promise<{ success: boolean; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await setOperationsWorkOrderStatusForOrganizationId({
-      organizationId: workspace.id,
-      id: params.id,
-      status: params.status,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await setOperationsWorkOrderStatusForOrganizationId({
+          organizationId,
+          id: params.id,
+          status: params.status,
+        }),
+      { source: 'server_actions_operations', reason: 'setOperationsWorkOrderStatus' }
+    );
   } catch (e: unknown) {
     console.error('[operations] setOperationsWorkOrderStatus failed', e);
     return {
@@ -946,13 +1086,17 @@ export async function createOperationsProject(params: {
   installationAddress?: string;
 }): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-    return await createOperationsProjectForOrganizationId({
-      organizationId: workspace.id,
-      title: params.title,
-      canonicalClientId: params.canonicalClientId,
-      installationAddress: params.installationAddress,
-    });
+    return await withWorkspaceTenantContext(
+      params.orgSlug,
+      async ({ organizationId }) =>
+        await createOperationsProjectForOrganizationId({
+          organizationId,
+          title: params.title,
+          canonicalClientId: params.canonicalClientId,
+          installationAddress: params.installationAddress,
+        }),
+      { source: 'server_actions_operations', reason: 'createOperationsProject' }
+    );
   } catch (e: unknown) {
     console.error('[operations] createOperationsProject failed', e);
     return {

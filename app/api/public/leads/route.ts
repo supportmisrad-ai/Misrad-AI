@@ -1,9 +1,12 @@
 import { NextRequest } from 'next/server';
-import prisma, { executeRawAllowlisted, queryRawAllowlisted } from '@/lib/prisma';
+import prisma, { queryRawAllowlisted } from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { buildRateLimitHeaders, getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
+import { asObject } from '@/lib/server/workspace-access/utils';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 const VALID_SOURCES = ['landing-page', 'contact-form', 'demo-request', 'pricing-page', 'webinar', 'other'] as const;
-const VALID_STATUSES = ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost'] as const;
 
 type LeadInput = {
   name: string;
@@ -15,6 +18,15 @@ type LeadInput = {
   orgSlug: string;
 };
 
+function isValidSource(value: string): value is (typeof VALID_SOURCES)[number] {
+  return (VALID_SOURCES as readonly string[]).includes(value);
+}
+
+type RateLimitCheckResult =
+  | { ok: true }
+  | { ok: false; status: 429; message: string; retryAfterSeconds: number }
+  | { ok: false; status: 503; message: string; retryAfterSeconds: number };
+
 function validateEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -24,52 +36,27 @@ function validatePhone(phone: string): boolean {
   return cleaned.length >= 9 && cleaned.length <= 15;
 }
 
-async function checkRateLimit(apiKey: string, maxRequests: number): Promise<boolean> {
-  const now = Date.now();
-  const windowMs = 60 * 1000; // 1 minute
-  const key = `rate_limit:${apiKey}:${Math.floor(now / windowMs)}`;
-  
-  try {
-    // Clean old entries first
-    await executeRawAllowlisted(prisma, {
-      reason: 'api_rate_limit_cleanup',
-      query: `DELETE FROM api_rate_limits WHERE expires_at < NOW()`,
-      values: []
-    });
-    
-    // Try to get current count
-    const existing = await queryRawAllowlisted<Array<{ count: number }>>(prisma, {
-      reason: 'api_rate_limit_check',
-      query: `SELECT count FROM api_rate_limits WHERE key = $1`,
-      values: [key]
-    });
+async function checkRateLimit(params: { req: NextRequest; apiKey: string; maxRequests: number }): Promise<RateLimitCheckResult> {
+  const ip = getClientIpFromRequest(params.req);
+  const key = `${ip}:${params.apiKey}:public.leads`;
 
-    if (existing.length > 0) {
-      const currentCount = existing[0].count;
-      
-      if (currentCount >= maxRequests) {
-        return false;
-      }
+  const rl = await rateLimit({
+    namespace: 'public.leads',
+    key,
+    limit: params.maxRequests,
+    windowMs: 60 * 1000,
+    mode: 'fail_closed',
+    unavailableRetryAfterSeconds: 3,
+  });
 
-      await executeRawAllowlisted(prisma, {
-        reason: 'api_rate_limit_incr',
-        query: `UPDATE api_rate_limits SET count = count + 1 WHERE key = $1`,
-        values: [key]
-      });
-    } else {
-      await executeRawAllowlisted(prisma, {
-        reason: 'api_rate_limit_insert',
-        query: `INSERT INTO api_rate_limits (key, count, expires_at)
-         VALUES ($1, 1, NOW() + INTERVAL '2 minutes')`,
-        values: [key]
-      });
-    }
+  if (rl.ok) return { ok: true };
 
-    return true;
-  } catch (error) {
-    console.error('[Rate Limit] Error:', error);
-    return true; // Fail open
-  }
+  return {
+    ok: false,
+    status: rl.reason === 'unavailable' ? 503 : 429,
+    message: rl.reason === 'unavailable' ? 'Rate limiting temporarily unavailable' : `Rate limit exceeded. Max ${params.maxRequests} requests per minute`,
+    retryAfterSeconds: rl.retryAfterSeconds,
+  };
 }
 
 export async function POST(req: NextRequest) {
@@ -105,19 +92,30 @@ export async function POST(req: NextRequest) {
       return apiError('API key not authorized for this endpoint', { status: 403 });
     }
 
-    // Update last used timestamp
-    await executeRawAllowlisted(prisma, {
-      reason: 'api_key_usage',
-      query: `UPDATE api_keys SET last_used_at = NOW() WHERE key = $1`,
-      values: [apiKey]
-    });
-
-    const withinLimit = await checkRateLimit(apiKey, keyData.rate_limit_per_minute);
-    if (!withinLimit) {
-      return apiError(`Rate limit exceeded. Max ${keyData.rate_limit_per_minute} requests per minute`, { status: 429 });
+    const rateLimitResult = await checkRateLimit({ req, apiKey, maxRequests: keyData.rate_limit_per_minute });
+    if (!rateLimitResult.ok) {
+      return apiError(rateLimitResult.message, {
+        status: rateLimitResult.status,
+        headers: buildRateLimitHeaders({
+          limit: keyData.rate_limit_per_minute,
+          remaining: 0,
+          resetAt: Date.now() + rateLimitResult.retryAfterSeconds * 1000,
+          retryAfterSeconds: rateLimitResult.retryAfterSeconds,
+        }),
+      });
     }
 
-    const body = await req.json() as LeadInput;
+    const rawBody: unknown = await req.json().catch(() => null);
+    const bodyObj = asObject(rawBody);
+    const body: LeadInput = {
+      name: String(bodyObj?.name ?? ''),
+      email: String(bodyObj?.email ?? ''),
+      phone: bodyObj?.phone == null ? undefined : String(bodyObj.phone),
+      company: bodyObj?.company == null ? undefined : String(bodyObj.company),
+      source: bodyObj?.source == null ? undefined : String(bodyObj.source),
+      message: bodyObj?.message == null ? undefined : String(bodyObj.message),
+      orgSlug: String(bodyObj?.orgSlug ?? ''),
+    };
 
     if (!body.name?.trim()) {
       return apiError('name is required', { status: 400 });
@@ -139,7 +137,7 @@ export async function POST(req: NextRequest) {
       return apiError('Invalid phone format', { status: 400 });
     }
 
-    const org = await prisma.social_organizations.findFirst({
+    const org = await prisma.organization.findFirst({
       where: {
         OR: [
           { slug: body.orgSlug },
@@ -153,7 +151,7 @@ export async function POST(req: NextRequest) {
       return apiError('Organization not found', { status: 404 });
     }
 
-    const source = body.source && VALID_SOURCES.includes(body.source as any)
+    const source = body.source && isValidSource(body.source)
       ? body.source
       : 'landing-page';
 
@@ -198,12 +196,21 @@ export async function POST(req: NextRequest) {
       status: lead.status,
       createdAt: lead.createdAt,
       message: 'Lead created successfully',
-    }, { status: 201 });
+    }, {
+      status: 201,
+      headers: buildRateLimitHeaders({
+        limit: keyData.rate_limit_per_minute,
+        remaining: Math.max(0, keyData.rate_limit_per_minute - 1),
+        resetAt: Date.now() + 60 * 1000,
+      }),
+    });
 
   } catch (error: unknown) {
-    console.error('[Public Leads API] Error:', error);
-    const message = error instanceof Error ? error.message : 'Internal server error';
-    return apiError(message, { status: 500 });
+    if (IS_PROD) console.error('[Public Leads API] Error');
+    else console.error('[Public Leads API] Error:', error);
+    const safeMsg = 'Internal server error';
+    const message = error instanceof Error ? error.message : safeMsg;
+    return apiError(IS_PROD ? safeMsg : message, { status: 500 });
   }
 }
 

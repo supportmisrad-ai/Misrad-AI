@@ -12,7 +12,7 @@ export async function generateUniqueOrgSlug(baseInput: string, opts?: { excludeO
 
   for (let i = 0; i < 50; i++) {
     const candidate = i === 0 ? base : `${base}-${i + 1}`;
-    const existing = await prisma.social_organizations.findFirst({
+    const existing = await prisma.organization.findFirst({
       where: {
         slug: candidate,
         ...(excludeOrgId ? { id: { not: excludeOrgId } } : {}),

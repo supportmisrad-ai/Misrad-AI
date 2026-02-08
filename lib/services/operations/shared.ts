@@ -1,18 +1,37 @@
 import 'server-only';
 
-export function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') {
-    return value as Record<string, unknown>;
-  }
-  return null;
+import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+
+export { asObject, getUnknownErrorMessage };
+
+export const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+export function isSchemaMismatchError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toUpperCase();
+  const message = String(getUnknownErrorMessage(error) || '').toLowerCase();
+  return (
+    code === 'P2021' ||
+    code === 'P2022' ||
+    code === '42P01' ||
+    code === '42703' ||
+    message.includes('does not exist') ||
+    message.includes('relation') ||
+    message.includes('column') ||
+    message.includes('could not find the table') ||
+    message.includes('schema cache')
+  );
 }
 
-export function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+export function logOperationsError(message: string, error: unknown) {
+  if (IS_PROD) {
+    console.error(message);
+    return;
+  }
+
+  console.error(message, error);
 }
 
 export function isUuidLike(value: string | null | undefined): boolean {

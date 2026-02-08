@@ -9,12 +9,9 @@ import { isTenantAdminRole } from '@/lib/constants/roles';
 import type { SupportTicketEvent } from '../../../../../types';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { asObject } from '@/lib/shared/unknown';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function toIsoString(input: unknown): string {
   if (input instanceof Date) return input.toISOString();
@@ -75,11 +72,11 @@ async function resolveActorNames(actorIds: string[]): Promise<Record<string, str
   return result;
 }
 
-async function GETHandler(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function GETHandler(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getAuthenticatedUser();
     const { workspaceId } = await getWorkspaceOrThrow(request);
-    const { id: ticketId } = await params;
+    const { id: ticketId } = params;
 
     if (!ticketId) {
       return apiError('Ticket ID is required', { status: 400 });
@@ -116,7 +113,10 @@ async function GETHandler(request: NextRequest, { params }: { params: Promise<{ 
           'select id, ticket_id, tenant_id, actor_id, action, metadata, created_at from support_ticket_events where tenant_id = $1 and ticket_id = $2 order by created_at asc limit 500',
         values: [String(workspaceId), String(ticketId)],
       });
-      rows = (Array.isArray(legacyRows) ? legacyRows : []).map((r) => ({ ...(r as any), content: null }));
+      rows = (Array.isArray(legacyRows) ? legacyRows : []).map((r) => {
+        const next: EventRow = { ...r, content: null };
+        return next;
+      });
     }
 
     const events = (Array.isArray(rows) ? rows : []).map(normalizeEvent);
@@ -134,7 +134,8 @@ async function GETHandler(request: NextRequest, { params }: { params: Promise<{ 
 
     return apiSuccess({ events: enriched });
   } catch (error: unknown) {
-    console.error('[API] Error in /api/support/[id]/events GET:', error);
+    if (IS_PROD) console.error('[API] Error in /api/support/[id]/events GET');
+    else console.error('[API] Error in /api/support/[id]/events GET:', error);
     if (error instanceof APIError) {
       return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
     }

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Feature Request by ID
  * PATCH /api/features/[id] - Update feature request (status, voting, admin notes)
@@ -14,18 +15,7 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 type UnknownRecord = Record<string, unknown>;
 
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function toIsoString(input: unknown): string | undefined {
     if (!input) return undefined;
@@ -92,14 +82,14 @@ function normalizeFeatureRequestRow(row: unknown): FeatureRequest {
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
 
         const { workspace } = await getWorkspaceOrThrow(request);
         
-        const { id: requestId } = await params;
+        const { id: requestId } = params;
 
         if (!requestId) {
             return NextResponse.json(
@@ -186,7 +176,7 @@ async function PATCHHandler(
             );
         }
 
-        let updatedRequest: any;
+        let updatedRequest: Awaited<ReturnType<typeof prisma.scale_feature_requests.update>> | null = null;
         try {
             updatedRequest = await prisma.scale_feature_requests.update({
                 where: { id: String(requestId) },
@@ -196,7 +186,15 @@ async function PATCHHandler(
                 },
             });
         } catch (e: unknown) {
-            console.error('[API] Error updating feature request:', e);
+            if (IS_PROD) console.error('[API] Error updating feature request');
+            else console.error('[API] Error updating feature request:', e);
+            return NextResponse.json(
+                { error: 'שגיאה בעדכון בקשת פיצ\'ר' },
+                { status: 500 }
+            );
+        }
+
+        if (!updatedRequest) {
             return NextResponse.json(
                 { error: 'שגיאה בעדכון בקשת פיצ\'ר' },
                 { status: 500 }
@@ -212,7 +210,8 @@ async function PATCHHandler(
         });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/features/[id] PATCH:', error);
+        if (IS_PROD) console.error('[API] Error in /api/features/[id] PATCH');
+        else console.error('[API] Error in /api/features/[id] PATCH:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Get Employee Invitation by Token
  * GET /api/employees/invite/[token]
@@ -11,12 +12,15 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ token: string }> }
+    { params }: { params: { token: string } }
 ) {
     try {
-        const { token } = await params;
+        const { token } = params;
 
         if (!token) {
             return apiError('Token is required', { status: 400 });
@@ -28,6 +32,7 @@ async function GETHandler(
             key: `${ip}:${String(token)}`,
             limit: 30,
             windowMs: 10 * 60 * 1000,
+            mode: 'degraded',
         });
         if (!rl.ok) {
             return apiError('Too many requests', {
@@ -38,7 +43,7 @@ async function GETHandler(
             });
         }
 
-        const invitation = await (prisma as any).nexus_employee_invitation_links.findUnique({
+        const invitation = await prisma.nexus_employee_invitation_links.findUnique({
             where: { token: String(token) },
             select: {
                 id: true,
@@ -111,9 +116,12 @@ async function GETHandler(
             }
         });
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/employees/invite/[token] GET:', error);
-        return apiError(error, { status: 500, message: error.message || 'שגיאה בטעינת הקישור' });
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/employees/invite/[token] GET');
+        else console.error('[API] Error in /api/employees/invite/[token] GET:', error);
+        const msg = getUnknownErrorMessage(error) || 'שגיאה בטעינת הקישור';
+        const safeMsg = 'שגיאה בטעינת הקישור';
+        return apiError(IS_PROD ? safeMsg : error, { status: 500, message: IS_PROD ? safeMsg : msg });
     }
 }
 

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Team Events API
  * 
@@ -14,11 +15,7 @@ import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import type { Prisma } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
@@ -35,32 +32,36 @@ type NexusEventAttendanceDelegate = {
     createMany: (args: { data: Array<Record<string, unknown>>; skipDuplicates?: boolean }) => Promise<unknown>;
 };
 
+function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDelegate {
+    return (
+        asObject(value) !== null &&
+        hasFunction(value, 'findMany') &&
+        hasFunction(value, 'create')
+    );
+}
+
+function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAttendanceDelegate {
+    return asObject(value) !== null && hasFunction(value, 'createMany');
+}
+
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
     const client = prisma as unknown;
     const obj = asObject(client);
     const delegate = obj?.['nexus_team_events'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'findMany') || !hasFunction(delegate, 'create')) {
+    if (!isNexusTeamEventsDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_team_events is unavailable');
     }
-    return delegate as unknown as NexusTeamEventsDelegate;
+    return delegate;
 }
 
 function getNexusEventAttendanceDelegate(): NexusEventAttendanceDelegate {
     const client = prisma as unknown;
     const obj = asObject(client);
     const delegate = obj?.['nexus_event_attendance'];
-    if (!asObject(delegate) || !hasFunction(delegate, 'createMany')) {
+    if (!isNexusEventAttendanceDelegate(delegate)) {
         throw new Error('Prisma delegate nexus_event_attendance is unavailable');
     }
-    return delegate as unknown as NexusEventAttendanceDelegate;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
+    return delegate;
 }
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
@@ -258,7 +259,8 @@ async function GETHandler(request: NextRequest) {
 
     } catch (error: unknown) {
         const msg = getErrorMessage(error);
-        console.error('[API] Error in /api/team-events GET:', { message: msg });
+        if (IS_PROD) console.error('[API] Error in /api/team-events GET');
+        else console.error('[API] Error in /api/team-events GET:', { message: msg });
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
         }
@@ -433,7 +435,8 @@ async function POSTHandler(request: NextRequest) {
                     skipDuplicates: true,
                 });
             } catch (attendanceError) {
-                console.error('[API] Error creating attendance records:', attendanceError);
+                if (IS_PROD) console.error('[API] Error creating attendance records');
+                else console.error('[API] Error creating attendance records:', attendanceError);
             }
         }
 
@@ -464,12 +467,14 @@ async function POSTHandler(request: NextRequest) {
                                 relatedId: event.id,
                             });
                         } catch (e: unknown) {
-                            console.warn('[API] Could not create event notification (ignored):', e);
+                            if (IS_PROD) console.warn('[API] Could not create event notification (ignored)');
+                            else console.warn('[API] Could not create event notification (ignored):', e);
                         }
                     }
                 }
             } catch (notifError: unknown) {
-                console.warn('[API] Error sending event notifications (ignored):', notifError);
+                if (IS_PROD) console.warn('[API] Error sending event notifications (ignored)');
+                else console.warn('[API] Error sending event notifications (ignored):', notifError);
             }
         }
 
@@ -477,7 +482,8 @@ async function POSTHandler(request: NextRequest) {
 
     } catch (error: unknown) {
         const msg = getErrorMessage(error);
-        console.error('[API] Error in /api/team-events POST:', { message: msg });
+        if (IS_PROD) console.error('[API] Error in /api/team-events POST');
+        else console.error('[API] Error in /api/team-events POST:', { message: msg });
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: msg || error.message || 'Forbidden' });
         }

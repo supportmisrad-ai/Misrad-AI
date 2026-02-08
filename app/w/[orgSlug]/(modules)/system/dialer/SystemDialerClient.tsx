@@ -8,6 +8,7 @@ import { createSystemLeadActivity, getSystemLeadsPage, type SystemCallHistoryDTO
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemPipelineStageDTO } from '@/app/actions/system-pipeline-stages';
 import { useSystemShell } from '../SystemShellGateClient';
+import { getErrorMessage } from '@/lib/shared/unknown';
 
 export default function SystemDialerClient({
   orgSlug,
@@ -45,25 +46,8 @@ export default function SystemDialerClient({
     }
 
     if (res.lead) {
-      setLeads((prev) =>
-        prev.map((l) =>
-          String(l.id) === String(leadId)
-            ? ({
-                ...l,
-                activities: (res.lead as any).activities
-                  ? (res.lead as any).activities.map((a: any) => ({
-                      id: String(a.id),
-                      type: String(a.type) as any,
-                      content: String(a.content || ''),
-                      timestamp: new Date(a.timestamp),
-                      direction: a.direction ? (String(a.direction) as any) : undefined,
-                      metadata: a.metadata ?? null,
-                    }))
-                  : l.activities,
-              } as any)
-            : l
-        )
-      );
+      const updated = mapDtoToLead(res.lead);
+      setLeads((prev) => prev.map((l) => (String(l.id) === String(updated.id) ? updated : l)));
     }
   };
 
@@ -89,8 +73,8 @@ export default function SystemDialerClient({
 
       setNextCursor(res.data.nextCursor);
       setHasMore(Boolean(res.data.hasMore));
-    } catch (e: any) {
-      toast.addToast(e?.message || 'שגיאה בטעינת לידים', 'error');
+    } catch (e: unknown) {
+      toast.addToast(getErrorMessage(e) || 'שגיאה בטעינת לידים', 'error');
     } finally {
       setIsLoadingMore(false);
     }
@@ -99,8 +83,8 @@ export default function SystemDialerClient({
   return (
     <>
       <CommunicationView
-        leads={leads as any}
-        onAddActivity={(leadId, activity) => void handleAddActivity(leadId, activity as any)}
+        leads={leads}
+        onAddActivity={(leadId, activity) => void handleAddActivity(leadId, activity)}
         onAddTask={undefined}
         user={
           currentUser

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Create Invitation Link
  * POST /api/invitations/create
@@ -15,18 +16,9 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 type InvitationRow = Record<string, unknown>;
 
@@ -89,7 +81,15 @@ async function insertInvitation(params: { workspaceId: string; invitation: Invit
         const obj = asObject(error);
         const meta = asObject(obj?.meta);
         const code = String(obj?.code || meta?.code || '');
+        if (code === '42P01') {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
+            }
+        }
         if (code === '42703') {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
+            }
             const rows = await prisma.$queryRaw<unknown[]>(
                 Prisma.sql`
                     INSERT INTO system_invitation_links (
@@ -181,8 +181,10 @@ async function POSTHandler(request: NextRequest) {
         try {
             invitation = await insertInvitation({ workspaceId: String(workspace.id), invitation: invitationData });
         } catch (createError: unknown) {
-            console.error('[API] Error creating invitation link:', createError);
-            return apiError(getErrorMessage(createError) || 'Failed to create invitation link', { status: 500 });
+            if (IS_PROD) console.error('[API] Error creating invitation link');
+            else console.error('[API] Error creating invitation link:', createError);
+            const msg = getErrorMessage(createError) || 'Failed to create invitation link';
+            return apiError(IS_PROD ? 'Failed to create invitation link' : msg, { status: 500 });
         }
 
         if (!invitation) {
@@ -206,11 +208,13 @@ async function POSTHandler(request: NextRequest) {
         }, { status: 201 });
 
     } catch (error: unknown) {
-        console.error('[API] Error creating invitation link:', error);
+        if (IS_PROD) console.error('[API] Error creating invitation link');
+        else console.error('[API] Error creating invitation link:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'Failed to create invitation link' });
+        const msg = getErrorMessage(error) || 'Failed to create invitation link';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 

@@ -52,13 +52,32 @@ function printDbTarget() {
 
 const prisma = new PrismaClient();
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+function hasFlag(flag) {
+  return process.argv.includes(flag);
+}
+
+const assumeYes = hasFlag('--yes');
+const autoApply = hasFlag('--apply');
+const disableShadowDb = hasFlag('--no-shadow');
+
+let rl = null;
+
+function getRl() {
+  if (rl) return rl;
+  rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return rl;
+}
 
 function question(query) {
-  return new Promise(resolve => rl.question(query, resolve));
+  if (assumeYes) return Promise.resolve('כן');
+  if (!process.stdin.isTTY) {
+    throw new Error('Non-interactive stdin detected. Re-run with --yes (and optionally --apply).');
+  }
+  const rli = getRl();
+  return new Promise((resolve) => rli.question(query, resolve));
 }
 
 async function checkDatabaseStatus() {
@@ -127,6 +146,11 @@ async function main() {
   // Create migration (without applying)
   try {
     console.log('יוצר קובץ מיגריישן...\n');
+
+    if (disableShadowDb) {
+      delete process.env.SHADOW_DATABASE_URL;
+    }
+
     execSync(`npx prisma migrate dev --create-only --name ${migrationName}`, {
       stdio: 'inherit',
       env: process.env
@@ -138,10 +162,13 @@ async function main() {
     console.log('   2. חפש פקודות מסוכנות: DROP, TRUNCATE, DELETE');
     console.log('   3. אם בטוח - המשך להריץ\n');
     
-    const apply = await question('להריץ את המיגריישן עכשיו? (כן/לא): ');
+    const apply = autoApply ? 'כן' : await question('להריץ את המיגריישן עכשיו? (כן/לא): ');
     
     if (apply.toLowerCase() === 'כן') {
       console.log('\n📦 מריץ מיגריישן...\n');
+      if (disableShadowDb) {
+        delete process.env.SHADOW_DATABASE_URL;
+      }
       execSync('npx prisma migrate dev', {
         stdio: 'inherit',
         env: process.env
@@ -157,7 +184,7 @@ async function main() {
     process.exit(1);
   } finally {
     await prisma.$disconnect();
-    rl.close();
+    if (rl) rl.close();
   }
 }
 

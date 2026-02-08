@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma';
 import type { NotificationPreferences } from '../../types';
 
 import webpush from 'web-push';
+import { asObject } from '@/lib/shared/unknown';
 
 type PushBehavior = NonNullable<NotificationPreferences['pushBehavior']>;
 
@@ -15,12 +16,6 @@ type PushPayload = {
   category?: 'alerts' | 'tasks' | 'events' | 'system' | 'marketing';
   behavior?: PushBehavior;
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function getString(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
@@ -64,9 +59,17 @@ function normalizePreferences(prefs: unknown): NotificationPreferences {
     marketing: typeof pushCategoriesRaw?.marketing === 'boolean' ? pushCategoriesRaw.marketing : undefined,
   };
 
+  const normalizedFromObj: Partial<NotificationPreferences> = {
+    emailNewTask: typeof obj?.emailNewTask === 'boolean' ? obj.emailNewTask : undefined,
+    browserPush: typeof obj?.browserPush === 'boolean' ? obj.browserPush : undefined,
+    morningBrief: typeof obj?.morningBrief === 'boolean' ? obj.morningBrief : undefined,
+    soundEffects: typeof obj?.soundEffects === 'boolean' ? obj.soundEffects : undefined,
+    marketing: typeof obj?.marketing === 'boolean' ? obj.marketing : undefined,
+  };
+
   return {
     ...base,
-    ...(obj as unknown as Partial<NotificationPreferences>),
+    ...normalizedFromObj,
     pushBehavior: behavior ?? base.pushBehavior,
     pushCategories: {
       ...base.pushCategories,
@@ -111,7 +114,7 @@ type WebPushSubscriptionDelegate = {
 };
 
 function getWebPushSubscriptionDelegate(): WebPushSubscriptionDelegate {
-  const prismaObj = asObject(prisma as unknown);
+  const prismaObj = asObject(prisma);
   const delegate = prismaObj ? prismaObj['webPushSubscription'] : null;
   const delegateObj = asObject(delegate);
 
@@ -121,12 +124,13 @@ function getWebPushSubscriptionDelegate(): WebPushSubscriptionDelegate {
     );
   }
 
-  const has = (name: string) => typeof (delegateObj as any)[name] === 'function';
+  const delegateRecord = delegateObj as Record<string, unknown>;
+  const has = (name: 'findMany' | 'upsert' | 'deleteMany') => typeof delegateRecord[name] === 'function';
   if (!has('findMany') || !has('upsert') || !has('deleteMany')) {
     throw new Error('Prisma delegate webPushSubscription is unavailable');
   }
 
-  return delegate as unknown as WebPushSubscriptionDelegate;
+  return delegateObj as WebPushSubscriptionDelegate;
 }
 
 async function getUserPreferencesByEmail(params: { organizationId: string; email: string }): Promise<NotificationPreferences> {
@@ -160,7 +164,7 @@ function shouldSendPush(params: { prefs: NotificationPreferences; category: Push
   const category = params.category;
   if (!category) return true;
 
-  const enabled = (categories as any)[category];
+  const enabled = (categories as Partial<Record<NonNullable<PushPayload['category']>, unknown>>)[category];
   if (typeof enabled === 'boolean') return enabled;
 
   // default permissive for core categories

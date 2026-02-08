@@ -1,18 +1,7 @@
 import 'server-only';
 import prisma from '@/lib/prisma';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function isMissingColumnError(error: unknown): boolean {
-  const obj = asObject(error) ?? {};
-  const code = typeof obj.code === 'string' ? obj.code : '';
-  const message = typeof obj.message === 'string' ? obj.message.toLowerCase() : '';
-  return code === '42703' || message.includes('column') && message.includes('does not exist');
-}
+import { asObject } from '@/lib/shared/unknown';
 
 type FinanceUserLite = {
   id: string;
@@ -24,20 +13,23 @@ type FinanceUserLite = {
   monthlySalary?: number;
 };
 
-type FinanceTimeEntryLite = {
-  id: string;
-  organizationId: string;
-  userId: string;
-  durationMinutes: number | null;
-  date: Date;
-};
-
-type FinanceInvoiceLite = {
-  amount: unknown;
-  status: unknown;
-  date: unknown;
-  dateAt: unknown;
-};
+function toNumberSafe(v: unknown): number {
+  if (v == null) return 0;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+  if (typeof v === 'bigint') return Number(v);
+  if (typeof v === 'string') {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const obj = asObject(v);
+  const toNumber = obj?.toNumber;
+  if (typeof toNumber === 'function') {
+    const n = Number(toNumber.call(v));
+    return Number.isFinite(n) ? n : 0;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
 
 function parseDateOnlyToDate(value?: string): Date | undefined {
   const s = String(value || '').trim();
@@ -165,53 +157,42 @@ export async function getFinanceOverviewData(params: {
   const dateFromDate = parseDateOnlyToDate(dateFrom);
   const dateToDate = parseDateOnlyToDate(dateTo);
 
-  const timeEntries: FinanceTimeEntryLite[] = [];
-  const pageSize = 1000;
-  for (let page = 0; ; page += 1) {
-    const skip = page * pageSize;
-    const rows = await prisma.nexusTimeEntry.findMany({
+  const whereEntries = {
+    organizationId: params.organizationId,
+    ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
+    ...(dateToDate ? { date: { lte: dateToDate } } : {}),
+    ...(params.userId ? { userId: String(params.userId) } : {}),
+  };
+
+  const [byUserRows, byDateRows, invoicesAggRows] = await Promise.all([
+    prisma.nexusTimeEntry.groupBy({
+      by: ['userId'],
+      where: whereEntries,
+      _sum: { durationMinutes: true },
+      _count: { _all: true },
+    }),
+    prisma.nexusTimeEntry.groupBy({
+      by: ['date'],
+      where: whereEntries,
+      _sum: { durationMinutes: true },
+    }),
+    prisma.misradInvoice.groupBy({
+      by: ['status'],
       where: {
-        organizationId: params.organizationId,
-        ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
-        ...(dateToDate ? { date: { lte: dateToDate } } : {}),
-        ...(params.userId ? { userId: String(params.userId) } : {}),
+        organization_id: params.organizationId,
+        ...(dateFromDate ? { dateAt: { gte: dateFromDate } } : {}),
+        ...(dateToDate ? { dateAt: { lte: dateToDate } } : {}),
       },
-      select: {
-        id: true,
-        organizationId: true,
-        userId: true,
-        durationMinutes: true,
-        date: true,
-      },
-      orderBy: [{ date: 'desc' }, { id: 'desc' }],
-      skip,
-      take: pageSize,
-    });
+      _sum: { amount: true },
+      _count: { _all: true },
+    }),
+  ]);
 
-    if (rows.length === 0) break;
-    timeEntries.push(...rows);
-    if (rows.length < pageSize) break;
-  }
+  const byUser = Array.isArray(byUserRows) ? byUserRows : [];
+  const byDate = Array.isArray(byDateRows) ? byDateRows : [];
+  const invoicesAgg = Array.isArray(invoicesAggRows) ? invoicesAggRows : [];
 
-  const invoicesRows: FinanceInvoiceLite[] = await prisma.misradInvoice.findMany({
-    where: {
-      organization_id: params.organizationId,
-      ...(dateFromDate ? { dateAt: { gte: dateFromDate } } : {}),
-      ...(dateToDate ? { dateAt: { lte: dateToDate } } : {}),
-    },
-    select: {
-      amount: true,
-      status: true,
-      date: true,
-      dateAt: true,
-    },
-    take: 5000,
-  });
-
-  const entries = Array.isArray(timeEntries) ? timeEntries : [];
-  const invoices = invoicesRows;
-
-  const userIds = Array.from(new Set(entries.map((e) => String(e.userId)).filter(Boolean)));
+  const userIds = Array.from(new Set(byUser.map((e) => String(e.userId)).filter(Boolean)));
   const dbUsers = await selectUsersInWorkspaceByIds({
     organizationId: params.organizationId,
     userIds,
@@ -221,22 +202,21 @@ export async function getFinanceOverviewData(params: {
   const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();
   const totalsByDate = new Map<string, { totalMinutes: number }>();
 
-  for (const entry of entries) {
-    const uid = String(entry.userId || '');
+  for (const row of byUser) {
+    const uid = String(row.userId || '').trim();
     if (!uid) continue;
+    const minutes = toNumberSafe(row._sum?.durationMinutes);
+    const count = toNumberSafe(row._count?._all);
+    totalsByUser.set(uid, { totalMinutes: minutes, entriesCount: count });
+  }
 
-    const minutes = Number(entry.durationMinutes || 0);
-    const current = totalsByUser.get(uid) ?? { totalMinutes: 0, entriesCount: 0 };
-    current.totalMinutes += minutes;
-    current.entriesCount += 1;
-    totalsByUser.set(uid, current);
-
-    const entryDate = toDateOnlyString(entry.date);
-    if (entryDate) {
-      const byDate = totalsByDate.get(entryDate) ?? { totalMinutes: 0 };
-      byDate.totalMinutes += minutes;
-      totalsByDate.set(entryDate, byDate);
-    }
+  for (const row of byDate) {
+    const rowObj = asObject(row) ?? {};
+    const dateRaw = rowObj.date;
+    const dateStr = toDateOnlyString(dateRaw instanceof Date || typeof dateRaw === 'string' ? dateRaw : undefined);
+    if (!dateStr) continue;
+    const minutes = toNumberSafe(row._sum?.durationMinutes);
+    totalsByDate.set(dateStr, { totalMinutes: minutes });
   }
 
   const usersAggregates: FinanceUserAggregate[] = Array.from(totalsByUser.entries()).map(([uid, totals]) => {
@@ -265,21 +245,35 @@ export async function getFinanceOverviewData(params: {
 
   const totalCost = scopedUsers.reduce((sum, u) => sum + Number(u.estimatedCost || 0), 0);
 
-  const paidInvoices = invoices.filter((i) => String(i?.status || '').toUpperCase() === 'PAID');
-  const openInvoices = invoices.filter((i) => {
-    const s = String(i?.status || '').toUpperCase();
-    return s === 'PENDING' || s === 'OVERDUE';
-  });
-  const totalRevenue = paidInvoices.reduce((sum, i) => sum + Number(i?.amount || 0), 0);
-  const pendingReceivables = openInvoices.reduce((sum, i) => sum + Number(i?.amount || 0), 0);
-  const openInvoicesCount = openInvoices.length;
+  const paidStatuses = new Set(['PAID', 'paid']);
+  const openStatuses = new Set(['PENDING', 'pending', 'OVERDUE', 'overdue']);
+
+  let totalRevenue = 0;
+  let pendingReceivables = 0;
+  let openInvoicesCount = 0;
+  for (const row of invoicesAgg) {
+    const rowObj = asObject(row) ?? {};
+    const status = typeof rowObj.status === 'string' ? rowObj.status : String(rowObj.status ?? '');
+    const sumAmount = toNumberSafe(row._sum?.amount);
+    const count = toNumberSafe(row._count?._all);
+    if (paidStatuses.has(status)) {
+      totalRevenue += sumAmount;
+    }
+    if (openStatuses.has(status)) {
+      pendingReceivables += sumAmount;
+      openInvoicesCount += count;
+    }
+  }
+
+  const entriesCountAll = Array.from(totalsByUser.values()).reduce((acc, v) => acc + Number(v.entriesCount || 0), 0);
+  const totalMinutesAll = Array.from(totalsByDate.values()).reduce((acc, v) => acc + Number(v.totalMinutes || 0), 0);
+  const totalHoursAll = totalMinutesAll / 60 || 1;
+  const avgHourlyCost = totalCost > 0 && entriesCountAll > 0 ? totalCost / totalHoursAll : 0;
 
   const chart: FinanceChartPoint[] = Array.from(totalsByDate.entries())
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([date, totals]) => {
       const totalHours = totals.totalMinutes / 60;
-      const totalHoursAll = entries.reduce((acc, e) => acc + Number(e.durationMinutes || 0), 0) / 60 || 1;
-      const avgHourlyCost = totalCost > 0 && entries.length > 0 ? totalCost / totalHoursAll : 0;
       const estimatedCost = totalHours * avgHourlyCost;
       return {
         date,
@@ -305,7 +299,7 @@ export async function getFinanceInvoices(params: {
   organizationId: string;
   limit?: number;
 }): Promise<FinanceInvoice[]> {
-  const limit = params.limit ?? 250;
+  const limit = Math.min(200, Math.max(1, Math.floor(params.limit ?? 200)));
 
   const rows = await prisma.misradInvoice.findMany({
     where: { organization_id: params.organizationId },
@@ -336,26 +330,21 @@ export async function getFinanceExpensesData(params: {
   const dateFromDate = parseDateOnlyToDate(dateFrom);
   const dateToDate = parseDateOnlyToDate(dateTo);
 
-  const timeEntries = await prisma.nexusTimeEntry.findMany({
-    where: {
-      organizationId: params.organizationId,
-      ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
-      ...(dateToDate ? { date: { lte: dateToDate } } : {}),
-    },
-    select: {
-      id: true,
-      organizationId: true,
-      userId: true,
-      durationMinutes: true,
-      date: true,
-    },
-    orderBy: [{ date: 'desc' }, { id: 'desc' }],
-    take: 5000,
+  const whereEntries = {
+    organizationId: params.organizationId,
+    ...(dateFromDate ? { date: { gte: dateFromDate } } : {}),
+    ...(dateToDate ? { date: { lte: dateToDate } } : {}),
+  };
+
+  const byUserRows = await prisma.nexusTimeEntry.groupBy({
+    by: ['userId'],
+    where: whereEntries,
+    _sum: { durationMinutes: true },
+    _count: { _all: true },
   });
+  const byUser = Array.isArray(byUserRows) ? byUserRows : [];
 
-  const entries = Array.isArray(timeEntries) ? timeEntries : [];
-
-  const userIds = Array.from(new Set(entries.map((e) => String(e.userId)).filter(Boolean)));
+  const userIds = Array.from(new Set(byUser.map((e) => String(e.userId)).filter(Boolean)));
   const dbUsers = await selectUsersInWorkspaceByIds({
     organizationId: params.organizationId,
     userIds,
@@ -363,15 +352,12 @@ export async function getFinanceExpensesData(params: {
   const usersById = new Map<string, FinanceUserLite>(dbUsers.map((u) => [String(u.id), u]));
 
   const totalsByUser = new Map<string, { totalMinutes: number; entriesCount: number }>();
-  for (const entry of entries) {
-    const uid = String(entry.userId || '');
+  for (const row of byUser) {
+    const uid = String(row.userId || '').trim();
     if (!uid) continue;
-
-    const minutes = Number(entry.durationMinutes || 0);
-    const current = totalsByUser.get(uid) ?? { totalMinutes: 0, entriesCount: 0 };
-    current.totalMinutes += minutes;
-    current.entriesCount += 1;
-    totalsByUser.set(uid, current);
+    const minutes = toNumberSafe(row._sum?.durationMinutes);
+    const count = toNumberSafe(row._count?._all);
+    totalsByUser.set(uid, { totalMinutes: minutes, entriesCount: count });
   }
 
   const usersAggregates: FinanceExpensesUserRow[] = Array.from(totalsByUser.entries()).map(([uid, totals]) => {
@@ -400,16 +386,12 @@ export async function getFinanceExpensesData(params: {
 
   const totalLaborCost = scopedUsers.reduce((sum, u) => sum + Number(u.estimatedCost || 0), 0);
 
-  const clientsRows = await prisma.misradClient.findMany({
+  const directExpensesAgg = await prisma.misradClient.aggregate({
     where: { organizationId: params.organizationId },
-    select: { directExpenses: true },
-    take: 5000,
+    _sum: { directExpenses: true },
   });
 
-  const totalDirectExpenses = clientsRows.reduce(
-    (sum, row) => sum + Number(row.directExpenses ?? 0),
-    0
-  );
+  const totalDirectExpenses = toNumberSafe(directExpensesAgg._sum?.directExpenses);
 
   return {
     organizationId: params.organizationId,

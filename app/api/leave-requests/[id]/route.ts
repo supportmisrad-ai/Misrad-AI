@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Leave Request by ID API
  * 
@@ -14,10 +15,12 @@ import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
+    const obj = asObject(value);
+    const fn = obj?.[name];
+    return typeof fn === 'function';
 }
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
@@ -29,14 +32,6 @@ function getNullableString(obj: Record<string, unknown>, key: string): string | 
     const v = obj[key];
     if (v == null) return null;
     return typeof v === 'string' ? v : String(v);
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
 }
 
 function toIsoString(value: Date | string | null | undefined): string {
@@ -105,6 +100,15 @@ type NexusLeaveRequestsDelegate = {
     updateMany: (args: { where: { id: string; organizationId: string }; data: Record<string, unknown> }) => Promise<{ count: number }>;
     deleteMany: (args: { where: { id: string; organizationId: string } }) => Promise<{ count: number }>;
 };
+
+function isNexusLeaveRequestsDelegate(value: unknown): value is NexusLeaveRequestsDelegate {
+    return (
+        asObject(value) !== null &&
+        hasFunction(value, 'findFirst') &&
+        hasFunction(value, 'updateMany') &&
+        hasFunction(value, 'deleteMany')
+    );
+}
 
 type NotificationInsert = {
     organization_id: string;
@@ -265,12 +269,12 @@ async function selectSuperAdminIdsInWorkspace(params: { workspaceId: string }): 
 function getLeaveRequestsDelegate(): NexusLeaveRequestsDelegate {
     const prismaObj = asObject(prisma as unknown);
     const delegate = prismaObj ? prismaObj['nexus_leave_requests'] : null;
-    if (!delegate) {
+    if (!isNexusLeaveRequestsDelegate(delegate)) {
         throw new Error(
             'Prisma Client is missing nexus_leave_requests. Run Prisma generate (npm run prisma:generate) and restart the TS server.'
         );
     }
-    return delegate as unknown as NexusLeaveRequestsDelegate;
+    return delegate;
 }
 
 async function insertNotifications(params: { workspaceId: string; notifications: NotificationInsert[] }) {
@@ -316,7 +320,7 @@ async function insertNotifications(params: { workspaceId: string; notifications:
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -327,7 +331,7 @@ async function PATCHHandler(
 
         const { workspaceId } = await getWorkspaceOrThrow(request);
 
-        const { id } = await params;
+        const { id } = params;
 
         if (!id) {
             return apiError('Request ID is required', { status: 400 });
@@ -524,7 +528,8 @@ async function PATCHHandler(
                         try {
                             await insertNotifications({ workspaceId, notifications });
                         } catch (e: unknown) {
-                            console.warn('[API] Could not create cancellation notifications:', e);
+                            if (IS_PROD) console.warn('[API] Could not create cancellation notifications');
+                            else console.warn('[API] Could not create cancellation notifications:', e);
                         }
                     }
                 } else if (!updateData.status && (updateData.start_date || updateData.end_date || updateData.leave_type || updateData.reason)) {
@@ -572,7 +577,8 @@ async function PATCHHandler(
                         try {
                             await insertNotifications({ workspaceId, notifications });
                         } catch (e: unknown) {
-                            console.warn('[API] Could not create update notifications:', e);
+                            if (IS_PROD) console.warn('[API] Could not create update notifications');
+                            else console.warn('[API] Could not create update notifications:', e);
                         }
                     }
                 }
@@ -601,7 +607,8 @@ async function PATCHHandler(
                     try {
                         await insertNotifications({ workspaceId, notifications: [notification] });
                     } catch (e: unknown) {
-                        console.warn('[API] Could not create more info request notification:', e);
+                        if (IS_PROD) console.warn('[API] Could not create more info request notification');
+                        else console.warn('[API] Could not create more info request notification:', e);
                     }
                 }
             }
@@ -639,12 +646,14 @@ async function PATCHHandler(
                             data: { employee_notified: true },
                         });
                     } catch (e: unknown) {
-                        console.warn('[API] Could not create notification for employee:', e);
+                        if (IS_PROD) console.warn('[API] Could not create notification for employee');
+                        else console.warn('[API] Could not create notification for employee:', e);
                     }
                 }
             }
         } catch (notifError) {
-            console.warn('[API] Error sending notifications:', notifError);
+            if (IS_PROD) console.warn('[API] Error sending notifications');
+            else console.warn('[API] Error sending notifications:', notifError);
         }
 
         return apiSuccessCompat(
@@ -652,7 +661,8 @@ async function PATCHHandler(
             { status: 200 }
         );
     } catch (error: unknown) {
-        console.error('[API] Error in /api/leave-requests/[id] PATCH:', error);
+        if (IS_PROD) console.error('[API] Error in /api/leave-requests/[id] PATCH');
+        else console.error('[API] Error in /api/leave-requests/[id] PATCH:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
@@ -666,7 +676,7 @@ async function PATCHHandler(
 
 async function DELETEHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
@@ -775,12 +785,14 @@ async function DELETEHandler(
                         try {
                             await insertNotifications({ workspaceId, notifications });
                         } catch (e: unknown) {
-                            console.warn('[API] Could not create deletion notifications:', e);
+                            if (IS_PROD) console.warn('[API] Could not create deletion notifications');
+                            else console.warn('[API] Could not create deletion notifications:', e);
                         }
                     }
                 }
             } catch (notifError) {
-                console.warn('[API] Error sending deletion notifications:', notifError);
+                if (IS_PROD) console.warn('[API] Error sending deletion notifications');
+                else console.warn('[API] Error sending deletion notifications:', notifError);
             }
         }
 
@@ -789,7 +801,8 @@ async function DELETEHandler(
             { status: 200 }
         );
     } catch (error: unknown) {
-        console.error('[API] Error in /api/leave-requests/[id] DELETE:', error);
+        if (IS_PROD) console.error('[API] Error in /api/leave-requests/[id] DELETE');
+        else console.error('[API] Error in /api/leave-requests/[id] DELETE:', error);
         const message = getErrorMessage(error);
         return apiError(error, {
             status: message.includes('Unauthorized') ? 401 : 500,

@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Roles Management
  * 
@@ -15,18 +16,7 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 type UnknownRecord = Record<string, unknown>;
 
-function asObject(value: unknown): UnknownRecord | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as UnknownRecord;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 const PERMISSION_IDS: readonly PermissionId[] = [
     'view_financials',
@@ -82,7 +72,8 @@ async function GETHandler(request: NextRequest) {
         return NextResponse.json({ roles });
         
     } catch (error: unknown) {
-        console.error('[API] Error fetching roles:', error);
+        if (IS_PROD) console.error('[API] Error fetching roles');
+        else console.error('[API] Error fetching roles:', error);
         const msg = getErrorMessage(error);
         
         if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {
@@ -166,7 +157,8 @@ async function POSTHandler(request: NextRequest) {
         return NextResponse.json({ success: true, role: createdRole });
         
     } catch (error: unknown) {
-        console.error('[API] Error creating role:', error);
+        if (IS_PROD) console.error('[API] Error creating role');
+        else console.error('[API] Error creating role:', error);
         const msg = getErrorMessage(error);
         
         if (msg.includes('Forbidden') || msg.includes('Unauthorized')) {

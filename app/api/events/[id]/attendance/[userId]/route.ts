@@ -9,28 +9,32 @@ import { getAuthenticatedUser } from '../../../../../../lib/auth';
 import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function toIso(input: any): string | null {
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+function toIso(input: unknown): string | null {
     if (!input) return null;
     if (input instanceof Date) return input.toISOString();
     if (typeof input === 'string') return input;
     return null;
 }
 
-function normalizeAttendanceRow(row: any) {
+function normalizeAttendanceRow(row: unknown) {
+    const obj = asObject(row) ?? {};
     return {
-        id: row?.id,
-        organization_id: row?.organizationId ?? row?.organization_id,
-        event_id: row?.event_id,
-        user_id: row?.user_id,
-        status: row?.status,
-        rsvp_at: toIso(row?.rsvp_at),
-        attended_at: toIso(row?.attended_at),
-        notes: row?.notes ?? null,
-        created_at: toIso(row?.created_at),
-        updated_at: toIso(row?.updated_at),
+        id: obj.id,
+        organization_id: obj.organizationId ?? obj.organization_id,
+        event_id: obj.event_id,
+        user_id: obj.user_id,
+        status: obj.status,
+        rsvp_at: toIso(obj.rsvp_at),
+        attended_at: toIso(obj.attended_at),
+        notes: obj.notes ?? null,
+        created_at: toIso(obj.created_at),
+        updated_at: toIso(obj.updated_at),
     };
 }
 
@@ -44,7 +48,7 @@ async function loadUserInWorkspaceByEmail(params: { workspaceId: string; email: 
     });
 
     return byOrg
-        ? { id: String(byOrg.id), role: String(byOrg.role || 'עובד'), isSuperAdmin: Boolean((byOrg as any).isSuperAdmin) }
+        ? { id: String(byOrg.id), role: String(byOrg.role || 'עובד'), isSuperAdmin: Boolean(byOrg.isSuperAdmin) }
         : null;
 }
 
@@ -56,14 +60,14 @@ async function loadTeamEventInWorkspace(params: { eventId: string; workspaceId: 
 
 async function PATCHHandler(
     request: NextRequest,
-    { params }: { params: Promise<{ id: string; userId: string }> }
+    { params }: { params: { id: string; userId: string } }
 ) {
     try {
         const user = await getAuthenticatedUser();
 
         const { workspace } = await getWorkspaceOrThrow(request);
 
-        const { id: eventId, userId } = await params;
+        const { id: eventId, userId } = params;
 
         if (!eventId || !userId) {
             return NextResponse.json(
@@ -110,26 +114,31 @@ async function PATCHHandler(
             );
         }
 
-        const body = await request.json();
-        const { status, notes } = body;
+        const bodyJson: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(bodyJson) ?? {};
+        const statusRaw = typeof bodyObj.status === 'string' ? bodyObj.status : '';
+        const notesRaw = bodyObj.notes;
+        const hasNotes = Object.prototype.hasOwnProperty.call(bodyObj, 'notes');
 
-        if (!status || !['attended', 'absent'].includes(status)) {
+        if (!statusRaw || !['attended', 'absent'].includes(statusRaw)) {
             return NextResponse.json(
                 { error: 'סטטוס לא תקין. צריך להיות attended או absent' },
                 { status: 400 }
             );
         }
 
+        const status = statusRaw === 'attended' ? 'attended' : 'absent';
+
         const now = new Date();
 
         // Update attendance record
-        const updateData: any = {
+        const updateData: { status: 'attended' | 'absent'; attended_at: Date | null; notes?: string | null } = {
             status,
             attended_at: status === 'attended' ? now : null
         };
 
-        if (notes !== undefined) {
-            updateData.notes = notes;
+        if (hasNotes) {
+            updateData.notes = notesRaw == null ? null : typeof notesRaw === 'string' ? notesRaw : String(notesRaw);
         }
 
         const existing = await prisma.nexus_event_attendance.findFirst({
@@ -160,14 +169,16 @@ async function PATCHHandler(
             { status: 200 }
         );
 
-    } catch (error: any) {
-        console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH');
+        else console.error('[API] Error in /api/events/[id]/attendance/[userId] PATCH:', error);
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'שגיאה בעדכון נוכחות' },
-            { status: error.message?.includes('Unauthorized') ? 401 : 500 }
+            { error: message || 'שגיאה בעדכון נוכחות' },
+            { status: message.includes('Unauthorized') ? 401 : 500 }
         );
     }
 }

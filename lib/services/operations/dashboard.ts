@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { prisma } from '@/lib/services/operations/db';
-import { getUnknownErrorMessage, toNumberSafe } from '@/lib/services/operations/shared';
+import { getUnknownErrorMessage, logOperationsError, toNumberSafe } from '@/lib/services/operations/shared';
 import { resolveOperationsClientNamesByCanonicalId } from '@/lib/services/operations/projects';
 import type { OperationsDashboardData } from '@/lib/services/operations/types';
 
@@ -17,7 +17,7 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
   organizationId: string;
 }): Promise<{ success: boolean; data?: OperationsDashboardData; error?: string }> {
   try {
-    const recentProjects = (await prisma.operationsProject.findMany({
+    const recentProjects: OperationsDashboardProjectRow[] = await prisma.operationsProject.findMany({
       where: { organizationId: params.organizationId },
       orderBy: { updatedAt: 'desc' },
       take: 5,
@@ -28,7 +28,7 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
         canonicalClientId: true,
         updatedAt: true,
       },
-    })) as unknown as OperationsDashboardProjectRow[];
+    });
 
     const canonicalClientIds = Array.from(
       new Set(recentProjects.map((p) => p.canonicalClientId).filter(Boolean))
@@ -80,7 +80,7 @@ export async function getOperationsDashboardDataForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsDashboardData failed', e);
+    logOperationsError('[operations] getOperationsDashboardData failed', e);
     return {
       success: false,
       error: getUnknownErrorMessage(e) || 'שגיאה בטעינת נתוני הדשבורד',

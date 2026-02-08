@@ -983,6 +983,7 @@ model NexusTask {
   @@index([dueDate], map: "idx_nexus_tasks_due_date")
   @@index([status], map: "idx_nexus_tasks_status")
   @@index([organizationId], map: "idx_nexus_tasks_organization_id")
+  @@index([organizationId, dueDate, createdAt(sort: Desc)], map: "idx_nexus_tasks_org_due_created_at")
   @@map("nexus_tasks")
 }
 
@@ -1026,6 +1027,9 @@ model NexusTenant {
   requireApproval Boolean?  @default(false) @map("require_approval")
   createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organizationId  String?               @unique @map("organization_id") @db.Uuid
+  organization    social_organizations? @relation("NexusTenantOrganization", fields: [organizationId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([ownerEmail], map: "idx_nexus_tenants_owner_email")
   @@index([status], map: "idx_nexus_tenants_status")
@@ -1556,6 +1560,8 @@ model SystemLead {
   @@index([isHot], map: "idx_system_leads_is_hot")
   @@index([nextActionDate], map: "idx_system_leads_next_action_date")
   @@index([status], map: "idx_system_leads_status")
+  @@index([organizationId, status], map: "idx_system_leads_org_status")
+  @@index([organizationId, isHot, updatedAt(sort: Desc), createdAt(sort: Desc)], map: "idx_system_leads_org_hot_updated_created")
   @@map("system_leads")
 }
 
@@ -1977,6 +1983,9 @@ model SocialPost {
   @@index([organizationId], map: "idx_social_posts_organization_id")
   @@index([clientId], map: "idx_social_posts_client_id")
   @@index([status], map: "idx_social_posts_status")
+  @@index([organizationId, createdAt(sort: Desc)], map: "idx_social_posts_org_created_at")
+  @@index([organizationId, clientId, createdAt(sort: Desc)], map: "idx_social_posts_org_client_created_at")
+  @@index([organizationId, status, createdAt(sort: Desc)], map: "idx_social_posts_org_status_created_at")
   @@index([clientId, createdAt(sort: Desc)], map: "idx_social_posts_client_created_at")
   @@index([clientId, scheduled_at], map: "idx_social_posts_client_scheduled_at")
   @@map("social_posts")
@@ -2056,6 +2065,9 @@ model nexus_leave_requests {
 
   @@index([employee_id], map: "idx_leave_requests_employee")
   @@index([organizationId], map: "idx_nexus_leave_requests_organization_id")
+  @@index([organizationId, created_at(sort: Desc)], map: "idx_leave_requests_org_created_at")
+  @@index([organizationId, employee_id, created_at(sort: Desc)], map: "idx_leave_requests_org_employee_created_at")
+  @@index([organizationId, status, created_at(sort: Desc)], map: "idx_leave_requests_org_status_created_at")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2206,6 +2218,9 @@ model scale_support_tickets {
   admin_response   String?
   resolution_notes String?
 
+  @@index([tenant_id, created_at(sort: Desc)], map: "idx_support_tickets_tenant_created_at")
+  @@index([tenant_id, user_id, created_at(sort: Desc)], map: "idx_support_tickets_tenant_user_created_at")
+  @@index([tenant_id, status, created_at(sort: Desc)], map: "idx_support_tickets_tenant_status_created_at")
   @@map("misrad_support_tickets")
 }
 
@@ -2222,6 +2237,7 @@ model support_ticket_events {
   @@index([ticket_id])
   @@index([tenant_id])
   @@index([created_at])
+  @@index([tenant_id, ticket_id, created_at], map: "idx_support_ticket_events_tenant_ticket_created_at")
   @@map("support_ticket_events")
 }
 
@@ -2404,6 +2420,8 @@ model social_client_requests {
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([organizationId], map: "idx_social_client_requests_organization_id")
+  @@index([organizationId, created_at(sort: Desc)], map: "idx_social_client_requests_org_created_at")
+  @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_client_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_client_requests_client_created_at")
   @@index([client_id], map: "idx_social_client_requests_client_id")
 }
@@ -2464,6 +2482,8 @@ model social_conversations {
   social_messages social_messages[]
 
   @@index([organizationId], map: "idx_social_conversations_organization_id")
+  @@index([organizationId, updated_at(sort: Desc)], map: "idx_social_conversations_org_updated_at")
+  @@index([organizationId, client_id, updated_at(sort: Desc)], map: "idx_social_conversations_org_client_updated_at")
   @@index([client_id], map: "idx_conversations_client_id")
   @@index([client_id], map: "idx_social_conversations_client_id")
   @@index([client_id, updated_at(sort: Desc)], map: "idx_social_conversations_client_updated_at")
@@ -2525,6 +2545,8 @@ model social_ideas {
   created_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([organizationId], map: "idx_social_ideas_organization_id")
+  @@index([organizationId, created_at(sort: Desc)], map: "idx_social_ideas_org_created_at")
+  @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_ideas_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_ideas_client_created_at")
   @@index([client_id], map: "idx_social_ideas_client_id")
 }
@@ -2594,6 +2616,8 @@ model social_manager_requests {
   updated_at           DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([organizationId], map: "idx_social_manager_requests_organization_id")
+  @@index([organizationId, created_at(sort: Desc)], map: "idx_social_manager_requests_org_created_at")
+  @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_client_created_at")
   @@index([client_id], map: "idx_social_manager_requests_client_id")
 }
@@ -2611,6 +2635,7 @@ model social_messages {
 
   @@index([organizationId], map: "idx_social_messages_organization_id")
   @@index([conversation_id], map: "idx_messages_conversation_id")
+  @@index([organizationId, conversation_id, created_at], map: "idx_social_messages_org_conversation_created_at")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2719,6 +2744,7 @@ model social_organizations {
   nexusTasks                       NexusTask[]
   nexusTeamEvents                  nexus_team_events[]
   nexusTimeEntries                 NexusTimeEntry[]
+  nexusTenant                      NexusTenant?                       @relation("NexusTenantOrganization")
   operationsInventory              OperationsInventory[]
   operationsItems                  OperationsItem[]
   operationsProjects               OperationsProject[]
@@ -2816,6 +2842,7 @@ model social_post_comments {
   social_team_members social_team_members @relation(fields: [team_member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "post_comments_team_member_id_fkey")
 
   @@index([organizationId], map: "idx_social_post_comments_organization_id")
+  @@index([organizationId, post_id], map: "idx_social_post_comments_org_post_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2934,6 +2961,8 @@ model social_tasks {
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([organizationId], map: "idx_social_tasks_organization_id")
+  @@index([organizationId, due_date], map: "idx_social_tasks_org_due_date")
+  @@index([organizationId, client_id, due_date], map: "idx_social_tasks_org_client_due_date")
   @@index([assigned_to], map: "idx_social_tasks_assigned_to")
   @@index([client_id], map: "idx_social_tasks_client_id")
   @@index([client_id, due_date], map: "idx_social_tasks_client_due_date")
@@ -3014,6 +3043,10 @@ model social_users {
   email                String?
   full_name            String?
   avatar_url           String?
+  terms_accepted_at    DateTime?             @db.Timestamptz(6)
+  privacy_accepted_at  DateTime?             @db.Timestamptz(6)
+  terms_accepted_version String?
+  privacy_accepted_version String?
   created_at           DateTime?             @default(now()) @db.Timestamptz(6)
   updated_at           DateTime?             @default(now()) @db.Timestamptz(6)
   organization_id      String?               @db.Uuid

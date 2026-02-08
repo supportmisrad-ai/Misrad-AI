@@ -1,4 +1,5 @@
 import { AIProviderError } from '../errors';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export class GroqProvider {
   private readonly apiKey: string;
@@ -42,23 +43,30 @@ export class GroqProvider {
     prompt: string;
     systemInstruction?: string;
     timeoutMs: number;
-    responseFormat?: any;
+    responseFormat?: { type: 'json_object' };
   }): Promise<{ text: string }> {
     const ac = new AbortController();
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
     try {
-      const body: any = {
-        model: params.model,
-        messages: [
-          ...(params.systemInstruction ? [{ role: 'system', content: params.systemInstruction }] : []),
-          { role: 'user', content: params.prompt },
-        ],
+      type GroqMessage = { role: 'system' | 'user'; content: string };
+      type GroqChatBody = {
+        model: string;
+        messages: GroqMessage[];
+        response_format?: { type: 'json_object' };
       };
 
-      if (params.responseFormat) {
-        body.response_format = params.responseFormat;
+      const messages: GroqMessage[] = [];
+      if (params.systemInstruction) {
+        messages.push({ role: 'system', content: params.systemInstruction });
       }
+      messages.push({ role: 'user', content: params.prompt });
+
+      const body: GroqChatBody = {
+        model: params.model,
+        messages,
+        ...(params.responseFormat ? { response_format: params.responseFormat } : {}),
+      };
 
       const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -75,16 +83,23 @@ export class GroqProvider {
         throw new AIProviderError({ provider: 'groq', status: res.status, message: `Groq error (${res.status}): ${txt}` });
       }
 
-      const json: any = await res.json();
-      const text = json?.choices?.[0]?.message?.content;
+      const json: unknown = await res.json().catch(() => null);
+      const jsonObj = asObject(json) ?? {};
+      const choices = Array.isArray(jsonObj.choices) ? jsonObj.choices : [];
+      const firstChoiceObj = choices.length > 0 ? asObject(choices[0]) : null;
+      const messageObj = asObject(firstChoiceObj?.message);
+      const content = messageObj?.content;
+      const text = typeof content === 'string' ? content : '';
 
       if (!text) {
         throw new AIProviderError({ provider: 'groq', message: 'Groq returned empty response' });
       }
 
       return { text };
-    } catch (err: any) {
-      if (String(err?.name || '') === 'AbortError') {
+    } catch (err: unknown) {
+      const errObj = asObject(err) ?? {};
+      const errName = typeof errObj.name === 'string' ? errObj.name : err instanceof Error ? err.name : '';
+      if (String(errName || '') === 'AbortError') {
         throw new AIProviderError({
           provider: 'groq',
           status: 504,
@@ -92,7 +107,7 @@ export class GroqProvider {
           cause: err,
         });
       }
-      throw err;
+      throw err instanceof Error ? err : new Error(getErrorMessage(err) || 'Groq request failed');
     } finally {
       clearTimeout(timeout);
     }

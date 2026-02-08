@@ -2,6 +2,7 @@ import 'server-only';
 
 import prisma from '@/lib/prisma';
 import { OSModuleKey } from '@/lib/os/modules/types';
+import { asObject } from '@/lib/shared/unknown';
 
 export type SystemFeatureFlags = {
   maintenanceMode: boolean;
@@ -21,12 +22,6 @@ const DEFAULT_LAUNCH_SCOPE_MODULES: Record<OSModuleKey, boolean> = {
   client: true,
   operations: true,
 };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
 
 function safeParseObject(value: string): Record<string, unknown> | null {
   try {

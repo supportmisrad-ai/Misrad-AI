@@ -82,14 +82,17 @@ export function useNexusSoloMode(orgSlug: string | null | undefined, teamSize?: 
     if (typeof window === 'undefined') return;
     if (!orgSlug) return;
 
-    const handler = (event: any) => {
-      const detail = event?.detail;
-      if (!detail || detail.orgSlug !== orgSlug) return;
-      setSoloModeOverride(Boolean(detail.enabled));
+    const handler: EventListener = (event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = (event as CustomEvent<unknown>).detail;
+      if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return;
+      const detailObj = detail as Record<string, unknown>;
+      if (String(detailObj.orgSlug || '') !== orgSlug) return;
+      setSoloModeOverride(Boolean(detailObj.enabled));
     };
 
-    window.addEventListener('nexus:solo-mode', handler as any);
-    return () => window.removeEventListener('nexus:solo-mode', handler as any);
+    window.addEventListener('nexus:solo-mode', handler);
+    return () => window.removeEventListener('nexus:solo-mode', handler);
   }, [orgSlug]);
 
   const isSoloMode = useMemo(() => {

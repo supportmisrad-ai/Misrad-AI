@@ -3,6 +3,7 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import prisma from '@/lib/prisma';
 
@@ -25,9 +26,10 @@ async function POSTHandler(request: NextRequest) {
     const { workspace } = await getWorkspaceOrThrow(request);
     await requirePermission('manage_team');
 
-    const body = await request.json().catch(() => ({} as any));
-    const code = String(body?.code || '').trim().toUpperCase();
-    const approvedForUserId = String(body?.approvedForUserId || '').trim();
+    const bodyJson: unknown = await request.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
+    const code = String(bodyObj.code || '').trim().toUpperCase();
+    const approvedForUserId = String(bodyObj.approvedForUserId || '').trim();
 
     if (!code || !approvedForUserId) {
       return apiError('Missing code/approvedForUserId', { status: 400 });
@@ -57,7 +59,7 @@ async function POSTHandler(request: NextRequest) {
     select: { id: true, email: true, organizationId: true },
   });
 
-  const email = String((approvedForUser as any)?.email || '').trim();
+  const email = String(approvedForUser?.email || '').trim();
   if (!email) {
     return apiError('לא נמצא אימייל למשתמש', { status: 400 });
   }
@@ -91,8 +93,9 @@ async function POSTHandler(request: NextRequest) {
     return apiError('שגיאה ביצירת sign-in token', { status: 500 });
   }
 
-  const created = await createTokenRes.json().catch(() => null as any);
-  const signInToken = created?.token ? String(created.token) : null;
+  const createdJson: unknown = await createTokenRes.json().catch(() => null);
+  const createdObj = asObject(createdJson);
+  const signInToken = typeof createdObj?.token === 'string' ? String(createdObj.token) : null;
 
   if (!signInToken) {
     return apiError('שגיאה ביצירת sign-in token', { status: 500 });
@@ -112,11 +115,11 @@ async function POSTHandler(request: NextRequest) {
   });
 
     return apiSuccess({});
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return apiError(e, { status: e.status, message: e.message || 'Forbidden' });
     }
-    return apiError(e, { status: 500, message: e?.message || 'Internal server error' });
+    return apiError(e, { status: 500, message: getErrorMessage(e) || 'Internal server error' });
   }
 }
 

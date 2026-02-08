@@ -15,8 +15,11 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { revokeToken } from '@/lib/integrations/google-oauth';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -37,6 +40,10 @@ async function POSTHandler(request: NextRequest) {
         const { workspace } = await getWorkspaceOrThrow(request);
         const clerkUser = await getAuthenticatedUser();
 
+        if (!clerkUser.email) {
+            return NextResponse.json({ error: 'User email not found' }, { status: 400 });
+        }
+
         const dbUserId = await selectDbUserId({ workspaceId: workspace.id, email: clerkUser.email });
         
         if (!dbUserId) {
@@ -46,8 +53,10 @@ async function POSTHandler(request: NextRequest) {
             );
         }
         
-        const body = await request.json();
-        const { serviceType, integrationId } = body;
+        const bodyJson: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(bodyJson) ?? {};
+        const serviceType = typeof bodyObj.serviceType === 'string' ? bodyObj.serviceType : '';
+        const integrationId = typeof bodyObj.integrationId === 'string' ? bodyObj.integrationId : null;
 
         if (!serviceType || !['google_calendar', 'google_drive'].includes(serviceType)) {
             return NextResponse.json(
@@ -56,7 +65,7 @@ async function POSTHandler(request: NextRequest) {
             );
         }
 
-        let integrations: any[] = [];
+        let integrations: Awaited<ReturnType<typeof prisma.scale_integrations.findMany>> = [];
         try {
             integrations = await prisma.scale_integrations.findMany({
                 where: {
@@ -67,8 +76,9 @@ async function POSTHandler(request: NextRequest) {
                     ...(integrationId ? { id: String(integrationId) } : {}),
                 },
             });
-        } catch (fetchError: any) {
-            console.error('[API] Error fetching integrations:', fetchError);
+        } catch (fetchError: unknown) {
+            if (IS_PROD) console.error('[API] Error fetching integrations');
+            else console.error('[API] Error fetching integrations:', fetchError);
             throw new Error('Failed to fetch integrations');
         }
 
@@ -80,7 +90,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // Revoke tokens and delete integrations
-        const revokePromises = integrations.map(async (integration: any) => {
+        const revokePromises = integrations.map(async (integration) => {
             try {
                 // Revoke token with Google
                 if (integration.access_token) {
@@ -88,10 +98,14 @@ async function POSTHandler(request: NextRequest) {
                 }
             } catch (error) {
                 // Continue even if revocation fails (token might already be revoked)
-                console.warn('[API] Error revoking token:', {
-                    message: (error as any)?.message,
-                    name: (error as any)?.name
-                });
+                if (IS_PROD) {
+                    console.warn('[API] Error revoking token (ignored)');
+                } else {
+                    console.warn('[API] Error revoking token:', {
+                        message: getErrorMessage(error),
+                        name: error instanceof Error ? error.name : undefined,
+                    });
+                }
             }
 
             // Delete from database
@@ -105,16 +119,20 @@ async function POSTHandler(request: NextRequest) {
             message: `${serviceType === 'google_calendar' ? 'Calendar' : 'Drive'} integration revoked successfully`
         });
 
-    } catch (error: any) {
-        console.error('[API] Error revoking Google integration:', {
-            message: error?.message,
-            name: error?.name
-        });
+    } catch (error: unknown) {
+        if (IS_PROD) {
+            console.error('[API] Error revoking Google integration');
+        } else {
+            console.error('[API] Error revoking Google integration:', {
+                message: getErrorMessage(error),
+                name: error instanceof Error ? error.name : undefined,
+            });
+        }
         if (error instanceof APIError) {
             return NextResponse.json({ error: error.message || 'Forbidden' }, { status: error.status });
         }
         return NextResponse.json(
-            { error: error.message || 'Failed to revoke integration' },
+            { error: IS_PROD ? 'Failed to revoke integration' : (getErrorMessage(error) || 'Failed to revoke integration') },
             { status: 500 }
         );
     }

@@ -4,19 +4,24 @@ import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { getErrorMessage } from '@/lib/shared/unknown';
+
+type NexusClientCreateData = Parameters<typeof prisma.nexusClient.create>[0]['data'];
+type NexusTaskCreateData = Parameters<typeof prisma.nexusTask.create>[0]['data'];
+
 async function POSTHandler(request: NextRequest) {
 
     try {
         await requireSuperAdmin();
-    } catch (e: any) {
-        return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required', success: false }, { status: 403 });
+    } catch (e: unknown) {
+        return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required', success: false }, { status: 403 });
     }
 
     let workspaceId = '';
     try {
         const ws = await getWorkspaceOrThrow(request);
         workspaceId = String(ws.workspaceId || '').trim();
-    } catch (e: any) {
+    } catch (e: unknown) {
         if (e instanceof APIError) {
             return NextResponse.json({ success: false, error: e.message || 'Missing x-org-id header' }, { status: e.status });
         }
@@ -39,15 +44,15 @@ async function POSTHandler(request: NextRequest) {
             avatar: 'https://ui-avatars.com/api/?name=Test&background=6366f1&color=fff',
             joinedAt: new Date(),
             source: 'health_check'
-        };
+        } satisfies NexusClientCreateData;
 
-        const clientData = await prisma.nexusClient.create({ data: testClient as any });
-        testResults.clients = { success: true, id: String((clientData as any).id) };
+        const clientData = await prisma.nexusClient.create({ data: testClient });
+        testResults.clients = { success: true, id: String(clientData.id) };
 
         // Clean up - delete the test record
-        await prisma.nexusClient.delete({ where: { id: (clientData as any).id } });
-    } catch (error: any) {
-        testResults.clients = { success: false, error: error.message };
+        await prisma.nexusClient.delete({ where: { id: clientData.id } });
+    } catch (error: unknown) {
+        testResults.clients = { success: false, error: getErrorMessage(error) };
     }
 
     // Test 2: Create a test task
@@ -63,15 +68,15 @@ async function POSTHandler(request: NextRequest) {
             dueDate: null,
             tags: ['health_check'],
             messages: []
-        };
+        } satisfies NexusTaskCreateData;
 
-        const taskData = await prisma.nexusTask.create({ data: testTask as any });
-        testResults.tasks = { success: true, id: String((taskData as any).id) };
+        const taskData = await prisma.nexusTask.create({ data: testTask });
+        testResults.tasks = { success: true, id: String(taskData.id) };
 
         // Clean up - delete the test record
-        await prisma.nexusTask.delete({ where: { id: (taskData as any).id } });
-    } catch (error: any) {
-        testResults.tasks = { success: false, error: error.message };
+        await prisma.nexusTask.delete({ where: { id: taskData.id } });
+    } catch (error: unknown) {
+        testResults.tasks = { success: false, error: getErrorMessage(error) };
     }
 
     const allSuccess = Object.values(testResults).every(r => r.success);

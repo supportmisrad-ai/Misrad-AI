@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { cronGuard } from '@/lib/api-cron-guard';
 import { sendEmployeeInvitationEmail } from '@/lib/email';
 import { getUpstashRedisClient } from '@/lib/server/upstashRedis';
 import { EmployeeInviteEmailJob, getEmployeeInviteEmailQueueKey } from '@/lib/server/employeeInviteEmailQueue';
+import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
-
-function isAuthorized(req: NextRequest): boolean {
-  const headerSecret = req.headers.get('x-cron-secret');
-  if (headerSecret && headerSecret === process.env.CRON_SECRET) return true;
-
-  const authHeader = req.headers.get('authorization');
-  if (authHeader && process.env.CRON_SECRET && authHeader === `Bearer ${process.env.CRON_SECRET}`) return true;
-
-  return false;
-}
 
 function safeNumber(v: string | null, fallback: number): number {
   const n = Number(v);
@@ -23,10 +15,6 @@ function safeNumber(v: string | null, fallback: number): number {
 }
 
 async function processQueue(req: NextRequest) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  }
-
   const redis = getUpstashRedisClient();
   if (!redis) {
     return NextResponse.json({ ok: false, error: 'Redis not configured' }, { status: 500 });
@@ -53,9 +41,9 @@ async function processQueue(req: NextRequest) {
     let job: EmployeeInviteEmailJob | null = null;
     try {
       job = JSON.parse(String(raw || '')) as EmployeeInviteEmailJob;
-    } catch (e: any) {
+    } catch (e: unknown) {
       failed += 1;
-      errors.push({ error: e?.message || 'Invalid job JSON' });
+      errors.push({ error: getErrorMessage(e) || 'Invalid job JSON' });
       continue;
     }
 
@@ -111,5 +99,5 @@ async function processQueue(req: NextRequest) {
   });
 }
 
-export const GET = shabbatGuard(processQueue);
-export const POST = shabbatGuard(processQueue);
+export const GET = shabbatGuard(cronGuard(processQueue));
+export const POST = shabbatGuard(cronGuard(processQueue));

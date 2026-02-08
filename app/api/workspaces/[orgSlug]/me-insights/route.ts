@@ -2,24 +2,16 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
+import { APIError } from '@/lib/server/api-workspace';
 import { queryRawOrgScoped } from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { workspaceTenantGuard } from '@/lib/api-workspace-tenant-guard';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+
 export const runtime = 'nodejs';
 
-function asObject(v: unknown): Record<string, unknown> | null {
-  if (!v || typeof v !== 'object') return null;
-  if (Array.isArray(v)) return null;
-  return v as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error && error.message) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : String(error ?? '');
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function asString(v: unknown): string {
   return typeof v === 'string' ? v : v == null ? '' : String(v);
@@ -43,7 +35,7 @@ function parseCommitments(rating: unknown): Array<{ who: string; what: string; d
 
 async function GETHandler(
   req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  ctx: { params: { orgSlug: string }; workspace?: { id: string } }
 ) {
   try {
     await getAuthenticatedUser();
@@ -53,12 +45,15 @@ async function GETHandler(
       return apiError('Unauthorized', { status: 401 });
     }
 
-    const { orgSlug } = await params;
+    const { orgSlug } = ctx.params;
     if (!orgSlug) {
       return apiError('orgSlug is required', { status: 400 });
     }
 
-    const { workspace } = await getWorkspaceContextOrThrow(req, { params });
+    const workspace = ctx.workspace;
+    if (!workspace?.id) {
+      return apiError('Missing workspace context', { status: 400 });
+    }
     const url = new URL(req.url);
     const moduleId = String(url.searchParams.get('module') || '').trim().toLowerCase();
 
@@ -96,6 +91,8 @@ async function GETHandler(
 
       const docKeys = hotLeads.map((l) => `system:system_leads:${l.id}`);
 
+      const takeEmbeddings = Math.max(1, Math.min(50, docKeys.length || 1));
+
       const embeddedKeys = await prisma.ai_embeddings.findMany({
         where: {
           organization_id: workspace.id,
@@ -103,7 +100,7 @@ async function GETHandler(
           doc_key: { in: docKeys },
         },
         select: { doc_key: true },
-        take: 200,
+        take: takeEmbeddings,
       });
 
       const embeddedKeySet = new Set((embeddedKeys || []).map((r) => String(r.doc_key || '')));
@@ -173,6 +170,8 @@ async function GETHandler(
 
       const meetingDocKeys = analyses.map((a) => `client:meeting:${a.meeting_id}`);
 
+      const takeEmbeddings = Math.max(1, Math.min(50, meetingDocKeys.length || 1));
+
       const embeddedMeetings = await prisma.ai_embeddings.findMany({
         where: {
           organization_id: workspace.id,
@@ -180,7 +179,7 @@ async function GETHandler(
           doc_key: { in: meetingDocKeys },
         },
         select: { doc_key: true },
-        take: 500,
+        take: takeEmbeddings,
       });
 
       const embeddedMeetingSet = new Set((embeddedMeetings || []).map((r) => String(r.doc_key || '')));
@@ -223,7 +222,6 @@ async function GETHandler(
 
       const avgWarmth = warmthValues.length ? Math.round((warmthValues.reduce((s, v) => s + v, 0) / warmthValues.length) * 10) / 10 : null;
       const lastWarmth = warmthValues.length ? warmthValues[0] : null;
-
 
       const indexedMeetingsCount = await prisma.ai_embeddings.count({
         where: {
@@ -351,18 +349,18 @@ async function GETHandler(
       let recurringMonthly = 0;
 
       try {
-        const billingRows = await prisma.nexus_billing_items.findMany({
-          where: { organization_id: workspace.id },
-          select: { cadence: true, amount: true },
-          take: 500,
+        const billingAgg = await prisma.nexus_billing_items.aggregate({
+          where: { organization_id: workspace.id, cadence: 'monthly' },
+          _sum: { amount: true },
         });
 
-        recurringMonthly = (billingRows || [])
-          .filter((r) => String(r.cadence || '').toLowerCase() === 'monthly')
-          .reduce((sum, r) => sum + toNumberSafe(r.amount), 0);
+        recurringMonthly = toNumberSafe(billingAgg._sum?.amount);
       } catch (e: unknown) {
         if (!isMissingRelationError(e)) {
           throw e;
+        }
+        if (!ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(e) || 'missing relation'})`);
         }
       }
 
@@ -392,4 +390,4 @@ async function GETHandler(
   }
 }
 
-export const GET = shabbatGuard(GETHandler);
+export const GET = shabbatGuard(workspaceTenantGuard(GETHandler, { source: 'api_workspaces_me_insights', reason: 'GET' }));

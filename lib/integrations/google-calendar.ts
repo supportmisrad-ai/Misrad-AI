@@ -9,8 +9,9 @@
 
 import { calendar_v3, google } from 'googleapis';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { refreshAccessToken } from './google-oauth';
-import { Task } from '../../types';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 /**
  * Get authenticated Google Calendar client
@@ -90,11 +91,12 @@ export async function getCalendarClient(
  * @returns Google Calendar event ID
  */
 export async function syncTaskToCalendar(
-    task: Task,
+    task: unknown,
     userId: string,
     tenantId?: string
 ): Promise<string | null> {
-    const dueDateValue = (task as any).dueDate ?? (task as any).due_date;
+    const taskObj = asObject(task) ?? {};
+    const dueDateValue = taskObj.dueDate ?? taskObj.due_date;
     if (!dueDateValue) {
         return null; // No date to sync
     }
@@ -106,17 +108,26 @@ export async function syncTaskToCalendar(
 
     try {
         // Parse due date
-        const dueDate = new Date(dueDateValue);
-        if (isNaN(dueDate.getTime())) {
+        const dueDate =
+            dueDateValue instanceof Date
+                ? dueDateValue
+                : typeof dueDateValue === 'string' || typeof dueDateValue === 'number'
+                    ? new Date(dueDateValue)
+                    : null;
+        if (!dueDate || isNaN(dueDate.getTime())) {
             return null;
         }
 
         // Check if event already exists (stored in task metadata)
-        const existingEventId = (task as any).googleCalendarEventId;
+        const existingEventId = typeof taskObj.googleCalendarEventId === 'string' ? taskObj.googleCalendarEventId : null;
+        const taskId = typeof taskObj.id === 'string' ? taskObj.id : taskObj.id == null ? '' : String(taskObj.id);
+        const taskTitle = typeof taskObj.title === 'string' ? taskObj.title : taskObj.title == null ? '' : String(taskObj.title);
+        const taskDescription =
+            typeof taskObj.description === 'string' ? taskObj.description : taskObj.description == null ? '' : String(taskObj.description);
 
         const eventData: calendar_v3.Schema$Event = {
-            summary: String((task as any).title || ''),
-            description: String((task as any).description || ''),
+            summary: String(taskTitle || ''),
+            description: String(taskDescription || ''),
             start: {
                 dateTime: dueDate.toISOString(),
                 timeZone: 'Asia/Jerusalem'
@@ -127,7 +138,7 @@ export async function syncTaskToCalendar(
             },
             conferenceData: {
                 createRequest: {
-                    requestId: `meet-${task.id || Date.now()}-${Math.random().toString(36).substring(7)}`,
+                    requestId: `meet-${taskId || Date.now()}-${Math.random().toString(36).substring(7)}`,
                     conferenceSolutionKey: {
                         type: 'hangoutsMeet'
                     }
@@ -182,15 +193,15 @@ export async function syncTaskToCalendar(
                     action: existingEventId ? 'updated' : 'created',
                     direction: 'to_google',
                     status: 'success',
-                    metadata: { taskId: (task as any).id, organizationId: tenantId } as any,
+                    metadata: { taskId: taskId || null, organizationId: tenantId } as Prisma.InputJsonValue,
                 },
             });
         }
 
         return eventId;
 
-    } catch (error: any) {
-        console.error('[Calendar] Error syncing task to calendar:', error);
+    } catch (error: unknown) {
+        console.error('[Calendar] Error syncing task to calendar:', getErrorMessage(error));
         return null;
     }
 }
@@ -254,8 +265,8 @@ export async function syncCalendarToTasks(
 
         return syncedIds;
 
-    } catch (error: any) {
-        console.error('[Calendar] Error syncing calendar to tasks:', error);
+    } catch (error: unknown) {
+        console.error('[Calendar] Error syncing calendar to tasks:', getErrorMessage(error));
         return [];
     }
 }
@@ -284,8 +295,8 @@ export async function deleteCalendarEvent(
         });
 
         return true;
-    } catch (error: any) {
-        console.error('[Calendar] Error deleting calendar event:', error);
+    } catch (error: unknown) {
+        console.error('[Calendar] Error deleting calendar event:', getErrorMessage(error));
         return false;
     }
 }

@@ -3,7 +3,7 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
 import type { OperationsVehicleRow } from '@/lib/services/operations/types';
 
 export async function getOperationsVehiclesByOrganizationId(params: {
@@ -34,7 +34,7 @@ export async function getOperationsVehiclesByOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsVehicles failed', e);
+    logOperationsError('[operations] getOperationsVehicles failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכבים' };
   }
 }
@@ -56,7 +56,7 @@ export async function createOperationsVehicleForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsVehicle failed', e);
+    logOperationsError('[operations] createOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהוספת רכב' };
   }
 }
@@ -92,7 +92,7 @@ export async function deleteOperationsVehicleForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsVehicle failed', e);
+    logOperationsError('[operations] deleteOperationsVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת רכב' };
   }
 }
@@ -137,7 +137,7 @@ export async function getOperationsTechnicianActiveVehicleByOrganizationId(param
       },
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsTechnicianActiveVehicle failed', e);
+    logOperationsError('[operations] getOperationsTechnicianActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רכב פעיל' };
   }
 }

@@ -2,22 +2,9 @@
 
 import { resend, isResendConfigured } from '@/lib/resend';
 import { Client } from '@/types';
-import { sendMisradWelcomeEmail } from '@/lib/email';
+import { sendMisradWelcomeEmail } from '@/lib/email';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 function resolveRecipientEmail(originalTo: string): string {
   const override = process.env.RESEND_TEST_TO;

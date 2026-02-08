@@ -3,6 +3,8 @@
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 /**
  * Get system maintenance info
@@ -14,14 +16,14 @@ export async function getMaintenanceInfo(): Promise<{
     lastBackup: string | null;
     systemVersion: string;
     uptime: number;
-    pendingUpdates: any[];
+    pendingUpdates: unknown[];
   };
   error?: string;
 }> {
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -33,12 +35,12 @@ export async function getMaintenanceInfo(): Promise<{
 
     return createSuccessResponse({
       databaseSize: 'לא זמין',
-      lastBackup: lastBackup?.created_at ? new Date(lastBackup.created_at as any).toISOString() : null,
+      lastBackup: lastBackup?.created_at ? new Date(lastBackup.created_at).toISOString() : null,
       systemVersion: 'v2.4.12-admin',
       uptime: Date.now() - (Date.now() - 7 * 24 * 60 * 60 * 1000),
       pendingUpdates: [],
     });
-  } catch (error) {
+  } catch (error: unknown) {
     // Return empty/default data if RPC doesn't exist
     return createSuccessResponse({
       databaseSize: 'לא זמין',
@@ -61,7 +63,7 @@ export async function createBackup(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -81,7 +83,7 @@ export async function createBackup(): Promise<{
           items_synced: 1,
           started_at: new Date(),
           completed_at: new Date(),
-          metadata: { backupId } as any,
+          metadata: { backupId } as Prisma.InputJsonObject,
         },
       });
     } catch {
@@ -103,7 +105,7 @@ export async function createBackup(): Promise<{
     }
 
     return createSuccessResponse({ backupId });
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה ביצירת גיבוי');
   }
 }
@@ -119,7 +121,7 @@ export async function runSystemCleanup(): Promise<{
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
@@ -134,7 +136,7 @@ export async function runSystemCleanup(): Promise<{
       },
     });
 
-    const cleanedItems = Number((deleted as any)?.count ?? 0);
+    const cleanedItems = Number(deleted?.count ?? 0);
 
     // Log the action
     try {
@@ -147,7 +149,7 @@ export async function runSystemCleanup(): Promise<{
           items_synced: cleanedItems,
           started_at: new Date(),
           completed_at: new Date(),
-          metadata: { cleanedItems } as any,
+          metadata: { cleanedItems } as Prisma.InputJsonObject,
         },
       });
     } catch {
@@ -155,7 +157,7 @@ export async function runSystemCleanup(): Promise<{
     }
 
     return createSuccessResponse({ cleanedItems });
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בניקוי מערכת');
   }
 }
@@ -173,26 +175,36 @@ export async function updateSystemSettings(
   try {
     const authCheck = await requireAuth();
     if (!authCheck.success) {
-      return authCheck as any;
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
     await requireSuperAdmin();
 
     // Update system settings
     try {
-      await prisma.social_system_settings.upsert({
-        where: { key: 'maintenance_settings' },
-        create: {
-          key: 'maintenance_settings',
-          value: settings as any,
-          updated_at: new Date(),
-          created_at: new Date(),
+      const settingsValue: Prisma.InputJsonObject = JSON.parse(JSON.stringify(settings || {})) as Prisma.InputJsonObject;
+      await withTenantIsolationContext(
+        {
+          source: 'admin_maintenance_update_system_settings',
+          reason: 'upsert_maintenance_settings',
+          mode: 'global_admin',
+          isSuperAdmin: true,
         },
-        update: {
-          value: settings as any,
-          updated_at: new Date(),
-        },
-      });
+        async () =>
+          await prisma.social_system_settings.upsert({
+            where: { key: 'maintenance_settings' },
+            create: {
+              key: 'maintenance_settings',
+              value: settingsValue,
+              updated_at: new Date(),
+              created_at: new Date(),
+            },
+            update: {
+              value: settingsValue,
+              updated_at: new Date(),
+            },
+          })
+      );
     } catch {
       // Table might not exist, that's okay
     }
@@ -208,7 +220,7 @@ export async function updateSystemSettings(
           items_synced: 1,
           started_at: new Date(),
           completed_at: new Date(),
-          metadata: { settings } as any,
+          metadata: { settings: JSON.parse(JSON.stringify(settings || {})) } as Prisma.InputJsonObject,
         },
       });
     } catch {
@@ -216,7 +228,7 @@ export async function updateSystemSettings(
     }
 
     return createSuccessResponse(true);
-  } catch (error) {
+  } catch (error: unknown) {
     return createErrorResponse(error, 'שגיאה בעדכון הגדרות');
   }
 }

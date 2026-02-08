@@ -2,7 +2,11 @@
 
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
+import * as Sentry from '@sentry/nextjs';
+import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export interface Campaign {
   id: string;
   clientId: string;
@@ -14,17 +18,41 @@ export interface Campaign {
   roas: number;
   impressions?: number;
   clicks?: number;
+}
+
+function captureActionException(error: unknown, context: Record<string, unknown>) {
+  Sentry.withScope((scope) => {
+    scope.setTag('layer', 'server_action');
+    scope.setTag('domain', 'campaigns');
+    for (const [k, v] of Object.entries(context)) {
+      scope.setExtra(k, v);
+    }
+    Sentry.captureException(error);
+  });
 }
 
-function isMissingTableError(err: any) {
-  const msg = String(err?.message || '').toLowerCase();
-  const code = String((err as any)?.code || '').toUpperCase();
+function isMissingTableError(err: unknown) {
+  const msg = getErrorMessage(err).toLowerCase();
+  const code = String(asObject(err)?.code || '').toUpperCase();
   return (
     msg.includes('could not find the table') ||
     msg.includes('does not exist') ||
     code === '42P01' ||
     code === 'PGRST205'
   );
+}
+
+const CampaignsInputSchema = z.object({
+  clientId: z.string().optional(),
+  orgId: z.string().optional(),
+});
+
+function isCampaignStatus(value: unknown): value is Campaign['status'] {
+  return value === 'active' || value === 'paused' || value === 'completed';
+}
+
+function isCampaignObjective(value: unknown): value is Campaign['objective'] {
+  return value === 'sales' || value === 'traffic' || value === 'awareness' || value === 'engagement';
 }
 
 /**
@@ -35,7 +63,13 @@ export async function getCampaigns(
   orgId?: string
 ): Promise<{ success: boolean; data?: Campaign[]; error?: string }> {
   try {
-    const organizationId = orgId ? (await requireWorkspaceAccessByOrgSlug(orgId))?.id : null;
+    const parsed = CampaignsInputSchema.safeParse({ clientId, orgId });
+    if (!parsed.success) {
+      captureActionException(parsed.error, { action: 'getCampaigns', stage: 'validate_input' });
+      return { success: false, error: 'קלט לא תקין לטעינת קמפיינים' };
+    }
+
+    const organizationId = parsed.data.orgId ? (await requireWorkspaceAccessByOrgSlug(parsed.data.orgId))?.id : null;
 
     if (!organizationId) {
       return { success: false, error: 'חסר orgSlug לטעינת קמפיינים' };
@@ -49,83 +83,121 @@ export async function getCampaigns(
           where: { organization_id: String(organizationId) },
           select: { id: true },
         });
-      } catch (clientsError: any) {
+      } catch (clientsError: unknown) {
         if (isMissingTableError(clientsError)) {
+          captureActionException(clientsError, { action: 'getCampaigns', stage: 'fetch_clients', reason: 'missing_table' });
           return { success: false, error: 'טבלת clients לא קיימת במסד הנתונים (מצב חירום: אין Fallback)' };
         }
+        const obj = asObject(clientsError);
         const errInfo = {
-          message: clientsError?.message,
-          code: (clientsError as any)?.code,
-          details: (clientsError as any)?.details,
-          hint: (clientsError as any)?.hint,
+          message: getErrorMessage(clientsError),
+          code: obj?.code,
+          details: obj?.details,
+          hint: obj?.hint,
         };
-        console.error('Error fetching campaigns clients:', errInfo);
+        captureActionException(clientsError, { action: 'getCampaigns', stage: 'fetch_clients', ...errInfo });
         return {
           success: false,
-          error: clientsError?.message || 'שגיאה בטעינת לקוחות לקמפיינים',
+          error: getErrorMessage(clientsError) || 'שגיאה בטעינת לקוחות לקמפיינים',
         };
       }
 
-      allowedClientIds = (clients || []).map((c: any) => String(c.id));
+      allowedClientIds = (clients || []).map((c) => String(c.id));
 
       if (!allowedClientIds.length) {
         return { success: true, data: [] };
       }
     }
 
-    let data: any[] = [];
+    let data: Array<{
+      id: string;
+      client_id: string;
+      name: string;
+      status: string | null;
+      objective: string | null;
+      budget: Prisma.Decimal | number | null;
+      spent: Prisma.Decimal | number | null;
+      roas: Prisma.Decimal | number | null;
+      impressions: number | null;
+      clicks: number | null;
+    }> = [];
     try {
-      const where: any = {};
+      const where: Prisma.social_campaignsWhereInput = {};
       if (allowedClientIds) {
         where.client_id = { in: allowedClientIds };
       }
-      if (clientId) {
-        where.client_id = String(clientId);
+      if (parsed.data.clientId) {
+        where.client_id = String(parsed.data.clientId);
       }
 
       data = await prisma.social_campaigns.findMany({
         where,
+        select: {
+          id: true,
+          client_id: true,
+          name: true,
+          status: true,
+          objective: true,
+          budget: true,
+          spent: true,
+          roas: true,
+          impressions: true,
+          clicks: true,
+        },
         orderBy: { created_at: 'desc' },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (isMissingTableError(error)) {
+        captureActionException(error, { action: 'getCampaigns', stage: 'fetch_campaigns', reason: 'missing_table' });
         return { success: false, error: 'טבלת campaigns לא קיימת במסד הנתונים (מצב חירום: אין Fallback)' };
       }
+      const obj = asObject(error);
       const errInfo = {
-        message: error?.message,
-        code: (error as any)?.code,
-        details: (error as any)?.details,
-        hint: (error as any)?.hint,
+        message: getErrorMessage(error),
+        code: obj?.code,
+        details: obj?.details,
+        hint: obj?.hint,
       };
-      console.error('Error fetching campaigns:', errInfo);
+      captureActionException(error, { action: 'getCampaigns', stage: 'fetch_campaigns', ...errInfo });
       return {
         success: false,
-        error: error?.message || 'שגיאה בטעינת קמפיינים',
+        error: getErrorMessage(error) || 'שגיאה בטעינת קמפיינים',
       };
     }
 
-    const campaigns: Campaign[] = (data || []).map((campaign: any) => ({
-      id: String(campaign.id),
-      clientId: String(campaign.client_id),
-      name: String(campaign.name),
-      status: (campaign.status ? String(campaign.status) : 'active') as any,
-      objective: (campaign.objective ? String(campaign.objective) : 'awareness') as any,
-      budget: Number(campaign.budget) || 0,
-      spent: Number(campaign.spent) || 0,
-      roas: Number(campaign.roas) || 0,
-      impressions: campaign.impressions == null ? undefined : Number(campaign.impressions),
-      clicks: campaign.clicks == null ? undefined : Number(campaign.clicks),
-    }));
+    const toNumber = (v: Prisma.Decimal | number | null | undefined) => {
+      if (v == null) return 0;
+      if (v instanceof Prisma.Decimal) return v.toNumber();
+      return Number(v) || 0;
+    };
+
+    const campaigns: Campaign[] = (data || []).map((campaign) => {
+      const statusRaw = campaign.status ? String(campaign.status) : 'active';
+      const objectiveRaw = campaign.objective ? String(campaign.objective) : 'awareness';
+
+      return {
+        id: String(campaign.id),
+        clientId: String(campaign.client_id),
+        name: String(campaign.name),
+        status: isCampaignStatus(statusRaw) ? statusRaw : 'active',
+        objective: isCampaignObjective(objectiveRaw) ? objectiveRaw : 'awareness',
+        budget: toNumber(campaign.budget),
+        spent: toNumber(campaign.spent),
+        roas: toNumber(campaign.roas),
+        impressions: campaign.impressions == null ? undefined : Number(campaign.impressions),
+        clicks: campaign.clicks == null ? undefined : Number(campaign.clicks),
+      };
+    });
 
     return {
       success: true,
       data: campaigns,
     };
-  } catch (error: any) {
-    console.error('Error in getCampaigns:', error);
+  } catch (error: unknown) {
+    captureActionException(error, { action: 'getCampaigns', stage: 'outer' });
     return {
       success: false,
-      error: error.message || 'שגיאה בטעינת קמפיינים',
+      error: getErrorMessage(error) || 'שגיאה בטעינת קמפיינים',
     };
   }
 }

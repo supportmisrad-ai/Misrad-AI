@@ -1,6 +1,6 @@
 'use server';
 
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import type { SystemNotificationDTO } from '@/lib/services/system/notifications';
 import {
@@ -16,49 +16,68 @@ export async function getSystemNotifications(params: {
   orgSlug: string;
   limit?: number;
 }): Promise<SystemNotificationDTO[]> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
-
-  return await getSystemNotificationsForOrganizationId({
-    organizationId: String(workspace.id),
-    recipientId: String(currentUser.id),
-    limit: params.limit,
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
+      return await getSystemNotificationsForOrganizationId({
+        organizationId: String(organizationId),
+        recipientId: String(currentUser.id),
+        limit: params.limit,
+      });
+    },
+    { source: 'server_actions_system_notifications', reason: 'getSystemNotifications' }
+  );
 }
 
 export async function markSystemNotificationRead(params: {
   orgSlug: string;
   id: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
-  return await markSystemNotificationReadForOrganizationId({
-    organizationId: String(workspace.id),
-    recipientId: String(currentUser.id),
-    id: String(params.id),
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
+      return await markSystemNotificationReadForOrganizationId({
+        organizationId: String(organizationId),
+        recipientId: String(currentUser.id),
+        id: String(params.id),
+      });
+    },
+    { source: 'server_actions_system_notifications', reason: 'markSystemNotificationRead' }
+  );
 }
 
 export async function markAllSystemNotificationsRead(params: {
   orgSlug: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
-  return await markAllSystemNotificationsReadForOrganizationId({
-    organizationId: String(workspace.id),
-    recipientId: String(currentUser.id),
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
+      return await markAllSystemNotificationsReadForOrganizationId({
+        organizationId: String(organizationId),
+        recipientId: String(currentUser.id),
+      });
+    },
+    { source: 'server_actions_system_notifications', reason: 'markAllSystemNotificationsRead' }
+  );
 }
 
 export async function deleteSystemNotification(params: {
   orgSlug: string;
   id: string;
 }): Promise<{ ok: true } | { ok: false; message: string }> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
-  const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
-  return await deleteSystemNotificationForOrganizationId({
-    organizationId: String(workspace.id),
-    recipientId: String(currentUser.id),
-    id: String(params.id),
-  });
+  return await withWorkspaceTenantContext(
+    params.orgSlug,
+    async ({ organizationId }) => {
+      const currentUser = await resolveWorkspaceCurrentUserForUi(params.orgSlug);
+      return await deleteSystemNotificationForOrganizationId({
+        organizationId: String(organizationId),
+        recipientId: String(currentUser.id),
+        id: String(params.id),
+      });
+    },
+    { source: 'server_actions_system_notifications', reason: 'deleteSystemNotification' }
+  );
 }

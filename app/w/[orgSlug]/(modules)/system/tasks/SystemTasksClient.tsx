@@ -3,12 +3,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import TasksView from '@/components/nexus/TasksView';
 import type { Task, TaskPriority, TaskStatus } from '@/components/system/types';
-import type { Task as NexusTask } from '@/types';
+import { Priority, Status, type Task as NexusTask } from '@/types';
 import { createNexusTaskByOrgSlug, updateNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import { useAuth } from '@/components/system/contexts/AuthContext';
 
 import { normalizeTaskStatus, normalizeTaskPriority } from '@/lib/task-utils';
+import { getErrorMessage } from '@/lib/shared/unknown';
+
+function toNexusPriority(value: TaskPriority): Priority {
+  const v = String(value || '').toLowerCase();
+  if (v === 'low') return Priority.LOW;
+  if (v === 'high') return Priority.HIGH;
+  if (v === 'critical') return Priority.URGENT;
+  return Priority.MEDIUM;
+}
+
+function toNexusStatus(value: TaskStatus): Status {
+  const v = String(value || '').toLowerCase();
+  if (v === 'in_progress') return Status.IN_PROGRESS;
+  if (v === 'review') return Status.WAITING;
+  if (v === 'done') return Status.DONE;
+  return Status.TODO;
+}
 
 function mapNexusTaskToUiTask(row: NexusTask): Task {
   const due = row.dueDate ? new Date(String(row.dueDate)) : new Date();
@@ -49,8 +66,8 @@ export default function SystemTasksClient({
         input: {
           title: task.title,
           description: task.description ?? '',
-          status: task.status,
-          priority: task.priority,
+          status: toNexusStatus(task.status),
+          priority: toNexusPriority(task.priority),
           assigneeId: task.assigneeId,
           assigneeIds: [task.assigneeId],
           tags: task.tags,
@@ -59,13 +76,13 @@ export default function SystemTasksClient({
           isTimerRunning: false,
           messages: [],
           createdAt: new Date().toISOString(),
-        } as any,
+        },
       });
 
       setTasks((prev) => [mapNexusTaskToUiTask(created), ...prev]);
       addToast('המשימה נוצרה', 'success');
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת משימה', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה ביצירת משימה', 'error');
       return;
     }
     addToast('המשימה נוצרה', 'success');
@@ -91,10 +108,10 @@ export default function SystemTasksClient({
   };
 
   useEffect(() => {
-    const onNewTask = () => createNewTaskFromShell();
+    const onNewTask: EventListener = () => createNewTaskFromShell();
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('system:new-task', onNewTask as any);
+      window.addEventListener('system:new-task', onNewTask);
 
       const pending = window.sessionStorage?.getItem('system:pending-action');
       if (pending === 'new-task') {
@@ -105,7 +122,7 @@ export default function SystemTasksClient({
 
     return () => {
       if (typeof window !== 'undefined') {
-        window.removeEventListener('system:new-task', onNewTask as any);
+        window.removeEventListener('system:new-task', onNewTask);
       }
     };
   }, [user?.id]);
@@ -121,16 +138,16 @@ export default function SystemTasksClient({
           assigneeId: task.assigneeId,
           assigneeIds: [task.assigneeId],
           dueDate: task.dueDate.toISOString().slice(0, 10),
-          priority: task.priority,
-          status: task.status,
+          priority: toNexusPriority(task.priority),
+          status: toNexusStatus(task.status),
           tags: task.tags,
-        } as any,
+        },
       });
 
       const mapped = mapNexusTaskToUiTask(updated);
       setTasks((prev) => prev.map((t) => (String(t.id) === String(mapped.id) ? mapped : t)));
-    } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון משימה', 'error');
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בעדכון משימה', 'error');
       return;
     }
   };

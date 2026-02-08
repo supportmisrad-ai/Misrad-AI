@@ -3,7 +3,20 @@ import { getClientsPage } from '@/app/actions/clients';
 import { getTeamMembers } from '@/app/actions/team';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import type { ActivityLog, Client, ClientRequest, Conversation, Idea, ManagerRequest, PostStatus, SocialPlatform, SocialPost, SocialTask, TeamMember } from '@/types/social';
-import { cache } from 'react';
+import * as React from 'react';
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { createStorageClient } from '@/lib/supabase';
+import { resolveStorageUrlsMaybeBatchedWithClient, toSbRefMaybe } from '@/lib/services/operations/storage';
+
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
+type CacheFn = <Args extends unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
+function identityCache<Args extends unknown[], R>(fn: (...args: Args) => R) {
+  return fn;
+}
+
+const reactCache: unknown = Reflect.get(React, 'cache');
+const cache: CacheFn = typeof reactCache === 'function' ? (reactCache as CacheFn) : identityCache;
 
 export type SocialNavigationItem = {
   id: string;
@@ -36,10 +49,11 @@ export type SocialInitialData = {
   };
 };
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
+function isMissingRelationOrColumnError(error: unknown): boolean {
+  const obj = asObject(error) ?? {};
+  const code = String(obj.code ?? '').toLowerCase();
+  const message = String(obj.message ?? '').toLowerCase();
+  return code === 'p2021' || code === 'p2022' || code === '42p01' || code === '42703' || message.includes('does not exist') || message.includes('relation') || message.includes('column');
 }
 
 function getString(value: unknown): string {
@@ -148,7 +162,10 @@ export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]>
         requiresRole,
       };
     });
-  } catch {
+  } catch (error: unknown) {
+    if (isMissingRelationOrColumnError(error) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] navigation_menu missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
     return [];
   }
 }
@@ -182,16 +199,48 @@ export async function getSocialPosts(params: {
     orderBy: { createdAt: 'desc' },
   });
 
-  return (posts || []).map((post) => ({
-    id: String(post.id),
-    clientId: String(post.clientId),
-    content: String(post.content || ''),
-    mediaUrl: post.media_url || undefined,
-    status: isPostStatus(post.status) ? post.status : 'draft',
-    scheduledAt: toIsoStringOrEmpty(post.scheduled_at),
-    publishedAt: post.published_at ? toIsoStringOrEmpty(post.published_at) : undefined,
-    platforms: (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
-  }));
+  const raw = (posts || []).map((post) => {
+    const mediaRaw = post.media_url ? String(post.media_url).trim() : '';
+    const stableRef = mediaRaw ? (toSbRefMaybe(mediaRaw) || (mediaRaw.startsWith('sb://') ? mediaRaw : null)) : null;
+    return {
+      id: String(post.id),
+      clientId: String(post.clientId),
+      content: String(post.content || ''),
+      mediaRaw,
+      mediaRef: stableRef,
+      status: isPostStatus(post.status) ? post.status : 'draft',
+      scheduledAt: toIsoStringOrEmpty(post.scheduled_at),
+      publishedAt: post.published_at ? toIsoStringOrEmpty(post.published_at) : undefined,
+      platforms: (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
+    };
+  });
+
+  const ttlSeconds = 60 * 60;
+  const refsOrUrls = raw.map((p) => (p.mediaRef ? p.mediaRef : p.mediaRaw ? p.mediaRaw : null));
+
+  let resolved: (string | null)[] = refsOrUrls.map(() => null);
+  try {
+    const supabase = createStorageClient();
+    resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, refsOrUrls, ttlSeconds, { organizationId });
+  } catch {
+    resolved = refsOrUrls.map(() => null);
+  }
+
+  return raw.map((p, idx): SocialPost => {
+    const rawUrl = p.mediaRaw;
+    const url = resolved[idx] || (rawUrl && !rawUrl.startsWith('sb://') ? rawUrl : undefined);
+    return {
+      id: p.id,
+      clientId: p.clientId,
+      content: p.content,
+      mediaUrl: url,
+      mediaRef: p.mediaRef || undefined,
+      status: p.status,
+      scheduledAt: p.scheduledAt,
+      publishedAt: p.publishedAt,
+      platforms: p.platforms,
+    };
+  });
 }
 
 export async function getSocialActivity(params: { orgSlug: string; limit?: number }): Promise<ActivityLog[]> {
@@ -262,8 +311,12 @@ async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: s
       orderBy: { due_date: 'asc' },
     });
   } catch (error: unknown) {
-    const message = String((error as any)?.message || '');
+    const errObj = asObject(error);
+    const message = typeof errObj?.message === 'string' ? errObj.message : error instanceof Error ? error.message : '';
     if (message.includes('social_tasks.organization_id') && message.toLowerCase().includes('does not exist')) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_tasks.organization_id missing column (${message || 'missing column'})`);
+      }
       return [];
     }
     throw error;
@@ -313,8 +366,12 @@ async function getSocialConversationsForOrg(params: { orgSlug: string; organizat
       orderBy: { updated_at: 'desc' },
     });
   } catch (error: unknown) {
-    const message = String((error as any)?.message || '');
+    const errObj = asObject(error);
+    const message = typeof errObj?.message === 'string' ? errObj.message : error instanceof Error ? error.message : '';
     if (message.includes('social_conversations.organization_id') && message.toLowerCase().includes('does not exist')) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_conversations.organization_id missing column (${message || 'missing column'})`);
+      }
       return [];
     }
     throw error;
@@ -352,22 +409,57 @@ async function getSocialClientRequestsForOrg(params: { organizationId: string })
       orderBy: { created_at: 'desc' },
     });
   } catch (error: unknown) {
-    const message = String((error as any)?.message || '');
+    const errObj = asObject(error);
+    const message = typeof errObj?.message === 'string' ? errObj.message : error instanceof Error ? error.message : '';
     if (message.includes('social_client_requests.organization_id') && message.toLowerCase().includes('does not exist')) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_client_requests.organization_id missing column (${message || 'missing column'})`);
+      }
       return [];
     }
     throw error;
   }
 
-  return (rows || []).map((req): ClientRequest => ({
-    id: String(req.id),
-    clientId: String(req.client_id),
-    type: isClientRequestType(req.type) ? req.type : 'text',
-    content: String(req.content || ''),
-    mediaUrl: req.media_url ?? undefined,
-    timestamp: toIsoStringOrEmpty(req.created_at),
-    status: isClientRequestStatus(req.status) ? req.status : 'new',
-  }));
+  const raw = (rows || []).map((req) => {
+    const mediaRaw = req.media_url ? String(req.media_url).trim() : '';
+    const stableRef = mediaRaw ? (toSbRefMaybe(mediaRaw) || (mediaRaw.startsWith('sb://') ? mediaRaw : null)) : null;
+    return {
+      id: String(req.id),
+      clientId: String(req.client_id),
+      type: isClientRequestType(req.type) ? req.type : 'text',
+      content: String(req.content || ''),
+      mediaRaw,
+      mediaRef: stableRef,
+      timestamp: toIsoStringOrEmpty(req.created_at),
+      status: isClientRequestStatus(req.status) ? req.status : 'new',
+    };
+  });
+
+  const ttlSeconds = 60 * 60;
+  const refsOrUrls = raw.map((r) => (r.mediaRef ? r.mediaRef : r.mediaRaw ? r.mediaRaw : null));
+
+  let resolved: (string | null)[] = refsOrUrls.map(() => null);
+  try {
+    const supabase = createStorageClient();
+    resolved = await resolveStorageUrlsMaybeBatchedWithClient(supabase, refsOrUrls, ttlSeconds, { organizationId: params.organizationId });
+  } catch {
+    resolved = refsOrUrls.map(() => null);
+  }
+
+  return raw.map((r, idx): ClientRequest => {
+    const rawUrl = r.mediaRaw;
+    const url = resolved[idx] || (rawUrl && !rawUrl.startsWith('sb://') ? rawUrl : undefined);
+    return {
+      id: r.id,
+      clientId: r.clientId,
+      type: r.type,
+      content: r.content,
+      mediaUrl: url,
+      mediaRef: r.mediaRef || undefined,
+      timestamp: r.timestamp,
+      status: r.status,
+    };
+  });
 }
 
 async function getSocialManagerRequestsForOrg(params: { organizationId: string }) {
@@ -399,8 +491,12 @@ async function getSocialManagerRequestsForOrg(params: { organizationId: string }
       orderBy: { created_at: 'desc' },
     });
   } catch (error: unknown) {
-    const message = String((error as any)?.message || '');
+    const errObj = asObject(error);
+    const message = typeof errObj?.message === 'string' ? errObj.message : error instanceof Error ? error.message : '';
     if (message.includes('social_manager_requests.organization_id') && message.toLowerCase().includes('does not exist')) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_manager_requests.organization_id missing column (${message || 'missing column'})`);
+      }
       return [];
     }
     throw error;
@@ -434,8 +530,12 @@ async function getSocialIdeasForOrg(params: { organizationId: string }) {
       orderBy: { created_at: 'desc' },
     });
   } catch (error: unknown) {
-    const message = String((error as any)?.message || '');
+    const errObj = asObject(error);
+    const message = typeof errObj?.message === 'string' ? errObj.message : error instanceof Error ? error.message : '';
     if (message.includes('social_ideas.organization_id') && message.toLowerCase().includes('does not exist')) {
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] social_ideas.organization_id missing column (${message || 'missing column'})`);
+      }
       return [];
     }
     throw error;

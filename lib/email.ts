@@ -1,17 +1,15 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Email utility functions using Resend
  */
 
 import { Resend } from 'resend';
 import { getBaseUrl } from '@/lib/utils';
+import { EmailTemplateComponents, generateBaseEmailTemplate } from './email-templates';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+type ResendSendEmailParams = Parameters<Resend['emails']['send']>[0];
 
 function resolveSupportFromEmail(): string {
     return (process.env.MISRAD_SUPPORT_FROM_EMAIL || 'support@misrad-ai.com').trim() || 'support@misrad-ai.com';
@@ -28,12 +26,7 @@ function getErrorField(error: unknown, field: string): string {
     const obj = asObject(error);
     const value = obj ? obj[field] : undefined;
     return typeof value === 'string' ? value : '';
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    return getErrorField(error, 'message');
-}
+}
 
 function getErrorName(error: unknown): string {
     if (error instanceof Error && error.name) return error.name;
@@ -65,7 +58,6 @@ function generateSupportTicketReceivedEmailHTML(params: {
     message: string;
     orgSlug: string;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.name ? `היי ${params.name},` : 'היי,';
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
@@ -125,7 +117,6 @@ function generateSupportTicketReplyEmailHTML(params: {
     reply: string;
     orgSlug: string;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.name ? `היי ${params.name},` : 'היי,';
     const portalUrl = `${getBaseUrl()}/w/${encodeURIComponent(params.orgSlug)}/support#my-tickets`;
     
@@ -204,7 +195,7 @@ export async function sendSupportTicketReceivedEmail(params: {
         const toEmail = resolveRecipientEmail(params.toEmail);
         const html = generateSupportTicketReceivedEmailHTML(params);
 
-        const sendParams: any = {
+        const sendParams: ResendSendEmailParams = {
             from: fromEmail,
             to: toEmail,
             subject: `קיבלנו את הדיווח שלך (#${params.ticketNumber})`,
@@ -256,7 +247,7 @@ export async function sendSupportTicketReplyEmail(params: {
         const toEmail = resolveRecipientEmail(params.toEmail);
         const html = generateSupportTicketReplyEmailHTML(params);
 
-        const sendParams: any = {
+        const sendParams: ResendSendEmailParams = {
             from: fromEmail,
             to: toEmail,
             subject: `עדכון על הדיווח שלך (#${params.ticketNumber})`,
@@ -316,12 +307,12 @@ export async function sendSupportTicketAdminNotificationEmail(params: {
         });
 
         const replyTo = params.requesterEmail ? String(params.requesterEmail).trim() : '';
-        const sendParams: any = {
+        const sendParams: ResendSendEmailParams = {
             from: fromEmail,
             to: recipients.length ? recipients.map(resolveRecipientEmail) : resolveRecipientEmail(supportEmail),
             subject: `דיווח תקלה חדש (#${params.ticketNumber})`,
             html,
-            ...(replyTo ? { replyTo, reply_to: replyTo } : {}),
+            ...(replyTo ? { replyTo } : {}),
         };
         const { error } = await resend.emails.send(sendParams);
 
@@ -374,7 +365,6 @@ function generateInvitationEmailHTML(
     signupUrl: string,
     subdomain?: string
 ): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = ownerName ? `שלום ${ownerName},` : 'שלום,';
     
     const bodyContent = `
@@ -437,7 +427,6 @@ function generateOrganizationWelcomeEmailHTML(params: {
     ownerName?: string | null;
     portalUrl: string;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
 
     const bodyContent = `
@@ -502,7 +491,6 @@ function generateEmployeeInvitationEmailHTML(
     invitationUrl: string,
     createdByName?: string | null
 ): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = employeeName ? `שלום ${employeeName},` : `שלום,`;
     const inviter = createdByName ? ` ${createdByName}` : '';
     
@@ -635,7 +623,6 @@ function generateFirstCustomerEmailHTML(params: {
     founderName: string;
     founderPhone: string;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.ownerName ? `היי ${params.ownerName},` : 'היי,';
     
     const bodyContent = `
@@ -756,7 +743,6 @@ function generateAbandonedSignupFollowupEmailHTML(params: {
     founderName: string;
     founderPhone?: string | null;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.ownerName ? `היי ${params.ownerName},` : 'היי,';
     const founderPhone = String(params.founderPhone || '').trim();
 
@@ -943,7 +929,6 @@ function generateMisradWelcomeEmailHTML(params: {
     windowsUrl?: string | null;
     androidUrl?: string | null;
 }): string {
-    const { generateBaseEmailTemplate, EmailTemplateComponents } = require('./email-templates');
     const greeting = params.ownerName ? `שלום ${params.ownerName},` : 'שלום,';
     const windowsUrl = String(params.windowsUrl ?? (process.env.MISRAD_WINDOWS_DOWNLOAD_URL || '')).trim();
     const androidUrl = String(params.androidUrl ?? (process.env.MISRAD_ANDROID_DOWNLOAD_URL || '')).trim();

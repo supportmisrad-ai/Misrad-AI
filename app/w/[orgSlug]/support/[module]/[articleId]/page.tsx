@@ -5,6 +5,7 @@ import { ArrowRight, AlertTriangle, Info } from 'lucide-react';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getModuleDefinition, isOSModuleKey } from '@/lib/os/modules/registry';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { asObject } from '@/lib/shared/unknown';
 import { getHelpVideoByRoute, getHelpVideosByModule } from '@/app/actions/help-videos';
 import { getDocsArticle, getDocsCategory, getDocsCategoriesForModule, getDocsArticlesForModule } from '@/config/docs';
 import { ArticleFeedbackClient } from '../../ArticleFeedbackClient';
@@ -46,19 +47,24 @@ function normalizeVideoUrl(url: string): string {
   return raw;
 }
 
-function renderBlock(block: any) {
-  if (!block || typeof block !== 'object') return null;
+function renderBlock(block: unknown) {
+  const obj = asObject(block);
+  if (!obj) return null;
+  const type = typeof obj.type === 'string' ? obj.type : '';
 
-  if (block.type === 'h2') {
-    return <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-8">{String(block.text || '')}</h2>;
+  if (type === 'h2') {
+    return <h2 className="text-xl md:text-2xl font-black text-slate-900 mt-8">{String(obj.text || '')}</h2>;
   }
 
-  if (block.type === 'p') {
-    return <p className="text-sm md:text-base font-bold text-slate-700 leading-relaxed mt-4">{String(block.text || '')}</p>;
+  if (type === 'p') {
+    return <p className="text-sm md:text-base font-bold text-slate-700 leading-relaxed mt-4">{String(obj.text || '')}</p>;
   }
 
-  if (block.type === 'bullets') {
-    const items: string[] = Array.isArray(block.items) ? block.items : [];
+  if (type === 'bullets') {
+    const itemsRaw = obj.items;
+    const items = Array.isArray(itemsRaw)
+      ? itemsRaw.map((v) => String(v || '')).filter(Boolean)
+      : [];
     return (
       <ul className="mt-4 space-y-2">
         {items.map((t, idx) => (
@@ -71,8 +77,19 @@ function renderBlock(block: any) {
     );
   }
 
-  if (block.type === 'steps') {
-    const items: Array<{ title: string; body: string }> = Array.isArray(block.items) ? block.items : [];
+  if (type === 'steps') {
+    const itemsRaw = obj.items;
+    const items: Array<{ title: string; body: string }> = Array.isArray(itemsRaw)
+      ? itemsRaw
+          .map((v) => {
+            const stepObj = asObject(v);
+            if (!stepObj) return null;
+            const title = typeof stepObj.title === 'string' ? stepObj.title : String(stepObj.title || '');
+            const body = typeof stepObj.body === 'string' ? stepObj.body : String(stepObj.body || '');
+            return { title, body };
+          })
+          .filter((v): v is { title: string; body: string } => Boolean(v))
+      : [];
     return (
       <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
         {items.map((s, idx) => (
@@ -86,8 +103,8 @@ function renderBlock(block: any) {
     );
   }
 
-  if (block.type === 'callout') {
-    const variant = block.variant === 'warning' ? 'warning' : 'tip';
+  if (type === 'callout') {
+    const variant = obj.variant === 'warning' ? 'warning' : 'tip';
     const Icon = variant === 'warning' ? AlertTriangle : Info;
 
     const styles =
@@ -102,8 +119,8 @@ function renderBlock(block: any) {
             <Icon size={18} />
           </div>
           <div className="min-w-0">
-            {block.title ? <div className="text-sm font-black">{String(block.title)}</div> : null}
-            <div className="mt-1 text-sm font-bold leading-relaxed">{String(block.body || '')}</div>
+            {obj.title ? <div className="text-sm font-black">{String(obj.title)}</div> : null}
+            <div className="mt-1 text-sm font-bold leading-relaxed">{String(obj.body || '')}</div>
           </div>
         </div>
       </div>
@@ -116,9 +133,12 @@ function renderBlock(block: any) {
 export default async function WorkspaceSupportArticlePage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; module: string; articleId: string }>;
+  params:
+    | Promise<{ orgSlug: string; module: string; articleId: string }>
+    | { orgSlug: string; module: string; articleId: string };
 }) {
-  const { orgSlug, module, articleId } = await params;
+  const resolvedParams = await params;
+  const { orgSlug, module, articleId } = resolvedParams;
 
   await requireWorkspaceAccessByOrgSlug(orgSlug);
 

@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { testConnection, isSupabaseConfigured } from '../../../../lib/supabase';
 import { requireSuperAdmin } from '../../../../lib/auth';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { getErrorMessage } from '@/lib/shared/unknown';
 async function GETHandler() {
     try {
         try {
             await requireSuperAdmin();
-        } catch (e: any) {
-            return NextResponse.json({ error: e?.message || 'Forbidden - Super Admin required' }, { status: 403 });
+        } catch (e: unknown) {
+            return NextResponse.json({ error: getErrorMessage(e) || 'Forbidden - Super Admin required' }, { status: 403 });
         }
 
         const configured = isSupabaseConfigured();
@@ -25,9 +26,9 @@ async function GETHandler() {
             },
             timestamp: new Date().toISOString()
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         return NextResponse.json({
-            error: error.message,
+            error: getErrorMessage(error),
             supabase: {
                 configured: false,
                 connected: false

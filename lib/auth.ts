@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Server-side Authentication & Authorization Utilities
  * 
@@ -11,17 +12,23 @@ import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
+function isSchemaMismatchError(error: unknown): boolean {
+    const obj = asObject(error) ?? {};
+    const code = String(obj.code ?? '').toLowerCase();
+    const message = String(getErrorMessage(error) || '').toLowerCase();
+    return (
+        code === 'p2021' ||
+        code === 'p2022' ||
+        code === '42p01' ||
+        code === '42703' ||
+        message.includes('does not exist') ||
+        message.includes('relation') ||
+        message.includes('column') ||
+        message.includes('could not find the table') ||
+        message.includes('schema cache')
+    );
 }
 
 function toStringArray(value: unknown): string[] {
@@ -89,7 +96,10 @@ async function selectRolePermissionsByName(roleName: string): Promise<Permission
         if (!Array.isArray(permsValue)) return null;
         const perms = permsValue.filter((p): p is PermissionId => typeof p === 'string') as PermissionId[];
         return perms;
-    } catch {
+    } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(`[SchemaMismatch] scale_roles lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+        }
         return null;
     }
 }
@@ -127,7 +137,10 @@ async function selectTenants(filters?: {
                 requireApproval: Boolean(row.requireApproval ?? false),
             };
         });
-    } catch {
+    } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+            throw new Error(`[SchemaMismatch] nexusTenant.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+        }
         return [];
     }
 }
@@ -143,6 +156,9 @@ async function getRolePermissions(roleName: string): Promise<PermissionId[]> {
             return perms;
         }
     } catch (error) {
+        if (getErrorMessage(error).includes('[SchemaMismatch]')) {
+            throw error;
+        }
         console.warn('[Auth] Could not fetch role from database, using fallback:', {
             message: getErrorMessage(error)
         });
@@ -234,6 +250,9 @@ export async function hasPermission(permission: PermissionId): Promise<boolean> 
         const rolePermissions = await getRolePermissions(roleForPermissions);
         return rolePermissions.includes(permission);
     } catch (error) {
+        if (getErrorMessage(error).includes('[SchemaMismatch]')) {
+            throw error;
+        }
         console.error('[Auth] Permission check failed:', {
             message: getErrorMessage(error),
             name: error instanceof Error ? error.name : undefined,
@@ -315,6 +334,9 @@ export async function isTenantOwner(userEmail?: string, tenantId?: string): Prom
         const tenants = await selectTenants(filters);
         return tenants.length > 0;
     } catch (error) {
+        if (getErrorMessage(error).includes('[SchemaMismatch]')) {
+            throw error;
+        }
         console.error('[Auth] Error checking tenant ownership:', error);
         return false;
     }
@@ -334,6 +356,9 @@ export async function getOwnedTenant(): Promise<Tenant | null> {
         const tenants = await selectTenants({ ownerEmail: user.email });
         return tenants.length > 0 ? tenants[0] : null;
     } catch (error) {
+        if (getErrorMessage(error).includes('[SchemaMismatch]')) {
+            throw error;
+        }
         console.error('[Auth] Error getting owned tenant:', error);
         return null;
     }
@@ -362,6 +387,9 @@ export async function isTenantAdmin(tenantId?: string): Promise<boolean> {
         // Tenant owners automatically have admin permissions
         return isTenantAdminRole(user.role);
     } catch (error) {
+        if (getErrorMessage(error).includes('[SchemaMismatch]')) {
+            throw error;
+        }
         console.error('[Auth] Error checking tenant admin status:', error);
         return false;
     }
@@ -463,7 +491,7 @@ export async function canAccessResource(
 /**
  * Filter sensitive data based on user permissions
  */
-export async function filterSensitiveData<T extends Record<string, unknown>>(
+export async function filterSensitiveData<T extends object>(
     data: T,
     dataType: 'user' | 'financial' | 'task'
 ): Promise<Partial<T>> {
@@ -479,14 +507,18 @@ export async function filterSensitiveData<T extends Record<string, unknown>>(
             // Remove sensitive fields for non-managers
             const canViewFinancials = await hasPermission('view_financials');
             if (!canViewFinancials) {
-                const { hourlyRate, monthlySalary, commissionPct, accumulatedBonus, ...safeData } = data;
-                return safeData as Partial<T>;
+                const safeData: Partial<T> = { ...data };
+                Reflect.deleteProperty(safeData, 'hourlyRate');
+                Reflect.deleteProperty(safeData, 'monthlySalary');
+                Reflect.deleteProperty(safeData, 'commissionPct');
+                Reflect.deleteProperty(safeData, 'accumulatedBonus');
+                return safeData;
             }
             break;
         case 'financial':
             const hasFinancialAccess = await hasPermission('view_financials');
             if (!hasFinancialAccess) {
-                return {} as Partial<T>; // Return empty object
+                return {}; // Return empty object
             }
             break;
     }

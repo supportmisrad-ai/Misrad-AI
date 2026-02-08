@@ -5,6 +5,8 @@ import { auth } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 /**
  * Zoom OAuth callback handler
  * Receives authorization code and exchanges it for access token
@@ -22,7 +24,8 @@ export async function GET(request: NextRequest) {
     const error = searchParams.get('error');
 
     if (error) {
-      console.error('[Zoom OAuth] Error:', error);
+      if (IS_PROD) console.error('[Zoom OAuth] Error');
+      else console.error('[Zoom OAuth] Error:', error);
       return NextResponse.redirect(
         new URL(`/settings/integrations?error=zoom_auth_failed`, request.url)
       );
@@ -80,7 +83,8 @@ export async function GET(request: NextRequest) {
       new URL(`/settings/integrations?success=zoom_connected`, request.url)
     );
   } catch (error) {
-    console.error('[Zoom OAuth Callback] Error:', error);
+    if (IS_PROD) console.error('[Zoom OAuth Callback] Error');
+    else console.error('[Zoom OAuth Callback] Error:', error);
     return NextResponse.redirect(
       new URL(`/settings/integrations?error=zoom_connection_failed`, request.url)
     );

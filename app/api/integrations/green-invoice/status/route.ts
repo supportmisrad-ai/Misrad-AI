@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: Get Green Invoice Status
  * GET /api/integrations/green-invoice/status
@@ -9,21 +10,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { Prisma } from '@prisma/client';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : String(error ?? '');
-}
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -64,7 +53,9 @@ async function GETHandler(request: NextRequest) {
             return NextResponse.json({ connected: false });
         }
 
-        let integration: any = null;
+        let integration: Prisma.scale_integrationsGetPayload<{
+            select: { id: true; is_active: true; last_synced_at: true; metadata: true };
+        }> | null = null;
         try {
             integration = await prisma.scale_integrations.findFirst({
                 where: {

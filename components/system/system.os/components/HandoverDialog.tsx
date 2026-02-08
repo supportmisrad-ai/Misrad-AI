@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Lead, HandoverData } from '../types';
 import { X, Server, CheckCircle, ArrowRight, Database, Code2, User, Briefcase, DollarSign, Calendar, FileJson, ShieldCheck, Activity, Send, AlertOctagon, Lock } from 'lucide-react';
 import { Skeleton } from '../../../ui/skeletons';
+import { asObject } from '@/lib/shared/unknown';
 
 interface HandoverDialogProps {
-  payload: any;
+  payload: unknown;
   lead: Lead;
   onClose: () => void;
   onConfirm: (data: HandoverData) => void;
@@ -18,6 +19,12 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
   const [showJson, setShowJson] = useState(false);
   const [progress, setProgress] = useState(0);
   const [logs, setLogs] = useState<string[]>([]);
+
+  const payloadObj = asObject(payload) ?? {};
+  const dealDetails = asObject(payloadObj.deal_details) ?? {};
+  const packageType = String(dealDetails.package_type ?? '').replace(/_/g, ' ') || 'Package';
+  const valueRaw = dealDetails.value;
+  const valueNumber = typeof valueRaw === 'number' ? valueRaw : Number(valueRaw);
 
   // Form State
   const [formData, setFormData] = useState<HandoverData>({
@@ -182,7 +189,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                           <div className="flex items-center gap-2 text-emerald-400 text-[10px] font-bold uppercase tracking-widest mb-2">
                               <Briefcase size={12} /> סיכום עסקה
                           </div>
-                          <h2 className="text-3xl font-bold tracking-tight mb-1">{String(payload?.deal_details?.package_type ?? '').replace(/_/g, ' ') || 'Package'}</h2>
+                          <h2 className="text-3xl font-bold tracking-tight mb-1">{packageType}</h2>
                           <div className="flex items-center gap-2 text-slate-400 text-sm font-mono">
                               <span>מזהה: {lead.id}</span>
                               <span>•</span>
@@ -191,7 +198,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                       </div>
                       <div className="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl min-w-[140px] text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-bold mb-1 tracking-wider">שווי סגירה</div>
-                          <div className="text-3xl font-mono font-bold text-emerald-400">₪{payload.deal_details.value.toLocaleString()}</div>
+                          <div className="text-3xl font-mono font-bold text-emerald-400">₪{Number.isFinite(valueNumber) ? valueNumber.toLocaleString() : '—'}</div>
                       </div>
                   </div>
               </div>
@@ -213,7 +220,7 @@ const HandoverDialog: React.FC<HandoverDialogProps> = ({ payload, lead, onClose,
                   
                   {showJson && (
                       <div className="bg-slate-900 border border-slate-700 rounded-xl p-4 font-mono text-xs text-emerald-400 overflow-x-auto relative shadow-inner animate-slide-down">
-                         <pre className="leading-relaxed">{JSON.stringify({...payload, handover: formData}, null, 2)}</pre>
+                         <pre className="leading-relaxed">{JSON.stringify({ ...payloadObj, handover: formData }, null, 2)}</pre>
                       </div>
                   )}
               </div>

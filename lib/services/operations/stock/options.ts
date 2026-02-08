@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toNumberSafe } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError, toNumberSafe } from '@/lib/services/operations/shared';
 import {
   ensureOperationsPrimaryWarehouseHolderId,
   ensureOperationsVehicleHolderId,
@@ -73,7 +73,7 @@ export async function getOperationsStockSourceOptionsForOrganizationId(params: {
     data.push(...techOptions);
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsStockSourceOptions failed', e);
+    logOperationsError('[operations] getOperationsStockSourceOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מקורות מלאי' };
   }
 }
@@ -119,7 +119,7 @@ export async function getOperationsInventoryOptionsForOrganizationId(params: {
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptions failed', e);
+    logOperationsError('[operations] getOperationsInventoryOptions failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת רשימת המלאי' };
   }
 }

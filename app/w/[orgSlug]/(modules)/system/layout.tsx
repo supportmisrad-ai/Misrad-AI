@@ -16,9 +16,10 @@ export default async function SystemModuleLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
-  const { orgSlug } = await params;
+  const resolvedParams = await params;
+  const { orgSlug } = resolvedParams;
   await enforceModuleAccessOrRedirect({ orgSlug, module: 'system' });
   await persistCurrentUserLastLocation({ orgSlug, module: 'system' });
   const def = getModuleDefinition('system');

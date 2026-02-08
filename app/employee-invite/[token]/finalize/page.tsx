@@ -8,14 +8,11 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import type { Prisma } from '@prisma/client';
+import { asObject } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
 function getString(value: unknown): string | null {
   if (value == null) return null;
@@ -35,7 +32,7 @@ function getNumber(value: unknown): number | null {
 export default async function EmployeeInviteFinalizePage({
   params,
 }: {
-  params: Promise<{ token: string }>;
+  params: Promise<{ token: string }> | { token: string };
 }) {
   const { token } = await params;
 
@@ -108,7 +105,7 @@ export default async function EmployeeInviteFinalizePage({
   // Load org module flags (with backwards compatibility for missing columns)
   let org: Record<string, unknown> | null = null;
   try {
-    const orgRow = await prisma.social_organizations.findUnique({
+    const orgRow = await prisma.organization.findUnique({
       where: { id: organizationId },
       select: {
         id: true,
@@ -124,6 +121,12 @@ export default async function EmployeeInviteFinalizePage({
     });
     org = asObject(orgRow);
   } catch (e: unknown) {
+    const errObj = asObject(e) ?? {};
+    const code = typeof errObj.code === 'string' ? String(errObj.code) : '';
+    const msg = typeof errObj.message === 'string' ? String(errObj.message) : '';
+    if (!ALLOW_SCHEMA_FALLBACKS && (code === 'P2021' || code === 'P2022' || msg.toLowerCase().includes('does not exist'))) {
+      throw new Error(`[SchemaMismatch] organization flags query failed (${msg || code || 'missing relation'})`);
+    }
     org = null;
   }
 
@@ -168,7 +171,7 @@ export default async function EmployeeInviteFinalizePage({
   }
 
   {
-    const socialUserRow = await prisma.social_users.findUnique({
+    const socialUserRow = await prisma.organizationUser.findUnique({
       where: { clerk_user_id: userId },
       select: { id: true, organization_id: true },
     });
@@ -180,7 +183,7 @@ export default async function EmployeeInviteFinalizePage({
     }
 
     if (socialUserId && !currentOrgId) {
-      await prisma.social_users.update({
+      await prisma.organizationUser.update({
         where: { clerk_user_id: userId },
         data: { organization_id: organizationId },
       });

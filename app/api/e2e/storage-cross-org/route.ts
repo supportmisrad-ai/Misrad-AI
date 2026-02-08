@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { randomBytes } from 'crypto';
 import { createClient, createServiceRoleClient } from '@/lib/supabase';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,13 +10,14 @@ function safeString(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function formatError(err: any) {
+function formatError(err: unknown) {
   if (!err) return null;
+  const obj = asObject(err) ?? {};
   return {
-    message: err?.message ?? null,
-    name: err?.name ?? null,
-    status: err?.status ?? null,
-    code: err?.code ?? null,
+    message: getErrorMessage(err) ?? null,
+    name: err instanceof Error ? err.name : typeof obj.name === 'string' ? obj.name : null,
+    status: typeof obj.status === 'number' ? obj.status : null,
+    code: typeof obj.code === 'string' ? obj.code : null,
   };
 }
 
@@ -33,9 +35,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: 'NoAuthSession' }, { status: 401 });
     }
 
-    const body = await req.json().catch(() => null);
-    const bucket = safeString(body?.bucket) || 'attachments';
-    const otherOrgId = safeString(body?.otherOrgId);
+    const bodyJson: unknown = await req.json().catch(() => null);
+    const bodyObj = asObject(bodyJson);
+    const bucket = safeString(bodyObj?.bucket) || 'attachments';
+    const otherOrgId = safeString(bodyObj?.otherOrgId);
 
     if (!otherOrgId) {
       return NextResponse.json({ ok: false, error: 'otherOrgId is required' }, { status: 400 });
@@ -52,7 +55,7 @@ export async function POST(req: Request) {
     const targetName = `${otherOrgId}/${seedName}`;
 
     let seedOk = false;
-    let seedError: any = null;
+    let seedError: unknown = null;
 
     try {
       const seed = await admin.storage.from(bucket).upload(targetName, randomBytes(32), {
@@ -61,7 +64,7 @@ export async function POST(req: Request) {
       });
       seedOk = !seed.error;
       seedError = seed.error;
-    } catch (e: any) {
+    } catch (e: unknown) {
       seedOk = false;
       seedError = e;
     }
@@ -109,7 +112,7 @@ export async function POST(req: Request) {
         uploadShouldBeBlocked: true,
       },
     });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'Storage cross-org check failed' }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ ok: false, error: getErrorMessage(e) || 'Storage cross-org check failed' }, { status: 500 });
   }
 }

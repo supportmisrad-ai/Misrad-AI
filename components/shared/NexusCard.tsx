@@ -25,18 +25,8 @@ export default function NexusCard({
 }) {
   const isClickable = Boolean(onClickAction);
 
-  const Comp: any = isClickable ? 'button' : 'div';
-
-  return (
-    <Comp
-      type={isClickable ? 'button' : undefined}
-      onClick={onClickAction}
-      className={
-        `group relative w-full text-right bg-white rounded-[1.5rem] border border-gray-200/80 shadow-sm hover:shadow-xl hover:shadow-gray-200/60 hover:border-gray-300 transition-all overflow-hidden` +
-        (isClickable ? ' cursor-pointer' : '') +
-        (className ? ` ${className}` : '')
-      }
-    >
+  const content = (
+    <>
       <div className="absolute inset-0 bg-gradient-to-br from-gray-50/60 via-white to-white opacity-0 group-hover:opacity-100 transition-opacity" />
 
       <div className="relative p-5 md:p-6">
@@ -77,6 +67,19 @@ export default function NexusCard({
           </div>
         ) : null}
       </div>
-    </Comp>
+    </>
+  );
+
+  const classNames =
+    `group relative w-full text-right bg-white rounded-[1.5rem] border border-gray-200/80 shadow-sm hover:shadow-xl hover:shadow-gray-200/60 hover:border-gray-300 transition-all overflow-hidden` +
+    (isClickable ? ' cursor-pointer' : '') +
+    (className ? ` ${className}` : '');
+
+  return isClickable ? (
+    <button type="button" onClick={onClickAction} className={classNames}>
+      {content}
+    </button>
+  ) : (
+    <div className={classNames}>{content}</div>
   );
 }

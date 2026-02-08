@@ -182,6 +182,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
     const load = async () => {
       if (!orgSlug) return;
       if (entitlementsProp !== undefined) return;
+      if (entitlements !== null) return;
       if (entitlementsInFlightRef.current) return;
       entitlementsInFlightRef.current = true;
 
@@ -189,11 +190,18 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
       const controller = new AbortController();
       entitlementsAbortRef.current = controller;
       try {
-        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, { cache: 'no-store', signal: controller.signal });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data?.entitlements) {
-          setEntitlements(data.entitlements);
+        const res = await fetch(`/api/workspaces/${encodeWorkspaceOrgSlug(orgSlug)}/entitlements`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const data = await res.json().catch(() => null);
+        const entitlementsValue = (data as { entitlements?: unknown } | null)?.entitlements;
+        if (entitlementsValue && typeof entitlementsValue === 'object') {
+          setEntitlements(entitlementsValue as Record<OSModuleKey, boolean>);
+          return;
+        }
+        if (!res.ok) {
+          setEntitlements({} as Record<OSModuleKey, boolean>);
         }
       } catch {
         // ignore
@@ -227,7 +235,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         document.removeEventListener('visibilitychange', handleVisibility);
       }
     };
-  }, [entitlementsProp, orgSlug]);
+  }, [entitlements, entitlementsProp, orgSlug]);
 
   const moduleKeys: OSModuleKey[] = getOrderedModuleKeys();
   const visibleModules = moduleKeys.filter((k) => k !== currentModule).filter((k) => (scope ? Boolean(scope[k]) : true));

@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma';
 import { requireAuth, createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 
+import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 export type HelpVideo = {
   id: string;
   moduleKey: OSModuleKey;
@@ -30,21 +31,7 @@ const helpVideoUpdateSchema = z.object({
   videoUrl: z.string().min(1).optional(),
   order: z.number().int().min(0).optional(),
   duration: z.string().optional(),
-});
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string {
-  if (!error) return '';
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
-}
+});
 
 type AdminCheckResult =
   | { success: true; userId: string }

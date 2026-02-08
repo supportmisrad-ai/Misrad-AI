@@ -19,7 +19,7 @@ export default async function AdminLayout({
   const clerk = await currentUser();
 
   if (!clerk?.id) {
-    redirect('/sign-in');
+    redirect('/login?redirect=/app/admin');
   }
 
   const isSuperAdmin = clerk.publicMetadata?.isSuperAdmin === true;

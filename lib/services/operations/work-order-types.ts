@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, getUnknownErrorMessage, toIsoDate } from '@/lib/services/operations/shared';
+import { asObject, getUnknownErrorMessage, logOperationsError, toIsoDate } from '@/lib/services/operations/shared';
 import type { OperationsWorkOrderTypeRow } from '@/lib/services/operations/types';
 
 export async function getOperationsWorkOrderTypesByOrganizationId(params: {
@@ -32,7 +32,7 @@ export async function getOperationsWorkOrderTypesByOrganizationId(params: {
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsWorkOrderTypes failed', e);
+    logOperationsError('[operations] getOperationsWorkOrderTypes failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת סוגי קריאות' };
   }
 }
@@ -54,7 +54,7 @@ export async function createOperationsWorkOrderTypeForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] createOperationsWorkOrderType failed', e);
+    logOperationsError('[operations] createOperationsWorkOrderType failed', e);
     const msg = String(getUnknownErrorMessage(e) || '');
     if (msg.toLowerCase().includes('uq_operations_work_order_types_org_name')) {
       return { success: false, error: 'סוג קריאה בשם הזה כבר קיים' };
@@ -80,7 +80,7 @@ export async function deleteOperationsWorkOrderTypeForOrganizationId(params: {
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] deleteOperationsWorkOrderType failed', e);
+    logOperationsError('[operations] deleteOperationsWorkOrderType failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה במחיקת סוג קריאה' };
   }
 }

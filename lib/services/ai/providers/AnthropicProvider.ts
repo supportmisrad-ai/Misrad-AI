@@ -1,4 +1,5 @@
 import { AIProviderError } from '../errors';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 export class AnthropicProvider {
   private readonly apiKey: string;
@@ -46,15 +47,20 @@ export class AnthropicProvider {
     const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
 
     try {
-      const body: any = {
+      type AnthropicMessage = { role: 'user'; content: string };
+      type AnthropicBody = {
+        model: string;
+        max_tokens: number;
+        messages: AnthropicMessage[];
+        system?: string;
+      };
+
+      const body: AnthropicBody = {
         model: params.model,
         max_tokens: 2048,
         messages: [{ role: 'user', content: params.prompt }],
+        ...(params.systemInstruction ? { system: params.systemInstruction } : {}),
       };
-
-      if (params.systemInstruction) {
-        body.system = params.systemInstruction;
-      }
 
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -72,14 +78,24 @@ export class AnthropicProvider {
         throw new AIProviderError({ provider: 'anthropic', status: res.status, message: `Anthropic error (${res.status}): ${txt}` });
       }
 
-      const json: any = await res.json();
-      const text = json?.content?.map((c: any) => c?.text).filter(Boolean).join('') || '';
+      const json: unknown = await res.json().catch(() => null);
+      const jsonObj = asObject(json) ?? {};
+      const content = Array.isArray(jsonObj.content) ? jsonObj.content : [];
+      const text = content
+        .map((c) => {
+          const cObj = asObject(c) ?? {};
+          return typeof cObj.text === 'string' ? cObj.text : '';
+        })
+        .filter(Boolean)
+        .join('');
 
       if (!text) {
         throw new AIProviderError({ provider: 'anthropic', message: 'Anthropic returned empty response' });
       }
 
       return { text };
+    } catch (error: unknown) {
+      throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Anthropic request failed');
     } finally {
       clearTimeout(timeout);
     }

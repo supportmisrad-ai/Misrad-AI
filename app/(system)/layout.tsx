@@ -29,7 +29,7 @@ export default async function SystemLayout({
   try {
     const clerkUserId = await getCurrentUserId();
     if (clerkUserId) {
-      const user = await prisma.social_users.findUnique({
+      const user = await prisma.organizationUser.findUnique({
         where: { clerk_user_id: clerkUserId },
         select: { organization_id: true },
       });
@@ -39,7 +39,7 @@ export default async function SystemLayout({
         redirect('/subscribe/checkout');
       }
 
-      const org = await prisma.social_organizations.findUnique({
+      const org = await prisma.organization.findUnique({
         where: { id: String(organizationId) },
         select: { has_system: true },
       });

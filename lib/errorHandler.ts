@@ -1,16 +1,11 @@
+import { asObject } from '@/lib/shared/unknown';
 /**
  * Centralized error handling
  * Provides consistent error handling across the application
  */
 
 import { translateError } from './errorTranslations';
-import { isSupabaseConfigured } from '@/lib/supabase';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export interface ActionResult<T = unknown> {
   success: boolean;

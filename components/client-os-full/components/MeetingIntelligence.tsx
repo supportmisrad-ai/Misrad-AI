@@ -8,7 +8,7 @@ import { MeetingResultDashboard } from './meeting/MeetingResultDashboard';
 import { useNexus } from '../context/ClientContext';
 
 import { useAuth } from '@clerk/nextjs';
-import { createBrowserClientWithClerk } from '@/lib/supabase-browser';
+import { createBrowserStorageClientWithClerk } from '@/lib/supabase-browser';
 import { Skeleton } from '@/components/ui/skeletons';
 
 const MeetingIntelligence: React.FC = () => {
@@ -36,7 +36,7 @@ const MeetingIntelligence: React.FC = () => {
   const lastInsightTranscriptLenRef = useRef(0);
 
   const supabase = useMemo(() => {
-    return createBrowserClientWithClerk(async () => {
+    return createBrowserStorageClientWithClerk(async () => {
       try {
         return await getToken({ template: 'supabase' });
       } catch {

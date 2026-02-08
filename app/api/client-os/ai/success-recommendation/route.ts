@@ -5,6 +5,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard } from '@/lib/server/aiAbuseGuard';
+import { asObject } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
@@ -34,9 +35,10 @@ async function POSTHandler(req: Request) {
       return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429, headers: abuse.headers });
     }
 
-    const body = (await req.json().catch(() => ({}))) as { clientName?: string; healthScore?: number };
-    const clientName = String(body.clientName || '').trim();
-    const healthScore = Number(body.healthScore || 0);
+    const bodyJson: unknown = await req.json().catch(() => ({}));
+    const bodyObj = asObject(bodyJson) ?? {};
+    const clientName = String(bodyObj.clientName || '').trim();
+    const healthScore = Number(bodyObj.healthScore || 0);
 
     if (!clientName) return NextResponse.json({ error: 'clientName is required' }, { status: 400 });
 
@@ -63,7 +65,7 @@ async function POSTHandler(req: Request) {
       },
       { headers: abuse.headers }
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
     if (e instanceof APIError) {
       return NextResponse.json({ error: e.message || 'Forbidden' }, { status: e.status });
     }

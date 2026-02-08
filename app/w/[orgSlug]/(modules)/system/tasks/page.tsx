@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function SystemTasksPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
 

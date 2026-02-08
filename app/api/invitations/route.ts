@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * API Route: List Invitation Links
  * GET /api/invitations
@@ -15,18 +16,9 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
 
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 type InvitationRow = Record<string, unknown>;
 
@@ -84,9 +76,15 @@ async function loadInvitationsForWorkspace(workspaceId: string) {
         const meta = asObject(obj?.meta);
         const code = String(obj?.code || meta?.code || '');
         if (code === '42P01' || (isMissingTableOrSchemaError(error) && code === '42P01')) {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
+            }
             return { missingTable: true as const, rows: [] as InvitationRow[] };
         }
         if (code === '42703') {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
+            }
             const rows = await prisma.$queryRaw<unknown[]>(
                 Prisma.sql`
                     SELECT
@@ -154,7 +152,8 @@ async function GETHandler(request: NextRequest) {
         const missingTable = normalized.missingTable;
 
         if (missingTable) {
-            console.warn('[API] invitation_links table does not exist. Please run the schema SQL.');
+            if (IS_PROD) console.warn('[API] invitation_links table does not exist');
+            else console.warn('[API] invitation_links table does not exist. Please run the schema SQL.');
             return apiSuccess({
                 invitations: [],
                 warning: 'invitation_links table does not exist. Please run supabase-invitation-links-schema.sql'
@@ -172,11 +171,13 @@ async function GETHandler(request: NextRequest) {
         return apiSuccess({ invitations: invitationsWithUrls });
 
     } catch (error: unknown) {
-        console.error('[API] Error getting invitations:', error);
+        if (IS_PROD) console.error('[API] Error getting invitations');
+        else console.error('[API] Error getting invitations:', error);
         if (error instanceof APIError) {
             return apiError(error, { status: error.status, message: error.message || 'Forbidden' });
         }
-        return apiError(error, { status: 500, message: getErrorMessage(error) || 'Failed to get invitations' });
+        const msg = getErrorMessage(error) || 'Failed to get invitations';
+        return apiError(IS_PROD ? msg : error, { status: 500, message: msg });
     }
 }
 

@@ -11,14 +11,9 @@ import { ModuleManagementModal } from '@/components/saas/ModuleManagementModal';
 import type { ModuleId, Tenant } from '@/types';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
+import { asObject } from '@/lib/shared/unknown';
 function unwrapData(value: unknown): unknown {
   const obj = asObject(value);
   const data = obj?.data;

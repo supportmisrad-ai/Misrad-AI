@@ -11,8 +11,11 @@ import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { queryRawTenantScoped } from '@/lib/prisma';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
 /**
  * Helper function to get tenantId from request/user
  */
@@ -51,7 +54,9 @@ async function GETHandler(request: NextRequest) {
             );
         }
 
-        const rows = await queryRawTenantScoped<any[]>(prisma, {
+        const rows = await queryRawTenantScoped<
+            Array<{ id: string; system_flags: unknown; created_at: string | null; updated_at: string | null }>
+        >(prisma, {
             tenantId,
             reason: 'telephony_settings_get',
             query: `
@@ -65,11 +70,10 @@ async function GETHandler(request: NextRequest) {
 
         const row = Array.isArray(rows) && rows.length ? rows[0] : null;
 
-        const telephony = row?.system_flags?.telephony && typeof row.system_flags.telephony === 'object'
-            ? row.system_flags.telephony
-            : null;
+        const systemFlagsObj = asObject(row?.system_flags);
+        const telephony = asObject(systemFlagsObj?.telephony);
 
-        const integrations = telephony
+        const integrations = row && telephony
             ? [
                 {
                     id: String(row.id),
@@ -83,7 +87,7 @@ async function GETHandler(request: NextRequest) {
         
         return NextResponse.json({
             tenantId,
-            integrations: integrations.map((integration: any) => ({
+            integrations: integrations.map((integration) => ({
                 id: integration.id,
                 provider: integration.provider,
                 isActive: integration.isActive,
@@ -93,11 +97,13 @@ async function GETHandler(request: NextRequest) {
             }))
         });
         
-    } catch (error: any) {
-        console.error('[API] Error fetching telephony settings:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error fetching telephony settings');
+        else console.error('[API] Error fetching telephony settings:', error);
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: error.message?.includes('Forbidden') ? 403 : 500 }
+            { error: message || 'Internal server error' },
+            { status: message.includes('Forbidden') ? 403 : 500 }
         );
     }
 }
@@ -131,8 +137,11 @@ async function PUTHandler(request: NextRequest) {
         }
         
         // 4. Parse request body
-        const body = await request.json();
-        const { provider, credentials, isActive } = body;
+        const bodyJson: unknown = await request.json().catch(() => ({}));
+        const bodyObj = asObject(bodyJson) ?? {};
+        const provider = typeof bodyObj.provider === 'string' ? bodyObj.provider : '';
+        const credentials = asObject(bodyObj.credentials);
+        const isActive = bodyObj.isActive;
         
         // 5. Validate input
         if (!provider || !credentials) {
@@ -158,7 +167,7 @@ async function PUTHandler(request: NextRequest) {
             isActive: active,
         };
 
-        const upserted = await queryRawTenantScoped<any[]>(prisma, {
+        const upserted = await queryRawTenantScoped<Array<{ id: string; tenant_id: string; system_flags: unknown }>>(prisma, {
             tenantId,
             reason: 'telephony_settings_upsert',
             query: `
@@ -193,11 +202,13 @@ async function PUTHandler(request: NextRequest) {
             }
         });
         
-    } catch (error: any) {
-        console.error('[API] Error saving telephony settings:', error);
+    } catch (error: unknown) {
+        if (IS_PROD) console.error('[API] Error saving telephony settings');
+        else console.error('[API] Error saving telephony settings:', error);
+        const message = getErrorMessage(error);
         return NextResponse.json(
-            { error: error.message || 'Internal server error' },
-            { status: error.message?.includes('Forbidden') ? 403 : 500 }
+            { error: message || 'Internal server error' },
+            { status: message.includes('Forbidden') ? 403 : 500 }
         );
     }
 }

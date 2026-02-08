@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled } from '@/lib/server/workspace';
+import { getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 async function GETHandler(
   _req: Request,
-  { params }: { params: Promise<{ orgSlug: string }> }
+  { params }: { params: { orgSlug: string } }
 ) {
-  const { orgSlug } = await params;
+  const { orgSlug } = params;
 
   const bypassEntitlementsE2e = isBypassModuleEntitlementsEnabled();
   if (bypassEntitlementsE2e) {
@@ -18,8 +19,8 @@ async function GETHandler(
   try {
     const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
     return NextResponse.json({ entitlements: workspace.entitlements ?? {} }, { status: 200 });
-  } catch (e: any) {
-    const status = typeof e?.status === 'number' ? e.status : 403;
+  } catch (e: unknown) {
+    const status = getErrorStatus(e) ?? 403;
     return NextResponse.json({ entitlements: {} }, { status });
   }
 }

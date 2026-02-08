@@ -5,25 +5,13 @@ import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function getErrorStatus(error: unknown): number | null {
   const obj = asObject(error);
   const status = obj?.status;
-  return typeof status === 'number' && Number.isFinite(status) ? status : null;
-}
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : '';
+  return typeof status === 'number' && Number.isFinite(status) ? status : null;
 }
 
 type MisradClientRow = Prisma.MisradClientGetPayload<{

@@ -6,13 +6,9 @@ import { useAuth } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Boxes, ClipboardCheck, Clock, Home, MessageSquareText } from 'lucide-react';
 import { getActiveShift, punchIn, punchOut } from '@/app/actions/attendance';
+import { asObjectLoose as asObject } from '@/lib/shared/unknown';
 
 type WorkspaceApiItem = { id: string; slug: string; name: string };
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value && typeof value === 'object') return value as Record<string, unknown>;
-  return null;
-}
 
 function getCapacitorIsNativePlatform(): boolean {
   if (typeof window === 'undefined') return false;

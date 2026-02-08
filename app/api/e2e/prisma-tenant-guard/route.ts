@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     await withTenantIsolationContext(
       {
         suppressReporting: true,
+        reason: 'e2e_prisma_tenant_guard_probe',
         source: 'e2e_prisma_tenant_guard_probe',
       },
       async () =>
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
           withPrismaTenantIsolationOverride(
             {},
             {
+              reason: 'e2e_prisma_tenant_guard_probe',
               suppressReporting: true,
               source: 'e2e_prisma_tenant_guard_probe',
             }
@@ -44,12 +46,20 @@ export async function GET(req: Request) {
       },
       { status: 500 }
     );
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const msg =
+      e instanceof Error
+        ? e.message
+        : typeof e === 'string'
+          ? e
+          : e && typeof e === 'object' && 'message' in e
+            ? String((e as { message?: unknown }).message || 'Unknown error')
+            : 'Unknown error';
     return NextResponse.json(
       {
         ok: true,
         blocked: true,
-        error: e?.message || 'Unknown error',
+        error: msg,
       },
       { status: 500 }
     );

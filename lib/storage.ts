@@ -1,24 +1,15 @@
+import 'server-only';
+
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Supabase Storage Utilities
  * 
  * Handles file uploads, downloads, and management in Supabase Storage
  */
 
-import { supabase } from './supabase';
+import { createStorageClientMaybe } from '@/lib/supabase';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const supabase = createStorageClientMaybe();
 
 export interface UploadResult {
     url: string;
@@ -213,7 +204,7 @@ export async function listFiles(
             return [];
         }
 
-        return (data || []).map(file => ({
+        return (data || []).map((file: { name: string }) => ({
             name: file.name,
             path: folder ? `${folder}/${file.name}` : file.name,
             url: getFileUrl(folder ? `${folder}/${file.name}` : file.name, bucket)

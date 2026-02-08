@@ -3,7 +3,14 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 
 import { orgExec, orgQuery, prisma } from '@/lib/services/operations/db';
-import { asObject, firstRowField, getUnknownErrorMessage, toIsoDate, toNumberSafe } from '@/lib/services/operations/shared';
+import {
+  asObject,
+  firstRowField,
+  getUnknownErrorMessage,
+  logOperationsError,
+  toIsoDate,
+  toNumberSafe,
+} from '@/lib/services/operations/shared';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import {
   ensureOperationsPrimaryWarehouseHolderIdTx,
@@ -48,7 +55,7 @@ export async function setOperationsWorkOrderStockSourceForOrganizationId(params:
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSource failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSource failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת מקור מלאי' };
   }
 }
@@ -97,7 +104,7 @@ export async function setOperationsWorkOrderStockSourceToMyActiveVehicleForOrgan
       holderId,
     });
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
   }
 }
@@ -123,7 +130,7 @@ export async function setOperationsWorkOrderStockSourceToMyActiveVehicleAutoForO
       technicianId,
     });
   } catch (e: unknown) {
-    console.error('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
+    logOperationsError('[operations] setOperationsWorkOrderStockSourceToMyActiveVehicle failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בקביעת מקור מלאי לרכב הפעיל' };
   }
 }
@@ -191,7 +198,7 @@ export async function getOperationsInventoryOptionsForHolderForOrganizationId(pa
 
     return { success: true, data };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsInventoryOptionsForHolder failed', e);
+    logOperationsError('[operations] getOperationsInventoryOptionsForHolder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת מלאי לפי מקור' };
   }
 }
@@ -304,7 +311,7 @@ export async function consumeOperationsInventoryForWorkOrderForOrganizationId(pa
 
     return { success: true };
   } catch (e: unknown) {
-    console.error('[operations] consumeOperationsInventoryForWorkOrder failed', e);
+    logOperationsError('[operations] consumeOperationsInventoryForWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בהורדת מלאי' };
   }
 }
@@ -355,7 +362,7 @@ export async function getOperationsMaterialsForWorkOrderForOrganizationId(params
       }),
     };
   } catch (e: unknown) {
-    console.error('[operations] getOperationsMaterialsForWorkOrder failed', e);
+    logOperationsError('[operations] getOperationsMaterialsForWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת חומרים לקריאה' };
   }
 }

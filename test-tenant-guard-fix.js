@@ -1,12 +1,18 @@
 // Test script to verify the tenant guard fix
 // This script tests that the getSocialTeam function properly scopes queries by organization
 
-const { getSocialTeam } = require('./app/actions/admin-social');
-
 async function testTenantGuardFix() {
   console.log('Testing tenant guard fix...');
   
   try {
+    const mod = await import('./app/actions/admin-social');
+    const getSocialTeam = mod.getSocialTeam;
+
+    if (typeof getSocialTeam !== 'function') {
+      console.log('❌ FAILED: getSocialTeam is not a function');
+      return;
+    }
+
     // This should work now - the query is properly scoped by organization_id
     const result = await getSocialTeam('test-tenant-id');
     

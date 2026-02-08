@@ -3,11 +3,7 @@ const path = require('path');
 
 const API_ROOT = path.join(process.cwd(), 'app', 'api');
 
-const EXCLUDED_PREFIXES = [
-  'app/api/integrations/',
-  'app/api/notifications/',
-  'app/api/features/',
-];
+const EXCLUDED_PREFIXES = [];
 
 const PUBLIC_APPROVED = new Set([
   'app/api/strategic-content/route.ts',
@@ -21,14 +17,10 @@ const PUBLIC_APPROVED = new Set([
   'app/api/employees/invite/[token]/complete/route.ts',
   'app/api/invitations/token/[token]/route.ts',
   'app/api/invitations/complete/[token]/route.ts',
-  'app/api/webhooks/clerk/route.ts',
-  'app/api/webhooks/zapier/route.ts',
-  'app/api/webhooks/make/route.ts',
 ]);
 
 const CANDIDATE_APPROVED = new Set([
   // Add explicit exceptions here (route.ts paths) when a candidate is accepted by design.
-	'app/api/workspaces/route.ts',
 ]);
 
 function rel(p) {
@@ -116,8 +108,25 @@ function isGoneStub(content) {
 function classify(content) {
   if (isGoneStub(content)) return 'deprecated:gone';
   if (content.includes('x-cron-secret') || content.includes('CRON_SECRET')) return 'protected:cron';
+  if (content.includes('cronGuard')) return 'protected:cron';
   if (content.includes('x-e2e-key') || content.includes('E2E_API_KEY')) return 'protected:e2e';
   if (content.includes('x-kiosk-secret') || content.includes('KIOSK_PAIRING_SECRET')) return 'protected:kiosk';
+
+  if (content.includes('withWebhookTenantContext') || content.includes('withWebhookGlobalAdminContext')) return 'protected:webhook';
+
+  if (content.includes('workspaceTenantGuard')) return 'protected:workspace';
+
+  if (
+    hasAny(content, [
+      'x-nexus-api-key',
+      'NEXUS_API_KEY',
+      'INTEGRATIONS_ONBOARD_CLIENT_API_KEYS',
+      'MAKE_WEBHOOK_SECRET',
+      'ZAPIER_WEBHOOK_SECRET',
+    ])
+  ) {
+    return 'protected:integration_key';
+  }
 
   if (content.includes('requireWorkspaceAccessByOrgSlugApi')) return 'protected:workspace';
   if (content.includes('getWorkspaceOrThrow')) return 'protected:workspace';
@@ -157,9 +166,31 @@ function looksWorkspaceScoped(routeRel, content) {
   if (routeRel.includes('/workspaces/[orgSlug]/')) return true;
   if (/\{\s*params\s*\}:\s*\{\s*params:\s*Promise<\{[^}]*orgSlug/i.test(content)) return true;
   if (/orgSlug/i.test(content)) return true;
-  if (/organization_id/i.test(content) || /organizationId/i.test(content)) return true;
-  if (/\.eq\(\s*['\"]organization_id['\"]/i.test(content)) return true;
-  if (/where:\s*\{[^}]*organizationId/i.test(content)) return true;
+  return false;
+}
+
+function looksDbBacked(content) {
+  if (content.includes("from '@/lib/prisma")) return true;
+  if (content.includes('from "@/lib/prisma"')) return true;
+  if (content.includes("from '../../../lib/prisma")) return true;
+  if (content.includes('from "../../../lib/prisma"')) return true;
+  if (content.includes('prisma.')) return true;
+  if (content.includes('executeRawOrgScoped')) return true;
+  if (content.includes('queryRawOrgScoped')) return true;
+  return false;
+}
+
+function hasWorkspaceTenantContextGuard(content) {
+  if (content.includes('shabbatGuard')) return true;
+  if (content.includes('cronGuard')) return true;
+  if (content.includes('requireWorkspaceAccessByOrgSlugApi')) return true;
+  if (content.includes('getWorkspaceOrThrow')) return true;
+  if (content.includes('getWorkspaceContextOrThrow')) return true;
+  if (content.includes('getWorkspaceByOrgKeyOrThrow')) return true;
+  if (content.includes('workspaceTenantGuard')) return true;
+  if (content.includes('withWebhookTenantContext')) return true;
+  if (content.includes('withWebhookGlobalAdminContext')) return true;
+  if (content.includes('enterTenantIsolationContext')) return true;
   return false;
 }
 
@@ -209,12 +240,37 @@ function main() {
     if (
       (cls === 'protected:auth' || cls === 'protected:permission') &&
       looksWorkspaceScoped(routeRel, content) &&
-      !content.includes('requireWorkspaceAccessByOrgSlugApi')
+      !content.includes('requireWorkspaceAccessByOrgSlugApi') &&
+      !content.includes('workspaceTenantGuard')
     ) {
       candidates.push({
         route: routeRel,
         currentGuard: cls,
         reason: 'workspace-scoped but not using requireWorkspaceAccessByOrgSlugApi',
+      });
+    }
+
+    if (looksWorkspaceScoped(routeRel, content) && looksDbBacked(content) && !hasWorkspaceTenantContextGuard(content)) {
+      candidates.push({
+        route: routeRel,
+        currentGuard: cls,
+        reason: 'workspace-scoped route touches DB but missing workspace+tenant context guard',
+      });
+    }
+
+    if (cls === 'protected:cron' && looksDbBacked(content) && !content.includes('cronGuard')) {
+      candidates.push({
+        route: routeRel,
+        currentGuard: cls,
+        reason: 'cron route touches DB but missing cronGuard (global_admin context)',
+      });
+    }
+
+    if (cls === 'protected:webhook' && looksDbBacked(content) && !hasWorkspaceTenantContextGuard(content)) {
+      candidates.push({
+        route: routeRel,
+        currentGuard: cls,
+        reason: 'webhook route touches DB but missing webhook tenant/global_admin context guard',
       });
     }
 

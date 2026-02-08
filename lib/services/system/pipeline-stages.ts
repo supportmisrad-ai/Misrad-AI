@@ -4,19 +4,7 @@ import prisma from '@/lib/prisma';
 import { executeRawOrgScopedSql, queryRawOrgScoped, queryRawOrgScopedSql } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
-
-function getUnknownErrorMessage(error: unknown): string | null {
-  if (!error) return null;
-  if (error instanceof Error) return error.message;
-  const obj = asObject(error);
-  const msg = obj?.message;
-  return typeof msg === 'string' ? msg : null;
-}
+import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 export type SystemPipelineStageDTO = {
   id: string;

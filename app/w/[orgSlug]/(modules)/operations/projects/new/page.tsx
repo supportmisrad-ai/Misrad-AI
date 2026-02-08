@@ -8,7 +8,7 @@ import { createOperationsProject, getOperationsClientOptions } from '@/app/actio
 export default async function OperationsNewProjectPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string }>;
+  params: Promise<{ orgSlug: string }> | { orgSlug: string };
 }) {
   const { orgSlug } = await params;
   const base = `/w/${encodeURIComponent(orgSlug)}/operations`;

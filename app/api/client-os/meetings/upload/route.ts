@@ -3,15 +3,22 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import { analyzeAndStoreMeeting } from '@/app/actions/client-portal';
+import { analyzeAndStoreMeeting } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
+import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
+
+function normalizeLocation(value: unknown): 'ZOOM' | 'FRONTAL' | 'PHONE' {
+  const v = String(value ?? '').toUpperCase();
+  if (v === 'FRONTAL' || v === 'PHONE') return v;
+  return 'ZOOM';
+}
 
 async function fileToBuffer(file: File): Promise<Buffer> {
   const arrayBuffer = await file.arrayBuffer();
@@ -81,25 +88,19 @@ async function POSTHandler(req: Request) {
     let inputBuf: Buffer | null = null;
 
     if (contentType.includes('application/json')) {
-      const body = (await req.json()) as {
-        orgId?: string;
-        clientId?: string;
-        title?: string;
-        location?: 'ZOOM' | 'FRONTAL' | 'PHONE';
-        fileName?: string;
-        mimeType?: string;
-        dataBase64?: string;
-      };
+      const bodyJson: unknown = await req.json().catch(() => ({}));
+      const bodyObj = asObject(bodyJson) ?? {};
 
-      orgIdInput = String(body.orgId || '');
-      clientId = String(body.clientId || '');
-      title = String(body.title || title);
-      location = (body.location || location) as any;
-      fileName = String(body.fileName || fileName);
-      mimeType = String(body.mimeType || '');
+      orgIdInput = String(bodyObj.orgId || '');
+      clientId = String(bodyObj.clientId || '');
+      title = String(bodyObj.title || title);
+      location = normalizeLocation(bodyObj.location);
+      fileName = String(bodyObj.fileName || fileName);
+      mimeType = String(bodyObj.mimeType || '');
 
-      if (!body.dataBase64) return apiError('dataBase64 is required', { status: 400 });
-      inputBuf = decodeBase64ToBuffer(body.dataBase64);
+      const dataBase64 = typeof bodyObj.dataBase64 === 'string' ? bodyObj.dataBase64 : '';
+      if (!dataBase64) return apiError('dataBase64 is required', { status: 400 });
+      inputBuf = decodeBase64ToBuffer(dataBase64);
     } else {
       // Fallback to multipart/form-data
       try {
@@ -107,15 +108,15 @@ async function POSTHandler(req: Request) {
         orgIdInput = String(formData.get('orgId') || '');
         clientId = String(formData.get('clientId') || '');
         title = String(formData.get('title') || title);
-        location = String(formData.get('location') || location) as any;
+        location = normalizeLocation(formData.get('location'));
 
         const file = formData.get('file');
         if (!file || !(file instanceof File)) return apiError('file is required', { status: 400 });
         fileName = file.name || fileName;
         mimeType = file.type || '';
         inputBuf = await fileToBuffer(file);
-      } catch (e: any) {
-        return apiError(`Failed to parse multipart form data. Try JSON upload. (${e?.message ?? String(e)})`, { status: 400 });
+      } catch (e: unknown) {
+        return apiError(`Failed to parse multipart form data. Try JSON upload. (${getErrorMessage(e) ?? String(e)})`, { status: 400 });
       }
     }
 
@@ -127,9 +128,9 @@ async function POSTHandler(req: Request) {
     try {
       const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
       orgId = String(workspace.id);
-    } catch (e: any) {
-      const status = typeof e?.status === 'number' ? e.status : 403;
-      return apiError(e, { status, message: e?.message || 'Forbidden' });
+    } catch (e: unknown) {
+      const status = getErrorStatus(e) ?? 403;
+      return apiError(e, { status, message: getErrorMessage(e) || 'Forbidden' });
     }
 
     const abuse = await enforceAiAbuseGuard({
@@ -193,7 +194,7 @@ async function POSTHandler(req: Request) {
     });
 
     return apiSuccessCompat({ meetingId: saved.meetingId, analysis: saved.analysis, transcript }, { headers: abuse.headers });
-  } catch (e: any) {
+  } catch (e: unknown) {
     return apiError(e, { status: 500, message: 'Upload failed' });
   } finally {
     try {

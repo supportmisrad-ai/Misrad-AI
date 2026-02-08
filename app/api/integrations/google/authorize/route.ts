@@ -16,8 +16,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getGoogleOAuthClient, GOOGLE_SCOPES } from '@/lib/googleAuth';
+import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+const IS_PROD = process.env.NODE_ENV === 'production';
+
 async function GETHandler(request: NextRequest) {
     try {
         // Check if OAuth credentials are configured
@@ -33,7 +37,7 @@ async function GETHandler(request: NextRequest) {
 
         // Get authenticated user
         const user = await getAuthenticatedUser();
-        console.log('[Google OAuth] Authenticated user:', { id: user.id });
+        if (!IS_PROD) console.log('[Google OAuth] Authenticated user:', { id: user.id });
         
         // Get query parameters
         const searchParams = request.nextUrl.searchParams;
@@ -48,10 +52,10 @@ async function GETHandler(request: NextRequest) {
         }
 
         const serviceType = service === 'calendar' ? 'google_calendar' : 'google_drive';
-        console.log('[Google OAuth] Service type:', serviceType);
+        if (!IS_PROD) console.log('[Google OAuth] Service type:', serviceType);
 
         // Generate authorization URL
-        console.log('[Google OAuth] Generating auth URL...');
+        if (!IS_PROD) console.log('[Google OAuth] Generating auth URL...');
         const oauth2Client = getGoogleOAuthClient();
         const scopes = service === 'calendar' ? GOOGLE_SCOPES.calendar : GOOGLE_SCOPES.drive;
         const authUrl = oauth2Client.generateAuthUrl({
@@ -61,22 +65,28 @@ async function GETHandler(request: NextRequest) {
             state: serviceType,
             include_granted_scopes: true,
         });
-        console.log('[Google OAuth] Auth URL generated successfully');
+        if (!IS_PROD) console.log('[Google OAuth] Auth URL generated successfully');
 
         // Redirect to Google OAuth consent screen
         return NextResponse.redirect(authUrl);
 
-    } catch (error: any) {
-        console.error('[API] Error in Google OAuth authorize:', {
-            message: error?.message,
-            name: error?.name,
-            code: error?.code
-        });
+    } catch (error: unknown) {
+        const obj = asObject(error) ?? {};
+        const message = String(getErrorMessage(error) || '');
+        if (IS_PROD) {
+            console.error('[API] Error in Google OAuth authorize');
+        } else {
+            console.error('[API] Error in Google OAuth authorize:', {
+                message,
+                name: error instanceof Error ? error.name : typeof obj.name === 'string' ? obj.name : undefined,
+                code: typeof obj.code === 'string' ? obj.code : undefined
+            });
+        }
         
         // Check for specific OAuth configuration errors
-        if (error.message?.includes('OAuth credentials not configured') || 
-            error.message?.includes('GOOGLE_CLIENT_ID') ||
-            error.message?.includes('GOOGLE_CLIENT_SECRET')) {
+        if (message.includes('OAuth credentials not configured') || 
+            message.includes('GOOGLE_CLIENT_ID') ||
+            message.includes('GOOGLE_CLIENT_SECRET')) {
             const baseUrl = new URL(request.url);
             const redirectUrl = `${baseUrl.origin}/#/settings?tab=integrations&error=oauth_not_configured`;
             return NextResponse.redirect(redirectUrl);
@@ -84,8 +94,8 @@ async function GETHandler(request: NextRequest) {
         
         return NextResponse.json(
             { 
-                error: error.message || 'Failed to initiate Google OAuth',
-                details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                error: IS_PROD ? 'Failed to initiate Google OAuth' : message || 'Failed to initiate Google OAuth',
+                details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
             },
             { status: 500 }
         );

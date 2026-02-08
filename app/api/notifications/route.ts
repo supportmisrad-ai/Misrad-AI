@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Notifications API
  * 
@@ -13,18 +14,7 @@ import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error && error.message) return error.message;
-    const obj = asObject(error);
-    const msg = obj?.message;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -106,7 +96,8 @@ async function GETHandler(request: NextRequest) {
         return apiSuccess({ notifications: combined }, { status: 200 });
 
     } catch (error: unknown) {
-        console.error('[API] Error in /api/notifications GET:', error);
+        if (IS_PROD) console.error('[API] Error in /api/notifications GET');
+        else console.error('[API] Error in /api/notifications GET:', error);
         if (error instanceof APIError) {
             return apiSuccess({ notifications: [] }, { status: 200 });
         }

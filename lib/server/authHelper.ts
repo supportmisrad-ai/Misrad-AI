@@ -15,7 +15,12 @@ export async function getCurrentUserId(): Promise<string | null> {
     const { userId } = await auth();
     return userId || null;
   } catch (error) {
-    console.error('Error getting current user ID from Clerk:', error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Error getting current user ID from Clerk:', error);
+    } else {
+      const msg = error instanceof Error ? error.message : '';
+      console.error('Error getting current user ID from Clerk:', msg || 'Unknown error');
+    }
     return null;
   }
 }

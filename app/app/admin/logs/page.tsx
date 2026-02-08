@@ -9,18 +9,13 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 
+import { asObject } from '@/lib/shared/unknown';
 type AuditItem = {
   action: string;
   user: string;
   time: string;
   timestamp: string;
-};
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') return null;
-  if (Array.isArray(value)) return null;
-  return value as Record<string, unknown>;
-}
+};
 
 function toAuditItem(row: unknown): AuditItem {
   const obj = asObject(row) ?? {};

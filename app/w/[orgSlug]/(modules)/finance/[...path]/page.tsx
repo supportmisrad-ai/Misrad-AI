@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 export default async function FinanceCatchAllPage({
   params,
 }: {
-  params: Promise<{ orgSlug: string; path: string[] }>;
+  params: Promise<{ orgSlug: string; path: string[] }> | { orgSlug: string; path: string[] };
 }) {
   const { orgSlug } = await params;
   await requireWorkspaceAccessByOrgSlug(orgSlug);

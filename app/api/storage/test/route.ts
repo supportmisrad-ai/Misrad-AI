@@ -1,3 +1,4 @@
+import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 /**
  * Storage Test API
  * 
@@ -13,19 +14,7 @@ import { uploadFile, listFiles, deleteFile } from '../../../../lib/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-function asObject(value: unknown): Record<string, unknown> | null {
-    if (!value || typeof value !== 'object') return null;
-    if (Array.isArray(value)) return null;
-    return value as Record<string, unknown>;
-}
-
-function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    if (typeof error === 'string') return error;
-    const obj = asObject(error);
-    const msg = obj ? obj['message'] : undefined;
-    return typeof msg === 'string' ? msg : '';
-}
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 type StorageBucket = { name: string; public?: boolean };
 
@@ -36,6 +25,14 @@ type SupabaseStorageClientLike = {
 type SupabaseClientLike = {
     storage: SupabaseStorageClientLike;
 };
+
+function isSupabaseClientLike(value: unknown): value is SupabaseClientLike {
+    const obj = asObject(value);
+    if (!obj) return false;
+    const storage = asObject(obj.storage);
+    if (!storage) return false;
+    return typeof storage.listBuckets === 'function';
+}
 
 async function GETHandler(request: NextRequest) {
     try {
@@ -66,7 +63,11 @@ async function GETHandler(request: NextRequest) {
 
         let supabase: SupabaseClientLike;
         try {
-            supabase = createServiceRoleClient({ allowUnscoped: true, reason: 'storage_test_admin' }) as unknown as SupabaseClientLike;
+            const candidate = createServiceRoleClient({ allowUnscoped: true, reason: 'storage_test_admin' });
+            if (!isSupabaseClientLike(candidate)) {
+                throw new Error('Supabase service role client is missing storage.listBuckets');
+            }
+            supabase = candidate;
         } catch {
             return NextResponse.json({
                 success: false,
@@ -160,10 +161,12 @@ async function GETHandler(request: NextRequest) {
         });
 
     } catch (error: unknown) {
-        console.error('[API] Storage test error:', error);
+        if (IS_PROD) console.error('[API] Storage test error');
+        else console.error('[API] Storage test error:', error);
+        const safeMsg = 'Test failed';
         return NextResponse.json({
             success: false,
-            error: getErrorMessage(error) || 'Test failed',
+            error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg,
             checks: {}
         }, { status: 500 });
     }
