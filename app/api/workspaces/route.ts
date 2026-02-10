@@ -6,6 +6,7 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { asObject } from '@/lib/shared/unknown';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -50,10 +51,19 @@ async function GETHandler() {
   const loadPromise = (async () => {
     let socialUser: { id: string; organization_id: string | null } | null = null;
     try {
-      socialUser = await prisma.organizationUser.findUnique({
-        where: { clerk_user_id: clerkUserId },
-        select: { id: true, organization_id: true },
-      });
+      socialUser = await prisma.organizationUser.findUnique(
+        withPrismaTenantIsolationOverride(
+          {
+            where: { clerk_user_id: clerkUserId },
+            select: { id: true, organization_id: true },
+          },
+          {
+            suppressReporting: true,
+            reason: 'workspaces_lookup_user_by_clerk_id',
+            source: 'api-workspaces',
+          }
+        )
+      );
     } catch (err) {
       if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
       else console.error('GET /api/workspaces failed to query social_users', err);
