@@ -86,7 +86,7 @@ const SplashScreen = () => (
         <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-6 animate-pulse">
             <div className="w-6 h-6 bg-black rounded-full" />
         </div>
-        <h1 className="text-2xl font-bold tracking-widest mb-2">NEXUS OS</h1>
+        <h1 className="text-2xl font-bold tracking-widest mb-2">MISRAD AI</h1>
         <div className="w-48 h-1 bg-gray-800 rounded-full overflow-hidden">
             <motion.div 
                 initial={{ width: 0 }}

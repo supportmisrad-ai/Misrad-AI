@@ -11,7 +11,8 @@ import { ModuleManagementModal } from '@/components/saas/ModuleManagementModal';
 import type { ModuleId, Tenant } from '@/types';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+
 
 import { asObject } from '@/lib/shared/unknown';
 function unwrapData(value: unknown): unknown {
@@ -60,7 +61,7 @@ export default function AdminTenantsPage() {
       const raw: unknown = await res.json().catch(() => null);
       const data = unwrapData(raw);
       if (!res.ok) {
-        throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בטעינת טננטים');
+        throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בטעינת חשבונות SaaS');
       }
 
       const loaded = getTenantArray(data);
@@ -69,7 +70,7 @@ export default function AdminTenantsPage() {
         if (!existingIds.has(t.id)) addTenant(t);
       }
     } catch (e: any) {
-      addToast(e?.message || 'שגיאה בטעינת טננטים', 'error');
+      addToast(e?.message || 'שגיאה בטעינת חשבונות SaaS', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -131,12 +132,12 @@ export default function AdminTenantsPage() {
       });
       const raw: unknown = await res.json().catch(() => null);
       const data = unwrapData(raw);
-      if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה ביצירת tenant');
+      if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה ביצירת חשבון SaaS');
 
       const newTenant = getTenant(data);
-      if (!newTenant) throw new Error('תשובת שרת לא תקינה (tenant חסר)');
+      if (!newTenant) throw new Error('תשובת שרת לא תקינה (חשבון חסר)');
       addTenant(newTenant);
-      addToast(`הלקוח ${tenantData.name} הוקם בהצלחה!`, 'success');
+      addToast(`חשבון SaaS ${tenantData.name} הוקם בהצלחה!`, 'success');
 
       setTimeout(async () => {
         try {
@@ -146,7 +147,7 @@ export default function AdminTenantsPage() {
         }
       }, 3500);
     } catch (e: any) {
-      addToast(e?.message || 'שגיאה ביצירת tenant', 'error');
+      addToast(e?.message || 'שגיאה ביצירת חשבון SaaS', 'error');
       setIsAddTenantOpen(true);
     }
   };
@@ -159,9 +160,9 @@ export default function AdminTenantsPage() {
     });
     const raw: unknown = await res.json().catch(() => null);
     const data = unwrapData(raw);
-    if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בעדכון טננט');
+    if (!res.ok) throw new Error(getStringProp(asObject(data), 'error') || getStringProp(asObject(raw), 'error') || 'שגיאה בעדכון חשבון');
     const updatedTenant = getTenant(data);
-    if (!updatedTenant) throw new Error('תשובת שרת לא תקינה (tenant חסר)');
+    if (!updatedTenant) throw new Error('תשובת שרת לא תקינה (חשבון חסר)');
     updateTenant(id, updatedTenant);
     return updatedTenant;
   };
@@ -170,9 +171,9 @@ export default function AdminTenantsPage() {
     const newStatus = currentStatus === 'Active' ? 'Churned' : 'Active';
     try {
       await handleUpdateTenant(id, { status: newStatus });
-      addToast('טננט עודכן בהצלחה!', 'success');
+      addToast('חשבון SaaS עודכן בהצלחה!', 'success');
     } catch (e: any) {
-      addToast(e?.message || 'שגיאה בעדכון טננט', 'error');
+      addToast(e?.message || 'שגיאה בעדכון חשבון SaaS', 'error');
     }
   };
 
@@ -196,6 +197,24 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const setTenantModules = async (modules: ModuleId[]) => {
+    if (!editingTenant) return;
+    const next = Array.isArray(modules) ? modules : [];
+    if (next.length === 0) {
+      addToast('חייב להיות לפחות מודול אחד פעיל', 'error');
+      return;
+    }
+
+    setEditingTenant({ ...editingTenant, modules: next });
+    updateTenant(editingTenant.id, { modules: next });
+
+    try {
+      await handleUpdateTenant(editingTenant.id, { modules: next });
+    } catch (e: any) {
+      addToast(e?.message || 'שגיאה בעדכון מודולים', 'error');
+    }
+  };
+
   const handleSimulateTenant = (tenant: Tenant) => {
     switchToTenantConfig(tenant.modules);
     addToast(`התחזות ל-${tenant.name} פעילה. המודולים עודכנו.`, 'success');
@@ -204,7 +223,7 @@ export default function AdminTenantsPage() {
 
   return (
     <div className="space-y-6 pb-24" dir="rtl">
-      <AdminPageHeader title="טננטים" subtitle="לקוחות SaaS + ניהול מודולים" icon={Server} />
+      <AdminPageHeader title="חשבונות SaaS" subtitle="ניהול חשבונות לקוחות ומודולים" icon={Server} />
 
       <AdminToolbar
         searchValue={searchTerm}
@@ -216,7 +235,7 @@ export default function AdminTenantsPage() {
               <RefreshCw size={16} />
               רענון
             </Button>
-            <Button onClick={() => setIsAddTenantOpen(true)}>הוסף טננט</Button>
+            <Button onClick={() => setIsAddTenantOpen(true)}>הוסף חשבון SaaS</Button>
           </div>
         }
       />
@@ -229,7 +248,13 @@ export default function AdminTenantsPage() {
 
       <AnimatePresence>
         {isModuleModalOpen && editingTenant ? (
-          <ModuleManagementModal tenant={editingTenant} onClose={() => setIsModuleModalOpen(false)} onToggle={toggleTenantModule} />
+          <ModuleManagementModal
+            tenant={editingTenant}
+            products={products}
+            onClose={() => setIsModuleModalOpen(false)}
+            onToggle={toggleTenantModule}
+            onSetModules={setTenantModules}
+          />
         ) : null}
 
         {isAddTenantOpen ? (

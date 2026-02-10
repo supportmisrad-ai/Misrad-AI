@@ -1,6 +1,6 @@
 import NexusModuleClient from './NexusModuleClient';
 import { currentUser } from '@clerk/nextjs/server';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import { getNexusDashboardBootstrapCached } from '@/lib/services/nexus-service';
 import { asObject } from '@/lib/shared/unknown';
 import type { ModuleId, OrganizationProfile } from '@/types';
 
@@ -20,7 +20,8 @@ export default async function NexusModuleHome({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  const bootstrap = await getNexusDashboardBootstrapCached({ orgSlug });
+  const workspace = bootstrap.workspace;
 
   const clerk = await currentUser();
   const clerkObj = asObject(clerk) ?? {};
@@ -61,12 +62,16 @@ export default async function NexusModuleHome({
     logo: workspace.logo || '',
     primaryColor: '#000000',
     enabledModules,
+    isShabbatProtected: workspace.isShabbatProtected,
   };
 
   return (
     <NexusModuleClient
       initialCurrentUser={initialCurrentUser}
       initialOrganization={initialOrganization}
+      initialOwnerDashboard={bootstrap.ownerDashboard}
+      initialOnboardingTemplateKey={bootstrap.onboardingTemplateKey}
+      initialBillingItems={bootstrap.billingItems}
     />
   );
 }

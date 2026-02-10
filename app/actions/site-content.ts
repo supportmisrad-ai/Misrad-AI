@@ -73,7 +73,7 @@ export async function getSiteContent(
   page: 'landing' | 'pricing' | 'legal'
 ): Promise<{ success: boolean; data?: SiteContent[]; error?: string }> {
   try {
-    const rows = await prisma.social_site_content.findMany({
+    const rows = await prisma.socialMediaSiteContent.findMany({
       where: { page: String(page) },
       orderBy: [{ section: 'asc' }, { key: 'asc' }],
     });
@@ -122,13 +122,13 @@ export async function updateSiteContent(
     const keyValue = String(key);
     const contentValue = typeof content === 'string' ? content : JSON.stringify(content);
 
-    const existing = await prisma.social_site_content.findFirst({
+    const existing = await prisma.socialMediaSiteContent.findFirst({
       where: { page: pageValue, section: sectionValue, key: keyValue },
       select: { id: true },
     });
 
     if (existing?.id) {
-      await prisma.social_site_content.update({
+      await prisma.socialMediaSiteContent.update({
         where: { id: String(existing.id) },
         data: {
           content: contentValue,
@@ -137,7 +137,7 @@ export async function updateSiteContent(
         },
       });
     } else {
-      await prisma.social_site_content.create({
+      await prisma.socialMediaSiteContent.create({
         data: {
           page: pageValue,
           section: sectionValue,

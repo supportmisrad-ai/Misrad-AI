@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { testConnection, isSupabaseConfigured } from '../../../../lib/supabase';
-import { requireSuperAdmin } from '../../../../lib/auth';
+import { testConnection, isSupabaseConfigured } from '@/lib/supabase';
+import { requireSuperAdmin } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getErrorMessage } from '@/lib/shared/unknown';

@@ -1,8 +1,8 @@
 
-import { Lead, PipelineStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
+import { Lead, SystemStage, FieldAgent, Campaign, Student, Task, ContentItem, Invoice } from './types';
 import { LayoutDashboard, Kanban, Settings, Users, ChartBar, Briefcase, Target, UserPlus, ClipboardList, Webhook, CalendarDays, Map, Bot, Megaphone, PhoneCall, Coffee, Clapperboard, GraduationCap, GraduationCap as School, CheckSquare, Lock, Headphones, Book, Network, Dumbbell, Wallet, Bell, FileText, Cpu, Database, ShoppingBag, Heart, FileInput, Building2, Layout, Zap, BarChart3, MessageSquare } from 'lucide-react';
 
-export const STAGES: { id: PipelineStage; label: string; color: string; accent: string }[] = [
+export const STAGES: { id: SystemStage; label: string; color: string; accent: string }[] = [
   { id: 'incoming', label: 'נכנס', color: 'border-slate-200', accent: 'bg-slate-400' }, 
   { id: 'contacted', label: 'דיברנו', color: 'border-slate-200', accent: 'bg-slate-500' }, 
   { id: 'meeting', label: 'יש פגישה', color: 'border-indigo-100', accent: 'bg-indigo-600' }, 

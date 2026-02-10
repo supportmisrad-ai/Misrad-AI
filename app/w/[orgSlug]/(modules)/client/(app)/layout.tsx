@@ -111,7 +111,12 @@ export default async function ClientAppLayout({
   ]);
 
   const initialOrganization = organization
-    ? { name: organization.name, logo: organization.logo || '', primaryColor: '#000000' }
+    ? {
+        name: organization.name,
+        logo: organization.logo || '',
+        primaryColor: '#000000',
+        isShabbatProtected: workspace.isShabbatProtected,
+      }
     : undefined;
 
   return (

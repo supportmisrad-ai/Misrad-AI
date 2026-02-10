@@ -4,9 +4,10 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import NewLeadModal from '@/components/system/NewLeadModal';
+import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
 import { Lead } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
-import { createSystemLead, SystemLeadDTO, updateSystemLeadStatus } from '@/app/actions/system-leads';
+import { createSystemLead, getSystemLeadsPage, SystemLeadDTO, updateSystemLeadStatus } from '@/app/actions/system-leads';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
 export default function SystemLeadsClient({
@@ -21,6 +22,7 @@ export default function SystemLeadsClient({
   const [leads, setLeads] = useState<SystemLeadDTO[]>(initialLeads);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const leadRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [deepLinkedLeadId, setDeepLinkedLeadId] = useState<string | null>(null);
@@ -67,6 +69,15 @@ export default function SystemLeadsClient({
     }
   };
 
+  const refreshLeads = async () => {
+    const res = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+    if (!res.success) {
+      setMessage(res.error || 'שגיאה בטעינת לידים');
+      return;
+    }
+    setLeads(res.data.leads);
+  };
+
   const handleMarkWon = async (leadId: string) => {
     setIsSaving(true);
     setMessage(null);
@@ -92,12 +103,20 @@ export default function SystemLeadsClient({
           <h1 className="text-2xl font-bold">System</h1>
           <p className="text-slate-600 text-sm">ניהול לידים (Workspace-aware)</p>
         </div>
-        <button
-          onClick={() => setShowNewLeadModal(true)}
-          className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2"
-        >
-          <Plus size={16} /> ליד חדש
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowImportDialog(true)}
+            className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50"
+          >
+            ייבוא לידים
+          </button>
+          <button
+            onClick={() => setShowNewLeadModal(true)}
+            className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm flex items-center gap-2"
+          >
+            <Plus size={16} /> ליד חדש
+          </button>
+        </div>
       </div>
 
       {message && (
@@ -219,6 +238,16 @@ export default function SystemLeadsClient({
           </div>
         </div>
       ) : null}
+
+      <SmartImportLeadsDialog
+        orgSlug={orgSlug}
+        open={showImportDialog}
+        onCloseAction={() => setShowImportDialog(false)}
+        onImportedAction={() => {
+          setShowImportDialog(false);
+          void refreshLeads();
+        }}
+      />
     </div>
   );
 }

@@ -14,8 +14,26 @@ import HeavySocialAdminPanel from './components/HeavySocialAdminPanel';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import AdminTabs from '@/components/admin/AdminTabs';
+import type { AdminTabItem } from '@/components/admin/AdminTabs';
+import type { Tenant } from '@/types';
 
 type SocialAdminTab = 'overview' | 'team' | 'integrations' | 'quotas' | 'automation' | 'features' | 'updates' | 'advanced';
+
+function isSocialAdminTab(value: string): value is SocialAdminTab {
+  switch (value) {
+    case 'overview':
+    case 'team':
+    case 'integrations':
+    case 'quotas':
+    case 'automation':
+    case 'features':
+    case 'updates':
+    case 'advanced':
+      return true;
+    default:
+      return false;
+  }
+}
 
 export default function SocialAdminPageClient() {
   const { tenants, addToast, currentUser } = useData();
@@ -24,7 +42,7 @@ export default function SocialAdminPageClient() {
 
   const [tab, setTab] = useState<SocialAdminTab>('overview');
 
-  const tabs = useMemo(
+  const tabs = useMemo<AdminTabItem[]>(
     () => [
       { id: 'overview', label: 'מבט על', icon: LayoutGrid },
       { id: 'team', label: 'צוות', icon: Users },
@@ -42,9 +60,8 @@ export default function SocialAdminPageClient() {
     try {
       const raw = searchParams?.get('tab');
       if (!raw) return;
-      const next = String(raw) as SocialAdminTab;
-      const allowed: SocialAdminTab[] = ['overview', 'team', 'integrations', 'quotas', 'automation', 'features', 'updates', 'advanced'];
-      if (allowed.includes(next)) {
+      const next = String(raw);
+      if (isSocialAdminTab(next)) {
         setTab(next);
       }
     } catch {
@@ -63,11 +80,16 @@ export default function SocialAdminPageClient() {
     }
   };
 
-  const tenantOptions = useMemo(() => {
-    const list = Array.isArray(tenants) ? tenants : [];
+  const onTabChange = (next: string) => {
+    if (!isSocialAdminTab(next)) return;
+    setTabAndSyncUrl(next);
+  };
+
+  const tenantOptions = useMemo<Tenant[]>(() => {
+    const list: Tenant[] = Array.isArray(tenants) ? tenants : [];
     const seen = new Set<string>();
-    return list.filter((t: any) => {
-      const id = String(t?.id || '');
+    return list.filter((t) => {
+      const id = String(t.id || '');
       if (!id) return false;
       if (seen.has(id)) return false;
       seen.add(id);
@@ -91,7 +113,7 @@ export default function SocialAdminPageClient() {
   }, [selectedTenantId, tenantOptions]);
 
   const selectedTenant = useMemo(() => {
-    return tenantOptions.find((t: any) => String(t.id) === String(selectedTenantId)) || null;
+    return tenantOptions.find((t) => String(t.id) === String(selectedTenantId)) || null;
   }, [selectedTenantId, tenantOptions]);
 
   const isSuperAdmin = Boolean(currentUser?.isSuperAdmin);
@@ -111,22 +133,22 @@ export default function SocialAdminPageClient() {
 
   return (
     <div className="space-y-6 pb-24" dir="rtl">
-      <AdminPageHeader title="ניהול סושיאל" subtitle="שליטה מרכזית על הגדרות סושיאל לכל טננט." icon={Users} />
+      <AdminPageHeader title="ניהול סושיאל" subtitle="שליטה מרכזית על הגדרות סושיאל לכל חשבון SaaS." icon={Users} />
 
       <AdminToolbar
         filters={
           showTenantSelector ? (
             <div className="w-full sm:w-[320px]">
-              <label className="block text-xs font-black text-slate-600 mb-2">בחר טננט</label>
+              <label className="block text-xs font-black text-slate-600 mb-2">בחר חשבון SaaS</label>
               <select
                 value={selectedTenantId}
                 onChange={(e) => setSelectedTenantId(e.target.value)}
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200/60"
               >
                 {tenantOptions.length === 0 ? (
-                  <option value="">אין טננטים</option>
+                  <option value="">אין חשבונות SaaS</option>
                 ) : (
-                  tenantOptions.map((t: any) => (
+                  tenantOptions.map((t) => (
                     <option key={t.id} value={String(t.id)}>
                       {t.name || t.subdomain || t.id}
                     </option>
@@ -138,7 +160,7 @@ export default function SocialAdminPageClient() {
         }
       />
 
-      <AdminTabs tabs={tabs as any} value={tab} onValueChange={(next) => setTabAndSyncUrl(next as SocialAdminTab)} />
+      <AdminTabs tabs={tabs} value={tab} onValueChange={onTabChange} />
 
       <div className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6">
           {tab === 'overview' ? (
@@ -146,14 +168,14 @@ export default function SocialAdminPageClient() {
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
                 <div className="text-lg font-black text-slate-900 mb-1">סטטוס כללי</div>
                 <div className="text-sm text-slate-600">
-                  {selectedTenant
-                    ? `טננט נבחר: ${selectedTenant.name || selectedTenant.subdomain || selectedTenant.id}`
-                    : 'בחר טננט כדי לצפות בנתונים'}
-                </div>
+                {selectedTenant
+                  ? `חשבון SaaS נבחר: ${selectedTenant.name || selectedTenant.subdomain || selectedTenant.id}`
+                  : 'בחר חשבון SaaS כדי לצפות בנתונים'}
               </div>
-              <IntegrationsTab tenantId={tenantId} addToast={addToast} />
             </div>
-          ) : null}
+            <IntegrationsTab tenantId={tenantId} addToast={addToast} />
+          </div>
+        ) : null}
 
           {tab === 'team' ? <TeamTab tenantId={tenantId} addToast={addToast} /> : null}
 

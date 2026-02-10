@@ -4,9 +4,16 @@ import AdminOrganizationsClient from './AdminOrganizationsClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminOrganizationsPage() {
+export default async function AdminOrganizationsPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined> | Promise<Record<string, string | string[] | undefined>>;
+}) {
   const res = await getOrganizations({ limit: 200 });
   const orgs = res.success ? res.data ?? [] : [];
+  const sp = searchParams ? await Promise.resolve(searchParams) : {};
+  const newParam = Array.isArray(sp?.new) ? sp.new[0] : sp?.new;
+  const initialOpen = newParam === '1' || newParam === 'true';
 
   return (
     <div>
@@ -16,7 +23,7 @@ export default async function AdminOrganizationsPage() {
           <div className="text-sm text-slate-600 mt-2">{res.error || 'שגיאה לא ידועה'}</div>
         </div>
       ) : (
-        <AdminOrganizationsClient orgs={orgs} />
+        <AdminOrganizationsClient orgs={orgs} initialOpen={initialOpen} />
       )}
     </div>
   );

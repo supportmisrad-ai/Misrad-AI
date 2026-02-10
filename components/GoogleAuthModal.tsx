@@ -46,10 +46,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onClose, onSuc
                 <div className="px-8 pt-8 pb-4 text-center">
                     <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-6 mb-4 mx-auto" />
                     <h2 className="text-2xl font-medium text-gray-800">
-                        {step === 'account' ? 'בחר חשבון' : 'Nexus OS מבקש גישה'}
+                        {step === 'account' ? 'בחר חשבון' : 'MISRAD AI מבקש גישה'}
                     </h2>
                     <p className="text-gray-600 mt-1">
-                        {step === 'account' ? `כדי להמשיך ל-Nexus OS` : `לחשבון ה-Google שלך`}
+                        {step === 'account' ? `כדי להמשיך ל-MISRAD AI` : `לחשבון ה-Google שלך`}
                     </p>
                 </div>
                 <div className="flex-1 px-8 py-2 overflow-y-auto">
@@ -76,7 +76,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({ onClose, onSuc
                                     <span className="text-white font-bold text-xs">N</span>
                                 </div>
                                 <div className="text-gray-600">
-                                    <span className="font-bold text-gray-900">Nexus OS</span> רוצה גישה לנתוני ה-{serviceName === 'Calendar' ? 'יומן' : 'דרייב'} שלך.
+                                    <span className="font-bold text-gray-900">MISRAD AI</span> רוצה גישה לנתוני ה-{serviceName === 'Calendar' ? 'יומן' : 'דרייב'} שלך.
                                 </div>
                             </div>
                             <div className="space-y-4">

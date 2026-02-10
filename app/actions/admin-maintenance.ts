@@ -28,7 +28,7 @@ export async function getMaintenanceInfo(): Promise<{
 
     await requireSuperAdmin();
 
-    const lastBackup = await prisma.social_system_backups.findFirst({
+    const lastBackup = await prisma.systemBackup.findFirst({
       select: { created_at: true },
       orderBy: { created_at: 'desc' },
     });
@@ -74,7 +74,7 @@ export async function createBackup(): Promise<{
     // In production, this would trigger an actual backup process
     // For now, just log it
     try {
-      await prisma.social_sync_logs.create({
+      await prisma.socialMediaSyncLog.create({
         data: {
           user_id: authCheck.userId ? String(authCheck.userId) : null,
           integration_name: 'admin',
@@ -92,7 +92,7 @@ export async function createBackup(): Promise<{
 
     // Try to save backup record
     try {
-      await prisma.social_system_backups.create({
+      await prisma.systemBackup.create({
         data: {
           id: backupId,
           created_at: new Date(),
@@ -130,7 +130,7 @@ export async function runSystemCleanup(): Promise<{
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    const deleted = await prisma.social_sync_logs.deleteMany({
+    const deleted = await prisma.socialMediaSyncLog.deleteMany({
       where: {
         started_at: { lt: ninetyDaysAgo },
       },
@@ -140,7 +140,7 @@ export async function runSystemCleanup(): Promise<{
 
     // Log the action
     try {
-      await prisma.social_sync_logs.create({
+      await prisma.socialMediaSyncLog.create({
         data: {
           user_id: authCheck.userId ? String(authCheck.userId) : null,
           integration_name: 'admin',
@@ -191,7 +191,7 @@ export async function updateSystemSettings(
           isSuperAdmin: true,
         },
         async () =>
-          await prisma.social_system_settings.upsert({
+          await prisma.coreSystemSettings.upsert({
             where: { key: 'maintenance_settings' },
             create: {
               key: 'maintenance_settings',
@@ -211,7 +211,7 @@ export async function updateSystemSettings(
 
     // Log the action
     try {
-      await prisma.social_sync_logs.create({
+      await prisma.socialMediaSyncLog.create({
         data: {
           user_id: authCheck.userId ? String(authCheck.userId) : null,
           integration_name: 'admin',

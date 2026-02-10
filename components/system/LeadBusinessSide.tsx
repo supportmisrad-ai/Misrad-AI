@@ -73,6 +73,49 @@ const LeadBusinessSide: React.FC<LeadBusinessSideProps> = ({ lead, onClose, onAd
                 </div>
 
                 <div className="p-6 space-y-8">
+                    {/* AI Closure Prediction */}
+                    {lead.closureProbability != null && (
+                        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200 p-4 shadow-md">
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">חיזוי AI - סיכוי לסגירה</label>
+                                <div className={`text-2xl font-black ${
+                                    lead.closureProbability >= 70 ? 'text-emerald-600' : 
+                                    lead.closureProbability >= 40 ? 'text-amber-600' : 
+                                    'text-red-600'
+                                }`}>
+                                    {lead.closureProbability}%
+                                </div>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="w-full bg-white/50 h-2 rounded-full overflow-hidden mb-3">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-1000 ${
+                                        lead.closureProbability >= 70 ? 'bg-emerald-500' : 
+                                        lead.closureProbability >= 40 ? 'bg-amber-500' : 
+                                        'bg-red-500'
+                                    }`} 
+                                    style={{ width: `${lead.closureProbability}%` }}
+                                />
+                            </div>
+
+                            {/* Rationale */}
+                            {lead.closureRationale && (
+                                <p className="text-xs text-slate-700 leading-relaxed mb-3 bg-white/70 p-3 rounded-lg border border-indigo-100">
+                                    {lead.closureRationale}
+                                </p>
+                            )}
+
+                            {/* Recommended Action */}
+                            {lead.recommendedAction && (
+                                <div className="bg-indigo-600 text-white p-3 rounded-lg">
+                                    <div className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-80">פעולה מומלצת</div>
+                                    <div className="text-sm font-bold">{lead.recommendedAction}</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Management Actions */}
                     <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">ניהול משברים וביטולים</label>

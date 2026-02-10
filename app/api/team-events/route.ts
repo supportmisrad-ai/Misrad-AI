@@ -6,8 +6,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../lib/auth';
-import { TeamEvent, TeamEventStatus, TeamEventType } from '../../../types';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { TeamEvent, TeamEventStatus, TeamEventType } from '@/types';
 import prisma, { executeRawOrgScoped } from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
@@ -101,13 +101,13 @@ async function resolveOrCreateDbUser(params: {
     email: string;
     authUser: unknown;
 }): Promise<DbUser | null> {
-    const email = String(params.email || '').trim().toLowerCase();
-    if (!email) return null;
+    const normalizedEmail = String(params.email || '').trim().toLowerCase();
+    if (!normalizedEmail) return null;
 
     const authObj = asObject(params.authUser) ?? {};
 
     const existing = await prisma.nexusUser.findFirst({
-        where: { organizationId: params.organizationId, email },
+        where: { organizationId: params.organizationId, email: normalizedEmail },
     });
     if (existing?.id) {
         return mapNexusUserRow(existing);
@@ -117,7 +117,7 @@ async function resolveOrCreateDbUser(params: {
     const name =
         getNullableString(authObj, 'firstName') && getNullableString(authObj, 'lastName')
             ? `${String(getNullableString(authObj, 'firstName') || '')} ${String(getNullableString(authObj, 'lastName') || '')}`.trim()
-            : getNullableString(authObj, 'firstName') || getNullableString(authObj, 'lastName') || email;
+            : getNullableString(authObj, 'firstName') || getNullableString(authObj, 'lastName') || normalizedEmail;
 
     const role = getNullableString(authObj, 'role') ?? 'עובד';
     const avatarUrl = getNullableString(authObj, 'imageUrl');
@@ -127,7 +127,7 @@ async function resolveOrCreateDbUser(params: {
         data: {
             organizationId: params.organizationId,
             name,
-            email,
+            email: normalizedEmail,
             role,
             avatar: avatarUrl || null,
             online: true,

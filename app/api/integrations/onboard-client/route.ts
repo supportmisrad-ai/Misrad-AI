@@ -7,9 +7,9 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '../../../../types';
-import { logIntegrationEvent } from '../../../../lib/audit';
-import { generateInvitationToken, getBaseUrl } from '../../../../lib/utils';
+import { Client } from '@/types';
+import { logIntegrationEvent } from '@/lib/audit';
+import { generateInvitationToken, getBaseUrl } from '@/lib/utils';
 import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import { createHash, timingSafeEqual } from 'crypto';

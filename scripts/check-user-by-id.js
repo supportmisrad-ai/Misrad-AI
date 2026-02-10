@@ -8,7 +8,7 @@ async function main() {
     
     console.log(`🔍 Checking if user with ID exists: ${targetId}\n`);
     
-    const user = await prisma.social_users.findUnique({
+    const user = await prisma.organizationUser.findUnique({
       where: { id: targetId },
       select: {
         id: true,

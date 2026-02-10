@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma, { queryRawAllowlisted } from '@/lib/prisma';
-import { requireSuperAdmin } from '../../../../../lib/auth';
+import { requireSuperAdmin } from '@/lib/auth';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 

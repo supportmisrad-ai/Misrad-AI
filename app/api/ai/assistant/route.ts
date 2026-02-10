@@ -1,4 +1,6 @@
 import { apiError } from '@/lib/server/api-response';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -259,6 +261,50 @@ type UiMapEntry = {
   keywords?: string[];
 };
 
+let cachedSalesDocsSnippet: string | null = null;
+
+async function loadSalesDocsSnippet(): Promise<string> {
+  if (cachedSalesDocsSnippet !== null) return cachedSalesDocsSnippet;
+  try {
+    const root = process.cwd();
+    const salesDocsDir = path.join(root, 'docs', 'sales-docs');
+    
+    const mainFiles = [
+      '01-סקירה-כללית.md',
+      '10-מבנה-תמחור.md',
+      '11-החבילות.md',
+      '12-דוגמאות-מחיר.md',
+      '04-מודול-nexus.md',
+      '05-מודול-system.md',
+      '06-מודול-social.md',
+      '07-מודול-finance.md',
+      '08-מודול-client.md',
+      '09-מודול-operations.md',
+      '18-התנגדויות.md',
+    ];
+
+    let combined = '';
+    for (const fileName of mainFiles) {
+      try {
+        const filePath = path.join(salesDocsDir, fileName);
+        const content = await fs.readFile(filePath, 'utf8');
+        if (content && content.trim()) {
+          combined += `\n\n# ${fileName}\n${content}`;
+        }
+      } catch {
+        // ignore missing files
+      }
+      if (combined.length > 28000) break;
+    }
+
+    cachedSalesDocsSnippet = (combined || '').slice(0, 28000);
+    return cachedSalesDocsSnippet;
+  } catch {
+    cachedSalesDocsSnippet = '';
+    return '';
+  }
+}
+
 function getUiMapEntries(): UiMapEntry[] {
   return parseUiMapEntries(UI_MAP as unknown);
 }
@@ -475,6 +521,13 @@ async function POSTHandler(req: Request) {
     }
 
     if (sales) {
+      let salesDocsKnowledge = '';
+      try {
+        salesDocsKnowledge = await loadSalesDocsSnippet();
+      } catch {
+        salesDocsKnowledge = '';
+      }
+
       const systemInstruction = [
         '# תפקיד',
         'אתה יועץ מכירות מומחה וחכם של MISRAD AI. אתה מאמן מכירות ברמה עולמית.',
@@ -499,7 +552,7 @@ async function POSTHandler(req: Request) {
         '   דוגמאות:',
         '   - browsing: "מה זה עושה?", "כמה עולה?", "יש דמו?"',
         '   - pricing_inquiry: "ראה מחירון", "דבר עם מכירות", "התחל ניסיון"',
-        '   - objection (יקר): "חשב ROI", "השווה תכניות", "ניסיון חינם 14 יום"',
+        '   - objection (יקר): "חשב ROI", "השווה תכניות", "ניסיון חינם 7 ימים"',
         '   - ready_to_buy: "הירשם עכשיו", "צור קשר מיידי", "ראה מדריך"',
         '',
         '# הנחיות תוכן',
@@ -543,6 +596,8 @@ async function POSTHandler(req: Request) {
         ``,
         `# קישורים זמינים`,
         importantLinks || '(none)',
+        ``,
+        salesDocsKnowledge ? `# מסמכי מכירות ומידע על המוצר\n${salesDocsKnowledge.slice(0, 18000)}` : '',
         ``,
         `# הודעה נוכחית`,
         lastUser,
@@ -633,6 +688,13 @@ async function POSTHandler(req: Request) {
     const whatsappRes = await getContentByKey('landing', 'support', 'support_whatsapp_group_url');
     const whatsappGroupUrl = typeof whatsappRes.data === 'string' ? whatsappRes.data : '';
 
+    let salesDocsKnowledge = '';
+    try {
+      salesDocsKnowledge = await loadSalesDocsSnippet();
+    } catch {
+      salesDocsKnowledge = '';
+    }
+
     const docsKnowledge = buildDocsKnowledge({ orgSlug, moduleKey });
     const linksKnowledge = getLinksHub()
       .filter((l) => l.category === 'תמיכה והדרכה' || l.category === 'מערכת (Workspace)')
@@ -654,7 +716,7 @@ async function POSTHandler(req: Request) {
       'אתה מומחה תמיכה טכנית למערכת MISRAD.',
       'בנוסף לתמיכה, אתה משמש גם כ"נווט" בתוך המערכת: כששואלים איפה נמצא מסך/פיצ׳ר או איך להגיע אליו — תן תשובה קצרה עם לינק Markdown לחיץ לנתיב המדויק בתוך ה-Workspace (תמיד תחת /w/{orgSlug}/...).',
       'אם יש התאמה מתוך UI Map (מפת המסכים) — העדף אותה על פני ניחוש. אם לא בטוח — שאל שאלת הבהרה אחת קצרה.',
-      'התבסס אך ורק על המידע שסיפקתי לך תחת "Knowledge Base" ו-"Links" ו-"Video". אל תמציא פיצ׳רים.',
+      'התבסס אך ורק על המידע שסיפקתי לך תחת "Knowledge Base" ו-"Links" ו-"Video" ו-"מסמכי מוצר". אל תמציא פיצ׳רים.',
       'ענה קצר, ב-3-7 שורות.',
       'תמיד צרף בסוף לינק למאמר מלא (אם יש), או לינק לוידאו הרלוונטי (אם יש).',
       'אם אין תשובה מתוך ה-Knowledge Base: כתוב שאין לך תשובה ודחוף לוואטסאפ.',
@@ -663,6 +725,7 @@ async function POSTHandler(req: Request) {
       `UI Map (מסכים, נתיבים וכפתורים עיקריים):\n${JSON.stringify(UI_MAP).slice(0, 16000)}`,
       `Knowledge Base:\n${docsKnowledge || '(empty)'}`,
       `Links:\n${linksKnowledge || '(empty)'}`,
+      salesDocsKnowledge ? `מסמכי מוצר ומודולים (לשאלות על יכולות המערכת):\n${salesDocsKnowledge.slice(0, 12000)}` : '',
     ]
       .filter(Boolean)
       .join('\n\n');

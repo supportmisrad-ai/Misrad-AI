@@ -22,7 +22,7 @@ async function GETHandler() {
     }
 
     // Fallback: legacy feature_flags in social_system_settings
-    const row = await prisma.social_system_settings.findUnique({
+    const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'feature_flags' },
       select: { value: true, maintenance_mode: true },
     });

@@ -34,7 +34,7 @@ async function assertClientInOrganization(params: { clientId: string; organizati
 
 async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }>
 {
-  const idea = await prisma.social_ideas.findFirst({
+  const idea = await prisma.socialMediaIdea.findFirst({
     where: {
       id: String(params.ideaId),
       organizationId: String(params.organizationId),
@@ -64,7 +64,7 @@ export async function getIdeas(
       return { success: false, error: 'Forbidden' };
     }
 
-    const ideasRows = await prisma.social_ideas.findMany({
+    const ideasRows = await prisma.socialMediaIdea.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
@@ -143,7 +143,7 @@ export async function createIdea(
     // Insert idea
     let idea: social_ideas | null = null;
     try {
-      idea = await prisma.social_ideas.create({
+      idea = await prisma.socialMediaIdea.create({
         data: {
           organizationId,
           client_id: String(ideaData.clientId),
@@ -236,7 +236,7 @@ export async function updateIdea(
     }
 
     try {
-      const res = await prisma.social_ideas.updateMany({
+      const res = await prisma.socialMediaIdea.updateMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),
@@ -295,7 +295,7 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
     const scoped = await assertIdeaInOrganization({ ideaId, organizationId });
 
     try {
-      const res = await prisma.social_ideas.deleteMany({
+      const res = await prisma.socialMediaIdea.deleteMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),

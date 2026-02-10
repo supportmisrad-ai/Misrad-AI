@@ -37,7 +37,8 @@ export const useAdmin = (
         logo: initialOrganization?.logo ?? '', 
         primaryColor: initialOrganization?.primaryColor ?? '#000000',
         enabledModules: initialOrganization?.enabledModules ?? ['crm', 'ai'],
-        systemFlags: initialOrganization?.systemFlags ?? SYSTEM_SCREENS.reduce((acc, screen) => ({ ...acc, [screen.id]: 'active' }), {})
+        systemFlags: initialOrganization?.systemFlags ?? SYSTEM_SCREENS.reduce((acc, screen) => ({ ...acc, [screen.id]: 'active' }), {}),
+        isShabbatProtected: initialOrganization?.isShabbatProtected ?? true,
     });
     const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoals>({ revenue: 100000, tasksCompletion: 90 });
     const [departments, setDepartments] = useState<string[]>(['הנהלה', 'מכירות', 'תפעול', 'כספים', 'שיווק', 'חיצוני']);
@@ -83,7 +84,13 @@ export const useAdmin = (
                 if (!res.ok) return;
 
                 const data = await res.json().catch(() => null);
-                const workspaces = (data?.workspaces || []) as Array<{ slug: string; id: string; entitlements?: Record<string, boolean>; capabilities?: { isTeamManagementEnabled?: boolean } }>;
+                const workspaces = (data?.workspaces || []) as Array<{
+                    slug: string;
+                    id: string;
+                    isShabbatProtected?: boolean;
+                    entitlements?: Record<string, boolean>;
+                    capabilities?: { isTeamManagementEnabled?: boolean };
+                }>;
                 const ws = workspaces.find(w => String(w.slug) === String(orgSlug) || String(w.id) === String(orgSlug));
                 if (!ws) return;
 
@@ -96,10 +103,12 @@ export const useAdmin = (
                     const base: ModuleId[] = teamEnabled ? ['crm', 'ai', 'team'] : ['crm', 'ai'];
                     const financeNext: ModuleId[] = financeEnabled ? [...base, 'finance'] : base;
                     const next: ModuleId[] = operationsEnabled ? [...financeNext, 'operations'] : financeNext;
-                    if (Array.isArray(prev.enabledModules) && prev.enabledModules.join('|') === next.join('|')) {
-                        return prev;
-                    }
-                    return { ...prev, enabledModules: next };
+                    const shabbatProtectedNext = ws.isShabbatProtected !== false;
+
+                    const modulesSame = Array.isArray(prev.enabledModules) && prev.enabledModules.join('|') === next.join('|');
+                    const shabbatSame = prev.isShabbatProtected === shabbatProtectedNext;
+                    if (modulesSame && shabbatSame) return prev;
+                    return { ...prev, enabledModules: next, isShabbatProtected: shabbatProtectedNext };
                 });
             } catch (e) {
                 // ignore

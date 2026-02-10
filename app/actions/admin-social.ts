@@ -130,24 +130,24 @@ async function resolveTenantIdFromKey(tenantKey: string): Promise<string | null>
 }
 
 async function deleteByUserIdScoped(params: {
-  table: 'social_oauth_tokens' | 'social_webhook_configs' | 'social_user_update_views' | 'social_team_members';
+  table: 'social_oauth_tokens' | 'social_webhook_configs' | 'social_user_update_views' | 'team_members';
   userId: string;
   organizationId: string;
 }): Promise<{ error?: unknown }> {
   try {
     if (params.table === 'social_oauth_tokens') {
-      await prisma.social_oauth_tokens.deleteMany({ where: { user_id: params.userId } });
+      await prisma.oAuthToken.deleteMany({ where: { user_id: params.userId } });
       return {};
     }
     if (params.table === 'social_webhook_configs') {
-      await prisma.social_webhook_configs.deleteMany({ where: { user_id: params.userId } });
+      await prisma.webhookConfig.deleteMany({ where: { user_id: params.userId } });
       return {};
     }
     if (params.table === 'social_user_update_views') {
-      await prisma.social_user_update_views.deleteMany({ where: { user_id: params.userId } });
+      await prisma.userUpdateView.deleteMany({ where: { user_id: params.userId } });
       return {};
     }
-    if (params.table === 'social_team_members') {
+    if (params.table === 'team_members') {
       await prisma.teamMember.deleteMany({
         where: { user_id: params.userId, organization_id: params.organizationId },
       });
@@ -489,7 +489,7 @@ export async function removeUserFromTeam(
       return createErrorResponse(cleanViews.error, 'שגיאה בהסרת משתמש');
     }
 
-    const cleanTeamMember = await deleteByUserIdScoped({ table: 'social_team_members', userId: resolvedUserId, organizationId });
+    const cleanTeamMember = await deleteByUserIdScoped({ table: 'team_members', userId: resolvedUserId, organizationId });
     if (cleanTeamMember.error) {
       return createErrorResponse(cleanTeamMember.error, 'שגיאה בהסרת משתמש');
     }
@@ -651,7 +651,7 @@ export async function getSocialIntegrations(
       ]);
     }
 
-    const tokens = await prisma.social_oauth_tokens.findMany({
+    const tokens = await prisma.oAuthToken.findMany({
       where: { user_id: { in: userIds } },
       select: { integration_name: true, expires_at: true, created_at: true, updated_at: true },
     });
@@ -723,7 +723,7 @@ export async function disconnectSocialIntegration(
     }
 
     const providerLike = String(provider || '').toLowerCase();
-    const deleted = await prisma.social_oauth_tokens.deleteMany({
+    const deleted = await prisma.oAuthToken.deleteMany({
       where: {
         user_id: { in: userIds },
         integration_name: { contains: providerLike, mode: 'insensitive' },

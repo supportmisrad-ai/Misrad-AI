@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
+import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { logAuditEvent } from '@/lib/audit';
-
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+const DEFAULT_SYSTEM_FLAGS: Record<string, 'active' | 'maintenance' | 'hidden'> = {
+    dashboard: 'active',
+    tasks: 'active',
+    calendar: 'active',
+    clients: 'active',
+    operations: 'active',
+    team: 'active',
+    reports: 'active',
+    assets: 'active',
+    trash: 'active',
+    brain: 'active'
+};
 
 function getOrgKeyFromHeader(request: NextRequest): string | null {
   const orgKey = request.headers.get('x-org-id') || request.headers.get('x-orgid');
@@ -68,20 +80,6 @@ async function GETHandler(request: NextRequest) {
 
         const { workspace: workspacePrimary } = await getWorkspaceByOrgKeyOrThrow(String(primaryOrgKey));
 
-        // Default flags if no tenant or no settings found
-        const defaultFlags: Record<string, 'active' | 'maintenance' | 'hidden'> = {
-            dashboard: 'active',
-            tasks: 'active',
-            calendar: 'active',
-            clients: 'active',
-            operations: 'active',
-            team: 'active',
-            reports: 'active',
-            assets: 'active',
-            trash: 'active',
-            brain: 'active'
-        };
-
         const orgId = String(workspacePrimary.id);
         return await withTenantIsolationContext(
             {
@@ -99,21 +97,21 @@ async function GETHandler(request: NextRequest) {
                     // Merge defaults with saved flags
                     const savedFlags = settings.system_flags as Record<string, 'active' | 'maintenance' | 'hidden'>;
                     return NextResponse.json({
-                        systemFlags: { ...defaultFlags, ...savedFlags }
+                        systemFlags: { ...DEFAULT_SYSTEM_FLAGS, ...savedFlags }
                     });
                 }
 
                 // Return defaults if no settings found
-                return NextResponse.json({ systemFlags: defaultFlags });
+                return NextResponse.json({ systemFlags: DEFAULT_SYSTEM_FLAGS });
             }
         );
     } catch (error: unknown) {
         if (IS_PROD) console.error('[API] Error fetching system flags');
         else console.error('[API] Error fetching system flags:', error);
-        return NextResponse.json(
-            { error: 'שגיאה בטעינת הגדרות מערכת' },
-            { status: 500 }
-        );
+        if (!IS_PROD) {
+            return NextResponse.json({ systemFlags: DEFAULT_SYSTEM_FLAGS }, { status: 200 });
+        }
+        return NextResponse.json({ error: 'שגיאה בטעינת הגדרות מערכת' }, { status: 500 });
     }
 }
 

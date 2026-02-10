@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
+import { resolveWorkspaceActorApi } from '@/lib/server/workspace-access/actor';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -40,18 +41,14 @@ async function GETHandler(
     const msg = e instanceof Error ? e.message : safeMsg;
     return NextResponse.json({ error: IS_PROD ? safeMsg : msg }, { status: 500 });
   }
-  const [socialUser, org] = await Promise.all([
-    prisma.organizationUser.findUnique({
-      where: { clerk_user_id: String(clerkUserId) },
-      select: { id: true, role: true },
-    }),
+  const [{ socialUser, isSuperAdmin }, org] = await Promise.all([
+    resolveWorkspaceActorApi(String(clerkUserId)),
     prisma.organization.findUnique({
       where: { id: String(workspace.id) },
       select: { owner_id: true },
     }),
   ]);
 
-  const isSuperAdmin = String(socialUser?.role || '').toLowerCase() === 'super_admin';
   const isOwner = Boolean(org?.owner_id && socialUser?.id && String(org.owner_id) === String(socialUser.id));
   const canManageBranding = Boolean(isOwner || isSuperAdmin);
 

@@ -1,0 +1,581 @@
+'use server';
+
+import prisma from '@/lib/prisma';
+import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
+import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+
+// ============================================================
+// Types
+// ============================================================
+
+export type BusinessClientInput = {
+  company_name: string;
+  company_name_en?: string;
+  business_number?: string;
+  tax_id?: string;
+  legal_entity_type?: string;
+  primary_email: string;
+  phone?: string;
+  website?: string;
+  address_street?: string;
+  address_city?: string;
+  address_state?: string;
+  address_postal_code?: string;
+  address_country?: string;
+  industry?: string;
+  company_size?: string;
+  lead_source?: string;
+  notes?: string;
+};
+
+export type ContactInput = {
+  user_id: string;
+  role?: string;
+  title?: string;
+  department?: string;
+  is_primary?: boolean;
+  is_billing_contact?: boolean;
+  is_technical_contact?: boolean;
+};
+
+export type OrganizationInput = {
+  name: string;
+  slug?: string;
+  subscription_plan?: string;
+  seats_allowed?: number;
+  trial_days?: number;
+  coupon_code?: string;
+  has_nexus?: boolean;
+  has_social?: boolean;
+  has_finance?: boolean;
+  has_client?: boolean;
+  has_operations?: boolean;
+  is_shabbat_protected?: boolean;
+};
+
+// ============================================================
+// Create Business Client
+// ============================================================
+
+export async function createBusinessClient(input: BusinessClientInput) {
+  try {
+    // Validation
+    if (!input.company_name?.trim()) {
+      return { ok: false, error: 'שם חברה הוא שדה חובה' };
+    }
+
+    if (!input.primary_email?.trim()) {
+      return { ok: false, error: 'מייל הוא שדה חובה' };
+    }
+
+    const normalizedEmail = input.primary_email.trim().toLowerCase();
+    if (!normalizedEmail.includes('@')) {
+      return { ok: false, error: 'כתובת מייל לא תקינה' };
+    }
+
+    // Check if email already exists
+    const existing = await prisma.businessClient.findUnique({
+      where: { primary_email: normalizedEmail },
+      select: { id: true, company_name: true },
+    });
+
+    if (existing) {
+      return { ok: false, error: `לקוח עסקי עם מייל ${normalizedEmail} כבר קיים (${existing.company_name})` };
+    }
+
+    // Check business number if provided
+    if (input.business_number) {
+      const existingBN = await prisma.businessClient.findUnique({
+        where: { business_number: input.business_number },
+        select: { id: true, company_name: true },
+      });
+
+      if (existingBN) {
+        return { ok: false, error: `לקוח עסקי עם ח.פ/עוסק ${input.business_number} כבר קיים (${existingBN.company_name})` };
+      }
+    }
+
+    // Create client
+    const client = await prisma.businessClient.create({
+      data: {
+        company_name: input.company_name.trim(),
+        company_name_en: input.company_name_en?.trim(),
+        business_number: input.business_number?.trim(),
+        tax_id: input.tax_id?.trim(),
+        legal_entity_type: input.legal_entity_type?.trim(),
+        primary_email: normalizedEmail,
+        phone: input.phone?.trim(),
+        website: input.website?.trim(),
+        address_street: input.address_street?.trim(),
+        address_city: input.address_city?.trim(),
+        address_state: input.address_state?.trim(),
+        address_postal_code: input.address_postal_code?.trim(),
+        address_country: input.address_country?.trim() || 'ישראל',
+        industry: input.industry?.trim(),
+        company_size: input.company_size?.trim(),
+        lead_source: input.lead_source?.trim(),
+        notes: input.notes?.trim(),
+        status: 'active',
+        lifecycle_stage: 'customer',
+      },
+      select: {
+        id: true,
+        company_name: true,
+        primary_email: true,
+      },
+    });
+
+    return {
+      ok: true,
+      client: {
+        id: client.id,
+        company_name: client.company_name,
+        primary_email: client.primary_email,
+      },
+    };
+  } catch (error) {
+    console.error('[createBusinessClient] Error:', error);
+    return { ok: false, error: 'שגיאה ביצירת לקוח עסקי' };
+  }
+}
+
+// ============================================================
+// Get Business Clients
+// ============================================================
+
+export async function getBusinessClients(filters?: {
+  status?: string;
+  lifecycle_stage?: string;
+  industry?: string;
+  search?: string;
+}) {
+  try {
+    const where: any = {
+      deleted_at: null,
+    };
+
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+
+    if (filters?.lifecycle_stage) {
+      where.lifecycle_stage = filters.lifecycle_stage;
+    }
+
+    if (filters?.industry) {
+      where.industry = filters.industry;
+    }
+
+    if (filters?.search) {
+      const search = filters.search.trim();
+      where.OR = [
+        { company_name: { contains: search, mode: 'insensitive' } },
+        { company_name_en: { contains: search, mode: 'insensitive' } },
+        { primary_email: { contains: search, mode: 'insensitive' } },
+        { business_number: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const clients = await prisma.businessClient.findMany({
+      where,
+      include: {
+        contacts: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+                avatar_url: true,
+              },
+            },
+          },
+        },
+        organizations: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            subscription_status: true,
+            created_at: true,
+          },
+        },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+
+    return { ok: true, clients };
+  } catch (error) {
+    console.error('[getBusinessClients] Error:', error);
+    return { ok: false, error: 'שגיאה בטעינת לקוחות עסקיים' };
+  }
+}
+
+// ============================================================
+// Get Single Business Client
+// ============================================================
+
+export async function getBusinessClient(clientId: string) {
+  try {
+    const client = await prisma.businessClient.findUnique({
+      where: { id: clientId },
+      include: {
+        contacts: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+                avatar_url: true,
+                role: true,
+              },
+            },
+          },
+          orderBy: [
+            { is_primary: 'desc' },
+            { created_at: 'asc' },
+          ],
+        },
+        organizations: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            subscription_status: true,
+            subscription_plan: true,
+            trial_start_date: true,
+            trial_days: true,
+            created_at: true,
+            has_nexus: true,
+            has_social: true,
+            has_finance: true,
+            has_client: true,
+            has_operations: true,
+          },
+          orderBy: { created_at: 'desc' },
+        },
+      },
+    });
+
+    if (!client) {
+      return { ok: false, error: 'לקוח עסקי לא נמצא' };
+    }
+
+    return { ok: true, client };
+  } catch (error) {
+    console.error('[getBusinessClient] Error:', error);
+    return { ok: false, error: 'שגיאה בטעינת לקוח עסקי' };
+  }
+}
+
+// ============================================================
+// Update Business Client
+// ============================================================
+
+export async function updateBusinessClient(clientId: string, input: Partial<BusinessClientInput>) {
+  try {
+    // Check if email is being changed
+    if (input.primary_email) {
+      const normalizedEmail = input.primary_email.trim().toLowerCase();
+      const existing = await prisma.businessClient.findFirst({
+        where: {
+          primary_email: normalizedEmail,
+          NOT: { id: clientId },
+        },
+      });
+
+      if (existing) {
+        return { ok: false, error: 'מייל זה כבר בשימוש' };
+      }
+
+      input.primary_email = normalizedEmail;
+    }
+
+    // Check if business number is being changed
+    if (input.business_number) {
+      const existing = await prisma.businessClient.findFirst({
+        where: {
+          business_number: input.business_number,
+          NOT: { id: clientId },
+        },
+      });
+
+      if (existing) {
+        return { ok: false, error: 'מספר עוסק/ח.פ זה כבר בשימוש' };
+      }
+    }
+
+    const client = await prisma.businessClient.update({
+      where: { id: clientId },
+      data: input,
+      select: {
+        id: true,
+        company_name: true,
+      },
+    });
+
+    return { ok: true, client };
+  } catch (error) {
+    console.error('[updateBusinessClient] Error:', error);
+    return { ok: false, error: 'שגיאה בעדכון לקוח עסקי' };
+  }
+}
+
+// ============================================================
+// Add Contact to Client
+// ============================================================
+
+export async function addContactToClient(clientId: string, input: ContactInput) {
+  try {
+    // Check if contact already exists
+    const existing = await prisma.businessClientContact.findUnique({
+      where: {
+        client_id_user_id: {
+          client_id: clientId,
+          user_id: input.user_id,
+        },
+      },
+    });
+
+    if (existing) {
+      return { ok: false, error: 'איש קשר זה כבר מקושר ללקוח' };
+    }
+
+    // If this is primary, unset other primary contacts
+    if (input.is_primary) {
+      await prisma.businessClientContact.updateMany({
+        where: { client_id: clientId, is_primary: true },
+        data: { is_primary: false },
+      });
+    }
+
+    const contact = await prisma.businessClientContact.create({
+      data: {
+        client_id: clientId,
+        user_id: input.user_id,
+        role: input.role || 'contact',
+        title: input.title,
+        department: input.department,
+        is_primary: input.is_primary || false,
+        is_billing_contact: input.is_billing_contact || false,
+        is_technical_contact: input.is_technical_contact || false,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return { ok: true, contact };
+  } catch (error) {
+    console.error('[addContactToClient] Error:', error);
+    return { ok: false, error: 'שגיאה בהוספת איש קשר' };
+  }
+}
+
+// ============================================================
+// Remove Contact from Client
+// ============================================================
+
+export async function removeContactFromClient(clientId: string, userId: string) {
+  try {
+    await prisma.businessClientContact.delete({
+      where: {
+        client_id_user_id: {
+          client_id: clientId,
+          user_id: userId,
+        },
+      },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error('[removeContactFromClient] Error:', error);
+    return { ok: false, error: 'שגיאה בהסרת איש קשר' };
+  }
+}
+
+// ============================================================
+// Create Organization for Client
+// ============================================================
+
+export async function createOrganizationForClient(
+  clientId: string,
+  primaryContactUserId: string,
+  input: OrganizationInput
+) {
+  try {
+    // Validate
+    if (!input.name?.trim()) {
+      return { ok: false, error: 'שם ארגון הוא שדה חובה' };
+    }
+
+    // Generate unique slug
+    const baseSlug = input.slug?.trim() || generateOrgSlug(input.name);
+    const uniqueSlug = await generateUniqueOrgSlug(baseSlug);
+
+    const now = new Date();
+
+    // Apply coupon if provided (TODO: implement coupon validation)
+    let appliedTrialDays = input.trial_days ?? DEFAULT_TRIAL_DAYS;
+    if (input.coupon_code) {
+      // TODO: Validate coupon and adjust trial_days or subscription_plan
+      console.log('[createOrganizationForClient] Coupon code provided:', input.coupon_code);
+    }
+
+    // Create organization
+    const org = await prisma.social_organizations.create({
+      data: {
+        name: input.name.trim(),
+        slug: uniqueSlug,
+        owner_id: primaryContactUserId,
+        client_id: clientId,
+        
+        // Subscription
+        subscription_status: 'trial',
+        subscription_plan: input.subscription_plan || null,
+        trial_start_date: now,
+        trial_days: appliedTrialDays,
+        seats_allowed: input.seats_allowed || null,
+        
+        // Modules
+        has_nexus: input.has_nexus ?? true,
+        has_social: input.has_social ?? false,
+        has_finance: input.has_finance ?? false,
+        has_client: input.has_client ?? false,
+        has_operations: input.has_operations ?? false,
+        
+        // Settings
+        is_shabbat_protected: input.is_shabbat_protected ?? true,
+        
+        // Timestamps
+        created_at: now,
+        updated_at: now,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        subscription_plan: true,
+        seats_allowed: true,
+        trial_days: true,
+      },
+    });
+
+    return { ok: true, organization: org };
+  } catch (error) {
+    console.error('[createOrganizationForClient] Error:', error);
+    return { ok: false, error: 'שגיאה ביצירת ארגון' };
+  }
+}
+
+// ============================================================
+// Update Organization
+// ============================================================
+
+export async function updateOrganization(orgId: string, input: {
+  name?: string;
+  slug?: string;
+  has_nexus?: boolean;
+  has_social?: boolean;
+  has_finance?: boolean;
+  has_client?: boolean;
+  has_operations?: boolean;
+  is_shabbat_protected?: boolean;
+}) {
+  try {
+    const org = await prisma.social_organizations.update({
+      where: { id: orgId },
+      data: {
+        ...input,
+        updated_at: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    });
+
+    return { ok: true, organization: org };
+  } catch (error) {
+    console.error('[updateOrganization] Error:', error);
+    return { ok: false, error: 'שגיאה בעדכון ארגון' };
+  }
+}
+
+// ============================================================
+// Delete Business Client (Soft)
+// ============================================================
+
+export async function deleteBusinessClient(clientId: string) {
+  try {
+    await prisma.businessClient.update({
+      where: { id: clientId },
+      data: { deleted_at: new Date() },
+    });
+
+    return { ok: true };
+  } catch (error) {
+    console.error('[deleteBusinessClient] Error:', error);
+    return { ok: false, error: 'שגיאה במחיקת לקוח עסקי' };
+  }
+}
+
+// ============================================================
+// Search Users for Contact (not yet linked to client)
+// ============================================================
+
+export async function searchUsersForContact(clientId: string, searchTerm: string) {
+  try {
+    if (!searchTerm.trim()) {
+      return { ok: true, users: [] };
+    }
+
+    // Get users already linked to this client
+    const linkedContacts = await prisma.businessClientContact.findMany({
+      where: { client_id: clientId },
+      select: { user_id: true },
+    });
+
+    const linkedUserIds = linkedContacts.map((c) => c.user_id);
+
+    // Search for users not yet linked
+    const users = await prisma.organizationUser.findMany({
+      where: {
+        AND: [
+          {
+            OR: [
+              { full_name: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
+          {
+            NOT: {
+              id: { in: linkedUserIds },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        avatar_url: true,
+        role: true,
+      },
+      take: 10,
+    });
+
+    return { ok: true, users };
+  } catch (error) {
+    console.error('[searchUsersForContact] Error:', error);
+    return { ok: false, error: 'שגיאה בחיפוש משתמשים' };
+  }
+}

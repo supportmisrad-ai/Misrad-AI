@@ -8,6 +8,7 @@ const EXCLUDED_PREFIXES = [];
 const PUBLIC_APPROVED = new Set([
   'app/api/strategic-content/route.ts',
   'app/api/shabbat/status/route.ts',
+  'app/api/version/route.ts',
   'app/api/download/android/route.ts',
   'app/api/download/windows/route.ts',
   'app/api/os/module-icons/route.ts',

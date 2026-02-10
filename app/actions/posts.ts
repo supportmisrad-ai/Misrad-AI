@@ -273,7 +273,7 @@ export async function createPost(
     // Insert platforms
     if (postData.platforms.length > 0) {
       try {
-        await prisma.social_post_platforms.createMany({
+        await prisma.socialMediaPostPlatform.createMany({
           data: postData.platforms.map((platform) => ({
             organizationId,
             post_id: post.id,
@@ -387,14 +387,14 @@ export async function updatePost(
     // Update platforms if provided
     if (updates.platforms) {
       // Delete existing platforms
-      await prisma.social_post_platforms.deleteMany({
+      await prisma.socialMediaPostPlatform.deleteMany({
         where: { post_id: postId, organizationId },
       });
 
       // Insert new platforms
       if (updates.platforms.length > 0) {
         try {
-          await prisma.social_post_platforms.createMany({
+          await prisma.socialMediaPostPlatform.createMany({
             data: updates.platforms.map((platform) => ({
               organizationId,
               post_id: postId,

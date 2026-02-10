@@ -6,7 +6,7 @@ async function main() {
   try {
     console.log('🔍 Checking current users in social_users...\n');
     
-    const users = await prisma.social_users.findMany({
+    const users = await prisma.organizationUser.findMany({
       select: {
         id: true,
         email: true,

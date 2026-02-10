@@ -22,7 +22,9 @@ export default function FinanceModuleClient({
 }) {
   const { isShabbat, isLoading } = useShabbat();
 
-  if (!isLoading && isShabbat) {
+  const isShabbatProtected = initialOrganization?.isShabbatProtected !== false;
+
+  if (!isLoading && isShabbat && isShabbatProtected) {
     return <ShabbatScreen />;
   }
 

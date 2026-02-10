@@ -1,15 +1,32 @@
 
 import React from 'react';
 
-export type PipelineStage = 
-  | 'incoming' 
-  | 'contacted' 
-  | 'meeting' 
-  | 'proposal' 
-  | 'negotiation' 
-  | 'won' 
+export type PipelineStage =
+  | SystemStage
+  | string;
+
+export type SystemStage =
+  | 'incoming'
+  | 'contacted'
+  | 'meeting'
+  | 'proposal'
+  | 'negotiation'
+  | 'won'
   | 'lost'
-  | 'churned'; 
+  | 'churned';
+
+export function isSystemStage(value: unknown): value is SystemStage {
+  return (
+    value === 'incoming' ||
+    value === 'contacted' ||
+    value === 'meeting' ||
+    value === 'proposal' ||
+    value === 'negotiation' ||
+    value === 'won' ||
+    value === 'lost' ||
+    value === 'churned'
+  );
+}
 
 export type UserRole = 'admin' | 'agent' | 'viewer';
 

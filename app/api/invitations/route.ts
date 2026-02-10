@@ -7,8 +7,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser, requireSuperAdmin } from '../../../lib/auth';
-import { getBaseUrl } from '../../../lib/utils';
+import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
+import { getBaseUrl } from '@/lib/utils';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';

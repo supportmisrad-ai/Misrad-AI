@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminGlobalWorkListingsPage() {
   return (
     <div className="space-y-6 pb-24" dir="rtl">
-      <AdminPageHeader title="Work Listings" subtitle="כל ההצעות שנוצרו מהמערכת (לינק / זירה)" icon={Share2} />
+      <AdminPageHeader title="הצעות עבודה" subtitle="כל ההצעות שנוצרו מהמערכת (לינק / זירה)" icon={Share2} />
       <WorkListingsAdminClient />
     </div>
   );

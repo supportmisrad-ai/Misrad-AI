@@ -227,6 +227,8 @@ async function reportServiceRoleUsage(params: {
 }
 
 const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
+  'app_version_manifest_read',
+  'app_binary_signed_url',
   'auth_find_user_global_by_email',
   'clerk_webhook_invite_lookup',
   'clerk_webhook_sync_user',

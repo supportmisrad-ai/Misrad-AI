@@ -161,7 +161,7 @@ export async function deleteAdminUser(userId: string): Promise<{ success: boolea
     });
 
     try {
-      await prisma.social_sync_logs.create({
+      await prisma.socialMediaSyncLog.create({
         data: {
           user_id: adminCheck.userId ? String(adminCheck.userId) : null,
           integration_name: 'admin_users',
@@ -227,7 +227,7 @@ export async function updateUserProfile(
     });
 
     try {
-      await prisma.social_sync_logs.create({
+      await prisma.socialMediaSyncLog.create({
         data: {
           user_id: adminCheck.userId ? String(adminCheck.userId) : null,
           integration_name: 'admin_users',
@@ -288,7 +288,7 @@ export async function getUserDetails(
 
     let lastActivityIso: string | null = null;
     try {
-      const last = await prisma.social_sync_logs.findFirst({
+      const last = await prisma.socialMediaSyncLog.findFirst({
         where: { user_id: String(userId) },
         orderBy: { started_at: 'desc' },
         select: { started_at: true },
@@ -438,7 +438,7 @@ export async function createUser(
         debugLog('[createUser] Invitation created successfully with metadata!', invitation.id);
 
         try {
-          await prisma.social_sync_logs.create({
+          await prisma.socialMediaSyncLog.create({
             data: {
               user_id: adminCheck.userId ? String(adminCheck.userId) : null,
               integration_name: 'admin_users',
@@ -469,7 +469,7 @@ export async function createUser(
         debugLog('[createUser] Invitation created successfully without metadata!', invitation.id);
 
         try {
-          await prisma.social_sync_logs.create({
+          await prisma.socialMediaSyncLog.create({
             data: {
               user_id: adminCheck.userId ? String(adminCheck.userId) : null,
               integration_name: 'admin_users',

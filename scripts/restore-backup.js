@@ -120,7 +120,7 @@ async function main() {
     // Restore users first (they're referenced by organizations)
     console.log('👥 משחזר משתמשים...');
     for (const user of backup.data.users) {
-      await prisma.social_users.upsert({
+      await prisma.organizationUser.upsert({
         where: { id: user.id },
         update: user,
         create: user

@@ -1,0 +1,17 @@
+### monday.com Pro plan: Features and limitations
+At $19 per user per month when billed annually ($24 month-to-month), the Pro plan adds $7 per seat compared to the Standard plan. With a minimum of three users, you’re looking at $57 per month on the annual plan or $72 if you pay monthly. There are no setup fees or hidden charges, and you can test the Pro plan through monday.com’s 14-day free trial.
+Key features include:
+- Private boards and docs: Create boards that only specific team members can see and access, which helps protect sensitive information, like financial data or confidential client projects. 
+- Time tracking: Log hours directly on tasks to track billable time, monitor project costs, and see where your team’s time actually goes. 
+- 25,000 automation and integration actions per month: Handle significantly more automations and integrations compared to the Standard plan’s 250-action limit.
+- Chart view: Visualize project data through graphs and charts to spot trends, track progress, and identify issues. 
+- Dashboards combining up to 20 boards: Pull data from four times as many boards as the Standard plan, which gives you better visibility across larger projects or multiple departments working in different spaces.
+
+### monday.com Enterprise plan: Features and limitations
+[monday.com](http://monday.com)’s Enterprise pricing is only available by quote. As a general benchmark, pricing starts around $12,000 per year for 25 users (roughly $40 per seat per month). However, the final cost depends on team size and the specific features you negotiate.
+Key features include:
+- 250,000 automation and integration actions per month: Handle significantly higher automation volumes compared to lower tiers. 
+- Enterprise-grade security and governance: Access advanced security controls, including HIPAA compliance, SCIM provisioning, and IP restrictions. You can also set multi-level permissions to control exactly who sees what data across your organization.
+- Dashboards combining up to 50 boards: Pull data from two-and-half times as many boards as the Pro plan.
+- Tailored onboarding and dedicated support: Get a customer success manager who helps set up the platform specifically for your workflows, trains your team, and provides ongoing support. 
+- Advanced reporting and analytics: Access enterprise-level reporting tools, including work performance insights, pivot analysis, and custom reports.

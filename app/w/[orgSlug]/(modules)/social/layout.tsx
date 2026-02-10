@@ -31,6 +31,7 @@ export default async function SocialModuleLayout({
     name: workspace.name,
     logo: workspace.logo || '',
     primaryColor: '#000000',
+    isShabbatProtected: workspace.isShabbatProtected,
   };
   const initialSocialData = await getSocialInitialDataCached({
     orgSlug,

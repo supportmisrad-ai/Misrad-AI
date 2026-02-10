@@ -47,7 +47,7 @@ function startOfMonthISO() {
 
 async function sumPaidInvoicesThisMonth(): Promise<number> {
   const monthStart = new Date(startOfMonthISO());
-  const res = await prisma.social_invoices.aggregate({
+  const res = await prisma.socialMediaInvoice.aggregate({
     where: {
       status: 'paid',
       OR: [{ date: { gte: monthStart } }, { created_at: { gte: monthStart } }],
@@ -60,10 +60,22 @@ async function sumPaidInvoicesThisMonth(): Promise<number> {
 
 async function sumAiCreditsUsedTodayCents(): Promise<number> {
   const todayStart = new Date(startOfTodayISO());
-  const res = await prisma.ai_usage_logs.aggregate({
-    where: { status: 'success', created_at: { gte: todayStart } },
-    _sum: { charged_cents: true },
-  });
+  const res = await prisma.ai_usage_logs.aggregate(
+    withPrismaTenantIsolationOverride(
+      {
+        where: { status: 'success', created_at: { gte: todayStart } },
+        _sum: { charged_cents: true },
+      },
+      {
+        suppressReporting: true,
+        reason: 'admin_godview_sum_ai_usage_today_global',
+        source: 'admin-godview-kpis',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        organizationId: 'super-admin-override',
+      }
+    )
+  );
 
   return res?._sum?.charged_cents === null || res?._sum?.charged_cents === undefined ? 0 : Number(res._sum.charged_cents);
 }

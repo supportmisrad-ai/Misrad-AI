@@ -1,3 +1,7 @@
+-- DEPRECATED (2026-02-10)
+-- Trial duration is now 7 days. This script is intentionally disabled.
+-- If you need a backfill, create a new script explicitly for 7 days.
+
 -- Backfill: extend active trials to 14 days
 --
 -- Notes:
@@ -5,21 +9,21 @@
 -- - It does not revive expired/cancelled subscriptions
 -- - Run on your DB (staging first)
 
-BEGIN;
-
--- Organizations
-UPDATE organizations
-SET trial_days = 14,
-    updated_at = NOW()
-WHERE subscription_status = 'trial'
-  AND (trial_days IS NULL OR trial_days < 14);
-
--- Team members
-UPDATE social_team_members
-SET trial_days = 14,
-    updated_at = NOW()
-WHERE subscription_status = 'trial'
-  AND trial_start_date IS NOT NULL
-  AND (trial_days IS NULL OR trial_days < 14);
-
-COMMIT;
+-- BEGIN;
+--
+-- -- Organizations
+-- UPDATE organizations
+-- SET trial_days = 14,
+--     updated_at = NOW()
+-- WHERE subscription_status = 'trial'
+--   AND (trial_days IS NULL OR trial_days < 14);
+--
+-- -- Team members
+-- UPDATE social_team_members
+-- SET trial_days = 14,
+--     updated_at = NOW()
+-- WHERE subscription_status = 'trial'
+--   AND trial_start_date IS NOT NULL
+--   AND (trial_days IS NULL OR trial_days < 14);
+--
+-- COMMIT;

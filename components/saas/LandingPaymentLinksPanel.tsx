@@ -21,8 +21,8 @@ const PACKAGE_LABELS: Record<PackageKey, { title: string; subtitle: string }> = 
   solo: { title: 'מודול בודד', subtitle: 'תשלום עבור מודול בודד (149 ₪)' },
   the_closer: { title: 'חבילת מכירות', subtitle: 'System + Nexus (249 ₪)' },
   the_authority: { title: 'חבילת שיווק ומיתוג', subtitle: 'Social + Client + Nexus (349 ₪)' },
-  the_operator: { title: 'חבילת תפעול ושטח', subtitle: 'Operations + Finance + Nexus (349 ₪)' },
-  the_empire: { title: 'הכל כלול', subtitle: 'כל המודולים (499 ₪)' },
+  the_operator: { title: 'חבילת תפעול ושטח', subtitle: 'Operations + Nexus (349 ₪) + Finance בונוס' },
+  the_empire: { title: 'הכל כלול', subtitle: 'כל המודולים + Finance בונוס (499 ₪)' },
 };
 
 export function LandingPaymentLinksPanel({ hideHeader }: { hideHeader?: boolean }) {

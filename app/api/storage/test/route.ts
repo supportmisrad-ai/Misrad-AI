@@ -8,9 +8,9 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requireSuperAdmin } from '../../../../lib/auth';
-import { createServiceRoleClient, isSupabaseConfigured } from '../../../../lib/supabase';
-import { uploadFile, listFiles, deleteFile } from '../../../../lib/storage';
+import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
+import { createServiceRoleClient, isSupabaseConfigured } from '@/lib/supabase';
+import { uploadFile, listFiles, deleteFile } from '@/lib/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 

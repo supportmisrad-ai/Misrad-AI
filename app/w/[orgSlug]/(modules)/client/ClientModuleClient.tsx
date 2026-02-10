@@ -16,7 +16,9 @@ export default function ClientModuleClient({
 }) {
   const { isShabbat, isLoading } = useShabbat();
 
-  if (!isLoading && isShabbat) {
+  const isShabbatProtected = initialOrganization?.isShabbatProtected !== false;
+
+  if (!isLoading && isShabbat && isShabbatProtected) {
     return <ShabbatScreen />;
   }
 

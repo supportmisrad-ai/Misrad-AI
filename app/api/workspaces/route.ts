@@ -5,16 +5,23 @@ import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
+import { asObject } from '@/lib/shared/unknown';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+type CacheEntry<T> = { value: T; expiresAt: number };
+const workspacesCache = new Map<string, CacheEntry<WorkspaceApiItem[]>>();
+const workspacesInFlight = new Map<string, Promise<WorkspaceApiItem[]>>();
+const WORKSPACES_TTL_MS = 30_000;
 
 type WorkspaceApiItem = {
   id: string;
   slug: string;
   name: string;
   logo?: string | null;
+  isShabbatProtected: boolean;
   entitlements: Record<OSModuleKey, boolean>;
   capabilities: {
     isFullOffice: boolean;
@@ -29,105 +36,131 @@ async function GETHandler() {
     return apiError('Unauthorized', { status: 401 });
   }
 
-  let socialUser: { id: string; organization_id: string | null } | null = null;
-  try {
-    socialUser = await prisma.organizationUser.findUnique({
-      where: { clerk_user_id: clerkUserId },
-      select: { id: true, organization_id: true },
-    });
-  } catch (err) {
-    if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
-    else console.error('GET /api/workspaces failed to query social_users', err);
-    return apiError('שגיאה לא צפויה', { status: 500 });
+  const cached = workspacesCache.get(clerkUserId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return apiSuccess({ workspaces: cached.value });
   }
 
-  if (!socialUser?.id) {
-    return apiSuccess({ workspaces: [] as WorkspaceApiItem[] });
+  const inFlight = workspacesInFlight.get(clerkUserId);
+  if (inFlight) {
+    const workspaces = await inFlight;
+    return apiSuccess({ workspaces });
   }
 
-  const orgIds = new Set<string>();
+  const loadPromise = (async () => {
+    let socialUser: { id: string; organization_id: string | null } | null = null;
+    try {
+      socialUser = await prisma.organizationUser.findUnique({
+        where: { clerk_user_id: clerkUserId },
+        select: { id: true, organization_id: true },
+      });
+    } catch (err) {
+      if (IS_PROD) console.error('GET /api/workspaces failed to query social_users');
+      else console.error('GET /api/workspaces failed to query social_users', err);
+      throw err;
+    }
 
-  if (socialUser.organization_id) {
-    orgIds.add(String(socialUser.organization_id));
-  }
+    if (!socialUser?.id) {
+      return [] as WorkspaceApiItem[];
+    }
 
-  const ownedOrgs = await prisma.organization.findMany({
-    where: { owner_id: socialUser.id },
-    select: { id: true },
-  });
+    const [ownedOrgs, membershipRows] = await Promise.all([
+      prisma.organization.findMany({
+        where: { owner_id: socialUser.id },
+        select: { id: true },
+      }),
+      prisma.teamMember.findMany({
+        where: { user_id: socialUser.id },
+        select: { organization_id: true },
+      }),
+    ]);
 
-  for (const org of ownedOrgs) {
-    if (org?.id) orgIds.add(String(org.id));
-  }
+    const orgIds = new Set<string>();
+    if (socialUser.organization_id) {
+      orgIds.add(String(socialUser.organization_id));
+    }
+    for (const org of ownedOrgs) {
+      if (org?.id) orgIds.add(String(org.id));
+    }
+    for (const row of membershipRows) {
+      if (row.organization_id) orgIds.add(String(row.organization_id));
+    }
 
-  const membershipRows = await prisma.teamMember.findMany({
-    where: { user_id: socialUser.id },
-    select: { organization_id: true },
-  });
+    const ids = Array.from(orgIds).filter(Boolean);
+    if (ids.length === 0) {
+      return [] as WorkspaceApiItem[];
+    }
 
-  for (const row of membershipRows) {
-    if (row.organization_id) orgIds.add(String(row.organization_id));
-  }
+    const [systemFlags, orgs] = await Promise.all([
+      getSystemFeatureFlags(),
+      prisma.organization.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          logo: true,
+          is_shabbat_protected: true,
+          has_nexus: true,
+          has_system: true,
+          has_social: true,
+          has_finance: true,
+          has_client: true,
+          has_operations: true,
+          seats_allowed: true,
+        },
+      }),
+    ]);
 
-  const ids = Array.from(orgIds).filter(Boolean);
-  if (ids.length === 0) {
-    return apiSuccess({ workspaces: [] as WorkspaceApiItem[] });
-  }
-
-  const systemFlags = await getSystemFeatureFlags();
-
-  const orgs = await prisma.organization.findMany({
-    where: { id: { in: ids } },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      logo: true,
-      has_nexus: true,
-      has_system: true,
-      has_social: true,
-      has_finance: true,
-      has_client: true,
-      has_operations: true,
-      seats_allowed: true,
-    },
-  });
-
-  const workspaces: WorkspaceApiItem[] = orgs.map((o) => ({
-    id: o.id,
-    slug: o.slug || o.id,
-    name: o.name,
-    logo: o.logo,
-    entitlements: {
-      nexus: o.has_nexus ?? false,
-      system: o.has_system ?? false,
-      social: o.has_social ?? false,
-      finance: o.has_finance ?? false,
-      client: o.has_client ?? false,
-      operations: Boolean(o.has_operations ?? false),
-    },
-    capabilities: computeWorkspaceCapabilities({
-      entitlements: {
+    const workspaces: WorkspaceApiItem[] = orgs.map((o) => {
+      const entitlements = {
         nexus: o.has_nexus ?? false,
         system: o.has_system ?? false,
         social: o.has_social ?? false,
         finance: o.has_finance ?? false,
         client: o.has_client ?? false,
         operations: Boolean(o.has_operations ?? false),
+      };
+
+      return {
+        id: o.id,
+        slug: o.slug || o.id,
+        name: o.name,
+        logo: o.logo,
+        isShabbatProtected: (() => {
+          const obj = asObject(o) ?? {};
+          const raw = obj.is_shabbat_protected;
+          return raw === false ? false : true;
+        })(),
+        entitlements,
+        capabilities: computeWorkspaceCapabilities({
+          entitlements,
+          fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
+          seatsAllowedOverride: o.seats_allowed ?? null,
+        }),
+      };
+    });
+
+    void logAuditEvent('data.read', 'workspaces.list', {
+      details: {
+        workspaceCount: workspaces.length,
+        primaryOrganizationId: socialUser.organization_id ?? null,
       },
-      fullOfficeRequiresFinance: Boolean(systemFlags.fullOfficeRequiresFinance),
-      seatsAllowedOverride: o.seats_allowed ?? null,
-    }),
-  }));
+    });
 
-  await logAuditEvent('data.read', 'workspaces.list', {
-    details: {
-      workspaceCount: workspaces.length,
-      primaryOrganizationId: socialUser.organization_id ?? null,
-    },
-  });
+    return workspaces;
+  })();
 
-  return apiSuccess({ workspaces });
+  workspacesInFlight.set(clerkUserId, loadPromise);
+  try {
+    const workspaces = await loadPromise;
+    workspacesCache.set(clerkUserId, { value: workspaces, expiresAt: Date.now() + WORKSPACES_TTL_MS });
+    return apiSuccess({ workspaces });
+  } catch {
+    return apiError('שגיאה לא צפויה', { status: 500 });
+  } finally {
+    workspacesInFlight.delete(clerkUserId);
+  }
 }
 
 export const GET = shabbatGuard(GETHandler);

@@ -6,7 +6,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';

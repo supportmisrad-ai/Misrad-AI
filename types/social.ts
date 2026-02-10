@@ -216,6 +216,12 @@ export interface PostVariation {
   type: string;
   content: string;
   imageSuggestion: string;
+  suggestedHashtags?: {
+    facebook?: string[];
+    instagram?: string[];
+    linkedin?: string[];
+    general?: string[];
+  };
 }
 
 export interface SocialTask {

@@ -7,14 +7,16 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { DEFAULT_OS_MODULE_PRIORITY, isOSModuleKey } from '@/lib/os/modules/registry';
-import { OSModule, OS_MODULES } from '../types/os-modules';
+import { OSModule, OS_MODULES } from '../types/os-modules';
+
 
 function getErrorName(error: unknown): string {
   if (error instanceof Error) return error.name;
   const obj = asObject(error);
   const name = obj?.name;
   return typeof name === 'string' ? name : '';
-}
+}
+
 
 function resolveOrgSlug(orgSlug?: string | null): string | null {
   if (orgSlug) return String(orgSlug);
@@ -128,7 +130,7 @@ export async function getUserPurchasedModules(userId: string, orgSlug?: string |
 /**
  * Get the first available OS module for a user
  * Priority order:
- * 1. Nexus OS (if purchased) - default/main OS
+ * 1. Nexus (if purchased) - default/main module
  * 2. System OS (if purchased)
  * 3. Social OS (if purchased)
  * 4. Finance OS (if purchased)

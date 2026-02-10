@@ -1,161 +1,112 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Boxes, Bug, LifeBuoy, Network, Settings } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useData } from '@/context/DataContext';
-import { NexusControlPanel } from '@/components/saas/NexusControlPanel';
-import { SystemOSControlPanel } from '@/components/saas/SystemOSControlPanel';
-import { SupportTicketsPanel } from '@/components/saas/SupportTicketsPanel';
-import { FeatureRequestsPanel } from '@/components/saas/FeatureRequestsPanel';
-import SocialAdminPageClient from '../social/SocialAdminPageClient';
+import React from 'react';
+import Link from 'next/link';
+import { Boxes, Globe, Network, Settings, ShieldCheck, SlidersHorizontal, Sparkles } from 'lucide-react';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
-import AdminTabs from '@/components/admin/AdminTabs';
 
-type ModulesAdminTab = 'nexus' | 'system' | 'social' | 'client' | 'finance' | 'operations';
-
-type ClientSubTab = 'support' | 'features';
+type ModuleAction = { label: string; href: string };
+type ModuleCard = { title: string; description: string; icon: React.ElementType; actions: ModuleAction[] };
 
 export default function ModulesAdminPageClient() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const { organization, updateSystemFlag, addToast } = useData();
-
-  const [tab, setTab] = useState<ModulesAdminTab>('nexus');
-  const [clientTab, setClientTab] = useState<ClientSubTab>('support');
-
-  const safeOrg = useMemo(() => organization as any, [organization]);
-
-  const tabs = useMemo(
-    () => [
-      { id: 'nexus', label: 'נקסוס', icon: Network },
-      { id: 'system', label: 'סיסטם', icon: Settings },
-      { id: 'social', label: 'סושיאל', icon: Boxes },
-      { id: 'client', label: 'קליינט', icon: Boxes },
-      { id: 'finance', label: 'פיננסים', icon: Boxes },
-      { id: 'operations', label: 'תפעול', icon: Boxes },
-    ],
-    []
-  );
-
-  const clientTabs = useMemo(
-    () => [
-      { id: 'support', label: 'פניות תמיכה', icon: LifeBuoy },
-      { id: 'features', label: "בקשות פיצ'רים", icon: Bug },
-    ],
-    []
-  );
-
-  useEffect(() => {
-    try {
-      const rawTab = searchParams?.get('tab');
-      const rawClientTab = searchParams?.get('clientTab');
-
-      const allowedTabs: ModulesAdminTab[] = ['nexus', 'system', 'social', 'client', 'finance', 'operations'];
-      const nextTab = allowedTabs.includes(rawTab as ModulesAdminTab) ? (rawTab as ModulesAdminTab) : null;
-      if (nextTab && nextTab !== tab) setTab(nextTab);
-
-      const allowedClientTabs: ClientSubTab[] = ['support', 'features'];
-      const nextClientTab = allowedClientTabs.includes(rawClientTab as ClientSubTab) ? (rawClientTab as ClientSubTab) : null;
-      if (nextClientTab && nextClientTab !== clientTab) setClientTab(nextClientTab);
-    } catch {
-      // ignore
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  const setTabAndSyncUrl = (next: ModulesAdminTab) => {
-    setTab(next);
-    try {
-      const qs = new URLSearchParams(searchParams?.toString() || '');
-      qs.set('tab', next);
-      if (next !== 'client') {
-        qs.delete('clientTab');
-      } else {
-        qs.set('clientTab', clientTab);
-      }
-      router.replace(`/app/admin/modules?${qs.toString()}`);
-    } catch {
-      // ignore
-    }
-  };
-
-  const setClientTabAndSyncUrl = (next: ClientSubTab) => {
-    setClientTab(next);
-    if (tab !== 'client') return;
-    try {
-      const qs = new URLSearchParams(searchParams?.toString() || '');
-      qs.set('tab', 'client');
-      qs.set('clientTab', next);
-      router.replace(`/app/admin/modules?${qs.toString()}`);
-    } catch {
-      // ignore
-    }
-  };
+  const cards: ModuleCard[] = [
+    {
+      title: 'נקסוס',
+      description: 'בקרת מערכת, בינה, הזמנות והודעות מערכת של נקסוס.',
+      icon: Network,
+      actions: [
+        { label: 'בקרת מערכת', href: '/app/admin/nexus/control' },
+        { label: 'בינה', href: '/app/admin/nexus/intelligence' },
+        { label: 'הזמנות', href: '/app/admin/nexus/invitations' },
+        { label: 'הודעות מערכת', href: '/app/admin/nexus/announcements' },
+      ],
+    },
+    {
+      title: 'סושיאל',
+      description: 'ניהול מרכזי של מודול סושיאל: צוות, מכסות ואוטומציות.',
+      icon: ShieldCheck,
+      actions: [
+        { label: 'מבט על', href: '/app/admin/social?tab=overview' },
+        { label: 'צוות', href: '/app/admin/social?tab=team' },
+        { label: 'אינטגרציות', href: '/app/admin/social?tab=integrations' },
+        { label: 'מכסות', href: '/app/admin/social?tab=quotas' },
+      ],
+    },
+    {
+      title: 'מערכת',
+      description: 'בקרה והודעות מערכת System OS.',
+      icon: Settings,
+      actions: [
+        { label: 'בקרת מערכת', href: '/app/admin/system/control' },
+        { label: 'הודעות מערכת', href: '/app/admin/system/announcements' },
+      ],
+    },
+    {
+      title: 'דף נחיתה',
+      description: 'תוכן, תמחור ומיתוג של האתר הציבורי.',
+      icon: Globe,
+      actions: [
+        { label: 'תמחור', href: '/app/admin/landing/pricing' },
+        { label: 'תוכן', href: '/app/admin/landing/content' },
+        { label: 'לינקים לתשלום', href: '/app/admin/landing/payment-links' },
+        { label: 'מיתוג', href: '/app/admin/landing/branding' },
+      ],
+    },
+    {
+      title: 'תשתית פלטפורמה',
+      description: 'מתגי מערכת, בקרת פלטפורמה וכלים גלובליים.',
+      icon: SlidersHorizontal,
+      actions: [
+        { label: 'מתגי מערכת', href: '/app/admin/system-flags' },
+        { label: 'בקרת פלטפורמה', href: '/app/admin/global/control' },
+        { label: 'מרכז קישורים', href: '/app/admin/global/links' },
+        { label: 'הורדות', href: '/app/admin/global/downloads' },
+      ],
+    },
+    {
+      title: 'בינה מלאכותית',
+      description: 'ניתוח AI ומוח AI גלובלי.',
+      icon: Sparkles,
+      actions: [
+        { label: 'ניתוח AI', href: '/app/admin/ai' },
+        { label: 'מוח AI (גלובלי)', href: '/app/admin/global/ai' },
+      ],
+    },
+  ];
 
   return (
     <div className="space-y-6 pb-24" dir="rtl">
-      <AdminPageHeader title="שליטת מודולים" subtitle="שליטה מרכזית על המודולים במערכת" icon={Boxes} />
+      <AdminPageHeader title="ניהול מודולים" subtitle="מרכז קיצורים לבקרת מוצרים ומודולים" icon={Boxes} />
 
-      <AdminTabs
-        tabs={tabs as any}
-        value={tab}
-        onValueChange={(next) => setTabAndSyncUrl(next as ModulesAdminTab)}
-        className="md:flex-wrap md:overflow-visible"
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.title} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700">
+                  <Icon size={18} />
+                </div>
+                <div>
+                  <div className="text-lg font-black text-slate-900">{card.title}</div>
+                  <div className="text-xs font-bold text-slate-500 mt-1">{card.description}</div>
+                </div>
+              </div>
 
-      <div>
-        {tab === 'nexus' ? (
-          safeOrg ? (
-            <NexusControlPanel organization={safeOrg} updateSystemFlag={updateSystemFlag} hideHeader />
-          ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5">
-              <div className="text-slate-900 font-black">טוען...</div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {card.actions.map((action) => (
+                  <Link
+                    key={`${card.title}-${action.href}`}
+                    href={action.href}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-700 hover:bg-white hover:text-slate-900 hover:border-slate-300 transition-colors"
+                  >
+                    {action.label}
+                  </Link>
+                ))}
+              </div>
             </div>
-          )
-        ) : null}
-
-        {tab === 'system' ? (
-          safeOrg ? (
-            <SystemOSControlPanel organization={safeOrg} updateSystemFlag={updateSystemFlag} hideHeader />
-          ) : (
-            <div className="bg-white border border-slate-200 rounded-2xl p-5">
-              <div className="text-slate-900 font-black">טוען...</div>
-            </div>
-          )
-        ) : null}
-
-        {tab === 'client' ? (
-          <div className="space-y-6">
-            <AdminTabs
-              tabs={clientTabs as any}
-              value={clientTab}
-              onValueChange={(next) => setClientTabAndSyncUrl(next as ClientSubTab)}
-              className="md:flex-wrap md:overflow-visible"
-            />
-
-            {clientTab === 'support' ? <SupportTicketsPanel addToast={addToast} /> : null}
-            {clientTab === 'features' ? <FeatureRequestsPanel addToast={addToast} /> : null}
-          </div>
-        ) : null}
-
-        {tab === 'social' ? (
-          <SocialAdminPageClient />
-        ) : null}
-
-        {tab === 'finance' ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-5">
-            <div className="text-slate-900 font-black">פיננסים</div>
-            <div className="text-sm text-slate-600 mt-2">בקרת מסכים למודול פיננסים תתווסף כאן בהמשך.</div>
-          </div>
-        ) : null}
-
-        {tab === 'operations' ? (
-          <div className="bg-white border border-slate-200 rounded-2xl p-5">
-            <div className="text-slate-900 font-black">תפעול</div>
-            <div className="text-sm text-slate-600 mt-2">בקרת מסכים למודול תפעול תתווסף כאן בהמשך.</div>
-          </div>
-        ) : null}
+          );
+        })}
       </div>
     </div>
   );

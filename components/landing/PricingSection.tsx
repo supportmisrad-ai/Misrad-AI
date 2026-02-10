@@ -103,7 +103,7 @@ export default function PricingSection({
     contractor: {
       title: 'אני קבלן',
       packageType: 'the_operator',
-      blurb: 'צריך תפעול + כספים + שליטה בשטח.',
+      blurb: 'צריך תפעול + שליטה בשטח. (Finance בונוס חינם)',
     },
     agency: {
       title: 'אני סוכנות',
@@ -316,7 +316,7 @@ export default function PricingSection({
               <StyledDropdown
                 value={selectedSoloModule}
                 onChange={(value) => setSelectedSoloModule(value as OSModuleKey)}
-                options={(['system', 'social', 'client', 'finance', 'operations', 'nexus'] as OSModuleKey[]).map((mk) => ({
+                options={(['system', 'social', 'client', 'operations', 'nexus'] as OSModuleKey[]).map((mk) => ({
                   value: mk,
                   label: getModuleLabelHe(mk)
                 }))}

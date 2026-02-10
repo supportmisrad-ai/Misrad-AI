@@ -7,9 +7,9 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
-import { PermissionId, RoleDefinition } from '../../../types';
-import { logAuditEvent } from '../../../lib/audit';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { PermissionId, RoleDefinition } from '@/types';
+import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';

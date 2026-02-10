@@ -52,7 +52,7 @@ async function getTableCount(supabase, table) {
 async function resolveLegacyTable(supabase) {
   if (process.env.LEGACY_CLIENTS_TABLE) return process.env.LEGACY_CLIENTS_TABLE;
 
-  const candidates = ['clients', 'misrad_clients', 'social_clients', 'nexus_clients'];
+  const candidates = ['clients', 'misrad_clients', 'socialmedia_clients', 'nexus_clients'];
   const found = [];
 
   for (const table of candidates) {
@@ -112,7 +112,7 @@ function mapLegacyToClientClientsRow(row, sourceTable, defaultOrgId) {
 
   let metadata = { legacy: { source: sourceTable } };
 
-  if (sourceTable === 'clients' || sourceTable === 'social_clients') {
+  if (sourceTable === 'clients' || sourceTable === 'socialmedia_clients') {
     metadata = {
       // Social UI contract
       name: row.name || companyName,

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { generatePostVariationsAction, generateAIImageAction } from '@/app/actions/ai-actions';
+import { suggestBestPostingTimes, type PostingTimesResult } from '@/app/actions/social-posting-times';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
@@ -57,6 +58,8 @@ export default function TheMachine() {
   const [previewPlatform, setPreviewPlatform] = useState<SocialPlatform>('instagram');
   const [editableContent, setEditableContent] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [postingTimes, setPostingTimes] = useState<PostingTimesResult | null>(null);
+  const [showTimesModal, setShowTimesModal] = useState(false);
 
   const editingPostId = String((activeDraft as any)?.id || '').trim();
   const editingPost = editingPostId && !editingPostId.startsWith('draft-') ? posts.find((p) => String(p.id) === editingPostId) : undefined;
@@ -108,6 +111,16 @@ export default function TheMachine() {
       }
     }
   }, [activeDraft, activeClientId, clients, editingPost?.content, editingPost?.platforms, isEditingExistingPost]);
+
+  // Load posting time recommendations when platforms change
+  useEffect(() => {
+    if (selectedPlatforms.length > 0) {
+      suggestBestPostingTimes({ 
+        platforms: selectedPlatforms,
+        isReligious: selectedClient?.isShabbatProtected || false
+      }).then(setPostingTimes);
+    }
+  }, [selectedPlatforms, selectedClient?.isShabbatProtected]);
 
   const togglePlatformSelection = (id: SocialPlatform) => {
     setSelectedPlatforms(prev => 
@@ -435,6 +448,33 @@ export default function TheMachine() {
                         </p>
                       </div>
 
+                      {/* Suggested Hashtags */}
+                      {v.suggestedHashtags && (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Wand size={12} className="text-purple-500" />
+                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags מומלצים</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedPlatforms.map(platform => {
+                              const platformHashtags = platform === 'facebook' ? v.suggestedHashtags?.facebook :
+                                                      platform === 'instagram' ? v.suggestedHashtags?.instagram :
+                                                      platform === 'linkedin' ? v.suggestedHashtags?.linkedin :
+                                                      v.suggestedHashtags?.general;
+                              
+                              return platformHashtags?.slice(0, 5).map((tag, i) => (
+                                <span 
+                                  key={`${platform}-${i}`}
+                                  className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-bold border border-purple-100"
+                                >
+                                  {tag.startsWith('#') ? tag : `#${tag}`}
+                                </span>
+                              ));
+                            }).filter(Boolean)[0]}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="pt-4 md:pt-6 border-t border-slate-200 flex items-center justify-between">
                         <button className="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2">
                           בחר גרסה {String.fromCharCode(65 + idx)} <ArrowRight size={14}/>
@@ -510,6 +550,39 @@ export default function TheMachine() {
                     onChange={e => setEditableContent(e.target.value)} 
                     className="w-full h-32 md:h-40 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[28px] outline-none focus:border-slate-900 font-bold text-base md:text-lg leading-relaxed shadow-inner" 
                   />
+
+                  {/* Hashtags Section */}
+                  {selectedVariation.suggestedHashtags && (
+                    <div className="flex flex-col gap-3 p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                      <div className="flex items-center gap-2">
+                        <Wand size={14} className="text-purple-600" />
+                        <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Hashtags מומלצים</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPlatforms.map(platform => {
+                          const platformHashtags = platform === 'facebook' ? selectedVariation.suggestedHashtags?.facebook :
+                                                  platform === 'instagram' ? selectedVariation.suggestedHashtags?.instagram :
+                                                  platform === 'linkedin' ? selectedVariation.suggestedHashtags?.linkedin :
+                                                  selectedVariation.suggestedHashtags?.general;
+                          
+                          return platformHashtags?.map((tag, i) => (
+                            <button
+                              key={`${platform}-${i}`}
+                              onClick={() => {
+                                const hashtagText = tag.startsWith('#') ? tag : `#${tag}`;
+                                setEditableContent(prev => `${prev}\n${hashtagText}`);
+                              }}
+                              className="px-3 py-1.5 bg-white text-purple-700 rounded-lg text-xs font-bold border-2 border-purple-200 hover:bg-purple-100 hover:border-purple-400 transition-all"
+                              title="לחץ להוספה לתוכן"
+                            >
+                              {tag.startsWith('#') ? tag : `#${tag}`}
+                            </button>
+                          ));
+                        }).filter(Boolean)[0]}
+                      </div>
+                      <p className="text-[10px] text-purple-600 font-medium">💡 לחץ על hashtag להוספה אוטומטית לתוכן</p>
+                    </div>
+                  )}
                   
                   <div className="flex flex-col gap-4 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 mt-2">
                     <div className="flex items-center justify-between">

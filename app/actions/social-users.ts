@@ -29,7 +29,7 @@ export async function getOrCreateSocialSupabaseUserAction(
 }
 
 /**
- * Get user role from social_users table (Server Action - bypasses RLS with SERVICE_ROLE_KEY)
+ * Get user role from organization_users table (Server Action - bypasses RLS with SERVICE_ROLE_KEY)
  * Role is stored in social_users table: 'super_admin' | 'owner' | 'team_member'
  */
 export async function getOrganizationUserRoleFromSupabaseAction(

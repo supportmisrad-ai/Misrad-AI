@@ -19,7 +19,7 @@ export default function OrgImpersonateButton(props: {
   const handle = async () => {
     const clientId = props.clientId;
     if (!clientId) {
-      addToast('לא נמצא clientId לארגון (לא ניתן להתחבר)', 'error');
+      addToast('לא נמצא מזהה לקוח לארגון (לא ניתן להתחזות)', 'error');
       return;
     }
 
@@ -33,7 +33,7 @@ export default function OrgImpersonateButton(props: {
         return;
       }
 
-      addToast('נכנסת למצב התחזות - מעביר ל-workspace...', 'success');
+      addToast('נכנסת למצב התחזות - מעביר למרחב העבודה...', 'success');
       router.push(`/w/${encodeURIComponent(String(orgSlug))}/nexus`);
     } catch (e: any) {
       addToast(e?.message || 'שגיאה בהתחזות', 'error');
@@ -53,10 +53,10 @@ export default function OrgImpersonateButton(props: {
           ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
           : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100'
       }`}
-      title="התחבר"
+      title="התחזות"
     >
       <Eye size={16} />
-      התחבר
+      התחזות
     </Button>
   );
 }

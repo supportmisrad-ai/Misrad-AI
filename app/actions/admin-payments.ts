@@ -44,7 +44,7 @@ async function logAdminPaymentAction(params: {
   metadata?: Record<string, unknown>;
 }) {
   try {
-    await prisma.social_sync_logs.create({
+    await prisma.socialMediaSyncLog.create({
       data: {
         user_id: params.userId,
         integration_name: 'admin_payments',
@@ -85,11 +85,11 @@ export async function getAllPayments(): Promise<
 
     await requireSuperAdmin();
 
-    const paymentOrdersRows = await prisma.social_payment_orders.findMany({
+    const paymentOrdersRows = await prisma.socialMediaPaymentOrder.findMany({
       orderBy: { created_at: 'desc' },
     });
 
-    const invoiceRows = await prisma.social_invoices.findMany({
+    const invoiceRows = await prisma.socialMediaInvoice.findMany({
       orderBy: { created_at: 'desc' },
     });
 
@@ -180,7 +180,7 @@ export async function updatePaymentOrderStatus(
 
     await requireSuperAdmin();
 
-    const existing = await prisma.social_payment_orders.findUnique({
+    const existing = await prisma.socialMediaPaymentOrder.findUnique({
       where: { id: String(parsed.data.orderId) },
       select: { id: true, client_id: true },
     });
@@ -200,7 +200,7 @@ export async function updatePaymentOrderStatus(
       return createErrorResponse(null, 'Tenant Isolation lockdown: להזמנת תשלום אין organization_id');
     }
 
-    await prisma.social_payment_orders.update({
+    await prisma.socialMediaPaymentOrder.update({
       where: { id: String(parsed.data.orderId) },
       data: { status: parsed.data.status, updated_at: new Date() },
     });
@@ -240,7 +240,7 @@ export async function updateInvoiceStatus(
 
     await requireSuperAdmin();
 
-    const existing = await prisma.social_invoices.findUnique({
+    const existing = await prisma.socialMediaInvoice.findUnique({
       where: { id: String(parsed.data.invoiceId) },
       select: { id: true, client_id: true },
     });
@@ -260,7 +260,7 @@ export async function updateInvoiceStatus(
       return createErrorResponse(null, 'Tenant Isolation lockdown: לחשבונית אין organization_id');
     }
 
-    await prisma.social_invoices.update({
+    await prisma.socialMediaInvoice.update({
       where: { id: String(parsed.data.invoiceId) },
       data: { status: parsed.data.status },
     });

@@ -1,11 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Heebo, Inter } from "next/font/google";
 import "./globals.css";
 import { getSystemMetadata, getThemeColor } from '@/lib/metadata';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { ReactQueryProvider } from '@/contexts/ReactQueryProvider';
 import { ClientOnlyClerkWidgets, ClientOnlyGlobalWidgets } from './ClientOnlyWidgets';
+import { ClerkProviderWithRouter } from './ClerkProviderWithRouter';
 
 // Heebo - Main text font (font-sans)
 // Geometric modern font with excellent Hebrew/English support, critical for RTL interface
@@ -21,6 +21,7 @@ const inter = Inter({
   variable: "--font-mono",
   subsets: ["latin"],
   display: "swap",
+  preload: false,
 });
 
 export const metadata: Metadata = getSystemMetadata();
@@ -38,6 +39,9 @@ export default function RootLayout({
   // This prevents build-time errors and runtime crashes when env vars are not set
   const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
+  const isProd = process.env.NODE_ENV === 'production';
+  const clerkDomain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'misrad-ai.com';
+
   const signInUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/login';
   const signInUrl = signInUrlRaw.startsWith('/sign-in') ? '/login' : signInUrlRaw;
   const signUpUrlRaw = process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/login?mode=sign-up';
@@ -45,12 +49,10 @@ export default function RootLayout({
   const signInFallbackRedirectUrl =
     process.env.CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ||
     process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ||
-    process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL ||
     '/';
   const signUpFallbackRedirectUrl =
     process.env.CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
     process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ||
-    process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL ||
     '/';
 
   return (
@@ -59,8 +61,9 @@ export default function RootLayout({
         <ToastProvider>
           <ReactQueryProvider>
           {clerkPublishableKey ? (
-            <ClerkProvider
+            <ClerkProviderWithRouter
               publishableKey={clerkPublishableKey}
+              {...(isProd ? { domain: clerkDomain, isSatellite: false } : {})}
               signInUrl={signInUrl}
               signUpUrl={signUpUrl}
               signInFallbackRedirectUrl={signInFallbackRedirectUrl}
@@ -68,7 +71,7 @@ export default function RootLayout({
             >
               {children}
               <ClientOnlyClerkWidgets />
-            </ClerkProvider>
+            </ClerkProviderWithRouter>
           ) : (
             <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
               <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

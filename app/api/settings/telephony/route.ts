@@ -7,8 +7,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { prisma } from '../../../../lib/prisma';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 import { queryRawTenantScoped } from '@/lib/prisma';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';

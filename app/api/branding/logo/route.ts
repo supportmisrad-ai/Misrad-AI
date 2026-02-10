@@ -24,7 +24,7 @@ function readGlobalBrandingValue(input: unknown): GlobalBrandingValue {
 
 async function GETHandler() {
   try {
-    const row = await prisma.social_system_settings.findUnique({
+    const row = await prisma.coreSystemSettings.findUnique({
       where: { key: GLOBAL_BRANDING_KEY },
       select: { value: true },
     });
@@ -65,7 +65,7 @@ async function PATCHHandler(request: NextRequest) {
           isSuperAdmin: true,
         },
         async () =>
-          await prisma.social_system_settings.upsert({
+          await prisma.coreSystemSettings.upsert({
             where: { key: GLOBAL_BRANDING_KEY },
             create: {
               key: GLOBAL_BRANDING_KEY,

@@ -106,7 +106,7 @@ export interface AppUpdate {
  */
 export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate[]; error?: string }> {
   try {
-    const updates = await prisma.social_app_updates.findMany({
+    const updates = await prisma.appUpdate.findMany({
       where: { is_published: true },
       orderBy: { published_at: 'desc' },
       select: { id: true, version: true, title: true, description: true, category: true, priority: true, published_at: true },
@@ -154,13 +154,13 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
       return { success: false, error: 'שגיאה בקבלת משתמש' };
     }
 
-    const updates = await prisma.social_app_updates.findMany({
+    const updates = await prisma.appUpdate.findMany({
       where: { is_published: true },
       orderBy: { published_at: 'desc' },
       select: { id: true, version: true, title: true, description: true, category: true, priority: true, published_at: true },
     });
 
-    const viewedUpdates = await prisma.social_user_update_views.findMany({
+    const viewedUpdates = await prisma.userUpdateView.findMany({
       where: { user_id: socialUserId },
       select: { update_id: true },
     });
@@ -226,7 +226,7 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
       },
     } satisfies Prisma.social_user_update_viewsWhereUniqueInput;
 
-    await prisma.social_user_update_views.upsert({
+    await prisma.userUpdateView.upsert({
       where,
       create: {
         user_id: socialUserId,
@@ -266,12 +266,12 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
       return { success: true, count: 0 };
     }
 
-    const updates = await prisma.social_app_updates.findMany({
+    const updates = await prisma.appUpdate.findMany({
       where: { is_published: true },
       select: { id: true },
     });
 
-    const viewedUpdates = await prisma.social_user_update_views.findMany({
+    const viewedUpdates = await prisma.userUpdateView.findMany({
       where: { user_id: socialUserId },
       select: { update_id: true },
     });

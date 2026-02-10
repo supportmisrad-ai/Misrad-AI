@@ -5,21 +5,34 @@ import { useRouter } from 'next/navigation';
 import { Building2, Copy, Plus, X } from 'lucide-react';
 import { useData } from '@/context/DataContext';
 import { createOrganizationOrInviteOwner } from '@/app/actions/admin-organizations';
+import type { OrganizationWithOwner } from '@/app/actions/admin-organizations';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 import AdminToolbar from '@/components/admin/AdminToolbar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { generateOrgSlug } from '@/lib/shared/orgSlug';
 
+type CreateOrganizationOrInviteOwnerResult = Awaited<ReturnType<typeof createOrganizationOrInviteOwner>>;
+
+const MODULE_LABELS: Record<string, string> = {
+  nexus: 'נקסוס',
+  system: 'מערכת',
+  social: 'סושיאל',
+  finance: 'פיננסים',
+  client: 'לקוחות',
+  operations: 'תפעול',
+};
+
 export default function AdminOrganizationsClient(props: {
-  orgs: any[];
+  orgs: OrganizationWithOwner[];
+  initialOpen?: boolean;
 }) {
   const router = useRouter();
   const { addToast } = useData();
 
   const orgs = Array.isArray(props.orgs) ? props.orgs : [];
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(Boolean(props.initialOpen));
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState('');
@@ -52,7 +65,7 @@ export default function AdminOrganizationsClient(props: {
 
     startTransition(async () => {
       try {
-        const res: any = await createOrganizationOrInviteOwner({
+        const res: CreateOrganizationOrInviteOwnerResult = await createOrganizationOrInviteOwner({
           name: name.trim(),
           slug: slug.trim(),
           ownerEmail: ownerEmail.trim(),
@@ -63,10 +76,10 @@ export default function AdminOrganizationsClient(props: {
           return;
         }
 
-        const kind = res?.data?.kind as 'organization' | 'invitation' | undefined;
+        const kind = res.data.kind;
 
         if (kind === 'organization') {
-          addToast('הארגון נוצר ושויך לבעלים', 'success');
+          addToast('הלקוח והארגון נוצרו בהצלחה', 'success');
           setLastInviteUrl(null);
         } else if (kind === 'invitation') {
           const url = String(res?.data?.signupUrl || '');
@@ -79,8 +92,9 @@ export default function AdminOrganizationsClient(props: {
         setIsOpen(false);
         resetForm();
         router.refresh();
-      } catch (e: any) {
-        addToast(e?.message || 'שגיאה', 'error');
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'שגיאה';
+        addToast(msg, 'error');
       }
     });
   };
@@ -97,7 +111,7 @@ export default function AdminOrganizationsClient(props: {
 
   return (
     <div className="space-y-6 pb-24">
-      <AdminPageHeader title="ארגונים" subtitle="ניהול ארגונים גלובלי" icon={Building2} />
+      <AdminPageHeader title="ארגונים" subtitle="ניהול ארגונים ולקוחות" icon={Building2} />
 
       <AdminToolbar
         actions={
@@ -111,7 +125,7 @@ export default function AdminOrganizationsClient(props: {
             }}
           >
             <Plus size={18} />
-            הוסף ארגון
+            הוסף לקוח חדש
           </Button>
         }
       />
@@ -119,7 +133,7 @@ export default function AdminOrganizationsClient(props: {
       {lastInviteUrl ? (
         <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-xs font-black text-slate-500">קישור הרשמה (Invite)</div>
+            <div className="text-xs font-black text-slate-500">קישור הרשמה</div>
             <div className="text-sm font-bold text-slate-900 truncate" dir="ltr">
               {lastInviteUrl}
             </div>
@@ -136,7 +150,7 @@ export default function AdminOrganizationsClient(props: {
           <div className="bg-white border border-slate-200 rounded-2xl p-4 text-sm font-bold text-slate-600">אין ארגונים להצגה</div>
         ) : (
           <div className="space-y-3">
-            {orgs.map((o: any) => {
+            {orgs.map((o) => {
               const mods = [
                 o?.has_nexus ? 'nexus' : null,
                 o?.has_system ? 'system' : null,
@@ -144,15 +158,17 @@ export default function AdminOrganizationsClient(props: {
                 o?.has_finance ? 'finance' : null,
                 o?.has_client ? 'client' : null,
                 o?.has_operations ? 'operations' : null,
-              ].filter(Boolean);
+              ].filter((x): x is string => Boolean(x));
               const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
               return (
                 <div key={String(o.id)} className="bg-white border border-slate-200 rounded-2xl p-4">
                   <div className="text-sm font-black text-slate-900 truncate">{String(o.name || '')}</div>
-                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">slug: {o.slug || '-'}</div>
+                  <div className="text-xs font-bold text-slate-600 truncate">כתובת: {o.slug || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">בעלים: {ownerName || '-'}</div>
                   <div className="mt-1 text-xs font-bold text-slate-600 truncate">חברים: {Number(o.membersCount ?? 0)}</div>
-                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">מודולים: {mods.length ? mods.join(', ') : '-'}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-600 truncate">
+                    מודולים: {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
+                  </div>
                 </div>
               );
             })}
@@ -166,14 +182,14 @@ export default function AdminOrganizationsClient(props: {
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">שם</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-600">Slug</th>
+                <th className="px-4 py-3 text-xs font-black text-slate-600">כתובת</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">בעלים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">חברים</th>
                 <th className="px-4 py-3 text-xs font-black text-slate-600">מודולים</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {orgs.map((o: any) => {
+              {orgs.map((o) => {
                 const mods = [
                   o?.has_nexus ? 'nexus' : null,
                   o?.has_system ? 'system' : null,
@@ -181,7 +197,7 @@ export default function AdminOrganizationsClient(props: {
                   o?.has_finance ? 'finance' : null,
                   o?.has_client ? 'client' : null,
                   o?.has_operations ? 'operations' : null,
-                ].filter(Boolean);
+                ].filter((x): x is string => Boolean(x));
 
                 const ownerName = o?.owner?.full_name || o?.owner?.email || o?.owner_id || '';
 
@@ -191,7 +207,9 @@ export default function AdminOrganizationsClient(props: {
                     <td className="px-4 py-3 text-sm text-slate-700">{o.slug || '-'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{ownerName}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{Number(o.membersCount ?? 0)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{mods.length ? mods.join(', ') : '-'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {mods.length ? mods.map((m) => MODULE_LABELS[m] || m).join(', ') : '-'}
+                    </td>
                   </tr>
                 );
               })}
@@ -216,7 +234,7 @@ export default function AdminOrganizationsClient(props: {
                 <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
                   <Building2 size={18} className="text-indigo-700" />
                 </div>
-                <div className="text-lg font-black text-slate-900">הוספת ארגון</div>
+                <div className="text-lg font-black text-slate-900">הוספת לקוח חדש</div>
               </div>
 
               <Button
@@ -232,41 +250,51 @@ export default function AdminOrganizationsClient(props: {
 
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">שם הארגון</label>
+                <label className="block text-xs font-black text-slate-600 mb-2">שם הלקוח/ארגון <span className="text-red-500">*</span></label>
                 <Input
                   value={name}
                   onChange={(e) => onNameChange(e.target.value)}
-                  placeholder="שם הארגון"
+                  placeholder="לדוגמה: סטודיו יוגה שלומית"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">Slug</label>
+                <label className="block text-xs font-black text-slate-600 mb-2">כתובת (מזהה) <span className="text-red-500">*</span></label>
                 <Input
                   value={slug}
                   onChange={(e) => {
                     setSlugTouched(true);
                     setSlug(e.target.value);
                   }}
-                  placeholder="slug"
+                  placeholder="studio-yoga-shlomit"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-600 mb-2">אימייל בעלים</label>
+                <label className="block text-xs font-black text-slate-600 mb-2">אימייל בעלים <span className="text-red-500">*</span></label>
                 <Input
                   value={ownerEmail}
                   onChange={(e) => setOwnerEmail(e.target.value)}
-                  placeholder="owner@email.com"
+                  placeholder="owner@example.com"
+                  type="email"
+                  required
                 />
+                <p className="text-xs text-slate-500 mt-1">חובה! ישמש ליצירת חשבון הלקוח</p>
               </div>
             </div>
 
             <div className="p-5 border-t border-slate-200">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-3">
+                <p className="text-xs text-blue-900 font-bold">
+                  💡 פעולה זו תיצור: <strong>לקוח חדש</strong> (client_clients) + <strong>ארגון</strong> (organization) + קישור ביניהם
+                </p>
+              </div>
               <div className="pt-2 flex gap-2">
                 <Button disabled={!canSubmit || isPending} onClick={onSubmit} className="flex-1">
                   <Plus size={18} />
-                  צור
+                  {isPending ? 'יוצר...' : 'צור לקוח + ארגון'}
                 </Button>
                 <Button
                   variant="outline"

@@ -36,7 +36,7 @@ export async function getTasks(orgSlug?: string, clientId?: string): Promise<{ s
       return { success: false, error: 'Missing organizationId' };
     }
 
-    const rows: SocialTaskRow[] = await prisma.social_tasks.findMany({
+    const rows: SocialTaskRow[] = await prisma.socialMediaTask.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: clientId } : {}),

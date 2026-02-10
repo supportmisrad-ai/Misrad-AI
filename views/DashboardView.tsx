@@ -9,6 +9,7 @@ import { Clock, TrendingUp, Users, Target, ArrowRight, Zap, Trophy, ExternalLink
 import { Status, Priority, LeadStatus, User as UserType, type ModuleId } from '../types';
 import { TaskCard } from '../components/nexus/TaskCard';
 import { HoldButton } from '../components/HoldButton';
+import { useAuth as useClerkAuth } from '@clerk/nextjs';
 import { getWorkspaceOrgSlugFromPathname, useNexusNavigation } from '@/lib/os/nexus-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
 import { upsertMyProfile } from '@/app/actions/profiles';
@@ -190,17 +191,23 @@ const TrendChart = ({ data, color }: { data: number[], color: string }) => {
     );
 };
 
-export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ initialOwnerDashboard }) => {
+export const DashboardView: React.FC<{
+    initialOwnerDashboard?: unknown;
+    initialOnboardingTemplateKey?: string | null;
+    initialBillingItems?: unknown[] | null;
+}> = ({ initialOwnerDashboard, initialOnboardingTemplateKey, initialBillingItems }) => {
     const renderCountRef = useRef(0);
     renderCountRef.current += 1;
-    if (renderCountRef.current === 1 || renderCountRef.current % 10 === 0) {
+    if (typeof window !== 'undefined' && renderCountRef.current <= 2) {
         console.log('[Nexus][DashboardView] render', { count: renderCountRef.current });
     }
 
     const { currentUser, activeShift, clockIn, clockOut, tasks, leads, clients, products, monthlyGoals, updateMonthlyGoals, hasPermission, setShowMorningBrief, openTask, analysisHistory, openCreateTask, organization, addToast, startTutorial } = useData();
+    const { isLoaded: isClerkLoaded, isSignedIn } = useClerkAuth();
     const [users, setUsers] = useState<UserType[]>([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const { navigate, pathname } = useNexusNavigation();
+    const authEffectKey = `${isClerkLoaded ? 1 : 0}:${isSignedIn ? 1 : 0}:${pathname || ''}`;
     const workspaceOrgSlug = getWorkspaceOrgSlugFromPathname(pathname);
     const isHomeDashboard = useRef(false);
     isHomeDashboard.current = typeof pathname === 'string' ? /\/nexus\/?$/.test(pathname) : false;
@@ -307,11 +314,16 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
     const onboardingPersistedRef = useRef(false);
     const onboardingKey = 'nexusOnboarding';
 
-    const [onboardingTemplate, setOnboardingTemplate] = useState<string | null>(null);
+    const [onboardingTemplate, setOnboardingTemplate] = useState<string | null>(() => {
+        const v = initialOnboardingTemplateKey;
+        return typeof v === 'string' && v.trim() ? v : null;
+    });
     const [isLoadingOnboardingTemplate, setIsLoadingOnboardingTemplate] = useState(false);
     const [isApplyingOnboardingTemplate, setIsApplyingOnboardingTemplate] = useState(false);
 
-    const [billingItems, setBillingItems] = useState<unknown[] | null>(null);
+    const [billingItems, setBillingItems] = useState<unknown[] | null>(() => {
+        return Array.isArray(initialBillingItems) ? initialBillingItems : null;
+    });
     const [isLoadingBillingItems, setIsLoadingBillingItems] = useState(false);
     
     // Logo Reminder State
@@ -327,6 +339,9 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
     }, []);
 
     useEffect(() => {
+        if (initialOnboardingTemplateKey !== undefined) return;
+        if (onboardingTemplate) return;
+        if (!isClerkLoaded || !isSignedIn) return;
         const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
@@ -353,9 +368,12 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
         return () => {
             cancelled = true;
         };
-    }, [pathname]);
+    }, [authEffectKey, initialOnboardingTemplateKey, onboardingTemplate]);
 
     useEffect(() => {
+        if (initialBillingItems !== undefined) return;
+        if (billingItems) return;
+        if (!isClerkLoaded || !isSignedIn) return;
         const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);
         if (!orgSlug) return;
 
@@ -382,7 +400,7 @@ export const DashboardView: React.FC<{ initialOwnerDashboard?: unknown }> = ({ i
         return () => {
             cancelled = true;
         };
-    }, [pathname]);
+    }, [authEffectKey, initialBillingItems, billingItems]);
 
     const applyNexusOnboardingTemplate = async (templateKey: 'retainer_fixed' | 'deliverables_package') => {
         const orgSlug = getWorkspaceOrgSlugFromPathname(pathname);

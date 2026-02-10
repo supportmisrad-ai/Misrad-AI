@@ -9,9 +9,9 @@ import { getModuleDefinition } from '@/lib/os/modules/registry';
 export const dynamic = 'force-dynamic';
 
 /**
- * Nexus OS Layout
+ * Nexus Module Layout
  * 
- * This layout wraps all Nexus OS routes.
+ * This layout wraps all Nexus module routes.
  * The actual Layout component is used inside app/app/page.tsx with react-router.
  */
 

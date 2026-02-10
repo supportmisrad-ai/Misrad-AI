@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireSuperAdmin } from '../../../../../lib/auth';
+import { requireSuperAdmin } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 

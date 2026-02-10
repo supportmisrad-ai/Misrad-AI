@@ -48,7 +48,7 @@ async function main() {
   try {
     console.log('🔍 Looking for user: itsikdahan1@gmail.com\n');
     
-    const user = await prisma.social_users.findFirst({
+    const user = await prisma.organizationUser.findFirst({
       where: {
         email: {
           contains: 'itsikdahan1',

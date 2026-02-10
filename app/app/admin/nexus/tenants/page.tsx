@@ -1,8 +1,8 @@
 import React from 'react';
-import AdminNexusTenantsPageClient from './AdminNexusTenantsPageClient';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminNexusTenantsPage() {
-  return <AdminNexusTenantsPageClient />;
+  redirect('/app/admin/tenants');
 }

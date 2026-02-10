@@ -31,7 +31,7 @@ async function main() {
             mode: 'global_admin',
             isSuperAdmin: true,
         }, async () => {
-            return await prisma.social_users.findMany((0, prisma_tenant_guard_1.withPrismaTenantIsolationOverride)({
+            return await prisma.organizationUser.findMany((0, prisma_tenant_guard_1.withPrismaTenantIsolationOverride)({
                 where: query
                     ? {
                         OR: [

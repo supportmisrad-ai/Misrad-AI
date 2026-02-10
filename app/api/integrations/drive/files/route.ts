@@ -12,8 +12,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
-import { listDriveFiles, searchDriveFiles } from '../../../../../lib/integrations/google-drive';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { listDriveFiles, searchDriveFiles } from '@/lib/integrations/google-drive';
 import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';

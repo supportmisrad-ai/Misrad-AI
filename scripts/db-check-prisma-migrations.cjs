@@ -165,7 +165,7 @@ async function runCheck(label) {
     const socialUsersIdConstraintRows = await prisma.$queryRawUnsafe(
       "SELECT c.conname, c.contype, pg_get_constraintdef(c.oid) AS def " +
         "FROM pg_constraint c " +
-        "WHERE c.conrelid = 'public.social_users'::regclass " +
+        "WHERE c.conrelid = 'public.organization_users'::regclass " +
         "AND c.contype IN ('p','u');"
     );
 
@@ -175,7 +175,7 @@ async function runCheck(label) {
     });
 
     const dupeIdRows = await prisma.$queryRawUnsafe(
-      "SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.social_users GROUP BY id HAVING COUNT(*) > 1) t;"
+      "SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.organization_users GROUP BY id HAVING COUNT(*) > 1) t;"
     );
     result.socialUsersDuplicateIdCount = dupeIdRows?.[0]?.dupes ?? null;
 
@@ -186,12 +186,12 @@ async function runCheck(label) {
       const referenced = String(r.referenced_table || '').toLowerCase();
       return (
         r.conname === 'organizations_owner_id_fkey' &&
-        (referenced === 'public.social_users' || referenced === 'social_users')
+        (referenced === 'public.organization_users' || referenced === 'organization_users')
       );
     });
 
     const invalidRows = await prisma.$queryRawUnsafe(
-      "SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.social_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;"
+      "SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.organization_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;"
     );
     result.invalidOrganizationsOwnerIdCount = invalidRows?.[0]?.invalid_count ?? null;
 
@@ -217,7 +217,7 @@ async function runCheck(label) {
         "  su_fallback.clerk_user_id AS fallback_clerk_user_id,\n" +
         "  su_fallback.email AS fallback_email\n" +
         "FROM public.organizations o\n" +
-        "LEFT JOIN public.social_users su ON su.id = o.owner_id\n" +
+        "LEFT JOIN public.organization_users su ON su.id = o.owner_id\n" +
         "LEFT JOIN public.profiles p_owner ON p_owner.id = o.owner_id\n" +
         "LEFT JOIN LATERAL (\n" +
         "  SELECT p.*\n" +
@@ -226,10 +226,10 @@ async function runCheck(label) {
         "  ORDER BY CASE WHEN p.role = 'owner' THEN 0 ELSE 1 END, p.created_at ASC\n" +
         "  LIMIT 1\n" +
         ") p_candidate ON true\n" +
-        "LEFT JOIN public.social_users su_candidate ON su_candidate.clerk_user_id = p_candidate.clerk_user_id\n" +
+        "LEFT JOIN public.organization_users su_candidate ON su_candidate.clerk_user_id = p_candidate.clerk_user_id\n" +
         "LEFT JOIN LATERAL (\n" +
         "  SELECT su2.*\n" +
-        "  FROM public.social_users su2\n" +
+        "  FROM public.organization_users su2\n" +
         "  WHERE su2.organization_id = o.id\n" +
         "  ORDER BY su2.created_at ASC\n" +
         "  LIMIT 1\n" +

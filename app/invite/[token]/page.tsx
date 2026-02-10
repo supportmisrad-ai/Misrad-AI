@@ -402,7 +402,7 @@ export default function InvitePage() {
                 >
                     {/* Header with Nexus Branding */}
                     <div className="text-center mb-8">
-                        {/* Nexus OS Logo/Branding */}
+                        {/* MISRAD AI Logo/Branding */}
                         <div className="flex items-center justify-center gap-3 mb-6">
                             <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-xl shadow-indigo-900/50">
                                 <div className="w-6 h-6 bg-white rounded-full"></div>
@@ -653,7 +653,7 @@ export default function InvitePage() {
                                 <div className="w-3 h-3 bg-white rounded-full"></div>
                             </div>
                             <span className="text-sm font-bold text-slate-400">Powered by</span>
-                            <span className="text-sm font-black text-white">Nexus OS</span>
+                            <span className="text-sm font-black text-white">MISRAD AI</span>
                         </div>
                         <p className="text-xs text-slate-500">
                             מערכת ניהול עסקים מתקדמת • בטוח ומאובטח • תמיכה 24/7

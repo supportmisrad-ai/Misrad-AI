@@ -128,7 +128,7 @@ export async function getLiveKPIs(): Promise<{
     const activeClientsOnline = agg?.active_clients_online == null ? 0 : Number(agg.active_clients_online);
     const totalMRR = agg?.total_mrr == null ? 0 : Number(agg.total_mrr);
 
-    const metricsRow = await prisma.social_global_system_metrics.findFirst({
+    const metricsRow = await prisma.globalSystemMetric.findFirst({
       select: { gemini_token_usage: true },
       orderBy: { created_at: 'desc' },
     });
@@ -274,9 +274,13 @@ export async function getAllUsers(): Promise<{
               continue;
             }
 
-            // Check if user already exists in nexus_users
-            const existingMember = await prisma.nexusUser.findUnique({
-              where: { id: supabaseResult.userId },
+            // Check if user already exists in nexus_users by (organizationId, email)
+            const normalizedEmail = email.trim().toLowerCase();
+            const existingMember = await prisma.nexusUser.findFirst({
+              where: { 
+                organizationId,
+                email: normalizedEmail,
+              },
               select: { id: true },
             });
 
@@ -293,10 +297,9 @@ export async function getAllUsers(): Promise<{
 
             await prisma.nexusUser.create({
               data: {
-                id: supabaseResult.userId,
                 organizationId,
                 name: fullName,
-                email,
+                email: normalizedEmail,
                 role: 'account_manager',
                 avatar: typeof clerkObj.imageUrl === 'string' && clerkObj.imageUrl ? clerkObj.imageUrl : `https://i.pravatar.cc/150?u=${email}`,
                 createdAt,
@@ -591,7 +594,7 @@ export async function getFeatureUsageAnalytics(): Promise<{
     const total = copied + retried;
     const satisfactionRate = total > 0 ? (copied / total) * 100 : 0;
 
-    const feedback = await prisma.social_feedback.findMany({
+    const feedback = await prisma.socialMediaFeedback.findMany({
       orderBy: { created_at: 'desc' },
       take: 50,
     });
@@ -659,7 +662,7 @@ export async function getFeatureFlags(): Promise<{
     }
 
     await requireSuperAdmin();
-    const flags = await prisma.social_system_settings
+    const flags = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -757,7 +760,7 @@ export async function updateFeatureFlags(
     }
 
     await requireSuperAdmin();
-    const existing = await prisma.social_system_settings
+    const existing = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'feature_flags' }, select: { value: true, maintenance_mode: true, ai_enabled: true, banner_message: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -833,7 +836,7 @@ export async function updateFeatureFlags(
         isSuperAdmin: true,
       },
       async () =>
-        await prisma.social_system_settings.upsert({
+        await prisma.coreSystemSettings.upsert({
           where: { key: 'feature_flags' },
           create: {
             key: 'feature_flags',
@@ -874,7 +877,7 @@ export async function getSystemEmailSettings(): Promise<{
     }
 
     await requireSuperAdmin();
-    const row = await prisma.social_system_settings
+    const row = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -934,7 +937,7 @@ export async function updateSystemEmailSettings(input: {
     }
 
     await requireSuperAdmin();
-    const existing = await prisma.social_system_settings
+    const existing = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'system_email_settings' }, select: { value: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -973,7 +976,7 @@ export async function updateSystemEmailSettings(input: {
         isSuperAdmin: true,
       },
       async () =>
-        await prisma.social_system_settings.upsert({
+        await prisma.coreSystemSettings.upsert({
           where: { key: 'system_email_settings' },
           create: { key: 'system_email_settings', value: nextValueJson, updated_at: new Date() },
           update: { value: nextValueJson, updated_at: new Date() },
@@ -998,7 +1001,7 @@ export async function getModuleIcons(): Promise<{
     }
 
     await requireSuperAdmin();
-    const row = await prisma.social_system_settings
+    const row = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'module_icons' }, select: { value: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -1046,7 +1049,7 @@ export async function updateModuleIcons(params: {
     }
 
     await requireSuperAdmin();
-    const existing = await prisma.social_system_settings
+    const existing = await prisma.coreSystemSettings
       .findUnique({ where: { key: 'module_icons' }, select: { value: true } })
       .catch((error: unknown) => {
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
@@ -1088,7 +1091,7 @@ export async function updateModuleIcons(params: {
         isSuperAdmin: true,
       },
       async () =>
-        await prisma.social_system_settings.upsert({
+        await prisma.coreSystemSettings.upsert({
           where: { key: 'module_icons' },
           create: { key: 'module_icons', value: nextValueJson, updated_at: new Date() },
           update: { value: nextValueJson, updated_at: new Date() },

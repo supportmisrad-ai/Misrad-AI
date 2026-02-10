@@ -360,7 +360,7 @@ async function upsertProfileForClerkUser(params: {
 
   const tempOrgId = crypto.randomUUID();
   const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
-    const organizationUser = tx.social_users;
+    const organizationUser = tx.organizationUser;
     const organization = tx.social_organizations;
 
     const createdSocialUser = await organizationUser.create({
@@ -386,7 +386,7 @@ async function upsertProfileForClerkUser(params: {
         has_nexus: pendingPlan ? hasModule('nexus') : true,
         has_system: pendingPlan ? hasModule('system') : false,
         has_social: pendingPlan ? hasModule('social') : false,
-        has_finance: pendingPlan ? hasModule('finance') : false,
+        has_finance: pendingPlan ? true : false, // Finance is a free bonus for any paid package
         has_client: pendingPlan ? hasModule('client') : false,
         has_operations: pendingPlan ? hasModule('operations') : false,
         subscription_status: 'trial',

@@ -70,7 +70,7 @@ export async function getNexusOnboardingTemplate(workspaceId: string): Promise<N
   const legacyKey = getNexusOnboardingSettingsKey(workspaceId);
   let legacy: { value: unknown } | null = null;
   try {
-    legacy = await prisma.social_system_settings.findUnique({
+    legacy = await prisma.coreSystemSettings.findUnique({
       where: { key: legacyKey },
       select: { value: true },
     });
@@ -119,7 +119,7 @@ export async function setNexusOnboardingTemplate(params: {
 
   // Fallback: legacy storage
   const legacyKey = getNexusOnboardingSettingsKey(params.workspaceId);
-  await prisma.social_system_settings.upsert({
+  await prisma.coreSystemSettings.upsert({
     where: { key: legacyKey },
     update: {
       value: {

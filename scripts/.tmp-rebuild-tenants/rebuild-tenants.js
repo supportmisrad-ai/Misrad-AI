@@ -76,7 +76,7 @@ async function main() {
             const subdomain = makeUniqueSlug({ base: desiredSlug, orgId, taken });
             let ownerEmail = '';
             try {
-                const owner = await prisma.social_users.findUnique({
+                const owner = await prisma.organizationUser.findUnique({
                     where: { id: String(org.owner_id) },
                     select: { email: true },
                 });

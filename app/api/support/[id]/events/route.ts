@@ -6,7 +6,7 @@ import prisma, { queryRawTenantScoped } from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { isTenantAdminRole } from '@/lib/constants/roles';
-import type { SupportTicketEvent } from '../../../../../types';
+import type { SupportTicketEvent } from '@/types';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/shared/unknown';

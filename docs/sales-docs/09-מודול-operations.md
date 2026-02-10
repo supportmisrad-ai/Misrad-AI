@@ -1,0 +1,193 @@
+# 🔧 Operations — תפעול ושטח
+
+> **מחיר:** ₪149/חודש (סולו) | כלול בחבילת תפעול, חבילת הכל  
+> **משתמשים:** 1 (סולו) או 5 (בחבילה)  
+> 🎁 + מודול Finance במתנה לכל לקוח  
+> **תפקיד:** ניהול קריאות שירות, מלאי, טכנאים בשטח, Kiosk Mode ופקודות קוליות
+
+---
+
+## מסכים ופיצ'רים
+
+### 1. Work Orders — קריאות שירות
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **יצירה מהירה** | כותרת + לקוח + כתובת = 30 שניות |
+| **הקצאה לטכנאי** | `assigned_to` — בחר טכנאי |
+| **מיקום** | כתובת + GPS (`latitude`, `longitude`) |
+| **עדיפות** | Low / Normal / High / Urgent |
+| **תזמון** | `scheduled_at` — מתי לבצע |
+| **צירוף תמונות** | `work_order_attachments` — לפני/אחרי |
+| **חתימת לקוח** | `completion_signature_url` — חתימה דיגיטלית |
+| **הערות סיום** | `completion_notes` — מה נעשה |
+| **עלויות** | `estimated_cost` / `actual_cost` |
+| **Check-ins** | `work_order_checkins` — מעקב GPS טכנאי |
+| **משיכת מלאי** | `stock_movements` — חלפים שהשתמשו |
+
+**סטטוסים:**
+```
+New → Assigned → In Progress → Completed ✅
+                              → Canceled ❌
+```
+
+**Server Action — יצירה:**
+```typescript
+'use server';
+export async function createWorkOrder(data: WorkOrderInput) {
+  const orgId = await getOrganizationId();
+  return prisma.operationsWorkOrder.create({
+    data: {
+      ...data,
+      organizationId: orgId,
+      status: 'new',
+    }
+  });
+}
+```
+
+### 2. Kiosk Mode ⭐ (ייחודי!)
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **ממשק פשוט** | מסך מותאם לטכנאי בשטח |
+| **Check-In GPS** | לחץ → מיקום נרשם אוטומטית |
+| **צפייה בקריאה** | פרטי לקוח, כתובת, תיאור |
+| **עדכון סטטוס** | כפתור אחד — "התחלתי" / "סיימתי" |
+| **צילום** | צלם לפני/אחרי ישירות מהטלפון |
+| **חתימה** | לקוח חותם על המסך |
+| **ללא הדרכה** | כל כך פשוט שלא צריך ללמד |
+
+> **למה זה ייחודי?** ServiceMax ו-Jobber לא מציעים Kiosk Mode מובנה.  
+> טכנאי בשטח צריך ממשק פשוט — לא CRM מורכב.
+
+### 3. Voice Commands ⭐ (ייחודי!)
+
+| פקודה | פעולה |
+|--------|--------|
+| "צור קריאה חדשה" | יצירת Work Order |
+| "סמן הושלם" | עדכון סטטוס ל-Completed |
+| "הוסף הערה" | רישום הערה קולית |
+| "מה הקריאה הבאה?" | הצגת הקריאה הבאה |
+
+**שפה:** עברית ✅ | אנגלית ✅
+
+> **למה זה חשוב?** טכנאי עם ידיים מלוכלכות/תפוסות — פקודות קול = פתרון.
+
+### 4. ניהול מלאי
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **פריטים** | שם, קטגוריה, יחידת מידה, מחיר |
+| **מעקב כמות** | כמה יש? כמה מינימום? |
+| **מחסנים** | `stock_holders` — מספר מחסנים/רכבים |
+| **משיכות** | משיכת חלק מהמלאי לקריאת שירות |
+| **העברות** | `transfers` — העבר בין מחסנים |
+| **ספקים** | `OperationsSupplier` — ניהול ספקים |
+| **התראות** | כשהמלאי יורד מתחת למינימום |
+
+### 5. MISRAD Connect — Portal קבלנים ⭐
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **גישה לקבלנים** | קבלן חיצוני מקבל גישה מוגבלת |
+| **צפייה בקריאות** | רק הקריאות שהוקצו לו |
+| **דיווח** | קבלן מדווח התקדמות |
+| **סוג יוצר** | `createdByType: CONTRACTOR` — הפרדה בין פנימי לחיצוני |
+
+### 6. ניהול רכבים
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **כרטיס רכב** | דגם, לוחית, שנה |
+| **קילומטרז'** | מעקב |
+| **תחזוקה** | תאריך טיפול הבא, תזכורות |
+| **הקצאה** | איזה טכנאי נוהג באיזה רכב |
+
+### 7. Dashboard תפעול
+
+| רכיב | תיאור |
+|-------|--------|
+| **קריאות פתוחות** | כמה חדשות / בטיפול / דחופות |
+| **טכנאים בשטח** | מי Check-In, מי פנוי |
+| **מלאי נמוך** | פריטים מתחת למינימום |
+| **עלויות** | סיכום עלויות החודש |
+
+---
+
+## מודל נתונים
+
+```sql
+operations_work_orders:
+  id, organization_id
+  title, description
+  client_id, client_name, client_phone
+  address, latitude, longitude
+  assigned_to, status, priority
+  scheduled_at, started_at, completed_at
+  completion_notes, completion_signature_url
+  estimated_cost, actual_cost
+
+operations_work_order_attachments:
+  id, work_order_id
+  storage_path, url, mime_type
+  created_by_type (INTERNAL/CONTRACTOR)
+
+operations_work_order_checkins:
+  id, work_order_id
+  technician_id, latitude, longitude, timestamp
+
+operations_inventory:
+  id, organization_id
+  item_name, category, unit
+  quantity, min_quantity, price
+
+operations_suppliers:
+  id, organization_id, name, phone, email
+
+operations_vehicles:
+  id, organization_id
+  model, plate, year, assigned_to
+```
+
+---
+
+## תהליכי עבודה
+
+### תהליך: קריאת שירות מלאה
+```
+1. לקוח מתקשר → מוקדן יוצר Work Order
+2. הקצאה לטכנאי (לפי זמינות/מיקום)
+3. טכנאי מקבל התראה (Push)
+4. טכנאי פותח Kiosk → Check-In GPS
+5. טכנאי מבצע עבודה
+6. צילום לפני/אחרי
+7. משיכת חלפים מהמלאי
+8. חתימת לקוח
+9. סימון Completed
+10. חשבונית אוטומטית (Finance)
+```
+
+### תהליך: ניהול מלאי
+```
+1. קבלת סחורה מספק → הוספה למלאי
+2. טכנאי משתמש בחלק → משיכה
+3. מלאי יורד מתחת למינימום → התראה
+4. הזמנה חדשה מספק
+```
+
+---
+
+## למי זה מתאים?
+
+| ✅ מתאים | ❌ לא מתאים |
+|----------|-------------|
+| תחזוקה ושירות (HVAC, חשמל, אינסטלציה) | ייצור (צריך ERP) |
+| טכנאים בשטח (5-50 טכנאים) | לוגיסטיקה מורכבת (צריך WMS) |
+| קבלנות (בנייה, שיפוצים) | |
+| ניקיון תעשייתי | |
+| שירותי IT בשטח | |
+
+---
+
+📖 **המשך:** [מבנה תמחור →](./10-מבנה-תמחור.md)

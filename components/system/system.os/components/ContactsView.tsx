@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Lead, PipelineStage } from '../types';
 import { STAGES } from '../constants';
 import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
@@ -10,6 +9,11 @@ interface ContactsViewProps {
   leads: Lead[];
   viewMode?: 'all' | 'leads' | 'contacts';
   onLeadClick: (lead: Lead) => void;
+}
+
+function getStageLabel(status: PipelineStage): string {
+  const s = STAGES.find((x) => x.id === status);
+  return s?.label || String(status || '');
 }
 
 const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', onLeadClick }) => {
@@ -132,15 +136,15 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                                     lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                                     lead.status === 'lost' ? 'bg-slate-100 text-slate-500 border-slate-200' :
                                     lead.status === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                    'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                    STAGES.some((s) => s.id === lead.status) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-700 border-slate-200'
                                 }`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${
                                         lead.status === 'won' ? 'bg-emerald-500' :
                                         lead.status === 'lost' ? 'bg-slate-400' :
                                         lead.status === 'negotiation' ? 'bg-amber-500' :
-                                        'bg-indigo-500'
+                                        STAGES.some((s) => s.id === lead.status) ? 'bg-indigo-500' : 'bg-slate-400'
                                     }`}></span>
-                                    {STAGES.find(s => s.id === lead.status)?.label}
+                                    {getStageLabel(lead.status)}
                                 </span>
                             </td>
                             <td className="px-6 py-4">
@@ -206,9 +210,9 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                           </div>
                           <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border ${
                                 lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                STAGES.some((s) => s.id === lead.status) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-700 border-slate-200'
                             }`}>
-                                {STAGES.find(s => s.id === lead.status)?.label}
+                                {getStageLabel(lead.status)}
                           </span>
                       </div>
 

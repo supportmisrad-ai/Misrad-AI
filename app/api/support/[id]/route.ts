@@ -6,9 +6,9 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
 
 import { NextRequest } from 'next/server';
 import { clerkClient } from '@clerk/nextjs/server';
-import { getAuthenticatedUser } from '../../../../lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import prisma, { executeRawTenantScoped } from '@/lib/prisma';
-import { Priority, SupportTicket, SupportTicketCategory, SupportTicketStatus } from '../../../../types';
+import { Priority, SupportTicket, SupportTicketCategory, SupportTicketStatus } from '@/types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';

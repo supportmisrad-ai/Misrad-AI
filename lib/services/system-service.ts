@@ -20,6 +20,7 @@ export type SystemBootstrap = {
     name: string;
     logo: string;
     primaryColor: string;
+    isShabbatProtected: boolean;
   };
 };
 
@@ -36,6 +37,7 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
     name: workspace.name,
     logo: workspace.logo || '',
     primaryColor: '#000000',
+    isShabbatProtected: workspace.isShabbatProtected,
   };
 
   return { initialCurrentUser: normalizedCurrentUser, initialOrganization };

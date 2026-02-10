@@ -45,13 +45,22 @@ function normalizeQuantity(q: unknown): number | null {
 }
 
 function computeOrgFlagsFromModules(activeModules: Set<string>): OrgModuleFlags {
+  const hasNexus = activeModules.has('nexus');
+  const hasSystem = activeModules.has('system');
+  const hasSocial = activeModules.has('social');
+  const hasClient = activeModules.has('client');
+  const hasOperations = activeModules.has('operations');
+  
+  // Finance is a free bonus for any paid package
+  const hasAnyPaidModule = hasNexus || hasSystem || hasSocial || hasClient || hasOperations;
+  
   return {
-    has_nexus: activeModules.has('nexus'),
-    has_system: activeModules.has('system'),
-    has_social: activeModules.has('social'),
-    has_finance: activeModules.has('finance'),
-    has_client: activeModules.has('client'),
-    has_operations: activeModules.has('operations'),
+    has_nexus: hasNexus,
+    has_system: hasSystem,
+    has_social: hasSocial,
+    has_finance: hasAnyPaidModule, // Free bonus
+    has_client: hasClient,
+    has_operations: hasOperations,
   };
 }
 

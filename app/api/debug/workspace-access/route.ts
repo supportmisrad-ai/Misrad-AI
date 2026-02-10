@@ -83,7 +83,7 @@ async function GETHandler(req: NextRequest) {
     let socialUser: Record<string, unknown> | null = null;
     let socialUserError: unknown = null;
     try {
-      const delegate = getLegacyDelegate('social_users');
+      const delegate = getLegacyDelegate('organization_users');
       const findUnique = delegate.findUnique;
       if (!findUnique || !hasFunction(delegate, 'findUnique')) throw new Error('Prisma delegate social_users.findUnique is unavailable');
       socialUser = await findUnique({

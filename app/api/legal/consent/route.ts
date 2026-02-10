@@ -32,7 +32,7 @@ async function POSTHandler(req: Request): Promise<Response> {
 
   const keys = ['terms_markdown', 'privacy_markdown'] as const;
 
-  const contentRows = await prisma.social_site_content.findMany({
+  const contentRows = await prisma.socialMediaSiteContent.findMany({
     where: {
       page: 'legal',
       section: 'documents',

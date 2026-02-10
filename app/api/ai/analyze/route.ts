@@ -6,9 +6,9 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser, hasPermission } from '../../../../lib/auth';
-import { prepareAIContext, validateAIResponse } from '../../../../lib/ai-security';
-import { logAuditEvent } from '../../../../lib/audit';
+import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
+import { prepareAIContext, validateAIResponse } from '@/lib/ai-security';
+import { logAuditEvent } from '@/lib/audit';
 import { Type } from "@google/genai";
 import prisma from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -37,7 +37,7 @@ async function POSTHandler(request: NextRequest) {
         }
         let callerOrganizationId: string | null = null;
         try {
-            const socialUser = await prisma.social_users.findUnique({
+            const socialUser = await prisma.organizationUser.findUnique({
                 where: { clerk_user_id: String(clerkUserId) },
                 select: { organization_id: true },
             });

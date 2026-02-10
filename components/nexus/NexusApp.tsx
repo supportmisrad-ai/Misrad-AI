@@ -10,7 +10,7 @@ import { useOnClickOutside } from '../system/hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import { OSModuleSquircleIcon } from '@/components/shared/OSModuleIcon';
 
-// Import Nexus OS components
+// Import Nexus module components
 import TasksView from './TasksView';
 import CalendarView from './CalendarView';
 import HeadquartersView from './HeadquartersView';

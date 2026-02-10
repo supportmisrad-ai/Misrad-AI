@@ -6,8 +6,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '../../../lib/auth';
-import { FeatureRequest, FeatureRequestStatus, FeatureRequestType, Priority } from '../../../types';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { FeatureRequest, FeatureRequestStatus, FeatureRequestType, Priority } from '@/types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';

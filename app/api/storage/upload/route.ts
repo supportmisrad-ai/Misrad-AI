@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '../../../../lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/supabase';
 import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';

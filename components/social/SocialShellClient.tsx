@@ -36,9 +36,11 @@ export default function SocialShellClient({
 }) {
   const { shabbatTimes } = useShabbat();
 
+  const isShabbatProtected = (initialOrganization as any)?.isShabbatProtected !== false;
+
   const basePath = useMemo(() => `/w/${encodeURIComponent(orgSlug)}/social`, [orgSlug]);
 
-  if (shabbatTimes?.isShabbat) {
+  if (isShabbatProtected && shabbatTimes?.isShabbat) {
     return <ShabbatScreen />;
   }
 

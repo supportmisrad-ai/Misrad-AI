@@ -8,7 +8,8 @@ import { asObject } from '@/lib/shared/unknown';
 import { isShabbatNow } from './shabbat';
 import { apiError } from '@/lib/server/api-response';
 import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
-import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
+import { APIError, getWorkspaceContextOrThrow } from '@/lib/server/api-workspace';
+import prisma from '@/lib/prisma';
 
 function getErrorStatus(error: unknown): number | null {
   const obj = asObject(error);
@@ -33,15 +34,6 @@ function toWorkspaceCtx(value: unknown): { params?: unknown } | undefined {
 export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) => Promise<Response>) {
   return async (...args: TArgs): Promise<Response> => {
     try {
-      const shabbatCheck = isShabbatNow();
-      
-      if (shabbatCheck.isShabbat) {
-        return apiError('Shabbat Mode', {
-          status: 503,
-          message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
-        });
-      }
-      
       let workspaceId: string | null = null;
       try {
         const request = args[0] as unknown;
@@ -52,12 +44,46 @@ export function shabbatGuard<TArgs extends unknown[]>(handler: (...args: TArgs) 
           workspaceId = resolved.workspaceId ? String(resolved.workspaceId) : null;
         }
       } catch (e: unknown) {
-        if (e instanceof APIError && e.status === 400) {
+        if (e instanceof APIError && (e.status === 400 || e.status === 401)) {
           workspaceId = null;
         } else {
           const status = getErrorStatus(e);
           return apiError(e, { status: typeof status === 'number' ? status : 403 });
         }
+      }
+
+      const shabbatCheck = isShabbatNow();
+
+      if (shabbatCheck.isShabbat) {
+        if (!workspaceId) {
+          return apiError('Shabbat Mode', {
+            status: 503,
+            message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
+          });
+        }
+
+        try {
+          const rows = await prisma.$queryRaw<unknown[]>`
+            select is_shabbat_protected
+            from social_organizations
+            where id = ${String(workspaceId)}::uuid
+            limit 1
+          `;
+          const row = Array.isArray(rows) ? rows[0] : null;
+          const rowObj = asObject(row);
+
+          if (rowObj?.is_shabbat_protected === false) {
+            enterTenantIsolationContext({ source: 'api_shabbat_guard', organizationId: workspaceId });
+            return await handler(...args);
+          }
+        } catch {
+          // Fail closed.
+        }
+
+        return apiError('Shabbat Mode', {
+          status: 503,
+          message: 'המערכת לא פעילה בשבת. המערכת תתחיל לפעול לאחר צאת הכוכבים.',
+        });
       }
 
       if (workspaceId) {

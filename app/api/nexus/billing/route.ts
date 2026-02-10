@@ -34,11 +34,11 @@ async function GETHandler(request: NextRequest) {
         { status: error.status }
       );
     }
+    if (!IS_PROD) {
+      return NextResponse.json({ billing: null }, { status: 200 });
+    }
     const safeMsg = 'Internal server error';
-    return NextResponse.json(
-      { error: IS_PROD ? safeMsg : getErrorMessage(error) || safeMsg },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: safeMsg }, { status: 500 });
   }
 }
 

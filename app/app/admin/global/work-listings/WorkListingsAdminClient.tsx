@@ -42,12 +42,12 @@ export default function WorkListingsAdminClient() {
     try {
       const res = await getAdminWorkListings({ limit: 300 });
       if (!res.ok) {
-        setError(res.message || 'שגיאה בטעינת Listings');
+        setError(res.message || 'שגיאה בטעינת הצעות עבודה');
         return;
       }
       setRows((res as any).listings || []);
     } catch (e: any) {
-      setError(e?.message || 'שגיאה בטעינת Listings');
+      setError(e?.message || 'שגיאה בטעינת הצעות עבודה');
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +82,7 @@ export default function WorkListingsAdminClient() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-bold text-slate-600">סה"כ: {safeRows.length}</div>
+        <div className="text-sm font-bold text-slate-600">סה"כ הצעות: {safeRows.length}</div>
         <button
           type="button"
           onClick={() => void load()}
@@ -103,7 +103,7 @@ export default function WorkListingsAdminClient() {
               <th className="px-4 py-3 text-[11px] font-black text-slate-600">אזור</th>
               <th className="px-4 py-3 text-[11px] font-black text-slate-600">מחיר</th>
               <th className="px-4 py-3 text-[11px] font-black text-slate-600">מתעניין</th>
-              <th className="px-4 py-3 text-[11px] font-black text-slate-600">Org</th>
+              <th className="px-4 py-3 text-[11px] font-black text-slate-600">מרחב עבודה</th>
               <th className="px-4 py-3 text-[11px] font-black text-slate-600">לינק</th>
             </tr>
           </thead>
@@ -111,7 +111,7 @@ export default function WorkListingsAdminClient() {
             {safeRows.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-6 text-center text-sm font-bold text-slate-500">
-                  אין Listings
+                  אין הצעות עבודה
                 </td>
               </tr>
             ) : (

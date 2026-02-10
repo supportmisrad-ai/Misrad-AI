@@ -11,8 +11,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
-import { syncTaskToCalendar, syncCalendarToTasks } from '../../../../../lib/integrations/google-calendar';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { syncTaskToCalendar, syncCalendarToTasks } from '@/lib/integrations/google-calendar';
 import prisma from '@/lib/prisma';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';

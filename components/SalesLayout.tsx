@@ -80,7 +80,7 @@ export const SalesLayout = ({ children }: SalesLayoutProps) => {
                     onClick={() => navigate('/')}
                     className="w-full flex items-center justify-center gap-2 mt-4 text-xs font-bold text-slate-500 hover:text-white transition-colors py-2"
                 >
-                    <ArrowRight size={14} className="rotate-180" /> חזרה ל-Nexus OS
+                    <ArrowRight size={14} className="rotate-180" /> חזרה לראשי
                 </button>
             </div>
         </aside>

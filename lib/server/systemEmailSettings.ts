@@ -13,7 +13,7 @@ export async function getSystemEmailSettingsUnsafe(): Promise<SystemEmailSetting
   const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
 
   try {
-    const row = await prisma.social_system_settings.findUnique({
+    const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'system_email_settings' },
     });
 

@@ -6,9 +6,9 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser, hasPermission, canAccessResource, requirePermission as requirePermissionFromAuth } from '../../../lib/auth';
-import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
-import { Client } from '../../../types';
+import { getAuthenticatedUser, hasPermission, canAccessResource, requirePermission as requirePermissionFromAuth } from '@/lib/auth';
+import { logAuditEvent, logSensitiveAccess } from '@/lib/audit';
+import { Client } from '@/types';
 import { getClientOsClients as getClientOsClientsHandler } from '@/lib/server/clientOsClients';
 import prisma, { executeRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';

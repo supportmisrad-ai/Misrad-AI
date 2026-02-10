@@ -36,7 +36,7 @@ async function main(): Promise<void> {
         isSuperAdmin: true,
       },
       async () => {
-        return await prisma.social_users.findMany(
+        return await prisma.organizationUser.findMany(
           withPrismaTenantIsolationOverride(
             {
               where: query

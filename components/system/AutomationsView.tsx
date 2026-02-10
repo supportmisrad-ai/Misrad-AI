@@ -11,6 +11,12 @@ import { Lead, Task, PipelineStage } from './types';
 import { STAGES } from './constants';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 
+function getStageLabel(status: PipelineStage | null | undefined): string {
+  const key = String(status || '').trim();
+  const s = STAGES.find((x) => String(x.id) === key);
+  return s?.label || key || 'בחר סטטוס';
+}
+
 interface SimpleAutomation {
   id: string;
   name: string;
@@ -472,7 +478,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                       }`}
                     >
                       <span className="font-bold text-slate-800 text-sm">
-                        {STAGES.find(s => s.id === (formData.trigger.status || 'won'))?.label || 'בחר סטטוס'}
+                        {getStageLabel(formData.trigger.status || 'won')}
                       </span>
                       <ChevronDown 
                         size={18} 
@@ -766,7 +772,7 @@ const AutomationsView: React.FC<AutomationsViewProps> = ({
                 <span className="text-slate-600 font-medium">
                   {automation.trigger.type === 'lead_created' 
                     ? 'ליד נפתח'
-                    : `סטטוס שונה ל-${STAGES.find(s => s.id === automation.trigger.status)?.label}`
+                    : `סטטוס שונה ל-${getStageLabel(automation.trigger.status)}`
                   }
                 </span>
               </div>

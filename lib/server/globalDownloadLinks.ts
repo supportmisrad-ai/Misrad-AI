@@ -56,7 +56,7 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
     }
 
     // Fallback: legacy key-value storage
-    const legacy = await prisma.social_system_settings
+    const legacy = await prisma.coreSystemSettings
       .findUnique({ where: { key: LEGACY_KEY }, select: { value: true } })
       .catch((e: unknown) => {
         if (isMissingRelationError(e)) {
@@ -127,7 +127,7 @@ export async function setGlobalDownloadLinksUnsafe(input: {
       }
       // Fallback: legacy storage
       try {
-        await prisma.social_system_settings.upsert({
+        await prisma.coreSystemSettings.upsert({
           where: { key: LEGACY_KEY },
           update: {
             value: {

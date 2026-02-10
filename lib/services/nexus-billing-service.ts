@@ -197,7 +197,7 @@ export async function getNexusBillingItems(workspaceId: string): Promise<NexusBi
   const key = getNexusBillingItemsSettingsKey(workspaceId);
   let legacy: { value: unknown } | null = null;
   try {
-    legacy = await prisma.social_system_settings.findUnique({
+    legacy = await prisma.coreSystemSettings.findUnique({
       where: { key },
       select: { value: true },
     });
@@ -264,7 +264,7 @@ export async function setNexusBillingItems(params: {
 
   // Fallback: legacy storage
   const key = getNexusBillingItemsSettingsKey(params.workspaceId);
-  await prisma.social_system_settings.upsert({
+  await prisma.coreSystemSettings.upsert({
     where: { key },
     update: {
       value: {

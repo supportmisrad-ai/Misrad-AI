@@ -306,6 +306,7 @@ const SOCIAL_SYSTEM_SETTINGS_GLOBAL_KEYS = new Set<string>([
   'global_branding',
   'maintenance_settings',
   'global_download_links',
+  'products_catalog_v1',
 ]);
 
 const SOCIAL_SYSTEM_SETTINGS_ORG_KEY_PREFIXES = ['nexus_onboarding_template:', 'nexus_billing_items:'];
@@ -774,7 +775,7 @@ function isSocialUserLookupByClerkUserIdUnscopedAllowed(params: {
   where: unknown;
 }): boolean {
   const modelLower = String(params.model || '').toLowerCase();
-  if (modelLower !== 'social_users' && modelLower !== 'socialusers') return false;
+  if (modelLower !== 'organization_users' && modelLower !== 'socialusers') return false;
   if (!params.where || typeof params.where !== 'object') return false;
   const allowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'update', 'updateMany']);
   if (!allowedActions.has(params.action)) return false;
@@ -799,7 +800,7 @@ function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params: {
   where: unknown;
 }): boolean {
   const modelLower = String(params.model || '').toLowerCase();
-  if (modelLower !== 'social_team_members' && modelLower !== 'socialteammembers') return false;
+  if (modelLower !== 'team_members' && modelLower !== 'socialteammembers') return false;
   if (!params.where || typeof params.where !== 'object') return false;
 
   const allowedActions = new Set(['findMany', 'findFirst', 'findFirstOrThrow', 'count', 'aggregate', 'groupBy']);
@@ -935,7 +936,7 @@ export function installPrismaTenantGuard(
             return next(params);
           }
         }
-        if (process.env.NODE_ENV !== 'production' && model === 'social_users') {
+        if (process.env.NODE_ENV !== 'production' && model === 'organization_users') {
           try {
             console.error('[tenant-guard] missing organization scope for social_users', {
               action,

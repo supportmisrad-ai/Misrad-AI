@@ -136,7 +136,7 @@ export async function createPaymentOrder(
     };
 
     // Save payment order to database
-    type SocialPaymentOrdersCreateArgs = Parameters<typeof prisma.social_payment_orders.create>[0];
+    type SocialPaymentOrdersCreateArgs = Parameters<typeof prisma.socialMediaPaymentOrder.create>[0];
     type SocialPaymentOrdersCreateData = NonNullable<SocialPaymentOrdersCreateArgs>['data'];
     const createData: SocialPaymentOrdersCreateData = {
       id: paymentOrder.id,
@@ -148,7 +148,7 @@ export async function createPaymentOrder(
       created_at: new Date(paymentOrder.createdAt),
       updated_at: new Date(paymentOrder.createdAt),
     };
-    await prisma.social_payment_orders.create({
+    await prisma.socialMediaPaymentOrder.create({
       data: createData,
       select: { id: true },
     });
@@ -194,7 +194,7 @@ export async function processPayment(
     const organizationId = await requireCurrentOrganizationId(String(parsed.data.orgSlug || ''));
 
     // Get payment order
-    const order = await prisma.social_payment_orders.findUnique({
+    const order = await prisma.socialMediaPaymentOrder.findUnique({
       where: { id: String(paymentOrderId) },
       select: {
         id: true,
@@ -281,7 +281,7 @@ export async function processPayment(
 
     // Update payment order status
     try {
-      await prisma.social_payment_orders.update({
+      await prisma.socialMediaPaymentOrder.update({
         where: { id: String(parsed.data.paymentOrderId) },
         data: { status: 'paid', updated_at: new Date() },
       });

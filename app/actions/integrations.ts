@@ -80,13 +80,13 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
       savedBy: organizationUserId,
     };
 
-    const existing = await prisma.social_integration_credentials.findFirst({
+    const existing = await prisma.integrationCredential.findFirst({
       where: { user_id: organizationId, integration_name: 'morning' },
       select: { id: true },
     });
 
     if (existing?.id) {
-      await prisma.social_integration_credentials.updateMany({
+      await prisma.integrationCredential.updateMany({
         where: { id: existing.id },
         data: {
           credential_type: 'api_key',
@@ -96,7 +96,7 @@ export async function saveMorningCredentialsForWorkspace(orgSlug: string, apiKey
         },
       });
     } else {
-      await prisma.social_integration_credentials.create({
+      await prisma.integrationCredential.create({
         data: {
           user_id: organizationId,
           integration_name: 'morning',
@@ -134,7 +134,7 @@ export async function hasMorningCredentialsForWorkspace(
       return { success: true, connected: false };
     }
 
-    const row = await prisma.social_integration_credentials.findFirst({
+    const row = await prisma.integrationCredential.findFirst({
       where: { user_id: organizationId, integration_name: 'morning' },
       select: { id: true },
     });
@@ -164,7 +164,7 @@ export async function getMorningApiKeyForWorkspace(
 
     const { organizationId } = await requireOrganizationOwner({ orgSlug: resolvedOrgSlug, clerkUserId: userId });
 
-    const data = await prisma.social_integration_credentials.findFirst({
+    const data = await prisma.integrationCredential.findFirst({
       where: { user_id: organizationId, integration_name: 'morning' },
       select: { encrypted_data: true },
     });
@@ -232,7 +232,7 @@ export async function getIntegrationStatus(integrationName: string) {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
 
-    const data = await prisma.social_integration_status.findUnique({
+    const data = await prisma.integrationStatus.findUnique({
       where: { name: integrationName },
     });
 
@@ -336,7 +336,7 @@ export async function syncGoogleCalendar() {
     }
     const supabaseUserId = userResult.userId;
 
-    const tokens = await prisma.social_oauth_tokens.findFirst({
+    const tokens = await prisma.oAuthToken.findFirst({
       where: { user_id: supabaseUserId, integration_name: 'google_calendar' },
     });
 
@@ -352,7 +352,7 @@ export async function syncGoogleCalendar() {
 
     // Update token if refreshed
     if (typeof newAccessToken === 'string' && newAccessToken && newAccessToken !== tokens.access_token) {
-      await prisma.social_oauth_tokens.updateMany({
+      await prisma.oAuthToken.updateMany({
         where: { id: tokens.id },
         data: { access_token: newAccessToken, updated_at: new Date() },
       });
@@ -375,7 +375,7 @@ export async function syncGoogleCalendar() {
       orderBy: 'startTime',
     });
 
-    await prisma.social_sync_logs.create({
+    await prisma.socialMediaSyncLog.create({
       data: {
         user_id: supabaseUserId,
         integration_name: 'google_calendar',
@@ -386,7 +386,7 @@ export async function syncGoogleCalendar() {
       },
     });
 
-    await prisma.social_integration_status.updateMany({
+    await prisma.integrationStatus.updateMany({
       where: { name: 'google_calendar' },
       data: { last_sync: new Date(), updated_at: new Date() },
     });
@@ -414,7 +414,7 @@ export async function syncGoogleDrive(clientId?: string) {
     }
     const supabaseUserId = userResult.userId;
 
-    const tokens = await prisma.social_oauth_tokens.findFirst({
+    const tokens = await prisma.oAuthToken.findFirst({
       where: { user_id: supabaseUserId, integration_name: 'google_drive' },
     });
 
@@ -430,7 +430,7 @@ export async function syncGoogleDrive(clientId?: string) {
 
     // Update token if refreshed
     if (typeof newAccessToken === 'string' && newAccessToken && newAccessToken !== tokens.access_token) {
-      await prisma.social_oauth_tokens.updateMany({
+      await prisma.oAuthToken.updateMany({
         where: { id: tokens.id },
         data: { access_token: newAccessToken, updated_at: new Date() },
       });
@@ -446,7 +446,7 @@ export async function syncGoogleDrive(clientId?: string) {
       orderBy: 'modifiedTime desc',
     });
 
-    await prisma.social_sync_logs.create({
+    await prisma.socialMediaSyncLog.create({
       data: {
         user_id: supabaseUserId,
         integration_name: 'google_drive',
@@ -457,7 +457,7 @@ export async function syncGoogleDrive(clientId?: string) {
       },
     });
 
-    await prisma.social_integration_status.updateMany({
+    await prisma.integrationStatus.updateMany({
       where: { name: 'google_drive' },
       data: { last_sync: new Date(), updated_at: new Date() },
     });
@@ -485,19 +485,19 @@ export async function disconnectIntegration(integrationName: string) {
     }
     const supabaseUserId = userResult.userId;
 
-    await prisma.social_oauth_tokens.deleteMany({
+    await prisma.oAuthToken.deleteMany({
       where: { user_id: supabaseUserId, integration_name: integrationName },
     });
 
-    await prisma.social_integration_credentials.deleteMany({
+    await prisma.integrationCredential.deleteMany({
       where: { user_id: supabaseUserId, integration_name: integrationName },
     });
 
-    await prisma.social_webhook_configs.deleteMany({
+    await prisma.webhookConfig.deleteMany({
       where: { user_id: supabaseUserId, integration_name: integrationName },
     });
 
-    await prisma.social_integration_status.updateMany({
+    await prisma.integrationStatus.updateMany({
       where: { name: integrationName },
       data: { is_connected: false, last_sync: null, updated_at: new Date() },
     });
@@ -532,7 +532,7 @@ export async function triggerWebhookEvent(params: {
         ? { integration_name: params.integrationName }
         : { integration_name: { in: ['make', 'zapier'] } }),
     };
-    const configs = await prisma.social_webhook_configs.findMany({ where });
+    const configs = await prisma.webhookConfig.findMany({ where });
 
     const configsList: unknown[] = Array.isArray(configs) ? (configs as unknown[]) : [];
     const activeConfigs = configsList.filter((cfg: unknown) => {
@@ -579,7 +579,7 @@ export async function triggerWebhookEvent(params: {
 
       delivered += 1;
 
-      await prisma.social_webhook_configs.updateMany({
+      await prisma.webhookConfig.updateMany({
         where: { id: String(obj.id || '') },
         data: { last_triggered_at: new Date(), updated_at: new Date() },
       });
@@ -615,13 +615,13 @@ export async function saveWebhookConfig(
     // Generate secret key
     const secretKey = crypto.randomUUID();
 
-    const existing = await prisma.social_webhook_configs.findFirst({
+    const existing = await prisma.webhookConfig.findFirst({
       where: { user_id: supabaseUserId, integration_name: integrationName },
       select: { id: true },
     });
 
     if (existing?.id) {
-      await prisma.social_webhook_configs.updateMany({
+      await prisma.webhookConfig.updateMany({
         where: { id: existing.id },
         data: {
           webhook_url: webhookUrl,
@@ -632,7 +632,7 @@ export async function saveWebhookConfig(
         },
       });
     } else {
-      await prisma.social_webhook_configs.create({
+      await prisma.webhookConfig.create({
         data: {
           user_id: supabaseUserId,
           integration_name: integrationName,
@@ -646,7 +646,7 @@ export async function saveWebhookConfig(
       });
     }
 
-    await prisma.social_integration_status.upsert({
+    await prisma.integrationStatus.upsert({
       where: { name: integrationName },
       create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
       update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
@@ -681,13 +681,13 @@ export async function saveMorningCredentials(apiKey: string) {
     });
     const encrypted_data: Prisma.InputJsonValue = { encrypted: encryptedApiKey };
 
-    const existing = await prisma.social_integration_credentials.findFirst({
+    const existing = await prisma.integrationCredential.findFirst({
       where: { user_id: supabaseUserId, integration_name: 'morning' },
       select: { id: true },
     });
 
     if (existing?.id) {
-      await prisma.social_integration_credentials.updateMany({
+      await prisma.integrationCredential.updateMany({
         where: { id: existing.id },
         data: {
           credential_type: 'api_key',
@@ -696,7 +696,7 @@ export async function saveMorningCredentials(apiKey: string) {
         },
       });
     } else {
-      await prisma.social_integration_credentials.create({
+      await prisma.integrationCredential.create({
         data: {
           user_id: supabaseUserId,
           integration_name: 'morning',
@@ -708,7 +708,7 @@ export async function saveMorningCredentials(apiKey: string) {
       });
     }
 
-    await prisma.social_integration_status.upsert({
+    await prisma.integrationStatus.upsert({
       where: { name: 'morning' },
       create: { name: 'morning', is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
       update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },
@@ -737,7 +737,7 @@ export async function getMorningApiKey(): Promise<string | null> {
     }
     const supabaseUserId = userResult.userId;
 
-    const data = await prisma.social_integration_credentials.findFirst({
+    const data = await prisma.integrationCredential.findFirst({
       where: { user_id: supabaseUserId, integration_name: 'morning' },
       select: { encrypted_data: true },
     });
@@ -772,7 +772,7 @@ export async function getAllIntegrationsStatus() {
       throw new Error('לא מחובר');
     }
 
-    const data = await prisma.social_integration_status.findMany({
+    const data = await prisma.integrationStatus.findMany({
       orderBy: { name: 'asc' },
     });
 

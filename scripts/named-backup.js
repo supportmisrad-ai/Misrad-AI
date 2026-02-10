@@ -127,7 +127,7 @@ async function main() {
     
     // Backup users
     console.log('👥 מגבה משתמשים...');
-    const users = await prisma.social_users.findMany();
+    const users = await prisma.organizationUser.findMany();
     console.log(`   ✅ ${users.length} משתמשים\n`);
     
     // Backup profiles
