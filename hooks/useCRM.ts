@@ -42,6 +42,10 @@ export const useCRM = (
     const [tenants, setTenants] = useState<Tenant[]>([]);
 
     useEffect(() => {
+        if (!currentUser?.id) {
+            return;
+        }
+
         let cancelled = false;
 
         (async () => {
@@ -61,7 +65,7 @@ export const useCRM = (
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [currentUser?.id]);
 
     const saveProductsCatalog = async (nextProducts: Product[]): Promise<boolean> => {
         const prev = Array.isArray(products) ? products : [];

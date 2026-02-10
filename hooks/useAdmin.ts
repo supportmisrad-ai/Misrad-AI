@@ -120,6 +120,11 @@ export const useAdmin = (
 
     // Load roles from API on mount
     useEffect(() => {
+        if (!currentUser?.id) {
+            setIsLoadingRoles(false);
+            return;
+        }
+
         const loadRoles = async () => {
             setIsLoadingRoles(true);
             try {
@@ -144,7 +149,7 @@ export const useAdmin = (
             }
         };
         loadRoles();
-    }, []);
+    }, [currentUser?.id]);
 
     // Load system flags from API on mount (all users need this for ScreenGuard)
     useEffect(() => {
