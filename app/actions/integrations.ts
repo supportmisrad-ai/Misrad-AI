@@ -142,7 +142,7 @@ export async function hasMorningCredentialsForWorkspace(
     return { success: true, connected: Boolean(row?.id) };
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
-      throw new Error(`[SchemaMismatch] social_integration_credentials missing table/column (${getErrorMessage(e) || 'missing relation'})`);
+      throw new Error(`[SchemaMismatch] integrationCredential missing table/column (${getErrorMessage(e) || 'missing relation'})`);
     }
     return { success: true, connected: false };
   }
@@ -525,8 +525,7 @@ export async function triggerWebhookEvent(params: {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const where: Prisma.WebhookConfigWhereInput = {
-      // @ts-expect-error - Using runtime model
+    const where = {
       user_id: supabaseUserId,
       is_active: true,
       ...(params.integrationName

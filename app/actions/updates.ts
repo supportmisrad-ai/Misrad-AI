@@ -225,7 +225,6 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
         update_id: String(updateId),
       },
     } satisfies Prisma.UserUpdateViewWhereUniqueInput;
-    // @ts-expect-error - Prisma type name variance
 
     await prisma.userUpdateView.upsert({
       where,

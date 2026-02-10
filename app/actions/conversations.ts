@@ -55,7 +55,7 @@ export async function getConversations(
       return { success: false, error: 'Forbidden' };
     }
 
-    const rows = await prisma.social_conversations.findMany({
+    const rows = await prisma.socialMediaConversation.findMany({
       where: {
         organizationId: String(organizationId),
         ...(clientId ? { client_id: String(clientId) } : {}),
