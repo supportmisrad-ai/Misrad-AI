@@ -41,11 +41,28 @@ function main() {
       ? path.join(repoRoot, 'node_modules', '.bin', 'prisma.cmd')
       : path.join(repoRoot, 'node_modules', '.bin', 'prisma');
 
-  cp.execFileSync(prismaBin, ['migrate', 'deploy', '--schema', schemaPath], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    env: process.env,
-  });
+  console.log('[CI] Running prisma migrate deploy...');
+  console.log(`[CI] Schema: ${schemaPath}`);
+  console.log(`[CI] DB URL exists: ${!!dbUrl}`);
+
+  try {
+    cp.execFileSync(prismaBin, ['migrate', 'deploy', '--schema', schemaPath], {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env,
+    });
+    console.log('[CI] ✅ Prisma migrate deploy completed successfully');
+  } catch (err) {
+    console.error('[CI] ❌ Prisma migrate deploy failed');
+    console.error('[CI] Error details:', {
+      message: err.message,
+      status: err.status,
+      signal: err.signal,
+      stdout: err.stdout ? err.stdout.toString() : null,
+      stderr: err.stderr ? err.stderr.toString() : null,
+    });
+    throw err;
+  }
 }
 
 main();
