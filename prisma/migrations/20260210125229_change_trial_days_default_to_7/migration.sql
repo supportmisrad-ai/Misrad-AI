@@ -6,4 +6,4 @@
 ALTER TABLE "organizations" ALTER COLUMN "trial_days" SET DEFAULT 7;
 
 -- AlterTable
-ALTER TABLE "team_members" ALTER COLUMN "trial_days" SET DEFAULT 7;
+ALTER TABLE "social_team_members" ALTER COLUMN "trial_days" SET DEFAULT 7;
