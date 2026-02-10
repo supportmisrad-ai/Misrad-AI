@@ -11,6 +11,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   const { isSignedIn, isLoaded, userId } = useAuth();
   const router = useRouter();
 
+  console.log('[LoginPageClient] Rendered - isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'userId:', userId);
+
   const resolveFirstOrgSlug = async (): Promise<string | null> => {
     try {
       const res = await fetch('/api/workspaces', { cache: 'no-store' });
@@ -26,13 +28,17 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
   };
 
   useEffect(() => {
+    console.log('[LoginPageClient] useEffect triggered - isLoaded:', isLoaded, 'isSignedIn:', isSignedIn, 'userId:', userId);
+    
     // Wait for Clerk to load
     if (!isLoaded) {
+      console.log('[LoginPageClient] Clerk not loaded yet, waiting...');
       return;
     }
 
     // If user is signed in, redirect to their first available OS
     if (isSignedIn && userId) {
+      console.log('[LoginPageClient] User is authenticated, starting redirect logic');
       // Check if there's a redirect parameter in the URL (for direct OS access)
       const searchParams = new URLSearchParams(window.location.search);
       const redirectPath =
