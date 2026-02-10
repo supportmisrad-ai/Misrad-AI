@@ -6,7 +6,7 @@ import {
   X, Sparkles, Image as ImageIcon, 
   Search, ArrowRight, Zap, Facebook, Instagram, Linkedin, 
   MessageCircle, Globe, Video, Twitter, Share2, PinIcon, 
-  MessageSquare, Wand
+  MessageSquare, Wand, Clock
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { generatePostVariationsAction, generateAIImageAction } from '@/app/actions/ai-actions';
@@ -117,10 +117,10 @@ export default function TheMachine() {
     if (selectedPlatforms.length > 0) {
       suggestBestPostingTimes({ 
         platforms: selectedPlatforms,
-        isReligious: selectedClient?.isShabbatProtected || false
+        isReligious: false // TODO: Add isShabbatProtected to Client type if needed
       }).then(setPostingTimes);
     }
-  }, [selectedPlatforms, selectedClient?.isShabbatProtected]);
+  }, [selectedPlatforms]);
 
   const togglePlatformSelection = (id: SocialPlatform) => {
     setSelectedPlatforms(prev => 
@@ -583,6 +583,28 @@ export default function TheMachine() {
                       <p className="text-[10px] text-purple-600 font-medium">💡 לחץ על hashtag להוספה אוטומטית לתוכן</p>
                     </div>
                   )}
+
+                  {/* Best Posting Time */}
+                  {postingTimes && postingTimes.bestTimes.length > 0 && (
+                    <div className="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <Clock size={18} className="text-emerald-600" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">שעה מומלצת לפרסום</span>
+                          <span className="text-sm font-black text-emerald-900">
+                            {postingTimes.bestTimes[0].dayHebrew} ב-{postingTimes.bestTimes[0].hourDisplay}
+                          </span>
+                          <span className="text-[10px] text-emerald-600">{postingTimes.bestTimes[0].reason}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowTimesModal(true)}
+                        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-all"
+                      >
+                        עוד המלצות
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="flex flex-col gap-4 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 mt-2">
                     <div className="flex items-center justify-between">
@@ -615,6 +637,82 @@ export default function TheMachine() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Posting Times Modal */}
+      {showTimesModal && postingTimes && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTimesModal(false)}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-3xl">
+              <div className="flex items-center gap-3">
+                <Clock size={24} className="text-emerald-600" />
+                <h3 className="text-xl font-black">שעות פרסום מומלצות</h3>
+              </div>
+              <button onClick={() => setShowTimesModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Best Times */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות מומלצות ביותר</h4>
+                <div className="space-y-3">
+                  {postingTimes.bestTimes.slice(0, 6).map((time, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-black text-lg">
+                          {time.score}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">{time.dayHebrew} ב-{time.hourDisplay}</div>
+                          <div className="text-xs text-emerald-700">{time.reason}</div>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold">
+                        {time.platform}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Avoid Times */}
+              {postingTimes.avoidTimes.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות להימנע מהן</h4>
+                  <div className="space-y-2">
+                    {postingTimes.avoidTimes.map((time, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="text-xs font-bold text-red-600">{time.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* General Tip */}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex items-start gap-3">
+                  <Sparkles size={16} className="text-blue-600 mt-0.5" />
+                  <p className="text-sm text-blue-900">{postingTimes.generalTip}</p>
+                </div>
+              </div>
+
+              {/* Data Source */}
+              <div className="text-center">
+                <p className="text-xs text-slate-400">
+                  מקור: {postingTimes.dataSource === 'industry_best_practices' ? 'מחקרי engagement גלובליים' : 'הנתונים שלך'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
