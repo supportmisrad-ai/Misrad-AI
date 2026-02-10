@@ -51,7 +51,27 @@ Incoming → Contacted → Meeting → Proposal → Negotiation
 | **הערות שיחה** | רישום מהיר אחרי שיחה |
 | **תוצאת שיחה** | answered / no_answer / busy / voicemail |
 
-### 3. ניתוח שיחות AI ⭐
+### 3. חיזוי סגירות (Deal Closure Prediction) ⭐ NEW
+
+**פיצ'ר חדש - פברואר 2026**
+
+| פיצ'ר | תיאור |
+|--------|--------|
+| **Closure Probability** | 0-100% סיכוי שהליד יסגור |
+| **Closure Rationale** | הסבר AI למה הסיכוי כזה |
+| **Recommended Action** | פעולה ספציפית + deadline |
+| **עדכון דינמי** | מתעדכן אוטומטי עם כל אינטראקציה |
+
+**דוגמה:**
+```json
+{
+  "closureProbability": 75,
+  "closureRationale": "הלקוח הביע עניין חזק, יש לו תקציב ו-authority. החיסכון העיקרי הוא זמן על תיאום צוות.",
+  "recommendedAction": "שלח הצעת מחיר מפורטת עד יום רביעי. הדגש חיסכון בזמן ניהול (40%)."
+}
+```
+
+### 4. ניתוח שיחות AI ⭐
 
 | פיצ'ר | תיאור |
 |--------|--------|
@@ -75,7 +95,7 @@ Incoming → Contacted → Meeting → Proposal → Negotiation
 }
 ```
 
-### 4. הצעות מחיר
+### 5. הצעות מחיר
 
 | פיצ'ר | תיאור |
 |--------|--------|
