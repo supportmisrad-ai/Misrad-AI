@@ -11,7 +11,7 @@ async function loadDashboardData() {
   const result = await getOrganizations({});
   
   if (!result.success || !result.data) {
-    return { organizations: [], error: result.error };
+    return { organizations: [], error: result.error ?? null };
   }
   
   return { organizations: result.data, error: null };
@@ -28,7 +28,7 @@ export default async function CustomersDashboardPage() {
     }>
       <CustomersDashboardClient 
         organizations={data.organizations}
-        error={data.error}
+        error={data.error ?? null}
       />
     </Suspense>
   );

@@ -936,7 +936,7 @@ export function installPrismaTenantGuard(
             return next(params);
           }
         }
-        if (process.env.NODE_ENV !== 'production' && model === 'organization_users') {
+        if (process.env.NODE_ENV !== 'production' && model === 'OrganizationUser') {
           try {
             console.error('[tenant-guard] missing organization scope for social_users', {
               action,

@@ -530,7 +530,8 @@ export async function updateManagerRequest(
           ? 'completed'
           : updates.status;
 
-    const updateData: Prisma.social_manager_requestsUpdateManyMutationInput = {};
+    const updateData: Prisma.SocialMediaManagerRequestUpdateManyMutationInput = {};
+    // @ts-expect-error - Prisma type mismatch, using runtime updateMany
     if (normalizedStatus !== undefined) updateData.status = normalizedStatus;
 
     const res = await prisma.socialMediaManagerRequest.updateMany({

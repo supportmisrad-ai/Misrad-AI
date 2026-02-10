@@ -192,7 +192,7 @@ export async function getSocialPosts(params: {
       scheduled_at: true,
       published_at: true,
       createdAt: true,
-      social_post_platforms: { select: { platform: true } },
+      postPlatforms: { select: { platform: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -209,7 +209,7 @@ export async function getSocialPosts(params: {
       status: isPostStatus(post.status) ? post.status : 'draft',
       scheduledAt: toIsoStringOrEmpty(post.scheduled_at),
       publishedAt: post.published_at ? toIsoStringOrEmpty(post.published_at) : undefined,
-      platforms: (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
+      platforms: (post.postPlatforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
     };
   });
 

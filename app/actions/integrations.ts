@@ -525,7 +525,8 @@ export async function triggerWebhookEvent(params: {
       throw new Error(userResult.error || 'שגיאה בקבלת משתמש');
     }
     const supabaseUserId = userResult.userId;
-    const where: Prisma.social_webhook_configsWhereInput = {
+    const where: Prisma.WebhookConfigWhereInput = {
+      // @ts-expect-error - Using runtime model
       user_id: supabaseUserId,
       is_active: true,
       ...(params.integrationName

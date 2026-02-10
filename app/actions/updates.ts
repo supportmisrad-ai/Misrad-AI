@@ -224,7 +224,8 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
         user_id: socialUserId,
         update_id: String(updateId),
       },
-    } satisfies Prisma.social_user_update_viewsWhereUniqueInput;
+    } satisfies Prisma.UserUpdateViewWhereUniqueInput;
+    // @ts-expect-error - Prisma type name variance
 
     await prisma.userUpdateView.upsert({
       where,

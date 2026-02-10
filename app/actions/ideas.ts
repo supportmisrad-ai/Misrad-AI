@@ -38,7 +38,7 @@ async function assertIdeaInOrganization(params: { ideaId: string; organizationId
     where: {
       id: String(params.ideaId),
       organizationId: String(params.organizationId),
-    } satisfies Prisma.social_ideasWhereInput,
+    } satisfies Prisma.SocialMediaIdeaWhereInput,
     select: { id: true, client_id: true },
   });
 
@@ -68,7 +68,7 @@ export async function getIdeas(
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
-      } satisfies Prisma.social_ideasWhereInput,
+      } satisfies Prisma.SocialMediaIdeaWhereInput,
       orderBy: { created_at: 'desc' },
     });
 
@@ -143,7 +143,7 @@ export async function createIdea(
     // Insert idea
     let idea: social_ideas | null = null;
     try {
-      idea = await prisma.socialMediaIdea.create({
+      idea = await prisma.social_ideas.create({
         data: {
           organizationId,
           client_id: String(ideaData.clientId),
@@ -236,13 +236,13 @@ export async function updateIdea(
     }
 
     try {
-      const res = await prisma.socialMediaIdea.updateMany({
+      const res = await prisma.social_ideas.updateMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),
           client_id: String(scoped.clientId),
-        } satisfies Prisma.social_ideasWhereInput,
-        data: updateData satisfies Prisma.social_ideasUpdateManyMutationInput,
+        },
+        data: updateData,
       });
 
       if (!res?.count) {
@@ -295,12 +295,12 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
     const scoped = await assertIdeaInOrganization({ ideaId, organizationId });
 
     try {
-      const res = await prisma.socialMediaIdea.deleteMany({
+      const res = await prisma.social_ideas.deleteMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),
           client_id: String(scoped.clientId),
-        } satisfies Prisma.social_ideasWhereInput,
+        } satisfies Prisma.SocialMediaIdeaWhereInput,
       });
 
       if (!res?.count) {

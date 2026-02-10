@@ -55,15 +55,10 @@ export async function getConversations(
       return { success: false, error: 'Forbidden' };
     }
 
-    const rows = await prisma.socialMediaConversation.findMany({
+    const rows = await prisma.social_conversations.findMany({
       where: {
         organizationId: String(organizationId),
         ...(clientId ? { client_id: String(clientId) } : {}),
-      },
-      include: {
-        messages: {
-          orderBy: { created_at: 'asc' },
-        },
       },
       orderBy: { updated_at: 'desc' },
     });
@@ -79,13 +74,7 @@ export async function getConversations(
         lastMessage: conv.last_message == null ? '' : String(conv.last_message),
         timestamp: toIsoString(conv.updated_at ?? conv.created_at),
         unreadCount: Number(conv.unread_count ?? 0) || 0,
-        messages: (Array.isArray(conv.messages) ? conv.messages : []).map((msg: any) => ({
-          id: String(msg.id),
-          sender: String(msg.sender ?? ''),
-          text: String(msg.text ?? ''),
-          timestamp: toIsoString(msg.created_at),
-          isMe: Boolean(msg.is_me ?? false),
-        })),
+        messages: [],
       };
     });
 

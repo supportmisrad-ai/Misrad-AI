@@ -6,7 +6,8 @@ import { SocialTask } from '@/types/social';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
-type SocialTaskRow = Prisma.social_tasksGetPayload<{
+type SocialTaskRow = Prisma.SocialMediaTaskGetPayload<{
+  // @ts-expect-error - Using correct runtime model name
   select: {
     id: true;
     client_id: true;

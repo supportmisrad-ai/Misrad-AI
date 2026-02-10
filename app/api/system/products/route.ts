@@ -62,7 +62,7 @@ function toJsonValue(value: unknown): Prisma.InputJsonValue {
 }
 
 async function readProducts(): Promise<Product[]> {
-  const row = await prisma.social_system_settings.findUnique({
+  const row = await prisma.coreSystemSettings.findUnique({
     where: { key: PRODUCTS_SETTINGS_KEY },
     select: { value: true },
   });
@@ -114,7 +114,7 @@ async function PATCHHandler(request: NextRequest) {
           isSuperAdmin: true,
         },
         async () =>
-          await prisma.social_system_settings.upsert({
+          await prisma.coreSystemSettings.upsert({
             where: { key: PRODUCTS_SETTINGS_KEY },
             create: {
               key: PRODUCTS_SETTINGS_KEY,
