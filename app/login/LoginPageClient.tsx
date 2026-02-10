@@ -64,8 +64,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             console.log('[Login] Resolved orgSlug:', orgSlug);
             
             if (!orgSlug) {
-              console.log('[Login] No workspace found, redirecting to onboarding');
-              router.push('/workspaces/onboarding');
+              console.log('[Login] No workspace found, redirecting to workspaces list');
+              router.push('/workspaces');
               return;
             }
 
