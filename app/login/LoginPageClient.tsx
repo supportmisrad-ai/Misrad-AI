@@ -55,8 +55,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
         (async () => {
           try {
             const orgSlug = await resolveFirstOrgSlug();
+            console.log('[Login] Resolved orgSlug:', orgSlug);
+            
             if (!orgSlug) {
-              router.push('/workspaces');
+              console.log('[Login] No workspace found, redirecting to onboarding');
+              router.push('/workspaces/onboarding');
               return;
             }
 
@@ -66,6 +69,9 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
                 'x-org-id': encodeURIComponent(String(orgSlug)),
               },
             });
+            
+            console.log('[Login] /api/os/rooms status:', res.status);
+            
             if (!res.ok) {
               router.push('/workspaces');
               return;
@@ -74,6 +80,8 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             const data = await res.json();
             const payload = (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
             const rooms = (payload as any)?.rooms || {};
+
+            console.log('[Login] Available rooms:', rooms);
 
             const priority: Array<{ key: string; route: string }> = [
               { key: 'nexus', route: `/w/${encodeURIComponent(String(orgSlug))}/nexus` },
@@ -84,8 +92,11 @@ export default function LoginPageClient({ initialUserId }: { initialUserId: stri
             ];
 
             const first = priority.find(p => Boolean((rooms as any)?.[p.key]));
-            router.push(first?.route || '/workspaces');
-          } catch {
+            const targetRoute = first?.route || '/workspaces';
+            console.log('[Login] Redirecting to:', targetRoute);
+            router.push(targetRoute);
+          } catch (error) {
+            console.error('[Login] Error during redirect:', error);
             router.push('/workspaces');
           }
         })();
