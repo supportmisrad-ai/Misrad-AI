@@ -40,6 +40,60 @@ export const useCRM = (
     const [assets, setAssets] = useState<Asset[]>([]);
     const [products, setProducts] = useState<Product[]>(DEFAULT_PRODUCTS);
     const [tenants, setTenants] = useState<Tenant[]>([]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch('/api/system/products', { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json().catch(() => null);
+                const next = Array.isArray(data?.products) ? (data.products as Product[]) : null;
+                if (!cancelled && next && next.length > 0) {
+                    setProducts(next);
+                }
+            } catch {
+                // ignore
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const saveProductsCatalog = async (nextProducts: Product[]): Promise<boolean> => {
+        const prev = Array.isArray(products) ? products : [];
+        const next = Array.isArray(nextProducts) ? nextProducts : [];
+        setProducts(next);
+
+        if (!currentUser?.isSuperAdmin) {
+            addToast('אין הרשאה לשמור קטלוג מוצרים (נדרש Super Admin)', 'error');
+            setProducts(prev);
+            return false;
+        }
+
+        try {
+            const res = await fetch('/api/system/products', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ products: next }),
+            });
+
+            if (!res.ok) {
+                const raw = await res.json().catch(() => null);
+                const msg = typeof raw?.error === 'string' ? raw.error : 'שגיאה בשמירת קטלוג מוצרים';
+                throw new Error(msg);
+            }
+
+            return true;
+        } catch (e: any) {
+            setProducts(prev);
+            addToast(e?.message || 'שגיאה בשמירת קטלוג מוצרים', 'error');
+            return false;
+        }
+    };
     
     // Invoices
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -319,8 +373,10 @@ export const useCRM = (
     };
 
     const deleteProduct = (id: string) => {
-        setProducts(prev => prev.filter(p => p.id !== id));
-        addToast('מוצר נמחק בהצלחה', 'info');
+        const next = (Array.isArray(products) ? products : []).filter(p => p.id !== id);
+        void saveProductsCatalog(next).then((ok) => {
+            if (ok) addToast('מוצר נמחק בהצלחה', 'info');
+        });
     };
 
     // --- Integrations ---
@@ -494,6 +550,7 @@ export const useCRM = (
         generateInvoice, addTenant, updateTenant, deleteTenant, deleteProduct,
         connectGoogleCalendar, connectGreenInvoice, onboardClientFromWebhook, simulateIncomingCall, dismissCall,
         setProducts,
+        saveProductsCatalog,
         // NEW: Version and Email Management
         updateTenantVersion, addAllowedEmail, removeAllowedEmail
     };

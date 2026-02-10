@@ -114,6 +114,7 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   const switcherRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const iconsPrefetchedRef = useRef(false);
   const entitlementsInFlightRef = useRef(false);
   const entitlementsAbortRef = useRef<AbortController | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
@@ -124,6 +125,52 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!hasMounted) return;
+    if (iconsPrefetchedRef.current) return;
+    if (typeof window === 'undefined') return;
+
+    let cancelled = false;
+
+    const run = () => {
+      if (cancelled) return;
+      iconsPrefetchedRef.current = true;
+
+      try {
+        const keys = getOrderedModuleKeys();
+        for (const key of keys) {
+          const iconName = String(modulesRegistry[key]?.iconName || '');
+          if (!iconName) continue;
+          if (!(iconName.startsWith('/') || iconName.startsWith('http://') || iconName.startsWith('https://'))) continue;
+
+          const img = new Image();
+          img.decoding = 'async';
+          img.src = iconName;
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const w = window as any;
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(run, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        try {
+          w.cancelIdleCallback?.(id);
+        } catch {
+        }
+      };
+    }
+
+    const t = window.setTimeout(run, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [hasMounted]);
 
   const routeInfo = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
   const orgSlug = orgSlugProp ?? routeInfo.orgSlug;
@@ -268,11 +315,10 @@ export const OSAppSwitcher: React.FC<OSAppSwitcherProps> = ({
         ? visibleModules.filter((k) => k === 'nexus' ? true : Boolean(effectiveEntitlements?.[k]))
         : []
       : visibleModules;
-    const gridColsClass = modulesToRender.length >= 5 ? 'grid-cols-3' : modulesToRender.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
 
     return (
       <div className={className} aria-label="מעבר בין מערכות">
-        <div className={`grid ${gridColsClass} ${compact ? 'gap-2' : 'gap-3'}`}>
+        <div className={`grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 ${compact ? 'gap-2 md:gap-3' : 'gap-3 md:gap-4'}`}>
           {modulesToRender.map((key) => {
             const def = modulesRegistry[key];
             const enabled = key === 'nexus' ? true : Boolean(effectiveEntitlements?.[key]);

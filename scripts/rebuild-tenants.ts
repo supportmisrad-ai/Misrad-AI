@@ -85,7 +85,7 @@ async function main(): Promise<void> {
 
       let ownerEmail = '';
       try {
-        const owner = await prisma.social_users.findUnique({
+        const owner = await prisma.organizationUser.findUnique({
           where: { id: String(org.owner_id) },
           select: { email: true },
         });

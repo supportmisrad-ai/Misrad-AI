@@ -21,7 +21,8 @@ if (fs.existsSync(envPath)) {
 }
 
 const { PrismaClient } = require('@prisma/client');
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
+const path = require('path');
 const readline = require('readline');
 
 function parseDbIdentity(urlValue) {
@@ -52,6 +53,21 @@ function printDbTarget() {
 
 const prisma = new PrismaClient();
 
+const repoRoot = process.cwd();
+const schemaPath = path.join(repoRoot, 'prisma', 'schema.prisma');
+const prismaBin =
+  process.platform === 'win32'
+    ? path.join(repoRoot, 'node_modules', '.bin', 'prisma.cmd')
+    : path.join(repoRoot, 'node_modules', '.bin', 'prisma');
+
+function runPrisma(args) {
+  execFileSync(prismaBin, [...args, '--schema', schemaPath], {
+    stdio: 'inherit',
+    env: process.env,
+    cwd: repoRoot,
+  });
+}
+
 function hasFlag(flag) {
   return process.argv.includes(flag);
 }
@@ -59,6 +75,8 @@ function hasFlag(flag) {
 const assumeYes = hasFlag('--yes');
 const autoApply = hasFlag('--apply');
 const disableShadowDb = hasFlag('--no-shadow');
+const createOnly = hasFlag('--create-only');
+const applyOnly = hasFlag('--apply-only');
 
 let rl = null;
 
@@ -83,7 +101,7 @@ function question(query) {
 async function checkDatabaseStatus() {
   try {
     const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM social_users');
+    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organization_users');
     
     return {
       organizations: orgs[0].count,
@@ -134,45 +152,51 @@ async function main() {
   }
   
   // Get migration name
-  const migrationName = process.argv[2];
-  if (!migrationName) {
-    console.log('❌ שגיאה: נדרש שם למיגריישן');
-    console.log('   שימוש: npm run migrate:safe <שם-מיגריישן>\n');
-    process.exit(1);
+  const migrationName = process.argv.slice(2).find((arg) => arg && !String(arg).startsWith('--'));
+  if (!applyOnly) {
+    if (!migrationName) {
+      console.log('❌ שגיאה: נדרש שם למיגריישן');
+      console.log('   שימוש: npm run migrate:safe <שם-מיגריישן>\n');
+      process.exit(1);
+    }
+
+    console.log(`\n📝 יוצר מיגריישן: ${migrationName}\n`);
   }
-  
-  console.log(`\n📝 יוצר מיגריישן: ${migrationName}\n`);
   
   // Create migration (without applying)
   try {
+    if (applyOnly) {
+      console.log('\n📦 מריץ מיגריישנים קיימים...\n');
+      if (disableShadowDb) {
+        delete process.env.SHADOW_DATABASE_URL;
+      }
+      runPrisma(['migrate', 'dev']);
+      console.log('\n✅ המיגריישנים הורצו בהצלחה!\n');
+      return;
+    }
+
     console.log('יוצר קובץ מיגריישן...\n');
 
     if (disableShadowDb) {
       delete process.env.SHADOW_DATABASE_URL;
     }
 
-    execSync(`npx prisma migrate dev --create-only --name ${migrationName}`, {
-      stdio: 'inherit',
-      env: process.env
-    });
+    runPrisma(['migrate', 'dev', '--create-only', '--name', migrationName]);
     
     console.log('\n✅ קובץ המיגריישן נוצר!\n');
     console.log('📋 שלבים הבאים:\n');
     console.log('   1. בדוק את ה-SQL ב: prisma/migrations/');
     console.log('   2. חפש פקודות מסוכנות: DROP, TRUNCATE, DELETE');
     console.log('   3. אם בטוח - המשך להריץ\n');
-    
-    const apply = autoApply ? 'כן' : await question('להריץ את המיגריישן עכשיו? (כן/לא): ');
+
+    const apply = createOnly ? 'לא' : autoApply ? 'כן' : await question('להריץ את המיגריישן עכשיו? (כן/לא): ');
     
     if (apply.toLowerCase() === 'כן') {
       console.log('\n📦 מריץ מיגריישן...\n');
       if (disableShadowDb) {
         delete process.env.SHADOW_DATABASE_URL;
       }
-      execSync('npx prisma migrate dev', {
-        stdio: 'inherit',
-        env: process.env
-      });
+      runPrisma(['migrate', 'dev']);
       console.log('\n✅ המיגריישן רץ בהצלחה!\n');
     } else {
       console.log('\n⏸️  המיגריישן נוצר אבל לא הורץ.\n');

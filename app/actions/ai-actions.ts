@@ -1,7 +1,8 @@
 'use server';
 
 import { PostVariation, AIOpportunity, ClientDNA } from "@/types/social";
-import { AIService } from "@/lib/services/ai/AIService";
+import { AIService } from "@/lib/services/ai/AIService";
+
 
 import { asObject } from '@/lib/shared/unknown';
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
@@ -46,8 +47,26 @@ export async function generatePostVariationsAction(
       גרסה 2: מעורבות (Social) - ממוקדת שאילת שאלות, יצירת שיח ותיוגים.
       גרסה 3: ערך (Value) - ממוקדת מתן ידע, טיפ מקצועי או השראה.
 
-      החזר את התוצאה במבנה JSON array של אובייקטים עם השדות: id, type, content, imageSuggestion.
+      לכל וריאציה, הוסף המלצות hashtags מותאמות לפלטפורמות:
+      - Facebook: 1-2 hashtags (פחות מקובל)
+      - Instagram: 5-10 hashtags רלוונטיים
+      - LinkedIn: 3-5 hashtags מקצועיים
+      
+      החזר את התוצאה במבנה JSON array של אובייקטים עם השדות:
+      {
+        "id": string,
+        "type": string,
+        "content": string,
+        "imageSuggestion": string,
+        "suggestedHashtags": {
+          "facebook": [string],
+          "instagram": [string],
+          "linkedin": [string]
+        }
+      }
+      
       הקפד על עברית טבעית, זורמת ומותאמת לקהל הישראלי.
+      Hashtags יכולים להיות בעברית או אנגלית לפי הנושא והפלטפורמה.
     `;
 
     const ai = AIService.getInstance();
@@ -70,7 +89,17 @@ export async function generatePostVariationsAction(
         const type = getStringProp(obj, 'type') || fallbackTypes[i] || '';
         const content = getStringProp(obj, 'content') || '';
         const imageSuggestion = getStringProp(obj, 'imageSuggestion') || '';
-        return { id, type, content, imageSuggestion };
+        
+        // Parse suggestedHashtags
+        const hashtagsObj = asObject(obj?.suggestedHashtags);
+        const suggestedHashtags = hashtagsObj ? {
+          facebook: Array.isArray(hashtagsObj.facebook) ? hashtagsObj.facebook.map(String).filter(Boolean) : undefined,
+          instagram: Array.isArray(hashtagsObj.instagram) ? hashtagsObj.instagram.map(String).filter(Boolean) : undefined,
+          linkedin: Array.isArray(hashtagsObj.linkedin) ? hashtagsObj.linkedin.map(String).filter(Boolean) : undefined,
+          general: Array.isArray(hashtagsObj.general) ? hashtagsObj.general.map(String).filter(Boolean) : undefined,
+        } : undefined;
+        
+        return { id, type, content, imageSuggestion, suggestedHashtags };
       });
     }
     

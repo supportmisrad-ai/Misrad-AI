@@ -7,8 +7,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { getBaseUrl, generateInvitationToken } from '../../../../lib/utils';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getBaseUrl, generateInvitationToken } from '@/lib/utils';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { logAuditEvent } from '@/lib/audit';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';

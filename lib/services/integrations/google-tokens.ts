@@ -17,13 +17,13 @@ export async function saveGoogleTokensForOrganizationUser(params: {
   const expiresAt = params.expiresAt;
   const scope = typeof params.scope === 'string' ? params.scope : '';
 
-  const tokenRow = await prisma.social_oauth_tokens.findFirst({
+  const tokenRow = await prisma.oAuthToken.findFirst({
     where: { user_id: organizationUserId, integration_name: integrationName },
     select: { id: true },
   });
 
   if (tokenRow?.id) {
-    await prisma.social_oauth_tokens.updateMany({
+    await prisma.oAuthToken.updateMany({
       where: { id: tokenRow.id },
       data: {
         access_token: accessToken,
@@ -34,7 +34,7 @@ export async function saveGoogleTokensForOrganizationUser(params: {
       },
     });
   } else {
-    await prisma.social_oauth_tokens.create({
+    await prisma.oAuthToken.create({
       data: {
         user_id: organizationUserId,
         integration_name: integrationName,
@@ -48,7 +48,7 @@ export async function saveGoogleTokensForOrganizationUser(params: {
     });
   }
 
-  await prisma.social_integration_status.upsert({
+  await prisma.integrationStatus.upsert({
     where: { name: integrationName },
     create: { name: integrationName, is_connected: true, last_sync: new Date(), created_at: new Date(), updated_at: new Date() },
     update: { is_connected: true, last_sync: new Date(), updated_at: new Date() },

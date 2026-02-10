@@ -18,7 +18,8 @@ import {
   parseSbRef,
   resolveStorageUrlsMaybeBatchedWithClient,
   toSbRefMaybe,
-} from '@/lib/services/operations/storage';
+} from '@/lib/services/operations/storage';
+
 
 function isSocialPlatform(value: unknown): value is SocialPlatform {
   return (
@@ -106,8 +107,8 @@ export async function getPosts(params: {
 
     type PostRow = Prisma.SocialPostGetPayload<{
       include: {
-        social_post_platforms: { select: { platform: true } };
-        social_post_comments: true;
+        postPlatforms: { select: { platform: true } };
+        postComments: true;
       };
     }>;
 
@@ -117,14 +118,14 @@ export async function getPosts(params: {
         ...(params.clientId ? { clientId: params.clientId } : {}),
       },
       include: {
-        social_post_platforms: { select: { platform: true } },
-        social_post_comments: true,
+        postPlatforms: { select: { platform: true } },
+        postComments: true,
       },
       orderBy: { createdAt: 'desc' },
     });
 
     const rawPosts: SocialPost[] = (rows || []).map((post) => {
-      const platforms = (post.social_post_platforms || [])
+      const platforms = (post.postPlatforms || [])
         .map((pp) => pp.platform)
         .filter(isSocialPlatform);
 
@@ -273,7 +274,7 @@ export async function createPost(
     // Insert platforms
     if (postData.platforms.length > 0) {
       try {
-        await prisma.social_post_platforms.createMany({
+        await prisma.socialMediaPostPlatform.createMany({
           data: postData.platforms.map((platform) => ({
             organizationId,
             post_id: post.id,
@@ -387,14 +388,14 @@ export async function updatePost(
     // Update platforms if provided
     if (updates.platforms) {
       // Delete existing platforms
-      await prisma.social_post_platforms.deleteMany({
+      await prisma.socialMediaPostPlatform.deleteMany({
         where: { post_id: postId, organizationId },
       });
 
       // Insert new platforms
       if (updates.platforms.length > 0) {
         try {
-          await prisma.social_post_platforms.createMany({
+          await prisma.socialMediaPostPlatform.createMany({
             data: updates.platforms.map((platform) => ({
               organizationId,
               post_id: postId,
@@ -537,7 +538,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
         clientId: scoped.clientId,
       },
       include: {
-        social_post_platforms: { select: { platform: true } },
+        postPlatforms: { select: { platform: true } },
       },
     });
 
@@ -545,7 +546,7 @@ export async function publishPost(postId: string, orgSlug: string): Promise<{ su
       return { success: false, error: translateError('פוסט לא נמצא') };
     }
 
-    const platforms = (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform);
+    const platforms = (post.postPlatforms || []).map((pp) => pp.platform).filter(isSocialPlatform);
 
     const rawMedia = post.media_url ? String(post.media_url) : null;
     const stableRef = rawMedia ? (toSbRefMaybe(rawMedia) || (rawMedia.startsWith('sb://') ? rawMedia : null)) : null;

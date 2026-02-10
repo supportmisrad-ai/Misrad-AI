@@ -22,7 +22,7 @@ async function peek() {
     const candidateTables = [
       'clients',
       'misrad_clients',
-      'social_clients',
+      'socialmedia_clients',
       'nexus_clients',
       'client_clients',
       'organizations',

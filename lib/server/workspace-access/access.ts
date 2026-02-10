@@ -88,6 +88,7 @@ export const requireWorkspaceAccessByOrgSlugCached = cache(async (clerkUserId: s
     name: org?.name ?? 'Workspace',
     logo: org?.logo ?? null,
     seatsAllowed: Number.isFinite(Number(org?.seats_allowed)) ? Number(org?.seats_allowed) : null,
+    isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     entitlements,
   };
 });
@@ -133,6 +134,7 @@ export const requireWorkspaceAccessByOrgSlugApiCached = cache(async (clerkUserId
     name: org.name ?? 'Workspace',
     logo: org.logo ?? null,
     seatsAllowed: Number.isFinite(Number(org.seats_allowed)) ? Number(org.seats_allowed) : null,
+    isShabbatProtected: org?.is_shabbat_protected === false ? false : true,
     entitlements,
   };
 });

@@ -43,7 +43,7 @@ export async function getNavigationMenu(): Promise<{
   error?: string;
 }> {
   try {
-    const data = await prisma.social_navigation_menu.findMany({
+    const data = await prisma.navigationMenu.findMany({
       where: { is_visible: true },
       orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
@@ -88,7 +88,7 @@ export async function updateNavigationMenu(
 
     if (items.length > 0) {
       for (const item of items) {
-        await prisma.social_navigation_menu.upsert({
+        await prisma.navigationMenu.upsert({
           where: { id: String(item.id) },
           create: {
             id: String(item.id),
@@ -139,7 +139,7 @@ export async function getAllNavigationItems(): Promise<{
 
     await requireSuperAdmin();
 
-    const data = await prisma.social_navigation_menu.findMany({
+    const data = await prisma.navigationMenu.findMany({
       orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
 

@@ -33,6 +33,7 @@ export default async function FinanceModuleLayout({
     name: workspace.name,
     logo: workspace.logo || '',
     primaryColor: '#000000',
+    isShabbatProtected: workspace.isShabbatProtected,
   };
   const def = getModuleDefinition('finance');
 

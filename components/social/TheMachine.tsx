@@ -6,10 +6,11 @@ import {
   X, Sparkles, Image as ImageIcon, 
   Search, ArrowRight, Zap, Facebook, Instagram, Linkedin, 
   MessageCircle, Globe, Video, Twitter, Share2, PinIcon, 
-  MessageSquare, Wand
+  MessageSquare, Wand, Clock
 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { generatePostVariationsAction, generateAIImageAction } from '@/app/actions/ai-actions';
+import { suggestBestPostingTimes, type PostingTimesResult } from '@/app/actions/social-posting-times';
 import { useSocialData } from '@/contexts/SocialDataContext';
 import { useSocialUI } from '@/contexts/SocialUIContext';
 import { getSocialBasePath, joinPath } from '@/lib/os/social-routing';
@@ -57,6 +58,8 @@ export default function TheMachine() {
   const [previewPlatform, setPreviewPlatform] = useState<SocialPlatform>('instagram');
   const [editableContent, setEditableContent] = useState('');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [postingTimes, setPostingTimes] = useState<PostingTimesResult | null>(null);
+  const [showTimesModal, setShowTimesModal] = useState(false);
 
   const editingPostId = String((activeDraft as any)?.id || '').trim();
   const editingPost = editingPostId && !editingPostId.startsWith('draft-') ? posts.find((p) => String(p.id) === editingPostId) : undefined;
@@ -108,6 +111,16 @@ export default function TheMachine() {
       }
     }
   }, [activeDraft, activeClientId, clients, editingPost?.content, editingPost?.platforms, isEditingExistingPost]);
+
+  // Load posting time recommendations when platforms change
+  useEffect(() => {
+    if (selectedPlatforms.length > 0) {
+      suggestBestPostingTimes({ 
+        platforms: selectedPlatforms,
+        isReligious: false // TODO: Add isShabbatProtected to Client type if needed
+      }).then(setPostingTimes);
+    }
+  }, [selectedPlatforms]);
 
   const togglePlatformSelection = (id: SocialPlatform) => {
     setSelectedPlatforms(prev => 
@@ -435,6 +448,33 @@ export default function TheMachine() {
                         </p>
                       </div>
 
+                      {/* Suggested Hashtags */}
+                      {v.suggestedHashtags && (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Wand size={12} className="text-purple-500" />
+                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Hashtags מומלצים</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {selectedPlatforms.map(platform => {
+                              const platformHashtags = platform === 'facebook' ? v.suggestedHashtags?.facebook :
+                                                      platform === 'instagram' ? v.suggestedHashtags?.instagram :
+                                                      platform === 'linkedin' ? v.suggestedHashtags?.linkedin :
+                                                      v.suggestedHashtags?.general;
+                              
+                              return platformHashtags?.slice(0, 5).map((tag, i) => (
+                                <span 
+                                  key={`${platform}-${i}`}
+                                  className="px-2 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-bold border border-purple-100"
+                                >
+                                  {tag.startsWith('#') ? tag : `#${tag}`}
+                                </span>
+                              ));
+                            }).filter(Boolean)[0]}
+                          </div>
+                        </div>
+                      )}
+
                       <div className="pt-4 md:pt-6 border-t border-slate-200 flex items-center justify-between">
                         <button className="w-full bg-slate-900 text-white py-3 md:py-4 rounded-xl md:rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2">
                           בחר גרסה {String.fromCharCode(65 + idx)} <ArrowRight size={14}/>
@@ -510,6 +550,61 @@ export default function TheMachine() {
                     onChange={e => setEditableContent(e.target.value)} 
                     className="w-full h-32 md:h-40 p-4 md:p-6 bg-slate-50 border border-slate-200 rounded-2xl md:rounded-[28px] outline-none focus:border-slate-900 font-bold text-base md:text-lg leading-relaxed shadow-inner" 
                   />
+
+                  {/* Hashtags Section */}
+                  {selectedVariation.suggestedHashtags && (
+                    <div className="flex flex-col gap-3 p-4 bg-purple-50/50 rounded-2xl border border-purple-100">
+                      <div className="flex items-center gap-2">
+                        <Wand size={14} className="text-purple-600" />
+                        <span className="text-xs font-bold text-purple-700 uppercase tracking-wider">Hashtags מומלצים</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedPlatforms.map(platform => {
+                          const platformHashtags = platform === 'facebook' ? selectedVariation.suggestedHashtags?.facebook :
+                                                  platform === 'instagram' ? selectedVariation.suggestedHashtags?.instagram :
+                                                  platform === 'linkedin' ? selectedVariation.suggestedHashtags?.linkedin :
+                                                  selectedVariation.suggestedHashtags?.general;
+                          
+                          return platformHashtags?.map((tag, i) => (
+                            <button
+                              key={`${platform}-${i}`}
+                              onClick={() => {
+                                const hashtagText = tag.startsWith('#') ? tag : `#${tag}`;
+                                setEditableContent(prev => `${prev}\n${hashtagText}`);
+                              }}
+                              className="px-3 py-1.5 bg-white text-purple-700 rounded-lg text-xs font-bold border-2 border-purple-200 hover:bg-purple-100 hover:border-purple-400 transition-all"
+                              title="לחץ להוספה לתוכן"
+                            >
+                              {tag.startsWith('#') ? tag : `#${tag}`}
+                            </button>
+                          ));
+                        }).filter(Boolean)[0]}
+                      </div>
+                      <p className="text-[10px] text-purple-600 font-medium">💡 לחץ על hashtag להוספה אוטומטית לתוכן</p>
+                    </div>
+                  )}
+
+                  {/* Best Posting Time */}
+                  {postingTimes && postingTimes.bestTimes.length > 0 && (
+                    <div className="flex items-center justify-between p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
+                      <div className="flex items-center gap-3">
+                        <Clock size={18} className="text-emerald-600" />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">שעה מומלצת לפרסום</span>
+                          <span className="text-sm font-black text-emerald-900">
+                            {postingTimes.bestTimes[0].dayHebrew} ב-{postingTimes.bestTimes[0].hourDisplay}
+                          </span>
+                          <span className="text-[10px] text-emerald-600">{postingTimes.bestTimes[0].reason}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowTimesModal(true)}
+                        className="px-3 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 transition-all"
+                      >
+                        עוד המלצות
+                      </button>
+                    </div>
+                  )}
                   
                   <div className="flex flex-col gap-4 p-6 bg-blue-50/50 rounded-3xl border border-blue-100 mt-2">
                     <div className="flex items-center justify-between">
@@ -542,6 +637,82 @@ export default function TheMachine() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Posting Times Modal */}
+      {showTimesModal && postingTimes && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowTimesModal(false)}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-6 flex items-center justify-between rounded-t-3xl">
+              <div className="flex items-center gap-3">
+                <Clock size={24} className="text-emerald-600" />
+                <h3 className="text-xl font-black">שעות פרסום מומלצות</h3>
+              </div>
+              <button onClick={() => setShowTimesModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-all">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Best Times */}
+              <div>
+                <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות מומלצות ביותר</h4>
+                <div className="space-y-3">
+                  {postingTimes.bestTimes.slice(0, 6).map((time, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-emerald-600 text-white rounded-xl flex items-center justify-center font-black text-lg">
+                          {time.score}
+                        </div>
+                        <div>
+                          <div className="font-bold text-slate-900">{time.dayHebrew} ב-{time.hourDisplay}</div>
+                          <div className="text-xs text-emerald-700">{time.reason}</div>
+                        </div>
+                      </div>
+                      <div className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold">
+                        {time.platform}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Avoid Times */}
+              {postingTimes.avoidTimes.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-bold text-slate-600 uppercase tracking-wider mb-4">שעות להימנע מהן</h4>
+                  <div className="space-y-2">
+                    {postingTimes.avoidTimes.map((time, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-100">
+                        <div className="text-xs font-bold text-red-600">{time.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* General Tip */}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex items-start gap-3">
+                  <Sparkles size={16} className="text-blue-600 mt-0.5" />
+                  <p className="text-sm text-blue-900">{postingTimes.generalTip}</p>
+                </div>
+              </div>
+
+              {/* Data Source */}
+              <div className="text-center">
+                <p className="text-xs text-slate-400">
+                  מקור: {postingTimes.dataSource === 'industry_best_practices' ? 'מחקרי engagement גלובליים' : 'הנתונים שלך'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

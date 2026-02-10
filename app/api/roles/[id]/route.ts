@@ -7,9 +7,9 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '../../../../lib/auth';
-import { RoleDefinition, PermissionId } from '../../../../types';
-import { logAuditEvent } from '../../../../lib/audit';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { RoleDefinition, PermissionId } from '@/types';
+import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
 import type { scale_roles } from '@prisma/client';
 

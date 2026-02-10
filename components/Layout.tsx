@@ -103,6 +103,7 @@ export const Layout = ({ children }: LayoutProps) => {
   
   // Check Shabbat status
   const { isShabbat, isLoading: shabbatLoading } = useShabbat();
+  const isShabbatProtected = (organization as any)?.isShabbatProtected !== false;
   
   // Set current date on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -459,7 +460,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
   // If it's Shabbat, show Shabbat screen instead of normal layout.
   // IMPORTANT: must be placed after all hooks to avoid hook order mismatches.
-  if (!shabbatLoading && isShabbat) {
+  if (!shabbatLoading && isShabbat && isShabbatProtected) {
     return <ShabbatScreen />;
   }
 

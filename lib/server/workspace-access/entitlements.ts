@@ -88,16 +88,17 @@ export function getPackageModules(packageType: PackageType): OSModuleKey[] {
   }
   if (packageType === 'the_closer') return ['system', 'nexus'];
   if (packageType === 'the_authority') return ['social', 'nexus'];
-  if (packageType === 'the_mentor') return ['nexus', 'system', 'social', 'client', 'finance', 'operations'];
+  if (packageType === 'the_mentor') return ['nexus', 'system', 'social', 'client', 'operations'];
   return ['nexus'];
 }
 
 export function inferOrganizationPackageType(flags: OrganizationModuleFlags): PackageType {
-  if (flags.has_nexus && flags.has_system && flags.has_social && flags.has_client && flags.has_finance && flags.has_operations) {
+  // Finance is now a free bonus, so don't use it to infer package type
+  if (flags.has_nexus && flags.has_system && flags.has_social && flags.has_client && flags.has_operations) {
     return 'the_empire';
   }
 
-  if (flags.has_operations || flags.has_finance) return 'the_operator';
+  if (flags.has_operations) return 'the_operator';
   if (flags.has_social || flags.has_client) return 'the_authority';
   return 'the_closer';
 }

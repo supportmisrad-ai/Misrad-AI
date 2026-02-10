@@ -50,7 +50,7 @@ async function main() {
     
     // 3. Check data count
     const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM social_users');
+    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM organization_users');
     
     console.log(`✅ Data count: ${orgs[0].c} orgs, ${users[0].c} users`);
     

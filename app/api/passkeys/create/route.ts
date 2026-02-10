@@ -60,7 +60,7 @@ async function POSTHandler(request: NextRequest) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                name: name || 'Scale CRM - זיהוי ביומטרי',
+                name: name || 'MISRAD AI - זיהוי ביומטרי',
             }),
         });
 

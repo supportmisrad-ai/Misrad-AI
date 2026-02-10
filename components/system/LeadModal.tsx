@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname } from 'next/navigation';
 import { Lead, Activity, Task } from './types';
@@ -30,6 +30,11 @@ function getErrorMessage(error: unknown): string {
   const obj = asObject(error);
   const msg = obj?.message;
   return typeof msg === 'string' ? msg : '';
+}
+
+function getStageLabel(status: Lead['status']): string {
+  const s = STAGES.find((x) => x.id === status);
+  return s?.label || String(status || '');
 }
 
 interface LeadModalProps {
@@ -135,7 +140,7 @@ const LeadModal: React.FC<LeadModalProps> = ({
   };
 
   const getDefaultPublicDescription = (l: Lead) => {
-    const stage = STAGES.find((s) => s.id === l.status)?.label || String(l.status || '');
+    const stage = getStageLabel(l.status);
     const company = String(l.company || '').trim();
     const name = String(l.name || '').trim();
     const lObj = asObject(l);
@@ -386,7 +391,15 @@ const LeadModal: React.FC<LeadModalProps> = ({
     setNoteContent('');
   };
 
-  const stageLabel = STAGES.find((s) => s.id === lead.status)?.label || String(lead.status || '');
+  const stageLabel = getStageLabel(lead.status);
+
+  const stagesForSelect = useMemo(() => {
+    const base = Array.isArray(STAGES) ? STAGES : [];
+    const current = String(lead.status || '').trim();
+    if (!current) return base;
+    if (base.some((s) => String(s.id) === current)) return base;
+    return [...base, { id: current as any, label: current, color: 'border-slate-200', accent: 'bg-slate-300' }];
+  }, [lead.status]);
 
   const canOpenPortal = !!String(lead.email || '').trim();
 
@@ -1161,9 +1174,9 @@ const LeadModal: React.FC<LeadModalProps> = ({
                         onChange={(e) => onStatusChange(lead.id, e.target.value as Lead['status'])}
                         className="bg-white border border-slate-200 rounded-full px-3 py-2 text-xs font-black"
                       >
-                        {STAGES.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.label}
+                        {stagesForSelect.map((s: { id: string; label: string }) => (
+                          <option key={String(s.id)} value={String(s.id)}>
+                            {String(s.label)}
                           </option>
                         ))}
                       </select>

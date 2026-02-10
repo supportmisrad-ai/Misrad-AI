@@ -6,7 +6,7 @@ import { SocialTask } from '@/types/social';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { getErrorMessage } from '@/lib/shared/unknown';
 
-type SocialTaskRow = Prisma.social_tasksGetPayload<{
+type SocialTaskRow = Prisma.SocialMediaTaskGetPayload<{
   select: {
     id: true;
     client_id: true;
@@ -36,7 +36,7 @@ export async function getTasks(orgSlug?: string, clientId?: string): Promise<{ s
       return { success: false, error: 'Missing organizationId' };
     }
 
-    const rows: SocialTaskRow[] = await prisma.social_tasks.findMany({
+    const rows: SocialTaskRow[] = await prisma.socialMediaTask.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: clientId } : {}),

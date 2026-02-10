@@ -16,6 +16,8 @@ type PackageDefinition = {
   monthlyPrice: number;
 };
 
+export const DEFAULT_TRIAL_DAYS = 7;
+
 export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
   solo: {
     labelHe: 'מודול בודד',
@@ -34,17 +36,17 @@ export const BILLING_PACKAGES: Record<PackageType, PackageDefinition> = {
   },
   the_operator: {
     labelHe: 'חבילת תפעול ושטח',
-    modules: ['operations', 'finance', 'nexus'],
+    modules: ['operations', 'nexus'],
     monthlyPrice: 349,
   },
   the_empire: {
     labelHe: 'הכל כלול',
-    modules: ['nexus', 'system', 'social', 'client', 'finance', 'operations'],
+    modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
   },
   the_mentor: {
     labelHe: 'כל החבילות',
-    modules: ['nexus', 'system', 'social', 'client', 'finance', 'operations'],
+    modules: ['nexus', 'system', 'social', 'client', 'operations'],
     monthlyPrice: 499,
   },
 };

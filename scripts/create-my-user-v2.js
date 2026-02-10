@@ -54,7 +54,7 @@ async function main() {
 
   try {
     // נסה למצוא משתמש לפי אימייל
-    const existingUser = await prisma.social_users.findFirst({
+    const existingUser = await prisma.organizationUser.findFirst({
       where: {
         email: {
           equals: email,
@@ -72,7 +72,7 @@ async function main() {
       // עדכון ל-Owner אם הוא לא
       if (existingUser.role !== role) {
         console.log(`🔄 מעדכן תפקיד מ-${existingUser.role} ל-${role}...`);
-        await prisma.social_users.update({
+        await prisma.organizationUser.update({
           where: { id: existingUser.id },
           data: { role: role }
         });
@@ -90,7 +90,7 @@ async function main() {
     } else {
       console.log('✨ המשתמש לא נמצא. יוצר משתמש חדש...');
       
-      const newUser = await prisma.social_users.create({
+      const newUser = await prisma.organizationUser.create({
         data: {
           id: fixedId,
           email: email,

@@ -19,13 +19,13 @@ type TeamMemberRow = {
   capacity_score: number | null;
   hourly_rate: string | number | null;
   monthly_salary: string | number | null;
-  social_team_member_clients?: Array<{ client_id: string }> | null;
+  teamMemberClients?: Array<{ client_id: string }> | null;
 };
 
 function toTeamMemberRow(value: unknown): TeamMemberRow {
   const obj = asObject(value) ?? {};
-  const clientsRaw = obj.social_team_member_clients;
-  const social_team_member_clients = Array.isArray(clientsRaw)
+  const clientsRaw = obj.teamMemberClients;
+  const teamMemberClients = Array.isArray(clientsRaw)
     ? clientsRaw
         .map((c) => {
           const cObj = asObject(c) ?? {};
@@ -56,7 +56,7 @@ function toTeamMemberRow(value: unknown): TeamMemberRow {
       monthlySalaryRaw == null || typeof monthlySalaryRaw === 'string' || typeof monthlySalaryRaw === 'number'
         ? (monthlySalaryRaw as string | number | null)
         : String(monthlySalaryRaw),
-    social_team_member_clients,
+    teamMemberClients,
   };
 }
 
@@ -102,7 +102,7 @@ export async function getTeamMembers(orgSlug: string): Promise<{ success: boolea
         hourly_rate: true,
         monthly_salary: true,
         created_at: true,
-        social_team_member_clients: { select: { client_id: true } },
+        teamMemberClients: { select: { client_id: true } },
       },
       orderBy: { created_at: 'desc' },
     }));
@@ -121,7 +121,7 @@ export async function getTeamMembers(orgSlug: string): Promise<{ success: boolea
         role: isTeamMemberRole(roleRaw) ? roleRaw : 'account_manager',
         memberType: isMemberType(memberTypeRaw) ? memberTypeRaw : 'employee',
         avatar: member.avatar,
-        assignedClients: (member.social_team_member_clients || []).map((tmc) => tmc.client_id),
+        assignedClients: (member.teamMemberClients || []).map((tmc) => tmc.client_id),
         activeTasksCount: member.active_tasks_count || 0,
         capacityScore: member.capacity_score || 0,
         hourlyRate: member.hourly_rate ? Number(member.hourly_rate) : undefined,

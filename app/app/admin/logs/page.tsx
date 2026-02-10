@@ -15,7 +15,8 @@ type AuditItem = {
   user: string;
   time: string;
   timestamp: string;
-};
+};
+
 
 function toAuditItem(row: unknown): AuditItem {
   const obj = asObject(row) ?? {};
@@ -54,7 +55,7 @@ export default function AdminLogsPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <AdminPageHeader title="לוגים" subtitle="Audit Log" icon={ScrollText} />
+      <AdminPageHeader title="לוגים" subtitle="יומן פעילות מערכת" icon={ScrollText} />
 
       <AdminToolbar
         actions={

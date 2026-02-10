@@ -4,19 +4,25 @@ import React, { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Lead, PipelineStage } from './types';
 import { STAGES } from './constants';
-import { Search, Filter, Phone, MessageSquare, FileDown, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
+import { Search, Filter, Phone, MessageSquare, FileDown, FileUp, Facebook, Instagram, Globe, User, MoreHorizontal, ArrowRight, Mail, Clock } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import LogCallModal from './LogCallModal';
 import { createSystemLeadActivity } from '@/app/actions/system-leads';
 import { uploadCallRecordingFile } from '@/app/actions/files';
 
+function getStageLabel(status: PipelineStage): string {
+  const s = STAGES.find((x) => x.id === status);
+  return s?.label || String(status || '');
+}
+
 interface ContactsViewProps {
   leads: Lead[];
   viewMode?: 'all' | 'leads' | 'contacts';
   onLeadClick: (lead: Lead) => void;
+  onImportLeadsAction?: () => void;
 }
 
-const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', onLeadClick }) => {
+const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', onLeadClick, onImportLeadsAction }) => {
   const { addToast } = useToast();
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -78,6 +84,14 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
            </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
+            {onImportLeadsAction ? (
+                <button 
+                    onClick={onImportLeadsAction}
+                    className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 transition-colors shadow-sm"
+                >
+                    <FileUp size={16} /> ייבוא לידים
+                </button>
+            ) : null}
             <button 
                 onClick={handleExport}
                 className="bg-white border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center w-full md:w-auto gap-2 hover:bg-slate-50 transition-colors shadow-sm"
@@ -148,19 +162,33 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                                 </div>
                             </td>
                             <td className="px-6 py-4">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-                                    lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                    lead.status === 'lost' ? 'bg-slate-100 text-slate-500 border-slate-200' :
-                                    lead.status === 'negotiation' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                    'bg-indigo-50 text-indigo-700 border-indigo-100'
-                                }`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${
-                                        lead.status === 'won' ? 'bg-emerald-500' :
-                                        lead.status === 'lost' ? 'bg-slate-400' :
-                                        lead.status === 'negotiation' ? 'bg-amber-500' :
-                                        'bg-indigo-500'
-                                    }`}></span>
-                                    {STAGES.find(s => s.id === lead.status)?.label}
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+                                    lead.status === 'won'
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                      : lead.status === 'lost'
+                                        ? 'bg-slate-100 text-slate-500 border-slate-200'
+                                        : lead.status === 'negotiation'
+                                          ? 'bg-amber-50 text-amber-700 border-amber-100'
+                                          : STAGES.some((s) => s.id === lead.status)
+                                            ? 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                            : 'bg-slate-50 text-slate-700 border-slate-200'
+                                  }`}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full ${
+                                      lead.status === 'won'
+                                        ? 'bg-emerald-500'
+                                        : lead.status === 'lost'
+                                          ? 'bg-slate-400'
+                                          : lead.status === 'negotiation'
+                                            ? 'bg-amber-500'
+                                            : STAGES.some((s) => s.id === lead.status)
+                                              ? 'bg-indigo-500'
+                                              : 'bg-slate-400'
+                                    }`}
+                                  ></span>
+                                  {getStageLabel(lead.status)}
                                 </span>
                             </td>
                             <td className="px-6 py-4">
@@ -226,9 +254,9 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                           </div>
                           <span className={`inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border ${
                                 lead.status === 'won' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                STAGES.some((s) => s.id === lead.status) ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-700 border-slate-200'
                             }`}>
-                                {STAGES.find(s => s.id === lead.status)?.label}
+                                {getStageLabel(lead.status)}
                           </span>
                       </div>
 

@@ -1,0 +1,126 @@
+// ============================================================
+// Clients System Models - Add to schema.prisma
+// ============================================================
+
+model Client {
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  
+  // Business Info
+  company_name            String              @map("company_name")
+  company_name_en         String?             @map("company_name_en")
+  
+  // Legal & Tax
+  business_number         String?             @unique @map("business_number")
+  tax_id                  String?             @map("tax_id")
+  legal_entity_type       String?             @map("legal_entity_type")
+  
+  // Contact Info
+  primary_email           String              @unique @map("primary_email")
+  phone                   String?
+  website                 String?
+  
+  // Address
+  address_street          String?             @map("address_street")
+  address_city            String?             @map("address_city")
+  address_state           String?             @map("address_state")
+  address_postal_code     String?             @map("address_postal_code")
+  address_country         String?             @default("ישראל") @map("address_country")
+  
+  // Billing Info
+  billing_email           String?             @map("billing_email")
+  billing_contact_name    String?             @map("billing_contact_name")
+  billing_address_street  String?             @map("billing_address_street")
+  billing_address_city    String?             @map("billing_address_city")
+  billing_address_postal_code String?         @map("billing_address_postal_code")
+  
+  // Business Details
+  industry                String?
+  company_size            String?             @map("company_size")
+  annual_revenue_range    String?             @map("annual_revenue_range")
+  
+  // CRM Fields
+  lead_source             String?             @map("lead_source")
+  account_manager_id      String?             @map("account_manager_id") @db.Uuid
+  sales_rep_id            String?             @map("sales_rep_id") @db.Uuid
+  
+  // Status & Lifecycle
+  status                  String              @default("active")
+  lifecycle_stage         String              @default("customer") @map("lifecycle_stage")
+  
+  // Financial
+  total_revenue_lifetime  Decimal             @default(0) @map("total_revenue_lifetime") @db.Decimal(15, 2)
+  mrr                     Decimal             @default(0) @db.Decimal(10, 2)
+  arr                     Decimal             @default(0) @db.Decimal(10, 2)
+  
+  // Dates
+  created_at              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  first_purchase_date     DateTime?           @map("first_purchase_date") @db.Timestamptz(6)
+  last_purchase_date      DateTime?           @map("last_purchase_date") @db.Timestamptz(6)
+  
+  // Metadata
+  notes                   String?
+  tags                    String[]
+  custom_fields           Json?               @map("custom_fields")
+  
+  // Soft Delete
+  deleted_at              DateTime?           @map("deleted_at") @db.Timestamptz(6)
+  
+  // Relations
+  organizations           social_organizations[] @relation("ClientOrganizations")
+  contacts                ClientContact[]
+  
+  @@index([company_name])
+  @@index([primary_email])
+  @@index([status])
+  @@index([lifecycle_stage])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@index([business_number])
+  @@map("clients")
+}
+
+model ClientContact {
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  
+  // Foreign Keys
+  client_id               String              @map("client_id") @db.Uuid
+  user_id                 String              @map("user_id") @db.Uuid
+  
+  // Contact Role
+  role                    String              @default("contact")
+  title                   String?
+  department              String?
+  
+  // Status
+  is_primary              Boolean             @default(false) @map("is_primary")
+  is_billing_contact      Boolean             @default(false) @map("is_billing_contact")
+  is_technical_contact    Boolean             @default(false) @map("is_technical_contact")
+  
+  // Dates
+  created_at              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updated_at              DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  
+  // Relations
+  client                  Client              @relation(fields: [client_id], references: [id], onDelete: Cascade)
+  user                    OrganizationUser    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  
+  @@unique([client_id, user_id])
+  @@index([client_id])
+  @@index([user_id])
+  @@index([is_primary])
+  @@index([role])
+  @@map("client_contacts")
+}
+
+// ============================================================
+// Update existing models
+// ============================================================
+
+// Add to OrganizationUser model:
+// client_contacts         ClientContact[]
+
+// Add to social_organizations model:
+// client_id               String?             @map("client_id") @db.Uuid
+// client                  Client?             @relation("ClientOrganizations", fields: [client_id], references: [id], onDelete: SetNull)
+// @@index([client_id])

@@ -1,6 +1,13 @@
+import 'server-only';
+
+import * as React from 'react';
+
 import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/auth';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import type { WorkspaceInfo } from '@/lib/server/workspace';
+import { getNexusOnboardingTemplate } from '@/lib/services/nexus-onboarding-service';
+import { getNexusBillingItems } from '@/lib/services/nexus-billing-service';
 
 type ActionPriority = 'urgent' | 'high' | 'normal';
 
@@ -32,8 +39,26 @@ export type NexusOwnerDashboardData = {
   nextActions: DashboardAction[];
 };
 
-export async function getNexusOwnerDashboardData(orgSlug: string): Promise<NexusOwnerDashboardData> {
-  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+export type NexusDashboardBootstrap = {
+  workspace: WorkspaceInfo;
+  ownerDashboard: NexusOwnerDashboardData;
+  onboardingTemplateKey?: string | null;
+  billingItems?: unknown[] | null;
+};
+
+const reactCache: unknown = Reflect.get(React, 'cache');
+type CacheFn = <T extends (...args: any[]) => any>(fn: T) => T;
+function identityCache<T extends (...args: any[]) => any>(fn: T): T {
+  return fn;
+}
+
+const cache: CacheFn = typeof reactCache === 'function' ? (reactCache as CacheFn) : identityCache;
+
+async function buildNexusOwnerDashboardDataForWorkspace(params: {
+  orgSlug: string;
+  workspace: WorkspaceInfo;
+}): Promise<NexusOwnerDashboardData> {
+  const { orgSlug, workspace } = params;
   const entitlements = workspace.entitlements;
 
   const actions: DashboardAction[] = [];
@@ -121,8 +146,12 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
     const [postsTotal, postsDraft, postsScheduled, postsPublished, scheduledPosts] = await Promise.all([
       prisma.socialPost.count({ where: { organizationId: orgId } }),
       prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'draft', mode: 'insensitive' } } }),
-      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } } }),
-      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'published', mode: 'insensitive' } } }),
+      prisma.socialPost.count({
+        where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } },
+      }),
+      prisma.socialPost.count({
+        where: { organizationId: orgId, status: { equals: 'published', mode: 'insensitive' } },
+      }),
       prisma.socialPost.findMany({
         where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } },
         select: { id: true },
@@ -190,4 +219,28 @@ export async function getNexusOwnerDashboardData(orgSlug: string): Promise<Nexus
     kpis,
     nextActions: actions.slice(0, 10),
   };
+}
+
+export async function getNexusDashboardBootstrap(params: { orgSlug: string }): Promise<NexusDashboardBootstrap> {
+  const workspace = await requireWorkspaceAccessByOrgSlug(params.orgSlug);
+
+  const [ownerDashboard, onboarding, billing] = await Promise.all([
+    buildNexusOwnerDashboardDataForWorkspace({ orgSlug: params.orgSlug, workspace }),
+    getNexusOnboardingTemplate(workspace.id).catch(() => undefined),
+    getNexusBillingItems(workspace.id).catch(() => undefined),
+  ]);
+
+  return {
+    workspace,
+    ownerDashboard,
+    onboardingTemplateKey: onboarding?.key ? String(onboarding.key) : onboarding === undefined ? undefined : null,
+    billingItems: Array.isArray(billing?.items) ? (billing.items as unknown[]) : billing === undefined ? undefined : null,
+  };
+}
+
+export const getNexusDashboardBootstrapCached = cache(getNexusDashboardBootstrap);
+
+export async function getNexusOwnerDashboardData(orgSlug: string): Promise<NexusOwnerDashboardData> {
+  const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
+  return await buildNexusOwnerDashboardDataForWorkspace({ orgSlug, workspace });
 }

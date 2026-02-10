@@ -52,7 +52,7 @@ export async function POST(req: Request) {
         const e2eOwnerId = crypto.randomUUID();
 
         const created = await prisma.$transaction(async (tx) => {
-          await tx.social_users.create({
+          await tx.organizationUser.create({
             data: {
               id: e2eOwnerId,
               clerk_user_id: `e2e_${e2eOwnerId}`,
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
             select: { id: true },
           });
 
-          await tx.social_users.update({
+          await tx.organizationUser.update({
             where: { id: e2eOwnerId },
             data: { organization_id: createdOrg.id, updated_at: new Date() },
           });

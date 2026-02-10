@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
-import { requireSuperAdmin } from '../../../../../lib/auth';
+import { requireSuperAdmin } from '@/lib/auth';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';

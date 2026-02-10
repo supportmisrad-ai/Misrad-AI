@@ -22,7 +22,7 @@ type SubscriptionItemsCreateData = Parameters<typeof prisma.subscription_items.c
 type SubscriptionItemsDeleteManyWhere = Prisma.subscription_itemsDeleteManyArgs['where'];
 type ChargesCreateData = Parameters<typeof prisma.charges.create>[0]['data'];
 type BillingEventsCreateData = Parameters<typeof prisma.billing_events.create>[0]['data'];
-type SocialSyncLogsCreateData = Parameters<typeof prisma.social_sync_logs.create>[0]['data'];
+type SocialSyncLogsCreateData = Parameters<typeof prisma.socialMediaSyncLog.create>[0]['data'];
 
 
 function isMissingRelationError(error: unknown): boolean {
@@ -117,11 +117,13 @@ function buildOrgFlagsFromPackageType(packageType: PackageType): {
   has_operations: boolean;
 } {
   const allowed = new Set(getPackageModules(packageType));
+  // Finance is a free bonus for any paid package
+  const hasAnyModule = allowed.size > 0;
   return {
     has_nexus: allowed.has('nexus'),
     has_system: allowed.has('system'),
     has_social: allowed.has('social'),
-    has_finance: allowed.has('finance'),
+    has_finance: hasAnyModule, // Free bonus
     has_client: allowed.has('client'),
     has_operations: allowed.has('operations'),
   };
@@ -421,7 +423,7 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     // Best-effort: audit log
     try {
       if (actorClerkUserId) {
-        await prisma.social_sync_logs.create({
+        await prisma.socialMediaSyncLog.create({
           data: {
             user_id: String(actorClerkUserId),
             integration_name: 'admin',

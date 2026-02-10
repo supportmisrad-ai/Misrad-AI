@@ -177,6 +177,30 @@ export default function LegacyNexusTenantsPanelClient(props: {
 
     updateTenant?.(String((editingTenant as any).id), { modules: newModules } as any);
     setEditingTenant({ ...(editingTenant as any), modules: newModules } as any);
+
+    Promise.resolve()
+      .then(() => handleUpdateTenant(String((editingTenant as any).id), { modules: newModules } as any))
+      .catch((e: any) => {
+        addToast?.(e?.message || 'שגיאה בעדכון מודולים', 'error');
+      });
+  };
+
+  const setTenantModules = async (modules: ModuleId[]) => {
+    if (!editingTenant) return;
+    const next = Array.isArray(modules) ? modules : ([] as any);
+    if (next.length === 0) {
+      addToast?.('חייב להיות לפחות מודול אחד פעיל', 'error');
+      return;
+    }
+
+    updateTenant?.(String((editingTenant as any).id), { modules: next } as any);
+    setEditingTenant({ ...(editingTenant as any), modules: next } as any);
+
+    try {
+      await handleUpdateTenant(String((editingTenant as any).id), { modules: next } as any);
+    } catch (e: any) {
+      addToast?.(e?.message || 'שגיאה בעדכון מודולים', 'error');
+    }
   };
 
   const handleSimulateTenant = (tenant: Tenant) => {
@@ -200,8 +224,10 @@ export default function LegacyNexusTenantsPanelClient(props: {
         {isModuleModalOpen && editingTenant ? (
           <ModuleManagementModal
             tenant={editingTenant as any}
+            products={products as any}
             onClose={() => setIsModuleModalOpen(false)}
             onToggle={toggleTenantModule as any}
+            onSetModules={setTenantModules as any}
           />
         ) : null}
 

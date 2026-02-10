@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Clock, LogOut } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
@@ -25,6 +26,16 @@ function formatDuration(ms: number) {
 export default function AttendanceMiniStatus() {
   const pathname = usePathname();
   const { orgSlug } = useMemo(() => parseWorkspaceRoute(pathname), [pathname]);
+  let isClerkLoaded = false;
+  let isSignedIn = false;
+  try {
+    const clerk = useUser();
+    isClerkLoaded = clerk.isLoaded;
+    isSignedIn = Boolean(clerk.isSignedIn);
+  } catch {
+    isClerkLoaded = true;
+    isSignedIn = false;
+  }
   const [hasNexus, setHasNexus] = useState<boolean | null>(null);
   const [startTime, setStartTime] = useState<string | null>(null);
   const [entryId, setEntryId] = useState<string | null>(null);
@@ -37,6 +48,10 @@ export default function AttendanceMiniStatus() {
   useEffect(() => {
     const loadEntitlements = async () => {
       if (!orgSlug) {
+        setHasNexus(null);
+        return;
+      }
+      if (!isClerkLoaded || !isSignedIn) {
         setHasNexus(null);
         return;
       }
@@ -54,11 +69,12 @@ export default function AttendanceMiniStatus() {
     };
 
     loadEntitlements();
-  }, [orgSlug]);
+  }, [isClerkLoaded, isSignedIn, orgSlug]);
 
   useEffect(() => {
     const loadMe = async () => {
       if (!orgSlug) return;
+      if (!isClerkLoaded || !isSignedIn) return;
       try {
         const data = await getNexusMe({ orgId: orgSlug });
         const id = data?.user?.id ? String(data.user.id) : null;
@@ -69,7 +85,7 @@ export default function AttendanceMiniStatus() {
     };
 
     loadMe();
-  }, [orgSlug]);
+  }, [isClerkLoaded, isSignedIn, orgSlug]);
 
   const broadcast = useCallback(
     (payload: { orgSlug: string; entryId: string | null; startTime: string | null }) => {
@@ -87,6 +103,7 @@ export default function AttendanceMiniStatus() {
 
   const loadActiveShift = useCallback(async () => {
     if (!orgSlug) return;
+    if (!isClerkLoaded || !isSignedIn) return;
     if (loadInFlightRef.current) return;
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     loadInFlightRef.current = true;
@@ -121,7 +138,7 @@ export default function AttendanceMiniStatus() {
     } finally {
       loadInFlightRef.current = false;
     }
-  }, [broadcast, orgSlug, userId]);
+  }, [broadcast, isClerkLoaded, isSignedIn, orgSlug, userId]);
 
   useEffect(() => {
     if (!orgSlug) return;
@@ -151,17 +168,19 @@ export default function AttendanceMiniStatus() {
 
   useEffect(() => {
     if (!orgSlug) return;
+    if (!isClerkLoaded || !isSignedIn) return;
     loadActiveShift();
     const interval = window.setInterval(loadActiveShift, 25_000);
     return () => window.clearInterval(interval);
-  }, [loadActiveShift, orgSlug]);
+  }, [isClerkLoaded, isSignedIn, loadActiveShift, orgSlug]);
 
   useEffect(() => {
     if (!orgSlug) return;
+    if (!isClerkLoaded || !isSignedIn) return;
     if (!startTime) return;
     if (entryId) return;
     loadActiveShift();
-  }, [entryId, loadActiveShift, orgSlug, startTime]);
+  }, [entryId, isClerkLoaded, isSignedIn, loadActiveShift, orgSlug, startTime]);
 
   const clockOutQuick = useCallback(async () => {
     if (!entryId || !orgSlug) return;

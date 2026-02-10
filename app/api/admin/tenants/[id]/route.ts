@@ -26,6 +26,18 @@ function asString(value: unknown): string {
     return typeof value === 'string' ? value : '';
 }
 
+function isModuleId(value: unknown): boolean {
+    return (
+        value === 'crm' ||
+        value === 'finance' ||
+        value === 'ai' ||
+        value === 'team' ||
+        value === 'content' ||
+        value === 'assets' ||
+        value === 'operations'
+    );
+}
+
 
 function mapTenantRow(row: unknown): Tenant {
     const obj = asObject(row);
@@ -132,7 +144,16 @@ async function PATCHHandler(request: NextRequest, { params }: { params: { id: st
         if (bodyObj.region !== undefined) updateData.region = bodyObj.region as Tenant['region'];
         if (bodyObj.status !== undefined) updateData.status = bodyObj.status as Tenant['status'];
         if (bodyObj.mrr !== undefined) updateData.mrr = bodyObj.mrr as Tenant['mrr'];
-        if (bodyObj.modules !== undefined) updateData.modules = bodyObj.modules as Tenant['modules'];
+        if (bodyObj.modules !== undefined) {
+            if (!Array.isArray(bodyObj.modules)) {
+                return apiError('Invalid modules. Must be an array', { status: 400 });
+            }
+            const nextModules = (bodyObj.modules as unknown[]).map((x) => String(x)).filter(isModuleId) as Tenant['modules'];
+            if (nextModules.length === 0) {
+                return apiError('At least one module is required', { status: 400 });
+            }
+            updateData.modules = nextModules;
+        }
         if (bodyObj.version !== undefined) updateData.version = bodyObj.version as Tenant['version'];
         if (bodyObj.allowedEmails !== undefined) updateData.allowedEmails = bodyObj.allowedEmails as Tenant['allowedEmails'];
         if (bodyObj.requireApproval !== undefined) updateData.requireApproval = bodyObj.requireApproval as Tenant['requireApproval'];

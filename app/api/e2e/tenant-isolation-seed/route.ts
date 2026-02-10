@@ -128,7 +128,7 @@ export async function POST(req: Request) {
 
     const createSocialUser = async (params: { clerkUserId: string; email: string | null; fullName: string }) => {
       const insertRes = await admin
-        .from('social_users')
+        .from('organization_users')
         .insert({
           clerk_user_id: params.clerkUserId,
           email: params.email,
@@ -144,7 +144,7 @@ export async function POST(req: Request) {
       if (insertRes.error) {
         // If already exists, load it.
         const existing = await admin
-          .from('social_users')
+          .from('organization_users')
           .select('id, clerk_user_id')
           .eq('clerk_user_id', params.clerkUserId)
           .single();
@@ -240,7 +240,7 @@ export async function POST(req: Request) {
 
     const updateSocialOrg = async (params: { clerkUserId: string; organizationId: string }) => {
       const res = await admin
-        .from('social_users')
+        .from('organization_users')
         .update({
           organization_id: params.organizationId,
           updated_at: new Date().toISOString(),

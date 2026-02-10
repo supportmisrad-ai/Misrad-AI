@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="תסריטי מכירה ושיווק MISRAD AI - מערכת AI שמקדמת ארגונים">
+    <title>תסריטי מכירה - MISRAD AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+        
+        nav {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-bottom: 3px solid #667eea;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 1.3em;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        nav a {
+            display: block;
+            padding: 12px 15px;
+            background: white;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+        
+        nav a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        main {
+            padding: 40px 30px;
+        }
+        
+        section {
+            margin-bottom: 60px;
+            padding-bottom: 40px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        section:last-child {
+            border-bottom: none;
+        }
+        
+        h2 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        h3 {
+            color: #764ba2;
+            font-size: 1.5em;
+            margin: 30px 0 15px;
+        }
+        
+        h4 {
+            color: #555;
+            font-size: 1.2em;
+            margin: 20px 0 10px;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 30px;
+        }
+        
+        li {
+            margin-bottom: 10px;
+        }
+        
+        blockquote {
+            background: #f8f9fa;
+            border-right: 4px solid #667eea;
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-style: italic;
+        }
+        
+        .meta {
+            background: #e3f2fd;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-right: 4px solid #2196F3;
+        }
+        
+        .meta strong {
+            color: #1976D2;
+        }
+        
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #d63384;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            border-right: 4px solid #667eea;
+        }
+        
+        .highlight {
+            background: linear-gradient(120deg, #ffd89b 0%, #19547b 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .cta-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .cta-box h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+        
+        footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        footer p {
+            margin: 10px 0;
+        }
+        
+        .emoji {
+            font-size: 1.3em;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            header h1 {
+                font-size: 1.8em;
+            }
+            
+            header p {
+                font-size: 1em;
+            }
+            
+            h2 {
+                font-size: 1.6em;
+            }
+            
+            h3 {
+                font-size: 1.3em;
+            }
+            
+            nav ul {
+                grid-template-columns: 1fr;
+            }
+            
+            main {
+                padding: 20px 15px;
+            }
+            
+            header, nav, footer {
+                padding: 20px 15px;
+            }
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+            }
+            
+            nav {
+                position: static;
+            }
+            
+            section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="emoji">🤖</span> MISRAD AI</h1>
+            <p>תסריטי מכירה ושיווק - מערכת AI שמקדמת ארגונים</p>
+        </header>
+        
+        <nav>
+            <h2>תוכן עניינים</h2>
+            <ul>
+                <li><a href="#intro">מבוא</a></li>
+                <li><a href="#main">המערכת - תסריט שיווקי</a></li>
+                <li><a href="#nexus">Nexus - ניהול צוות</a></li>
+                <li><a href="#system">System - מכירות</a></li>
+                <li><a href="#social">Social - שיווק</a></li>
+                <li><a href="#finance">Finance - כספים</a></li>
+                <li><a href="#client">Client - פורטל לקוחות</a></li>
+                <li><a href="#operations">Operations - תפעול</a></li>
+                <li><a href="#packages">חבילות ותמחור</a></li>
+                <li><a href="#short">גרסאות קצרות</a></li>
+                <li><a href="#reels">Reels & TikTok</a></li>
+                <li><a href="#cta">CTA לפי קהלים</a></li>
+            </ul>
+        </nav>
+        
+        <main>
+            <section id="intro">
+                <h2><span class="emoji">📋</span> מבוא - תסריטי מכירה</h2>
+                
+                <div class="highlight">
+                    <h3>מטרת התסריטים</h3>
+                    <p><strong>להציג את MISRAD AI כמערכת AI שמקדמת ארגונים</strong> - לא עוד CRM.</p>
+                </div>
+                
+                <h3>עקרונות מנחים</h3>
+                <ul>
+                    <li><strong>AI במרכז</strong> - כל תסריט מדגיש את יכולות ה-AI</li>
+                    <li><strong>דוגמאות קונקרטיות</strong> - "ליד X סיכוי 75% לסגירה"</li>
+                    <li><strong>תועלת מדידה</strong> - "+45% סגירות", "חוסך 70% זמן"</li>
+                    <li><strong>כנות</strong> - מחיר שקוף, בלי הבטחות מוגזמות</li>
+                </ul>
+                
+                <h3>מבנה תסריט אופטימלי</h3>
+                <ol>
+                    <li><strong>Hook</strong> (0-5s) - תופס תשומת לב</li>
+                    <li><strong>כאב</strong> (5-20s) - מזהה את הבעיה</li>
+                    <li><strong>פתרון</strong> (20-40s) - מציג MISRAD AI</li>
+                    <li><strong>בידול</strong> (40-55s) - AI אמיתי</li>
+                    <li><strong>תוצאות</strong> (55-70s) - מספרים וסטטיסטיקות</li>
+                    <li><strong>CTA</strong> (70-85s) - קריאה לפעולה</li>
+                </ol>
+            </section>
+
+            <section id="main">
+                <h2><span class="emoji">🎬</span> תסריט שיווקי: MISRAD AI — מערכת הפעלה לעסק</h2>
+                
+                <div class="meta">
+                    <p><strong>אורך מומלץ:</strong> 60–90 שניות</p>
+                    <p><strong>פורמט:</strong> Brand Film / סרטון אתר / מודעת סושיאל ארוכה</p>
+                    <p><strong>קהל יעד:</strong> בעלי עסקים, מנהלים, יזמים — ארגונים בכל גודל (2-200 עובדים)</p>
+                    <p><strong>הבטחה מרכזית:</strong> מערכת AI אחת שמרכזת ומקדמת את כל הארגון — בלי מחיר מנופח</p>
+                    <p><strong>טון:</strong> בטוח, חד, כנה</p>
+                </div>
+
+                <h3>רעיון מרכזי (Big Idea)</h3>
+                <blockquote>"הארגון שלך לא צריך עוד כלי. הוא צריך בינה מלאכותית שמנהלת ומקדמת."</blockquote>
+
+                <h3>תסריט (Voice-over + ויז'ואל)</h3>
+                
+                <h4>0–5s — Hook</h4>
+                <p><strong>[ויז'ואל: בעל עסק מחליף בין WhatsApp, Excel, חשבוניות, CRM]</strong></p>
+                <blockquote>
+                    "הארגון שלך עובד על 6 מסכים שונים.<br>
+                    כל דבר במקום אחר. כל החלטה — חצי תמונה.<br>
+                    ואף אחד לא אומר לך מה באמת קורה."
+                </blockquote>
+
+                <h4>5–20s — כאב אמיתי</h4>
+                <p><strong>[ויז'ואל: רשימת משימות, לקוחות, חובות, פוסטים — מתפזרת]</strong></p>
+                <blockquote>
+                    "לידים הולכים לאיבוד. צוות עובד בלי תיאום. חשבוניות נשארות פתוחות.<br>
+                    ואתה — רץ בין כלים במקום לקבל תובנות.<br>
+                    אף מערכת לא אומרת לך: 'לקוח X עומד לעזוב' או 'פרויקט Y לא משתלם'."
+                </blockquote>
+
+                <h4>20–40s — הפתרון</h4>
+                <p><strong>[ויז'ואל: לוגו MISRAD AI, שישה מודולים + מוח AI במרכז]</strong></p>
+                <blockquote>
+                    "MISRAD AI היא מערכת בינה מלאכותית שמנהלת את הארגון שלך.<br>
+                    לא רק שומרת נתונים — מנתחת, מחזה, וממליצה.<br>
+                    6 מודולים: מכירות, שיווק, צוות, לקוחות, תפעול, כספים.<br>
+                    ואתה בוחר מה צריך — מ-2 עובדים ועד 200."
+                </blockquote>
+
+                <h4>40–55s — הבידול: AI אמיתי</h4>
+                <p><strong>[ויז'ואל: מוח AI + דוגמאות: 'ליד סיכוי 75%', 'פרסם רביעי 11:00', 'Hashtags אוטומטיים']</strong></p>
+                <blockquote>
+                    "ה-AI כאן הוא לא פיצ'ר — זה הבסיס.<br>
+                    המערכת אומרת לך: 'ליד X סיכוי 75% לסגירה — שלח הצעה עד רביעי'.<br>
+                    'פרסם רביעי ב-11:00 — engagement גבוה ב-85%'.<br>
+                    'השתמש ב-hashtags האלה — מותאמים לכל פלטפורמה'.<br>
+                    Finance במתנה לכל לקוח. בעברית מלאה."
+                </blockquote>
+
+                <h4>55–70s — הוכחה וכנות</h4>
+                <p><strong>[ויז'ואל: מחיר ₪149–₪499 + מספרים: -70% זמן, +58% רווחים]</strong></p>
+                <blockquote>
+                    "התוצאות? לקוחות חוסכים 70% מזמן הניהול. מגדילים רווחים ב-58%.<br>
+                    המחיר? מ-₪149 עד ₪499. בלי אותיות קטנות.<br>
+                    נבנה על-ידי יזם ישראלי — ולכן התמיכה אישית, והמחיר הוגן."
+                </blockquote>
+
+                <h4>70–85s — CTA</h4>
+                <p><strong>[ויז'ואל: כפתור 'התחל ניסיון' + 'ראה AI בפעולה']</strong></p>
+                <blockquote>
+                    "7 ימים ניסיון חינם. 30 יום החזר מלא.<br>
+                    אם ה-AI באמת מקדם אותך — תרגיש את זה תוך שבוע.<br>
+                    MISRAD AI — בינה מלאכותית שמקדמת ארגונים."
+                </blockquote>
+
+                <div class="cta-box">
+                    <h3>משפטי CTA אפשריים</h3>
+                    <ul style="list-style: none; margin: 0; padding: 0;">
+                        <li>✅ "התחל ניסיון חינם"</li>
+                        <li>✅ "בדוק אם זה מתאים לעסק שלך"</li>
+                        <li>✅ "ראה את החבילות"</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- המשך עם כל התסריטים האחרים... -->
+            
+        </main>
+        
+        <footer>
+            <p><strong>MISRAD AI</strong> — מערכת AI שמקדמת ארגונים</p>
+            <p>נוצר: פברואר 2026 | עודכן: 10/02/2026</p>
+            <p>גרסה: 1.0 | מותאם מובייל ✅</p>
+        </footer>
+    </div>
+</body>
+</html>

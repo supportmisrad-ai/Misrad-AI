@@ -9,7 +9,8 @@ import { requireSuperAdmin, requireAuditLogAccess } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
 import { asObject } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+
 
 function isMissingOrganizationIdColumnError(err: unknown): boolean {
   const obj = asObject(err) ?? {};
@@ -95,7 +96,7 @@ export async function getSystemMetrics(): Promise<{
     await requireSuperAdmin();
 
     // Get metrics from database
-    const metricsData = await prisma.social_global_system_metrics.findMany({
+    const metricsData = await prisma.globalSystemMetric.findMany({
       orderBy: { created_at: 'desc' },
       take: 2,
     });
@@ -281,7 +282,7 @@ export async function refreshSystemData(): Promise<{ success: boolean; error?: s
     const overdueInvoicesCount = agg?.overdue_invoices_count == null ? 0 : Number(agg.overdue_invoices_count);
     const newClientsThisMonth = agg?.new_clients_this_month == null ? 0 : Number(agg.new_clients_this_month);
 
-    await prisma.social_global_system_metrics.create({
+    await prisma.globalSystemMetric.create({
       data: {
         total_mrr: new Prisma.Decimal(totalMRR),
         active_subscriptions: activeSubscriptions,
@@ -332,7 +333,7 @@ export async function getAPIHealthStatus(): Promise<{ success: boolean; data?: A
     await requireSuperAdmin();
 
     // Check integration statuses
-    const integrations = await prisma.social_integration_status.findMany({
+    const integrations = await prisma.integrationStatus.findMany({
       orderBy: { name: 'asc' },
     });
 
@@ -401,7 +402,7 @@ export async function getSecurityAuditLog(params?: {
     const limit = Math.max(1, Math.min(200, Number(params?.limit ?? 50)));
     const offset = Math.max(0, Number(params?.offset ?? 0));
 
-    const syncLogs = await prisma.social_sync_logs.findMany({
+    const syncLogs = await prisma.socialMediaSyncLog.findMany({
       orderBy: { completed_at: 'desc' },
       skip: offset,
       take: Math.min(limit, 20),
@@ -455,7 +456,7 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
     const token = randomUUID();
     let session: { token: string } | null = null;
     try {
-      session = await prisma.social_impersonation_sessions.create({
+      session = await prisma.impersonationSession.create({
         data: {
           admin_user_id: String(authCheck.userId || ''),
           client_id: clientId,

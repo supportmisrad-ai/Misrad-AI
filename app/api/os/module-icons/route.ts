@@ -6,7 +6,7 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject } from '@/lib/shared/unknown';
 async function GETHandler() {
   try {
-    const row = await prisma.social_system_settings.findUnique({
+    const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'module_icons' },
       select: { value: true },
     });

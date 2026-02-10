@@ -108,7 +108,7 @@ async function main() {
       : [{ count: null }];
     
     const users = await prisma.$queryRawUnsafe(`
-      SELECT COUNT(*)::int as count FROM social_users
+      SELECT COUNT(*)::int as count FROM organization_users
     `);
     
     const migrations = await prisma.$queryRawUnsafe(`

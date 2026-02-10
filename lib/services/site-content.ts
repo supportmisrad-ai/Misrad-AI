@@ -9,7 +9,7 @@ export async function getContentByKey(
   key: string
 ): Promise<{ success: boolean; data?: unknown; error?: string }> {
   try {
-    const row = await prisma.social_site_content.findFirst({
+    const row = await prisma.socialMediaSiteContent.findFirst({
       where: { page: String(page), section: String(section), key: String(key) },
       select: { content: true },
     });

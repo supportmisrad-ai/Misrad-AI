@@ -86,7 +86,7 @@ async function POSTHandler(request: NextRequest) {
       async () => {
 
         // Get webhook config
-        const webhookConfig = await prisma.social_webhook_configs.findFirst({
+        const webhookConfig = await prisma.webhookConfig.findFirst({
           where: {
             user_id: socialUserId,
             integration_name: 'zapier',
@@ -100,7 +100,7 @@ async function POSTHandler(request: NextRequest) {
         }
 
         // Update last triggered
-        await prisma.social_webhook_configs.updateMany({
+        await prisma.webhookConfig.updateMany({
           where: { id: webhookConfig.id },
           data: { last_triggered_at: new Date(), updated_at: new Date() },
         });

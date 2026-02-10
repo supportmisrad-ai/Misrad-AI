@@ -6,7 +6,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma, { queryRawOrgScoped } from '@/lib/prisma';

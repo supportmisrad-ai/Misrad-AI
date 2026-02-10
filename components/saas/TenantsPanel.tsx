@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Settings, Globe, Database, Mail, Send, UserPlus } from 'lucide-react';
+import { CreditCard, ArrowUpRight, Activity, Users, Server, Plus, BarChart, Search, CheckCircle2, AlertTriangle, XCircle, Eye, Settings, Globe, Database, Mail, Send, UserPlus, Phone, Languages, Calendar } from 'lucide-react';
 import { Tenant } from '../../types';
 import { MODULES_CONFIG } from './SaasConstants';
 import { AddUserToTenantModal } from './AddUserToTenantModal';
@@ -56,7 +56,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
     const handleSendInvitation = async (tenant: Tenant) => {
         if (!tenant.ownerEmail) {
-            alert('אין אימייל בעלים לטננט הזה');
+            alert('אין אימייל בעלים לחשבון הזה');
             return;
         }
 
@@ -208,7 +208,7 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
                 <div className="md:hidden p-4 space-y-3">
                     {uniqueFilteredTenants.length === 0 ? (
-                        <div className="bg-white/80 border border-slate-200 rounded-2xl p-5 text-slate-700 font-bold">לא נמצאו לקוחות.</div>
+                        <div className="bg-white/80 border border-slate-200 rounded-2xl p-5 text-slate-700 font-bold">לא נמצאו חשבונות SaaS.</div>
                     ) : (
                         uniqueFilteredTenants.map((tenant, index) => {
                             const statusLabel =
@@ -267,6 +267,28 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                                 <Database size={12} /> {tenant.region || 'il-central'}
                                             </div>
                                         </div>
+                                        {tenant.phone && (
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 col-span-2">
+                                                <div className="text-slate-500 font-black">טלפון</div>
+                                                <div className="mt-1 flex items-center gap-1 text-slate-700 font-bold">
+                                                    <Phone size={12} /> {tenant.phone}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {tenant.maxUsers && (
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                                <div className="text-slate-500 font-black">מקסימום משתמשים</div>
+                                                <div className="mt-1 text-slate-900 font-bold">{tenant.maxUsers}</div>
+                                            </div>
+                                        )}
+                                        {tenant.defaultLanguage && (
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                                <div className="text-slate-500 font-black">שפה</div>
+                                                <div className="mt-1 flex items-center gap-1 text-slate-700 font-bold">
+                                                    <Languages size={12} /> {tenant.defaultLanguage === 'he' ? 'עברית' : 'English'}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <Button
@@ -339,9 +361,10 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                 <th className="px-6 py-4">שם העסק / דומיין</th>
                                 <th className="px-6 py-4">תוכנית (מוצר)</th>
                                 <th className="px-6 py-4">משתמשים</th>
-                                <th className="px-6 py-4">אזור שרת</th>
+                                <th className="px-6 py-4">טלפון</th>
+                                <th className="px-6 py-4">אזור / שפה</th>
                                 <th className="px-6 py-4">סטטוס</th>
-                                <th className="px-6 py-4">מודולים פעילים</th>
+                                <th className="px-6 py-4">מודולים</th>
                                 <th className="px-6 py-4">פעולות</th>
                             </tr>
                         </thead>
@@ -364,10 +387,33 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
                                             {tenant.plan}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 font-mono">{tenant.usersCount}</td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1 text-xs text-slate-400">
-                                            <Database size={12} /> {tenant.region || 'il-central'}
+                                        <div className="flex items-center gap-1">
+                                            <span className="font-mono">{tenant.usersCount}</span>
+                                            {tenant.maxUsers && (
+                                                <span className="text-xs text-slate-400">/ {tenant.maxUsers}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {tenant.phone ? (
+                                            <div className="flex items-center gap-1 text-xs text-slate-600">
+                                                <Phone size={12} /> {tenant.phone}
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-slate-400">—</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1 text-xs text-slate-600">
+                                                <Database size={12} /> {tenant.region || 'il-central'}
+                                            </div>
+                                            {tenant.defaultLanguage && (
+                                                <div className="flex items-center gap-1 text-xs text-slate-400">
+                                                    <Languages size={10} /> {tenant.defaultLanguage === 'he' ? 'עב' : 'EN'}
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

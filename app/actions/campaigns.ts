@@ -18,7 +18,8 @@ export interface Campaign {
   roas: number;
   impressions?: number;
   clicks?: number;
-}
+}
+
 
 function captureActionException(error: unknown, context: Record<string, unknown>) {
   Sentry.withScope((scope) => {
@@ -122,7 +123,7 @@ export async function getCampaigns(
       clicks: number | null;
     }> = [];
     try {
-      const where: Prisma.social_campaignsWhereInput = {};
+      const where: Prisma.SocialMediaCampaignWhereInput = {};
       if (allowedClientIds) {
         where.client_id = { in: allowedClientIds };
       }
@@ -130,7 +131,7 @@ export async function getCampaigns(
         where.client_id = String(parsed.data.clientId);
       }
 
-      data = await prisma.social_campaigns.findMany({
+      data = await prisma.socialMediaCampaign.findMany({
         where,
         select: {
           id: true,

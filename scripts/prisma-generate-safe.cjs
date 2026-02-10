@@ -99,8 +99,7 @@ async function main() {
       const message = String(e && (e.message || e.stderr || e.stdout || e));
 
       const retryable =
-        /EPERM|EBUSY|operation not permitted/i.test(message) &&
-        /query_engine-windows\.dll\.node/i.test(message);
+        /EPERM|EBUSY|operation not permitted/i.test(message) && /query_engine/i.test(message);
 
       if (!retryable || attempt === maxAttempts) {
         console.error('[prisma-generate-safe] prisma generate failed:', e);

@@ -84,6 +84,11 @@ function mapTenantRow(row: unknown): Tenant {
             return Array.isArray(v) ? v.map((x) => String(x)) : [];
         })(),
         requireApproval: Boolean(obj ? (obj['requireApproval'] ?? obj['require_approval']) : false),
+        phone: obj ? (getNullableString(obj, 'phone') ?? undefined) : undefined,
+        maxUsers: obj ? (obj['maxUsers'] ?? obj['max_users'] ? Number(obj['maxUsers'] ?? obj['max_users']) : undefined) : undefined,
+        defaultLanguage: obj ? (getNullableString(obj, 'defaultLanguage') ?? getNullableString(obj, 'default_language') ?? undefined) : undefined,
+        activationDate: obj ? (getNullableString(obj, 'activationDate') ?? getNullableString(obj, 'activation_date') ?? undefined) : undefined,
+        notes: obj ? (getNullableString(obj, 'notes') ?? undefined) : undefined,
     } as Tenant;
 }
 
@@ -237,7 +242,19 @@ async function POSTHandler(request: NextRequest) {
             version: bodyObj['version'] == null ? undefined : String(bodyObj['version']),
             allowedEmails: Array.isArray(bodyObj['allowedEmails']) ? (bodyObj['allowedEmails'] as unknown[]).map((x) => String(x)) : [],
             requireApproval: Boolean(bodyObj['requireApproval'] ?? false),
+            phone: getNullableString(bodyObj, 'phone') ?? undefined,
+            maxUsers: bodyObj['maxUsers'] != null ? Number(bodyObj['maxUsers']) : undefined,
+            defaultLanguage: getNullableString(bodyObj, 'defaultLanguage') ?? 'he',
+            activationDate: getNullableString(bodyObj, 'activationDate') ?? undefined,
+            notes: getNullableString(bodyObj, 'notes') ?? undefined,
         };
+
+        if (!Array.isArray(tenantData.modules) || tenantData.modules.length === 0) {
+            return apiErrorCompat('Invalid modules', {
+                status: 400,
+                message: 'At least one module is required',
+            });
+        }
 
         let inserted: Awaited<ReturnType<typeof prisma.nexusTenant.create>> | null = null;
         try {
@@ -257,7 +274,12 @@ async function POSTHandler(request: NextRequest) {
                     version: tenantData.version ?? null,
                     allowedEmails: tenantData.allowedEmails,
                     requireApproval: tenantData.requireApproval,
-                },
+                    phone: tenantData.phone ?? null,
+                    maxUsers: tenantData.maxUsers ?? null,
+                    defaultLanguage: tenantData.defaultLanguage ?? null,
+                    activationDate: tenantData.activationDate ? new Date(tenantData.activationDate) : null,
+                    notes: tenantData.notes ?? null,
+                } as any,
             });
         } catch (e: unknown) {
             const obj = asObject(e) ?? {};

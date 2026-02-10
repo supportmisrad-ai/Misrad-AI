@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
-import { AiAssistantWidget } from '@/components/ai/AiAssistantWidget';
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
@@ -18,10 +17,20 @@ const VoiceCommandFab = dynamic(
   { ssr: false, loading: () => null }
 );
 
+const AiAssistantWidget = dynamic(
+  () => import('@/components/ai/AiAssistantWidget').then((m) => m.AiAssistantWidget),
+  { ssr: false, loading: () => null }
+);
+
 const ComingSoonPortal = dynamic(() => import('@/components/shared/ComingSoonPortal'), {
   ssr: false,
   loading: () => null,
 });
+
+const NativeAppUpdatePrompt = dynamic(
+  () => import('@/components/system/NativeAppUpdatePrompt').then((m) => m.NativeAppUpdatePrompt),
+  { ssr: false, loading: () => null }
+);
 
 function useMounted(): boolean {
   const [mounted, setMounted] = useState(false);
@@ -33,8 +42,9 @@ function useMounted(): boolean {
 
 function isSalesPathname(pathname: string): boolean {
   const p = String(pathname || '/').toLowerCase();
+  if (p.startsWith('/w/')) return false;
   if (p === '/admin' || p.startsWith('/admin/')) return false;
-  if (p.startsWith('/w/') && p.includes('/admin')) return false;
+  if (p === '/app/admin' || p.startsWith('/app/admin/')) return false;
   if (p === '/me') return false;
   if (p === '/login' || p.startsWith('/login/')) return false;
   if (p === '/sign-in' || p.startsWith('/sign-in/')) return false;
@@ -106,22 +116,111 @@ export function ClientOnlyClerkWidgets() {
   const pathname = usePathname();
   const showFAB = isSalesPathname(pathname || '/');
   const mounted = useMounted();
+  const [enableAiAssistant, setEnableAiAssistant] = useState(false);
+  const [enablePasskeyPrompt, setEnablePasskeyPrompt] = useState(false);
+
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+
+    const enable = () => {
+      if (cancelled) return;
+      setEnablePasskeyPrompt(true);
+    };
+
+    const w = window as any;
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      return () => {
+        cancelled = true;
+        try {
+          w.cancelIdleCallback?.(id);
+        } catch {
+        }
+      };
+    }
+
+    const t = window.setTimeout(enable, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !showFAB) return;
+    let cancelled = false;
+
+    const enable = () => {
+      if (cancelled) return;
+      setEnableAiAssistant(true);
+    };
+
+    const w = window as any;
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      return () => {
+        cancelled = true;
+        try {
+          w.cancelIdleCallback?.(id);
+        } catch {
+        }
+      };
+    }
+
+    const t = window.setTimeout(enable, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [mounted, showFAB]);
 
   return (
     <>
       <LegalConsentSync />
-      {mounted && <PasskeyOnboardingPrompt />}
-      {mounted && showFAB && <AiAssistantWidget />}
+      {mounted && enablePasskeyPrompt && <PasskeyOnboardingPrompt />}
+      {mounted && showFAB && enableAiAssistant && <AiAssistantWidget />}
     </>
   );
 }
 
 export function ClientOnlyGlobalWidgets() {
   const mounted = useMounted();
+  const [enableGlobalWidgets, setEnableGlobalWidgets] = useState(false);
+
+  useEffect(() => {
+    if (!mounted) return;
+    let cancelled = false;
+
+    const enable = () => {
+      if (cancelled) return;
+      setEnableGlobalWidgets(true);
+    };
+
+    const w = window as any;
+    if (typeof w.requestIdleCallback === 'function') {
+      const id = w.requestIdleCallback(enable, { timeout: 1500 });
+      return () => {
+        cancelled = true;
+        try {
+          w.cancelIdleCallback?.(id);
+        } catch {
+        }
+      };
+    }
+
+    const t = window.setTimeout(enable, 350);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [mounted]);
+
   return (
     <>
-      {mounted && <VoiceCommandFab />}
-      {mounted && <ComingSoonPortal />}
+      {mounted && enableGlobalWidgets && <VoiceCommandFab />}
+      {mounted && enableGlobalWidgets && <ComingSoonPortal />}
+      {mounted && enableGlobalWidgets && <NativeAppUpdatePrompt />}
     </>
   );
 }

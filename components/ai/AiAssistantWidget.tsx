@@ -111,7 +111,7 @@ const KNOWLEDGE_BASE: KnowledgeItem[] = [
 
 export function AiAssistantWidget() {
   const pathname = usePathname() || '/';
-  if (String(pathname).startsWith('/w/')) return null;
+  const hideOnWorkspace = String(pathname).startsWith('/w/');
   
   const isSales = useMemo(() => isSalesPathname(pathname), [pathname]);
   const personaName = 'איציק';
@@ -365,6 +365,8 @@ export function AiAssistantWidget() {
     : KNOWLEDGE_BASE;
 
   const quickActionsToShow = isSales ? SALES_QUICK_ACTIONS : SUPPORT_QUICK_ACTIONS;
+
+  if (hideOnWorkspace) return null;
 
   return (
     <>

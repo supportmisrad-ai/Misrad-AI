@@ -30,10 +30,14 @@ export function NexusWorkspaceApp({
   initialCurrentUser,
   initialOrganization,
   initialOwnerDashboard,
+  initialOnboardingTemplateKey,
+  initialBillingItems,
 }: {
   initialCurrentUser?: User;
   initialOrganization?: Partial<OrganizationProfile>;
   initialOwnerDashboard?: unknown;
+  initialOnboardingTemplateKey?: string | null;
+  initialBillingItems?: unknown[] | null;
 } = {}) {
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);
@@ -45,7 +49,11 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <ScreenGuard id="dashboard">
-              <DashboardView initialOwnerDashboard={initialOwnerDashboard} />
+              <DashboardView
+                initialOwnerDashboard={initialOwnerDashboard}
+                initialOnboardingTemplateKey={initialOnboardingTemplateKey}
+                initialBillingItems={initialBillingItems}
+              />
             </ScreenGuard>
           </Layout>
         );
@@ -178,7 +186,11 @@ export function NexusWorkspaceApp({
         return (
           <Layout>
             <ScreenGuard id="dashboard">
-              <DashboardView initialOwnerDashboard={initialOwnerDashboard} />
+              <DashboardView
+                initialOwnerDashboard={initialOwnerDashboard}
+                initialOnboardingTemplateKey={initialOnboardingTemplateKey}
+                initialBillingItems={initialBillingItems}
+              />
             </ScreenGuard>
           </Layout>
         );

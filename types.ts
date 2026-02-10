@@ -35,6 +35,7 @@ export interface OrganizationProfile {
     primaryColor: string; // Hex for accent
     enabledModules: ModuleId[]; // NEW: Controls global visibility per tenant
     systemFlags?: Record<string, SystemScreenStatus>; // NEW: Global overrides
+    isShabbatProtected?: boolean;
 }
 
 export enum Priority {
@@ -571,6 +572,11 @@ export interface Tenant {
     version?: string; // NEW: System version for this tenant (e.g., "2.5.0", "2.6.0-beta")
     allowedEmails?: string[]; // NEW: Whitelist of approved email domains/addresses
     requireApproval?: boolean; // NEW: Whether new users need admin approval
+    phone?: string; // NEW: Contact phone number
+    maxUsers?: number; // NEW: Maximum users allowed for this tenant
+    defaultLanguage?: string; // NEW: Default language (he/en)
+    activationDate?: string; // NEW: Date when tenant was activated
+    notes?: string; // NEW: Internal notes about this tenant
 }
 
 // NEW: Feedback and Report Types

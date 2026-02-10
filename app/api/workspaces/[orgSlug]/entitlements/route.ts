@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
-import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
+import { getCurrentUserId } from '@/lib/server/authHelper';
 import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled } from '@/lib/server/workspace';
 import { getErrorStatus } from '@/lib/server/workspace-access/utils';
+import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+
+type CacheEntry<T> = { value: T; expiresAt: number };
+const entitlementsCache = new Map<string, CacheEntry<Record<string, boolean>>>();
+const entitlementsInFlight = new Map<string, Promise<Record<string, boolean>>>();
+const ENTITLEMENTS_TTL_MS = 30_000;
+
 async function GETHandler(
   _req: Request,
   { params }: { params: Promise<{ orgSlug: string }> | { orgSlug: string } }
@@ -24,8 +31,37 @@ async function GETHandler(
   }
 
   try {
-    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
-    return NextResponse.json({ entitlements: workspace.entitlements ?? {} }, { status: 200 });
+    const clerkUserId = await getCurrentUserId();
+    if (!clerkUserId) {
+      return NextResponse.json({ entitlements: {} }, { status: 401 });
+    }
+
+    const cacheKey = `${clerkUserId}:${orgSlug}`;
+    const cached = entitlementsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return NextResponse.json({ entitlements: cached.value ?? {} }, { status: 200 });
+    }
+
+    const inFlight = entitlementsInFlight.get(cacheKey);
+    if (inFlight) {
+      const value = await inFlight;
+      return NextResponse.json({ entitlements: value ?? {} }, { status: 200 });
+    }
+
+    const loadPromise = (async () => {
+      const workspace = await requireWorkspaceAccessByOrgSlugApiCached(String(clerkUserId), String(orgSlug || ''));
+      const value = (workspace?.entitlements ?? {}) as Record<string, boolean>;
+      entitlementsCache.set(cacheKey, { value, expiresAt: Date.now() + ENTITLEMENTS_TTL_MS });
+      return value;
+    })();
+
+    entitlementsInFlight.set(cacheKey, loadPromise);
+    try {
+      const value = await loadPromise;
+      return NextResponse.json({ entitlements: value ?? {} }, { status: 200 });
+    } finally {
+      entitlementsInFlight.delete(cacheKey);
+    }
   } catch (e: unknown) {
     const status = getErrorStatus(e) ?? 403;
     const isProd = process.env.NODE_ENV === 'production';

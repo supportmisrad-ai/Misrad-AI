@@ -15,7 +15,7 @@ interface OSNavigationButtonsProps {
 /**
  * Navigation buttons for switching between OS modules
  * Designed to be placed at the bottom of Sidebar
- * Small, elegant buttons like in Nexus OS
+ * Small, elegant buttons like in Nexus module
  */
 export const OSNavigationButtons: React.FC<OSNavigationButtonsProps> = ({
   currentModule,

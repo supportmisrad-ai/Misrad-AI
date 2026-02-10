@@ -56,7 +56,7 @@ async function POSTHandler(request: NextRequest) {
 
     const { workspace } = await getWorkspaceOrThrow(request);
 
-    const onboardingLegacy = await prisma.social_system_settings.findUnique({
+    const onboardingLegacy = await prisma.coreSystemSettings.findUnique({
       where: { key: legacyKeyOnboarding(workspace.id) },
       select: { value: true },
     }).catch((e: unknown) => {
@@ -85,7 +85,7 @@ async function POSTHandler(request: NextRequest) {
       });
     }
 
-    const billingLegacy = await prisma.social_system_settings.findUnique({
+    const billingLegacy = await prisma.coreSystemSettings.findUnique({
       where: { key: legacyKeyBilling(workspace.id) },
       select: { value: true },
     }).catch((e: unknown) => {

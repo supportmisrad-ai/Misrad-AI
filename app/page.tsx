@@ -19,7 +19,7 @@ export const maxDuration = 10;
 async function getLandingSettings() {
   try {
     const row = await Promise.race([
-      prisma.social_system_settings.findUnique({
+      prisma.coreSystemSettings.findUnique({
         where: { key: 'landing_settings' },
         select: { value: true },
       }),
@@ -521,7 +521,7 @@ export default async function RootPage() {
             <div className="text-center mb-8 sm:mb-14">
               <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-black mb-3 sm:mb-4">
                 <Sparkles size={12} className="sm:w-3.5 sm:h-3.5" />
-                הפתרון
+                קורת גג אחת
               </div>
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-900">
                 6 מודולים. מערכת אחת.
@@ -534,49 +534,49 @@ export default async function RootPage() {
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {[
                 {
-                  name: 'Operations',
-                  title: 'ניהול קריאות',
-                  desc: 'קריאות שירות, טכנאים, מעקב GPS, דיווחים מהשטח',
+                  name: 'Operations - מודול אופרציה',
+                  title: 'שטח, מלאי וספקים',
+                  desc: 'קריאות שירות, טכנאים, מעקב GPS, ניהול קריאות, מלאי, ספקים, מסופון, דיווחים מהשטח',
                   icon: ClipboardCheck,
                   gradient: 'from-emerald-500 to-teal-600',
                   href: '/operations'
                 },
                 {
-                  name: 'System',
-                  title: 'CRM מכירות',
-                  desc: 'ניהול לידים, ליווי עסקאות, אוטומציות, דוחות',
+                  name: 'System - מודול סיסטם',
+                  title: 'ניהול מכירות ולידים',
+                  desc: 'ניהול לידים, מרכזיית ענן, ניתוח מכירות ב-AI, ניהול קורס מכירות, סיוע AI להתנגדויות ב-LIVE, ליווי עסקאות, אוטומציות, דוחות',
                   icon: Target,
                   gradient: 'from-blue-500 to-indigo-600',
                   href: '/system'
                 },
                 {
-                  name: 'Nexus',
-                  title: 'ניהול פרויקטים',
-                  desc: 'משימות, צוות, timeline, מעקב אחר התקדמות',
+                  name: 'Nexus - מודול נקסוס',
+                  title: 'ניהול משימות, לקוחות וצוות',
+                  desc: 'ניהול משימות, צוות, ניתוח התקדמות עסקי, דו"ח רווחיות עובדים ב-AI, שעון נוכחות, מעקב אחר התקדמות',
                   icon: Rocket,
                   gradient: 'from-purple-500 to-pink-600',
                   href: '/nexus'
                 },
                 {
-                  name: 'Social',
-                  title: 'ניהול תוכן',
-                  desc: 'פוסטים, לוח שידורים, AI, קמפיינים ממומנים',
+                  name: 'Social - מודול סושיאל',
+                  title: 'שיווק, תוכן וקמפיינים',
+                  desc: 'ניהול תוכן לרשתות, בניית אסטרטגיות שיווק, פוסטים, לוח שידורים, AI, מעקב קמפיינים',
                   icon: Share2,
                   gradient: 'from-rose-500 to-orange-500',
                   href: '/social'
                 },
                 {
-                  name: 'Client',
-                  title: 'קליניקה דיגיטלית',
-                  desc: 'ניהול לקוחות, פגישות, תוכניות, משוב',
+                  name: 'Client - מודול קליינט',
+                  title: 'ניהול ומעקב VIP ללקוחות',
+                  desc: 'ניהול לקוחות, פגישות, תוכניות, ניהול קבוצות ומחזורים, מעקב אחר תהליך לקוח (פגישות/אימונים), פורטל ייעודי ללקוח למעקב וביצוע משימות, משוב, ניתוח הקלטות ופענוח פגישות ב-AI',
                   icon: Users,
                   gradient: 'from-amber-500 to-yellow-500',
                   href: '/client'
                 },
                 {
-                  name: 'Finance',
-                  title: 'ניהול כספים',
-                  desc: 'חשבוניות, הוצאות, דוחות, אינטגרציות',
+                  name: 'Finance - מודול פיננס ',
+                  title: 'אינטגרציה עם החשבוניות',
+                  desc: 'חשבוניות, הוצאות, דוחות, אינטגרציותאינטגרציה לחשבונית ירוקה (מורנינג) ועוד, ניהול כספים ותקציבים, אינטגרציה עם שאר המודולים להצעות מחיר וחשבוניות אוטומטיות, ',
                   icon: TrendingUp,
                   gradient: 'from-cyan-500 to-blue-500',
                   href: '/finance'
@@ -653,10 +653,10 @@ export default async function RootPage() {
                 <div className="text-center lg:text-right">
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-indigo-50 to-emerald-50 border border-indigo-100 text-slate-700 text-xs font-bold mb-4">
                     <Gift size={14} className="text-emerald-600" />
-                    ניסיון חינם מלא — בלי כרטיס
+                    ניסיון חינם מלא
                   </div>
                   <div className="text-3xl sm:text-4xl font-black text-slate-900">מוכנים להתחיל?</div>
-                  <div className="mt-3 text-slate-600 text-lg font-medium">ניסיון חינם 14 יום - ללא כרטיס אשראי</div>
+                  <div className="mt-3 text-slate-600 text-lg font-medium">ניסיון חינם 7 ימים - ללא כרטיס אשראי</div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link

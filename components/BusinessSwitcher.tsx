@@ -19,6 +19,8 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     const unwrap = (data: any) =>
         (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
+    const lastFetchAtRef = useRef<number>(0);
+
     const [isOpen, setIsOpen] = useState(false);
     const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
     const [businesses, setBusinesses] = useState<Tenant[]>([]);
@@ -33,50 +35,87 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         setPortalRoot(document.body);
     }, []);
 
-    useEffect(() => {
-        const fetchBusinesses = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
-                if (!response.ok) {
-                    // If unauthorized, return empty list (don't show error)
-                    setBusinesses([]);
-                    return;
-                }
-                const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                // Convert workspaces to business format
-                const workspaces = (payload as any).workspaces || [];
-                const businesses = workspaces.map((w: any) => ({
-                    id: w.id,
-                    name: w.name,
-                    subdomain: w.slug,
-                    logo: w.logo,
-                    plan: w.subscription_plan || 'unknown',
-                    status: w.subscription_status || 'Active',
-                    joinedAt: w.created_at,
-                    mrr: 0,
-                    usersCount: w.membersCount || 0,
-                    modules: [],
-                    region: 'il-central' as const,
-                    version: undefined,
-                    allowedEmails: [],
-                    requireApproval: false,
-                    ownerEmail: w.owner?.email || '',
-                }));
-                setBusinesses(businesses);
-            } catch (error) {
-                console.error('Error fetching businesses:', error);
-                setBusinesses([]);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchBusinesses = async ({ silent = false }: { silent?: boolean } = {}) => {
+        const now = Date.now();
+        if (now - lastFetchAtRef.current < 1500) return;
+        lastFetchAtRef.current = now;
 
-        if (isOpen) {
+        if (!silent) {
+            setIsLoading(true);
+        }
+
+        try {
+            const response = await fetch('/api/workspaces', { cache: 'no-store', credentials: 'include' });
+            if (!response.ok) {
+                setBusinesses([]);
+                return;
+            }
+            const raw = await response.json().catch(() => ({}));
+            const payload = unwrap(raw);
+            const workspaces = (payload as any).workspaces || [];
+            const businesses = workspaces.map((w: any) => ({
+                id: w.id,
+                name: w.name,
+                subdomain: w.slug,
+                logo: w.logo,
+                plan: w.subscription_plan || 'unknown',
+                status: w.subscription_status || 'Active',
+                joinedAt: w.created_at,
+                mrr: 0,
+                usersCount: w.membersCount || 0,
+                modules: [],
+                region: 'il-central' as const,
+                version: undefined,
+                allowedEmails: [],
+                requireApproval: false,
+                ownerEmail: w.owner?.email || '',
+            }));
+            setBusinesses(businesses);
+        } catch (error) {
+            console.error('Error fetching businesses:', error);
+            setBusinesses([]);
+        } finally {
+            setIsLoading(false);
+            lastFetchAtRef.current = Date.now();
+        }
+    };
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const isStale = Date.now() - lastFetchAtRef.current > 2 * 60 * 1000;
+        if (businesses.length === 0 || isStale) {
             fetchBusinesses();
         }
-    }, [isOpen]);
+    }, [isOpen, businesses.length]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (businesses.length > 0) return;
+
+        let cancelled = false;
+        const run = () => {
+            if (cancelled) return;
+            fetchBusinesses({ silent: true });
+        };
+
+        const w = window as any;
+        if (typeof w.requestIdleCallback === 'function') {
+            const id = w.requestIdleCallback(run, { timeout: 1200 });
+            return () => {
+                cancelled = true;
+                try {
+                    w.cancelIdleCallback?.(id);
+                } catch {
+                }
+            };
+        }
+
+        const t = window.setTimeout(run, 250);
+        return () => {
+            cancelled = true;
+            window.clearTimeout(t);
+        };
+    }, [businesses.length]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -186,6 +225,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
     useEffect(() => {
         if (!isOpen) {
             setDropdownPosition(null);
+            setSearchQuery('');
         }
     }, [isOpen]);
 
@@ -193,6 +233,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
         <div className="relative" ref={dropdownRef}>
             <button
                 ref={buttonRef}
+                type="button"
                 onClick={(e) => {
                     if (!isOpen) {
                         const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
@@ -215,32 +256,33 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 />
             </button>
 
-            <AnimatePresence>
-                {portalRoot && isOpen && dropdownPosition &&
-                    createPortal(
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]"
-                                onClick={() => setIsOpen(false)}
-                            />
-                            <motion.div
-                                initial={{ opacity: 0, y: dropdownPosition.placement === 'top' ? 10 : -10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: dropdownPosition.placement === 'top' ? 10 : -10, scale: 0.95 }}
-                                transition={{ duration: 0.2 }}
-                                ref={menuRef}
-                                style={{
-                                    position: 'fixed',
-                                    top: dropdownPosition.top,
-                                    left: Math.max(8, dropdownPosition.left),
-                                    width: '320px',
-                                    zIndex: 70,
-                                }}
-                                className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
-                            >
+            {portalRoot &&
+                createPortal(
+                    <AnimatePresence>
+                        {isOpen && dropdownPosition ? (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[60]"
+                                    onClick={() => setIsOpen(false)}
+                                />
+                                <motion.div
+                                    initial={{ opacity: 0, y: dropdownPosition.placement === 'top' ? 10 : -10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: dropdownPosition.placement === 'top' ? 10 : -10, scale: 0.95 }}
+                                    transition={{ duration: 0.2 }}
+                                    ref={menuRef}
+                                    style={{
+                                        position: 'fixed',
+                                        top: dropdownPosition.top,
+                                        left: Math.max(8, dropdownPosition.left),
+                                        width: '320px',
+                                        zIndex: 70,
+                                    }}
+                                    className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
+                                >
                                 {/* Header */}
                                 <div className="p-4 border-b border-gray-100">
                                     <h3 className="text-sm font-bold text-gray-900 mb-3">החלף עסק</h3>
@@ -275,6 +317,7 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                                 return (
                                                     <button
                                                         key={business.id}
+                                                        type="button"
                                                         onClick={() => {
                                                             handleSwitchBusiness(business);
                                                             setIsOpen(false);
@@ -340,11 +383,12 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                                         <span>הוסף עסק</span>
                                     </button>
                                 </div>
-                            </motion.div>
-                        </>,
-                        portalRoot
-                    )}
-            </AnimatePresence>
+                                </motion.div>
+                            </>
+                        ) : null}
+                    </AnimatePresence>,
+                    portalRoot
+                )}
         </div>
     );
 };

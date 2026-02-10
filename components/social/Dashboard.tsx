@@ -18,33 +18,40 @@ type StrategicContentItem = {
   module_id: string;
 };
 
-export default function Dashboard({ orgSlug }: { orgSlug: string }) {
+export default function Dashboard({
+  orgSlug,
+  initialScripts,
+}: {
+  orgSlug: string;
+  initialScripts?: StrategicContentItem[];
+}) {
   const basePath = `/w/${orgSlug}/social`;
   const { clients, posts } = useApp();
   const { isLoaded, isSignedIn, user } = useUser();
   const [hasMounted, setHasMounted] = useState(false);
   const [isScriptsOpen, setIsScriptsOpen] = useState(false);
-  const [scripts, setScripts] = useState<StrategicContentItem[]>([]);
+  const [scripts, setScripts] = useState<StrategicContentItem[]>(() => (Array.isArray(initialScripts) ? initialScripts : []));
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
+    if (Array.isArray(initialScripts) && initialScripts.length > 0) return;
     const load = async () => {
       try {
-        const res = await fetch('/api/strategic-content?module_id=social', { cache: 'no-store' });
+        const res = await fetch('/api/strategic-content?module_id=social&category=scripts', { cache: 'no-store' });
         if (!res.ok) return;
         const data = await res.json();
         const items = Array.isArray(data?.items) ? (data.items as StrategicContentItem[]) : [];
-        setScripts(items.filter((i) => i.category === 'scripts'));
+        setScripts(items);
       } catch {
         // ignore
       }
     };
 
     load();
-  }, []);
+  }, [initialScripts]);
 
   const counters = useMemo(() => {
     const list = Array.isArray(posts) ? (posts as any[]) : [];

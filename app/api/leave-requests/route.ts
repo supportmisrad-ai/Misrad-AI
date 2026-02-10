@@ -6,8 +6,8 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../lib/auth';
-import { LeaveRequest, User } from '../../../types';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { LeaveRequest, User } from '@/types';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';

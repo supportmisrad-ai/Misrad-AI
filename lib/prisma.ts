@@ -12,7 +12,7 @@ import { asObject } from '@/lib/shared/unknown';
 
 import { Prisma, PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
-import { installPrismaTenantGuard } from './prisma-tenant-guard';
+import { installPrismaTenantGuard } from '@/lib/prisma-tenant-guard';
 
 declare global {
   var __MISRAD_PRISMA_CLIENT__: PrismaClient | undefined;
@@ -334,18 +334,18 @@ if (!_client) {
 
 type PrismaClientWithAliases = PrismaClient & {
   organization: PrismaClient['social_organizations'];
-  organizationUser: PrismaClient['social_users'];
-  teamMember: PrismaClient['social_team_members'];
-  teamMemberClient: PrismaClient['social_team_member_clients'];
+  organizationUser: PrismaClient['organizationUser'];
+  teamMember: PrismaClient['teamMember'];
+  teamMemberClient: PrismaClient['teamMemberClient'];
 };
 
 const _basePrismaClient = _client;
 
 export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, {
   organization: _basePrismaClient.social_organizations,
-  organizationUser: _basePrismaClient.social_users,
-  teamMember: _basePrismaClient.social_team_members,
-  teamMemberClient: _basePrismaClient.social_team_member_clients,
+  organizationUser: _basePrismaClient.organizationUser,
+  teamMember: _basePrismaClient.teamMember,
+  teamMemberClient: _basePrismaClient.teamMemberClient,
 });
 
 type RawQueryUnsafe = PrismaClient['$queryRawUnsafe'];

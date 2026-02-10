@@ -12,7 +12,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { Buffer } from 'buffer';
-import { prisma, queryRawTenantScoped } from '../prisma';
+import prisma, { queryRawTenantScoped } from '@/lib/prisma';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 

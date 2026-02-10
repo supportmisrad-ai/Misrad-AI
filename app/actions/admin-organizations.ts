@@ -10,6 +10,7 @@ import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { Prisma } from '@prisma/client';
 
 type OrganizationCreateData = Parameters<typeof prisma.organization.create>[0]['data'];
 type OrganizationUpdateManyData = Parameters<typeof prisma.organization.updateMany>[0]['data'];
@@ -22,6 +23,7 @@ export type OrganizationRecord = {
   slug: string | null;
   logo: string | null;
   owner_id: string;
+  is_shabbat_protected?: boolean | null;
   has_nexus: boolean | null;
   has_social: boolean | null;
   has_system: boolean | null;
@@ -51,6 +53,7 @@ export type SocialUserLite = UserLite;
 export type OrganizationWithOwner = OrganizationRecord & {
   owner?: Pick<UserLite, 'id' | 'email' | 'full_name' | 'clerk_user_id' | 'role'> | null;
   membersCount?: number;
+  primaryClientId?: string | null;
 };
 
 function normalizeEmail(input: string): string {
@@ -115,6 +118,7 @@ export async function getOrganizations(params?: {
             slug: true,
             logo: true,
             owner_id: true,
+            is_shabbat_protected: true,
             has_nexus: true,
             has_social: true,
             has_system: true,
@@ -135,7 +139,7 @@ export async function getOrganizations(params?: {
 
         const ownerIds = Array.from(new Set((orgs || []).map((o) => o.owner_id).filter(Boolean)));
 
-        const { ownersById, membersCountByOrg } = await withTenantIsolationContext(
+        const { ownersById, membersCountByOrg, primaryClientByOrgId } = await withTenantIsolationContext(
           {
             suppressReporting: true,
             reason: 'admin_organizations_hydrate_owners_and_counts',
@@ -182,7 +186,30 @@ export async function getOrganizations(params?: {
               }
             }
 
-            return { ownersById, membersCountByOrg };
+            const primaryClientByOrgId: Record<string, string> = {};
+            if (orgIds.length) {
+              const primaryClients = await prisma.clientClient.findMany(
+                withPrismaTenantIsolationOverride(
+                  {
+                    where: { organizationId: { in: orgIds } },
+                    select: { id: true, organizationId: true },
+                    orderBy: [{ organizationId: Prisma.SortOrder.asc }, { createdAt: Prisma.SortOrder.asc }],
+                    distinct: [Prisma.ClientClientScalarFieldEnum.organizationId],
+                    take: orgIds.length,
+                  },
+                  { suppressReporting: true, reason: 'admin_organizations_primary_client_by_org', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true }
+                )
+              );
+
+              for (const c of primaryClients || []) {
+                const orgId = c.organizationId ? String(c.organizationId) : '';
+                const clientId = c.id ? String(c.id) : '';
+                if (!orgId || !clientId) continue;
+                primaryClientByOrgId[orgId] = clientId;
+              }
+            }
+
+            return { ownersById, membersCountByOrg, primaryClientByOrgId };
           }
         );
 
@@ -199,6 +226,7 @@ export async function getOrganizations(params?: {
           slug: o.slug == null ? null : String(o.slug),
           logo: o.logo == null ? null : String(o.logo),
           owner_id: String(o.owner_id),
+          is_shabbat_protected: o.is_shabbat_protected,
           has_nexus: o.has_nexus,
           has_social: o.has_social,
           has_system: o.has_system,
@@ -214,11 +242,69 @@ export async function getOrganizations(params?: {
           updated_at: toIsoOrNull(o.updated_at),
           owner: ownersById[o.owner_id] || null,
           membersCount: membersCountByOrg[o.id] || 0,
+          primaryClientId: primaryClientByOrgId[String(o.id)] || null,
         }));
 
         return createSuccessResponse(enriched);
       } catch (error) {
         return createErrorResponse(error, 'שגיאה בטעינת ארגונים');
+      }
+    }
+  );
+}
+
+export async function getOrganizationMembersLite(params: {
+  organizationId: string;
+  query?: string;
+  limit?: number;
+}): Promise<{ success: boolean; data?: UserLite[]; error?: string }> {
+  return await withTenantIsolationContext(
+    { suppressReporting: true, reason: 'admin_organization_members_lite_load', source: 'admin-organizations' },
+    async () => {
+      try {
+        const guard = await requireSuperAdmin();
+        if (!guard.success) return guard;
+
+        const organizationId = String(params.organizationId || '').trim();
+        if (!organizationId) return createErrorResponse(null, 'חסר organizationId');
+
+        const query = String(params.query || '').trim();
+        const limit = Math.min(Math.max(Number(params.limit ?? 200), 1), 500);
+
+        const rows = await withTenantIsolationContext(
+          {
+            suppressReporting: true,
+            reason: 'admin_organization_members_lite_query_global_admin',
+            source: 'admin-organizations',
+            mode: 'global_admin',
+            isSuperAdmin: true,
+          },
+          async () => {
+            return await prisma.organizationUser.findMany(
+              withPrismaTenantIsolationOverride({
+                where: {
+                  organization_id: organizationId,
+                  ...(query
+                    ? {
+                        OR: [
+                          { email: { contains: query, mode: 'insensitive' as const } },
+                          { full_name: { contains: query, mode: 'insensitive' as const } },
+                          { clerk_user_id: { contains: query, mode: 'insensitive' as const } },
+                        ],
+                      }
+                    : {}),
+                },
+                select: { id: true, clerk_user_id: true, email: true, full_name: true, role: true, organization_id: true },
+                orderBy: { created_at: 'desc' as const },
+                take: limit,
+              }, { suppressReporting: true, reason: 'admin_organization_members_lite_list', source: 'admin-organizations', mode: 'global_admin', isSuperAdmin: true })
+            );
+          }
+        );
+
+        return createSuccessResponse(rows || []);
+      } catch (error) {
+        return createErrorResponse(error, 'שגיאה בטעינת משתמשי ארגון');
       }
     }
   );
@@ -492,6 +578,7 @@ export async function updateOrganization(input: {
   name?: string;
   slug?: string;
   logo?: string | null;
+  is_shabbat_protected?: boolean;
   has_nexus?: boolean;
   has_social?: boolean;
   has_system?: boolean;
@@ -536,6 +623,8 @@ export async function updateOrganization(input: {
     if (input.has_finance !== undefined) patch.has_finance = input.has_finance;
     if (input.has_client !== undefined) patch.has_client = input.has_client;
     if (input.has_operations !== undefined) patch.has_operations = input.has_operations;
+
+    if (input.is_shabbat_protected !== undefined) patch.is_shabbat_protected = input.is_shabbat_protected;
 
     if (input.subscription_status !== undefined) patch.subscription_status = input.subscription_status;
     if (input.subscription_plan !== undefined) patch.subscription_plan = input.subscription_plan;

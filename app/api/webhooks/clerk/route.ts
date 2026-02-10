@@ -208,7 +208,7 @@ async function POSTHandler(req: Request) {
 
             if (desiredSlug && orgName) {
               const { data: socialUserRow } = await supabase
-                .from('social_users')
+                .from('organization_users')
                 .select('id, organization_id')
                 .eq('id', result.userId)
                 .maybeSingle();
@@ -263,7 +263,7 @@ async function POSTHandler(req: Request) {
                 });
 
                 await scoped
-                  .from('social_users')
+                  .from('organization_users')
                   .update({ organization_id: orgId, updated_at: nowIso } satisfies Record<string, unknown>)
                   .eq('id', result.userId);
 
@@ -301,7 +301,7 @@ async function POSTHandler(req: Request) {
 
         const nowIsoTeam = new Date().toISOString();
         const { data: teamRow } = await supabase
-          .from('social_team_members')
+          .from('team_members')
           .select('id, organization_id')
           .eq('user_id', result.userId)
           .maybeSingle();
@@ -323,7 +323,7 @@ async function POSTHandler(req: Request) {
           updated_at: nowIsoTeam,
         } satisfies Record<string, unknown>;
 
-        const baseTeamUpdate = teamScoped ? teamScoped.from('social_team_members') : supabase.from('social_team_members');
+        const baseTeamUpdate = teamScoped ? teamScoped.from('team_members') : supabase.from('team_members');
         const baseTeamUpdateQuery = baseTeamUpdate.update(memberUpdate).eq('user_id', result.userId);
         if (!teamScoped && teamOrgId) {
           await baseTeamUpdateQuery.eq('organization_id', teamOrgId);
@@ -355,7 +355,7 @@ async function POSTHandler(req: Request) {
       const nowIso = new Date().toISOString();
 
       const { data: socialUserRow, error: socialUserError } = await supabase
-        .from('social_users')
+        .from('organization_users')
         .select('id, organization_id')
         .eq('clerk_user_id', clerkUserId)
         .limit(1)
@@ -377,7 +377,7 @@ async function POSTHandler(req: Request) {
         : null;
 
       // Preferred path: mark user inactive (soft delete)
-      const baseUserUpdate = scoped ? scoped.from('social_users') : supabase.from('social_users');
+      const baseUserUpdate = scoped ? scoped.from('organization_users') : supabase.from('organization_users');
 
       let attempt = baseUserUpdate
         .update({ is_active: false, updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)
@@ -398,7 +398,7 @@ async function POSTHandler(req: Request) {
             const msg = typeof attemptErrorObj.message === 'string' ? String(attemptErrorObj.message) : 'missing column';
             throw new Error(`[SchemaMismatch] social_users missing column (${msg || '42703'})`);
           }
-          const baseFallback = scoped ? scoped.from('social_users') : supabase.from('social_users');
+          const baseFallback = scoped ? scoped.from('organization_users') : supabase.from('organization_users');
           let fallbackQuery = baseFallback
             .update({ updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)
             .eq('clerk_user_id', clerkUserId);
@@ -423,7 +423,7 @@ async function POSTHandler(req: Request) {
       }
 
       if (socialUserId) {
-        const baseMembershipDelete = scoped ? scoped.from('social_team_members') : supabase.from('social_team_members');
+        const baseMembershipDelete = scoped ? scoped.from('team_members') : supabase.from('team_members');
         let membershipDeleteQuery = baseMembershipDelete.delete().eq('user_id', socialUserId);
         if (!scoped && orgId) {
           membershipDeleteQuery = membershipDeleteQuery.eq('organization_id', orgId);

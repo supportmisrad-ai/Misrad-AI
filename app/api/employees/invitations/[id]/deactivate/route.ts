@@ -7,7 +7,7 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
  */
 
 import { NextRequest } from 'next/server';
-import { getAuthenticatedUser } from '../../../../../../lib/auth';
+import { getAuthenticatedUser } from '@/lib/auth';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { isTenantAdminRole } from '@/lib/constants/roles';

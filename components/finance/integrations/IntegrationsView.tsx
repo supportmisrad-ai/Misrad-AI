@@ -16,6 +16,74 @@ const IntegrationsView: React.FC = () => {
   const { addToast } = useToast();
   const [isGreenInvoiceModalOpen, setIsGreenInvoiceModalOpen] = useState(false);
 
+  const otherIntegrations = [
+    {
+      id: 'icount',
+      name: 'iCount',
+      description: 'חשבוניות מס, דוחות, ניהול מלאי',
+    },
+    {
+      id: 'online-invoices',
+      name: 'חשבוניות אונליין',
+      description: 'חשבוניות, קבלות, הצעות מחיר',
+    },
+    {
+      id: 'smit',
+      name: 'סמיט (Smit)',
+      description: 'חשבוניות, תעודות משלוח, לקוחות',
+    },
+    {
+      id: 'ezcount',
+      name: 'EZcount',
+      description: 'חשבוניות מס, זיכויים, הצעות מחיר',
+    },
+    {
+      id: 'rivhit',
+      name: 'רווחית (Rivhit)',
+      description: 'הנהלת חשבונות מלאה ומע"מ',
+    },
+    {
+      id: 'grow',
+      name: 'Grow',
+      description: 'ניהול הכנסות ותשלומים',
+    },
+    {
+      id: 'payme',
+      name: 'PayMe',
+      description: 'סליקה וקישורי תשלום',
+    },
+    {
+      id: 'meshulam',
+      name: 'משולם (Meshulam)',
+      description: 'סליקה וקבלות דיגיטליות',
+    },
+    {
+      id: 'cardcom',
+      name: 'CardCom',
+      description: 'סליקה + חשבוניות אוטומטיות',
+    },
+    {
+      id: 'tranzila',
+      name: 'Tranzila',
+      description: 'סליקה בינלאומית',
+    },
+    {
+      id: 'hyp',
+      name: 'Hyp (ClearPay)',
+      description: 'קישורי תשלום וחשבוניות',
+    },
+    {
+      id: 'priority',
+      name: 'פריורטי (Priority)',
+      description: 'ERP לעסקים בינוניים',
+    },
+    {
+      id: 'hashavshevet',
+      name: 'חשבשבת',
+      description: 'הנהלת חשבונות למשרדי רו"ח',
+    },
+  ];
+
   const [greenInvoiceStatus, setGreenInvoiceStatus] = useState<GreenInvoiceStatus>({
     isLoading: true,
     connected: false,
@@ -73,7 +141,7 @@ const IntegrationsView: React.FC = () => {
           <p className="text-slate-500">חברו את המערכת שלכם למערכות כספיות חיצוניות</p>
         </div>
 
-        {/* Green Invoice Integration */}
+        {/* Morning (Green Invoice) Integration */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -81,8 +149,8 @@ const IntegrationsView: React.FC = () => {
                 <Plug className="text-emerald-600" size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">חשבונית ירוקה</h3>
-                <p className="text-sm text-slate-500">ניהול חשבוניות דרך חשבונית ירוקה</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Morning (חשבונית ירוקה)</h3>
+                <p className="text-sm text-slate-500">חשבוניות מס/קבלה וסנכרון דו-כיווני</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -105,26 +173,30 @@ const IntegrationsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Morning Integration */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm opacity-50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
-                <Plug className="text-slate-400" size={24} />
+        {otherIntegrations.map((integration) => (
+          <div key={integration.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
+                  <Plug className="text-slate-400" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">{integration.name}</h3>
+                  <p className="text-sm text-slate-500">{integration.description}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">מורנינג</h3>
-                <p className="text-sm text-slate-500">ניהול כספים דרך מורנינג</p>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 text-slate-500">
+                  <XCircle size={20} />
+                  <span className="text-sm font-medium">לא זמין</span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-slate-400">
-                <XCircle size={20} />
-                <span className="text-sm font-medium">בקרוב</span>
-              </div>
+            <div className="mt-3 text-xs text-slate-500">
+              אין חיבור API פעיל במערכת עבור ספק זה כרגע.
             </div>
           </div>
-        </div>
+        ))}
 
         {/* Info Box */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
@@ -133,8 +205,8 @@ const IntegrationsView: React.FC = () => {
             <div>
               <h4 className="font-bold text-blue-900 mb-1">איך זה עובד?</h4>
               <p className="text-sm text-blue-700">
-                לאחר החיבור, תוכלו ליצור ולנהל חשבוניות ישירות מהמערכת. 
-                כל החשבוניות יסונכרנו אוטומטית עם המערכת החיצונית.
+                אינטגרציות שמסומנות כ"מחובר" יאפשרו יצירה וסנכרון חשבוניות.
+                ספקים שמסומנים כ"לא זמין" אינם מחוברים כרגע.
               </p>
             </div>
           </div>

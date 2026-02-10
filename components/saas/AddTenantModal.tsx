@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tenant, Product, ModuleId } from '../../types';
-import { Globe } from 'lucide-react';
+import { Building2, Mail, Globe2, Package, Server, X, Sparkles, Phone, Users, Languages, Calendar, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { StyledDropdown } from '@/components/ui/StyledDropdown';
 
 interface AddTenantModalProps {
     onClose: () => void;
@@ -13,96 +15,241 @@ interface AddTenantModalProps {
 }
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, products }) => {
+    const [selectedPlan, setSelectedPlan] = useState(products[0]?.name || '');
+    const [selectedRegion, setSelectedRegion] = useState('il-central');
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const form = e.target as HTMLFormElement;
         const name = (form.elements.namedItem('name') as HTMLInputElement).value;
         const email = (form.elements.namedItem('email') as HTMLInputElement).value;
         const subdomain = (form.elements.namedItem('subdomain') as HTMLInputElement).value;
-        const plan = (form.elements.namedItem('plan') as HTMLSelectElement).value;
-        const region = (form.elements.namedItem('region') as HTMLSelectElement).value;
+        const phone = (form.elements.namedItem('phone') as HTMLInputElement)?.value || undefined;
+        const maxUsers = (form.elements.namedItem('maxUsers') as HTMLInputElement)?.value;
+        const defaultLanguage = (form.elements.namedItem('defaultLanguage') as HTMLSelectElement)?.value || 'he';
+        const activationDate = (form.elements.namedItem('activationDate') as HTMLInputElement)?.value || undefined;
+        const notes = (form.elements.namedItem('notes') as HTMLTextAreaElement)?.value || undefined;
         
-        const selectedProduct = products.find(p => p.name === plan);
+        const selectedProduct = products.find(p => p.name === selectedPlan);
         const mrr = selectedProduct ? selectedProduct.price : 0;
-        // Use modules from the selected plan, or default modules if plan not found
         const defaultModules = selectedProduct?.modules || ['crm', 'team'];
 
         onAdd({ 
             name, 
             ownerEmail: email, 
-            subdomain: String(subdomain ?? '').toLowerCase().replace(/\s+/g, '-'), // Sanitize
-            plan,
-            region: region as any,
-            modules: defaultModules // NEW: Automatically assign plan modules
+            subdomain: String(subdomain ?? '').toLowerCase().replace(/\s+/g, '-'),
+            plan: selectedPlan,
+            region: selectedRegion as any,
+            modules: defaultModules,
+            phone,
+            maxUsers: maxUsers ? parseInt(maxUsers) : undefined,
+            defaultLanguage,
+            activationDate,
+            notes
         }, mrr);
     };
 
+    const planOptions = products.map(p => ({
+        value: p.name,
+        label: `${p.name} • ₪${p.price}`
+    }));
+
+    const regionOptions = [
+        { value: 'il-central', label: 'Israel (TLV)' },
+        { value: 'eu-west', label: 'Europe (Frankfurt)' },
+        { value: 'us-east', label: 'USA (N. Virginia)' }
+    ];
+
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-white border border-slate-200 rounded-2xl w-full max-w-md p-6 shadow-2xl relative overflow-hidden backdrop-blur-xl"
-            >
-                {/* Background Effects */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
-                <div className="relative z-10">
-                    <h3 className="text-xl font-bold text-slate-900 mb-6">הוסף לקוח חדש</h3>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">שם העסק *</label>
-                            <input name="name" required className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-3 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all" placeholder="Acme Corp" />
+        <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-slate-800/70 to-indigo-900/60 backdrop-blur-md"
+                    onClick={onClose}
+                />
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.92, y: 30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92, y: 30 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className="relative bg-gradient-to-br from-white via-white to-slate-50/50 rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200/60"
+                >
+                    {/* Gradient Overlay Effects */}
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-indigo-100/30 via-purple-50/20 to-transparent rounded-full blur-3xl opacity-60 -translate-y-1/2 translate-x-1/4" />
+                    <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-slate-100/40 via-indigo-50/20 to-transparent rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/4" />
+                    
+                    {/* Header */}
+                    <div className="relative border-b border-slate-200/60 bg-gradient-to-r from-white/80 to-slate-50/60 backdrop-blur-xl px-8 py-6 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-md opacity-40" />
+                                <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 flex items-center justify-center shadow-lg">
+                                    <Building2 className="w-7 h-7 text-white" strokeWidth={2.5} />
+                                </div>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tight">הוסף חשבון SaaS</h3>
+                                <p className="text-sm text-slate-500 font-medium mt-0.5">צור חשבון חדש ללקוח במערכת</p>
+                            </div>
                         </div>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-xl hover:bg-slate-200/60 active:bg-slate-300/60 flex items-center justify-center transition-all hover:scale-105"
+                        >
+                            <X className="w-5 h-5 text-slate-600" strokeWidth={2.5} />
+                        </button>
+                    </div>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="relative p-8">
+                        <div className="space-y-6">
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <Building2 className="w-4 h-4 text-indigo-600" />
+                                    שם העסק *
+                                </label>
+                                <Input name="name" required placeholder="Acme Corp" className="h-12 text-base" />
+                            </div>
                         
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">כתובת המערכת (Subdomain) *</label>
-                            <div className="flex items-center">
-                                <span className="text-slate-500 bg-slate-50/80 backdrop-blur-sm border border-slate-200 border-l-0 rounded-r-xl p-3 text-sm">https://</span>
-                                <input 
-                                    name="subdomain" 
-                                    required 
-                                    className="flex-1 bg-white/80 backdrop-blur-sm border-y border-slate-200 p-3 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none text-left dir-ltr font-mono text-sm transition-all" 
-                                    placeholder="acme" 
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <Globe2 className="w-4 h-4 text-indigo-600" />
+                                    כתובת המערכת (Subdomain) *
+                                </label>
+                                <div className="flex items-stretch rounded-xl border-2 border-slate-200 overflow-hidden bg-white shadow-sm focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-100 transition-all">
+                                    <span className="flex items-center px-4 text-sm font-bold text-slate-600 bg-gradient-to-br from-slate-50 to-slate-100/80 border-l border-slate-200">https://</span>
+                                    <input 
+                                        name="subdomain" 
+                                        required 
+                                        className="flex-1 px-4 py-3 text-base font-bold text-slate-900 placeholder:text-slate-400 outline-none text-left dir-ltr font-mono bg-white" 
+                                        placeholder="acme" 
+                                    />
+                                    <span className="flex items-center px-4 text-sm font-bold text-slate-600 bg-gradient-to-br from-slate-50 to-slate-100/80 border-r border-slate-200">.nexus-os.co</span>
+                                </div>
+                                <div className="mt-3 flex items-start gap-2 px-1">
+                                    <Sparkles className="w-3.5 h-3.5 text-indigo-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-slate-600 leading-relaxed">כתובת ייחודית לארגון - כל העובדים ישתמשו בה לכניסה למערכת</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <Mail className="w-4 h-4 text-indigo-600" />
+                                    אימייל בעלים (Admin) *
+                                </label>
+                                <Input name="email" required type="email" placeholder="admin@acme.com" className="h-12 text-base dir-ltr text-right" />
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <Phone className="w-4 h-4 text-indigo-600" />
+                                    טלפון ליצירת קשר
+                                </label>
+                                <Input name="phone" type="tel" placeholder="050-1234567" className="h-12 text-base dir-ltr text-right" />
+                            </div>
+                        
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                        <Package className="w-4 h-4 text-indigo-600" />
+                                        חבילה *
+                                    </label>
+                                    <StyledDropdown
+                                        value={selectedPlan}
+                                        onChange={setSelectedPlan}
+                                        options={planOptions}
+                                        variant="default"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                        <Server className="w-4 h-4 text-indigo-600" />
+                                        איזור שרת *
+                                    </label>
+                                    <StyledDropdown
+                                        value={selectedRegion}
+                                        onChange={setSelectedRegion}
+                                        options={regionOptions}
+                                        variant="default"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-5">
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                        <Users className="w-4 h-4 text-indigo-600" />
+                                        כמות משתמשים מקסימלית
+                                    </label>
+                                    <Input name="maxUsers" type="number" min="1" placeholder="10" className="h-12 text-base" />
+                                </div>
+                                <div>
+                                    <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                        <Languages className="w-4 h-4 text-indigo-600" />
+                                        שפת ברירת מחדל
+                                    </label>
+                                    <select
+                                        name="defaultLanguage"
+                                        defaultValue="he"
+                                        className="w-full h-12 px-4 text-base font-bold text-slate-900 bg-white border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all"
+                                    >
+                                        <option value="he">עברית</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <Calendar className="w-4 h-4 text-indigo-600" />
+                                    תאריך הפעלה
+                                </label>
+                                <Input name="activationDate" type="date" className="h-12 text-base" />
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-black text-slate-800 mb-3">
+                                    <FileText className="w-4 h-4 text-indigo-600" />
+                                    הערות פנימיות
+                                </label>
+                                <textarea
+                                    name="notes"
+                                    rows={3}
+                                    placeholder="הערות או הוראות מיוחדות..."
+                                    className="w-full px-4 py-3 text-base font-medium text-slate-900 bg-white border-2 border-slate-200 rounded-xl outline-none focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 transition-all resize-none"
                                 />
-                                <span className="text-slate-500 bg-slate-50/80 backdrop-blur-sm border border-slate-200 border-r-0 rounded-l-xl p-3 text-sm">.nexus-os.co</span>
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">כתובת זו תשמש את כל עובדי החברה לכניסה למערכת.</p>
+
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-bold text-slate-700 mb-2">אימייל בעלים (Admin) *</label>
-                            <input name="email" required type="email" className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-3 text-slate-900 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none dir-ltr text-right transition-all" placeholder="admin@acme.com" />
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">חבילה *</label>
-                                <select name="plan" className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all">
-                                    {products.map(p => (
-                                        <option key={p.id} value={p.name}>{p.name} - ₪{p.price}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-2">איזור שרת *</label>
-                                <select name="region" className="w-full bg-white/80 backdrop-blur-sm border border-slate-200 rounded-xl p-3 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200/60 outline-none transition-all">
-                                    <option value="il-central">Israel (TLV)</option>
-                                    <option value="eu-west">Europe (Frankfurt)</option>
-                                    <option value="us-east">USA (N. Virginia)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-end gap-3 mt-6 border-t border-slate-200 pt-4">
-                            <Button type="button" onClick={onClose} variant="outline" className="px-4">ביטול</Button>
-                            <Button type="submit" className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-indigo-200/60">
-                                <Globe size={16} /> צור לקוח
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-3 mt-10 pt-6 border-t border-slate-200">
+                            <Button 
+                                type="button" 
+                                onClick={onClose} 
+                                variant="outline" 
+                                size="lg"
+                                className="px-6 hover:bg-slate-100"
+                            >
+                                ביטול
+                            </Button>
+                            <Button 
+                                type="submit" 
+                                size="lg"
+                                className="px-8 gap-2.5 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 hover:from-indigo-700 hover:via-indigo-800 hover:to-purple-800 shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:scale-105 transition-all"
+                            >
+                                <Building2 className="w-5 h-5" strokeWidth={2.5} />
+                                <span className="font-black">צור חשבון</span>
                             </Button>
                         </div>
                     </form>
-                </div>
-            </motion.div>
-        </div>
+                </motion.div>
+            </div>
+        </AnimatePresence>
     );
 };

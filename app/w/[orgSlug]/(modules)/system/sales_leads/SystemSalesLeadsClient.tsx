@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import type { Activity, Lead, PipelineStage } from '@/components/system/types';
 import ContactsView from '@/components/system/ContactsView';
 import LeadModal from '@/components/system/LeadModal';
+import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import type { SystemLeadDTO } from '@/app/actions/system-leads';
 import { createSystemLeadActivity, getSystemLeadsPage, updateSystemLead, updateSystemLeadStatus } from '@/app/actions/system-leads';
@@ -28,6 +29,7 @@ export default function SystemSalesLeadsClient({
   const [hasMore, setHasMore] = useState<boolean>(Boolean(initialHasMore));
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const leads = useMemo<Lead[]>(() => leadsDto.map(mapDtoToLead), [leadsDto]);
 
@@ -44,6 +46,18 @@ export default function SystemSalesLeadsClient({
     }
 
     setLeadsDto((prev) => prev.map((l) => (String(l.id) === String(res.lead.id) ? res.lead : l)));
+  };
+
+  const refreshFirstPage = async () => {
+    const res = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+    if (!res.success) {
+      addToast(res.error || 'שגיאה בטעינת לידים', 'error');
+      return;
+    }
+
+    setLeadsDto(res.data.leads);
+    setNextCursor(res.data.nextCursor);
+    setHasMore(Boolean(res.data.hasMore));
   };
 
   const handleLoadMore = async () => {
@@ -131,7 +145,12 @@ export default function SystemSalesLeadsClient({
     <>
       <div className="h-full flex flex-col">
         <div className="flex-1 overflow-hidden relative">
-          <ContactsView leads={leads} viewMode="all" onLeadClick={(l) => setSelectedLeadId(String(l.id))} />
+          <ContactsView
+            leads={leads}
+            viewMode="all"
+            onLeadClick={(l) => setSelectedLeadId(String(l.id))}
+            onImportLeadsAction={() => setShowImportDialog(true)}
+          />
         </div>
 
         {hasMore ? (
@@ -170,6 +189,17 @@ export default function SystemSalesLeadsClient({
           }
         />
       ) : null}
+
+      <SmartImportLeadsDialog
+        orgSlug={orgSlug}
+        open={showImportDialog}
+        onCloseAction={() => setShowImportDialog(false)}
+        onImportedAction={(r) => {
+          addToast(`ייבוא הושלם: ${r.created} לידים`, 'success');
+          setShowImportDialog(false);
+          void refreshFirstPage();
+        }}
+      />
     </>
   );
 }

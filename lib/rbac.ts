@@ -123,7 +123,7 @@ export async function getUserRole(
         return 'team_member';
       }
       
-      // Get role from social_users table
+      // Get role from organization_users table
       const roleResult = await getOrganizationUserRoleFromSupabaseAction(userResult.userId);
       
       if (!roleResult.success || !roleResult.role) {

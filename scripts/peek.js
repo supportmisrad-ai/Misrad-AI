@@ -24,7 +24,7 @@ async function main() {
     console.table(result);
     
     console.log('\nChecking for clients in various tables...');
-    const tables = ['clients', 'social_clients', 'client_clients'];
+    const tables = ['clients', 'socialmedia_clients', 'client_clients'];
     for (const table of tables) {
       try {
         const quoted = quotePgIdentifier(table);

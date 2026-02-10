@@ -131,7 +131,7 @@ function isManagerRequestStatus(value: unknown): value is ManagerRequest['status
 
 export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]> {
   try {
-    const data = await prisma.social_navigation_menu.findMany({
+    const data = await prisma.navigationMenu.findMany({
       where: { is_visible: true },
       orderBy: [{ section: 'asc' }, { order: 'asc' }],
     });
@@ -192,7 +192,7 @@ export async function getSocialPosts(params: {
       scheduled_at: true,
       published_at: true,
       createdAt: true,
-      social_post_platforms: { select: { platform: true } },
+      postPlatforms: { select: { platform: true } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -209,7 +209,7 @@ export async function getSocialPosts(params: {
       status: isPostStatus(post.status) ? post.status : 'draft',
       scheduledAt: toIsoStringOrEmpty(post.scheduled_at),
       publishedAt: post.published_at ? toIsoStringOrEmpty(post.published_at) : undefined,
-      platforms: (post.social_post_platforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
+      platforms: (post.postPlatforms || []).map((pp) => pp.platform).filter(isSocialPlatform),
     };
   });
 
@@ -250,7 +250,7 @@ export async function getSocialActivity(params: { orgSlug: string; limit?: numbe
 
   // NOTE: social_activity_logs is keyed by team_member_id. We don't have org_id on the table,
   // so we join via social_team_members (organization_id) to scope to the workspace.
-  const rows = await prisma.social_activity_logs.findMany({
+  const rows = await prisma.activityLog.findMany({
     where: {
       social_team_members: {
         organization_id: organizationId,
@@ -293,7 +293,7 @@ async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: s
       }[]
     | null = null;
   try {
-    rows = await prisma.social_tasks.findMany({
+    rows = await prisma.socialMediaTask.findMany({
       where: { organizationId: params.organizationId },
       select: {
         id: true,
@@ -348,7 +348,7 @@ async function getSocialConversationsForOrg(params: { orgSlug: string; organizat
       }[]
     | null = null;
   try {
-    rows = await prisma.social_conversations.findMany({
+    rows = await prisma.socialMediaConversation.findMany({
       where: { organizationId: params.organizationId },
       select: {
         id: true,
@@ -401,7 +401,7 @@ async function getSocialClientRequestsForOrg(params: { organizationId: string })
       }[]
     | null = null;
   try {
-    rows = await prisma.social_client_requests.findMany({
+    rows = await prisma.socialMediaClientRequest.findMany({
       where: { organizationId: params.organizationId },
       select: { id: true, client_id: true, type: true, content: true, media_url: true, status: true, created_at: true },
       orderBy: { created_at: 'desc' },
@@ -474,7 +474,7 @@ async function getSocialManagerRequestsForOrg(params: { organizationId: string }
       }[]
     | null = null;
   try {
-    rows = await prisma.social_manager_requests.findMany({
+    rows = await prisma.socialMediaManagerRequest.findMany({
       where: { organizationId: params.organizationId },
       select: {
         id: true,
@@ -522,7 +522,7 @@ async function getSocialIdeasForOrg(params: { organizationId: string }) {
       }[]
     | null = null;
   try {
-    rows = await prisma.social_ideas.findMany({
+    rows = await prisma.socialMediaIdea.findMany({
       where: { organizationId: params.organizationId },
       select: { id: true, client_id: true, text: true, created_at: true },
       orderBy: { created_at: 'desc' },
@@ -566,7 +566,7 @@ async function attachActivePlatforms(clients: Client[]): Promise<Client[]> {
   if (ids.length === 0) return clients;
 
   try {
-    const data = await prisma.social_client_active_platforms.findMany({
+    const data = await prisma.socialMediaClientPlatform.findMany({
       where: { client_id: { in: ids } },
       select: { client_id: true, platform: true },
     });

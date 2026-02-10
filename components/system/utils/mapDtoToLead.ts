@@ -16,19 +16,6 @@ const toDateOrNull = (value: unknown) => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-const isPipelineStage = (value: unknown): value is PipelineStage => {
-  return (
-    value === 'incoming' ||
-    value === 'contacted' ||
-    value === 'meeting' ||
-    value === 'proposal' ||
-    value === 'negotiation' ||
-    value === 'won' ||
-    value === 'lost' ||
-    value === 'churned'
-  );
-};
-
 const isLeadActivityType = (value: unknown): value is LeadActivity['type'] => {
   return (
     value === 'call' ||
@@ -45,7 +32,8 @@ const isLeadActivityType = (value: unknown): value is LeadActivity['type'] => {
 };
 
 export const mapDtoToLead = (dto: SystemLeadDTO): Lead => {
-  const status: PipelineStage = isPipelineStage(dto.status) ? dto.status : 'incoming';
+  const statusRaw = String(dto.status || '').trim();
+  const status: PipelineStage = statusRaw || 'incoming';
 
   const productInterestRaw = dto.product_interest ?? null;
   const productInterest =

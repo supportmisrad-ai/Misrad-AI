@@ -2,11 +2,12 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserPlus } from 'lucide-react';
-import { Lead, PipelineStage, Activity as LeadActivity } from '@/components/system/types';
+import { Lead, PipelineStage, Activity as LeadActivity, isSystemStage } from '@/components/system/types';
 import { mapDtoToLead } from '@/components/system/utils/mapDtoToLead';
 import { useToast } from '@/components/system/contexts/ToastContext';
 import LeadModal from '@/components/system/LeadModal';
 import NewLeadModal from '@/components/system/NewLeadModal';
+import SmartImportLeadsDialog from '@/components/system/SmartImportLeadsDialog';
 import PipelineBoard from '@/components/system/PipelineBoard';
 import { STAGES } from '@/components/system/constants';
 import { getErrorMessage } from '@/lib/shared/unknown';
@@ -30,20 +31,6 @@ import {
 
 function isSameLocalDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-
-function isPipelineStage(value: unknown): value is PipelineStage {
-  return (
-    value === 'incoming' ||
-    value === 'contacted' ||
-    value === 'meeting' ||
-    value === 'proposal' ||
-    value === 'negotiation' ||
-    value === 'won' ||
-    value === 'lost' ||
-    value === 'churned'
-  );
 }
 
 type StageUi = {
@@ -83,6 +70,7 @@ export default function SystemSalesPipelineClient({
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showNewLeadModal, setShowNewLeadModal] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const handleLoadMore = async () => {
     if (isLoadingMore) return;
@@ -110,6 +98,22 @@ export default function SystemSalesPipelineClient({
       addToast(getErrorMessage(e) || 'שגיאה בטעינת לידים', 'error');
     } finally {
       setIsLoadingMore(false);
+    }
+  };
+
+  const refreshFirstPage = async () => {
+    try {
+      const res = await getSystemLeadsPage({ orgSlug, pageSize: 200 });
+      if (!res.success) {
+        addToast(res.error || 'שגיאה בטעינת לידים', 'error');
+        return;
+      }
+
+      setLeads(res.data.leads);
+      setNextCursor(res.data.nextCursor);
+      setHasMore(Boolean(res.data.hasMore));
+    } catch (e: unknown) {
+      addToast(getErrorMessage(e) || 'שגיאה בטעינת לידים', 'error');
     }
   };
 
@@ -147,8 +151,8 @@ export default function SystemSalesPipelineClient({
           id: String(s.key || s.id),
           key: String(s.key || s.id),
           label: String(s.label || ''),
-          color: String(s.color || ''),
-          accent: String(s.accent || ''),
+          color: String(s.color || '') || 'border-slate-200',
+          accent: String(s.accent || '') || 'bg-slate-300',
           order: Number(s.order || 0),
           isActive: s.isActive !== false,
         }))
@@ -156,8 +160,8 @@ export default function SystemSalesPipelineClient({
           id: String(s.id),
           key: String(s.id),
           label: String(s.label),
-          color: String(s.color || ''),
-          accent: String(s.accent || ''),
+          color: String(s.color || '') || 'border-slate-200',
+          accent: String(s.accent || '') || 'bg-slate-300',
           order: idx * 10,
           isActive: true,
         }));
@@ -408,7 +412,7 @@ export default function SystemSalesPipelineClient({
   }, [leadCards, selectedLeadId]);
 
   const handleStatusChange = async (leadId: string, newStatus: PipelineStage) => {
-    if (newStatus === 'won') {
+    if (isSystemStage(newStatus) && newStatus === 'won') {
       addToast('סגירת עסקה (won) דורשת handover. יתווסף בהמשך.', 'info');
       return;
     }
@@ -520,6 +524,13 @@ export default function SystemSalesPipelineClient({
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setShowImportDialog(true)}
+            className="bg-white border border-slate-200 text-slate-800 px-4 py-2.5 rounded-2xl text-sm font-black shadow-sm transition-all"
+          >
+            ייבוא לידים
+          </button>
+          <button
+            type="button"
             onClick={() => {
               setIsStagesModalOpen(true);
               void refreshStages();
@@ -555,7 +566,7 @@ export default function SystemSalesPipelineClient({
                 setStatusFilter('all');
                 return;
               }
-              setStatusFilter(isPipelineStage(v) ? v : 'all');
+              setStatusFilter(v);
             }}
             className="w-full md:w-[220px] bg-white border border-slate-200 rounded-full px-4 py-2 text-sm font-bold shadow-sm"
           >
@@ -630,7 +641,7 @@ export default function SystemSalesPipelineClient({
           <PipelineBoard
             leads={visibleLeads}
             stages={stagesForUi.map((s) => ({
-              id: String(s.key) as unknown as PipelineStage,
+              id: String(s.key),
               label: String(s.label),
               accent: String(s.accent || ''),
               color: String(s.color || ''),
@@ -676,7 +687,6 @@ export default function SystemSalesPipelineClient({
                         value={lead.status}
                         onChange={(e) => {
                           const v = String(e.target.value || '');
-                          if (!isPipelineStage(v)) return;
                           void handleStatusChange(String(lead.id), v);
                         }}
                         className="w-full bg-white border border-slate-200 rounded-full px-3 py-1.5 text-xs font-black"
@@ -720,6 +730,17 @@ export default function SystemSalesPipelineClient({
           onSave={(lead) => void handleCreateLead(lead)}
         />
       ) : null}
+
+      <SmartImportLeadsDialog
+        orgSlug={orgSlug}
+        open={showImportDialog}
+        onCloseAction={() => setShowImportDialog(false)}
+        onImportedAction={(r) => {
+          addToast(`ייבוא הושלם: ${r.created} לידים`, 'success');
+          setShowImportDialog(false);
+          void refreshFirstPage();
+        }}
+      />
 
       {isStagesModalOpen ? (
         <div className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsStagesModalOpen(false)}>

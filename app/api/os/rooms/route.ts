@@ -179,20 +179,20 @@ async function POSTHandler(req: NextRequest) {
     if (!organizationId) {
       const orgName = user.full_name || user.email || 'Organization';
 
+      // Finance is a free bonus for any paid package, so always set it to true for trial
+      const hasAnyModule = requestedRooms.nexus || requestedRooms.social || requestedRooms.system || requestedRooms.client;
       const createdOrg = await prisma.organization.create({
         data: {
-          name: String(orgName),
-          owner_id: String(user.id),
-          has_nexus: true,
-          has_system: false,
-          has_social: false,
-          has_finance: false,
-          has_client: false,
-          has_operations: false,
           subscription_status: 'trial',
-          subscription_plan: null,
-          trial_start_date: new Date(),
           trial_days: DEFAULT_TRIAL_DAYS,
+          trial_start_date: new Date(),
+          name: user.full_name || user.email || 'New Organization',
+          has_nexus: Boolean(requestedRooms.nexus),
+          has_social: Boolean(requestedRooms.social),
+          has_system: Boolean(requestedRooms.system),
+          has_finance: hasAnyModule, // Free bonus
+          has_client: Boolean(requestedRooms.client),
+          owner_id: user.id,
         },
         select: { id: true },
       });

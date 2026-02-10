@@ -32,6 +32,7 @@ export type WorkspaceInfo = {
   name: string;
   logo?: string | null;
   seatsAllowed: number | null;
+  isShabbatProtected: boolean;
   entitlements: Record<OSModuleKey, boolean>;
 };
 

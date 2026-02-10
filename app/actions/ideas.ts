@@ -6,7 +6,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { uploadFile } from './files';
 import prisma from '@/lib/prisma';
 import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
-import { Prisma, type social_ideas } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 async function requireOrganizationIdForOrgSlug(orgSlug: string): Promise<string> {
@@ -34,11 +34,11 @@ async function assertClientInOrganization(params: { clientId: string; organizati
 
 async function assertIdeaInOrganization(params: { ideaId: string; organizationId: string }): Promise<{ clientId: string }>
 {
-  const idea = await prisma.social_ideas.findFirst({
+  const idea = await prisma.socialMediaIdea.findFirst({
     where: {
       id: String(params.ideaId),
       organizationId: String(params.organizationId),
-    } satisfies Prisma.social_ideasWhereInput,
+    },
     select: { id: true, client_id: true },
   });
 
@@ -64,11 +64,11 @@ export async function getIdeas(
       return { success: false, error: 'Forbidden' };
     }
 
-    const ideasRows = await prisma.social_ideas.findMany({
+    const ideasRows = await prisma.socialMediaIdea.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
-      } satisfies Prisma.social_ideasWhereInput,
+      },
       orderBy: { created_at: 'desc' },
     });
 
@@ -141,14 +141,15 @@ export async function createIdea(
     }
 
     // Insert idea
-    let idea: social_ideas | null = null;
+    let idea: any = null;
     try {
-      idea = await prisma.social_ideas.create({
-        data: {
-          organizationId,
-          client_id: String(ideaData.clientId),
-          text: `${ideaData.title}\n\n${ideaData.description}`.trim(),
-        } satisfies Prisma.social_ideasCreateInput,
+      const createData = {
+        organizationId,
+        client_id: String(ideaData.clientId),
+        text: `${ideaData.title}\n\n${ideaData.description}`.trim(),
+      };
+      idea = await prisma.socialMediaIdea.create({
+        data: createData,
       });
     } catch (ideaError: unknown) {
       console.error('Error creating idea:', ideaError);
@@ -236,13 +237,13 @@ export async function updateIdea(
     }
 
     try {
-      const res = await prisma.social_ideas.updateMany({
+      const res = await prisma.socialMediaIdea.updateMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),
           client_id: String(scoped.clientId),
-        } satisfies Prisma.social_ideasWhereInput,
-        data: updateData satisfies Prisma.social_ideasUpdateManyMutationInput,
+        },
+        data: updateData,
       });
 
       if (!res?.count) {
@@ -295,12 +296,12 @@ export async function deleteIdea(ideaId: string, orgSlug: string): Promise<{ suc
     const scoped = await assertIdeaInOrganization({ ideaId, organizationId });
 
     try {
-      const res = await prisma.social_ideas.deleteMany({
+      const res = await prisma.socialMediaIdea.deleteMany({
         where: {
           id: String(ideaId),
           organizationId: String(organizationId),
           client_id: String(scoped.clientId),
-        } satisfies Prisma.social_ideasWhereInput,
+        },
       });
 
       if (!res?.count) {

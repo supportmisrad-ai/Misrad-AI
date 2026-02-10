@@ -54,6 +54,9 @@ export type SystemLeadDTO = {
   assigned_agent_id: string | null;
   product_interest?: string | null;
   ai_tags?: string[];
+  closure_probability?: number | null;
+  closure_rationale?: string | null;
+  recommended_action?: string | null;
   next_action_date?: string | null;
   next_action_date_suggestion?: string | null;
   next_action_note?: string | null;
@@ -82,6 +85,9 @@ function toDto(row: SystemLeadRow): SystemLeadDTO {
     assigned_agent_id: row.assignedAgentId ?? null,
     product_interest: row.productInterest ?? null,
     ai_tags: Array.isArray(row.aiTags) ? row.aiTags.map((t) => String(t)).filter(Boolean) : [],
+    closure_probability: row.closureProbability != null ? Number(row.closureProbability) : null,
+    closure_rationale: row.closureRationale != null ? String(row.closureRationale) : null,
+    recommended_action: row.recommendedAction != null ? String(row.recommendedAction) : null,
     next_action_date: row.nextActionDate ? new Date(row.nextActionDate).toISOString() : null,
     next_action_date_suggestion: row.nextActionDateSuggestion ? new Date(row.nextActionDateSuggestion).toISOString() : null,
     next_action_note: row.nextActionNote != null ? String(row.nextActionNote) : null,
@@ -890,7 +896,7 @@ export async function recomputeSystemLeadAiScore(params: {
 
         const ai = AIService.getInstance();
 
-        const prompt = `חשב ציון ליד (AI Score) בין 0 ל-100 עבור ליד מכירות.
+        const prompt = `חשב ציון ליד (AI Score) וחיזוי סגירה עבור ליד מכירות.
 
 נתוני ליד:
 שם: ${String(leadRow.name || '')}
@@ -903,14 +909,32 @@ export async function recomputeSystemLeadAiScore(params: {
 ${history || 'אין אינטראקציות עדיין'}
 
 החזר JSON בלבד בפורמט:
-{ "score": number, "isHot": boolean, "tags": string[] }
+{
+  "score": number,
+  "isHot": boolean,
+  "tags": string[],
+  "closureProbability": number,
+  "closureRationale": string,
+  "recommendedAction": string
+}
 
 כללים:
-- score חייב להיות מספר שלם 0-100
+- score: ציון כללי 0-100
+- isHot: האם ליד חם (סיכוי גבוה לסגירה)
 - tags: עד 6 תגיות קצרות בעברית
-- אם אין כמעט אינטראקציות: score נמוך יחסית`;
+- closureProbability: אחוז סיכוי לסגירה 0-100 (מבוסס על כוונה, אינטראקציות, שלב במשפך)
+- closureRationale: הסבר קצר (1-2 משפטים) למה הסיכוי כזה
+- recommendedAction: פעולה ממוקדת אחת שכדאי לעשות עכשיו (למשל: "שלח הצעת מחיר עד יום רביעי")
+- אם אין כמעט אינטראקציות: score נמוך, closureProbability נמוך, ציין שחסר מידע`;
 
-        const out = await ai.generateJson<{ score: number; isHot: boolean; tags: string[] }>({
+        const out = await ai.generateJson<{
+          score: number;
+          isHot: boolean;
+          tags: string[];
+          closureProbability: number;
+          closureRationale: string;
+          recommendedAction: string;
+        }>({
           featureKey: 'system.leads.score',
           organizationId,
           prompt,
@@ -921,8 +945,11 @@ ${history || 'אין אינטראקציות עדיין'}
               score: { type: 'number' },
               isHot: { type: 'boolean' },
               tags: { type: 'array', items: { type: 'string' } },
+              closureProbability: { type: 'number' },
+              closureRationale: { type: 'string' },
+              recommendedAction: { type: 'string' },
             },
-            required: ['score', 'isHot', 'tags'],
+            required: ['score', 'isHot', 'tags', 'closureProbability', 'closureRationale', 'recommendedAction'],
           },
           meta: {
             module: 'system',
@@ -938,12 +965,20 @@ ${history || 'אין אינטראקציות עדיין'}
           ? out.result.tags.map((t) => String(t || '').trim()).filter(Boolean).slice(0, 12)
           : [];
 
+        const nextClosureProbabilityRaw = out?.result?.closureProbability;
+        const nextClosureProbability = Math.max(0, Math.min(100, Math.round(Number(nextClosureProbabilityRaw ?? 0))));
+        const nextClosureRationale = String(out?.result?.closureRationale || '').trim().slice(0, 500);
+        const nextRecommendedAction = String(out?.result?.recommendedAction || '').trim().slice(0, 300);
+
         const updated = await prisma.systemLead.updateMany({
           where: { id: leadId, organizationId },
           data: {
             score: nextScore,
             isHot: nextIsHot,
             aiTags: nextTags,
+            closureProbability: nextClosureProbability,
+            closureRationale: nextClosureRationale || null,
+            recommendedAction: nextRecommendedAction || null,
           },
         });
 

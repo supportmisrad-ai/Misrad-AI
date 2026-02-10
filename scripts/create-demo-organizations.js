@@ -180,7 +180,7 @@ async function main() {
   
   try {
     // בדוק אם המשתמש קיים
-    const owner = await prisma.social_users.findUnique({
+    const owner = await prisma.organizationUser.findUnique({
       where: { id: OWNER_ID }
     });
     

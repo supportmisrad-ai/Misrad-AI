@@ -1,0 +1,7961 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="utf-8">
+  <title>Misrad-AI — מסמך מכירה מלא</title>
+  <style>
+    body {
+      font-family: 'Arial', 'David', sans-serif;
+      direction: rtl;
+      text-align: right;
+      line-height: 1.8;
+      font-size: 12pt;
+      color: #1a1a1a;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+    h1 { font-size: 22pt; color: #1a365d; border-bottom: 2px solid #2b6cb0; padding-bottom: 8px; margin-top: 30px; }
+    h2 { font-size: 16pt; color: #2b6cb0; margin-top: 24px; }
+    h3 { font-size: 13pt; color: #2c5282; }
+    table { border-collapse: collapse; width: 100%; margin: 12px 0; direction: rtl; }
+    th, td { border: 1px solid #cbd5e0; padding: 8px 12px; text-align: right; }
+    th { background-color: #edf2f7; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f7fafc; }
+    code { background-color: #edf2f7; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 10pt; }
+    pre { background-color: #2d3748; color: #e2e8f0; padding: 16px; border-radius: 6px; overflow-x: auto; direction: ltr; text-align: left; }
+    pre code { background: none; color: inherit; }
+    blockquote { border-right: 4px solid #2b6cb0; padding-right: 16px; margin-right: 0; color: #4a5568; background: #f7fafc; padding: 12px 16px; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 24px 0; }
+    strong { color: #1a365d; }
+    a { color: #2b6cb0; }
+  </style>
+</head>
+<body>
+
+<div style="text-align:center; margin-top:100px; margin-bottom:80px;">
+  <h1 style="font-size:42px; color:#1a365d;">Misrad-AI</h1>
+  <h2 style="font-size:24px; color:#2b6cb0; font-weight:normal;">מסמך מכירה מלא</h2>
+  <p style="font-size:16px; color:#718096;">פלטפורמת ניהול עסקי All-in-One</p>
+  <p style="font-size:14px; color:#a0aec0;">גרסה 3.0 — פברואר 2026</p>
+</div>
+<hr style="border:none; border-top:2px solid #2b6cb0; margin:40px 0;">
+<h1 style="font-size:24px; color:#1a365d; border-bottom:2px solid #2b6cb0; padding-bottom:8px;">📋 תוכן עניינים</h1>
+<table style="width:100%; border:none; border-collapse:collapse;">
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🎯 1. <a href="#section-0" style="color:#1a365d; text-decoration:none;">סקירה כללית</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🏗️ 2. <a href="#section-1" style="color:#1a365d; text-decoration:none;">ארכיטקטורה טכנית</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🗄️ 3. <a href="#section-2" style="color:#1a365d; text-decoration:none;">מודל נתונים</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">📊 4. <a href="#section-3" style="color:#1a365d; text-decoration:none;">מודול Nexus — ניהול וצוות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">💼 5. <a href="#section-4" style="color:#1a365d; text-decoration:none;">מודול System — מכירות ו-CRM</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">📱 6. <a href="#section-5" style="color:#1a365d; text-decoration:none;">מודול Social — שיווק ותוכן</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">💰 7. <a href="#section-6" style="color:#1a365d; text-decoration:none;">מודול Finance — כספים</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">👥 8. <a href="#section-7" style="color:#1a365d; text-decoration:none;">מודול Client — לקוחות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🔧 9. <a href="#section-8" style="color:#1a365d; text-decoration:none;">מודול Operations — תפעול</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">💲 10. <a href="#section-9" style="color:#1a365d; text-decoration:none;">מבנה תמחור</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">📦 11. <a href="#section-10" style="color:#1a365d; text-decoration:none;">החבילות — פירוט מלא</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🧮 12. <a href="#section-11" style="color:#1a365d; text-decoration:none;">דוגמאות מחיר</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🔒 13. <a href="#section-12" style="color:#1a365d; text-decoration:none;">שכבות אבטחה</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🔑 14. <a href="#section-13" style="color:#1a365d; text-decoration:none;">אימות והרשאות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🛡️ 15. <a href="#section-14" style="color:#1a365d; text-decoration:none;">הגנת נתונים ופרטיות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🤖 16. <a href="#section-15" style="color:#1a365d; text-decoration:none;">יכולות AI</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🔗 17. <a href="#section-16" style="color:#1a365d; text-decoration:none;">אינטגרציות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">❓ 18. <a href="#section-17" style="color:#1a365d; text-decoration:none;">התנגדויות ותשובות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🚀 19. <a href="#section-18" style="color:#1a365d; text-decoration:none;">תהליך הטמעה</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:bold; color:#1a365d;">🎯 20. <a href="#section-19" style="color:#1a365d; text-decoration:none;">קהל יעד</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:normal; color:#4a5568;">📎  <a href="#section-20" style="color:#4a5568; text-decoration:none;">נספח: השוואת מתחרים</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:normal; color:#4a5568;">📎  <a href="#section-21" style="color:#4a5568; text-decoration:none;">נספח: סקריפט דמו</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:normal; color:#4a5568;">📎  <a href="#section-22" style="color:#4a5568; text-decoration:none;">נספח: שאלות נפוצות</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:normal; color:#4a5568;">📎  <a href="#section-23" style="color:#4a5568; text-decoration:none;">נספח: Roadmap</a></td></tr>
+<tr><td style="border:none; padding:6px 16px; font-size:14px; font-weight:normal; color:#4a5568;">📎  <a href="#section-24" style="color:#4a5568; text-decoration:none;">נספח: מילון מונחים</a></td></tr>
+</table>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-0" style="margin-top:40px;">
+<h1>🎯 סקירה כללית — Misrad-AI</h1>
+<h2>מהי המערכת?</h2>
+<p><strong>MISRAD AI</strong> — פלטפורמת ניהול עסקי הכל-במקום-אחד.</p>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>SaaS Multi-Tenant</td>
+</tr>
+<tr>
+<td><strong>מודולים</strong></td>
+<td>6 עצמאיים</td>
+</tr>
+<tr>
+<td><strong>AI</strong></td>
+<td>Google Gemini 2.0</td>
+</tr>
+<tr>
+<td><strong>מחיר</strong></td>
+<td>₪149–₪499/חודש</td>
+</tr>
+<tr>
+<td><strong>Stack</strong></td>
+<td>Next.js 16, React 19, TypeScript</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>שם המערכת</h2>
+<p><strong>MISRAD AI</strong> — זה השם היחיד. אין שמות נוספים.</p>
+<blockquote>
+<p><strong>Nexus</strong> הוא שם של מודול מרכזי (ניהול צוות, משימות, לקוחות) — לא שם המערכת.</p>
+</blockquote>
+<hr>
+<h2>הבעיה שפותרים</h2>
+<h3>מערכות יקרות ומורכבות</h3>
+<table>
+<thead>
+<tr>
+<th>מתחרה</th>
+<th>מחיר ל-5 משתמשים</th>
+<th>זמן הטמעה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Salesforce</td>
+<td>₪455–₪3,010/חודש</td>
+<td>3-12 חודשים</td>
+</tr>
+<tr>
+<td>Monday.com</td>
+<td>₪220–₪730/חודש</td>
+<td>1-3 חודשים</td>
+</tr>
+<tr>
+<td>HubSpot</td>
+<td>₪365–₪2,740/חודש</td>
+<td>2-6 חודשים</td>
+</tr>
+</tbody></table>
+<h3>פתרונות פשוטים מדי</h3>
+<ul>
+<li>Excel/Sheets — ידני, לא אוטומטי, קשה לשתף</li>
+<li>כלים חינמיים — חסרי אבטחה, ללא אינטגרציות</li>
+</ul>
+<h3>מערכות ישראליות ותיקות</h3>
+<ul>
+<li>ממשק ישן, לא Cloud, לא מודרניות</li>
+</ul>
+<hr>
+<h2>הפתרון: Misrad-AI</h2>
+<table>
+<thead>
+<tr>
+<th>תכונה</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>מודולרי</strong></td>
+<td>קנה רק מה שצריך</td>
+</tr>
+<tr>
+<td><strong>מתחיל קטן</strong></td>
+<td>₪149/חודש, מודול אחד</td>
+</tr>
+<tr>
+<td><strong>גדל איתך</strong></td>
+<td>הוסף מודולים כשצריך</td>
+</tr>
+<tr>
+<td><strong>מחיר הוגן</strong></td>
+<td>פי 3-10 זול מהמתחרים</td>
+</tr>
+<tr>
+<td><strong>מודרני</strong></td>
+<td>Next.js 16, AI, Cloud</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>האמת המלאה על הפיתוח</h2>
+<h3>מי בנה את זה?</h3>
+<p><strong>יזם סולו אחד</strong> בעזרת <strong>כלי AI מתקדמים</strong> (Cascade, Claude, ChatGPT).</p>
+<h3>חסרונות — ללא הסתרה</h3>
+<table>
+<thead>
+<tr>
+<th>חיסרון</th>
+<th>השפעה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>אין צוות גדול</td>
+<td>פיתוח איטי יותר</td>
+</tr>
+<tr>
+<td>אין תמיכה 24/7</td>
+<td>ראשון-חמישי 9:00-18:00</td>
+</tr>
+<tr>
+<td>פיצ&#39;ר חדש = שבועיים-חודש</td>
+<td>לא ימים</td>
+</tr>
+<tr>
+<td>אין &quot;שם גדול&quot;</td>
+<td>לא Salesforce/Microsoft</td>
+</tr>
+<tr>
+<td>סיכון עסקי</td>
+<td>מה אם היזם נעלם?</td>
+</tr>
+</tbody></table>
+<h3>יתרונות — למה זה טוב</h3>
+<table>
+<thead>
+<tr>
+<th>יתרון</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>קוד מודרני</strong></td>
+<td>Next.js 16, React 19, TypeScript, Prisma</td>
+</tr>
+<tr>
+<td><strong>אבטחה ארגונית</strong></td>
+<td>Clerk, Tenant Guard, RLS, 7 שכבות</td>
+</tr>
+<tr>
+<td><strong>תמיכה אישית</strong></td>
+<td>ישירות עם מי שבנה את המערכת</td>
+</tr>
+<tr>
+<td><strong>גמישות</strong></td>
+<td>פיצ&#39;ר מותאם? שבועיים</td>
+</tr>
+<tr>
+<td><strong>מחיר</strong></td>
+<td>אין משרדים/עובדים/שיווק ענק</td>
+</tr>
+<tr>
+<td><strong>שקיפות</strong></td>
+<td>קוד פתוח לבדיקה (ללקוחות)</td>
+</tr>
+<tr>
+<td><strong>תיקונים מהירים</strong></td>
+<td>באג קריטי = 24 שעות</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>השוואה מהירה</h2>
+<h3>תמיכה</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Salesforce</th>
+<th>Misrad-AI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>פנייה</strong></td>
+<td>כרטיס → רובוט → רמה 1 → רמה 2</td>
+<td>הודעה ישירה ליזם</td>
+</tr>
+<tr>
+<td><strong>זמן תגובה</strong></td>
+<td>1-7 ימים</td>
+<td>1-4 שעות</td>
+</tr>
+<tr>
+<td><strong>הבנת הבעיה</strong></td>
+<td>נציג שלא בנה את המערכת</td>
+<td>מי שבנה את הקוד</td>
+</tr>
+</tbody></table>
+<h3>בקשת פיצ&#39;ר</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Monday.com</th>
+<th>Misrad-AI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>מענה</strong></td>
+<td>&quot;נעביר לצוות מוצר&quot;</td>
+<td>&quot;מה בדיוק צריך?&quot;</td>
+</tr>
+<tr>
+<td><strong>לו&quot;ז</strong></td>
+<td>6-12 חודשים (אולי)</td>
+<td>1-2 שבועות</td>
+</tr>
+</tbody></table>
+<h3>מחיר (5 משתמשים, כל הפיצ&#39;רים)</h3>
+<table>
+<thead>
+<tr>
+<th>מתחרה</th>
+<th>מחיר/חודש</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Salesforce Enterprise</strong></td>
+<td>₪3,010</td>
+</tr>
+<tr>
+<td><strong>HubSpot Enterprise</strong></td>
+<td>₪2,740</td>
+</tr>
+<tr>
+<td><strong>Monday Pro</strong></td>
+<td>₪440</td>
+</tr>
+<tr>
+<td><strong>Misrad-AI Empire</strong></td>
+<td><strong>₪499</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>תפיסת Modular OS</h2>
+<p>המערכת = <strong>מערכת הפעלה עסקית</strong> — כל מודול = תוכנה נפרדת.</p>
+<pre><code>Misrad-AI OS
+├── 📊 Nexus   (ניהול צוות)     ← ✅ / ❌
+├── 💼 System  (מכירות)         ← ✅ / ❌
+├── 📱 Social  (שיווק)          ← ✅ / ❌
+├── 💰 Finance (כספים)          ← ✅ / ❌
+├── 👥 Client  (לקוחות)         ← ✅ / ❌
+└── 🔧 Operations (תפעול)      ← ✅ / ❌
+
+תשלם רק על מה שמופעל!
+</code></pre>
+<hr>
+<h2>6 המודולים — תקציר</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>מודול</th>
+<th>תפקיד</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Nexus</strong></td>
+<td>ניהול צוות, משימות, דיווחי זמן</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>System</strong></td>
+<td>ניהול לידים, חייגן, ניתוח שיחות AI</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Social</strong></td>
+<td>לוח עברי, תוכן, תזמון פוסטים</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Finance</strong> 🎁</td>
+<td>אינטגרציית API לחברות חשבוניות (Morning, iCount, סמיט...) — <strong>במתנה לכל לקוח!</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>Client</strong></td>
+<td>פורטל לקוחות, תהליכי עבודה</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Operations</strong></td>
+<td>קריאות שירות, מלאי, מצב שטח</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>התחייבות</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>התחייבות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>כנות מלאה — אגיד מה יש ומה אין</td>
+</tr>
+<tr>
+<td>2</td>
+<td>תמיכה אישית — תמיד תדבר איתי</td>
+</tr>
+<tr>
+<td>3</td>
+<td>שיפור מתמיד — עדכונים שבועיים</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ערבות החזר — 30 יום, ללא שאלות</td>
+</tr>
+<tr>
+<td>5</td>
+<td>שקיפות — תמיד תדע מה קורה</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./02-%D7%90%D7%A8%D7%9B%D7%99%D7%98%D7%A7%D7%98%D7%95%D7%A8%D7%94-%D7%98%D7%9B%D7%A0%D7%99%D7%AA.md">ארכיטקטורה טכנית →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-1" style="margin-top:40px;">
+<h1>🏗️ ארכיטקטורה טכנית — Misrad-AI</h1>
+<h2>Stack טכנולוגי מלא</h2>
+<h3>Frontend</h3>
+<table>
+<thead>
+<tr>
+<th>טכנולוגיה</th>
+<th>תפקיד</th>
+<th>גרסה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Next.js</strong></td>
+<td>React Framework, SSR, App Router</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>React</strong></td>
+<td>UI Library, Server Components</td>
+<td>19</td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>שפה מוקלדת, בטיחות קוד</td>
+<td>5.x</td>
+</tr>
+<tr>
+<td><strong>TailwindCSS</strong></td>
+<td>Utility-first CSS, Responsive</td>
+<td>3.x</td>
+</tr>
+<tr>
+<td><strong>Framer Motion</strong></td>
+<td>אנימציות, Drag &amp; Drop</td>
+<td>11.x</td>
+</tr>
+<tr>
+<td><strong>Lucide React</strong></td>
+<td>1000+ אייקונים</td>
+<td>latest</td>
+</tr>
+<tr>
+<td><strong>Recharts</strong></td>
+<td>גרפים ודוחות</td>
+<td>2.x</td>
+</tr>
+</tbody></table>
+<h3>Backend</h3>
+<table>
+<thead>
+<tr>
+<th>טכנולוגיה</th>
+<th>תפקיד</th>
+<th>גרסה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Next.js Server Actions</strong></td>
+<td>לוגיקה עסקית (&#39;use server&#39;)</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Prisma</strong></td>
+<td>ORM, Type-safe queries, Migrations</td>
+<td>6.x</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>Database ארגוני, RLS, JSONB</td>
+<td>16</td>
+</tr>
+<tr>
+<td><strong>Clerk</strong></td>
+<td>Authentication, 2FA, SSO</td>
+<td>latest</td>
+</tr>
+<tr>
+<td><strong>Supabase Storage</strong></td>
+<td>אחסון קבצים, S3-compatible</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<h3>AI &amp; שירותים</h3>
+<table>
+<thead>
+<tr>
+<th>טכנולוגיה</th>
+<th>תפקיד</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Google Gemini 2.0 Flash</strong></td>
+<td>מנוע AI ראשי</td>
+</tr>
+<tr>
+<td><strong>Vercel AI SDK</strong> (@ai-sdk)</td>
+<td>Streaming, Tool calling</td>
+</tr>
+<tr>
+<td><strong>Resend</strong></td>
+<td>מיילים טרנזקציוניים</td>
+</tr>
+<tr>
+<td><strong>Web Push</strong></td>
+<td>התראות דפדפן (Service Worker)</td>
+</tr>
+<tr>
+<td><strong>Svix</strong></td>
+<td>Webhooks עם Delivery Guarantee</td>
+</tr>
+</tbody></table>
+<h3>Deployment</h3>
+<table>
+<thead>
+<tr>
+<th>טכנולוגיה</th>
+<th>תפקיד</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Vercel / Netlify</strong></td>
+<td>Hosting, CDN עולמי, SSL</td>
+</tr>
+<tr>
+<td><strong>Serverless</strong></td>
+<td>Auto-scaling, Zero maintenance</td>
+</tr>
+<tr>
+<td><strong>Edge Functions</strong></td>
+<td>Low-latency, Geographic distribution</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Multi-Tenant — איך עובד הבידוד?</h2>
+<h3>הרעיון</h3>
+<pre><code>PostgreSQL אחד
+├── Organization A → רואה רק את הנתונים שלה
+├── Organization B → רואה רק את הנתונים שלה
+└── Organization C → רואה רק את הנתונים שלה
+</code></pre>
+<p><strong>כל ארגון = tenant נפרד.</strong> אי אפשר לראות נתונים של ארגון אחר.</p>
+<h3>4 שכבות בידוד</h3>
+<h4>שכבה 1 — Organization ID בכל טבלה</h4>
+<pre><code class="language-sql">-- כל טבלה עסקית מכילה עמודת organization_id
+CREATE TABLE nexus_tasks (
+  id              UUID PRIMARY KEY,
+  organization_id UUID NOT NULL,   -- 👈 חובה!
+  title           TEXT NOT NULL,
+  ...
+);
+CREATE INDEX idx_tasks_org ON nexus_tasks(organization_id);
+</code></pre>
+<h4>שכבה 2 — Tenant Guard (Middleware)</h4>
+<pre><code class="language-typescript">// lib/prisma-tenant-guard.ts
+// כל query עובר דרך middleware שמוסיף WHERE organization_id = ?
+
+export async function getTasks() {
+  const orgId = await getOrganizationId(); // מה-Session
+  
+  return prisma.nexusTask.findMany({
+    where: { organizationId: orgId } // 👈 אוטומטי, לא אפשר לעקוף
+  });
+}
+</code></pre>
+<h4>שכבה 3 — Row Level Security (PostgreSQL)</h4>
+<pre><code class="language-sql">-- אפילו SQL ישיר עובר דרך RLS
+CREATE POLICY &quot;tasks_tenant_isolation&quot;
+  ON nexus_tasks FOR ALL
+  USING (organization_id = current_setting(&#39;app.organization_id&#39;)::uuid);
+
+ALTER TABLE nexus_tasks ENABLE ROW LEVEL SECURITY;
+</code></pre>
+<h4>שכבה 4 — API Guards + Audit</h4>
+<pre><code class="language-typescript">&#39;use server&#39;;
+export async function createTask(data: TaskInput) {
+  const session = await auth();          // 1. מי אתה?
+  const orgId = await getOrgId();        // 2. לאיזה ארגון?
+  await checkPermission(&#39;create_task&#39;);  // 3. מותר לך?
+  await checkRateLimit(&#39;create_task&#39;);   // 4. לא יותר מדי?
+  
+  const task = await prisma.nexusTask.create({
+    data: { ...data, organizationId: orgId } // 5. orgId מאולץ
+  });
+  
+  await logAudit(&#39;task.create&#39;, task.id);  // 6. תיעוד
+  return task;
+}
+</code></pre>
+<hr>
+<h2>Server Actions — איך זה עובד?</h2>
+<h3>מהם Server Actions?</h3>
+<p>פונקציות TypeScript שרצות <strong>אך ורק בשרת</strong>. הקוד לא נשלח לדפדפן.</p>
+<pre><code class="language-typescript">// ✅ Server Action — רץ בשרת
+// app/actions/leads.ts
+&#39;use server&#39;;
+
+export async function createLead(name: string, phone: string) {
+  // הלקוח לא רואה את הקוד הזה!
+  const orgId = await getOrganizationId();
+  return prisma.systemLead.create({
+    data: { fullName: name, phone, organizationId: orgId }
+  });
+}
+
+// ✅ Client Component — רץ בדפדפן
+// components/LeadForm.tsx
+&#39;use client&#39;;
+import { createLead } from &#39;@/app/actions/leads&#39;;
+
+export function LeadForm() {
+  async function onSubmit(formData: FormData) {
+    await createLead(formData.get(&#39;name&#39;), formData.get(&#39;phone&#39;));
+  }
+  return &lt;form action={onSubmit}&gt;...&lt;/form&gt;;
+}
+</code></pre>
+<h3>למה עדיף מ-REST API?</h3>
+<table>
+<thead>
+<tr>
+<th>REST API (ישן)</th>
+<th>Server Actions (Misrad-AI)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Client → HTTP → API Route → DB</td>
+<td>Client → Server Action → DB</td>
+</tr>
+<tr>
+<td>צריך ליצור endpoint לכל פעולה</td>
+<td>פונקציה רגילה עם <code>&#39;use server&#39;</code></td>
+</tr>
+<tr>
+<td>Types לא משותפים</td>
+<td>TypeScript מקצה לקצה</td>
+</tr>
+<tr>
+<td>Error handling ידני</td>
+<td>Error handling אוטומטי</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Serverless — מה זה אומר?</h2>
+<h3>ההבדל</h3>
+<pre><code>Traditional VPS:
+  שרת רץ 24/7 → ₪200/חודש גם בלי משתמשים
+  
+Serverless (Misrad-AI):
+  Functions on-demand → ₪0 בלי משתמשים, ₪50 ב-10K בקשות/יום
+</code></pre>
+<h3>יתרון ללקוח</h3>
+<ul>
+<li><strong>עלות נמוכה</strong> → אני משלם פחות → אתה משלם פחות</li>
+<li><strong>Auto-scaling</strong> → 10 או 10,000 משתמשים = אותו ביצוע</li>
+<li><strong>Zero downtime</strong> → Vercel מנהל הכל</li>
+</ul>
+<hr>
+<h2>Database Schema — מבנה כללי</h2>
+<p><strong>250+ טבלאות</strong> מחולקות ל:</p>
+<table>
+<thead>
+<tr>
+<th>מודול</th>
+<th>טבלאות</th>
+<th>דוגמאות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Nexus</td>
+<td>~40</td>
+<td>nexus_tasks, nexus_users, nexus_time_entries</td>
+</tr>
+<tr>
+<td>System</td>
+<td>~30</td>
+<td>system_leads, system_call_analysis, system_automations</td>
+</tr>
+<tr>
+<td>Social</td>
+<td>~50</td>
+<td>social_posts, social_campaigns, social_conversations</td>
+</tr>
+<tr>
+<td>Finance</td>
+<td>~15</td>
+<td>finance_invoices, finance_expenses</td>
+</tr>
+<tr>
+<td>Client</td>
+<td>~25</td>
+<td>client_portal_users, client_shared_files, client_workflows</td>
+</tr>
+<tr>
+<td>Operations</td>
+<td>~35</td>
+<td>operations_work_orders, operations_inventory</td>
+</tr>
+<tr>
+<td>Shared</td>
+<td>~55</td>
+<td>organizations, billing, audit_logs, ai_usage</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>ביצועים</h2>
+<h3>Database Optimization</h3>
+<ul>
+<li><strong>Connection pooling</strong> — Prisma manages pool</li>
+<li><strong>Indexes</strong> — על כל <code>organization_id</code> + שדות חיפוש</li>
+<li><strong>Prepared statements</strong> — מהירות query</li>
+<li><strong>Composite indexes</strong> — <code>(organization_id, status)</code>, <code>(organization_id, created_at)</code></li>
+</ul>
+<h3>Frontend Optimization</h3>
+<ul>
+<li><strong>Server Components</strong> — HTML מוכן מהשרת</li>
+<li><strong>Streaming SSR</strong> — תוכן מגיע בזרם</li>
+<li><strong>Code splitting</strong> — טוען רק מה שצריך</li>
+<li><strong>Image optimization</strong> — Next.js אופטימיזציה אוטומטית</li>
+<li><strong>CDN</strong> — קבצים סטטיים מ-Edge קרוב</li>
+</ul>
+<hr>
+<h2>Scalability</h2>
+<table>
+<thead>
+<tr>
+<th>טווח</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1-100 לקוחות</td>
+<td>✅ אפס בעיות</td>
+</tr>
+<tr>
+<td>100-500 לקוחות</td>
+<td>✅ מוכן</td>
+</tr>
+<tr>
+<td>500-1,000</td>
+<td>⚠️ ייתכנו צווארי בקבוק, צריך monitoring</td>
+</tr>
+<tr>
+<td>1,000+</td>
+<td>❌ צריך שדרוג תשתית</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>גיבוי ושחזור</h2>
+<table>
+<thead>
+<tr>
+<th>סוג</th>
+<th>תדירות</th>
+<th>שמירה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Database</td>
+<td>יומי (02:00 UTC)</td>
+<td>30 יום</td>
+</tr>
+<tr>
+<td>Storage</td>
+<td>continuous</td>
+<td>30 יום</td>
+</tr>
+<tr>
+<td>Audit Logs</td>
+<td>שבועי</td>
+<td>90 יום</td>
+</tr>
+</tbody></table>
+<p><strong>שחזור:</strong> Point-in-time, עד 30 יום אחורה.</p>
+<p><strong>ייצוא ידני:</strong> SQL / CSV / JSON — בכל רגע מהגדרות.</p>
+<hr>
+<h2>Migration Path — עזיבה</h2>
+<table>
+<thead>
+<tr>
+<th>אופציה</th>
+<th>פרטים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Export נתונים</strong></td>
+<td>SQL/CSV/JSON — חינם</td>
+</tr>
+<tr>
+<td><strong>Self-Hosted</strong></td>
+<td>קוד מלא + הוראות — ₪5,000 חד-פעמי</td>
+</tr>
+<tr>
+<td><strong>Source Code Escrow</strong></td>
+<td>ללקוחות גדולים — לפי הסכם</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./03-%D7%9E%D7%95%D7%93%D7%9C-%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D.md">מודל נתונים →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-2" style="margin-top:40px;">
+<h1>🗄️ מודל נתונים - Database Schema</h1>
+<h2>סקירה כללית</h2>
+<p><strong>PostgreSQL 16</strong> עם <strong>250+ טבלאות</strong></p>
+<p><strong>חלוקה:</strong></p>
+<ul>
+<li>Nexus: ~40 טבלאות</li>
+<li>System: ~30 טבלאות</li>
+<li>Social: ~50 טבלאות</li>
+<li>Finance: ~15 טבלאות</li>
+<li>Client: ~25 טבלאות</li>
+<li>Operations: ~35 טבלאות</li>
+<li>Shared: ~55 טבלאות (auth, billing, audit)</li>
+</ul>
+<hr>
+<h2>טבלאות מרכזיות</h2>
+<h3>Organizations (ארגונים)</h3>
+<pre><code class="language-sql">social_organizations:
+├── id (UUID)
+├── name, slug, logo
+├── owner_id → social_users
+├── Module Flags:
+│   ├── has_nexus (boolean)
+│   ├── has_system
+│   ├── has_social
+│   ├── has_finance
+│   ├── has_client
+│   └── has_operations
+├── Subscription:
+│   ├── subscription_status (trial/active/past_due)
+│   ├── subscription_plan
+│   ├── trial_days (7)
+│   └── seats_allowed
+└── Settings:
+    ├── ai_credits_balance_cents
+    └── is_shabbat_protected
+</code></pre>
+<h3>Users (משתמשים)</h3>
+<pre><code class="language-sql">nexus_users:
+├── id, organization_id
+├── name, email, phone, avatar
+├── role, department
+├── Status: online, last_seen_at
+├── Performance: capacity, streak_days, weekly_score
+└── Payment: hourly_rate, monthly_salary (🔒 רגיש!)
+</code></pre>
+<h3>Tasks (משימות)</h3>
+<pre><code class="language-sql">nexus_tasks:
+├── id, organization_id
+├── title, description
+├── status, priority
+├── assignee_ids[] (מערך משתמשים)
+├── due_date, time_spent
+├── is_timer_running
+└── messages[] (JSONB)
+</code></pre>
+<h3>Leads (לידים)</h3>
+<pre><code class="language-sql">system_leads:
+├── id, organization_id
+├── full_name, company, email, phone
+├── source, stage
+├── value (decimal)
+├── assigned_to
+├── score (AI 0-100)
+└── custom_fields (JSONB)
+</code></pre>
+<h3>Posts (פוסטים)</h3>
+<pre><code class="language-sql">social_posts:
+├── id, organization_id, client_id
+├── content, media_url
+├── status (draft/scheduled/published)
+├── scheduled_at
+└── Relationships:
+    ├── platforms[] (Facebook, Instagram...)
+    └── variations[] (וריאציות תוכן)
+</code></pre>
+<h3>Invoices (חשבוניות)</h3>
+<pre><code class="language-sql">finance_invoices:
+├── id, organization_id
+├── client_name, client_email
+├── invoice_number (unique)
+├── amount, currency (ILS)
+├── issue_date, due_date, paid_at
+├── status (draft/sent/paid/overdue)
+└── green_invoice_id (אינטגרציה)
+</code></pre>
+<h3>Work Orders (קריאות שירות)</h3>
+<pre><code class="language-sql">operations_work_orders:
+├── id, organization_id
+├── title, description
+├── client_name, client_phone
+├── address, latitude, longitude
+├── assigned_to (טכנאי)
+├── status, priority
+├── scheduled_at, completed_at
+└── completion_signature_url (חתימת לקוח)
+</code></pre>
+<hr>
+<h2>Indexes (אינדקסים)</h2>
+<p><strong>כל טבלה:</strong></p>
+<pre><code class="language-sql">CREATE INDEX idx_xxx_org ON table_name(organization_id);
+</code></pre>
+<p><strong>ביצועים:</strong></p>
+<pre><code class="language-sql">CREATE INDEX idx_tasks_status ON nexus_tasks(status);
+CREATE INDEX idx_tasks_due ON nexus_tasks(due_date);
+CREATE INDEX idx_leads_stage ON system_leads(stage);
+</code></pre>
+<p><strong>Composite Indexes:</strong></p>
+<pre><code class="language-sql">CREATE INDEX idx_tasks_org_status 
+ON nexus_tasks(organization_id, status);
+</code></pre>
+<hr>
+<h2>Relationships (קשרים)</h2>
+<h3>One-to-Many</h3>
+<pre><code>Organization → Users (1:N)
+Organization → Tasks (1:N)
+User → Tasks (1:N) [creator]
+Task → Users (N:M) [assignees]
+</code></pre>
+<h3>Many-to-Many</h3>
+<pre><code>Task ←→ Users (assignee_ids[])
+Post ←→ Platforms (social_post_platforms)
+</code></pre>
+<hr>
+<h2>JSONB Fields</h2>
+<p><strong>משתמשים בהם ל:</strong></p>
+<ul>
+<li>Custom Fields (שדות מותאמים)</li>
+<li>Settings (הגדרות)</li>
+<li>Messages (תקשורת)</li>
+<li>Metadata (מטא-דאטה)</li>
+</ul>
+<p><strong>דוגמה:</strong></p>
+<pre><code class="language-sql">-- custom_fields
+{
+  &quot;industry&quot;: &quot;tech&quot;,
+  &quot;employees&quot;: &quot;50-100&quot;,
+  &quot;budget&quot;: &quot;high&quot;
+}
+
+-- messages
+[
+  {&quot;from&quot;: &quot;user_123&quot;, &quot;text&quot;: &quot;צריך לסיים&quot;, &quot;at&quot;: &quot;2026-02-10T10:00:00Z&quot;},
+  {&quot;from&quot;: &quot;user_456&quot;, &quot;text&quot;: &quot;בסדר&quot;, &quot;at&quot;: &quot;2026-02-10T10:05:00Z&quot;}
+]
+</code></pre>
+<hr>
+<h2>Soft Delete</h2>
+<p><strong>רוב הטבלאות:</strong></p>
+<pre><code class="language-sql">deleted_at TIMESTAMPTZ NULL
+</code></pre>
+<p><strong>מחיקה:</strong></p>
+<pre><code class="language-sql">UPDATE tasks SET deleted_at = NOW() WHERE id = &#39;...&#39;;
+</code></pre>
+<p><strong>שאילתה:</strong></p>
+<pre><code class="language-sql">SELECT * FROM tasks WHERE deleted_at IS NULL;
+</code></pre>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./04-%D7%9E%D7%95%D7%93%D7%95%D7%9C-nexus.md">Nexus - ניהול צוות</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-3" style="margin-top:40px;">
+<h1>📊 Nexus — ניהול, משימות וצוות</h1>
+<blockquote>
+<p><strong>מחיר:</strong> ₪149/חודש (סולו) | כלול בכל החבילות<br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br><strong>תפקיד:</strong> מרכז הבקרה של העסק — ניהול צוות, משימות, זמן ופעילות ארגונית</p>
+</blockquote>
+<hr>
+<h2>מסכים ופיצ&#39;רים</h2>
+<h3>1. Dashboard — לוח בקרה ראשי</h3>
+<table>
+<thead>
+<tr>
+<th>רכיב</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סטטיסטיקות צוות</strong></td>
+<td>כמה Online, כמה משימות פתוחות, Capacity</td>
+</tr>
+<tr>
+<td><strong>משימות לפי סטטוס</strong></td>
+<td>New / In Progress / Review / Done (גרף עוגה)</td>
+</tr>
+<tr>
+<td><strong>אירועים קרובים</strong></td>
+<td>מהיומן + Due dates</td>
+</tr>
+<tr>
+<td><strong>פעילות אחרונה</strong></td>
+<td>Feed של פעולות אחרונות בזמן אמת</td>
+</tr>
+<tr>
+<td><strong>KPIs</strong></td>
+<td>משימות שהושלמו השבוע, זמן ממוצע, ציון צוות</td>
+</tr>
+</tbody></table>
+<h3>2. משימות — מנוע העבודה</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירה מהירה</strong></td>
+<td>כותרת + הקצאה = 5 שניות</td>
+</tr>
+<tr>
+<td><strong>הקצאה מרובה</strong></td>
+<td><code>assignee_ids[]</code> — משימה למספר אנשים</td>
+</tr>
+<tr>
+<td><strong>Timer מובנה</strong></td>
+<td>Start/Stop — מחושב אוטומטית ב-<code>time_spent</code></td>
+</tr>
+<tr>
+<td><strong>Priority</strong></td>
+<td>Low / Medium / High + צבע ויזואלי</td>
+</tr>
+<tr>
+<td><strong>Tags</strong></td>
+<td>תיוג חופשי (מכירות, פיתוח, דחוף...)</td>
+</tr>
+<tr>
+<td><strong>תקשורת פנימית</strong></td>
+<td>הודעות בתוך המשימה (JSONB <code>messages[]</code>)</td>
+</tr>
+<tr>
+<td><strong>הקלטות קול</strong></td>
+<td><code>audio_url</code> — הקלט הערה קולית</td>
+</tr>
+<tr>
+<td><strong>Due Date + Time</strong></td>
+<td>תאריך + שעת יעד</td>
+</tr>
+<tr>
+<td><strong>Soft Delete</strong></td>
+<td><code>deleted_at</code> — אפשר לשחזר</td>
+</tr>
+<tr>
+<td><strong>אישור</strong></td>
+<td><code>requires_approval</code> — המנהל מאשר</td>
+</tr>
+<tr>
+<td><strong>משימה פרטית</strong></td>
+<td><code>is_private</code> — רק המבצע רואה</td>
+</tr>
+</tbody></table>
+<p><strong>סטטוסים:</strong></p>
+<pre><code>New → In Progress → Review → Done
+                  ↘ Blocked
+</code></pre>
+<p><strong>Server Action — יצירת משימה:</strong></p>
+<pre><code class="language-typescript">&#39;use server&#39;;
+export async function createTask(data: TaskInput) {
+  const orgId = await getOrganizationId();
+  return prisma.nexusTask.create({
+    data: {
+      ...data,
+      organizationId: orgId,
+      status: &#39;new&#39;,
+      creatorId: session.userId,
+    }
+  });
+}
+</code></pre>
+<h3>3. צוות — ניהול עובדים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>כרטיס עובד</strong></td>
+<td>שם, תפקיד, מחלקה, אווטאר</td>
+</tr>
+<tr>
+<td><strong>Online Status</strong></td>
+<td>ירוק/אפור — מעודכן בזמן אמת</td>
+</tr>
+<tr>
+<td><strong>Capacity</strong></td>
+<td>0-100% — מחושב אוטומטית מעומס משימות</td>
+</tr>
+<tr>
+<td><strong>Streak</strong></td>
+<td>ימי רצף עבודה (מוטיבציה)</td>
+</tr>
+<tr>
+<td><strong>ציון שבועי</strong></td>
+<td><code>weekly_score</code> — AI מחשב ביצועים</td>
+</tr>
+<tr>
+<td><strong>תשלום</strong></td>
+<td>שעתי / חודשי / עמלה / בונוס למשימה</td>
+</tr>
+<tr>
+<td><strong>יעדים</strong></td>
+<td><code>targets</code> (JSONB) — מכירות חודשיות, שיחות/יום</td>
+</tr>
+<tr>
+<td><strong>הזמנת עובד</strong></td>
+<td>לינק הזמנה / מייל</td>
+</tr>
+</tbody></table>
+<p><strong>סוגי תשלום:</strong></p>
+<table>
+<thead>
+<tr>
+<th>סוג</th>
+<th>שדות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>שעתי</td>
+<td><code>hourlyRate</code></td>
+</tr>
+<tr>
+<td>חודשי</td>
+<td><code>monthlySalary</code></td>
+</tr>
+<tr>
+<td>עמלה</td>
+<td><code>commission_pct</code></td>
+</tr>
+<tr>
+<td>בונוס</td>
+<td><code>bonus_per_task</code>, <code>accumulated_bonus</code></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>⚠️ <strong>אבטחה:</strong> שדות תשלום הם <strong>רגישים</strong> — רק Admin רואה. לא נשלחים ל-AI.</p>
+</blockquote>
+<h3>4. דיווחי זמן — Time Tracking</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Punch In/Out</strong></td>
+<td>כפתור התחלה/סיום</td>
+</tr>
+<tr>
+<td><strong>חישוב אוטומטי</strong></td>
+<td><code>duration</code> = <code>end - start</code></td>
+</tr>
+<tr>
+<td><strong>דוחות חודשיים</strong></td>
+<td>סיכום שעות לפי עובד/מחלקה</td>
+</tr>
+<tr>
+<td><strong>Export</strong></td>
+<td>Excel/CSV</td>
+</tr>
+</tbody></table>
+<p><strong>מודל:</strong></p>
+<pre><code class="language-typescript">NexusTimeEntry {
+  userId: UUID
+  startTime: DateTime
+  endTime: DateTime
+  duration: Integer  // דקות
+  description: String
+}
+</code></pre>
+<h3>5. Sales Pipeline (בסיסי)</h3>
+<table>
+<thead>
+<tr>
+<th>שלב</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Incoming</td>
+<td>ליד חדש</td>
+</tr>
+<tr>
+<td>Contacted</td>
+<td>יצרנו קשר</td>
+</tr>
+<tr>
+<td>Meeting</td>
+<td>נקבעה פגישה</td>
+</tr>
+<tr>
+<td>Proposal</td>
+<td>נשלחה הצעה</td>
+</tr>
+<tr>
+<td>Negotiation</td>
+<td>מו&quot;מ</td>
+</tr>
+<tr>
+<td>Won</td>
+<td>סגירה</td>
+</tr>
+<tr>
+<td>Lost</td>
+<td>אבד</td>
+</tr>
+<tr>
+<td>Churned</td>
+<td>לקוח שעזב</td>
+</tr>
+</tbody></table>
+<p><strong>Drag &amp; Drop</strong> — גרור בין שלבים (Framer Motion)</p>
+<h3>6. Intelligence — תובנות AI</h3>
+<table>
+<thead>
+<tr>
+<th>תובנה</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>עומס צוות</strong></td>
+<td>מי עמוס מדי? מי פנוי?</td>
+</tr>
+<tr>
+<td><strong>חלוקת עבודה</strong></td>
+<td>המלצה להקצאה אופטימלית</td>
+</tr>
+<tr>
+<td><strong>תחזית</strong></td>
+<td>צפי השלמת משימות</td>
+</tr>
+<tr>
+<td><strong>Streak Report</strong></td>
+<td>מי עובד ברצף? מי ירד?</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים מלא</h2>
+<pre><code class="language-sql">-- Tasks
+nexus_tasks:
+  id, organization_id, title, description
+  status (new/in_progress/review/done)
+  priority (low/medium/high)
+  assignee_ids UUID[]
+  due_date, due_time, time_spent, estimated_time
+  is_timer_running, is_private
+  tags TEXT[], department, client_id
+  messages JSONB, audio_url
+  requires_approval, approved_by, approved_at
+  created_at, updated_at, deleted_at
+
+-- Users
+nexus_users:
+  id, organization_id, name, email, phone, avatar
+  role, department, online, last_seen_at
+  capacity, streak_days, weekly_score
+  payment_type, hourly_rate, monthly_salary
+  commission_pct, bonus_per_task, accumulated_bonus
+  targets JSONB, notification_preferences JSONB
+
+-- Time Entries
+nexus_time_entries:
+  id, organization_id, user_id
+  start_time, end_time, duration, description
+</code></pre>
+<hr>
+<h2>תהליכי עבודה</h2>
+<h3>תהליך 1: יום עבודה של מנהל</h3>
+<pre><code>1. כנס ל-Dashboard → ראה סטטיסטיקות
+2. בדוק משימות ב-Review → אשר/החזר
+3. בדוק Capacity → הקצה משימות לעובדים פנויים
+4. בדוק Pipeline → עקוב אחרי עסקאות
+</code></pre>
+<h3>תהליך 2: יום עבודה של עובד</h3>
+<pre><code>1. כנס למשימות שלי → ראה מה עליך
+2. Punch In → התחל לעבוד
+3. פתח משימה → הפעל Timer
+4. סיים → העבר ל-Review
+5. Punch Out → סיום יום
+</code></pre>
+<hr>
+<h2>הרשאות (RBAC)</h2>
+<table>
+<thead>
+<tr>
+<th>פעולה</th>
+<th>Admin</th>
+<th>Manager</th>
+<th>Member</th>
+<th>Viewer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>צפייה במשימות</td>
+<td>✅ כולם</td>
+<td>✅ כולם</td>
+<td>✅ שלו</td>
+<td>✅ כולם</td>
+</tr>
+<tr>
+<td>יצירת משימה</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>עריכה</td>
+<td>✅ כולם</td>
+<td>✅ מחלקה</td>
+<td>✅ שלו</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>מחיקה</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>צפייה במשכורות</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>ניהול צוות</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>כל עסק עם 3+ עובדים</td>
+<td>עצמאיים ללא צוות</td>
+</tr>
+<tr>
+<td>מנהלים שצריכים תמונת מצב</td>
+<td>חברות 100+ (צריך Jira)</td>
+</tr>
+<tr>
+<td>צוותים מבוזרים</td>
+<td></td>
+</tr>
+<tr>
+<td>עסקים עם דיווחי שעות</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./05-%D7%9E%D7%95%D7%93%D7%95%D7%9C-system.md">System — מכירות →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-4" style="margin-top:40px;">
+<h1>💼 System — מכירות ו-CRM</h1>
+<blockquote>
+<p><strong>מחיר:</strong> ₪149/חודש (סולו) | כלול בחבילת מכירות, חבילת הכל<br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br>🎁 + מודול Finance במתנה לכל לקוח<br><strong>תפקיד:</strong> CRM מלא — ניהול לידים, צינור מכירה, חייגן וניתוח שיחות AI</p>
+</blockquote>
+<hr>
+<h2>מסכים ופיצ&#39;רים</h2>
+<h3>1. ניהול לידים — Pipeline</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>8 שלבי Pipeline</strong></td>
+<td>Incoming → Contacted → Meeting → Proposal → Negotiation → Won / Lost / Churned</td>
+</tr>
+<tr>
+<td><strong>Drag &amp; Drop</strong></td>
+<td>גרור ליד בין שלבים (Framer Motion)</td>
+</tr>
+<tr>
+<td><strong>Lead Scoring</strong></td>
+<td>ציון AI אוטומטי (0-100) לפי פעילות ונתונים</td>
+</tr>
+<tr>
+<td><strong>Custom Fields</strong></td>
+<td>שדות מותאמים (JSONB) — industry, employees, budget...</td>
+</tr>
+<tr>
+<td><strong>Timeline</strong></td>
+<td>היסטוריית כל האינטראקציות עם הליד</td>
+</tr>
+<tr>
+<td><strong>Next Action</strong></td>
+<td>תאריך + תיאור פעולה הבאה</td>
+</tr>
+<tr>
+<td><strong>ערך עסקה</strong></td>
+<td><code>value</code> — שווי הליד בש&quot;ח</td>
+</tr>
+<tr>
+<td><strong>Tags</strong></td>
+<td>תיוג חופשי לסינון וחיפוש</td>
+</tr>
+<tr>
+<td><strong>Source Tracking</strong></td>
+<td>website, referral, cold_call, event...</td>
+</tr>
+<tr>
+<td><strong>Soft Delete</strong></td>
+<td>מחיקה רכה עם אפשרות שחזור</td>
+</tr>
+</tbody></table>
+<p><strong>Pipeline ויזואלי:</strong></p>
+<pre><code>Incoming → Contacted → Meeting → Proposal → Negotiation
+    ↓          ↓          ↓          ↓            ↓
+   Lost      Lost       Lost      Lost      Won ✅ / Lost ❌
+</code></pre>
+<p><strong>Custom Fields — דוגמה:</strong></p>
+<pre><code class="language-json">{
+  &quot;industry&quot;: &quot;tech&quot;,
+  &quot;employees&quot;: &quot;50-100&quot;,
+  &quot;budget&quot;: &quot;high&quot;,
+  &quot;decision_maker&quot;: &quot;CTO&quot;,
+  &quot;competitor&quot;: &quot;Salesforce&quot;
+}
+</code></pre>
+<h3>2. חייגן (Dialer)</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Click-to-Call</strong></td>
+<td>לחץ על מספר → חייג</td>
+</tr>
+<tr>
+<td><strong>היסטוריית שיחות</strong></td>
+<td>כל השיחות מתועדות</td>
+</tr>
+<tr>
+<td><strong>הערות שיחה</strong></td>
+<td>רישום מהיר אחרי שיחה</td>
+</tr>
+<tr>
+<td><strong>תוצאת שיחה</strong></td>
+<td>answered / no_answer / busy / voicemail</td>
+</tr>
+</tbody></table>
+<h3>3. ניתוח שיחות AI ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ציון שיחה</strong></td>
+<td>0-100 (AI מנתח איכות השיחה)</td>
+</tr>
+<tr>
+<td><strong>רגש</strong></td>
+<td>חיובי / ניטרלי / שלילי</td>
+</tr>
+<tr>
+<td><strong>נושאים</strong></td>
+<td>מה דיברו (מחיר, מוצר, מתחרים...)</td>
+</tr>
+<tr>
+<td><strong>התנגדויות</strong></td>
+<td>מה הלקוח התנגד (יקר, לא בטוח...)</td>
+</tr>
+<tr>
+<td><strong>נקודות חיכוך</strong></td>
+<td>רגעים בעייתיים בשיחה</td>
+</tr>
+<tr>
+<td><strong>המלצות</strong></td>
+<td>מה לעשות עכשיו (שלח הצעה, חזור ביום ראשון...)</td>
+</tr>
+</tbody></table>
+<p><strong>Output של ניתוח שיחה:</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 85,
+  &quot;sentiment&quot;: &quot;positive&quot;,
+  &quot;topics&quot;: [&quot;pricing&quot;, &quot;features&quot;, &quot;timeline&quot;],
+  &quot;objections&quot;: [&quot;too expensive&quot;, &quot;need to think&quot;],
+  &quot;friction_points&quot;: [&quot;minute 3: hesitation on price&quot;],
+  &quot;next_steps&quot;: [&quot;Send proposal&quot;, &quot;Follow up Thursday&quot;],
+  &quot;summary&quot;: &quot;שיחה חיובית. הלקוח מעוניין אך מתלבט במחיר.&quot;
+}
+</code></pre>
+<h3>4. הצעות מחיר</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירה מהירה</strong></td>
+<td>בחר מוצרים → הגדר כמות/מחיר → PDF</td>
+</tr>
+<tr>
+<td><strong>PDF אוטומטי</strong></td>
+<td>עיצוב מקצועי עם לוגו</td>
+</tr>
+<tr>
+<td><strong>שליחה במייל</strong></td>
+<td>ישירות מהמערכת</td>
+</tr>
+<tr>
+<td><strong>סטטוס</strong></td>
+<td>draft / sent / viewed / accepted / rejected</td>
+</tr>
+</tbody></table>
+<h3>5. מוצרים ומחירון</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>קטלוג</strong></td>
+<td>שם, תיאור, מחיר, קטגוריה</td>
+</tr>
+<tr>
+<td><strong>מלאי</strong></td>
+<td>כמות זמינה</td>
+</tr>
+<tr>
+<td><strong>מטבעות</strong></td>
+<td>ILS / USD / EUR</td>
+</tr>
+</tbody></table>
+<h3>6. Portal שותפים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>הפניות</strong></td>
+<td>שותף שולח ליד</td>
+</tr>
+<tr>
+<td><strong>עמלות</strong></td>
+<td>חישוב אוטומטי</td>
+</tr>
+<tr>
+<td><strong>מעקב</strong></td>
+<td>סטטוס כל הפנייה</td>
+</tr>
+</tbody></table>
+<h3>7. אוטומציות</h3>
+<table>
+<thead>
+<tr>
+<th>Trigger</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ליד חדש</td>
+<td>יצירת משימה לנציג</td>
+</tr>
+<tr>
+<td>ליד לא טופל 3 ימים</td>
+<td>התראה למנהל</td>
+</tr>
+<tr>
+<td>ליד עבר ל-Won</td>
+<td>שלח מייל ברכה</td>
+</tr>
+<tr>
+<td>שיחה הסתיימה</td>
+<td>צור ניתוח AI</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים</h2>
+<pre><code class="language-sql">system_leads:
+  id, organization_id
+  full_name, company_name, email, phone
+  source, stage, value, score
+  assigned_to, tags[], custom_fields JSONB
+  next_action, next_action_date, last_contact_at
+  created_at, updated_at, deleted_at
+
+system_call_analysis:
+  id, organization_id
+  lead_id, call_duration
+  score, sentiment, topics JSONB
+  objections JSONB, next_steps JSONB
+  summary TEXT
+
+system_pipeline_stages:
+  id, organization_id
+  name, order, color
+</code></pre>
+<hr>
+<h2>תהליכי עבודה</h2>
+<h3>תהליך מכירה מלא</h3>
+<pre><code>1. ליד חדש נכנס (Source: website/referral/event)
+2. AI מדרג (Score 0-100)
+3. נציג מתקשר (Dialer)
+4. AI מנתח שיחה → ציון + המלצות
+5. נציג מעביר ל-Meeting
+6. אחרי פגישה → Proposal
+7. שליחת הצעת מחיר (PDF)
+8. מו&quot;מ → Won ✅ או Lost ❌
+</code></pre>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>צוותי מכירות B2B</td>
+<td>B2C קמעונאי (צריך POS)</td>
+</tr>
+<tr>
+<td>סוכני ביטוח / נדל&quot;ן</td>
+<td>E-commerce (צריך Shopify)</td>
+</tr>
+<tr>
+<td>Inside Sales</td>
+<td>מכירות חד-פעמיות</td>
+</tr>
+<tr>
+<td>שירותים מקצועיים</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./06-%D7%9E%D7%95%D7%93%D7%95%D7%9C-social.md">Social — שיווק →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-5" style="margin-top:40px;">
+<h1>📱 Social — שיווק ותוכן</h1>
+<blockquote>
+<p><strong>מחיר:</strong> ₪149/חודש (סולו) | כלול בחבילת שיווק, חבילת הכל<br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br>🎁 + מודול Finance במתנה לכל לקוח<br><strong>תפקיד:</strong> ניהול תוכן שיווקי, תזמון פוסטים ולוח שנה עברי מובנה</p>
+</blockquote>
+<hr>
+<h2>מסכים ופיצ&#39;רים</h2>
+<h3>1. לוח שנה עברי ⭐ (ייחודי!)</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>תאריכים עבריים</strong></td>
+<td>כ&quot;ד שבט, ט&quot;ו באב — ליד הלועזי</td>
+</tr>
+<tr>
+<td><strong>חגים</strong></td>
+<td>סימון אוטומטי של חגים, צומות, ימים מיוחדים</td>
+</tr>
+<tr>
+<td><strong>הגנת שבת</strong></td>
+<td><code>is_shabbat_protected</code> — מניעת פרסום אוטומטית בשבת</td>
+</tr>
+<tr>
+<td><strong>תצוגה חודשית</strong></td>
+<td>Calendar עם פוסטים מתוזמנים</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>למה זה חשוב?</strong> אף מתחרה (HubSpot, Hootsuite, Buffer) לא מציע לוח שנה עברי.<br>עסקים ישראליים דתיים/מסורתיים — זה פיצ&#39;ר קריטי.</p>
+</blockquote>
+<h3>2. Content Machine — AI ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירת תוכן AI</strong></td>
+<td>הזן נושא → קבל 3 וריאציות</td>
+</tr>
+<tr>
+<td><strong>וריאציות לפלטפורמות</strong></td>
+<td>Facebook (ארוך), Instagram (hashtags), LinkedIn (מקצועי)</td>
+</tr>
+<tr>
+<td><strong>הצעות תמונות</strong></td>
+<td>AI מציע תיאור תמונה מתאימה</td>
+</tr>
+<tr>
+<td><strong>אופטימיזציה</strong></td>
+<td>AI משפר טקסט קיים</td>
+</tr>
+<tr>
+<td><strong>שפות</strong></td>
+<td>עברית + אנגלית</td>
+</tr>
+</tbody></table>
+<p><strong>דוגמה:</strong></p>
+<pre><code>Input: &quot;פוסט על מבצע סוף שנה 30% הנחה&quot;
+
+Output:
+├── Facebook: &quot;🎉 מבצע סוף שנה! 30% הנחה על כל המוצרים...&quot;
+├── Instagram: &quot;30% OFF 🔥 #מבצע #הנחה #סוףשנה...&quot;
+└── LinkedIn: &quot;אנו שמחים להכריז על מבצע מיוחד...&quot;
+</code></pre>
+<h3>3. תזמון פוסטים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>תזמון</strong></td>
+<td>בחר תאריך + שעה</td>
+</tr>
+<tr>
+<td><strong>פלטפורמות</strong></td>
+<td>Facebook, Instagram, LinkedIn, Twitter, TikTok</td>
+</tr>
+<tr>
+<td><strong>סטטוסים</strong></td>
+<td>Draft → Scheduled → Published / Failed</td>
+</tr>
+<tr>
+<td><strong>חזרתיות</strong></td>
+<td>יומי / שבועי / חודשי</td>
+</tr>
+<tr>
+<td><strong>Late Detection</strong></td>
+<td><code>is_late</code> — סימון פוסטים שפורסמו באיחור</td>
+</tr>
+</tbody></table>
+<h3>4. Campaigns — קמפיינים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ניהול קמפיין</strong></td>
+<td>שם, תאריכים, מטרה</td>
+</tr>
+<tr>
+<td><strong>פוסטים מקושרים</strong></td>
+<td>קבוצת פוסטים תחת קמפיין</td>
+</tr>
+<tr>
+<td><strong>מעקב</strong></td>
+<td>כמה פורסם / כמה נשאר</td>
+</tr>
+</tbody></table>
+<h3>5. בנק רעיונות</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>שמירת רעיון</strong></td>
+<td>טקסט חופשי</td>
+</tr>
+<tr>
+<td><strong>תיוג</strong></td>
+<td>קטגוריות</td>
+</tr>
+<tr>
+<td><strong>הפיכה לפוסט</strong></td>
+<td>לחץ → הפוך לפוסט מתוזמן</td>
+</tr>
+</tbody></table>
+<h3>6. Conversations — Inbox</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Inbox מרכזי</strong></td>
+<td>כל ההודעות במקום אחד</td>
+</tr>
+<tr>
+<td><strong>שיחות</strong></td>
+<td>לפי לקוח</td>
+</tr>
+<tr>
+<td><strong>Unread count</strong></td>
+<td>כמה לא נקראו</td>
+</tr>
+</tbody></table>
+<h3>7. ניהול מרובה לקוחות (סוכנויות)</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>לקוחות</strong></td>
+<td>ניהול מספר לקוחות שיווק</td>
+</tr>
+<tr>
+<td><strong>מכסות</strong></td>
+<td><code>monthly_limit</code> לכל לקוח/פלטפורמה</td>
+</tr>
+<tr>
+<td><strong>הרשאות פלטפורמה</strong></td>
+<td>credentials לכל לקוח בנפרד</td>
+</tr>
+<tr>
+<td><strong>בקשות מנהל</strong></td>
+<td>לקוח מבקש שינוי → אישור</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים</h2>
+<pre><code class="language-sql">social_posts:
+  id, organization_id, client_id
+  content, media_url, status, scheduled_at
+  published_at, is_late, created_by
+  deleted_at, deleted_by
+
+social_post_platforms:
+  post_id, platform (facebook/instagram/linkedin...)
+
+social_post_variations:
+  post_id, type, content, image_suggestion
+
+social_ideas:
+  id, organization_id, client_id, text
+
+social_conversations:
+  id, organization_id, client_id
+  title, unread_count
+</code></pre>
+<hr>
+<h2>תהליכי עבודה</h2>
+<h3>תהליך: יצירת תוכן שבועי</h3>
+<pre><code>1. פתח Calendar → ראה מה חסר השבוע
+2. Content Machine → יצירת 5 פוסטים AI
+3. ערוך / אשר כל פוסט
+4. תזמן → בחר תאריך ושעה
+5. פרסום אוטומטי (הגנת שבת פעילה)
+</code></pre>
+<h3>תהליך: סוכנות עם 10 לקוחות</h3>
+<pre><code>1. בחר לקוח מהרשימה
+2. ראה Calendar שלו
+3. צור תוכן (AI או ידני)
+4. לקוח מאשר (דרך Portal - מודול Client)
+5. תזמן ופרסם
+</code></pre>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>סוכנויות שיווק</td>
+<td>מי שצריך Email Marketing (צריך Mailchimp)</td>
+</tr>
+<tr>
+<td>מנהלי תוכן</td>
+<td>מי שצריך Analytics מתקדם (צריך HubSpot)</td>
+</tr>
+<tr>
+<td>עסקים עם נוכחות חברתית</td>
+<td></td>
+</tr>
+<tr>
+<td><strong>קהילה דתית/מסורתית</strong> (לוח עברי)</td>
+<td></td>
+</tr>
+<tr>
+<td>Freelancers שיווקיים</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./07-%D7%9E%D7%95%D7%93%D7%95%D7%9C-finance.md">Finance — כספים →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-6" style="margin-top:40px;">
+<h1>💰 Finance — אינטגרציית כספים וחשבוניות</h1>
+<blockquote>
+<p>🎁 <strong>מודול זה ניתן במתנה לכל לקוח — בכל חבילה!</strong><br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br><strong>מהות:</strong> שכבת אינטגרציה חכמה מול חברות חשבוניות חיצוניות דרך API<br><strong>המודול לא מחליף רואה חשבון</strong> — הוא מחבר אותך לשירותי החשבוניות שלך ומאפשר לנהל הכל ממקום אחד.</p>
+<p><strong>למה במתנה?</strong> כי כל עסק צריך לנהל כספים. אנחנו לא רוצים שתשלם על הבסיס.</p>
+</blockquote>
+<hr>
+<h2>⚡ איך זה עובד?</h2>
+<p>מודול Finance הוא <strong>לא מערכת הנהלת חשבונות</strong>. הוא שכבת ממשק (UI/UX) שמתחברת דרך API לחברות חשבוניות חיצוניות שאתה כבר משתמש בהן:</p>
+<pre><code>┌─────────────────────────────────┐
+│  MISRAD AI — מודול Finance      │
+│  (ממשק אחיד, חכם ומרכזי)       │
+└────────────┬────────────────────┘
+             │ API
+   ┌─────────┼─────────┬──────────┬──────────┐
+   ▼         ▼         ▼          ▼          ▼
+Morning   iCount    חשבוניות   סמיט     EZcount
+(חשבונית           אונליין
+ ירוקה)
+</code></pre>
+<p><strong>אתה בוחר את חברת החשבוניות שלך</strong> → MISRAD AI מתחבר אליה → ומאפשר לך לעבוד מתוך המערכת בלי לפתוח חלון נפרד.</p>
+<hr>
+<h2>🔌 אינטגרציות — חברות חשבוניות</h2>
+<h3>✅ פעיל עכשיו</h3>
+<table>
+<thead>
+<tr>
+<th>שירות</th>
+<th>מה כלול</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Morning (חשבונית ירוקה)</strong></td>
+<td>חשבוניות מס, קבלות, סנכרון דו-כיווני, מסמכי מע&quot;מ</td>
+<td>✅ פעיל</td>
+</tr>
+</tbody></table>
+<h3>🔜 בקרוב (UI/UX מוכן)</h3>
+<table>
+<thead>
+<tr>
+<th>שירות</th>
+<th>מה יכלול</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>iCount</strong></td>
+<td>חשבוניות מס, ניהול מלאי, דוחות כספיים</td>
+<td>🔜 פיתוח</td>
+</tr>
+<tr>
+<td><strong>חשבוניות אונליין</strong></td>
+<td>חשבוניות, קבלות, הצעות מחיר</td>
+<td>🔜 פיתוח</td>
+</tr>
+<tr>
+<td><strong>סמיט (Smit)</strong></td>
+<td>חשבוניות, תעודות משלוח, ניהול לקוחות</td>
+<td>🔜 פיתוח</td>
+</tr>
+<tr>
+<td><strong>EZcount</strong></td>
+<td>חשבוניות מס, קבלות, זיכויים, הצעות מחיר</td>
+<td>🔜 פיתוח</td>
+</tr>
+<tr>
+<td><strong>רווחית (Rivhit)</strong></td>
+<td>הנהלת חשבונות מלאה, חשבוניות, מע&quot;מ</td>
+<td>🔜 פיתוח</td>
+</tr>
+<tr>
+<td><strong>Grow</strong></td>
+<td>חשבוניות, תשלומים, ניהול הכנסות</td>
+<td>🔜 פיתוח</td>
+</tr>
+</tbody></table>
+<h3>🗺️ מתוכנן (Roadmap)</h3>
+<table>
+<thead>
+<tr>
+<th>שירות</th>
+<th>תחום</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>PayMe</strong></td>
+<td>סליקת אשראי + חשבוניות</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>משולם (Meshulam)</strong></td>
+<td>סליקה + חשבוניות</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>CardCom</strong></td>
+<td>סליקה + חשבוניות אוטומטיות</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>Tranzila</strong></td>
+<td>סליקה בינלאומית</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>Hyp (ClearPay)</strong></td>
+<td>קישורי תשלום + חשבוניות</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>חשבשבת</strong></td>
+<td>הנהלת חשבונות למשרדי רו&quot;ח</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>פריורטי (Priority)</strong></td>
+<td>ERP + חשבוניות לעסקים בינוניים</td>
+<td>📋 מתוכנן</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>🖥️ מסכי UI/UX</h2>
+<h3>1. לוח בקרה כספי</h3>
+<table>
+<thead>
+<tr>
+<th>רכיב</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סיכום חודשי</strong></td>
+<td>סה&quot;כ הכנסות, הוצאות, יתרה — נשלפים מהחברה המחוברת</td>
+</tr>
+<tr>
+<td><strong>חובות פתוחים</strong></td>
+<td>רשימת חשבוניות שלא שולמו + ימי איחור</td>
+</tr>
+<tr>
+<td><strong>גרף מגמות</strong></td>
+<td>הכנסות/הוצאות לאורך זמן</td>
+</tr>
+<tr>
+<td><strong>התראות</strong></td>
+<td>חשבוניות באיחור, תזכורות שנכשלו</td>
+</tr>
+</tbody></table>
+<h3>2. חשבוניות (דרך API)</h3>
+<table>
+<thead>
+<tr>
+<th>פעולה</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירה מהירה</strong></td>
+<td>לקוח + פריטים + סכום → נשלח לחברת החשבוניות דרך API</td>
+</tr>
+<tr>
+<td><strong>סטטוסים</strong></td>
+<td>טיוטה → נשלחה → שולמה / באיחור / בוטלה</td>
+</tr>
+<tr>
+<td><strong>סנכרון</strong></td>
+<td>כל שינוי במערכת ← → מתעדכן בחברת החשבוניות ולהפך</td>
+</tr>
+<tr>
+<td><strong>PDF</strong></td>
+<td>הורדת PDF ישירות מחברת החשבוניות</td>
+</tr>
+<tr>
+<td><strong>שליחה</strong></td>
+<td>שליחה ללקוח במייל או בוואטסאפ</td>
+</tr>
+<tr>
+<td><strong>מספור</strong></td>
+<td>מספור אוטומטי לפי חברת החשבוניות</td>
+</tr>
+</tbody></table>
+<p><strong>סטטוסים:</strong></p>
+<pre><code>טיוטה → נשלחה → שולמה ✅
+                → באיחור ⚠️ (עבר תאריך פירעון)
+                → בוטלה ❌
+</code></pre>
+<h3>3. תזכורות תשלום בוואטסאפ ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>תזכורת אוטומטית</strong></td>
+<td>X ימים לפני/אחרי תאריך פירעון</td>
+</tr>
+<tr>
+<td><strong>התאמה אישית</strong></td>
+<td>תבנית הודעה בעברית מותאמת</td>
+</tr>
+<tr>
+<td><strong>לינק לתשלום</strong></td>
+<td>קישור ישיר לתשלום (PayMe/Meshulam/Hyp)</td>
+</tr>
+<tr>
+<td><strong>מעקב סטטוס</strong></td>
+<td>נשלח / נקרא / נכשל</td>
+</tr>
+<tr>
+<td><strong>היסטוריה מלאה</strong></td>
+<td>כל התזכורות שנשלחו</td>
+</tr>
+</tbody></table>
+<p><strong>דוגמה:</strong></p>
+<pre><code>&quot;שלום [שם], תזכורת: חשבונית #1234 בסך ₪5,000 
+ לתשלום עד 15/02/2026. 
+ לתשלום מיידי: [קישור לתשלום]&quot;
+</code></pre>
+<h3>4. הוצאות</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>רישום מהיר</strong></td>
+<td>סכום + קטגוריה + תיאור</td>
+</tr>
+<tr>
+<td><strong>קטגוריות</strong></td>
+<td>משרד, נסיעות, שיווק, ציוד...</td>
+</tr>
+<tr>
+<td><strong>צירוף קבלה</strong></td>
+<td>העלאת תמונה/PDF</td>
+</tr>
+<tr>
+<td><strong>הוצאה חוזרת</strong></td>
+<td>הוצאה קבועה (שכירות, ביטוח...)</td>
+</tr>
+<tr>
+<td><strong>סנכרון</strong></td>
+<td>סנכרון הוצאות עם חברת ההנהלת חשבונות</td>
+</tr>
+</tbody></table>
+<h3>5. דוחות</h3>
+<table>
+<thead>
+<tr>
+<th>דוח</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>הכנסות / הוצאות</strong></td>
+<td>סיכום חודשי + גרף (נשלף מהחברה)</td>
+</tr>
+<tr>
+<td><strong>לפי לקוח</strong></td>
+<td>כמה כל לקוח שילם</td>
+</tr>
+<tr>
+<td><strong>חובות פתוחים</strong></td>
+<td>מי חייב כמה + ימי איחור</td>
+</tr>
+<tr>
+<td><strong>מע&quot;מ</strong></td>
+<td>סיכום מע&quot;מ לתקופה (מחברת החשבוניות)</td>
+</tr>
+<tr>
+<td><strong>ייצוא</strong></td>
+<td>Excel / CSV / PDF</td>
+</tr>
+</tbody></table>
+<h3>6. הגדרות אינטגרציה</h3>
+<table>
+<thead>
+<tr>
+<th>הגדרה</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>בחירת ספק</strong></td>
+<td>בחר חברת חשבוניות (Morning/iCount/סמיט/...)</td>
+</tr>
+<tr>
+<td><strong>מפתח API</strong></td>
+<td>הזנת API Key מחברת החשבוניות</td>
+</tr>
+<tr>
+<td><strong>בדיקת חיבור</strong></td>
+<td>בדיקה שהחיבור פעיל ותקין</td>
+</tr>
+<tr>
+<td><strong>סנכרון ראשוני</strong></td>
+<td>ייבוא חשבוניות קיימות מהחברה</td>
+</tr>
+<tr>
+<td><strong>הגדרות ברירת מחדל</strong></td>
+<td>מטבע, מע&quot;מ, תנאי תשלום</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים</h2>
+<pre><code class="language-sql">finance_invoices:
+  id, organization_id
+  client_id, client_name, client_email, client_phone
+  invoice_number (unique), amount, currency
+  issue_date, due_date, paid_at
+  status (draft/sent/paid/overdue/canceled)
+  items JSONB, pdf_url
+  provider (morning/icount/smit/ezcount/...)  -- ← חברת חשבוניות
+  external_id                                  -- ← מזהה בחברה החיצונית
+
+finance_expenses:
+  id, organization_id
+  amount, category, description
+  receipt_url, is_recurring
+  date, created_by
+
+finance_whatsapp_reminder_events:
+  id, organization_id
+  invoice_id, sent_at, delivery_status
+  message_template, phone
+
+finance_integrations:
+  id, organization_id
+  provider (morning/icount/smit/ezcount/...)
+  api_key_encrypted, is_active, last_sync_at
+</code></pre>
+<hr>
+<h2>תהליך עבודה</h2>
+<h3>תהליך: חשבונית + תזכורת + תשלום</h3>
+<pre><code>1. בחר לקוח + פריטים → צור חשבונית ב-MISRAD AI
+2. המערכת שולחת דרך API לחברת החשבוניות (Morning/iCount/...)
+3. חברת החשבוניות יוצרת חשבונית מס רשמית
+4. חשבונית נשלחת ללקוח במייל + לינק לתשלום
+5. 3 ימים לפני תאריך פירעון → תזכורת וואטסאפ אוטומטית
+6. יום התשלום → תזכורת נוספת אם לא שולם
+7. לקוח שילם → סנכרון סטטוס אוטומטי מהחברה
+8. לא שילם → סימון &quot;באיחור&quot; + התראה למנהל
+</code></pre>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>עצמאיים שמנפיקים חשבוניות</td>
+<td>חשבונאות מורכבת (צריך רו&quot;ח + ERP)</td>
+</tr>
+<tr>
+<td>עסקים קטנים ובינוניים</td>
+<td>חברות ציבוריות</td>
+</tr>
+<tr>
+<td>ספקי שירות ופרילנסרים</td>
+<td>חשבונאות בינלאומית מורכבת</td>
+</tr>
+<tr>
+<td>כל מי שכבר משתמש ב-Morning/iCount/סמיט</td>
+<td>מי שצריך מערכת שכר</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 <strong>חשוב להבין:</strong> המודול לא מחליף את חברת החשבוניות שלך — הוא מתחבר אליה ומאפשר לך לעבוד מתוך MISRAD AI בלי לפתוח אתר נפרד.</p>
+</blockquote>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./08-%D7%9E%D7%95%D7%93%D7%95%D7%9C-client.md">Client — לקוחות →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-7" style="margin-top:40px;">
+<h1>👥 Client — ניהול לקוחות ופורטלים</h1>
+<blockquote>
+<p><strong>מחיר:</strong> ₪149/חודש (סולו) | כלול בחבילת שיווק, חבילת הכל<br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br>🎁 + מודול Finance במתנה לכל לקוח<br><strong>תפקיד:</strong> Portal לקוחות, ניהול מסמכים, Workflows, סשנים ותקשורת דו-כיוונית</p>
+</blockquote>
+<hr>
+<h2>מסכים ופיצ&#39;רים</h2>
+<h3>1. Portal לקוחות ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>כניסה ייעודית</strong></td>
+<td>הלקוח מקבל לינק הזמנה → נרשם → נכנס ל-Portal</td>
+</tr>
+<tr>
+<td><strong>צפייה במסמכים</strong></td>
+<td>רואה רק את המסמכים שלו</td>
+</tr>
+<tr>
+<td><strong>העלאת קבצים</strong></td>
+<td>הלקוח מעלה קבצים (חוזים, תמונות...)</td>
+</tr>
+<tr>
+<td><strong>תקשורת</strong></td>
+<td>הודעות דו-כיווניות (לקוח ↔ ספק)</td>
+</tr>
+<tr>
+<td><strong>אישורים</strong></td>
+<td>הלקוח מאשר/דוחה תוכן/הצעות</td>
+</tr>
+<tr>
+<td><strong>Service Tiers</strong></td>
+<td>רמות שירות שונות לכל לקוח</td>
+</tr>
+</tbody></table>
+<p><strong>תהליך הזמנת לקוח:</strong></p>
+<pre><code>1. צור הזמנה (ClientPortalInvite)
+2. לקוח מקבל מייל עם לינק
+3. לקוח נרשם (ClientPortalUser)
+4. לקוח נכנס ל-Portal
+5. רואה רק מה ששייך אליו (tenant isolation)
+</code></pre>
+<h3>2. ניהול קבצים ומסמכים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>העלאה</strong></td>
+<td>Drag &amp; Drop / בחירה</td>
+</tr>
+<tr>
+<td><strong>תיקיות</strong></td>
+<td>ארגון לפי קטגוריה</td>
+</tr>
+<tr>
+<td><strong>שיתוף מאובטח</strong></td>
+<td>רק למי שמורשה</td>
+</tr>
+<tr>
+<td><strong>גרסאות</strong></td>
+<td><code>ClientDocumentFile</code> — מספר גרסאות לכל מסמך</td>
+</tr>
+<tr>
+<td><strong>סוגי קבצים</strong></td>
+<td>PDF, Word, Excel, תמונות, וידאו</td>
+</tr>
+</tbody></table>
+<h3>3. Workflows — תהליכי עבודה</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>שלבים מוגדרים</strong></td>
+<td><code>MisradWorkflowStage</code> — סדר שלבים</td>
+</tr>
+<tr>
+<td><strong>מעבר בין שלבים</strong></td>
+<td>ידני או אוטומטי</td>
+</tr>
+<tr>
+<td><strong>אישורים</strong></td>
+<td>שלב דורש אישור לפני מעבר</td>
+</tr>
+<tr>
+<td><strong>תבניות</strong></td>
+<td>Blueprint — תבנית workflow שחוזרת על עצמה</td>
+</tr>
+<tr>
+<td><strong>פריטים</strong></td>
+<td><code>MisradWorkflowItem</code> — משימות בתוך כל שלב</td>
+</tr>
+</tbody></table>
+<p><strong>דוגמה: Workflow פרויקט עיצוב</strong></p>
+<pre><code>שלב 1: Brief (לקוח ממלא טופס)
+  ↓
+שלב 2: עיצוב ראשוני (המעצב מעלה)
+  ↓
+שלב 3: אישור לקוח (Portal — אישור/הערות)
+  ↓
+שלב 4: תיקונים
+  ↓
+שלב 5: אישור סופי
+  ↓
+שלב 6: מסירה (קבצים סופיים)
+</code></pre>
+<h3>4. סשנים / פגישות</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>תיעוד פגישה</strong></td>
+<td>תאריך, משתתפים, סיכום</td>
+</tr>
+<tr>
+<td><strong>הערות</strong></td>
+<td>רישום חופשי</td>
+</tr>
+<tr>
+<td><strong>משימות נגזרות</strong></td>
+<td>צור משימות מתוך הסשן</td>
+</tr>
+<tr>
+<td><strong>קבצים</strong></td>
+<td>צירוף קבצים לסשן</td>
+</tr>
+</tbody></table>
+<h3>5. טפסים מותאמים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Form Builder</strong></td>
+<td><code>MisradFormTemplate</code> — בנה טופס</td>
+</tr>
+<tr>
+<td><strong>שלבים</strong></td>
+<td><code>MisradFormStep</code> — טופס מרובה שלבים</td>
+</tr>
+<tr>
+<td><strong>שדות</strong></td>
+<td><code>MisradFormField</code> — text, number, select, file...</td>
+</tr>
+<tr>
+<td><strong>תגובות</strong></td>
+<td><code>MisradFormResponse</code> — תשובות הלקוח</td>
+</tr>
+</tbody></table>
+<h3>6. Google Calendar Sync</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סנכרון</strong></td>
+<td>דו-כיווני (Misrad ↔ Google)</td>
+</tr>
+<tr>
+<td><strong>תזכורות</strong></td>
+<td>אוטומטיות</td>
+</tr>
+<tr>
+<td><strong>זמינות</strong></td>
+<td>הצגת זמנים פנויים</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים</h2>
+<pre><code class="language-sql">ClientPortalUser:
+  id, organization_id, email, access_level
+
+ClientPortalInvite:
+  id, organization_id, email, token, expires_at
+
+ClientSharedFile:
+  id, organization_id, client_id
+  file_url, file_name, uploaded_by
+
+ClientDocument:
+  id, organization_id, client_id
+  title, description, status
+
+ClientDocumentFile:
+  id, document_id, version, file_url
+
+ClientSession:
+  id, organization_id, client_id
+  date, notes, tasks[]
+
+ClientServiceTier:
+  id, organization_id, name, description, features JSONB
+</code></pre>
+<hr>
+<h2>תהליכי עבודה</h2>
+<h3>תהליך: Onboarding לקוח חדש</h3>
+<pre><code>1. צור לקוח חדש (ClientClient)
+2. הגדר Service Tier (רמת שירות)
+3. שלח הזמנה ל-Portal
+4. לקוח נרשם ונכנס
+5. שלח טופס Brief (Form)
+6. צור Workflow
+7. התחל עבודה
+</code></pre>
+<h3>תהליך: אישור תוכן (סוכנות שיווק)</h3>
+<pre><code>1. מנהל תוכן מעלה פוסט (Social)
+2. פוסט מופיע ב-Portal של הלקוח
+3. לקוח מאשר / מבקש שינויים
+4. מנהל תוכן מתקן
+5. לקוח מאשר סופית
+6. פוסט מתפרסם
+</code></pre>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>סוכנויות (שיווק, עיצוב, פרסום)</td>
+<td>B2C קמעונאי</td>
+</tr>
+<tr>
+<td>יועצים (עסקי, ארגוני, אישי)</td>
+<td>E-commerce</td>
+</tr>
+<tr>
+<td>מאמנים / מדריכים</td>
+<td></td>
+</tr>
+<tr>
+<td>ספקי שירות B2B</td>
+<td></td>
+</tr>
+<tr>
+<td>עורכי דין / רואי חשבון</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./09-%D7%9E%D7%95%D7%93%D7%95%D7%9C-operations.md">Operations — תפעול →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-8" style="margin-top:40px;">
+<h1>🔧 Operations — תפעול ושטח</h1>
+<blockquote>
+<p><strong>מחיר:</strong> ₪149/חודש (סולו) | כלול בחבילת תפעול, חבילת הכל<br><strong>משתמשים:</strong> 1 (סולו) או 5 (בחבילה)<br>🎁 + מודול Finance במתנה לכל לקוח<br><strong>תפקיד:</strong> ניהול קריאות שירות, מלאי, טכנאים בשטח, Kiosk Mode ופקודות קוליות</p>
+</blockquote>
+<hr>
+<h2>מסכים ופיצ&#39;רים</h2>
+<h3>1. Work Orders — קריאות שירות</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירה מהירה</strong></td>
+<td>כותרת + לקוח + כתובת = 30 שניות</td>
+</tr>
+<tr>
+<td><strong>הקצאה לטכנאי</strong></td>
+<td><code>assigned_to</code> — בחר טכנאי</td>
+</tr>
+<tr>
+<td><strong>מיקום</strong></td>
+<td>כתובת + GPS (<code>latitude</code>, <code>longitude</code>)</td>
+</tr>
+<tr>
+<td><strong>עדיפות</strong></td>
+<td>Low / Normal / High / Urgent</td>
+</tr>
+<tr>
+<td><strong>תזמון</strong></td>
+<td><code>scheduled_at</code> — מתי לבצע</td>
+</tr>
+<tr>
+<td><strong>צירוף תמונות</strong></td>
+<td><code>work_order_attachments</code> — לפני/אחרי</td>
+</tr>
+<tr>
+<td><strong>חתימת לקוח</strong></td>
+<td><code>completion_signature_url</code> — חתימה דיגיטלית</td>
+</tr>
+<tr>
+<td><strong>הערות סיום</strong></td>
+<td><code>completion_notes</code> — מה נעשה</td>
+</tr>
+<tr>
+<td><strong>עלויות</strong></td>
+<td><code>estimated_cost</code> / <code>actual_cost</code></td>
+</tr>
+<tr>
+<td><strong>Check-ins</strong></td>
+<td><code>work_order_checkins</code> — מעקב GPS טכנאי</td>
+</tr>
+<tr>
+<td><strong>משיכת מלאי</strong></td>
+<td><code>stock_movements</code> — חלפים שהשתמשו</td>
+</tr>
+</tbody></table>
+<p><strong>סטטוסים:</strong></p>
+<pre><code>New → Assigned → In Progress → Completed ✅
+                              → Canceled ❌
+</code></pre>
+<p><strong>Server Action — יצירה:</strong></p>
+<pre><code class="language-typescript">&#39;use server&#39;;
+export async function createWorkOrder(data: WorkOrderInput) {
+  const orgId = await getOrganizationId();
+  return prisma.operationsWorkOrder.create({
+    data: {
+      ...data,
+      organizationId: orgId,
+      status: &#39;new&#39;,
+    }
+  });
+}
+</code></pre>
+<h3>2. Kiosk Mode ⭐ (ייחודי!)</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ממשק פשוט</strong></td>
+<td>מסך מותאם לטכנאי בשטח</td>
+</tr>
+<tr>
+<td><strong>Check-In GPS</strong></td>
+<td>לחץ → מיקום נרשם אוטומטית</td>
+</tr>
+<tr>
+<td><strong>צפייה בקריאה</strong></td>
+<td>פרטי לקוח, כתובת, תיאור</td>
+</tr>
+<tr>
+<td><strong>עדכון סטטוס</strong></td>
+<td>כפתור אחד — &quot;התחלתי&quot; / &quot;סיימתי&quot;</td>
+</tr>
+<tr>
+<td><strong>צילום</strong></td>
+<td>צלם לפני/אחרי ישירות מהטלפון</td>
+</tr>
+<tr>
+<td><strong>חתימה</strong></td>
+<td>לקוח חותם על המסך</td>
+</tr>
+<tr>
+<td><strong>ללא הדרכה</strong></td>
+<td>כל כך פשוט שלא צריך ללמד</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>למה זה ייחודי?</strong> ServiceMax ו-Jobber לא מציעים Kiosk Mode מובנה.<br>טכנאי בשטח צריך ממשק פשוט — לא CRM מורכב.</p>
+</blockquote>
+<h3>3. Voice Commands ⭐ (ייחודי!)</h3>
+<table>
+<thead>
+<tr>
+<th>פקודה</th>
+<th>פעולה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;צור קריאה חדשה&quot;</td>
+<td>יצירת Work Order</td>
+</tr>
+<tr>
+<td>&quot;סמן הושלם&quot;</td>
+<td>עדכון סטטוס ל-Completed</td>
+</tr>
+<tr>
+<td>&quot;הוסף הערה&quot;</td>
+<td>רישום הערה קולית</td>
+</tr>
+<tr>
+<td>&quot;מה הקריאה הבאה?&quot;</td>
+<td>הצגת הקריאה הבאה</td>
+</tr>
+</tbody></table>
+<p><strong>שפה:</strong> עברית ✅ | אנגלית ✅</p>
+<blockquote>
+<p><strong>למה זה חשוב?</strong> טכנאי עם ידיים מלוכלכות/תפוסות — פקודות קול = פתרון.</p>
+</blockquote>
+<h3>4. ניהול מלאי</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>פריטים</strong></td>
+<td>שם, קטגוריה, יחידת מידה, מחיר</td>
+</tr>
+<tr>
+<td><strong>מעקב כמות</strong></td>
+<td>כמה יש? כמה מינימום?</td>
+</tr>
+<tr>
+<td><strong>מחסנים</strong></td>
+<td><code>stock_holders</code> — מספר מחסנים/רכבים</td>
+</tr>
+<tr>
+<td><strong>משיכות</strong></td>
+<td>משיכת חלק מהמלאי לקריאת שירות</td>
+</tr>
+<tr>
+<td><strong>העברות</strong></td>
+<td><code>transfers</code> — העבר בין מחסנים</td>
+</tr>
+<tr>
+<td><strong>ספקים</strong></td>
+<td><code>OperationsSupplier</code> — ניהול ספקים</td>
+</tr>
+<tr>
+<td><strong>התראות</strong></td>
+<td>כשהמלאי יורד מתחת למינימום</td>
+</tr>
+</tbody></table>
+<h3>5. MISRAD Connect — Portal קבלנים ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>גישה לקבלנים</strong></td>
+<td>קבלן חיצוני מקבל גישה מוגבלת</td>
+</tr>
+<tr>
+<td><strong>צפייה בקריאות</strong></td>
+<td>רק הקריאות שהוקצו לו</td>
+</tr>
+<tr>
+<td><strong>דיווח</strong></td>
+<td>קבלן מדווח התקדמות</td>
+</tr>
+<tr>
+<td><strong>סוג יוצר</strong></td>
+<td><code>createdByType: CONTRACTOR</code> — הפרדה בין פנימי לחיצוני</td>
+</tr>
+</tbody></table>
+<h3>6. ניהול רכבים</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>כרטיס רכב</strong></td>
+<td>דגם, לוחית, שנה</td>
+</tr>
+<tr>
+<td><strong>קילומטרז&#39;</strong></td>
+<td>מעקב</td>
+</tr>
+<tr>
+<td><strong>תחזוקה</strong></td>
+<td>תאריך טיפול הבא, תזכורות</td>
+</tr>
+<tr>
+<td><strong>הקצאה</strong></td>
+<td>איזה טכנאי נוהג באיזה רכב</td>
+</tr>
+</tbody></table>
+<h3>7. Dashboard תפעול</h3>
+<table>
+<thead>
+<tr>
+<th>רכיב</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>קריאות פתוחות</strong></td>
+<td>כמה חדשות / בטיפול / דחופות</td>
+</tr>
+<tr>
+<td><strong>טכנאים בשטח</strong></td>
+<td>מי Check-In, מי פנוי</td>
+</tr>
+<tr>
+<td><strong>מלאי נמוך</strong></td>
+<td>פריטים מתחת למינימום</td>
+</tr>
+<tr>
+<td><strong>עלויות</strong></td>
+<td>סיכום עלויות החודש</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מודל נתונים</h2>
+<pre><code class="language-sql">operations_work_orders:
+  id, organization_id
+  title, description
+  client_id, client_name, client_phone
+  address, latitude, longitude
+  assigned_to, status, priority
+  scheduled_at, started_at, completed_at
+  completion_notes, completion_signature_url
+  estimated_cost, actual_cost
+
+operations_work_order_attachments:
+  id, work_order_id
+  storage_path, url, mime_type
+  created_by_type (INTERNAL/CONTRACTOR)
+
+operations_work_order_checkins:
+  id, work_order_id
+  technician_id, latitude, longitude, timestamp
+
+operations_inventory:
+  id, organization_id
+  item_name, category, unit
+  quantity, min_quantity, price
+
+operations_suppliers:
+  id, organization_id, name, phone, email
+
+operations_vehicles:
+  id, organization_id
+  model, plate, year, assigned_to
+</code></pre>
+<hr>
+<h2>תהליכי עבודה</h2>
+<h3>תהליך: קריאת שירות מלאה</h3>
+<pre><code>1. לקוח מתקשר → מוקדן יוצר Work Order
+2. הקצאה לטכנאי (לפי זמינות/מיקום)
+3. טכנאי מקבל התראה (Push)
+4. טכנאי פותח Kiosk → Check-In GPS
+5. טכנאי מבצע עבודה
+6. צילום לפני/אחרי
+7. משיכת חלפים מהמלאי
+8. חתימת לקוח
+9. סימון Completed
+10. חשבונית אוטומטית (Finance)
+</code></pre>
+<h3>תהליך: ניהול מלאי</h3>
+<pre><code>1. קבלת סחורה מספק → הוספה למלאי
+2. טכנאי משתמש בחלק → משיכה
+3. מלאי יורד מתחת למינימום → התראה
+4. הזמנה חדשה מספק
+</code></pre>
+<hr>
+<h2>למי זה מתאים?</h2>
+<table>
+<thead>
+<tr>
+<th>✅ מתאים</th>
+<th>❌ לא מתאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>תחזוקה ושירות (HVAC, חשמל, אינסטלציה)</td>
+<td>ייצור (צריך ERP)</td>
+</tr>
+<tr>
+<td>טכנאים בשטח (5-50 טכנאים)</td>
+<td>לוגיסטיקה מורכבת (צריך WMS)</td>
+</tr>
+<tr>
+<td>קבלנות (בנייה, שיפוצים)</td>
+<td></td>
+</tr>
+<tr>
+<td>ניקיון תעשייתי</td>
+<td></td>
+</tr>
+<tr>
+<td>שירותי IT בשטח</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./10-%D7%9E%D7%91%D7%A0%D7%94-%D7%AA%D7%9E%D7%97%D7%95%D7%A8.md">מבנה תמחור →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-9" style="margin-top:40px;">
+<h1>💰 מבנה התמחור — Misrad-AI</h1>
+<h2>3 עקרונות</h2>
+<h3>1. Pay-Per-Module — תשלם רק על מה שצריך</h3>
+<pre><code>6 מודולים זמינים (₪149 כל אחד):
+  Nexus | System | Social | Finance | Client | Operations
+</code></pre>
+<h3>2. משתמשים כלולים</h3>
+<table>
+<thead>
+<tr>
+<th>חבילה</th>
+<th>משתמשים כלולים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>סולו</td>
+<td>1</td>
+</tr>
+<tr>
+<td>מכירות / שיווק / תפעול / הכל</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>נוסף</strong></td>
+<td><strong>₪39/משתמש/חודש</strong></td>
+</tr>
+</tbody></table>
+<h3>3. הנחה שנתית — 20%</h3>
+<pre><code>חבילת הכל חודשי: ₪499 × 12 = ₪5,988/שנה
+חבילת הכל שנתי:  ₪499 × 12 × 0.8 = ₪4,790/שנה
+חיסכון: ₪1,198/שנה
+</code></pre>
+<hr>
+<h2>מחירון מלא</h2>
+<table>
+<thead>
+<tr>
+<th>חבילה</th>
+<th>מודולים</th>
+<th>מחיר/חודש</th>
+<th>משתמשים</th>
+<th>מתאים ל</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סולו</strong></td>
+<td>1 לבחירה + 🎁 Finance</td>
+<td>₪149</td>
+<td>1</td>
+<td>עצמאיים</td>
+</tr>
+<tr>
+<td><strong>חבילת מכירות</strong></td>
+<td>System + Nexus + 🎁 Finance</td>
+<td>₪249</td>
+<td>5</td>
+<td>צוותי מכירות</td>
+</tr>
+<tr>
+<td><strong>חבילת שיווק</strong></td>
+<td>Social + Client + Nexus + 🎁 Finance</td>
+<td>₪349</td>
+<td>5</td>
+<td>סוכנויות שיווק</td>
+</tr>
+<tr>
+<td><strong>חבילת תפעול</strong></td>
+<td>Operations + Nexus + 🎁 Finance</td>
+<td>₪349</td>
+<td>5</td>
+<td>עסקי שירות</td>
+</tr>
+<tr>
+<td><strong>חבילת הכל</strong></td>
+<td>כל 6 המודולים</td>
+<td>₪499</td>
+<td>5</td>
+<td>עסק מלא</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>🎁 <strong>מודול Finance (אינטגרציית API לחברות חשבוניות — Morning, iCount, סמיט ועוד) ניתן במתנה לכל לקוח!</strong></p>
+</blockquote>
+<hr>
+<h2>תוספות</h2>
+<table>
+<thead>
+<tr>
+<th>פריט</th>
+<th>מחיר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>משתמש נוסף</td>
+<td>₪39/חודש</td>
+</tr>
+<tr>
+<td>אחסון נוסף (50GB)</td>
+<td>₪50/חודש</td>
+</tr>
+<tr>
+<td>AI tokens נוספים (100K)</td>
+<td>₪50/חודש</td>
+</tr>
+</tbody></table>
+<p><strong>דרישה:</strong> משתמשים נוספים דורשים מודול <strong>Nexus</strong> פעיל.</p>
+<hr>
+<h2>השוואת מתחרים — מחירים</h2>
+<h3>ל-5 משתמשים, CRM + ניהול מלא</h3>
+<table>
+<thead>
+<tr>
+<th>מערכת</th>
+<th>מחיר/חודש</th>
+<th>הערה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Salesforce Enterprise</strong></td>
+<td>₪3,010</td>
+<td>רק CRM</td>
+</tr>
+<tr>
+<td><strong>HubSpot Enterprise</strong></td>
+<td>₪2,740</td>
+<td>רק שיווק</td>
+</tr>
+<tr>
+<td><strong>Monday Pro</strong></td>
+<td>₪440</td>
+<td>ניהול פרויקטים</td>
+</tr>
+<tr>
+<td><strong>ServiceMax</strong></td>
+<td>~₪5,000</td>
+<td>רק תפעול</td>
+</tr>
+<tr>
+<td>Misrad-AI חבילת הכל</td>
+<td>₪499</td>
+<td>הכל כלול</td>
+</tr>
+</tbody></table>
+<h3>חיסכון שנתי (5 משתמשים)</h3>
+<table>
+<thead>
+<tr>
+<th>לעומת</th>
+<th>חיסכון/חודש</th>
+<th>חיסכון/שנה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Salesforce</td>
+<td>₪12,251</td>
+<td><strong>₪147,012</strong></td>
+</tr>
+<tr>
+<td>HubSpot</td>
+<td>₪11,741</td>
+<td><strong>₪140,892</strong></td>
+</tr>
+<tr>
+<td>Monday</td>
+<td>₪1,541</td>
+<td><strong>₪18,492</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>דוגמאות חישוב</h2>
+<h3>צוות מכירות (3 נציגים)</h3>
+<pre><code>חבילת מכירות: ₪249/חודש (5 משתמשים כלולים)
+🎁 + Finance במתנה
+✅ 3 נציגים = בתוך החבילה
+סה&quot;כ: ₪249/חודש
+</code></pre>
+<h3>סוכנות שיווק (4 עובדים)</h3>
+<pre><code>חבילת שיווק: ₪349/חודש (5 משתמשים כלולים)
+🎁 + Finance במתנה
+✅ 4 עובדים = בתוך החבילה
+סה&quot;כ: ₪349/חודש
+</code></pre>
+<h3>חברת תחזוקה (10 טכנאים)</h3>
+<pre><code>חבילת תפעול: ₪349 (5 כלולים)
+🎁 + Finance במתנה
++ 5 נוספים: 5 × ₪39 = ₪195
+סה&quot;כ: ₪544/חודש
+</code></pre>
+<h3>חברה מלאה (15 עובדים)</h3>
+<pre><code>חבילת הכל: ₪499 (5 כלולים, Finance כלול)
++ 10 נוספים: 10 × ₪39 = ₪390
+סה&quot;כ: ₪889/חודש
+</code></pre>
+<hr>
+<h2>מדיניות</h2>
+<h3>ביטול</h3>
+<table>
+<thead>
+<tr>
+<th>נושא</th>
+<th>מדיניות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>התחייבות</strong></td>
+<td>אין — בטל בכל עת</td>
+</tr>
+<tr>
+<td><strong>דמי ביטול</strong></td>
+<td>אין</td>
+</tr>
+<tr>
+<td><strong>תקופת הודעה</strong></td>
+<td>אין</td>
+</tr>
+<tr>
+<td><strong>ערבות החזר</strong></td>
+<td>30 יום ראשונים — החזר מלא</td>
+</tr>
+</tbody></table>
+<h3>שינוי חבילה</h3>
+<table>
+<thead>
+<tr>
+<th>פעולה</th>
+<th>תוצאה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>שדרוג</td>
+<td>חיוב יחסי מיידי</td>
+</tr>
+<tr>
+<td>הורדה</td>
+<td>שינוי מחודש הבא</td>
+</tr>
+<tr>
+<td>הוספת משתמש</td>
+<td>חיוב יחסי מיידי</td>
+</tr>
+<tr>
+<td>הסרת משתמש</td>
+<td>הפחתה מחודש הבא</td>
+</tr>
+</tbody></table>
+<h3>העלאת מחיר</h3>
+<ul>
+<li>הודעה מוקדמת 60 יום</li>
+<li>מחיר קבוע לשנה מיום הצטרפות</li>
+<li>אפשרות ביטול ללא עלות</li>
+</ul>
+<hr>
+<h2>אמצעי תשלום</h2>
+<p>✅ כרטיס אשראי (Visa, Mastercard, Amex)<br>✅ העברה בנקאית (שנתי בלבד)<br>✅ חשבונית מס אוטומטית</p>
+<hr>
+<h2>מבצעים</h2>
+<table>
+<thead>
+<tr>
+<th>מבצע</th>
+<th>הנחה</th>
+<th>תנאים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>שנתי</td>
+<td>20%</td>
+<td>תשלום מראש</td>
+</tr>
+<tr>
+<td>עמותות</td>
+<td>50%</td>
+<td>רישום עמותה, עד 10 משתמשים</td>
+</tr>
+<tr>
+<td>חודשיים ראשונים</td>
+<td>50%</td>
+<td>לקוחות חדשים, 6 חודשי התחייבות</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./11-%D7%94%D7%97%D7%91%D7%99%D7%9C%D7%95%D7%AA.md">החבילות →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-10" style="margin-top:40px;">
+<h1>📦 החבילות — פירוט מלא</h1>
+<blockquote>
+<p>🎁 <strong>בכל חבילה:</strong> מודול Finance (כספים וחשבוניות) <strong>במתנה!</strong></p>
+</blockquote>
+<hr>
+<h2>סולו — מודול בודד</h2>
+<p><strong>₪149/חודש | משתמש 1</strong></p>
+<h3>מה זה?</h3>
+<p>בחר מודול אחד מתוך 6 — מתאים לעצמאיים או לניסיון ראשוני.</p>
+<p>🎁 <strong>+ מודול Finance במתנה</strong> (חשבוניות, הוצאות, תזכורות תשלום)</p>
+<h3>מתאים ל:</h3>
+<ul>
+<li>עצמאיים</li>
+<li>ניסיון ראשוני</li>
+<li>מי שצריך דבר אחד ספציפי</li>
+</ul>
+<h3>דוגמה:</h3>
+<pre><code>עצמאי שצריך רק ניהול תוכן → Social סולו + Finance במתנה
+מעצב שצריך רק ניהול לקוחות → Client סולו + Finance במתנה
+</code></pre>
+<hr>
+<h2>חבילת מכירות</h2>
+<p><strong>₪249/חודש | 5 משתמשים</strong></p>
+<h3>מודולים:</h3>
+<ul>
+<li>✅ Nexus (ניהול צוות ומשימות)</li>
+<li>✅ System (ניהול לידים ומכירות)</li>
+<li>🎁 Finance <strong>במתנה</strong> (חשבוניות והוצאות)</li>
+</ul>
+<h3>מה כלול:</h3>
+<ul>
+<li>ניהול לידים עם צינור מכירה (8 שלבים, גרור ושחרר)</li>
+<li>חייגן + ניתוח שיחות AI</li>
+<li>הצעות מחיר</li>
+<li>משימות ודיווחי זמן</li>
+<li>חשבוניות, הוצאות, תזכורות תשלום בוואטסאפ</li>
+</ul>
+<h3>מתאים ל:</h3>
+<ul>
+<li>צוותי מכירות (3-10 נציגים)</li>
+<li>סוכני ביטוח / נדל&quot;ן</li>
+<li>מכירות לעסקים</li>
+<li>מכירות טלפוניות</li>
+</ul>
+<h3>דוגמה:</h3>
+<pre><code>חברת ייעוץ עם 5 יועצים
+כל יועץ מנהל 20-50 לידים
+סגירה: 5-10 עסקאות/חודש
++ חשבוניות ותזכורות תשלום — במתנה
+</code></pre>
+<hr>
+<h2>חבילת שיווק</h2>
+<p><strong>₪349/חודש | 5 משתמשים</strong></p>
+<h3>מודולים:</h3>
+<ul>
+<li>✅ Nexus (ניהול צוות ומשימות)</li>
+<li>✅ Social (שיווק ותוכן)</li>
+<li>✅ Client (פורטל לקוחות)</li>
+<li>🎁 Finance <strong>במתנה</strong> (חשבוניות והוצאות)</li>
+</ul>
+<h3>מה כלול:</h3>
+<ul>
+<li>לוח שנה עברי (ייחודי!)</li>
+<li>תזמון פוסטים לכל הרשתות</li>
+<li>מכונת תוכן AI — יצירת פוסטים אוטומטית</li>
+<li>פורטל לקוחות עם אישורי תוכן</li>
+<li>תהליכי עבודה מותאמים</li>
+<li>חשבוניות, הוצאות, תזכורות תשלום בוואטסאפ</li>
+</ul>
+<h3>מתאים ל:</h3>
+<ul>
+<li>סוכנויות שיווק</li>
+<li>מנהלי קמפיינים</li>
+<li>יועצי תוכן</li>
+<li>קהילה דתית / מסורתית (לוח עברי)</li>
+</ul>
+<h3>דוגמה:</h3>
+<pre><code>סוכנות שיווק עם 10 לקוחות
+כל לקוח: 15-30 פוסטים/חודש
+לקוחות מאשרים תוכן דרך הפורטל
++ חשבוניות ללקוחות — במתנה
+</code></pre>
+<hr>
+<h2>חבילת תפעול</h2>
+<p><strong>₪349/חודש | 5 משתמשים</strong></p>
+<h3>מודולים:</h3>
+<ul>
+<li>✅ Nexus (ניהול צוות ומשימות)</li>
+<li>✅ Operations (קריאות שירות, מלאי, שטח)</li>
+<li>🎁 Finance <strong>במתנה</strong> (חשבוניות והוצאות)</li>
+</ul>
+<h3>מה כלול:</h3>
+<ul>
+<li>קריאות שירות (יצירה, הקצאה, מעקב)</li>
+<li>מצב שטח לטכנאים (ממשק פשוט עם GPS, צילום, חתימה)</li>
+<li>פקודות קוליות בעברית</li>
+<li>ניהול מלאי וחלפים</li>
+<li>חשבוניות, הוצאות, תזכורות תשלום בוואטסאפ</li>
+</ul>
+<h3>מתאים ל:</h3>
+<ul>
+<li>עסקי שירות ותחזוקה</li>
+<li>טכנאים בשטח</li>
+<li>קבלנות</li>
+<li>אינסטלציה / חשמל / מיזוג</li>
+</ul>
+<h3>דוגמה:</h3>
+<pre><code>חברת תחזוקה עם 8 טכנאים
+20-50 קריאות שירות ביום
+ניהול מלאי חלפים
+חשבוניות אוטומטיות ללקוח אחרי כל קריאה — במתנה
+</code></pre>
+<hr>
+<h2>חבילת הכל</h2>
+<p><strong>₪499/חודש | 5 משתמשים</strong></p>
+<h3>מודולים:</h3>
+<ul>
+<li>✅ Nexus (ניהול צוות ומשימות)</li>
+<li>✅ System (ניהול לידים ומכירות)</li>
+<li>✅ Social (שיווק ותוכן)</li>
+<li>✅ Client (פורטל לקוחות)</li>
+<li>✅ Operations (קריאות שירות ותפעול)</li>
+<li>✅ Finance (כספים — כלול בכל מקרה)</li>
+</ul>
+<h3>מה כלול:</h3>
+<p><strong>הכל!</strong> כל היכולות של כל 6 המודולים ללא הגבלה.</p>
+<h3>מתאים ל:</h3>
+<ul>
+<li>עסקים עם מספר מחלקות</li>
+<li>חברות צומחות</li>
+<li>מי שצריך הכל במקום אחד</li>
+</ul>
+<h3>דוגמה:</h3>
+<pre><code>חברה עם:
+- צוות מכירות (5 נציגים)
+- צוות שיווק (2 מנהלים)
+- צוות תפעול (8 טכנאים)
+- מחלקת כספים (1 רו&quot;ח)
+סה&quot;כ: 16 משתמשים = ₪499 + (11 × ₪39) = ₪928/חודש
+</code></pre>
+<hr>
+<h2>השוואת חבילות</h2>
+<table>
+<thead>
+<tr>
+<th>יכולת</th>
+<th>סולו</th>
+<th>מכירות</th>
+<th>שיווק</th>
+<th>תפעול</th>
+<th>הכל</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>מחיר</strong></td>
+<td>₪149</td>
+<td>₪249</td>
+<td>₪349</td>
+<td>₪349</td>
+<td>₪499</td>
+</tr>
+<tr>
+<td><strong>משתמשים</strong></td>
+<td>1</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td><strong>Nexus</strong> (צוות)</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>System</strong> (מכירות)</td>
+<td>✅*</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Social</strong> (שיווק)</td>
+<td>✅*</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Client</strong> (לקוחות)</td>
+<td>✅*</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Operations</strong> (תפעול)</td>
+<td>✅*</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>🎁 <strong>Finance</strong> (כספים)</td>
+<td><strong>✅ במתנה</strong></td>
+<td><strong>✅ במתנה</strong></td>
+<td><strong>✅ במתנה</strong></td>
+<td><strong>✅ במתנה</strong></td>
+<td><strong>✅ כלול</strong></td>
+</tr>
+</tbody></table>
+<p>*סולו = בחר מודול אחד</p>
+<hr>
+<h2>🎁 מה כלול במתנה ב-Finance?</h2>
+<p><strong>כל לקוח מקבל את מודול Finance בחינם</strong>, לא משנה איזו חבילה בחר.</p>
+<blockquote>
+<p>💡 <strong>מודול Finance הוא אינטגרציית API</strong> — הוא מתחבר לחברת החשבוניות שלך (Morning, iCount, סמיט ועוד) ומאפשר לך לעבוד מתוך MISRAD AI בלי לפתוח אתר נפרד.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>יכולת</th>
+<th>פירוט</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>חשבוניות (דרך API)</strong></td>
+<td>יצירה, שליחה, מעקב סטטוס — הכל מסונכרן עם חברת החשבוניות שלך</td>
+</tr>
+<tr>
+<td><strong>תזכורות תשלום</strong></td>
+<td>הודעות וואטסאפ אוטומטיות + לינק לתשלום</td>
+</tr>
+<tr>
+<td><strong>הוצאות</strong></td>
+<td>רישום הוצאות, צירוף קבלות, סנכרון עם הנה&quot;ח</td>
+</tr>
+<tr>
+<td><strong>דוחות</strong></td>
+<td>הכנסות/הוצאות, חובות פתוחים, מע&quot;מ (נשלפים מהחברה)</td>
+</tr>
+<tr>
+<td><strong>אינטגרציות</strong></td>
+<td>Morning (חשבונית ירוקה) ✅, בקרוב: iCount, סמיט, EZcount, רווחית, Grow</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>למה במתנה?</strong> כי כל עסק צריך לנהל כספים. אנחנו לא רוצים שתשלם על הבסיס.</p>
+</blockquote>
+<hr>
+<h2>איך לבחור?</h2>
+<h3>שאל את עצמך:</h3>
+<p><strong>1. כמה אנשים ישתמשו?</strong></p>
+<ul>
+<li>1 → סולו</li>
+<li>2-5 → חבילה</li>
+<li>6+ → חבילה + תוספת משתמשים (₪39/משתמש)</li>
+</ul>
+<p><strong>2. מה הצורך העיקרי?</strong></p>
+<ul>
+<li>מכירות ולידים → <strong>חבילת מכירות</strong></li>
+<li>שיווק ותוכן → <strong>חבילת שיווק</strong></li>
+<li>תפעול ושטח → <strong>חבילת תפעול</strong></li>
+<li>הכל → <strong>חבילת הכל</strong></li>
+</ul>
+<p><strong>3. מה התקציב?</strong></p>
+<ul>
+<li>עד ₪200 → סולו</li>
+<li>עד ₪300 → חבילת מכירות</li>
+<li>עד ₪400 → חבילת שיווק / חבילת תפעול</li>
+<li>עד ₪500 → חבילת הכל</li>
+</ul>
+<p><strong>בכל מקרה — Finance במתנה!</strong></p>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./12-%D7%93%D7%95%D7%92%D7%9E%D7%90%D7%95%D7%AA-%D7%9E%D7%97%D7%99%D7%A8.md">דוגמאות מחיר →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-11" style="margin-top:40px;">
+<h1>💵 דוגמאות מחיר - תרחישים אמיתיים</h1>
+<h2>תרחיש 1: עצמאי</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>מעצב עצמאי</li>
+<li>10-15 פרויקטים פעילים</li>
+<li>צריך: חשבוניות + תזכורות</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>סולו (מודול לבחירה): ₪149/חודש
+🎁 + Finance במתנה (חשבוניות, הוצאות, תזכורות תשלום)
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>QuickBooks: ₪85/חודש (פחות יכולות)
+Excel: חינם (הכל ידני)
+</code></pre>
+<p><strong>החלטה:</strong> סולו מתאים ✅</p>
+<hr>
+<h2>תרחיש 2: צוות מכירות קטן</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>3 נציגי מכירות</li>
+<li>50-100 לידים חדשים/חודש</li>
+<li>צריך: CRM + Pipeline</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>חבילת מכירות: ₪249/חודש (5 משתמשים)
+🎁 + Finance במתנה (חשבוניות ותזכורות תשלום)
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>Salesforce Starter: ₪91 × 3 = ₪274/חודש (בסיסי בלבד)
+HubSpot Starter: ₪73 × 3 = ₪219/חודש (בסיסי בלבד)
+Monday Sales CRM Pro: ₪88 × 3 = ₪263/חודש
+
+Salesforce Pro Suite (עם אוטומציות): ₪292 × 3 = ₪876/חודש
+HubSpot Pro (עם אוטומציות + AI): ₪365 × 3 = ₪1,095/חודש + ₪5,475 דמי onboarding
+</code></pre>
+<p><strong>חיסכון:</strong> ₪771-₪1,026/חודש = ₪9,252-₪12,312/שנה</p>
+<p><strong>החלטה:</strong> חבילת מכירות מתאימה ✅</p>
+<hr>
+<h2>תרחיש 3: סוכנות שיווק</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>4 מנהלי תוכן</li>
+<li>12 לקוחות</li>
+<li>200-300 פוסטים/חודש</li>
+<li>פורטל לקוחות לאישורים</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>חבילת שיווק: ₪349/חודש (5 משתמשים)
+🎁 + Finance במתנה
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>HubSpot Marketing Hub Pro: ₪2,920/חודש ($800 בסיס)
+Hootsuite Team: ₪365/חודש
+Monday Pro: ₪88 × 4 = ₪350/חודש
+סה&quot;כ: ₪715-₪3,635/חודש
+</code></pre>
+<p><strong>חיסכון מול HubSpot Marketing:</strong> ₪2,571/חודש = ₪30,852/שנה</p>
+<p><strong>החלטה:</strong> חבילת שיווק מתאימה ✅</p>
+<hr>
+<h2>תרחיש 4: חברת תחזוקה</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>8 טכנאים בשטח</li>
+<li>30-50 קריאות שירות/יום</li>
+<li>ניהול מלאי (500 פריטים)</li>
+<li>חשבוניות אוטומטיות</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>חבילת תפעול: ₪349 (5 משתמשים)
+🎁 + Finance במתנה
++ 3 משתמשים נוספים: ₪117
+סה&quot;כ: ₪466/חודש
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>ServiceMax: ~₪5,000/חודש
+FieldOne: ~₪3,400/חודש
+</code></pre>
+<p><strong>חיסכון:</strong> ₪2,934-₪4,534/חודש = ₪35,208-₪54,408/שנה</p>
+<p><strong>החלטה:</strong> חבילת תפעול מתאימה ✅</p>
+<hr>
+<h2>תרחיש 5: חברה בינונית</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>15 עובדים:<ul>
+<li>5 מכירות</li>
+<li>3 שיווק</li>
+<li>5 תפעול</li>
+<li>2 כספים</li>
+</ul>
+</li>
+<li>צריך הכל</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>חבילת הכל: ₪499 (5 משתמשים, כל 6 המודולים)
++ 10 משתמשים נוספים: ₪390
+סה&quot;כ: ₪889/חודש
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>Salesforce Enterprise (15): ₪602 × 15 = ₪9,030/חודש
+HubSpot Pro (15 seats): ₪365 × 15 = ₪5,475/חודש
+ServiceMax: ~₪5,000/חודש
+סה&quot;כ: ₪9,030-₪19,505/חודש
+</code></pre>
+<p><strong>חיסכון:</strong> ₪25,956/חודש = ₪311,472/שנה (!!)</p>
+<p><strong>החלטה:</strong> חבילת הכל מתאימה ✅</p>
+<hr>
+<h2>תרחיש 6: עסק צומח</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>התחילו עם 3 עובדים</li>
+<li>גדלו ל-12 עובדים</li>
+<li>צפי: 25 עובדים בשנה הבאה</li>
+</ul>
+<p><strong>מסלול:</strong></p>
+<p><strong>שלב 1 (חודשים 1-6):</strong></p>
+<pre><code>חבילת מכירות: ₪249/חודש + 🎁 Finance במתנה
+</code></pre>
+<p><strong>שלב 2 (חודשים 7-12):</strong></p>
+<pre><code>חבילת הכל: ₪499 (5 משתמשים)
++ 7 משתמשים: ₪273
+סה&quot;כ: ₪772/חודש
+</code></pre>
+<p><strong>שלב 3 (שנה 2):</strong></p>
+<pre><code>חבילת הכל: ₪499 (5 משתמשים)
++ 20 משתמשים: ₪780
+סה&quot;כ: ₪1,279/חודש
+</code></pre>
+<p><strong>לעומת Salesforce (25 משתמשים):</strong></p>
+<pre><code>₪602 × 25 = ₪15,050/חודש
+חיסכון: ₪13,771/חודש = ₪165,252/שנה
+</code></pre>
+<hr>
+<h2>תרחיש 7: ארגון ללא מטרות רווח</h2>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>עמותה רשומה</li>
+<li>6 עובדים</li>
+<li>תקציב מוגבל</li>
+</ul>
+<p><strong>פתרון:</strong></p>
+<pre><code>חבילת הכל: ₪499/חודש
++ משתמש נוסף: ₪39
+סה&quot;כ: ₪538/חודש
+מבצע עמותות (50%): ₪269/חודש
+</code></pre>
+<p><strong>לעומת:</strong></p>
+<pre><code>Salesforce Nonprofit (50% off Enterprise): ₪602 × 6 × 0.5 = ₪1,806/חודש
+</code></pre>
+<p><strong>חיסכון:</strong> ₪1,537/חודש = ₪18,444/שנה</p>
+<hr>
+<h2>השוואת ROI</h2>
+<h3>דוגמה: צוות מכירות</h3>
+<p><strong>השקעה ב-Misrad-AI:</strong></p>
+<pre><code>חבילת מכירות: ₪249/חודש = ₪2,988/שנה
+🎁 + Finance במתנה
+</code></pre>
+<p><strong>תוצאות (ממוצע):</strong></p>
+<ul>
+<li>⏱️ חיסכון 5 שעות/שבוע/נציג = 15 שעות/שבוע</li>
+<li>💰 15 שעות × ₪150/שעה × 52 שבועות = ₪117,000/שנה</li>
+<li>📈 שיפור 10% בסגירת עסקאות = +₪50,000-₪200,000/שנה</li>
+</ul>
+<p><strong>ROI:</strong> 5,900%-7,900%</p>
+<hr>
+<h2>מתי <strong>לא</strong> כדאי?</h2>
+<h3>תרחיש X: חברה ענקית</h3>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>500+ עובדים</li>
+<li>צרכים מורכבים מאוד</li>
+<li>צוות IT מסור</li>
+<li>תקציב ₪100,000+/חודש</li>
+</ul>
+<p><strong>המלצה:</strong> Salesforce Enterprise ✅</p>
+<p><strong>למה?</strong></p>
+<ul>
+<li>Misrad-AI לא מותאם ל-500 משתמשים</li>
+<li>חסר תמיכה 24/7</li>
+<li>חסר SLA ארגוני</li>
+</ul>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./13-%D7%A9%D7%9B%D7%91%D7%95%D7%AA-%D7%90%D7%91%D7%98%D7%97%D7%94.md">שכבות אבטחה</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-12" style="margin-top:40px;">
+<h1>🔒 שכבות אבטחה - 7 רמות הגנה</h1>
+<h2>שכבה 1: Clerk Authentication</h2>
+<p><strong>מה זה:</strong>
+פלטפורמת אימות מתקדמת.</p>
+<p><strong>מה זה מגן:</strong></p>
+<ul>
+<li>✅ Password hashing (bcrypt)</li>
+<li>✅ 2FA (Two-Factor)</li>
+<li>✅ Session Management</li>
+<li>✅ Rate limiting</li>
+<li>✅ Brute force protection</li>
+</ul>
+<p><strong>זמן חסימה:</strong></p>
+<ul>
+<li>5 ניסיונות כושלים → 15 דקות חסימה</li>
+<li>10 ניסיונות → 1 שעה</li>
+<li>20 ניסיונות → 24 שעות</li>
+</ul>
+<hr>
+<h2>שכבה 2: Tenant Guard</h2>
+<p><strong>מה זה:</strong>
+Middleware שמסנן אוטומטית לפי <code>organization_id</code>.</p>
+<p><strong>קוד:</strong></p>
+<pre><code class="language-typescript">async function getTasks() {
+  const orgId = await getOrganizationId();
+  
+  return prisma.task.findMany({
+    where: { organizationId: orgId }
+  });
+}
+</code></pre>
+<p><strong>מה קורה אם מנסים לעקוף:</strong></p>
+<pre><code class="language-typescript">// ניסיון גישה לארגון אחר
+prisma.task.findMany({
+  where: { organizationId: &quot;other-org-id&quot; }
+});
+
+// תוצאה: [] (ריק)
+// למה? Guard מוסיף תנאי נוסף שתמיד false
+</code></pre>
+<hr>
+<h2>שכבה 3: Row Level Security (RLS)</h2>
+<p><strong>מה זה:</strong>
+הגנה ב-Database עצמו.</p>
+<p><strong>קוד SQL:</strong></p>
+<pre><code class="language-sql">CREATE POLICY &quot;org_isolation&quot;
+ON nexus_tasks
+USING (organization_id = current_setting(&#39;app.organization_id&#39;)::uuid);
+
+ALTER TABLE nexus_tasks ENABLE ROW LEVEL SECURITY;
+</code></pre>
+<p><strong>משמעות:</strong>
+גם אם אני אכתוב SQL ישיר, PostgreSQL יסנן!</p>
+<hr>
+<h2>שכבה 4: API Guards</h2>
+<p><strong>מה זה:</strong>
+בדיקות בכל Server Action.</p>
+<p><strong>קוד:</strong></p>
+<pre><code class="language-typescript">export async function createTask(data) {
+  // 1. אימות
+  const session = await auth();
+  if (!session) throw new Error(&#39;Unauthorized&#39;);
+  
+  // 2. ארגון
+  const orgId = await getOrganizationId();
+  if (!orgId) throw new Error(&#39;No org&#39;);
+  
+  // 3. הרשאות
+  const canCreate = await checkPermission(&#39;create_task&#39;);
+  if (!canCreate) throw new Error(&#39;Forbidden&#39;);
+  
+  // 4. Rate Limit
+  const allowed = await checkRateLimit(&#39;create_task&#39;);
+  if (!allowed) throw new Error(&#39;Rate limit&#39;);
+  
+  // 5. יצירה
+  return prisma.task.create({
+    data: { ...data, organizationId: orgId }
+  });
+}
+</code></pre>
+<hr>
+<h2>שכבה 5: AI Security</h2>
+<p><strong>סינון נתונים רגישים:</strong></p>
+<pre><code class="language-typescript">const SENSITIVE_FIELDS = [
+  &#39;email&#39;, &#39;phone&#39;, &#39;password&#39;,
+  &#39;hourlyRate&#39;, &#39;monthlySalary&#39;,
+  &#39;creditCard&#39;, &#39;ssn&#39;, &#39;idNumber&#39;
+];
+
+function sanitizeForAI(data) {
+  return filterFields(data, SENSITIVE_FIELDS);
+}
+</code></pre>
+<p><strong>דוגמה:</strong></p>
+<pre><code class="language-typescript">// לפני שליחה ל-AI
+const user = { 
+  name: &quot;John&quot;, 
+  email: &quot;john@example.com&quot;,  // 🔒 רגיש
+  salary: 15000  // 🔒 רגיש
+};
+
+const sanitized = sanitizeForAI(user);
+// { name: &quot;John&quot; }
+</code></pre>
+<hr>
+<h2>שכבה 6: Audit Logging</h2>
+<p><strong>מה נרשם:</strong></p>
+<ul>
+<li>מי (user_id)</li>
+<li>מתי (timestamp)</li>
+<li>מה (action)</li>
+<li>איפה (resource_id)</li>
+<li>תוצאה (success/failure)</li>
+</ul>
+<p><strong>דוגמה:</strong></p>
+<pre><code class="language-json">{
+  &quot;user_id&quot;: &quot;user_123&quot;,
+  &quot;action&quot;: &quot;lead.delete&quot;,
+  &quot;resource_id&quot;: &quot;lead_456&quot;,
+  &quot;organization_id&quot;: &quot;org_789&quot;,
+  &quot;ip&quot;: &quot;1.2.3.4&quot;,
+  &quot;timestamp&quot;: &quot;2026-02-10T11:00:00Z&quot;,
+  &quot;success&quot;: true
+}
+</code></pre>
+<p><strong>שמירה:</strong> 90 יום</p>
+<hr>
+<h2>שכבה 7: Encrypted Backups</h2>
+<p><strong>גיבוי:</strong></p>
+<ul>
+<li>יומי אוטומטי</li>
+<li>הצפנה AES-256</li>
+<li>שמירה ל-30 יום</li>
+</ul>
+<p><strong>שחזור:</strong></p>
+<ul>
+<li>נקודת שחזור (Point-in-time)</li>
+<li>עד 30 יום אחורה</li>
+</ul>
+<hr>
+<h2>תקני אבטחה</h2>
+<h3>GDPR Compliance</h3>
+<p>✅ זכות למחיקה<br>✅ זכות לייצוא<br>✅ שקיפות<br>✅ Consent management</p>
+<h3>Data Residency</h3>
+<p>✅ EU servers (אופציה)<br>✅ מיקום נתונים ידוע</p>
+<h3>Security Scans</h3>
+<p>✅ Dependency scanning (npm audit)<br>✅ SAST (Static Analysis)<br>✅ Penetration testing (שנתי)</p>
+<hr>
+<h2>Incident Response</h2>
+<p><strong>אם יש חשד לפריצה:</strong></p>
+<ol>
+<li><p><strong>זיהוי</strong> (תוך דקות)</p>
+<ul>
+<li>התראה אוטומטית</li>
+<li>ניתוח logs</li>
+</ul>
+</li>
+<li><p><strong>בידוד</strong> (תוך שעה)</p>
+<ul>
+<li>חסימת חשבון חשוד</li>
+<li>סגירת גישות</li>
+</ul>
+</li>
+<li><p><strong>תיקון</strong> (תוך 24 שעות)</p>
+<ul>
+<li>Patch אבטחה</li>
+<li>איפוס סיסמאות</li>
+</ul>
+</li>
+<li><p><strong>דיווח</strong> (תוך 72 שעות)</p>
+<ul>
+<li>הודעה ללקוחות מושפעים</li>
+<li>דיווח לרשויות (אם נדרש)</li>
+</ul>
+</li>
+</ol>
+<hr>
+<h2>Limitations (כנות)</h2>
+<p>❌ <strong>אין SOC 2 Type II</strong><br>❌ <strong>אין ISO 27001</strong><br>❌ <strong>אין Penetration tests חודשיים</strong></p>
+<p><strong>אם צריך תקנים אלה → לך על AWS/Azure.</strong></p>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./14-%D7%90%D7%99%D7%9E%D7%95%D7%AA-%D7%95%D7%94%D7%A8%D7%A9%D7%90%D7%95%D7%AA.md">אימות והרשאות</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-13" style="margin-top:40px;">
+<h1>🔐 אימות והרשאות</h1>
+<h2>Clerk - פלטפורמת אימות</h2>
+<p><strong>מה זה:</strong>
+שירות אימות מנוהל לאפליקציות מודרניות.</p>
+<p><strong>מה זה מספק:</strong></p>
+<ul>
+<li>✅ Email/Password</li>
+<li>✅ Social Login (Google, Apple, Microsoft)</li>
+<li>✅ 2FA (Two-Factor Authentication)</li>
+<li>✅ Password Reset</li>
+<li>✅ Session Management</li>
+<li>✅ Rate Limiting</li>
+<li>✅ Brute Force Protection</li>
+</ul>
+<hr>
+<h2>Authentication Flow</h2>
+<pre><code>1. משתמש → Clerk Login Page
+2. הזנת פרטים (Email + Password)
+3. Clerk → אימות
+4. Clerk → JWT Token
+5. Token → Next.js Middleware
+6. Middleware → Session
+7. Session → getOrganizationId()
+8. organizationId → Database Query
+</code></pre>
+<p><strong>זמן:</strong> 2-3 שניות</p>
+<hr>
+<h2>Session Management</h2>
+<p><strong>Token:</strong></p>
+<ul>
+<li>JWT (JSON Web Token)</li>
+<li>תוקף: 1 שעה</li>
+<li>Refresh: אוטומטי</li>
+<li>אחסון: httpOnly Cookie</li>
+</ul>
+<p><strong>בטיחות:</strong></p>
+<ul>
+<li>אי אפשר לגשת מ-JavaScript</li>
+<li>אי אפשר לשנות</li>
+<li>אי אפשר לזייף</li>
+</ul>
+<hr>
+<h2>RBAC - Role-Based Access Control</h2>
+<h3>תפקידים (Roles)</h3>
+<p><strong>1. Admin</strong></p>
+<ul>
+<li>כל ההרשאות</li>
+<li>ניהול משתמשים</li>
+<li>הגדרות מערכת</li>
+<li>מחיקת נתונים</li>
+</ul>
+<p><strong>2. Manager</strong></p>
+<ul>
+<li>צפייה בכל הנתונים</li>
+<li>יצירה ועריכה</li>
+<li>לא מחיקה קריטית</li>
+<li>לא הגדרות מערכת</li>
+</ul>
+<p><strong>3. Member</strong></p>
+<ul>
+<li>צפייה בנתונים שלו</li>
+<li>יצירה ועריכה בסיסית</li>
+<li>לא צפייה במשכורות</li>
+<li>לא מחיקה</li>
+</ul>
+<p><strong>4. Viewer</strong></p>
+<ul>
+<li>צפייה בלבד</li>
+<li>לא עריכה</li>
+<li>לא יצירה</li>
+<li>לא מחיקה</li>
+</ul>
+<hr>
+<h2>הרשאות (Permissions)</h2>
+<h3>Nexus</h3>
+<pre><code class="language-typescript">- view_dashboard
+- view_tasks
+- create_task
+- edit_task
+- delete_task
+- view_team
+- edit_team
+- view_time_entries
+- view_financials (Admin בלבד!)
+</code></pre>
+<h3>System</h3>
+<pre><code class="language-typescript">- view_leads
+- create_lead
+- edit_lead
+- delete_lead
+- view_all_leads (Manager+)
+- view_pipeline
+- edit_pipeline
+</code></pre>
+<h3>Social</h3>
+<pre><code class="language-typescript">- view_posts
+- create_post
+- edit_post
+- delete_post
+- publish_post
+- view_analytics
+</code></pre>
+<hr>
+<h2>בדיקת הרשאות - קוד</h2>
+<pre><code class="language-typescript">// app/actions/tasks.ts
+&#39;use server&#39;;
+
+export async function deleteTask(taskId: string) {
+  // 1. אימות
+  const session = await auth();
+  if (!session) throw new Error(&#39;Unauthorized&#39;);
+  
+  // 2. בדיקת הרשאה
+  const hasPermission = await checkPermission(
+    session.userId,
+    &#39;delete_task&#39;
+  );
+  
+  if (!hasPermission) {
+    throw new Error(&#39;Forbidden: אין הרשאה למחוק משימות&#39;);
+  }
+  
+  // 3. ביצוע
+  await prisma.task.delete({ where: { id: taskId } });
+}
+</code></pre>
+<hr>
+<h2>מטריצת הרשאות</h2>
+<table>
+<thead>
+<tr>
+<th>פעולה</th>
+<th>Admin</th>
+<th>Manager</th>
+<th>Member</th>
+<th>Viewer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>צפייה במשימות</td>
+<td>✅ כולם</td>
+<td>✅ כולם</td>
+<td>✅ שלו</td>
+<td>✅ כולם</td>
+</tr>
+<tr>
+<td>יצירת משימה</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>עריכת משימה</td>
+<td>✅ כולם</td>
+<td>✅ כולם</td>
+<td>✅ שלו</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>מחיקת משימה</td>
+<td>✅</td>
+<td>✅ שלו</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>צפייה במשכורות</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>ניהול צוות</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>הגדרות מערכת</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Custom Permissions (התאמה אישית)</h2>
+<p><strong>אפשר להוסיף הרשאות מותאמות:</strong></p>
+<pre><code class="language-typescript">// דוגמה: הרשאה לצפייה במחירים
+const canViewPricing = await checkPermission(
+  userId,
+  &#39;view_pricing&#39;
+);
+
+// דוגמה: הרשאה לאישור חשבוניות
+const canApproveInvoices = await checkPermission(
+  userId,
+  &#39;approve_invoices&#39;
+);
+</code></pre>
+<hr>
+<h2>API Key Authentication</h2>
+<p><strong>לשימוש ב-API:</strong></p>
+<pre><code class="language-bash">curl -X POST https://misrad-ai.app/api/leads \
+  -H &quot;Authorization: Bearer sk_live_abc123...&quot; \
+  -d &#39;{&quot;name&quot;: &quot;John Doe&quot;}&#39;
+</code></pre>
+<p><strong>יצירת API Key:</strong></p>
+<ol>
+<li>הגדרות → API Keys</li>
+<li>יצירת מפתח חדש</li>
+<li>שמירה (מוצג פעם אחת!)</li>
+<li>שימוש בכל קריאה</li>
+</ol>
+<p><strong>אבטחה:</strong></p>
+<ul>
+<li>Prefix: <code>sk_live_</code> או <code>sk_test_</code></li>
+<li>Hash: SHA-256</li>
+<li>Expiration: ללא (עד ביטול)</li>
+<li>Rate Limit: 1000/שעה</li>
+</ul>
+<hr>
+<h2>2FA (Two-Factor Authentication)</h2>
+<p><strong>מה זה:</strong>
+שכבת אבטחה נוספת.</p>
+<p><strong>איך זה עובד:</strong></p>
+<ol>
+<li>התחברות עם סיסמה</li>
+<li>קוד נשלח ל-SMS/Email/App</li>
+<li>הזנת קוד</li>
+<li>גישה מאושרת</li>
+</ol>
+<p><strong>מומלץ ל:</strong></p>
+<ul>
+<li>Admins (חובה!)</li>
+<li>כל מי שיש לו גישה לנתונים רגישים</li>
+</ul>
+<hr>
+<h2>Session Timeout</h2>
+<p><strong>חוסר פעילות:</strong></p>
+<ul>
+<li>30 דקות → התנתקות אוטומטית</li>
+<li>24 שעות → Refresh Token פג תוקף</li>
+</ul>
+<p><strong>אפשר להאריך:</strong>
+הגדרות → אבטחה → Session Timeout</p>
+<hr>
+<h2>Password Policy</h2>
+<p><strong>דרישות מינימום:</strong></p>
+<ul>
+<li>8 תווים</li>
+<li>אות גדולה</li>
+<li>אות קטנה</li>
+<li>מספר</li>
+<li>תו מיוחד (!, @, #...)</li>
+</ul>
+<p><strong>מומלץ:</strong></p>
+<ul>
+<li>12+ תווים</li>
+<li>Password Manager</li>
+<li>ייחודי לכל שירות</li>
+</ul>
+<hr>
+<h2>Audit Log - מעקב פעולות</h2>
+<p><strong>מה נרשם:</strong></p>
+<pre><code class="language-json">{
+  &quot;user_id&quot;: &quot;user_123&quot;,
+  &quot;action&quot;: &quot;user.login&quot;,
+  &quot;ip&quot;: &quot;1.2.3.4&quot;,
+  &quot;user_agent&quot;: &quot;Chrome 120&quot;,
+  &quot;timestamp&quot;: &quot;2026-02-10T11:00:00Z&quot;,
+  &quot;success&quot;: true
+}
+</code></pre>
+<p><strong>פעולות מתועדות:</strong></p>
+<ul>
+<li>התחברות/התנתקות</li>
+<li>שינוי סיסמה</li>
+<li>יצירת/עריכת/מחיקת רשומות</li>
+<li>שינוי הרשאות</li>
+<li>ייצוא נתונים</li>
+</ul>
+<p><strong>שמירה:</strong> 90 יום</p>
+<hr>
+<h2>IP Whitelisting (אופציונלי)</h2>
+<p><strong>הגבלת גישה לפי IP:</strong></p>
+<pre><code>רק מהמשרד: 1.2.3.4
+רק מישראל: GeoIP IL
+</code></pre>
+<p><strong>מתאים ל:</strong></p>
+<ul>
+<li>חברות עם משרד פיזי</li>
+<li>דרישות אבטחה גבוהות</li>
+</ul>
+<p><strong>לא מומלץ ל:</strong></p>
+<ul>
+<li>עבודה מרחוק</li>
+<li>צוותים מבוזרים</li>
+</ul>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./15-%D7%94%D7%92%D7%A0%D7%AA-%D7%A0%D7%AA%D7%95%D7%A0%D7%99%D7%9D.md">הגנת נתונים</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-14" style="margin-top:40px;">
+<h1>🛡️ הגנת נתונים ופרטיות</h1>
+<h2>Data Encryption</h2>
+<h3>בשידור (In Transit)</h3>
+<p><strong>TLS 1.3:</strong></p>
+<ul>
+<li>כל התקשורת מוצפנת</li>
+<li>Certificate: Let&#39;s Encrypt</li>
+<li>Grade A+ (SSL Labs)</li>
+</ul>
+<pre><code>Client → HTTPS → Server
+לא ניתן לצותת!
+</code></pre>
+<h3>באחסון (At Rest)</h3>
+<p><strong>PostgreSQL Encryption:</strong></p>
+<ul>
+<li>Disk-level encryption</li>
+<li>AES-256</li>
+<li>Managed by provider (Vercel/Supabase)</li>
+</ul>
+<p><strong>File Storage:</strong></p>
+<ul>
+<li>Supabase Storage</li>
+<li>Encrypted at rest</li>
+<li>Encrypted in transit</li>
+</ul>
+<hr>
+<h2>Data Residency</h2>
+<p><strong>איפה הנתונים:</strong></p>
+<ul>
+<li><strong>Database:</strong> EU (Frankfurt) או US (Oregon)</li>
+<li><strong>Files:</strong> EU או US</li>
+<li><strong>Backups:</strong> אותו אזור</li>
+</ul>
+<p><strong>בחירה:</strong>
+הגדרות → Data Residency → בחר אזור</p>
+<p><strong>GDPR:</strong>
+נתונים באירופה = GDPR compliant</p>
+<hr>
+<h2>Backup &amp; Recovery</h2>
+<h3>גיבוי אוטומטי</h3>
+<p><strong>תדירות:</strong></p>
+<ul>
+<li>Database: יומי (02:00 UTC)</li>
+<li>Files: continuous backup</li>
+<li>Audit Logs: שבועי</li>
+</ul>
+<p><strong>שמירה:</strong></p>
+<ul>
+<li>30 יום אחורה</li>
+<li>Point-in-time recovery</li>
+</ul>
+<p><strong>מיקום:</strong></p>
+<ul>
+<li>אזור שונה (Disaster Recovery)</li>
+<li>Encrypted</li>
+</ul>
+<h3>גיבוי ידני</h3>
+<p><strong>ייצוא נתונים:</strong></p>
+<pre><code>הגדרות → ייצוא נתונים
+├── SQL (מלא)
+├── CSV (לפי טבלה)
+└── JSON (API-friendly)
+</code></pre>
+<p><strong>זמן:</strong></p>
+<ul>
+<li>עד 1,000 רשומות: 30 שניות</li>
+<li>עד 10,000 רשומות: 5 דקות</li>
+<li>10,000+ רשומות: 10-30 דקות</li>
+</ul>
+<hr>
+<h2>Data Retention</h2>
+<p><strong>כמה זמן שומרים נתונים:</strong></p>
+<p><strong>רשומות פעילות:</strong></p>
+<ul>
+<li>ללא הגבלה (כל עוד יש מנוי)</li>
+</ul>
+<p><strong>רשומות מחוקות (Soft Delete):</strong></p>
+<ul>
+<li>30 יום</li>
+<li>לאחר מכן: מחיקה סופית</li>
+</ul>
+<p><strong>Audit Logs:</strong></p>
+<ul>
+<li>90 יום</li>
+<li>אפשר להאריך ל-365 יום (תוספת תשלום)</li>
+</ul>
+<p><strong>Backups:</strong></p>
+<ul>
+<li>30 יום</li>
+</ul>
+<hr>
+<h2>GDPR Compliance</h2>
+<h3>זכויות משתמש</h3>
+<p><strong>1. Right to Access</strong></p>
+<pre><code>משתמש יכול לבקש: &quot;תן לי את כל הנתונים שלי&quot;
+זמן מענה: 30 יום
+פורמט: JSON/CSV
+</code></pre>
+<p><strong>2. Right to Erasure (Right to be Forgotten)</strong></p>
+<pre><code>משתמש יכול לבקש: &quot;מחק את כל הנתונים שלי&quot;
+זמן ביצוע: 7 ימים
+מחיקה: סופית ובלתי הפיכה
+</code></pre>
+<p><strong>3. Right to Rectification</strong></p>
+<pre><code>משתמש יכול לבקש: &quot;תקן נתון שגוי&quot;
+זמן ביצוע: מיידי
+</code></pre>
+<p><strong>4. Right to Portability</strong></p>
+<pre><code>משתמש יכול לבקש: &quot;תן לי את הנתונים בפורמט שימושי&quot;
+פורמט: CSV/JSON
+זמן: 24 שעות
+</code></pre>
+<h3>Data Processing Agreement (DPA)</h3>
+<p><strong>זמין ללקוחות:</strong></p>
+<ul>
+<li>חוזה DPA סטנדרטי</li>
+<li>תנאי GDPR</li>
+<li>Sub-processors list</li>
+</ul>
+<hr>
+<h2>Privacy by Design</h2>
+<h3>מינימיזציה</h3>
+<p><strong>אוספים רק מה שצריך:</strong></p>
+<ul>
+<li>שם, מייל (חובה)</li>
+<li>טלפון (אופציונלי)</li>
+<li>לא אוספים: מיקום, גיל, מגדר (אלא אם נדרש לעסק)</li>
+</ul>
+<h3>Pseudonymization</h3>
+<p><strong>מזהים:</strong></p>
+<ul>
+<li>UUID במקום שמות</li>
+<li>Hash במקום סיסמאות</li>
+<li>Masked data בלוגים</li>
+</ul>
+<p><strong>דוגמה:</strong></p>
+<pre><code>Log: user_123 deleted lead_456
+לא: John Doe deleted ABC Corp
+</code></pre>
+<hr>
+<h2>AI Data Security</h2>
+<h3>סינון אוטומטי</h3>
+<pre><code class="language-typescript">// שדות שלא נשלחים ל-AI
+const SENSITIVE_FIELDS = [
+  &#39;email&#39;,
+  &#39;phone&#39;, 
+  &#39;password&#39;,
+  &#39;hourlyRate&#39;,
+  &#39;monthlySalary&#39;,
+  &#39;creditCard&#39;,
+  &#39;ssn&#39;,
+  &#39;idNumber&#39;
+];
+</code></pre>
+<h3>Audit AI Calls</h3>
+<p><strong>כל קריאת AI נרשמת:</strong></p>
+<pre><code class="language-json">{
+  &quot;user_id&quot;: &quot;user_123&quot;,
+  &quot;prompt_type&quot;: &quot;analyze_call&quot;,
+  &quot;data_sent&quot;: &quot;call transcript (sanitized)&quot;,
+  &quot;tokens_used&quot;: 1500,
+  &quot;timestamp&quot;: &quot;2026-02-10T11:00:00Z&quot;
+}
+</code></pre>
+<p><strong>לא שומרים:</strong></p>
+<ul>
+<li>Prompt מלא</li>
+<li>Response מלא</li>
+</ul>
+<p><strong>שומרים:</strong></p>
+<ul>
+<li>Metadata</li>
+<li>Token count</li>
+<li>Summary</li>
+</ul>
+<hr>
+<h2>Data Breach Protocol</h2>
+<p><strong>אם קורה פריצה/דליפה:</strong></p>
+<p><strong>1. זיהוי (Detection)</strong></p>
+<ul>
+<li>תוך דקות: התראה אוטומטית</li>
+<li>ניתוח היקף</li>
+</ul>
+<p><strong>2. הכלה (Containment)</strong></p>
+<ul>
+<li>תוך שעה: סגירת גישות</li>
+<li>בידוד מערכות מושפעות</li>
+</ul>
+<p><strong>3. חקירה (Investigation)</strong></p>
+<ul>
+<li>תוך 24 שעות: הבנת הנזק</li>
+<li>מה נחשף?</li>
+<li>כמה משתמשים הושפעו?</li>
+</ul>
+<p><strong>4. דיווח (Notification)</strong></p>
+<ul>
+<li>תוך 72 שעות: דיווח לרשויות (GDPR)</li>
+<li>תוך 7 ימים: הודעה למשתמשים מושפעים</li>
+</ul>
+<p><strong>5. תיקון (Remediation)</strong></p>
+<ul>
+<li>Patch אבטחה</li>
+<li>שינוי סיסמאות</li>
+<li>Lessons learned</li>
+</ul>
+<hr>
+<h2>Data Sharing</h2>
+<h3>עם מי משתפים נתונים?</h3>
+<p><strong>Sub-Processors:</strong></p>
+<ol>
+<li><strong>Vercel</strong> - Hosting</li>
+<li><strong>Supabase</strong> - Storage</li>
+<li><strong>Clerk</strong> - Authentication</li>
+<li><strong>Google</strong> - AI (Gemini)</li>
+<li><strong>Resend</strong> - Email</li>
+</ol>
+<p><strong>לא משתפים:</strong></p>
+<ul>
+<li>פרסומות</li>
+<li>Third parties</li>
+<li>מכירת נתונים</li>
+</ul>
+<h3>Cookie Policy</h3>
+<p><strong>Cookies שאנחנו משתמשים:</strong></p>
+<p><strong>Essential (חיוני):</strong></p>
+<ul>
+<li>Session cookie</li>
+<li>CSRF token</li>
+</ul>
+<p><strong>Analytics (אנליטיקה):</strong></p>
+<ul>
+<li>אופציונלי</li>
+<li>ניתן לסרב</li>
+</ul>
+<p><strong>לא משתמשים:</strong></p>
+<ul>
+<li>Marketing cookies</li>
+<li>Tracking cookies</li>
+</ul>
+<hr>
+<h2>User Data Export</h2>
+<p><strong>פורמט ייצוא:</strong></p>
+<pre><code class="language-json">{
+  &quot;user&quot;: {
+    &quot;name&quot;: &quot;John Doe&quot;,
+    &quot;email&quot;: &quot;john@example.com&quot;,
+    &quot;created_at&quot;: &quot;2026-01-01T00:00:00Z&quot;
+  },
+  &quot;tasks&quot;: [...],
+  &quot;leads&quot;: [...],
+  &quot;invoices&quot;: [...]
+}
+</code></pre>
+<p><strong>זמן:</strong></p>
+<ul>
+<li>עד 1 MB: מיידי</li>
+<li>עד 100 MB: 5-10 דקות</li>
+<li>100 MB+: 30-60 דקות</li>
+</ul>
+<hr>
+<h2>Data Anonymization</h2>
+<p><strong>מתי:</strong></p>
+<ul>
+<li>לפני מחיקת חשבון</li>
+<li>לדוחות Analytics</li>
+<li>לשיתוף עם Support</li>
+</ul>
+<p><strong>איך:</strong></p>
+<pre><code>John Doe → User_123
+john@example.com → ***@***.***
+050-1234567 → ***-***7
+</code></pre>
+<hr>
+<h2>Compliance Certificates</h2>
+<p><strong>מה יש:</strong>
+✅ GDPR (EU General Data Protection Regulation)<br>✅ Privacy Policy מפורט<br>✅ Terms of Service<br>✅ DPA (Data Processing Agreement)</p>
+<p><strong>מה אין:</strong>
+❌ SOC 2 Type II<br>❌ ISO 27001<br>❌ HIPAA (רפואה)<br>❌ PCI DSS (כרטיסי אשראי - מטופל ע&quot;י Stripe)</p>
+<p><strong>אם צריך - לך על AWS/Azure.</strong></p>
+<hr>
+<h2>Self-Hosting Option</h2>
+<p><strong>רוצה שליטה מלאה?</strong></p>
+<p><strong>חבילת Self-Hosted:</strong></p>
+<ul>
+<li>₪5,000 חד-פעמי</li>
+<li>קוד מקור מלא</li>
+<li>הוראות התקנה</li>
+<li>תמיכה בהתקנה (5 שעות)</li>
+</ul>
+<p><strong>דרישות:</strong></p>
+<ul>
+<li>VPS (2 CPU, 4GB RAM)</li>
+<li>PostgreSQL 14+</li>
+<li>Node.js 18+</li>
+<li>ידע טכני</li>
+</ul>
+<p><strong>תחזוקה:</strong></p>
+<ul>
+<li>על אחריותך</li>
+<li>עדכוני אבטחה - ידני</li>
+<li>גיבויים - ידני</li>
+</ul>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./16-%D7%99%D7%9B%D7%95%D7%9C%D7%95%D7%AA-ai.md">יכולות AI</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-15" style="margin-top:40px;">
+<h1>🤖 יכולות AI — Misrad-AI</h1>
+<h2>המנוע</h2>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>מנוע</strong></td>
+<td>Google Gemini 2.0 Flash</td>
+</tr>
+<tr>
+<td><strong>SDK</strong></td>
+<td>Vercel AI SDK (<code>@ai-sdk/google</code>)</td>
+</tr>
+<tr>
+<td><strong>מהירות</strong></td>
+<td>~2-5 שניות לתשובה</td>
+</tr>
+<tr>
+<td><strong>שפות</strong></td>
+<td>עברית ✅, אנגלית ✅</td>
+</tr>
+<tr>
+<td><strong>Output</strong></td>
+<td>Structured JSON, Streaming, Free text</td>
+</tr>
+<tr>
+<td><strong>אבטחה</strong></td>
+<td>סינון שדות רגישים, Audit Log</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>יכולות לפי מודול</h2>
+<h3>System — ניתוח שיחות מכירה ⭐</h3>
+<p><strong>הפיצ&#39;ר החזק ביותר של ה-AI.</strong></p>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ציון שיחה</strong></td>
+<td>0-100 — AI מנתח את איכות השיחה</td>
+</tr>
+<tr>
+<td><strong>רגש</strong></td>
+<td>חיובי / ניטרלי / שלילי</td>
+</tr>
+<tr>
+<td><strong>נושאים</strong></td>
+<td>מה עלה בשיחה (מחיר, מתחרים, timeline...)</td>
+</tr>
+<tr>
+<td><strong>התנגדויות</strong></td>
+<td>מה הלקוח אמר נגד (&quot;יקר&quot;, &quot;צריך לחשוב&quot;)</td>
+</tr>
+<tr>
+<td><strong>נקודות חיכוך</strong></td>
+<td>רגעים בעייתיים (&quot;דקה 3: היסוס על מחיר&quot;)</td>
+</tr>
+<tr>
+<td><strong>המלצות</strong></td>
+<td>מה לעשות עכשיו (&quot;שלח הצעה&quot;, &quot;חזור ביום חמישי&quot;)</td>
+</tr>
+<tr>
+<td><strong>סיכום</strong></td>
+<td>2-3 משפטים שמסכמים את השיחה</td>
+</tr>
+</tbody></table>
+<p><strong>Output דוגמה:</strong></p>
+<pre><code class="language-json">{
+  &quot;score&quot;: 85,
+  &quot;sentiment&quot;: &quot;positive&quot;,
+  &quot;topics&quot;: [&quot;pricing&quot;, &quot;features&quot;, &quot;timeline&quot;],
+  &quot;objections&quot;: [&quot;too expensive&quot;, &quot;need to consult partner&quot;],
+  &quot;friction_points&quot;: [&quot;minute 3:12 — hesitation on annual commitment&quot;],
+  &quot;next_steps&quot;: [&quot;Send proposal by Wednesday&quot;, &quot;Follow up Thursday&quot;],
+  &quot;summary&quot;: &quot;שיחה חיובית. הלקוח מעוניין אך מתלבט בהתחייבות שנתית. המליצו לשלוח הצעה עם אופציית חודשי.&quot;
+}
+</code></pre>
+<h3>System — Lead Scoring</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ציון אוטומטי</strong></td>
+<td>0-100 לפי פעילות, מקור, גודל עסקה</td>
+</tr>
+<tr>
+<td><strong>עדכון דינמי</strong></td>
+<td>הציון משתנה לפי אינטראקציות</td>
+</tr>
+<tr>
+<td><strong>התראה</strong></td>
+<td>Score &gt; 80 → התראה לנציג</td>
+</tr>
+</tbody></table>
+<pre><code>Lead נכנס → AI מנתח (source + value + activity) → Score 73
+נציג מתקשר → שיחה חיובית → Score עולה ל-85 → ⚠️ התראה
+</code></pre>
+<h3>Social — Content Machine ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>יצירת תוכן</strong></td>
+<td>הזן נושא → 3 וריאציות</td>
+</tr>
+<tr>
+<td><strong>התאמת פלטפורמה</strong></td>
+<td>Facebook, Instagram, LinkedIn — סגנון שונה</td>
+</tr>
+<tr>
+<td><strong>הצעות תמונה</strong></td>
+<td>AI מציע תיאור Visual</td>
+</tr>
+<tr>
+<td><strong>אופטימיזציה</strong></td>
+<td>שפר טקסט קיים</td>
+</tr>
+<tr>
+<td><strong>שפות</strong></td>
+<td>עברית + אנגלית</td>
+</tr>
+</tbody></table>
+<p><strong>דוגמה:</strong></p>
+<pre><code>Input: &quot;פוסט על השקת מוצר חדש — מערכת ניהול לעסקים קטנים&quot;
+
+Output:
+├── Facebook:
+│   &quot;🚀 השקנו! מערכת ניהול חדשנית לעסקים קטנים.
+│    6 מודולים, מחיר אחד, AI משולב.
+│    ₪149/חודש — בלי עלויות נסתרות.
+│    👉 לינק בתגובה הראשונה&quot;
+│
+├── Instagram:
+│   &quot;Just launched 🎉
+│    ניהול עסקי בענן ☁️
+│    AI שעובד בשבילך 🤖
+│    מ-₪149/חודש 💰
+│    #SaaS #CRM #AI #עסקיםקטנים #ניהול&quot;
+│
+└── LinkedIn:
+    &quot;שמחים להכריז על השקת Misrad-AI — פלטפורמת ניהול
+     עסקי מודולרית המשלבת 6 מודולים: CRM, ניהול צוות,
+     שיווק, כספים, לקוחות ותפעול...&quot;
+</code></pre>
+<h3>Nexus — Intelligence View</h3>
+<table>
+<thead>
+<tr>
+<th>תובנה</th>
+<th>איך AI עוזר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>עומס צוות</strong></td>
+<td>מנתח capacity × משימות פתוחות</td>
+</tr>
+<tr>
+<td><strong>חלוקת עבודה</strong></td>
+<td>&quot;יוסי עמוס ב-120%, דני ב-40% — העבר משימה&quot;</td>
+</tr>
+<tr>
+<td><strong>תחזית</strong></td>
+<td>&quot;3 משימות לא יסתיימו בזמן אם לא יתחלקו&quot;</td>
+</tr>
+<tr>
+<td><strong>Streak</strong></td>
+<td>&quot;שרה עובדת 14 ימים ברצף — שים לב לשחיקה&quot;</td>
+</tr>
+</tbody></table>
+<h3>Operations — Voice Commands ⭐</h3>
+<table>
+<thead>
+<tr>
+<th>פקודה (עברית)</th>
+<th>פעולה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;צור קריאה חדשה&quot;</td>
+<td>יצירת Work Order</td>
+</tr>
+<tr>
+<td>&quot;סמן הושלם&quot;</td>
+<td>עדכון סטטוס ל-Completed</td>
+</tr>
+<tr>
+<td>&quot;הוסף הערה&quot;</td>
+<td>רישום הערה קולית → טקסט</td>
+</tr>
+<tr>
+<td>&quot;מה הקריאה הבאה שלי?&quot;</td>
+<td>הצגת הקריאה הבאה</td>
+</tr>
+<tr>
+<td>&quot;סטטוס מלאי של [פריט]&quot;</td>
+<td>בדיקת כמות במלאי</td>
+</tr>
+</tbody></table>
+<p><strong>איך עובד:</strong></p>
+<pre><code>1. טכנאי לוחץ כפתור מיקרופון 🎤
+2. מדבר בעברית
+3. Speech-to-Text (Web Speech API)
+4. AI מפרש את הכוונה → מבצע פעולה
+5. אישור על המסך
+</code></pre>
+<h3>כללי — AI Assistant Widget</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Chat</strong></td>
+<td>צ&#39;אט עם AI בכל מסך</td>
+</tr>
+<tr>
+<td><strong>שאלות</strong></td>
+<td>&quot;כמה לידים נסגרו החודש?&quot;</td>
+</tr>
+<tr>
+<td><strong>פעולות</strong></td>
+<td>&quot;צור משימה ליוסי&quot;</td>
+</tr>
+<tr>
+<td><strong>הקשר</strong></td>
+<td>AI יודע באיזה מודול אתה ומתאים תשובות</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>אבטחת AI — פירוט טכני</h2>
+<h3>סינון אוטומטי (lib/ai-security.ts)</h3>
+<pre><code class="language-typescript">const SENSITIVE_FIELDS = [
+  &#39;email&#39;, &#39;phone&#39;, &#39;password&#39;,
+  &#39;hourlyRate&#39;, &#39;monthlySalary&#39;,
+  &#39;creditCard&#39;, &#39;ssn&#39;, &#39;idNumber&#39;,
+  &#39;bankAccount&#39;, &#39;socialSecurity&#39;
+];
+
+// sanitizeForAI — מסנן שדות רגישים לפני שליחה ל-AI
+function sanitizeForAI(data: any): any {
+  // רקורסיבי — מסנן בכל רמת עומק
+  return recursiveFilter(data, SENSITIVE_FIELDS);
+}
+
+// prepareAIContext — מתאים נתונים לפי הרשאות
+function prepareAIContext(data, permissions) {
+  const sanitized = sanitizeForAI(data);
+  if (!permissions.includes(&#39;view_financials&#39;)) {
+    delete sanitized.financialData;
+  }
+  return sanitized;
+}
+
+// validateAIResponse — בודק שה-AI לא הדליף
+function validateAIResponse(response: string): boolean {
+  const patterns = [/\b\d{9}\b/, /\b\d{4}[-\s]\d{4}\b/]; // מספרי ת.ז., כרטיסים
+  return !patterns.some(p =&gt; p.test(response));
+}
+</code></pre>
+<h3>Audit Log</h3>
+<table>
+<thead>
+<tr>
+<th>שדה</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>user_id</code></td>
+<td>מי ביקש</td>
+</tr>
+<tr>
+<td><code>prompt_type</code></td>
+<td>סוג (analyze_call, generate_content...)</td>
+</tr>
+<tr>
+<td><code>tokens_used</code></td>
+<td>כמה tokens נצרכו</td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td>מתי</td>
+</tr>
+<tr>
+<td><code>organization_id</code></td>
+<td>איזה ארגון</td>
+</tr>
+</tbody></table>
+<p><strong>לא שומרים:</strong> prompt מלא, response מלא (פרטיות).<br><strong>כן שומרים:</strong> metadata, token count, summary.</p>
+<hr>
+<h2>עלויות AI</h2>
+<table>
+<thead>
+<tr>
+<th>חבילה</th>
+<th>כלול</th>
+<th>עלות נוספת</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>כל החבילות</td>
+<td>100,000 tokens/חודש</td>
+<td>₪50 / 100K tokens</td>
+</tr>
+</tbody></table>
+<p><strong>מה זה 100,000 tokens?</strong></p>
+<ul>
+<li>≈ 300 ניתוחי שיחות</li>
+<li>≈ 500 פוסטים (Content Machine)</li>
+<li>≈ 1,000 שאלות AI Assistant</li>
+</ul>
+<p><strong>רוב העסקים הקטנים לא חורגים.</strong></p>
+<hr>
+<h2>מגבלות AI — כנות</h2>
+<table>
+<thead>
+<tr>
+<th>מגבלה</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>לא מושלם</strong></td>
+<td>AI טועה לפעמים (5-10% שגיאה)</td>
+</tr>
+<tr>
+<td><strong>לא Real-time</strong></td>
+<td>2-5 שניות לתשובה</td>
+</tr>
+<tr>
+<td><strong>רק Gemini</strong></td>
+<td>אין OpenAI / Claude (כרגע)</td>
+</tr>
+<tr>
+<td><strong>אין Computer Vision</strong></td>
+<td>לא מנתח תמונות (כרגע)</td>
+</tr>
+<tr>
+<td><strong>עברית 90%</strong></td>
+<td>טוב אבל לא מושלם</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./17-%D7%90%D7%99%D7%A0%D7%98%D7%92%D7%A8%D7%A6%D7%99%D7%95%D7%AA.md">אינטגרציות →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-16" style="margin-top:40px;">
+<h1>🔗 אינטגרציות — Misrad-AI</h1>
+<h2>סיכום אינטגרציות</h2>
+<table>
+<thead>
+<tr>
+<th>אינטגרציה</th>
+<th>סטטוס</th>
+<th>מודול</th>
+<th>סוג</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Google Calendar</td>
+<td>✅ קיים</td>
+<td>Client</td>
+<td>OAuth 2.0</td>
+</tr>
+<tr>
+<td>Google Drive</td>
+<td>✅ קיים</td>
+<td>Social</td>
+<td>OAuth 2.0</td>
+</tr>
+<tr>
+<td>WhatsApp</td>
+<td>✅ קיים</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>Email (Resend)</td>
+<td>✅ קיים</td>
+<td>Core</td>
+<td>API</td>
+</tr>
+<tr>
+<td>Morning (חשבונית ירוקה)</td>
+<td>✅ קיים</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>iCount</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>חשבוניות אונליין</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>סמיט (Smit)</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>EZcount</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>רווחית (Rivhit)</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>Grow</td>
+<td>🔜 בקרוב</td>
+<td>Finance</td>
+<td>API</td>
+</tr>
+<tr>
+<td>Webhooks (Svix)</td>
+<td>✅ קיים</td>
+<td>Core</td>
+<td>Outbound</td>
+</tr>
+<tr>
+<td>REST API</td>
+<td>✅ קיים</td>
+<td>Core</td>
+<td>Inbound</td>
+</tr>
+<tr>
+<td>Web Push</td>
+<td>✅ קיים</td>
+<td>Core</td>
+<td>Push</td>
+</tr>
+<tr>
+<td>Zoom/Meet</td>
+<td>🔄 Q3 2026</td>
+<td>System</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Zapier/Make</td>
+<td>🔄 Q3 2026</td>
+<td>Core</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Slack/Teams</td>
+<td>🔄 Q4 2026</td>
+<td>Core</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>אינטגרציות קיימות — פירוט</h2>
+<h3>1. Google Calendar ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>OAuth 2.0 דו-כיווני</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Client</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>סנכרון אירועים, תזכורות, זמינות</td>
+</tr>
+</tbody></table>
+<p><strong>איך להפעיל:</strong></p>
+<pre><code>1. הגדרות → אינטגרציות → Google Calendar
+2. &quot;Connect&quot; → מסך אישור Google
+3. אישור הרשאות (calendar.events, calendar.readonly)
+4. סנכרון אוטומטי מתחיל
+</code></pre>
+<p><strong>טכנולוגיה:</strong></p>
+<pre><code class="language-typescript">// lib/integrations/google-calendar.ts
+import { google } from &#39;googleapis&#39;;
+
+async function syncCalendar(userId: string) {
+  const auth = await getGoogleAuth(userId);
+  const calendar = google.calendar({ version: &#39;v3&#39;, auth });
+  
+  const events = await calendar.events.list({
+    calendarId: &#39;primary&#39;,
+    timeMin: new Date().toISOString(),
+    maxResults: 50,
+  });
+  
+  // סנכרון דו-כיווני
+  await syncToMisrad(events.data.items);
+  await syncFromMisrad(userId);
+}
+</code></pre>
+<p><strong>Log:</strong> <code>scale_calendar_sync_log</code> — תיעוד כל סנכרון</p>
+<h3>2. Google Drive ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>OAuth 2.0</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Social</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>סנכרון קבצים, שיתוף, גרסאות</td>
+</tr>
+</tbody></table>
+<p><strong>מודל:</strong></p>
+<pre><code class="language-sql">social_drive_files:
+  google_file_id, name, mime_type, size_bytes
+  folder_path, web_view_link, thumbnail_link
+</code></pre>
+<h3>3. WhatsApp (תזכורות) ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>WhatsApp Business API</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Finance</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>תזכורות חשבוניות, אישורי פגישה</td>
+</tr>
+</tbody></table>
+<p><strong>מה כלול:</strong></p>
+<ul>
+<li>תזכורות אוטומטיות לפני/אחרי due_date</li>
+<li>תבניות הודעה מותאמות</li>
+<li>מעקב delivery status</li>
+</ul>
+<p><strong>מגבלות:</strong></p>
+<ul>
+<li>⚠️ רק תזכורות יוצאות (לא Inbox)</li>
+<li>⚠️ דורש חשבון WhatsApp Business API</li>
+<li>⚠️ לא כולל שיחות דו-כיווניות</li>
+</ul>
+<h3>4. Email (Resend) ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>API</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Core</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>שליחת מיילים, חשבוניות, התראות</td>
+</tr>
+</tbody></table>
+<p><strong>סוגי מיילים:</strong></p>
+<table>
+<thead>
+<tr>
+<th>סוג</th>
+<th>דוגמה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Transactional</strong></td>
+<td>חשבונית, אישור הרשמה</td>
+</tr>
+<tr>
+<td><strong>Notifications</strong></td>
+<td>התראות משימות, תזכורות</td>
+</tr>
+<tr>
+<td><strong>Invitations</strong></td>
+<td>הזמנת צוות, הזמנת לקוח ל-Portal</td>
+</tr>
+</tbody></table>
+<h3>5. Morning (חשבונית ירוקה) ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>REST API</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Finance</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>חשבוניות מס, קבלות, סנכרון דו-כיווני, מסמכי מע&quot;מ</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>💡 מודול Finance הוא <strong>שכבת אינטגרציה</strong> — הוא לא מערכת הנהלת חשבונות. הוא מתחבר לחברת החשבוניות שלך דרך API.</p>
+</blockquote>
+<p><strong>טכנולוגיה:</strong></p>
+<pre><code class="language-typescript">// lib/integrations/green-invoice.ts
+async function createGreenInvoice(invoiceData) {
+  const response = await fetch(&#39;https://api.greeninvoice.co.il/api/v1/documents&#39;, {
+    method: &#39;POST&#39;,
+    headers: {
+      &#39;Authorization&#39;: `Bearer ${apiKey}`,
+      &#39;Content-Type&#39;: &#39;application/json&#39;,
+    },
+    body: JSON.stringify(invoiceData),
+  });
+  return response.json();
+}
+</code></pre>
+<p><strong>דרישה:</strong> חשבון Morning (חשבונית ירוקה) פעיל + API Key</p>
+<h3>5b. אינטגרציות Finance נוספות (בפיתוח)</h3>
+<table>
+<thead>
+<tr>
+<th>שירות</th>
+<th>API</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>iCount</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>חשבוניות אונליין</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>סמיט (Smit)</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>EZcount</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>רווחית (Rivhit)</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>Grow</strong></td>
+<td>REST API</td>
+<td>🔜 UI/UX מוכן</td>
+</tr>
+<tr>
+<td><strong>PayMe</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>משולם (Meshulam)</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>CardCom</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>Hyp (ClearPay)</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>חשבשבת</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+<tr>
+<td><strong>פריורטי (Priority)</strong></td>
+<td>REST API</td>
+<td>📋 מתוכנן</td>
+</tr>
+</tbody></table>
+<h3>6. Webhooks (Svix) ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>Outbound (המערכת שולחת)</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Core</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>שליחת אירועים למערכות חיצוניות</td>
+</tr>
+</tbody></table>
+<p><strong>אירועים זמינים:</strong></p>
+<table>
+<thead>
+<tr>
+<th>אירוע</th>
+<th>מתי</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>lead.created</code></td>
+<td>ליד חדש נוצר</td>
+</tr>
+<tr>
+<td><code>lead.stage_changed</code></td>
+<td>ליד עבר שלב</td>
+</tr>
+<tr>
+<td><code>task.created</code></td>
+<td>משימה חדשה</td>
+</tr>
+<tr>
+<td><code>task.completed</code></td>
+<td>משימה הושלמה</td>
+</tr>
+<tr>
+<td><code>invoice.created</code></td>
+<td>חשבונית חדשה</td>
+</tr>
+<tr>
+<td><code>invoice.paid</code></td>
+<td>חשבונית שולמה</td>
+</tr>
+<tr>
+<td><code>work_order.completed</code></td>
+<td>קריאה הושלמה</td>
+</tr>
+</tbody></table>
+<p><strong>Delivery Guarantees:</strong></p>
+<ul>
+<li>Retry אוטומטי (3 ניסיונות)</li>
+<li>Signature verification</li>
+<li>Delivery status tracking</li>
+</ul>
+<p><strong>הגדרה:</strong></p>
+<pre><code>הגדרות → Webhooks → הוסף Endpoint
+URL: https://your-app.com/webhook
+Events: [lead.created, task.completed]
+Secret: whsec_abc123...
+</code></pre>
+<h3>7. Web Push ✅</h3>
+<table>
+<thead>
+<tr>
+<th>מאפיין</th>
+<th>ערך</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>Service Worker Push</td>
+</tr>
+<tr>
+<td><strong>מודול</strong></td>
+<td>Core</td>
+</tr>
+<tr>
+<td><strong>מה עושה</strong></td>
+<td>התראות דפדפן בזמן אמת</td>
+</tr>
+</tbody></table>
+<p><strong>מתי מקבלים:</strong></p>
+<ul>
+<li>משימה הוקצתה לך</li>
+<li>ליד חדש (Score &gt; 80)</li>
+<li>קריאת שירות דחופה</li>
+<li>הזכרה בהודעה</li>
+</ul>
+<hr>
+<h2>REST API</h2>
+<h3>Authentication</h3>
+<pre><code class="language-bash"># API Key
+curl -X POST https://misrad-ai.app/api/leads \
+  -H &quot;Authorization: Bearer sk_live_abc123...&quot; \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{&quot;full_name&quot;: &quot;John Doe&quot;, &quot;phone&quot;: &quot;050-1234567&quot;}&#39;
+</code></pre>
+<h3>Endpoints עיקריים</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Endpoint</th>
+<th>תיאור</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>POST</code></td>
+<td><code>/api/leads</code></td>
+<td>צור ליד חדש</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/leads</code></td>
+<td>רשימת לידים</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/api/leads/:id</code></td>
+<td>עדכן ליד</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/tasks</code></td>
+<td>צור משימה</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
+<td><code>/api/tasks</code></td>
+<td>רשימת משימות</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/invoices</code></td>
+<td>צור חשבונית</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/work-orders</code></td>
+<td>צור קריאת שירות</td>
+</tr>
+</tbody></table>
+<h3>Rate Limits</h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>בקשות/שעה</th>
+<th>בקשות/יום</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Standard</td>
+<td>1,000</td>
+<td>10,000</td>
+</tr>
+<tr>
+<td>Premium</td>
+<td>5,000</td>
+<td>50,000</td>
+</tr>
+</tbody></table>
+<h3>Error Handling</h3>
+<pre><code class="language-json">{
+  &quot;error&quot;: {
+    &quot;code&quot;: &quot;UNAUTHORIZED&quot;,
+    &quot;message&quot;: &quot;Invalid API key&quot;,
+    &quot;status&quot;: 401
+  }
+}
+</code></pre>
+<hr>
+<h2>אינטגרציות מתוכננות</h2>
+<table>
+<thead>
+<tr>
+<th>אינטגרציה</th>
+<th>צפי</th>
+<th>עדיפות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Zoom/Google Meet</td>
+<td>Q3 2026</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Zapier/Make</td>
+<td>Q3 2026</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Slack/Teams</td>
+<td>Q4 2026</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Stripe (Payments)</td>
+<td>Q4 2026</td>
+<td>🟡 בינונית</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מגבלות — כנות</h2>
+<table>
+<thead>
+<tr>
+<th>מגבלה</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>אין Zapier (עדיין)</strong></td>
+<td>צריך Webhooks + קוד</td>
+</tr>
+<tr>
+<td><strong>WhatsApp חד-כיווני</strong></td>
+<td>רק שליחה, לא קבלה</td>
+</tr>
+<tr>
+<td><strong>אין Native Integrations</strong></td>
+<td>לא כמו HubSpot Marketplace</td>
+</tr>
+<tr>
+<td><strong>API בסיסי</strong></td>
+<td>לא כמו Salesforce REST API</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./18-%D7%94%D7%AA%D7%A0%D7%92%D7%93%D7%95%D7%99%D7%95%D7%AA.md">התנגדויות →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-17" style="margin-top:40px;">
+<h1>❓ התנגדויות ותשובות כנות</h1>
+<blockquote>
+<p><strong>גישה:</strong> כנות מלאה. לא מסתירים חסרונות. מודים מה אין ומסבירים למה זה בסדר.</p>
+</blockquote>
+<hr>
+<h2>🔴 #1: &quot;למה לסמוך על יזם סולו?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> חשש מהימנות, סיכון עסקי</p>
+<p><strong>תשובה כנה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>חיסרון (אני מודה)</th>
+<th>יתרון (אני מדגיש)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>אין צוות של 50 מפתחים</td>
+<td>קוד אחיד, לא &quot;ספגטי&quot;</td>
+</tr>
+<tr>
+<td>פיתוח איטי יותר</td>
+<td>אבל AI מאיץ פי 10</td>
+</tr>
+<tr>
+<td>אין שם גדול</td>
+<td>אין ביורוקרטיה</td>
+</tr>
+<tr>
+<td>אין תמיכה 24/7</td>
+<td>תמיד תדבר עם מי שבנה את הקוד</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אני מבין את החשש. הנה מה שאני מציע: תנסה חודש אחד ב-₪149. אם לא עובד — החזר מלא, אפס שאלות. אין התחייבות.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #2: &quot;מה קורה אם אתה נעלם?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> פחד מנעילה (vendor lock-in)</p>
+<p><strong>תשובה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>אפשרות</th>
+<th>פרטים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ייצוא נתונים</strong></td>
+<td>בכל רגע — SQL / CSV / JSON (חינם)</td>
+</tr>
+<tr>
+<td><strong>Self-Hosted</strong></td>
+<td>קוד מלא על שרת שלך (₪5,000 חד-פעמי)</td>
+</tr>
+<tr>
+<td><strong>Source Code Escrow</strong></td>
+<td>ללקוחות גדולים — קוד נשמר אצל צד שלישי</td>
+</tr>
+<tr>
+<td><strong>גיבוי יומי</strong></td>
+<td>30 יום אחורה, Point-in-time recovery</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;הנתונים שלך, לא שלי. וגם — גוגל סגרה Stadia, Inbox, Hangouts. שום חברה לא &#39;בטוחה&#39;. ההבדל הוא שאצלי אתה תמיד יכול לייצא.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #3: &quot;המחיר זול מדי — מה הבעיה?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> חשד שקיבל מה ששילם</p>
+<p><strong>תשובה — למה זה זול:</strong></p>
+<table>
+<thead>
+<tr>
+<th>סעיף הוצאה</th>
+<th>Salesforce</th>
+<th>Misrad-AI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>משרדים</td>
+<td>₪2M/שנה</td>
+<td>₪0 (עבודה מהבית)</td>
+</tr>
+<tr>
+<td>עובדים</td>
+<td>70,000+</td>
+<td>1 + AI</td>
+</tr>
+<tr>
+<td>שיווק</td>
+<td>₪500M/שנה</td>
+<td>₪0 (אורגני)</td>
+</tr>
+<tr>
+<td>שרתים</td>
+<td>מערכים יקרים</td>
+<td>Serverless (₪50/חודש)</td>
+</tr>
+<tr>
+<td>תקורה</td>
+<td>Board, CFO, VP&#39;s...</td>
+<td>₪0</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אין כאן ניסוי. המערכת עובדת. המחיר נמוך כי אין לי הוצאות מיותרות. הלקוח מרוויח מהחיסכון שלי.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #4: &quot;יש מתחרים עם שם גדול&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> בטוח יותר עם &quot;שם ידוע&quot;</p>
+<p><strong>השוואה ישירה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>קריטריון</th>
+<th>Salesforce</th>
+<th>Monday</th>
+<th>Misrad-AI</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>מחיר (5 users)</td>
+<td>₪455-₪3,010</td>
+<td>₪220-₪440</td>
+<td><strong>₪499</strong></td>
+</tr>
+<tr>
+<td>הטמעה</td>
+<td>3-12 חודשים</td>
+<td>1-3 שבועות</td>
+<td><strong>1 יום</strong></td>
+</tr>
+<tr>
+<td>יועצים</td>
+<td>₪50K-₪200K</td>
+<td>₪0-₪20K</td>
+<td><strong>₪0</strong></td>
+</tr>
+<tr>
+<td>תמיכה</td>
+<td>כרטיס → מוקד → רמה 1</td>
+<td>כרטיס</td>
+<td><strong>ישירות ליזם</strong></td>
+</tr>
+<tr>
+<td>All-in-One</td>
+<td>❌ (CRM בלבד)</td>
+<td>❌ (PM בלבד)</td>
+<td><strong>✅ (6 מודולים)</strong></td>
+</tr>
+<tr>
+<td>עברית מלאה</td>
+<td>⚠️ חלקית</td>
+<td>✅</td>
+<td><strong>✅</strong></td>
+</tr>
+<tr>
+<td>לוח עברי</td>
+<td>❌</td>
+<td>❌</td>
+<td><strong>✅</strong></td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;Salesforce מעולה לחברות של 500+ עובדים. אתה לא חברה של 500. אתה צריך משהו שעובד, זול, ופשוט.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #5: &quot;מה עם אבטחה?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> חשש מדליפת נתונים</p>
+<p><strong>תשובה — 7 שכבות:</strong></p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>שכבה</th>
+<th>מה עושה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Clerk Auth</strong></td>
+<td>2FA, Brute force protection, Session management</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Tenant Guard</strong></td>
+<td>Middleware שמסנן לפי organization_id</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>RLS</strong></td>
+<td>הגנה ברמת PostgreSQL — אפילו SQL ישיר מסונן</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>API Guards</strong></td>
+<td>בדיקת הרשאות בכל Server Action</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>AI Security</strong></td>
+<td>סינון אוטומטי של שדות רגישים</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Audit Log</strong></td>
+<td>תיעוד כל פעולה (90 יום)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><strong>Encrypted Backup</strong></td>
+<td>AES-256, גיבוי יומי</td>
+</tr>
+</tbody></table>
+<p><strong>מה אין (כנות):</strong></p>
+<ul>
+<li>❌ SOC 2 Type II</li>
+<li>❌ ISO 27001</li>
+<li>❌ Penetration tests חודשיים</li>
+</ul>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אם אתה בנקאות, ביטוח או רפואה — צריך SOC 2, ואני לא מתאים. לכל השאר — 7 שכבות אבטחה זה יותר ממה שרוב העסקים הקטנים צריכים.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #6: &quot;אין SLA?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> חוסר ביטחון על זמינות</p>
+<p><strong>תשובה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>מדד</th>
+<th>Misrad-AI</th>
+<th>Salesforce</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Uptime בפועל</strong></td>
+<td>99%+ (Vercel)</td>
+<td>99.9% (SLA)</td>
+</tr>
+<tr>
+<td><strong>תיקון באג קריטי</strong></td>
+<td>1-4 שעות</td>
+<td>1-7 ימים</td>
+</tr>
+<tr>
+<td><strong>תגובה לפנייה</strong></td>
+<td>1-4 שעות</td>
+<td>1-3 ימים (Basic)</td>
+</tr>
+<tr>
+<td><strong>פיצוי על Downtime</strong></td>
+<td>❌</td>
+<td>✅ (רק Enterprise)</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אין SLA רשמי. אבל אני מתקן באגים ביום, לא בשבוע. Vercel מספק 99%+ זמינות. אם צריך 99.99% עם SLA חוזי — צריך AWS ואני לא מתאים.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #7: &quot;אין ניסיון חינם?&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> רוצה לנסות לפני שמתחייב</p>
+<p><strong>תשובה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>מה יש</th>
+<th>פרטים</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Demo Live</strong></td>
+<td>Zoom 30 דקות — אני מדגים בשידור חי</td>
+</tr>
+<tr>
+<td><strong>ערבות החזר</strong></td>
+<td>30 יום ראשונים — החזר מלא, ללא שאלות</td>
+</tr>
+<tr>
+<td><strong>מחיר כניסה</strong></td>
+<td>₪149/חודש — פחות מקפה ליום</td>
+</tr>
+<tr>
+<td><strong>אין התחייבות</strong></td>
+<td>בטל בכל עת</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אין Trial חינם כי אני מעדיף שתשקיע ₪149 ותיקח את זה ברצינות. אבל אם לא מרוצה — החזר מלא תוך 30 יום.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #8: &quot;ה-UI לא מספיק יפה&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> המערכת לא נראית כמו Apple</p>
+<p><strong>תשובה כנה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>מה אני</th>
+<th>מה אני לא</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>מפתח Full-Stack</td>
+<td>UX Designer</td>
+</tr>
+<tr>
+<td>TailwindCSS + Lucide</td>
+<td>Motion Designer</td>
+</tr>
+<tr>
+<td>ממשק נקי ופונקציונלי</td>
+<td>פיקסל-פרפקט</td>
+</tr>
+</tbody></table>
+<p><strong>מה יש:</strong></p>
+<ul>
+<li>✅ Responsive (מובייל + דסקטופ)</li>
+<li>✅ Dark/Light mode</li>
+<li>✅ נקי ומסודר</li>
+<li>✅ נגישות בסיסית</li>
+</ul>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אני מפתח, לא מעצב. המערכת נראית מודרנית ונקייה, אבל לא כמו Dribbble. אם UI הוא הקריטריון מספר 1 — אולי Monday מתאים יותר. אם תוצאות חשובות יותר — בוא.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #9: &quot;אין לנו זמן להטמעה&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> כל מערכת חדשה = כאב ראש</p>
+<p><strong>השוואה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>מערכת</th>
+<th>זמן הטמעה</th>
+<th>עלות הטמעה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Salesforce</td>
+<td>3-12 חודשים</td>
+<td>₪50,000-₪200,000</td>
+</tr>
+<tr>
+<td>HubSpot</td>
+<td>2-6 חודשים</td>
+<td>₪20,000-₪100,000</td>
+</tr>
+<tr>
+<td>Monday</td>
+<td>1-3 שבועות</td>
+<td>₪0-₪20,000</td>
+</tr>
+<tr>
+<td><strong>Misrad-AI</strong></td>
+<td><strong>1 יום</strong></td>
+<td><strong>₪0 (כלול)</strong></td>
+</tr>
+</tbody></table>
+<p><strong>Timeline:</strong></p>
+<pre><code>שעות 1-2: הרשמה + הגדרות
+שעות 3-4: יבוא נתונים (CSV)
+שעה 5: הדרכת Zoom (כלול!)
+שבוע 1: שימוש מונחה
+חודש 1: הטמעה מלאה
+</code></pre>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;יום אחד. 4 שעות הגדרה, שעה הדרכה. בסוף היום אתם עובדים.&quot;</p>
+</blockquote>
+<hr>
+<h2>🔴 #10: &quot;הצוות שלי לא טכנולוגי&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> העובדים לא ישתמשו</p>
+<p><strong>תשובה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>פעולה</th>
+<th>כמה לחיצות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>פתיחת ליד</td>
+<td>3</td>
+</tr>
+<tr>
+<td>תזמון פוסט</td>
+<td>4</td>
+</tr>
+<tr>
+<td>יצירת חשבונית</td>
+<td>5</td>
+</tr>
+<tr>
+<td>Check-In (Kiosk)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>חתימת לקוח</td>
+<td>2</td>
+</tr>
+</tbody></table>
+<p><strong>מבחן:</strong></p>
+<blockquote>
+<p>&quot;אם העובד שלך יודע לשלוח WhatsApp — הוא ישתמש ב-Misrad-AI.&quot;</p>
+</blockquote>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אני אעשה Session הדרכה ב-Zoom. 60 דקות. אחרי זה כולם עובדים.&quot;</p>
+</blockquote>
+<hr>
+<h2>🟡 #11: &quot;אנחנו כבר במערכת אחרת&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> עלות מעבר + סיכון</p>
+<p><strong>תשובה:</strong></p>
+<table>
+<thead>
+<tr>
+<th>חשש</th>
+<th>פתרון</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>נתונים ילכו לאיבוד</td>
+<td>ייבוא CSV/Excel + AI mapping</td>
+</tr>
+<tr>
+<td>זמן מעבר ארוך</td>
+<td>יום אחד (כולל יבוא)</td>
+</tr>
+<tr>
+<td>העובדים יתנגדו</td>
+<td>הדרכה כלולה + ממשק פשוט</td>
+</tr>
+<tr>
+<td>כסף ששולם</td>
+<td>חודש ראשון 50% הנחה למעבירים</td>
+</tr>
+</tbody></table>
+<p><strong>סגירה:</strong></p>
+<blockquote>
+<p>&quot;אני מייבא את הנתונים שלך מ-Excel/CSV עם AI. תוך שעה אתה רואה את הכל במערכת החדשה.&quot;</p>
+</blockquote>
+<hr>
+<h2>🟡 #12: &quot;צריך אישור מהבוס / CFO&quot;</h2>
+<p><strong>מה הלקוח מרגיש:</strong> לא מקבל החלטות לבד</p>
+<p><strong>תשובה:</strong></p>
+<blockquote>
+<p>&quot;מצוין. אני מכין לך חומרים:&quot;</p>
+<ol>
+<li><strong>PDF סיכום</strong> — דף אחד עם ROI</li>
+<li><strong>השוואת מתחרים</strong> — טבלה ברורה</li>
+<li><strong>Demo נוסף</strong> — אני מדגים גם לבוס</li>
+</ol>
+</blockquote>
+<p><strong>טיפ:</strong> אל תלחץ. שלח חומרים ותן שבוע.</p>
+<hr>
+<h2>טבלת סיכום מהיר</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>התנגדות</th>
+<th>תשובה קצרה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>יזם סולו</td>
+<td>₪149, חודש ניסיון, החזר מלא</td>
+</tr>
+<tr>
+<td>2</td>
+<td>אם תיעלם</td>
+<td>ייצוא בכל רגע, Self-Hosted</td>
+</tr>
+<tr>
+<td>3</td>
+<td>זול מדי</td>
+<td>אין הוצאות מיותרות</td>
+</tr>
+<tr>
+<td>4</td>
+<td>מתחרים גדולים</td>
+<td>פי 10 זול, פי 10 מהיר</td>
+</tr>
+<tr>
+<td>5</td>
+<td>אבטחה</td>
+<td>7 שכבות (אין SOC 2)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>אין SLA</td>
+<td>99%+ בפועל, תיקון מהיר</td>
+</tr>
+<tr>
+<td>7</td>
+<td>אין Trial</td>
+<td>ערבות 30 יום</td>
+</tr>
+<tr>
+<td>8</td>
+<td>UI</td>
+<td>נקי ופונקציונלי, לא Apple</td>
+</tr>
+<tr>
+<td>9</td>
+<td>אין זמן</td>
+<td>יום אחד הטמעה</td>
+</tr>
+<tr>
+<td>10</td>
+<td>לא טכנולוגי</td>
+<td>WhatsApp = Misrad-AI</td>
+</tr>
+<tr>
+<td>11</td>
+<td>כבר במערכת</td>
+<td>ייבוא AI + הנחת מעבר</td>
+</tr>
+<tr>
+<td>12</td>
+<td>צריך אישור</td>
+<td>אני מכין חומרים</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>המשך:</strong> <a href="./19-%D7%AA%D7%94%D7%9C%D7%99%D7%9A-%D7%94%D7%98%D7%9E%D7%A2%D7%94.md">תהליך הטמעה →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-18" style="margin-top:40px;">
+<h1>🚀 תהליך הטמעה</h1>
+<h2>Timeline - לוח זמנים</h2>
+<pre><code>יום 1: הרשמה והגדרה ראשונית (2-4 שעות)
+├── שלב 1: יצירת חשבון (10 דקות)
+├── שלב 2: בחירת מודולים (5 דקות)
+├── שלב 3: הוספת צוות (15 דקות)
+├── שלב 4: הגדרות בסיס (30 דקות)
+└── שלב 5: יבוא נתונים (1-2 שעות)
+
+שבוע 1: למידה ושימוש ראשוני
+├── יום 1-2: הדרכה (Zoom 60 דקות)
+├── יום 3-5: שימוש מונחה
+└── יום 6-7: שאלות ותשובות
+
+שבועות 2-4: הטמעה מלאה
+├── שבוע 2: תהליכים בסיסיים
+├── שבוע 3: תהליכים מתקדמים
+└── שבוע 4: אוטומציות
+
+חודש 2+: שימוש מלא
+└── תמיכה שוטפת
+</code></pre>
+<hr>
+<h2>שלב 1: הרשמה (10 דקות)</h2>
+<p><strong>מה צריך:</strong></p>
+<ul>
+<li>מייל</li>
+<li>שם חברה</li>
+<li>כרטיס אשראי</li>
+</ul>
+<p><strong>תהליך:</strong></p>
+<ol>
+<li>כנס ל-<a href="https://misrad-ai.app">https://misrad-ai.app</a></li>
+<li>לחץ &quot;התחל ניסיון&quot;</li>
+<li>מלא פרטים</li>
+<li>בחר חבילה</li>
+<li>אישור תשלום</li>
+<li>זהו!</li>
+</ol>
+<p><strong>אין:</strong></p>
+<ul>
+<li>שיחות מכירה</li>
+<li>מילוי טפסים ארוכים</li>
+<li>אישורים</li>
+</ul>
+<hr>
+<h2>שלב 2: בחירת מודולים (5 דקות)</h2>
+<p><strong>סולו:</strong>
+בחר מודול אחד (+ 🎁 Finance במתנה).</p>
+<p><strong>חבילה:</strong>
+המודולים מופעלים אוטומטית.</p>
+<p><strong>שינוי:</strong>
+אפשר בכל עת (הגדרות → מודולים).</p>
+<hr>
+<h2>שלב 3: הוספת צוות (15 דקות)</h2>
+<p><strong>אופציה A: הזמנה במייל</strong></p>
+<pre><code>הגדרות → צוות → הוסף → שלח הזמנה
+</code></pre>
+<p><strong>אופציה B: לינק הזמנה</strong></p>
+<pre><code>יצירת לינק → שיתוף → רישום אוטומטי
+</code></pre>
+<p><strong>תפקידים:</strong></p>
+<ul>
+<li>Admin (כל ההרשאות)</li>
+<li>Manager (ניהול צוות)</li>
+<li>Member (עבודה רגילה)</li>
+<li>Viewer (צפייה בלבד)</li>
+</ul>
+<hr>
+<h2>שלב 4: הגדרות בסיס (30 דקות)</h2>
+<h3>Nexus</h3>
+<ul>
+<li>מחלקות (מכירות, שיווק...)</li>
+<li>תפקידים (נציג, מנהל...)</li>
+</ul>
+<h3>System</h3>
+<ul>
+<li>שלבי Pipeline</li>
+<li>שדות מותאמים</li>
+</ul>
+<h3>Social</h3>
+<ul>
+<li>פלטפורמות (Facebook, Instagram...)</li>
+<li>הגנת שבת (כן/לא)</li>
+</ul>
+<h3>Finance</h3>
+<ul>
+<li>מטבע (ILS/USD/EUR)</li>
+<li>פרטי חברה לחשבוניות</li>
+</ul>
+<h3>Operations</h3>
+<ul>
+<li>מחסנים</li>
+<li>סוגי קריאות</li>
+</ul>
+<hr>
+<h2>שלב 5: יבוא נתונים (1-2 שעות)</h2>
+<h3>יבוא ידני (CSV/Excel)</h3>
+<p><strong>נתמך:</strong></p>
+<ul>
+<li>Leads</li>
+<li>Tasks</li>
+<li>Clients</li>
+<li>Products</li>
+</ul>
+<p><strong>תהליך:</strong></p>
+<ol>
+<li>ייצא מהמערכת הישנה (CSV/Excel)</li>
+<li>עלה ל-Misrad-AI</li>
+<li>מיפוי עמודות (AI עוזר!)</li>
+<li>בדיקה</li>
+<li>אישור</li>
+<li>יבוא</li>
+</ol>
+<p><strong>זמן:</strong> 10-50 שורות = 5 דקות | 1,000+ שורות = 30-60 דקות</p>
+<h3>יבוא אוטומטי (API)</h3>
+<p><strong>אם יש API:</strong>
+אני יוצר סקריפט יבוא מותאם (₪500-₪2,000).</p>
+<hr>
+<h2>הדרכה</h2>
+<h3>Session 1: Overview (60 דקות)</h3>
+<p><strong>Zoom Live:</strong></p>
+<ul>
+<li>סיור במערכת</li>
+<li>הסבר מודולים</li>
+<li>הדגמות</li>
+<li>שאלות ותשובות</li>
+</ul>
+<p><strong>מי צריך:</strong> כולם</p>
+<h3>Session 2: למתקדמים (60 דקות)</h3>
+<p><strong>נושאים:</strong></p>
+<ul>
+<li>אוטומציות</li>
+<li>דוחות</li>
+<li>API</li>
+<li>אינטגרציות</li>
+</ul>
+<p><strong>מי צריך:</strong> Admins</p>
+<h3>מסמכים</h3>
+<p>✅ מדריך מהיר (PDF)<br>✅ וידאו הדרכה (YouTube)<br>✅ שאלות נפוצות (FAQ)</p>
+<hr>
+<h2>תמיכה</h2>
+<h3>במהלך ההטמעה (חודש ראשון)</h3>
+<p><strong>זמין:</strong></p>
+<ul>
+<li>WhatsApp/Email</li>
+<li>תגובה תוך 2-4 שעות</li>
+<li>Zoom לפי בקשה</li>
+</ul>
+<h3>לאחר ההטמעה</h3>
+<p><strong>תמיכה רגילה:</strong></p>
+<ul>
+<li>Email: <a href="mailto:support@misrad-ai.app">support@misrad-ai.app</a></li>
+<li>WhatsApp: 050-XXX-XXXX</li>
+<li>תגובה: 4-24 שעות</li>
+</ul>
+<hr>
+<h2>Checklist - רשימת משימות</h2>
+<h3>לפני השקה</h3>
+<ul>
+<li><input disabled="" type="checkbox"> הרשמה</li>
+<li><input disabled="" type="checkbox"> הוספת צוות (לפחות 2 אנשים)</li>
+<li><input disabled="" type="checkbox"> הגדרות בסיס</li>
+<li><input disabled="" type="checkbox"> יבוא 10 רשומות לבדיקה</li>
+<li><input disabled="" type="checkbox"> Session הדרכה</li>
+</ul>
+<h3>שבוע ראשון</h3>
+<ul>
+<li><input disabled="" type="checkbox"> כל הצוות התחבר</li>
+<li><input disabled="" type="checkbox"> יצירת 5 משימות/לידים</li>
+<li><input disabled="" type="checkbox"> בדיקת התראות</li>
+<li><input disabled="" type="checkbox"> שאלות ליצירת קשר</li>
+</ul>
+<h3>חודש ראשון</h3>
+<ul>
+<li><input disabled="" type="checkbox"> כל התהליכים פעילים</li>
+<li><input disabled="" type="checkbox"> יבוא מלא (אם רלוונטי)</li>
+<li><input disabled="" type="checkbox"> אוטומציה אחת פעילה</li>
+<li><input disabled="" type="checkbox"> שימוש יומיומי</li>
+</ul>
+<hr>
+<h2>מה אם תקוע?</h2>
+<ol>
+<li>בדוק FAQ</li>
+<li>שלח WhatsApp</li>
+<li>קבע Zoom</li>
+</ol>
+<p><strong>זמן מענה:</strong> 2-4 שעות (ימי עבודה)</p>
+<hr>
+<p>📖 <strong>קרא הבא:</strong> <a href="./20-%D7%A7%D7%94%D7%9C-%D7%99%D7%A2%D7%93.md">קהל יעד</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-19" style="margin-top:40px;">
+<h1>🎯 קהל יעד - למי זה מתאים?</h1>
+<h2>פילוח לפי גודל</h2>
+<h3>עצמאיים (1 איש)</h3>
+<p><strong>מתאים:</strong></p>
+<ul>
+<li>סולו Social (תוכן) + 🎁 Finance במתנה</li>
+<li>סולו Client (לקוחות) + 🎁 Finance במתנה</li>
+</ul>
+<p><strong>לא מתאים:</strong></p>
+<ul>
+<li>Nexus (אין צוות)</li>
+</ul>
+<h3>2-10 עובדים ⭐ (הנקודה המושלמת)</h3>
+<p><strong>מתאים מאוד:</strong></p>
+<ul>
+<li>כל החבילות</li>
+<li>חבילת הכל (הכי משתלם)</li>
+</ul>
+<p><strong>למה:</strong></p>
+<ul>
+<li>לא יקר מדי</li>
+<li>לא מורכב מדי</li>
+<li>ROI מהיר</li>
+</ul>
+<h3>10-50 עובדים</h3>
+<p><strong>מתאים:</strong></p>
+<ul>
+<li>חבילת הכל + משתמשים נוספים</li>
+</ul>
+<p><strong>שקול:</strong></p>
+<ul>
+<li>האם צריך SLA?</li>
+<li>האם צריך תמיכה 24/7?</li>
+</ul>
+<h3>50+ עובדים</h3>
+<p><strong>כנות:</strong> לא מומלץ.</p>
+<p><strong>למה:</strong></p>
+<ul>
+<li>Misrad-AI לא מיועד לקנה מידה כזה</li>
+<li>חסר תמיכה ארגונית</li>
+<li>כדאי Salesforce/Dynamics</li>
+</ul>
+<hr>
+<h2>פילוח לפי תעשייה</h2>
+<h3>✅ מתאים מאוד</h3>
+<p><strong>1. סוכנויות שיווק (2-15 עובדים)</strong></p>
+<ul>
+<li>Social + Client + Nexus</li>
+<li>חבילת שיווק: ₪349/חודש + 🎁 Finance במתנה</li>
+<li>החזר השקעה: חודשיים</li>
+</ul>
+<p><strong>2. צוותי מכירות (3-20 נציגים)</strong></p>
+<ul>
+<li>System + Nexus</li>
+<li>חבילת מכירות: ₪249/חודש + 🎁 Finance במתנה</li>
+<li>החזר השקעה: חודש</li>
+</ul>
+<p><strong>3. עסקי תחזוקה ושירות (5-30 טכנאים)</strong></p>
+<ul>
+<li>Operations + Nexus</li>
+<li>חבילת תפעול: ₪349/חודש + 🎁 Finance במתנה</li>
+<li>החזר השקעה: שבועיים (!)</li>
+</ul>
+<p><strong>4. יועצים / מאמנים (1-10 אנשים)</strong></p>
+<ul>
+<li>Client + 🎁 Finance במתנה</li>
+<li>סולו / חבילת שיווק</li>
+<li>החזר השקעה: חודש</li>
+</ul>
+<p><strong>5. קבלנות (3-20 עובדים)</strong></p>
+<ul>
+<li>Operations + Nexus</li>
+<li>חבילת תפעול: ₪349/חודש + 🎁 Finance במתנה</li>
+<li>החזר השקעה: חודש</li>
+</ul>
+<h3>⚠️ מתאים בתנאים</h3>
+<p><strong>1. סטארטאפים</strong></p>
+<ul>
+<li>מתאים: בשלבים מוקדמים (3-15 עובדים)</li>
+<li>לא מתאים: חברות גדולות (50+ עובדים)</li>
+</ul>
+<p><strong>2. מסחר מקוון</strong></p>
+<ul>
+<li>מתאים: אם יש צוות שטח/תפעול</li>
+<li>לא מתאים: אם רק אתר</li>
+</ul>
+<p><strong>3. קמעונאות</strong></p>
+<ul>
+<li>מתאים: אם יש מכירות B2B/שירות</li>
+<li>לא מתאים: רק קופה</li>
+</ul>
+<h3>❌ לא מתאים</h3>
+<p><strong>1. ארגונים גדולים (500+ עובדים)</strong></p>
+<ul>
+<li>צריך Salesforce/SAP</li>
+</ul>
+<p><strong>2. בנקים / ביטוח (רגולציה כבדה)</strong></p>
+<ul>
+<li>צריך תקני אבטחה (SOC 2, ISO 27001)</li>
+</ul>
+<p><strong>3. ייצור / תעשייה (מערכות מורכבות)</strong></p>
+<ul>
+<li>צריך SAP/Oracle</li>
+</ul>
+<hr>
+<h2>מקרי שימוש</h2>
+<h3>UC1: סוכנות שיווק - &quot;דיגיטל בוטיק&quot;</h3>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>6 עובדים</li>
+<li>15 לקוחות</li>
+<li>300 פוסטים/חודש</li>
+</ul>
+<p><strong>לפני Misrad-AI:</strong></p>
+<ul>
+<li>Trello (משימות): ₪170/חודש</li>
+<li>Hootsuite (תזמון): ₪680/חודש</li>
+<li>Google Drive (קבצים): ₪340/חודש</li>
+<li>Excel (חשבוניות): חינם אבל ידני</li>
+<li><strong>סה&quot;כ: ₪1,190/חודש + 10 שעות ידני/שבוע</strong></li>
+</ul>
+<p><strong>אחרי Misrad-AI:</strong></p>
+<ul>
+<li>חבילת שיווק: ₪349/חודש</li>
+<li>פורטל לקוחות: כלול</li>
+<li>תזמון אוטומטי: כלול</li>
+<li>🎁 חשבוניות: במתנה (Finance)</li>
+<li><strong>סה&quot;כ: ₪349/חודש + 2 שעות/שבוע</strong></li>
+</ul>
+<p><strong>ROI:</strong></p>
+<ul>
+<li>חיסכון כספי: ₪841/חודש = ₪10,092/שנה</li>
+<li>חיסכון זמן: 8 שעות/שבוע × 52 = 416 שעות/שנה</li>
+<li>ערך זמן: 416 × ₪150 = ₪62,400/שנה</li>
+<li><strong>סה&quot;כ ROI: ₪72,492/שנה על השקעה של ₪4,188</strong></li>
+</ul>
+<hr>
+<h3>UC2: חברת HVAC - &quot;קירור מהיר&quot;</h3>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>12 טכנאים</li>
+<li>40-60 קריאות/יום</li>
+<li>ניהול מלאי (200 פריטים)</li>
+</ul>
+<p><strong>לפני Misrad-AI:</strong></p>
+<ul>
+<li>ServiceMax: ₪5,000/חודש</li>
+<li>Excel (מלאי): ידני</li>
+<li>WhatsApp (תקשורת): בלגן</li>
+<li>Green Invoice (חשבוניות): ₪85/חודש</li>
+<li><strong>סה&quot;כ: ₪5,085/חודש + 15 שעות ידני/שבוע</strong></li>
+</ul>
+<p><strong>אחרי Misrad-AI:</strong></p>
+<ul>
+<li>חבילת תפעול: ₪349 (5 משתמשים) + 🎁 Finance במתנה</li>
+<li>+7 משתמשים: ₪273</li>
+<li><strong>סה&quot;כ: ₪622/חודש + 3 שעות/שבוע</strong></li>
+</ul>
+<p><strong>ROI:</strong></p>
+<ul>
+<li>חיסכון: ₪4,463/חודש = ₪53,556/שנה</li>
+<li>זמן: 12 שעות/שבוע = 624 שעות/שנה = ₪93,600</li>
+<li><strong>סה&quot;כ: ₪147,156/שנה על השקעה של ₪7,464</strong></li>
+</ul>
+<hr>
+<h3>UC3: יועץ עסקי - &quot;ייעוץ פרו&quot;</h3>
+<p><strong>פרופיל:</strong></p>
+<ul>
+<li>עצמאי</li>
+<li>8 לקוחות פעילים</li>
+<li>15-20 פגישות/חודש</li>
+</ul>
+<p><strong>לפני Misrad-AI:</strong></p>
+<ul>
+<li>Calendly (תזמון): ₪68/חודש</li>
+<li>Notion (ניהול): ₪170/חודש</li>
+<li>QuickBooks (חשבוניות): ₪85/חודש</li>
+<li>Google Drive: ₪85/חודש</li>
+<li><strong>סה&quot;כ: ₪408/חודש</strong></li>
+</ul>
+<p><strong>אחרי Misrad-AI:</strong></p>
+<ul>
+<li>סולו (Client): ₪149/חודש + 🎁 Finance במתנה</li>
+<li><strong>סה&quot;כ: ₪149/חודש</strong></li>
+</ul>
+<p><strong>ROI:</strong></p>
+<ul>
+<li>חיסכון: ₪259/חודש = ₪3,108/שנה</li>
+</ul>
+<hr>
+<h2>איך לבחור?</h2>
+<h3>שאל את עצמך:</h3>
+<p><strong>1. כמה אנשים בצוות?</strong></p>
+<ul>
+<li>1 → סולו</li>
+<li>2-5 → חבילה (₪249-₪499)</li>
+<li>6-15 → חבילה + משתמשים</li>
+<li>16+ → שקול אם Misrad-AI מספיק</li>
+</ul>
+<p><strong>2. מה הפעילות העיקרית?</strong></p>
+<ul>
+<li>מכירות → <strong>חבילת מכירות</strong></li>
+<li>שיווק → <strong>חבילת שיווק</strong></li>
+<li>שטח/תפעול → <strong>חבילת תפעול</strong></li>
+<li>הכל → <strong>חבילת הכל</strong></li>
+</ul>
+<p><strong>3. מה התקציב?</strong></p>
+<ul>
+<li>עד ₪200 → סולו</li>
+<li>עד ₪300 → חבילת מכירות</li>
+<li>עד ₪400 → חבילת שיווק / חבילת תפעול</li>
+<li>עד ₪600 → חבילת הכל + תוספות</li>
+</ul>
+<p><strong>4. כמה טכנולוגיים?</strong></p>
+<ul>
+<li>לא → צריך הדרכה (כלול)</li>
+<li>בינוני → מצוין</li>
+<li>מאוד → אולי צריך משהו יותר מתקדם</li>
+</ul>
+<p><strong>5. יש תקציב לכלים?</strong></p>
+<ul>
+<li>₪500-₪2,000/חודש → Misrad-AI חיסכון ענק</li>
+<li>₪5,000+/חודש → אולי Salesforce מתאים יותר</li>
+</ul>
+<hr>
+<h2>סימני אזהרה — מתי <strong>לא</strong> מתאים?</h2>
+<p>❌ אתה צריך תמיכה 24/7<br>❌ אתה צריך תקני אבטחה מתקדמים (SOC 2, ISO 27001)<br>❌ יש לך 100+ עובדים<br>❌ אתה ארגון גדול<br>❌ אתה בתעשייה מורכבת (ייצור / בנקאות)<br>❌ אתה צריך התאמה אישית עמוקה מאוד</p>
+<hr>
+<h2>הסיכום - מי האידיאל?</h2>
+<p><strong>הלקוח האידיאלי:</strong></p>
+<ul>
+<li>5-15 עובדים</li>
+<li>שירותים לעסקים</li>
+<li>צוות לא טכנולוגי במיוחד</li>
+<li>תקציב ₪500-₪2,000/חודש על כלים</li>
+<li>מחפש פשטות ומחיר הוגן</li>
+<li>לא צריך תקנים ארגוניים</li>
+</ul>
+<p><strong>אם זה אתה → Misrad-AI בשבילך!</strong></p>
+<hr>
+<p>✅ <strong>סיימנו! קראת את כל 20 המסמכים.</strong></p>
+<p>💬 <strong>יש שאלות?</strong> תתקשר/כתוב!</p>
+<p>📧 <strong>Email:</strong> <a href="mailto:support@misrad-ai.app">support@misrad-ai.app</a><br>📱 <strong>WhatsApp:</strong> 050-XXX-XXXX<br>🌐 <strong>אתר:</strong> <a href="https://misrad-ai.app">https://misrad-ai.app</a></p>
+<p><strong>תודה ובהצלחה! 🚀</strong></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-20" style="margin-top:40px;">
+<h1>⚔️ השוואת מתחרים — מטריצה מפורטת</h1>
+<h2>השוואה כללית</h2>
+<table>
+<thead>
+<tr>
+<th>קריטריון</th>
+<th>Misrad-AI</th>
+<th>Salesforce</th>
+<th>Monday.com</th>
+<th>HubSpot</th>
+<th>Zoho</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>סוג</strong></td>
+<td>All-in-One</td>
+<td>CRM</td>
+<td>Project Mgmt</td>
+<td>Marketing</td>
+<td>CRM Suite</td>
+</tr>
+<tr>
+<td><strong>מחיר (5 users)</strong></td>
+<td>₪499</td>
+<td>₪455–₪3,010</td>
+<td>₪220–₪730</td>
+<td>₪365–₪2,740</td>
+<td>₪365–₪1,460</td>
+</tr>
+<tr>
+<td><strong>מודולים</strong></td>
+<td>6</td>
+<td>1 (CRM)</td>
+<td>1 (PM)</td>
+<td>3 (נפרדים)</td>
+<td>8</td>
+</tr>
+<tr>
+<td><strong>AI מובנה</strong></td>
+<td>✅ Gemini</td>
+<td>✅ Einstein ($$$)</td>
+<td>✅ (בסיסי)</td>
+<td>✅ (Pro+)</td>
+<td>✅ (בסיסי)</td>
+</tr>
+<tr>
+<td><strong>עברית</strong></td>
+<td>✅ מלא</td>
+<td>⚠️ חלקי</td>
+<td>✅</td>
+<td>⚠️ חלקי</td>
+<td>⚠️ חלקי</td>
+</tr>
+<tr>
+<td><strong>לוח עברי</strong></td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>הגנת שבת</strong></td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>Multi-Tenant</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Self-Hosted</strong></td>
+<td>✅ (₪5K)</td>
+<td>❌</td>
+<td>❌</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>זמן הטמעה</strong></td>
+<td>1 יום</td>
+<td>3-12 חודשים</td>
+<td>1-3 שבועות</td>
+<td>2-6 חודשים</td>
+<td>1-4 שבועות</td>
+</tr>
+<tr>
+<td><strong>תמיכה</strong></td>
+<td>אישית</td>
+<td>כרטיס → מוקד</td>
+<td>כרטיס</td>
+<td>כרטיס</td>
+<td>כרטיס</td>
+</tr>
+<tr>
+<td><strong>SLA</strong></td>
+<td>❌</td>
+<td>✅ 99.9%</td>
+<td>✅ 99.9%</td>
+<td>✅ 99.9%</td>
+<td>✅ 99.9%</td>
+</tr>
+<tr>
+<td><strong>SOC 2</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>Mobile App</strong></td>
+<td>⚠️ PWA</td>
+<td>✅ Native</td>
+<td>✅ Native</td>
+<td>✅ Native</td>
+<td>✅ Native</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>השוואה לפי מודול</h2>
+<h3>CRM / מכירות</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>Misrad-AI (System)</th>
+<th>Salesforce</th>
+<th>HubSpot</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ניהול לידים</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Pipeline (Drag &amp; Drop)</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Lead Scoring (AI)</td>
+<td>✅</td>
+<td>✅ ($$$)</td>
+<td>✅ (Pro)</td>
+</tr>
+<tr>
+<td>חייגן מובנה</td>
+<td>✅</td>
+<td>❌ (addon)</td>
+<td>✅ (Pro)</td>
+</tr>
+<tr>
+<td>ניתוח שיחות AI</td>
+<td>✅</td>
+<td>❌ (addon)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Custom Fields</td>
+<td>✅ (JSONB)</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>אוטומציות</td>
+<td>✅ (בסיסי)</td>
+<td>✅ (מתקדם)</td>
+<td>✅ (מתקדם)</td>
+</tr>
+<tr>
+<td>דוחות</td>
+<td>✅ (בסיסי)</td>
+<td>✅ (מתקדם)</td>
+<td>✅ (מתקדם)</td>
+</tr>
+<tr>
+<td><strong>מחיר</strong></td>
+<td><strong>₪149</strong></td>
+<td><strong>₪91-₪602/user</strong></td>
+<td><strong>₪365-₪2,740</strong></td>
+</tr>
+</tbody></table>
+<h3>שיווק / תוכן</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>Misrad-AI (Social)</th>
+<th>HubSpot Marketing</th>
+<th>Hootsuite</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>תזמון פוסטים</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Content Machine AI</td>
+<td>✅</td>
+<td>✅ (Pro)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>לוח שנה עברי</td>
+<td>✅ ⭐</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>הגנת שבת</td>
+<td>✅ ⭐</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Campaigns</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Analytics</td>
+<td>✅ (בסיסי)</td>
+<td>✅ (מתקדם)</td>
+<td>✅ (מתקדם)</td>
+</tr>
+<tr>
+<td>Email Marketing</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Landing Pages</td>
+<td>❌</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>מחיר</strong></td>
+<td><strong>₪149</strong></td>
+<td><strong>₪365-₪2,740</strong></td>
+<td><strong>₪365</strong></td>
+</tr>
+</tbody></table>
+<h3>תפעול / שטח</h3>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>Misrad-AI (Operations)</th>
+<th>ServiceMax</th>
+<th>Jobber</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Work Orders</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Kiosk Mode</td>
+<td>✅ ⭐</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Voice Commands</td>
+<td>✅ ⭐</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>מלאי</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>GPS Check-in</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>חתימת לקוח</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Portal קבלנים</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>ניהול רכבים</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>מחיר</strong></td>
+<td><strong>₪149</strong></td>
+<td><strong>~₪400/user</strong></td>
+<td><strong>₪170-₪510</strong></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>איפה Misrad-AI מנצח</h2>
+<table>
+<thead>
+<tr>
+<th>יתרון</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>מחיר</strong></td>
+<td>פי 3-25 זול</td>
+</tr>
+<tr>
+<td><strong>All-in-One</strong></td>
+<td>6 מודולים במחיר אחד</td>
+</tr>
+<tr>
+<td><strong>לוח עברי</strong></td>
+<td>אף מתחרה לא מציע</td>
+</tr>
+<tr>
+<td><strong>הגנת שבת</strong></td>
+<td>ייחודי לשוק הישראלי</td>
+</tr>
+<tr>
+<td><strong>תמיכה אישית</strong></td>
+<td>ישירות עם היזם</td>
+</tr>
+<tr>
+<td><strong>זמן הטמעה</strong></td>
+<td>יום אחד vs חודשים</td>
+</tr>
+<tr>
+<td><strong>Kiosk + Voice</strong></td>
+<td>ייחודי לתפעול שטח</td>
+</tr>
+<tr>
+<td><strong>גמישות</strong></td>
+<td>פיצ&#39;ר מותאם תוך שבועיים</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>איפה Misrad-AI מפסיד</h2>
+<table>
+<thead>
+<tr>
+<th>חיסרון</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>אין SLA</strong></td>
+<td>אין 99.9% guarantee</td>
+</tr>
+<tr>
+<td><strong>אין SOC 2</strong></td>
+<td>לא מתאים לארגונים מוסדרים</td>
+</tr>
+<tr>
+<td><strong>אין תמיכה 24/7</strong></td>
+<td>רק שעות עבודה</td>
+</tr>
+<tr>
+<td><strong>אין Native App</strong></td>
+<td>רק PWA</td>
+</tr>
+<tr>
+<td><strong>אין Email Marketing</strong></td>
+<td>צריך כלי נפרד</td>
+</tr>
+<tr>
+<td><strong>דוחות בסיסיים</strong></td>
+<td>לא כמו Salesforce Analytics</td>
+</tr>
+<tr>
+<td><strong>אין Marketplace</strong></td>
+<td>אין plugins / extensions</td>
+</tr>
+<tr>
+<td><strong>יזם סולו</strong></td>
+<td>סיכון עסקי</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מתי לבחור מתחרה?</h2>
+<table>
+<thead>
+<tr>
+<th>מצב</th>
+<th>המלצה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>100+ עובדים</td>
+<td>Salesforce / Dynamics 365</td>
+</tr>
+<tr>
+<td>צריך Email Marketing מתקדם</td>
+<td>HubSpot</td>
+</tr>
+<tr>
+<td>צריך SOC 2 / ISO 27001</td>
+<td>Salesforce / Zoho</td>
+</tr>
+<tr>
+<td>תקציב ₪50K+/חודש</td>
+<td>Salesforce Enterprise</td>
+</tr>
+<tr>
+<td>צריך Marketplace/Plugins</td>
+<td>Salesforce / HubSpot</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>מתי לבחור Misrad-AI?</h2>
+<table>
+<thead>
+<tr>
+<th>מצב</th>
+<th>למה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2-50 עובדים</td>
+<td>Sweet spot</td>
+</tr>
+<tr>
+<td>תקציב עד ₪2,000/חודש</td>
+<td>חיסכון משמעותי</td>
+</tr>
+<tr>
+<td>צריך All-in-One</td>
+<td>6 מודולים במקום 3+ כלים</td>
+</tr>
+<tr>
+<td>עסק ישראלי</td>
+<td>עברית, לוח עברי, שבת</td>
+</tr>
+<tr>
+<td>תפעול שטח</td>
+<td>Kiosk, Voice, GPS</td>
+</tr>
+<tr>
+<td>רוצה פשטות</td>
+<td>יום הטמעה, לא חודשים</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>חזרה ל:</strong> <a href="../README.md">README →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-21" style="margin-top:40px;">
+<h1>🎬 סקריפט דמו — 30 דקות</h1>
+<h2>הכנה (לפני הפגישה)</h2>
+<h3>Checklist</h3>
+<ul>
+<li><input disabled="" type="checkbox"> דעו מי הלקוח (תעשייה, גודל, צורך)</li>
+<li><input disabled="" type="checkbox"> הכנת חשבון Demo עם נתונים</li>
+<li><input disabled="" type="checkbox"> Zoom/Meet מוכן + Screen Share</li>
+<li><input disabled="" type="checkbox"> פתחו את המודול הרלוונטי</li>
+</ul>
+<h3>נתוני Demo מוכנים</h3>
+<ul>
+<li>5 לידים עם Pipeline</li>
+<li>10 משימות בסטטוסים שונים</li>
+<li>3 חשבוניות (שולם/ממתין/באיחור)</li>
+<li>5 קריאות שירות (אם רלוונטי)</li>
+</ul>
+<hr>
+<h2>דקות 0-5: פתיחה (5 דק&#39;)</h2>
+<h3>מה לומר</h3>
+<blockquote>
+<p>&quot;שלום [שם], תודה על הזמן. אני [שם], בניתי את Misrad-AI.
+לפני שנתחיל — אני רוצה להיות כנה: המערכת נבנתה על ידי יזם סולו עם AI.
+זה אומר שהיא לא מושלמת כמו Salesforce, אבל היא עובדת, זולה פי 10, 
+ואני אתקן לך כל באג תוך 24 שעות.</p>
+<p>בוא נראה אם זה מתאים לך.&quot;</p>
+</blockquote>
+<h3>מה <strong>לא</strong> לומר</h3>
+<ul>
+<li>❌ &quot;אנחנו&quot; (אתה לבד)</li>
+<li>❌ &quot;המערכת המתקדמת ביותר&quot;</li>
+<li>❌ הבטחות על פיצ&#39;רים שלא קיימים</li>
+</ul>
+<hr>
+<h2>דקות 5-10: הבנת הצורך (5 דק&#39;)</h2>
+<h3>שאלות לשאול</h3>
+<ol>
+<li><p><strong>&quot;ספר לי על העסק — כמה עובדים? מה אתם עושים?&quot;</strong></p>
+</li>
+<li><p><strong>&quot;איך אתם מנהלים היום? Excel? מערכת אחרת?&quot;</strong></p>
+</li>
+<li><p><strong>&quot;מה הכאב העיקרי? מה לא עובד?&quot;</strong></p>
+</li>
+<li><p><strong>&quot;כמה אתם משלמים היום על כלים?&quot;</strong></p>
+</li>
+<li><p><strong>&quot;מה חשוב לך — מחיר? פשטות? פיצ&#39;ר ספציפי?&quot;</strong></p>
+</li>
+</ol>
+<h3>תרשום</h3>
+<table>
+<thead>
+<tr>
+<th>שאלה</th>
+<th>תשובה</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>גודל צוות</td>
+<td></td>
+</tr>
+<tr>
+<td>כלים נוכחיים</td>
+<td></td>
+</tr>
+<tr>
+<td>כאב עיקרי</td>
+<td></td>
+</tr>
+<tr>
+<td>תקציב נוכחי</td>
+<td></td>
+</tr>
+<tr>
+<td>עדיפויות</td>
+<td></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>דקות 10-22: הדגמה (12 דק&#39;)</h2>
+<h3>בחר מסלול לפי הצורך</h3>
+<h4>מסלול א&#39;: מכירות (System + Nexus)</h4>
+<p><strong>דקה 10-13: Pipeline</strong></p>
+<ol>
+<li>פתח את System → Pipeline</li>
+<li>הראה Drag &amp; Drop בין שלבים</li>
+<li>לחץ על ליד → הראה Timeline</li>
+<li><blockquote>
+<p>&quot;כל מה שקורה עם הליד — במקום אחד&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 13-16: חייגן + AI</strong></p>
+<ol>
+<li>לחץ על מספר טלפון → החייגן נפתח</li>
+<li>הראה ניתוח שיחה (אם יש הקלטה מוכנה)</li>
+<li><blockquote>
+<p>&quot;ה-AI מנתח כל שיחה: ציון, רגש, התנגדויות, המלצות&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 16-19: משימות</strong></p>
+<ol>
+<li>עבור ל-Nexus → משימות</li>
+<li>צור משימה מהירה</li>
+<li>הקצה לצוות</li>
+<li>הפעל Timer</li>
+<li><blockquote>
+<p>&quot;כל נציג רואה מה עליו לעשות היום&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 19-22: Dashboard</strong></p>
+<ol>
+<li>הראה Dashboard עם סטטיסטיקות</li>
+<li><blockquote>
+<p>&quot;תמונת מצב של כל הצוות — ברגע&quot;</p>
+</blockquote>
+</li>
+</ol>
+<hr>
+<h4>מסלול ב&#39;: שיווק (Social + Client)</h4>
+<p><strong>דקה 10-13: לוח שנה עברי</strong></p>
+<ol>
+<li>פתח Social → Calendar</li>
+<li>הראה תאריכים עבריים</li>
+<li>הראה הגנת שבת</li>
+<li><blockquote>
+<p>&quot;הלוח היחיד בעולם עם תאריכים עבריים מובנים&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 13-16: Content Machine</strong></p>
+<ol>
+<li>לחץ &quot;יצירת תוכן AI&quot;</li>
+<li>הזן נושא → הראה 3 וריאציות</li>
+<li><blockquote>
+<p>&quot;תוכן ל-3 פלטפורמות תוך 10 שניות&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 16-19: Portal לקוחות</strong></p>
+<ol>
+<li>עבור ל-Client → Portal</li>
+<li>הראה תצוגת לקוח</li>
+<li>שיתוף קבצים</li>
+<li><blockquote>
+<p>&quot;הלקוח שלך רואה הכל, מאשר, מעלה קבצים&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 19-22: Workflows</strong></p>
+<ol>
+<li>הראה תהליך עבודה</li>
+<li>שלבים + אישורים</li>
+<li><blockquote>
+<p>&quot;כל פרויקט עובר תהליך מוגדר&quot;</p>
+</blockquote>
+</li>
+</ol>
+<hr>
+<h4>מסלול ג&#39;: תפעול (Operations + Finance)</h4>
+<p><strong>דקה 10-13: Work Orders</strong></p>
+<ol>
+<li>פתח Operations → Work Orders</li>
+<li>צור קריאה חדשה</li>
+<li>הקצה לטכנאי</li>
+<li><blockquote>
+<p>&quot;קריאה חדשה? 30 שניות&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 13-16: Kiosk Mode</strong></p>
+<ol>
+<li>הראה Kiosk Mode</li>
+<li>Check-In עם GPS</li>
+<li>העלאת תמונה</li>
+<li>חתימת לקוח</li>
+<li><blockquote>
+<p>&quot;הטכנאי בשטח — ממשק פשוט, ללא הדרכה&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 16-19: מלאי</strong></p>
+<ol>
+<li>הראה מלאי חלפים</li>
+<li>משיכה מהמלאי</li>
+<li>התראת מלאי נמוך</li>
+<li><blockquote>
+<p>&quot;תמיד יודע מה יש במחסן&quot;</p>
+</blockquote>
+</li>
+</ol>
+<p><strong>דקה 19-22: חשבוניות</strong></p>
+<ol>
+<li>עבור ל-Finance</li>
+<li>צור חשבונית מהירה</li>
+<li>הראה תזכורת WhatsApp</li>
+<li><blockquote>
+<p>&quot;חשבונית + תזכורת אוטומטית&quot;</p>
+</blockquote>
+</li>
+</ol>
+<hr>
+<h2>דקות 22-27: מחיר ושאלות (5 דק&#39;)</h2>
+<h3>הצג את המחיר</h3>
+<blockquote>
+<p>&quot;בהתבסס על מה שראינו, אני ממליץ על [חבילה].</p>
+<p>המחיר: ₪[X]/חודש ל-[Y] משתמשים.</p>
+<p>לעומת מה שאתם משלמים היום (₪[Z]) — חיסכון של ₪[חיסכון]/חודש.</p>
+<p>אין התחייבות. אפשר לבטל בכל עת.
+חודש ראשון — החזר מלא אם לא מרוצים.&quot;</p>
+</blockquote>
+<h3>תשובות מוכנות</h3>
+<p><strong>&quot;יקר&quot;</strong> → &quot;₪149/חודש = ₪5/יום. פחות מקפה.&quot;</p>
+<p><strong>&quot;צריך לחשוב&quot;</strong> → &quot;בטח. אני שולח לך PDF עם כל מה שראינו.&quot;</p>
+<p><strong>&quot;מה עם אבטחה?&quot;</strong> → &quot;7 שכבות: Clerk, Tenant Guard, RLS... [הפנה למסמך 13]&quot;</p>
+<p><strong>&quot;אין שם גדול&quot;</strong> → &quot;נכון. אבל המחיר פי 10 פחות והתמיכה אישית.&quot;</p>
+<hr>
+<h2>דקות 27-30: סגירה (3 דק&#39;)</h2>
+<h3>אם מעוניין</h3>
+<blockquote>
+<p>&quot;מעולה! אני שולח לך לינק הרשמה עכשיו.
+אחרי שנרשם — נקבע Session הדרכה של שעה.
+תוך יום אתם עובדים.&quot;</p>
+</blockquote>
+<h3>אם לא בטוח</h3>
+<blockquote>
+<p>&quot;מבין לגמרי. אני שולח לך:</p>
+<ol>
+<li>PDF סיכום של ההדגמה</li>
+<li>קישור למסמכי המכירה</li>
+<li>המייל שלי — אני כאן לכל שאלה.</li>
+</ol>
+<p>קח שבוע, תחשוב. אני לא לוחץ.&quot;</p>
+</blockquote>
+<h3>אם לא מעוניין</h3>
+<blockquote>
+<p>&quot;תודה על הזמן! אם משהו ישתנה — אני כאן.
+בהצלחה עם [המערכת שלהם].&quot;</p>
+</blockquote>
+<hr>
+<h2>Follow-Up</h2>
+<h3>אחרי 24 שעות</h3>
+<ul>
+<li>שלח מייל תודה</li>
+<li>צרף PDF סיכום</li>
+<li>צרף קישור למסמכים</li>
+</ul>
+<h3>אחרי שבוע (אם לא נרשם)</h3>
+<ul>
+<li>שלח הודעת WhatsApp קצרה</li>
+<li><blockquote>
+<p>&quot;היי [שם], רק רציתי לבדוק אם יש שאלות?&quot;</p>
+</blockquote>
+</li>
+</ul>
+<h3>אחרי חודש (אם לא נרשם)</h3>
+<ul>
+<li>שלח עדכון פיצ&#39;ר חדש</li>
+<li><blockquote>
+<p>&quot;הי [שם], הוספנו [פיצ&#39;ר חדש]. חשבתי שזה רלוונטי לך.&quot;</p>
+</blockquote>
+</li>
+</ul>
+<hr>
+<p>📖 <strong>חזרה ל:</strong> <a href="../README.md">README →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-22" style="margin-top:40px;">
+<h1>❓ שאלות נפוצות — FAQ</h1>
+<h2>כללי</h2>
+<h3>מה זה Misrad-AI?</h3>
+<p>פלטפורמת ניהול עסקי All-in-One עם 6 מודולים: ניהול צוות, מכירות, שיווק, כספים, לקוחות ותפעול.</p>
+<h3>מי בנה את המערכת?</h3>
+<p>יזם סולו אחד בעזרת כלי AI. אני לא מסתיר את זה — זו נקודת מכירה, לא חולשה.</p>
+<h3>כמה זה עולה?</h3>
+<p>₪149/חודש למודול בודד, ₪499/חודש לכל 6 המודולים + 5 משתמשים.</p>
+<h3>יש תקופת ניסיון חינם?</h3>
+<p>אין Trial חינם. יש ערבות החזר 30 יום ללא שאלות.</p>
+<h3>אפשר לבטל?</h3>
+<p>כן, בכל עת, ללא התחייבות, ללא דמי ביטול.</p>
+<hr>
+<h2>טכני</h2>
+<h3>מה הדפדפנים הנתמכים?</h3>
+<p>Chrome, Firefox, Safari, Edge — גרסאות אחרונות.</p>
+<h3>יש אפליקציית מובייל?</h3>
+<p>PWA (Progressive Web App) — נפתח בדפדפן מובייל. אין אפליקציה ב-App Store.</p>
+<h3>מה קורה אם המערכת נפלה?</h3>
+<p>Vercel מספק 99%+ uptime. אני מקבל התראה ומתקן. אין SLA רשמי.</p>
+<h3>איפה הנתונים שלי?</h3>
+<p>PostgreSQL — אירופה (Frankfurt) או ארה&quot;ב (Oregon). אתה בוחר.</p>
+<h3>האם הנתונים מוצפנים?</h3>
+<p>כן. TLS 1.3 בשידור, AES-256 באחסון.</p>
+<h3>האם יש API?</h3>
+<p>כן. REST API עם API Key authentication. 1000 requests/שעה.</p>
+<h3>האם יש Webhook?</h3>
+<p>כן. דרך Svix — delivery guarantees + retry logic.</p>
+<hr>
+<h2>אבטחה</h2>
+<h3>מה רמת האבטחה?</h3>
+<p>7 שכבות: Clerk Auth, Tenant Guard, RLS, API Guards, AI Security, Audit Log, Encrypted Backup.</p>
+<h3>יש 2FA?</h3>
+<p>כן, דרך Clerk — SMS, Email, או Authenticator App.</p>
+<h3>יש SOC 2?</h3>
+<p>לא. אם צריך SOC 2 — לא מתאים.</p>
+<h3>יש GDPR?</h3>
+<p>כן. Export, Delete, DPA — הכל זמין.</p>
+<h3>מי יכול לראות את הנתונים שלי?</h3>
+<p>רק המשתמשים בארגון שלך. Tenant Isolation מלא. אפילו אני (האדמין) צריך הרשאה מפורשת.</p>
+<hr>
+<h2>חשבון ותשלום</h2>
+<h3>איך משלמים?</h3>
+<p>כרטיס אשראי (Visa/MC/Amex), העברה בנקאית (שנתי).</p>
+<h3>מקבלים חשבונית מס?</h3>
+<p>כן, אוטומטית במייל אחרי כל חיוב.</p>
+<h3>איך מוסיפים משתמש?</h3>
+<p>הגדרות → צוות → הוסף → ₪39/חודש.</p>
+<h3>מה קורה כשמשדרגים חבילה?</h3>
+<p>חיוב יחסי מיידי לשאר החודש. מחודש הבא — מחיר חדש.</p>
+<h3>מה קורה כשמבטלים?</h3>
+<p>הנתונים נשמרים 30 יום. אפשר לייצא בכל רגע.</p>
+<hr>
+<h2>מודולים</h2>
+<h3>אפשר לקנות מודול בודד?</h3>
+<p>כן. סולו = ₪149/חודש, מודול אחד לבחירה, משתמש אחד. 🎁 + מודול Finance במתנה (אינטגרציה לחברות חשבוניות כמו Morning, iCount, סמיט).</p>
+<h3>אפשר להוסיף מודול אחרי?</h3>
+<p>כן, בכל עת. המחיר עולה בהתאם.</p>
+<h3>צריך Nexus לכל חבילה?</h3>
+<p>כן. Nexus (ניהול צוות) כלול בכל החבילות (חוץ מסולו).</p>
+<h3>מה ההבדל בין Social ל-System?</h3>
+<p>System = CRM/מכירות (לידים, Pipeline, חייגן). Social = שיווק (תוכן, תזמון, Campaigns).</p>
+<hr>
+<h2>AI</h2>
+<h3>איזה AI משולב?</h3>
+<p>Google Gemini 2.0 Flash — טקסט, ניתוח, יצירת תוכן.</p>
+<h3>מה AI עושה בפועל?</h3>
+<ul>
+<li>ניתוח שיחות מכירה (System)</li>
+<li>יצירת תוכן שיווקי (Social)</li>
+<li>Lead Scoring (System)</li>
+<li>תובנות צוות (Nexus)</li>
+<li>פקודות קוליות (Operations)</li>
+</ul>
+<h3>האם AI רואה את הנתונים הרגישים שלי?</h3>
+<p>לא. יש סינון אוטומטי — מיילים, טלפונים, משכורות, כרטיסי אשראי <strong>לא</strong> נשלחים ל-AI.</p>
+<h3>כמה AI כלול?</h3>
+<p>100,000 tokens/חודש (≈300 ניתוחי שיחות). נוסף: ₪50/100K tokens.</p>
+<hr>
+<h2>הטמעה</h2>
+<h3>כמה זמן לוקח להתחיל?</h3>
+<p>2-4 שעות ביום הראשון. שבוע ללמידה. חודש להטמעה מלאה.</p>
+<h3>יש הדרכה?</h3>
+<p>כן. Session Zoom של 60 דקות — כלול בחינם.</p>
+<h3>אפשר לייבא נתונים?</h3>
+<p>כן. CSV/Excel — יבוא עם מיפוי AI.</p>
+<h3>הצוות לא טכנולוגי — יצליחו?</h3>
+<p>אם יודעים WhatsApp — יצליחו. פתיחת ליד = 3 לחיצות.</p>
+<hr>
+<h2>עתיד</h2>
+<h3>מה קורה אם היזם נעלם?</h3>
+<ol>
+<li>גיבוי יומי — ייצוא בכל רגע</li>
+<li>Self-Hosted — אפשרי (₪5,000)</li>
+<li>Source Code Escrow — ללקוחות גדולים</li>
+</ol>
+<h3>יש Roadmap?</h3>
+<p>כן. ראה <a href="./24-roadmap.md">Roadmap</a>.</p>
+<h3>אפשר לבקש פיצ&#39;ר?</h3>
+<p>כן! הפיצ&#39;רים שלך = בראש הרשימה. זמן: 1-4 שבועות.</p>
+<hr>
+<p>📖 <strong>חזרה ל:</strong> <a href="../README.md">README →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-23" style="margin-top:40px;">
+<h1>🗺️ Roadmap — תכנון פיצ&#39;רים עתידי</h1>
+<blockquote>
+<p><strong>הערה:</strong> זהו תכנון ראשוני. סדר עדיפויות משתנה לפי בקשות לקוחות.</p>
+</blockquote>
+<hr>
+<h2>Q1 2026 (ינואר-מרץ) — ✅ הושלם</h2>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>מודול</th>
+<th>סטטוס</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pipeline Drag &amp; Drop</td>
+<td>System</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Content Machine AI</td>
+<td>Social</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Kiosk Mode</td>
+<td>Operations</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Voice Commands</td>
+<td>Operations</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>WhatsApp Reminders</td>
+<td>Finance</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Client Portal</td>
+<td>Client</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Google Calendar Sync</td>
+<td>Client</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Green Invoice Integration</td>
+<td>Finance</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Tenant Guard (Multi-Tenant)</td>
+<td>Core</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>RBAC (Role-Based Access)</td>
+<td>Core</td>
+<td>✅</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Q2 2026 (אפריל-יוני) — 🔄 בפיתוח</h2>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>מודול</th>
+<th>עדיפות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Smart Import (CSV/Excel + AI mapping)</td>
+<td>Core</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Email Inbox (שליחה/קבלה מהמערכת)</td>
+<td>System</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Advanced Reports &amp; Dashboards</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Mobile-optimized views</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Recurring Invoices</td>
+<td>Finance</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Inventory Alerts (low stock)</td>
+<td>Operations</td>
+<td>🟢 נמוכה</td>
+</tr>
+<tr>
+<td>Automation Rules (if/then)</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Q3 2026 (יולי-ספטמבר) — 📋 מתוכנן</h2>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>מודול</th>
+<th>עדיפות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Zoom/Meet Integration</td>
+<td>System</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Call Recording + Auto-Transcription</td>
+<td>System</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Zapier/Make Integration</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Custom Dashboards (drag widgets)</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Multi-currency Support</td>
+<td>Finance</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>GPS Tracking (real-time map)</td>
+<td>Operations</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Document Templates (contracts)</td>
+<td>Client</td>
+<td>🟢 נמוכה</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Q4 2026 (אוקטובר-דצמבר) — 💡 חזון</h2>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>מודול</th>
+<th>עדיפות</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Native Mobile App (iOS/Android)</td>
+<td>Core</td>
+<td>🔴 גבוהה</td>
+</tr>
+<tr>
+<td>Slack/Teams Integration</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>Advanced Automations (workflows)</td>
+<td>Core</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>AI Chatbot for Clients</td>
+<td>Client</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>E-signature (חתימה דיגיטלית)</td>
+<td>Finance</td>
+<td>🟡 בינונית</td>
+</tr>
+<tr>
+<td>White-label Option</td>
+<td>Core</td>
+<td>🟢 נמוכה</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2027 — 🔮 תכנון ארוך-טווח</h2>
+<table>
+<thead>
+<tr>
+<th>פיצ&#39;ר</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Marketplace</strong></td>
+<td>Plugins ותוספים של צד שלישי</td>
+</tr>
+<tr>
+<td><strong>Multi-language</strong></td>
+<td>אנגלית, ערבית</td>
+</tr>
+<tr>
+<td><strong>Advanced Analytics</strong></td>
+<td>BI מובנה</td>
+</tr>
+<tr>
+<td><strong>Partner Program</strong></td>
+<td>שותפים/Resellers</td>
+</tr>
+<tr>
+<td><strong>Enterprise Plan</strong></td>
+<td>SLA, SOC 2, dedicated support</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>איך מבקשים פיצ&#39;ר?</h2>
+<h3>אפשרות 1: ישירות</h3>
+<p>שלח לי מייל/WhatsApp עם הבקשה.</p>
+<h3>אפשרות 2: Feature Request</h3>
+<p>הגדרות → Feature Requests → הגש בקשה</p>
+<h3>סדר עדיפויות</h3>
+<table>
+<thead>
+<tr>
+<th>קריטריון</th>
+<th>משקל</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>כמה לקוחות ביקשו</td>
+<td>40%</td>
+</tr>
+<tr>
+<td>קלות פיתוח</td>
+<td>20%</td>
+</tr>
+<tr>
+<td>ערך עסקי</td>
+<td>30%</td>
+</tr>
+<tr>
+<td>אבטחה/אמינות</td>
+<td>10%</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>שקיפות</h2>
+<p><strong>אני מפרסם עדכונים:</strong></p>
+<ul>
+<li>בלוג חודשי (changelog)</li>
+<li>הודעת Email ללקוחות</li>
+<li>In-app notification</li>
+</ul>
+<hr>
+<p>📖 <strong>חזרה ל:</strong> <a href="../README.md">README →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+<div id="section-24" style="margin-top:40px;">
+<h1>📖 מילון מונחים</h1>
+<h2>A</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>API</strong></td>
+<td>Application Programming Interface — ממשק תכנות לתקשורת בין מערכות</td>
+</tr>
+<tr>
+<td><strong>API Key</strong></td>
+<td>מפתח אימות לגישה ל-API</td>
+</tr>
+<tr>
+<td><strong>App Router</strong></td>
+<td>מערכת ניתוב של Next.js — ניהול דפים וURLs</td>
+</tr>
+<tr>
+<td><strong>Audit Log</strong></td>
+<td>יומן פעילות — תיעוד כל פעולה במערכת</td>
+</tr>
+<tr>
+<td><strong>Auto-scaling</strong></td>
+<td>התאמה אוטומטית של משאבים לפי עומס</td>
+</tr>
+</tbody></table>
+<h2>B</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Backup</strong></td>
+<td>גיבוי — עותק שמור של הנתונים</td>
+</tr>
+<tr>
+<td><strong>B2B</strong></td>
+<td>Business-to-Business — מכירה לעסקים</td>
+</tr>
+<tr>
+<td><strong>B2C</strong></td>
+<td>Business-to-Consumer — מכירה ללקוחות פרטיים</td>
+</tr>
+</tbody></table>
+<h2>C</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CDN</strong></td>
+<td>Content Delivery Network — רשת שרתים עולמית לטעינה מהירה</td>
+</tr>
+<tr>
+<td><strong>Clerk</strong></td>
+<td>שירות אימות משתמשים שהמערכת משתמשת בו</td>
+</tr>
+<tr>
+<td><strong>CRM</strong></td>
+<td>Customer Relationship Management — ניהול קשרי לקוחות</td>
+</tr>
+<tr>
+<td><strong>CSV</strong></td>
+<td>Comma-Separated Values — פורמט קובץ נתונים (Excel-like)</td>
+</tr>
+</tbody></table>
+<h2>D</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Dashboard</strong></td>
+<td>לוח בקרה — תצוגה מרוכזת של נתונים</td>
+</tr>
+<tr>
+<td><strong>Database</strong></td>
+<td>מסד נתונים — מקום אחסון מובנה לכל המידע</td>
+</tr>
+<tr>
+<td><strong>DPA</strong></td>
+<td>Data Processing Agreement — הסכם עיבוד נתונים (GDPR)</td>
+</tr>
+<tr>
+<td><strong>Drag &amp; Drop</strong></td>
+<td>גרור ושחרר — פעולת ממשק אינטואיטיבית</td>
+</tr>
+</tbody></table>
+<h2>E</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Edge Functions</strong></td>
+<td>פונקציות שרצות קרוב למשתמש (שרתים גיאוגרפיים)</td>
+</tr>
+<tr>
+<td><strong>Encryption</strong></td>
+<td>הצפנה — הפיכת נתונים לבלתי קריאים ללא מפתח</td>
+</tr>
+</tbody></table>
+<h2>G</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>GDPR</strong></td>
+<td>General Data Protection Regulation — תקנת הגנת פרטיות אירופית</td>
+</tr>
+<tr>
+<td><strong>Gemini</strong></td>
+<td>מנוע AI של Google — משמש לניתוח טקסט, יצירת תוכן ועוד</td>
+</tr>
+<tr>
+<td><strong>GPS</strong></td>
+<td>Global Positioning System — מיקום גיאוגרפי</td>
+</tr>
+<tr>
+<td><strong>Green Invoice</strong></td>
+<td>שירות חשבוניות ישראלי — אינטגרציה קיימת</td>
+</tr>
+</tbody></table>
+<h2>J</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>JSON</strong></td>
+<td>JavaScript Object Notation — פורמט נתונים מובנה</td>
+</tr>
+<tr>
+<td><strong>JSONB</strong></td>
+<td>JSON Binary — אחסון JSON ב-PostgreSQL עם אינדוקס</td>
+</tr>
+<tr>
+<td><strong>JWT</strong></td>
+<td>JSON Web Token — אסימון אימות מוצפן</td>
+</tr>
+</tbody></table>
+<h2>K</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Kiosk Mode</strong></td>
+<td>מצב קיוסק — ממשק פשוט לטכנאים בשטח</td>
+</tr>
+</tbody></table>
+<h2>L</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Lead</strong></td>
+<td>ליד — לקוח פוטנציאלי</td>
+</tr>
+<tr>
+<td><strong>Lead Scoring</strong></td>
+<td>דירוג לידים — ציון AI לפי סבירות סגירה</td>
+</tr>
+</tbody></table>
+<h2>M</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Multi-Tenant</strong></td>
+<td>ריבוי דיירים — מערכת אחת משרתת ארגונים רבים בבידוד</td>
+</tr>
+<tr>
+<td><strong>Middleware</strong></td>
+<td>שכבת ביניים — קוד שרץ לפני כל בקשה</td>
+</tr>
+</tbody></table>
+<h2>N</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Next.js</strong></td>
+<td>React Framework — הבסיס הטכנולוגי של המערכת</td>
+</tr>
+<tr>
+<td><strong>Nexus</strong></td>
+<td>מודול ניהול צוות ומשימות</td>
+</tr>
+</tbody></table>
+<h2>O</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ORM</strong></td>
+<td>Object-Relational Mapping — כלי לתקשורת עם Database (Prisma)</td>
+</tr>
+<tr>
+<td><strong>Organization</strong></td>
+<td>ארגון — יחידת בידוד (tenant) במערכת</td>
+</tr>
+</tbody></table>
+<h2>P</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Pipeline</strong></td>
+<td>צינור מכירה — שלבי תהליך מהליד לסגירה</td>
+</tr>
+<tr>
+<td><strong>PostgreSQL</strong></td>
+<td>Database ארגוני — מסד הנתונים של המערכת</td>
+</tr>
+<tr>
+<td><strong>Prisma</strong></td>
+<td>ORM — כלי גישה ל-Database עם TypeScript</td>
+</tr>
+<tr>
+<td><strong>PWA</strong></td>
+<td>Progressive Web App — אפליקציית ווב שנראית כמו Native</td>
+</tr>
+</tbody></table>
+<h2>R</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>RBAC</strong></td>
+<td>Role-Based Access Control — הרשאות לפי תפקיד</td>
+</tr>
+<tr>
+<td><strong>REST API</strong></td>
+<td>ממשק תכנות מבוסס HTTP</td>
+</tr>
+<tr>
+<td><strong>RLS</strong></td>
+<td>Row Level Security — הגנה ברמת שורה ב-Database</td>
+</tr>
+<tr>
+<td><strong>ROI</strong></td>
+<td>Return on Investment — החזר על ההשקעה</td>
+</tr>
+</tbody></table>
+<h2>S</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>SaaS</strong></td>
+<td>Software as a Service — תוכנה כשירות (ענן)</td>
+</tr>
+<tr>
+<td><strong>Server Action</strong></td>
+<td>פונקציית שרת ב-Next.js — &#39;use server&#39;</td>
+</tr>
+<tr>
+<td><strong>Serverless</strong></td>
+<td>ללא שרתים פיזיים — תשלום לפי שימוש</td>
+</tr>
+<tr>
+<td><strong>SLA</strong></td>
+<td>Service Level Agreement — התחייבות לזמינות</td>
+</tr>
+<tr>
+<td><strong>SOC 2</strong></td>
+<td>תקן אבטחה ארגוני (לא קיים במערכת)</td>
+</tr>
+<tr>
+<td><strong>SSR</strong></td>
+<td>Server-Side Rendering — רינדור בצד השרת</td>
+</tr>
+</tbody></table>
+<h2>T</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Tenant</strong></td>
+<td>דייר — ארגון/לקוח במערכת Multi-Tenant</td>
+</tr>
+<tr>
+<td><strong>Tenant Guard</strong></td>
+<td>Middleware שמבטיח בידוד נתונים בין ארגונים</td>
+</tr>
+<tr>
+<td><strong>TLS</strong></td>
+<td>Transport Layer Security — הצפנת תקשורת</td>
+</tr>
+<tr>
+<td><strong>Token</strong></td>
+<td>אסימון — יחידת מדידה לשימוש AI</td>
+</tr>
+<tr>
+<td><strong>TypeScript</strong></td>
+<td>שפת תכנות — JavaScript עם Types</td>
+</tr>
+</tbody></table>
+<h2>U</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>UUID</strong></td>
+<td>Universally Unique Identifier — מזהה ייחודי</td>
+</tr>
+<tr>
+<td><strong>Uptime</strong></td>
+<td>זמן פעילות — אחוז הזמן שהמערכת זמינה</td>
+</tr>
+</tbody></table>
+<h2>W</h2>
+<table>
+<thead>
+<tr>
+<th>מונח</th>
+<th>הסבר</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Webhook</strong></td>
+<td>הודעה אוטומטית ממערכת למערכת כשקורה אירוע</td>
+</tr>
+<tr>
+<td><strong>Work Order</strong></td>
+<td>קריאת שירות — משימת תפעול בשטח</td>
+</tr>
+<tr>
+<td><strong>Workflow</strong></td>
+<td>תהליך עבודה — סדרת שלבים מוגדרת</td>
+</tr>
+</tbody></table>
+<hr>
+<p>📖 <strong>חזרה ל:</strong> <a href="../README.md">README →</a></p>
+</div>
+<hr style="border:none; border-top:2px solid #e2e8f0; margin:40px 0;">
+
+</body>
+</html>

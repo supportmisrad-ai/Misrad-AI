@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { User as UserIcon, Settings, Shield, Bell, LogOut, CreditCard, X, Camera, Activity, Clock, MapPin, MapPinned, Timer, ChevronDown, Crown, Zap, Flame, Wallet, Trophy, TrendingUp, Calendar, CalendarDays, CheckCircle, XCircle, Lock, AlertCircle, Target } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -81,14 +81,17 @@ export const MeView: React.FC<{
         return null;
     }
   };
-  const navigate = (path: string, opts?: { replace?: boolean }) => {
-      const target = toNexusPath(basePath, path);
-      if (opts?.replace) {
-          router.replace(target);
-      } else {
-          router.push(target);
-      }
-  };
+  const navigate = useCallback(
+      (path: string, opts?: { replace?: boolean }) => {
+          const target = toNexusPath(basePath, path);
+          if (opts?.replace) {
+              router.replace(target);
+          } else {
+              router.push(target);
+          }
+      },
+      [basePath, router]
+  );
 
   const openProfileEditor = () => {
     if (needsProfileCompletion) {
@@ -292,9 +295,18 @@ export const MeView: React.FC<{
   const currentMonthBonus = taskBonusTotal + commissionTotal + oneOffBonuses;
   const streak = currentUser.streakDays || 0;
 
+  const didOpenProfileFromUrlRef = useRef(false);
+
   // Check if we should open profile edit modal from URL
   useEffect(() => {
       const openProfile = searchParams?.get('edit') === 'profile' || (typeof window !== 'undefined' && window.location.hash === '#edit-profile');
+      if (!openProfile) {
+          didOpenProfileFromUrlRef.current = false;
+          return;
+      }
+
+      if (didOpenProfileFromUrlRef.current) return;
+      didOpenProfileFromUrlRef.current = true;
       if (openProfile) {
           setActiveSettingModal('personal');
           // Clean up URL after opening modal
@@ -441,7 +453,14 @@ export const MeView: React.FC<{
       }
   };
 
-  const closeModal = () => setActiveSettingModal(null);
+  const closeModal = () => {
+      setActiveSettingModal(null);
+      if (typeof window === 'undefined') return;
+      const shouldClear = new URLSearchParams(window.location.search).get('edit') === 'profile' || window.location.hash === '#edit-profile';
+      if (shouldClear) {
+          navigate('/me', { replace: true });
+      }
+  };
 
   const closeModuleSettingsDrawer = () => setActiveModuleSettingsDrawer(null);
 

@@ -94,7 +94,7 @@ function analyzeSql(sql) {
 async function checkDatabaseStatus() {
   try {
     const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM social_users');
+    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organization_users');
     
     return {
       organizations: orgs[0].count,

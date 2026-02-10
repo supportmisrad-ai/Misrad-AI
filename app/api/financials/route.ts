@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, hasPermission } from '../../../lib/auth';
-import { logAuditEvent, logSensitiveAccess } from '../../../lib/audit';
+import { getAuthenticatedUser, hasPermission } from '@/lib/auth';
+import { logAuditEvent, logSensitiveAccess } from '@/lib/audit';
 import { getFinanceOverviewData } from '@/lib/services/finance-service';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';

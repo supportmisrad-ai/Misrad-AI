@@ -409,6 +409,24 @@ export const SaaSAdminView: React.FC = () => {
         setEditingTenant({ ...editingTenant, modules: newModules });
     };
 
+    const setTenantModules = async (modules: ModuleId[]) => {
+        if (!editingTenant) return;
+        const next = Array.isArray(modules) ? modules : [];
+        if (next.length === 0) {
+            addToast('חייב להיות לפחות מודול אחד פעיל', 'error');
+            return;
+        }
+
+        updateTenant(editingTenant.id, { modules: next });
+        setEditingTenant({ ...editingTenant, modules: next });
+
+        try {
+            await handleUpdateTenant(editingTenant.id, { modules: next });
+        } catch {
+            // handleUpdateTenant already toasts
+        }
+    };
+
     const handleSimulateTenant = (tenant: Tenant) => {
         switchToTenantConfig(tenant.modules);
         addToast(`התחזות ל-${tenant.name} פעילה. המודולים עודכנו.`, 'success');
@@ -456,8 +474,10 @@ export const SaaSAdminView: React.FC = () => {
                 {isModuleModalOpen && editingTenant && (
                     <ModuleManagementModal 
                         tenant={editingTenant} 
+                        products={products}
                         onClose={() => setIsModuleModalOpen(false)} 
                         onToggle={toggleTenantModule} 
+                        onSetModules={setTenantModules}
                     />
                 )}
                 
@@ -545,7 +565,7 @@ export const SaaSAdminView: React.FC = () => {
                     </div>
                 )}
 
-                {/* Nexus OS Button */}
+                {/* Nexus Module Button */}
                 <button 
                     onClick={() => setSelectedSystem(selectedSystem === 'nexus' ? null : 'nexus')} 
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-colors ${
@@ -1052,7 +1072,7 @@ export const SaaSAdminView: React.FC = () => {
                             </>
                         )}
 
-                        {/* Nexus OS Content */}
+                        {/* Nexus Module Content */}
                         {selectedSystem === 'nexus' && (
                             <>
                                 {nexusTab === 'control' && (

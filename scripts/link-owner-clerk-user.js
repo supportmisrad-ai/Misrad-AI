@@ -61,7 +61,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   try {
-    const owner = await prisma.social_users.findUnique({
+    const owner = await prisma.organizationUser.findUnique({
       where: { id: OWNER_ID },
       select: { id: true, email: true, clerk_user_id: true, role: true },
     });
@@ -71,7 +71,7 @@ async function main() {
       process.exit(1);
     }
 
-    const updated = await prisma.social_users.update({
+    const updated = await prisma.organizationUser.update({
       where: { id: OWNER_ID },
       data: { clerk_user_id: clerkUserId, updated_at: new Date() },
       select: { id: true, email: true, clerk_user_id: true, role: true },

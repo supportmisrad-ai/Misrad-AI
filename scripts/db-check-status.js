@@ -56,7 +56,7 @@ async function main() {
     const hasMigrations = await tableExists('_prisma_migrations');
 
     const orgCount = await prisma.social_organizations.count();
-    const userCount = await prisma.social_users.count();
+    const userCount = await prisma.organizationUser.count();
 
     console.log('\n📊 DB Status');
     console.log('='.repeat(60));

@@ -104,7 +104,7 @@ export function getTrialInfo(
 /**
  * Initialize trial for new user
  */
-export function initializeTrial(trialDays: number = 14): {
+export function initializeTrial(trialDays: number = 7): {
   trialStartDate: Date;
   trialDays: number;
   subscriptionStatus: SubscriptionStatus;
@@ -119,5 +119,5 @@ export function initializeTrial(trialDays: number = 14): {
 /**
  * Default trial days (can be configured in admin panel)
  */
-export const DEFAULT_TRIAL_DAYS = 14;
+export const DEFAULT_TRIAL_DAYS = 7;
 

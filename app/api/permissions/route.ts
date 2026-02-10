@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '../../../lib/auth';
+import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
 

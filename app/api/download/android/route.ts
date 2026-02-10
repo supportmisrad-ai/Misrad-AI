@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { shabbatGuard } from '@/lib/api-shabbat-guard';
-
 async function GETHandler(_request: NextRequest) {
   let url: string | null = null;
   try {
@@ -14,10 +12,39 @@ async function GETHandler(_request: NextRequest) {
 
   url = String(url ?? '').trim() || null;
   if (!url) {
+    try {
+      const { getAppVersionManifest, resolvePlatformDownloadUrl } = await import('@/lib/server/appVersionManifest');
+      const { manifest } = await getAppVersionManifest();
+      url = resolvePlatformDownloadUrl(manifest, 'android');
+    } catch {
+      // ignore
+    }
+  }
+
+  url = String(url ?? '').trim() || null;
+  if (url && url.startsWith('sb://')) {
+    try {
+      const { parseSbRef } = await import('@/lib/services/operations/storage');
+      const parsed = parseSbRef(url);
+      if (parsed) {
+        const { createServiceRoleStorageClient } = await import('@/lib/supabase');
+        const supabase = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'app_binary_signed_url' });
+        const { data, error } = await supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, 60 * 60);
+        const signedUrl = !error && data?.signedUrl ? String(data.signedUrl) : null;
+        if (signedUrl) url = signedUrl;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  url = String(url ?? '').trim() || null;
+  if (!url) {
     return NextResponse.json(
       {
         error: 'Not configured',
-        message: 'MISRAD_ANDROID_DOWNLOAD_URL is not configured (and DB global_settings is empty)',
+        message:
+          'Android download is not configured (DB global_settings, MISRAD_ANDROID_DOWNLOAD_URL, and version manifest are empty)',
       },
       { status: 404 }
     );
@@ -26,4 +53,4 @@ async function GETHandler(_request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export const GET = shabbatGuard(GETHandler);
+export const GET = GETHandler;

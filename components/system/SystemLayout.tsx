@@ -19,9 +19,10 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = getNexusBasePath(pathname);
-  const { currentUser, notifications } = useData();
+  const { currentUser, notifications, organization } = useData();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { isShabbat } = useShabbat();
+  const isShabbatProtected = (organization as any)?.isShabbatProtected !== false;
 
   const isActive = (path: string) => (pathname || '/') === toNexusPath(basePath, path);
   
@@ -36,7 +37,7 @@ export const SystemLayout = ({ children }: SystemLayoutProps) => {
       { path: '/sales/targets', label: 'יעדים', icon: Target },
   ];
 
-  if (isShabbat) {
+  if (isShabbat && isShabbatProtected) {
     return <ShabbatScreen />;
   }
 

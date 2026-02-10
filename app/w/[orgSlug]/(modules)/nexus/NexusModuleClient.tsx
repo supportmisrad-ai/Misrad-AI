@@ -8,10 +8,14 @@ export default function NexusModuleClient({
   initialCurrentUser,
   initialOrganization,
   initialOwnerDashboard,
+  initialOnboardingTemplateKey,
+  initialBillingItems,
 }: {
   initialCurrentUser?: User;
   initialOrganization?: Partial<OrganizationProfile>;
   initialOwnerDashboard?: unknown;
+  initialOnboardingTemplateKey?: string | null;
+  initialBillingItems?: unknown[] | null;
 }) {
   return (
     <ReactQueryProvider>
@@ -19,6 +23,8 @@ export default function NexusModuleClient({
         initialCurrentUser={initialCurrentUser}
         initialOrganization={initialOrganization}
         initialOwnerDashboard={initialOwnerDashboard}
+        initialOnboardingTemplateKey={initialOnboardingTemplateKey}
+        initialBillingItems={initialBillingItems}
       />
     </ReactQueryProvider>
   );

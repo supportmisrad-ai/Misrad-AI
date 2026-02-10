@@ -4,11 +4,12 @@ import React, { useState, useRef } from 'react';
 import { useData } from '../../context/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2 } from 'lucide-react';
-import { Product } from '../../types';
+import { ModuleId, Product } from '../../types';
 import { DeleteConfirmationModal } from '../DeleteConfirmationModal';
+import { MODULES_CONFIG } from '../saas/SaasConstants';
 
 export const ProductsTab: React.FC = () => {
-    const { products, updateSettings, deleteProduct, hasPermission, addToast } = useData();
+    const { products, saveProductsCatalog, deleteProduct, hasPermission, addToast } = useData();
     const [isAddingProduct, setIsAddingProduct] = useState(false);
     const [newProduct, setNewProduct] = useState<Partial<Product>>({ id: '', name: '', price: 0, color: 'bg-gray-800 text-white', modules: [] });
     const [isShaking, setIsShaking] = useState(false);
@@ -19,20 +20,38 @@ export const ProductsTab: React.FC = () => {
 
     const canEditProducts = hasPermission('manage_system');
 
-    const handleAddProduct = () => {
+    const handleAddProduct = async () => {
         if(!newProduct.name || !newProduct.name.trim()) {
             setIsShaking(true);
             nameInputRef.current?.focus();
             setTimeout(() => setIsShaking(false), 400);
             return;
         }
+
+        const modules = Array.isArray(newProduct.modules) ? (newProduct.modules as ModuleId[]) : [];
+        if (modules.length === 0) {
+            addToast('נא לבחור לפחות מודול אחד לחבילה', 'error');
+            return;
+        }
         
-        const productToAdd: Product = { ...newProduct, id: `prod_${Date.now()}`, modules: newProduct.modules || [] } as Product;
-        updateSettings('products', [...products, productToAdd]);
+        const productToAdd: Product = { ...newProduct, id: `prod_${Date.now()}`, modules } as Product;
+        const prev = Array.isArray(products) ? products : [];
+        const next = [...prev, productToAdd];
+        const ok = await saveProductsCatalog(next);
+        if (!ok) return;
+
         addToast(`המוצר "${newProduct.name}" נוסף לקטלוג`, 'success');
-        
+
         setNewProduct({ id: '', name: '', price: 0, color: 'bg-gray-800 text-white', modules: [] });
         setIsAddingProduct(false);
+    };
+
+    const toggleNewProductModule = (moduleId: ModuleId) => {
+        setNewProduct(prev => {
+            const current = Array.isArray(prev.modules) ? (prev.modules as ModuleId[]) : [];
+            const next = current.includes(moduleId) ? current.filter(m => m !== moduleId) : [...current, moduleId];
+            return { ...prev, modules: next };
+        });
     };
 
     const handleDeleteClick = (e: React.MouseEvent, id: string, name: string) => {
@@ -104,6 +123,31 @@ export const ProductsTab: React.FC = () => {
                                 className="p-3 border border-gray-200 rounded-xl outline-none focus:border-black dir-ltr"
                             />
                         </div>
+
+                        <div className="mb-4">
+                            <div className="text-sm font-bold text-gray-900 mb-2">מודולים בחבילה</div>
+                            <div className="flex flex-wrap gap-2">
+                                {MODULES_CONFIG.map((m) => {
+                                    const selected = Array.isArray(newProduct.modules) && (newProduct.modules as ModuleId[]).includes(m.id as ModuleId);
+                                    return (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            onClick={() => toggleNewProductModule(m.id as ModuleId)}
+                                            className={`px-3 py-2 rounded-xl border text-sm font-bold transition-colors flex items-center gap-2 ${
+                                                selected
+                                                    ? 'bg-black text-white border-black'
+                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            <m.icon size={16} className={selected ? 'text-white' : m.color} />
+                                            {m.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setIsAddingProduct(false)} className="px-4 py-2 text-gray-500 font-bold hover:bg-gray-200 rounded-xl transition-colors">ביטול</button>
                             <button onClick={handleAddProduct} className="px-6 py-2 bg-black text-white rounded-xl font-bold hover:bg-gray-800 transition-colors">שמור</button>
@@ -119,6 +163,19 @@ export const ProductsTab: React.FC = () => {
                             <div className={`h-2 w-12 rounded-full mb-4 ${product.color.split(' ')[0]}`}></div>
                             <h3 className="font-bold text-lg text-gray-900">{product.name}</h3>
                             <p className="text-2xl font-black text-gray-900 mt-2">₪{product.price.toLocaleString()}</p>
+                            {Array.isArray(product.modules) && product.modules.length > 0 ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    {product.modules.map((mod) => {
+                                        const conf = MODULES_CONFIG.find((c) => c.id === mod);
+                                        return (
+                                            <span key={mod} className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200 px-2.5 py-1 text-xs font-bold text-gray-700">
+                                                {conf ? <conf.icon size={14} className={conf.color} /> : null}
+                                                {conf?.label || mod}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
                         </div>
                         {canEditProducts && (
                             <div className="mt-6 pt-4 border-t border-gray-50 flex justify-end">

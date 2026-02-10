@@ -47,7 +47,7 @@ function normalizeLaunchScopeModules(input: unknown): Record<OSModuleKey, boolea
 
 export async function getSystemFeatureFlags(): Promise<SystemFeatureFlags> {
   try {
-    const row = await prisma.social_system_settings.findUnique({
+    const row = await prisma.coreSystemSettings.findUnique({
       where: { key: 'feature_flags' },
     });
 

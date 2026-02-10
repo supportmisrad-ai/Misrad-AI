@@ -25,6 +25,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 let cachedTechDocsSnippet: string | null = null;
+let cachedSalesDocsSnippet: string | null = null;
 
 const HARD_LIMITS = {
   maxContentLengthBytes: 220_000,
@@ -84,7 +85,8 @@ function getErrorName(e: unknown): string {
   if (e instanceof Error && typeof e.name === 'string') return e.name;
   if (isRecord(e) && typeof e.name === 'string') return e.name;
   return '';
-}
+}
+
 
 
 const _g = globalThis as _ChatGlobalCaches;
@@ -358,6 +360,48 @@ async function loadTechDocsSnippet(): Promise<string> {
   }
 }
 
+async function loadSalesDocsSnippet(): Promise<string> {
+  if (cachedSalesDocsSnippet !== null) return cachedSalesDocsSnippet;
+  try {
+    const root = process.cwd();
+    const salesDocsDir = path.join(root, 'docs', 'sales-docs');
+    
+    const mainFiles = [
+      '01-סקירה-כללית.md',
+      '10-מבנה-תמחור.md',
+      '11-החבילות.md',
+      '12-דוגמאות-מחיר.md',
+      '04-מודול-nexus.md',
+      '05-מודול-system.md',
+      '06-מודול-social.md',
+      '07-מודול-finance.md',
+      '08-מודול-client.md',
+      '09-מודול-operations.md',
+      '18-התנגדויות.md',
+    ];
+
+    let combined = '';
+    for (const fileName of mainFiles) {
+      try {
+        const filePath = path.join(salesDocsDir, fileName);
+        const content = await fs.readFile(filePath, 'utf8');
+        if (content && content.trim()) {
+          combined += `\n\n# ${fileName}\n${content}`;
+        }
+      } catch {
+        // ignore missing files
+      }
+      if (combined.length > 28000) break;
+    }
+
+    cachedSalesDocsSnippet = (combined || '').slice(0, 28000);
+    return cachedSalesDocsSnippet;
+  } catch {
+    cachedSalesDocsSnippet = '';
+    return '';
+  }
+}
+
 async function getHelpVideoSuggestion(params: { organizationId: string; pathname: string; moduleKey?: string | null }) {
   const pathname = String(params.pathname || '/');
   const normalized = normalizeRoute(pathname);
@@ -524,6 +568,13 @@ async function POSTHandler(req: Request) {
       const lastUser = [...safeIncomingMessages].reverse().find((m) => m.role === 'user')?.content || '';
       const historyText = formatHistory(safeIncomingMessages);
 
+      let salesDocsKnowledge = '';
+      try {
+        salesDocsKnowledge = await loadSalesDocsSnippet();
+      } catch {
+        salesDocsKnowledge = '';
+      }
+
       const systemInstruction = [
         'ענה תמיד בעברית טבעית, זורמת ומודרנית.',
         'אתה יועץ מכירות מומחה של MISRAD AI. המטרה שלך היא להמיר מתעניינים למשתמשים על ידי הצגת ערך פרקטי (ROI).',
@@ -536,7 +587,15 @@ async function POSTHandler(req: Request) {
         'בסוף כל תשובה משמעותית הוסף CTA ברור עם לינקים לפרייסינג/הרשמה או וואטסאפ/צור קשר.',
       ].join('\n');
 
-      const request = `עמוד נוכחי: ${clampText(normalizedPathname, 200)}\n\nHistory:\n${clampText(historyText || '(empty)', 6000)}\n\nUser message:\n${clampText(lastUser, 4000)}`;
+      const request = [
+        `עמוד נוכחי: ${clampText(normalizedPathname, 200)}`,
+        '',
+        salesDocsKnowledge ? `מידע על המוצר והמודולים:\n${clampText(salesDocsKnowledge, 14000)}` : '',
+        '',
+        `History:\n${clampText(historyText || '(empty)', 6000)}`,
+        '',
+        `User message:\n${clampText(lastUser, 4000)}`,
+      ].filter(Boolean).join('\n\n');
 
       const cacheKey = stableHash(
         [
@@ -912,12 +971,20 @@ async function POSTHandler(req: Request) {
           techDocs = '';
         }
 
+        let salesDocsKnowledge = '';
+        try {
+          salesDocsKnowledge = clampText(await loadSalesDocsSnippet(), 8000);
+        } catch {
+          salesDocsKnowledge = '';
+        }
+
         const systemInstruction = [
           'אתה "שרה מהתמיכה".',
           'אתה מומחה תמיכה טכנית. עזור למשתמש לבצע פעולות בתוך המערכת.',
           'השתמש במידע על המודולים ובלינקים למדריכים. היה סבלני ושירותי.',
           helpVideoText ? `מדריכים רלוונטיים:\n${helpVideoText}` : '',
           techDocs ? `תיעוד טכני פנימי (קטע):\n${techDocs}` : '',
+          salesDocsKnowledge ? `מידע על מודולים ויכולות המערכת:\n${salesDocsKnowledge}` : '',
         ]
           .filter(Boolean)
           .join('\n\n');

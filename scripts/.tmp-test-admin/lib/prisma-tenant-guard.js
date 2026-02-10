@@ -356,7 +356,7 @@ function isProfileLookupByClerkUserIdUnscopedAllowed(params) {
 }
 function isSocialUserLookupByClerkUserIdUnscopedAllowed(params) {
     const modelLower = String(params.model || '').toLowerCase();
-    if (modelLower !== 'social_users' && modelLower !== 'socialusers')
+    if (modelLower !== 'organization_users' && modelLower !== 'socialusers')
         return false;
     if (!params.where || typeof params.where !== 'object')
         return false;
@@ -369,7 +369,7 @@ function isSocialUserLookupByClerkUserIdUnscopedAllowed(params) {
 }
 function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params) {
     const modelLower = String(params.model || '').toLowerCase();
-    if (modelLower !== 'social_team_members' && modelLower !== 'socialteammembers')
+    if (modelLower !== 'team_members' && modelLower !== 'socialteammembers')
         return false;
     if (!params.where || typeof params.where !== 'object')
         return false;
@@ -463,7 +463,7 @@ function installPrismaTenantGuard(prisma, options) {
                         return next(params);
                     }
                 }
-                if (process.env.NODE_ENV !== 'production' && model === 'social_users') {
+                if (process.env.NODE_ENV !== 'production' && model === 'organization_users') {
                     try {
                         console.error('[tenant-guard] missing organization scope for social_users', {
                             action,

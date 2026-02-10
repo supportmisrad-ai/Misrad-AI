@@ -68,7 +68,7 @@ async function main() {
     
     // Backup users
     console.log('👥 מגבה משתמשים...');
-    const users = await prisma.social_users.findMany();
+    const users = await prisma.organizationUser.findMany();
     console.log(`   ✅ ${users.length} משתמשים\n`);
     
     // Backup profiles
@@ -114,8 +114,10 @@ async function main() {
       }
     };
     
-    // Write to file
-    fs.writeFileSync(backupFile, JSON.stringify(backup, null, 2), 'utf-8');
+    // Write to file with BigInt support
+    fs.writeFileSync(backupFile, JSON.stringify(backup, (key, value) =>
+      typeof value === 'bigint' ? value.toString() : value
+    , 2), 'utf-8');
     
     console.log('✅ גיבוי הושלם בהצלחה!\n');
     console.log('📊 סיכום:');

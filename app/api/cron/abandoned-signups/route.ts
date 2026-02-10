@@ -60,7 +60,7 @@ async function POSTHandler(req: NextRequest) {
 
     let usersRows: Array<Record<string, unknown>> = [];
     try {
-      const delegate = getLegacyDelegate('social_users');
+      const delegate = getLegacyDelegate('organization_users');
       const findMany = delegate.findMany;
       if (typeof findMany !== 'function') throw new Error('Prisma delegate social_users.findMany is unavailable');
       usersRows = await findMany({

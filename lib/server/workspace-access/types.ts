@@ -12,6 +12,7 @@ export type WorkspaceInfo = {
   name: string;
   logo?: string | null;
   seatsAllowed: number | null;
+  isShabbatProtected: boolean;
   entitlements: WorkspaceEntitlements;
 };
 
@@ -42,4 +43,5 @@ export type OrganizationRow = {
   slug: string | null;
   logo: string | null;
   seats_allowed: unknown;
+  is_shabbat_protected: boolean | null;
 } & OrganizationModuleFlags;

@@ -71,7 +71,7 @@ async function assertClientInOrganization(params: { clientId: string; organizati
 }
 
 async function assertClientRequestInOrganization(params: { requestId: string; organizationId: string }): Promise<{ clientId: string }> {
-  const row = await prisma.social_client_requests.findFirst({
+  const row = await prisma.socialMediaClientRequest.findFirst({
     where: {
       id: String(params.requestId),
       organizationId: String(params.organizationId),
@@ -89,7 +89,7 @@ async function assertClientRequestInOrganization(params: { requestId: string; or
 }
 
 async function assertManagerRequestInOrganization(params: { requestId: string; organizationId: string }): Promise<{ clientId: string }> {
-  const row = await prisma.social_manager_requests.findFirst({
+  const row = await prisma.socialMediaManagerRequest.findFirst({
     where: {
       id: String(params.requestId),
       organizationId: String(params.organizationId),
@@ -121,7 +121,7 @@ export async function getClientRequests(
       return { success: false, error: 'Forbidden' };
     }
 
-    const rows = await prisma.social_client_requests.findMany({
+    const rows = await prisma.socialMediaClientRequest.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
@@ -197,7 +197,7 @@ export async function getManagerRequests(
       return { success: false, error: 'Forbidden' };
     }
 
-    const rows = await prisma.social_manager_requests.findMany({
+    const rows = await prisma.socialMediaManagerRequest.findMany({
       where: {
         organizationId,
         ...(clientId ? { client_id: String(clientId) } : {}),
@@ -277,7 +277,7 @@ export async function createClientRequest(
 
     const normalizedType = requestData.type === 'media' ? 'media' : 'text';
 
-    const request = await prisma.social_client_requests.create({
+    const request = await prisma.socialMediaClientRequest.create({
       data: {
         organizationId,
         client_id: String(requestData.clientId),
@@ -354,7 +354,7 @@ export async function createManagerRequest(
 
     const normalizedType = requestData.type === 'media' ? 'media' : 'info';
 
-    const request = await prisma.social_manager_requests.create({
+    const request = await prisma.socialMediaManagerRequest.create({
       data: {
         organizationId,
         client_id: String(requestData.clientId),
@@ -409,7 +409,7 @@ export async function approveClientRequest(
 
     const scoped = await assertClientRequestInOrganization({ requestId, organizationId });
 
-    const res = await prisma.social_client_requests.updateMany({
+    const res = await prisma.socialMediaClientRequest.updateMany({
       where: {
         id: String(requestId),
         organizationId,
@@ -467,7 +467,7 @@ export async function rejectClientRequest(
 
     const scoped = await assertClientRequestInOrganization({ requestId, organizationId });
 
-    const res = await prisma.social_client_requests.updateMany({
+    const res = await prisma.socialMediaClientRequest.updateMany({
       where: {
         id: String(requestId),
         organizationId,
@@ -530,10 +530,10 @@ export async function updateManagerRequest(
           ? 'completed'
           : updates.status;
 
-    const updateData: Prisma.social_manager_requestsUpdateManyMutationInput = {};
+    const updateData: Prisma.SocialMediaManagerRequestUpdateManyMutationInput = {};
     if (normalizedStatus !== undefined) updateData.status = normalizedStatus;
 
-    const res = await prisma.social_manager_requests.updateMany({
+    const res = await prisma.socialMediaManagerRequest.updateMany({
       where: {
         id: String(requestId),
         organizationId,

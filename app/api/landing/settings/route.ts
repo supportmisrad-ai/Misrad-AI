@@ -22,7 +22,7 @@ function toJsonObject(value: unknown): Prisma.InputJsonObject {
 }
 
 async function readCurrentSettings(): Promise<LandingSettings> {
-  const row = await prisma.social_system_settings.findUnique({
+  const row = await prisma.coreSystemSettings.findUnique({
     where: { key: LANDING_SETTINGS_KEY },
     select: { value: true },
   });
@@ -93,7 +93,7 @@ async function PATCHHandler(request: NextRequest) {
           isSuperAdmin: true,
         },
         async () =>
-          await prisma.social_system_settings.upsert({
+          await prisma.coreSystemSettings.upsert({
             where: { key: LANDING_SETTINGS_KEY },
             create: {
               key: LANDING_SETTINGS_KEY,

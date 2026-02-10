@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser } from '../../../../lib/auth';
-import { OSModule } from '../../../../types/os-modules';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { OSModule } from '@/types/os-modules';
 import { DEFAULT_OS_MODULE_PRIORITY } from '@/lib/os/modules/registry';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';

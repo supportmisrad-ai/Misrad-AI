@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import Dashboard from '@/components/social/Dashboard';
+import prisma from '@/lib/prisma';
 
 
 export default async function SocialModuleHome({
@@ -10,5 +11,12 @@ export default async function SocialModuleHome({
 }) {
   const resolvedParams = await params;
   const { orgSlug } = resolvedParams;
-  return <Dashboard orgSlug={orgSlug} />;
+
+  const initialScripts = await prisma.strategic_content.findMany({
+    where: { module_id: 'social', category: 'scripts' },
+    select: { id: true, category: true, title: true, content: true, module_id: true },
+    orderBy: [{ category: 'asc' }, { title: 'asc' }],
+  });
+
+  return <Dashboard orgSlug={orgSlug} initialScripts={initialScripts} />;
 }
