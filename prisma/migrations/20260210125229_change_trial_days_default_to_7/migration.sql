@@ -3,7 +3,7 @@
 -- Existing records will keep their current trial_days value
 
 -- AlterTable
-ALTER TABLE "social_organizations" ALTER COLUMN "trial_days" SET DEFAULT 7;
+ALTER TABLE "organizations" ALTER COLUMN "trial_days" SET DEFAULT 7;
 
 -- AlterTable
-ALTER TABLE "social_team_members" ALTER COLUMN "trial_days" SET DEFAULT 7;
+ALTER TABLE "team_members" ALTER COLUMN "trial_days" SET DEFAULT 7;
