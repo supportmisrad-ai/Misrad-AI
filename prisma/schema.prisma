@@ -2279,6 +2279,7 @@ model ActivityLog {
 
   @@index([team_member_id, created_at(sort: Desc)], map: "idx_social_activity_logs_team_member_created_at")
   @@index([team_member_id], map: "idx_social_activity_logs_team_member_id")
+  @@map("activity_logs")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -3017,6 +3018,8 @@ model TeamComment {
   text                String
   created_at          DateTime?  @default(now()) @db.Timestamptz(6)
   social_team_members TeamMember @relation(fields: [team_member_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "team_comments_team_member_id_fkey")
+
+  @@map("team_comments")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -3028,6 +3031,7 @@ model TeamMemberClient {
   @@id([team_member_id, client_id], map: "team_member_clients_pkey")
   @@index([client_id, team_member_id], map: "idx_team_member_clients_client_team")
   @@index([team_member_id], map: "idx_team_member_clients_team_member_id")
+  @@map("team_member_clients")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -3064,6 +3068,7 @@ model TeamMember {
   @@index([user_id], map: "idx_team_members_user_id")
   @@index([organization_id], map: "team_members_organization_id_idx")
   @@index([organization_id], map: "idx_social_team_members_organization_id")
+  @@map("team_members")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
