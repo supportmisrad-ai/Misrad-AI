@@ -775,7 +775,7 @@ function isSocialUserLookupByClerkUserIdUnscopedAllowed(params: {
   where: unknown;
 }): boolean {
   const modelLower = String(params.model || '').toLowerCase();
-  if (modelLower !== 'organization_users' && modelLower !== 'socialusers') return false;
+  if (modelLower !== 'organizationuser' && modelLower !== 'organization_users' && modelLower !== 'socialusers') return false;
   if (!params.where || typeof params.where !== 'object') return false;
   const allowedActions = new Set(['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'update', 'updateMany']);
   if (!allowedActions.has(params.action)) return false;
@@ -800,7 +800,7 @@ function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params: {
   where: unknown;
 }): boolean {
   const modelLower = String(params.model || '').toLowerCase();
-  if (modelLower !== 'team_members' && modelLower !== 'socialteammembers') return false;
+  if (modelLower !== 'teammember' && modelLower !== 'team_members' && modelLower !== 'socialteammembers') return false;
   if (!params.where || typeof params.where !== 'object') return false;
 
   const allowedActions = new Set(['findMany', 'findFirst', 'findFirstOrThrow', 'count', 'aggregate', 'groupBy']);
@@ -936,7 +936,7 @@ export function installPrismaTenantGuard(
             return next(params);
           }
         }
-        if (process.env.NODE_ENV !== 'production' && model === 'OrganizationUser') {
+        if (process.env.NODE_ENV !== 'production' && String(model) === 'OrganizationUser') {
           try {
             console.error('[tenant-guard] missing organization scope for social_users', {
               action,
