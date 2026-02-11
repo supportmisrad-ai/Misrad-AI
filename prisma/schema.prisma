@@ -2012,7 +2012,7 @@ model SocialPost {
   @@index([organizationId, status, createdAt(sort: Desc)], map: "idx_social_posts_org_status_created_at")
   @@index([clientId, createdAt(sort: Desc)], map: "idx_social_posts_client_created_at")
   @@index([clientId, scheduled_at], map: "idx_social_posts_client_scheduled_at")
-  @@map("social_posts")
+  @@map("socialmedia_posts")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2294,6 +2294,8 @@ model SocialMediaAgencyConfig {
   is_recurring Boolean?  @default(false)
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("socialmedia_agency_configs")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2307,6 +2309,8 @@ model SocialMediaAiOpportunity {
   draft_content String?
   media_url     String?
   created_at    DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("socialmedia_ai_opportunities")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2339,6 +2343,8 @@ model SocialMediaAutomationRule {
   description  String
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("socialmedia_automation_rules")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2355,6 +2361,8 @@ model SocialMediaBusinessMetric {
   days_overdue           Int?      @default(0)
   created_at             DateTime? @default(now()) @db.Timestamptz(6)
   updated_at             DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("socialmedia_business_metrics")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2375,6 +2383,8 @@ model SocialMediaCalendarEvent {
   updated_at      DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([google_event_id, user_id], map: "calendar_events_google_event_id_user_id_key")
+
+  @@map("socialmedia_calendar_events")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2394,6 +2404,8 @@ model SocialMediaCampaign {
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([client_id], map: "idx_campaigns_client_id")
+
+  @@map("socialmedia_campaigns")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2403,6 +2415,8 @@ model SocialMediaClientPlatform {
   platform  String
 
   @@id([client_id, platform], map: "client_active_platforms_pkey")
+
+  @@map("socialmedia_client_platforms")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2430,6 +2444,8 @@ model SocialMediaClientDna {
   @@index([client_id], map: "idx_client_dna_client_id")
   @@index([vocabulary_forbidden], map: "idx_client_dna_vocabulary_forbidden", type: Gin)
   @@index([vocabulary_loved], map: "idx_client_dna_vocabulary_loved", type: Gin)
+
+  @@map("socialmedia_client_dna")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2451,6 +2467,8 @@ model SocialMediaClientRequest {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_client_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_client_requests_client_created_at")
   @@index([client_id], map: "idx_social_client_requests_client_id")
+
+  @@map("socialmedia_client_requests")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2491,6 +2509,8 @@ model SocialMediaClient {
   @@index([plan], map: "idx_clients_plan")
   @@index([status], map: "idx_clients_status")
   @@index([user_id], map: "idx_clients_user_id")
+
+  @@map("socialmedia_clients")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2514,6 +2534,8 @@ model SocialMediaConversation {
   @@index([client_id], map: "idx_conversations_client_id")
   @@index([client_id], map: "idx_social_conversations_client_id")
   @@index([client_id, updated_at(sort: Desc)], map: "idx_social_conversations_client_updated_at")
+
+  @@map("socialmedia_conversations")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2532,6 +2554,8 @@ model SocialMediaDriveFile {
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([google_file_id, user_id], map: "drive_files_google_file_id_user_id_key")
+
+  @@map("socialmedia_drive_files")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2547,6 +2571,8 @@ model SocialMediaFeedback {
   priority   String?   @default("medium")
   created_at DateTime? @default(now()) @db.Timestamptz(6)
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@map("socialmedia_feedback")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2578,6 +2604,8 @@ model SocialMediaIdea {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_ideas_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_ideas_client_created_at")
   @@index([client_id], map: "idx_social_ideas_client_id")
+
+  @@map("socialmedia_ideas")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2633,6 +2661,8 @@ model SocialMediaInvoice {
   created_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([client_id], map: "idx_invoices_client_id")
+
+  @@map("socialmedia_invoices")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2654,6 +2684,8 @@ model SocialMediaManagerRequest {
   @@index([organizationId, client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_org_client_created_at")
   @@index([client_id, created_at(sort: Desc)], map: "idx_social_manager_requests_client_created_at")
   @@index([client_id], map: "idx_social_manager_requests_client_id")
+
+  @@map("socialmedia_manager_requests")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2670,6 +2702,8 @@ model SocialMediaMessage {
   @@index([organizationId], map: "idx_social_messages_organization_id")
   @@index([conversation_id], map: "idx_messages_conversation_id")
   @@index([organizationId, conversation_id, created_at], map: "idx_social_messages_org_conversation_created_at")
+
+  @@map("socialmedia_messages")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2853,6 +2887,8 @@ model SocialMediaPaymentOrder {
   updated_at           DateTime? @default(now()) @db.Timestamptz(6)
 
   @@index([client_id], map: "idx_payment_orders_client_id")
+
+  @@map("socialmedia_payment_orders")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2868,6 +2904,8 @@ model SocialMediaPlatformCredential {
   updated_at DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([client_id, platform], map: "platform_credentials_client_id_platform_key")
+
+  @@map("socialmedia_platform_credentials")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2883,6 +2921,8 @@ model SocialMediaPlatformQuota {
 
   @@unique([client_id, platform], map: "platform_quotas_client_id_platform_key")
   @@index([client_id], map: "idx_platform_quotas_client_id")
+
+  @@map("socialmedia_platform_quotas")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2898,6 +2938,8 @@ model SocialMediaPostComment {
 
   @@index([organizationId], map: "idx_social_post_comments_organization_id")
   @@index([organizationId, post_id], map: "idx_social_post_comments_org_post_id")
+
+  @@map("socialmedia_post_comments")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2911,6 +2953,8 @@ model SocialMediaPostPlatform {
   @@id([post_id, platform], map: "post_platforms_pkey")
   @@index([post_id], map: "idx_social_post_platforms_post_id")
   @@index([organizationId], map: "idx_social_post_platforms_organization_id")
+
+  @@map("socialmedia_post_platforms")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -2925,6 +2969,8 @@ model SocialMediaPostVariation {
   social_posts     SocialPost @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "post_variations_post_id_fkey")
 
   @@index([organizationId], map: "idx_social_post_variations_organization_id")
+
+  @@map("socialmedia_post_variations")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2942,6 +2988,8 @@ model SocialMediaSheetsSyncConfig {
   updated_at     DateTime? @default(now()) @db.Timestamptz(6)
 
   @@unique([user_id, spreadsheet_id, sheet_name, sync_type], map: "sheets_sync_configs_user_id_spreadsheet_id_sheet_name_sync__key")
+
+  @@map("socialmedia_sheets_sync_configs")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2959,6 +3007,8 @@ model SocialMediaSiteContent {
   @@unique([page, section, key], map: "site_content_page_section_key_key")
   @@index([key], map: "idx_site_content_key")
   @@index([page, section], map: "idx_site_content_page_section")
+
+  @@map("socialmedia_site_content")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -2974,6 +3024,8 @@ model SocialMediaSyncLog {
   started_at       DateTime? @default(now()) @db.Timestamptz(6)
   completed_at     DateTime? @db.Timestamptz(6)
   metadata         Json?
+
+  @@map("socialmedia_sync_logs")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -3025,6 +3077,8 @@ model SocialMediaTask {
   @@index([assigned_to], map: "idx_social_tasks_assigned_to")
   @@index([client_id], map: "idx_social_tasks_client_id")
   @@index([client_id, due_date], map: "idx_social_tasks_client_due_date")
+
+  @@map("socialmedia_tasks")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
