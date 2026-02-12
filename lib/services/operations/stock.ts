@@ -60,7 +60,9 @@ async function createOperationsItemForOrganizationId(params: {
         onHand: 0,
         minLevel: 0,
       },
-      update: {},
+      update: {
+        organizationId: params.organizationId,
+      },
     });
 
     const whHolderId = await ensureOperationsPrimaryWarehouseHolderId({ organizationId: params.organizationId });
@@ -504,6 +506,7 @@ async function addOperationsStockToActiveVehicleForOrganizationId(params: {
           minLevel: 0,
         },
         update: {
+          organizationId: params.organizationId,
           onHand: { increment: qty },
         },
       });

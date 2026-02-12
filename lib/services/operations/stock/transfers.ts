@@ -169,6 +169,7 @@ export async function addOperationsStockToActiveVehicleForOrganizationId(params:
           minLevel: 0,
         },
         update: {
+          organizationId: params.organizationId,
           onHand: { increment: qty },
         },
       });
