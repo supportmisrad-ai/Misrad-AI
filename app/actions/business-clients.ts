@@ -382,6 +382,10 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
     return { ok: true, client };
   } catch (error) {
     console.error('[updateBusinessClient] Error:', error);
+    const message = error instanceof Error ? String(error.message || '').trim() : '';
+    if (message === 'מייל זה כבר בשימוש' || message === 'מספר עוסק/ח.פ זה כבר בשימוש') {
+      return { ok: false, error: message };
+    }
     return { ok: false, error: 'שגיאה בעדכון לקוח עסקי' };
   }
 }
