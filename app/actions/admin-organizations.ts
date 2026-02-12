@@ -432,18 +432,41 @@ export async function createOrganization(input: {
           data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
         });
 
+        const owner = await prisma.organizationUser.findFirst({
+          where: { id: ownerUserId },
+          select: { email: true, full_name: true },
+        });
+
+        const existingClient = await prisma.clientClient.findFirst({
+          where: { organizationId: createdOrg.id },
+          select: { id: true },
+        });
+
+        if (!existingClient?.id) {
+          await prisma.clientClient.create({
+            data: {
+              organizationId: createdOrg.id,
+              fullName: name,
+              email: owner?.email || undefined,
+              metadata: {},
+              createdAt: now,
+              updatedAt: now,
+            },
+          });
+        }
+
         return createdOrg;
       }
     );
 
     // Best-effort: send welcome email with portal link
     try {
-      const owner = await prisma.organizationUser.findFirst({
+      const ownerData = await prisma.organizationUser.findFirst({
         where: { id: ownerUserId },
         select: { email: true, full_name: true },
       });
 
-      const ownerEmail = owner?.email ? String(owner.email) : null;
+      const ownerEmail = ownerData?.email ? String(ownerData.email) : null;
       if (ownerEmail) {
         const baseUrl = getBaseUrl();
         const portalSlug = finalSlug || createdOrg.id;
@@ -451,7 +474,7 @@ export async function createOrganization(input: {
         await sendOrganizationWelcomeEmail({
           ownerEmail,
           organizationName: name,
-          ownerName: owner?.full_name ? String(owner.full_name) : null,
+          ownerName: ownerData?.full_name ? String(ownerData.full_name) : null,
           portalUrl,
         });
       }
@@ -540,6 +563,24 @@ export async function createOrganizationOrInviteOwner(input: {
             where: { id: String(existingOwner.id) },
             data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
           });
+
+          const existingClient = await prisma.clientClient.findFirst({
+            where: { organizationId: createdOrg.id },
+            select: { id: true },
+          });
+
+          if (!existingClient?.id) {
+            await prisma.clientClient.create({
+              data: {
+                organizationId: createdOrg.id,
+                fullName: name,
+                email: ownerEmail,
+                metadata: {},
+                createdAt: now,
+                updatedAt: now,
+              },
+            });
+          }
 
           return createdOrg;
         }

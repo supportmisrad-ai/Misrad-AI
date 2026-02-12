@@ -89,57 +89,68 @@ export async function createBusinessClient(input: BusinessClientInput) {
       return { ok: false, error: 'כתובת מייל לא תקינה' };
     }
 
-    // Check if email already exists
-    const existing = await prisma.businessClient.findUnique({
-      where: { primary_email: normalizedEmail },
-      select: { id: true, company_name: true },
-    });
+    const client = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.createBusinessClient',
+        reason: 'global_admin_create_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        // Check if email already exists
+        const existing = await prisma.businessClient.findUnique({
+          where: { primary_email: normalizedEmail },
+          select: { id: true, company_name: true },
+        });
 
-    if (existing) {
-      return { ok: false, error: `לקוח עסקי עם מייל ${normalizedEmail} כבר קיים (${existing.company_name})` };
-    }
+        if (existing) {
+          throw new Error(`לקוח עסקי עם מייל ${normalizedEmail} כבר קיים (${existing.company_name})`);
+        }
 
-    // Check business number if provided
-    if (input.business_number) {
-      const existingBN = await prisma.businessClient.findUnique({
-        where: { business_number: input.business_number },
-        select: { id: true, company_name: true },
-      });
+        // Check business number if provided
+        if (input.business_number) {
+          const existingBN = await prisma.businessClient.findUnique({
+            where: { business_number: input.business_number },
+            select: { id: true, company_name: true },
+          });
 
-      if (existingBN) {
-        return { ok: false, error: `לקוח עסקי עם ח.פ/עוסק ${input.business_number} כבר קיים (${existingBN.company_name})` };
+          if (existingBN) {
+            throw new Error(`לקוח עסקי עם ח.פ/עוסק ${input.business_number} כבר קיים (${existingBN.company_name})`);
+          }
+        }
+
+        // Create client
+        return await prisma.businessClient.create({
+          data: {
+            company_name: input.company_name.trim(),
+            company_name_en: input.company_name_en?.trim(),
+            business_number: input.business_number?.trim(),
+            tax_id: input.tax_id?.trim(),
+            legal_entity_type: input.legal_entity_type?.trim(),
+            primary_email: normalizedEmail,
+            phone: input.phone?.trim(),
+            website: input.website?.trim(),
+            address_street: input.address_street?.trim(),
+            address_city: input.address_city?.trim(),
+            address_state: input.address_state?.trim(),
+            address_postal_code: input.address_postal_code?.trim(),
+            address_country: input.address_country?.trim() || 'ישראל',
+            industry: input.industry?.trim(),
+            company_size: input.company_size?.trim(),
+            lead_source: input.lead_source?.trim(),
+            notes: input.notes?.trim(),
+            status: 'active',
+            lifecycle_stage: 'customer',
+          },
+          select: {
+            id: true,
+            company_name: true,
+            primary_email: true,
+          },
+        });
       }
-    }
-
-    // Create client
-    const client = await prisma.businessClient.create({
-      data: {
-        company_name: input.company_name.trim(),
-        company_name_en: input.company_name_en?.trim(),
-        business_number: input.business_number?.trim(),
-        tax_id: input.tax_id?.trim(),
-        legal_entity_type: input.legal_entity_type?.trim(),
-        primary_email: normalizedEmail,
-        phone: input.phone?.trim(),
-        website: input.website?.trim(),
-        address_street: input.address_street?.trim(),
-        address_city: input.address_city?.trim(),
-        address_state: input.address_state?.trim(),
-        address_postal_code: input.address_postal_code?.trim(),
-        address_country: input.address_country?.trim() || 'ישראל',
-        industry: input.industry?.trim(),
-        company_size: input.company_size?.trim(),
-        lead_source: input.lead_source?.trim(),
-        notes: input.notes?.trim(),
-        status: 'active',
-        lifecycle_stage: 'customer',
-      },
-      select: {
-        id: true,
-        company_name: true,
-        primary_email: true,
-      },
-    });
+    );
 
     return {
       ok: true,
@@ -317,45 +328,56 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    // Check if email is being changed
-    if (input.primary_email) {
-      const normalizedEmail = input.primary_email.trim().toLowerCase();
-      const existing = await prisma.businessClient.findFirst({
-        where: {
-          primary_email: normalizedEmail,
-          NOT: { id: clientId },
-        },
-      });
-
-      if (existing) {
-        return { ok: false, error: 'מייל זה כבר בשימוש' };
-      }
-
-      input.primary_email = normalizedEmail;
-    }
-
-    // Check if business number is being changed
-    if (input.business_number) {
-      const existing = await prisma.businessClient.findFirst({
-        where: {
-          business_number: input.business_number,
-          NOT: { id: clientId },
-        },
-      });
-
-      if (existing) {
-        return { ok: false, error: 'מספר עוסק/ח.פ זה כבר בשימוש' };
-      }
-    }
-
-    const client = await prisma.businessClient.update({
-      where: { id: clientId },
-      data: input,
-      select: {
-        id: true,
-        company_name: true,
+    const client = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.updateBusinessClient',
+        reason: 'global_admin_update_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
       },
-    });
+      async () => {
+        // Check if email is being changed
+        if (input.primary_email) {
+          const normalizedEmail = input.primary_email.trim().toLowerCase();
+          const existing = await prisma.businessClient.findFirst({
+            where: {
+              primary_email: normalizedEmail,
+              NOT: { id: clientId },
+            },
+          });
+
+          if (existing) {
+            throw new Error('מייל זה כבר בשימוש');
+          }
+
+          input.primary_email = normalizedEmail;
+        }
+
+        // Check if business number is being changed
+        if (input.business_number) {
+          const existing = await prisma.businessClient.findFirst({
+            where: {
+              business_number: input.business_number,
+              NOT: { id: clientId },
+            },
+          });
+
+          if (existing) {
+            throw new Error('מספר עוסק/ח.פ זה כבר בשימוש');
+          }
+        }
+
+        return await prisma.businessClient.update({
+          where: { id: clientId },
+          data: input,
+          select: {
+            id: true,
+            company_name: true,
+          },
+        });
+      }
+    );
 
     return { ok: true, client };
   } catch (error) {
@@ -443,14 +465,25 @@ export async function removeContactFromClient(clientId: string, userId: string) 
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    await prisma.businessClientContact.delete({
-      where: {
-        client_id_user_id: {
-          client_id: clientId,
-          user_id: userId,
-        },
+    await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.removeContactFromClient',
+        reason: 'global_admin_remove_business_client_contact',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
       },
-    });
+      async () => {
+        await prisma.businessClientContact.delete({
+          where: {
+            client_id_user_id: {
+              client_id: clientId,
+              user_id: userId,
+            },
+          },
+        });
+      }
+    );
 
     return { ok: true };
   } catch (error) {
@@ -491,43 +524,54 @@ export async function createOrganizationForClient(
     }
 
     // Create organization
-    const org = await prisma.social_organizations.create({
-      data: {
-        name: input.name.trim(),
-        slug: uniqueSlug,
-        owner_id: primaryContactUserId,
-        client_id: clientId,
-        
-        // Subscription
-        subscription_status: 'trial',
-        subscription_plan: input.subscription_plan || null,
-        trial_start_date: now,
-        trial_days: appliedTrialDays,
-        seats_allowed: input.seats_allowed || null,
-        
-        // Modules
-        has_nexus: input.has_nexus ?? true,
-        has_social: input.has_social ?? false,
-        has_finance: input.has_finance ?? false,
-        has_client: input.has_client ?? false,
-        has_operations: input.has_operations ?? false,
-        
-        // Settings
-        is_shabbat_protected: input.is_shabbat_protected ?? true,
-        
-        // Timestamps
-        created_at: now,
-        updated_at: now,
+    const org = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.createOrganizationForClient',
+        reason: 'global_admin_create_organization_for_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
       },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        subscription_plan: true,
-        seats_allowed: true,
-        trial_days: true,
-      },
-    });
+      async () => {
+        return await prisma.social_organizations.create({
+          data: {
+            name: input.name.trim(),
+            slug: uniqueSlug,
+            owner_id: primaryContactUserId,
+            client_id: clientId,
+            
+            // Subscription
+            subscription_status: 'trial',
+            subscription_plan: input.subscription_plan || null,
+            trial_start_date: now,
+            trial_days: appliedTrialDays,
+            seats_allowed: input.seats_allowed || null,
+            
+            // Modules
+            has_nexus: input.has_nexus ?? true,
+            has_social: input.has_social ?? false,
+            has_finance: input.has_finance ?? false,
+            has_client: input.has_client ?? false,
+            has_operations: input.has_operations ?? false,
+            
+            // Settings
+            is_shabbat_protected: input.is_shabbat_protected ?? true,
+            
+            // Timestamps
+            created_at: now,
+            updated_at: now,
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            subscription_plan: true,
+            seats_allowed: true,
+            trial_days: true,
+          },
+        });
+      }
+    );
 
     return { ok: true, organization: org };
   } catch (error) {
@@ -554,18 +598,29 @@ export async function updateOrganization(orgId: string, input: {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    const org = await prisma.social_organizations.update({
-      where: { id: orgId },
-      data: {
-        ...input,
-        updated_at: new Date(),
+    const org = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.updateOrganization',
+        reason: 'global_admin_update_organization_from_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
       },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
-    });
+      async () => {
+        return await prisma.social_organizations.update({
+          where: { id: orgId },
+          data: {
+            ...input,
+            updated_at: new Date(),
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        });
+      }
+    );
 
     return { ok: true, organization: org };
   } catch (error) {
@@ -583,10 +638,21 @@ export async function deleteBusinessClient(clientId: string) {
     const guard = await requireSuperAdminOrReturn();
     if (!guard.ok) return guard;
 
-    await prisma.businessClient.update({
-      where: { id: clientId },
-      data: { deleted_at: new Date() },
-    });
+    await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.deleteBusinessClient',
+        reason: 'global_admin_soft_delete_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () => {
+        await prisma.businessClient.update({
+          where: { id: clientId },
+          data: { deleted_at: new Date() },
+        });
+      }
+    );
 
     return { ok: true };
   } catch (error) {

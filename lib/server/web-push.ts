@@ -225,6 +225,7 @@ export async function upsertWebPushSubscription(params: {
       userAgent: params.userAgent,
     },
     update: {
+      organizationId,
       clerkUserId,
       p256dh,
       auth: authKey,

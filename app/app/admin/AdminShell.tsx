@@ -195,7 +195,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     () => [
       { href: '/app/admin/dashboard/customers', label: 'דשבורד לקוחות', icon: LayoutGrid },
       { href: '/app/admin/business-clients', label: 'לקוחות עסקיים', icon: Building2 },
-      { href: '/app/admin/customers', label: 'לקוחות (ישן)', icon: Users },
       { href: '/app/admin/organizations', label: 'ארגונים', icon: Building2 },
       { href: '/app/admin/client/support', label: 'שירות לקוחות', icon: LifeBuoy },
     ],
