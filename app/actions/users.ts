@@ -4,6 +4,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
+import { withPrismaTenantIsolationOverride } from '@/lib/prisma-tenant-guard';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireSuperAdmin } from '@/lib/auth';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
@@ -366,19 +367,28 @@ async function upsertProfileForClerkUser(params: {
     const organizationUser = (tx as unknown as { organizationUser: typeof prisma.organizationUser }).organizationUser;
     const organization = tx.social_organizations;
 
-    const createdSocialUser = await organizationUser.create({
-      data: {
-        clerk_user_id: clerkUserId,
-        email: emailLower,
-        full_name: fullName,
-        avatar_url: avatarUrl,
-        organization_id: null,
-        role: 'owner',
-        created_at: now,
-        updated_at: now,
-      },
-      select: { id: true },
-    });
+    const createdSocialUser = await organizationUser.create(
+      withPrismaTenantIsolationOverride(
+        {
+          data: {
+            clerk_user_id: clerkUserId,
+            email: emailLower,
+            full_name: fullName,
+            avatar_url: avatarUrl,
+            organization_id: null,
+            role: 'owner',
+            created_at: now,
+            updated_at: now,
+          },
+          select: { id: true },
+        },
+        {
+          reason: 'bootstrap_workspace_provision',
+          source: 'app/actions/users.ts#upsertProfileForClerkUser',
+          suppressReporting: true,
+        }
+      )
+    );
 
     const createdOrg = await organization.create({
       data: {
@@ -403,7 +413,7 @@ async function upsertProfileForClerkUser(params: {
     });
 
     await organizationUser.update({
-      where: { id: createdSocialUser.id },
+      where: { clerk_user_id: clerkUserId },
       data: { organization_id: createdOrg.id, updated_at: now },
       select: { id: true },
     });
