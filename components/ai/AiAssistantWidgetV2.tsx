@@ -218,22 +218,48 @@ export function AiAssistantWidget() {
         throw new Error(txt || `Chat failed (${res.status})`);
       }
 
-      const assistantText = await res.text();
+      // Stream response
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
       
-      // Determine quick actions
+      if (!reader) {
+        throw new Error('No response stream');
+      }
+
       const quickActions = isSales ? SALES_QUICK_ACTIONS : SUPPORT_QUICK_ACTIONS;
+      const assistantId = makeId('assistant');
+      let accumulatedText = '';
       
+      // Create initial assistant message
       const assistantMsg: ChatMessage = { 
-        id: makeId('assistant'), 
+        id: assistantId, 
         role: 'assistant', 
-        content: String(assistantText || ''),
+        content: '',
         quickActions: quickActions.slice(0, 3),
         timestamp: Date.now()
       };
       setMessages((prev) => [...prev, assistantMsg]);
+      setIsLoading(false);
+
+      // Read stream chunks
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        accumulatedText += chunk;
+        
+        // Update message content in real-time
+        setMessages((prev) => 
+          prev.map((m) => 
+            m.id === assistantId 
+              ? { ...m, content: accumulatedText }
+              : m
+          )
+        );
+      }
     } catch (e: any) {
       setError(String(e?.message || 'שגיאה בשליחת ההודעה'));
-    } finally {
       setIsLoading(false);
     }
   }
@@ -326,8 +352,8 @@ export function AiAssistantWidget() {
 
   const headerBg = isSales ? 'bg-slate-950' : 'bg-slate-900';
   const panelSize = isMedium
-    ? 'w-[min(640px,calc(100vw-2rem))] h-[min(820px,calc(100vh-4rem))]'
-    : 'w-[min(480px,calc(100vw-2rem))] h-[min(720px,calc(100vh-6rem))]';
+    ? 'w-[min(640px,calc(100vw-1rem))] h-[min(820px,calc(100vh-2rem))]'
+    : 'w-[min(480px,calc(100vw-1rem))] h-[min(720px,calc(100vh-2rem))]';
 
   const filteredKnowledge = searchQuery 
     ? KNOWLEDGE_BASE.filter(k => 
@@ -390,37 +416,37 @@ export function AiAssistantWidget() {
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 18, scale: 0.98 }}
-            className={`fixed bottom-28 right-6 z-[500] ${panelSize} bg-white rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col`}
+            className={`fixed inset-x-2 bottom-2 sm:inset-x-auto sm:bottom-28 sm:right-6 z-[500] ${panelSize} bg-white rounded-[20px] sm:rounded-[28px] shadow-2xl border border-slate-200 overflow-hidden flex flex-col`}
             dir="rtl"
           >
             {/* Header with Tabs */}
             <div className={`${headerBg} text-white flex flex-col`}>
-              <div className="px-5 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
-                    <span className="text-2xl">{fabIcon}</span>
+              <div className="px-3 sm:px-5 py-3 sm:py-4 flex items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center">
+                    <span className="text-xl sm:text-2xl">{fabIcon}</span>
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[15px] font-black truncate">MISRAD AI</div>
-                    <div className="text-[12px] font-bold text-white/80 truncate">{personaLabel}</div>
+                    <div className="text-sm sm:text-[15px] font-black truncate">MISRAD AI</div>
+                    <div className="text-[11px] sm:text-[12px] font-bold text-white/80 truncate">{personaLabel}</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <button
                     type="button"
                     onClick={() => setIsMedium((v) => !v)}
-                    className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
                     aria-label={isMedium ? 'הקטן חלון' : 'הרחב חלון'}
                   >
-                    {isMedium ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+                    {isMedium ? <Minimize2 size={16} className="sm:w-[18px] sm:h-[18px]" /> : <Maximize2 size={16} className="sm:w-[18px] sm:h-[18px]" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 flex items-center justify-center transition-colors"
                     aria-label="סגור"
                   >
-                    <X size={18} />
+                    <X size={16} className="sm:w-[18px] sm:h-[18px]" />
                   </button>
                 </div>
               </div>
@@ -429,36 +455,36 @@ export function AiAssistantWidget() {
               <div className="flex border-t border-white/10">
                 <button
                   onClick={() => setView('chat')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'chat' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <MessageSquare size={16} />
-                  <span>שיחה</span>
+                  <MessageSquare size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">שיחה</span>
                 </button>
                 <button
                   onClick={() => setView('history')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'history' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <Clock size={16} />
-                  <span>היסטוריה</span>
+                  <Clock size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">היסטוריה</span>
                 </button>
                 <button
                   onClick={() => setView('help')}
-                  className={`flex-1 px-4 py-3 text-[13px] font-bold flex items-center justify-center gap-2 transition-all ${
+                  className={`flex-1 px-2 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-[13px] font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all ${
                     view === 'help' 
                       ? 'bg-white/15 border-b-2 border-white' 
                       : 'hover:bg-white/5 border-b-2 border-transparent'
                   }`}
                 >
-                  <HelpCircle size={16} />
-                  <span>עזרה</span>
+                  <HelpCircle size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">עזרה</span>
                 </button>
               </div>
             </div>
@@ -468,16 +494,16 @@ export function AiAssistantWidget() {
               {view === 'chat' && (
                 <>
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto px-4 py-4">
+                  <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4">
                     {messages.length === 0 ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-4">
-                          <Sparkles size={36} className="text-slate-600" />
+                      <div className="h-full flex flex-col items-center justify-center text-center px-4 sm:px-6">
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-3 sm:mb-4">
+                          <Sparkles size={28} className="sm:w-9 sm:h-9 text-slate-600" />
                         </div>
-                        <h3 className="text-[17px] font-bold text-slate-900 mb-2">
+                        <h3 className="text-[15px] sm:text-[17px] font-bold text-slate-900 mb-2">
                           {isSales ? 'שלום! איך אפשר לעזור?' : 'העוזר החכם שלך כאן'}
                         </h3>
-                        <p className="text-[14px] text-slate-600 mb-6 leading-relaxed">
+                        <p className="text-[13px] sm:text-[14px] text-slate-600 mb-4 sm:mb-6 leading-relaxed">
                           {isSales 
                             ? 'שאל אותי על תוכניות, מחירים או תהליך ההצטרפות'
                             : 'שאל אותי כל שאלה על השימוש במערכת'}
@@ -489,10 +515,10 @@ export function AiAssistantWidget() {
                             <button
                               key={idx}
                               onClick={() => sendText(action)}
-                              className="w-full px-5 py-3.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl text-[14px] font-semibold text-slate-700 hover:text-slate-900 transition-all text-right flex items-center justify-between group"
+                              className="w-full px-4 sm:px-5 py-3 sm:py-3.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl sm:rounded-2xl text-[13px] sm:text-[14px] font-semibold text-slate-700 hover:text-slate-900 transition-all text-right flex items-center justify-between group"
                             >
                               <span>{action}</span>
-                              <Sparkles size={16} className="text-slate-400 group-hover:text-slate-600 transition-colors" />
+                              <Sparkles size={14} className="sm:w-4 sm:h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
                             </button>
                           ))}
                         </div>
@@ -511,7 +537,7 @@ export function AiAssistantWidget() {
                             <div key={id} className="space-y-2">
                               <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                                 <div
-                                  className={`${isUser ? 'max-w-[85%]' : 'w-full'} rounded-3xl px-6 py-5 shadow-sm text-[16px] leading-relaxed ${
+                                  className={`${isUser ? 'max-w-[90%] sm:max-w-[85%]' : 'w-full'} rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-3.5 sm:py-5 shadow-sm text-[14px] sm:text-[16px] leading-relaxed ${
                                     isUser
                                       ? 'bg-slate-900 text-white border-none font-medium'
                                       : 'bg-white text-slate-900 border border-slate-200'
@@ -554,14 +580,14 @@ export function AiAssistantWidget() {
 
                         {isLoading && (
                           <div className="flex justify-start">
-                            <div className="w-full rounded-3xl px-6 py-5 border border-slate-200 bg-white text-[15px] font-semibold text-slate-500 shadow-sm">
+                            <div className="w-full rounded-2xl sm:rounded-3xl px-4 sm:px-6 py-3.5 sm:py-5 border border-slate-200 bg-white text-[13px] sm:text-[15px] font-semibold text-slate-500 shadow-sm">
                               <div className="flex items-center gap-2">
                                 <div className="flex gap-1">
                                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                   <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                 </div>
-                                <span className="text-[14px]">מכין תשובה...</span>
+                                <span className="text-[13px] sm:text-[14px]">מכין תשובה...</span>
                               </div>
                             </div>
                           </div>
@@ -578,23 +604,23 @@ export function AiAssistantWidget() {
                       e.preventDefault();
                       void sendText(input);
                     }}
-                    className="p-4 bg-white border-t border-slate-200 flex items-center gap-3"
+                    className="p-3 sm:p-4 bg-white border-t border-slate-200 flex items-center gap-2 sm:gap-3"
                   >
                     <input
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={isSales ? 'שאל אותי על מחירים, חבילות וניסיון חינם...' : 'שאל אותי איך לבצע פעולה במערכת...'}
-                      className="flex-1 h-14 rounded-2xl border-2 border-slate-200 bg-slate-50 px-5 text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
+                      className="flex-1 h-12 sm:h-14 rounded-xl sm:rounded-2xl border-2 border-slate-200 bg-slate-50 px-3 sm:px-5 text-[14px] sm:text-[15px] font-medium outline-none focus:outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400"
                       style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
                       disabled={isLoading}
                     />
                     <button
                       type="submit"
                       disabled={isLoading || !String(input || '').trim()}
-                      className="h-14 w-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:from-amber-500 hover:to-orange-600 hover:shadow-xl hover:shadow-orange-500/20 active:scale-95 transition-all focus:outline-none shadow-lg"
+                      className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:from-amber-500 hover:to-orange-600 hover:shadow-xl hover:shadow-orange-500/20 active:scale-95 transition-all focus:outline-none shadow-lg"
                       aria-label="שלח"
                     >
-                      <ArrowUp size={22} strokeWidth={3} />
+                      <ArrowUp size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={3} />
                     </button>
                   </form>
                   {error && <div className="px-5 pb-4 text-[13px] font-bold text-rose-600 bg-white">{error}</div>}

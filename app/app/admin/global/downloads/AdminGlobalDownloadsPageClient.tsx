@@ -88,7 +88,7 @@ export default function AdminGlobalDownloadsPageClient() {
           <Input
             value={windowsDownloadUrl}
             onChange={(e) => setWindowsDownloadUrl(e.target.value)}
-            placeholder="https://.../Scale-CRM-Setup.exe"
+            placeholder="https://.../MISRAD-AI-Setup.exe"
             disabled={loading || saving}
           />
           <div className="text-[11px] font-bold text-slate-500">השאר ריק כדי להסיר לינק (fallback ל-ENV אם קיים).</div>

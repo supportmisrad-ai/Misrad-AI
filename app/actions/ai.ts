@@ -4,12 +4,34 @@ import { Type } from '@google/genai';
 import { AIService } from '@/lib/services/ai/AIService';
 import { analyzeMeetingTranscript } from '@/lib/services/ai/analyze-meeting-transcript';
 
+import { requireAuth } from '@/lib/errorHandler';
+
 export async function analyzeMeetingTranscriptAction(transcript: string) {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) {
+    return {
+      summary: 'נדרשת התחברות',
+      sentimentScore: 0,
+      frictionKeywords: [],
+      objections: [],
+      compliments: [],
+      decisions: [],
+      agencyTasks: [],
+      clientTasks: [],
+      liabilityRisks: [],
+    };
+  }
+
   return await analyzeMeetingTranscript(transcript);
 }
 
 export async function generateClientInsightAction(clientName: string, healthScore: number, sentimentTrend: string[]) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { insight: 'נדרשת התחברות.', action: '' };
+    }
+
     const prompt = `
       Act as a senior B2B Account Manager AI.
       Analyze the client "${clientName}".
@@ -43,6 +65,11 @@ export async function generateClientInsightAction(clientName: string, healthScor
 
 export async function generateDailyBriefingAction(riskyClientsCount: number, opportunitiesCount: number, meetingsCount: number) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { greeting: 'נדרשת התחברות.', focusPoints: [], quote: '' };
+    }
+
     const prompt = `Generate a "Morning Protocol" briefing for an Account Manager in Hebrew. Data: ${riskyClientsCount} risky, ${opportunitiesCount} opportunities, ${meetingsCount} meetings. Professional, concise style. JSON: {greeting, focusPoints: string[], quote}`;
 
     const ai = AIService.getInstance();
@@ -67,6 +94,11 @@ export async function generateDailyBriefingAction(riskyClientsCount: number, opp
 
 export async function generateSuccessRecommendationAction(clientName: string, healthScore: number) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { tip: 'נדרשת התחברות.', expectedBenefit: '' };
+    }
+
     const prompt = `As a high-end agency consultant, provide a tip in Hebrew for the business owner on how to use transparency to retain client "${clientName}". Health Score is ${healthScore}/100. Tip should be motivating and professional (max 15 words). JSON: {tip, expectedBenefit}`;
 
     const ai = AIService.getInstance();
@@ -96,6 +128,9 @@ export async function generateSuccessRecommendationAction(clientName: string, he
 }
 
 export async function generateSmartReplyAction(emailBody: string, senderName: string, tone: string = 'professional') {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return '';
+
   const prompt = `Reply to this email in Hebrew. From: ${senderName || 'הלקוח'}. Body: ${emailBody}. Tone: ${tone}. Brief and helpful.`;
   const ai = AIService.getInstance();
   const out = await ai.generateText({

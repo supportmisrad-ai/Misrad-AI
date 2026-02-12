@@ -9,6 +9,7 @@ import { HoldButton } from '../components/HoldButton';
 import { LeadStatus, Status } from '../types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { getNexusBasePath, getWorkspaceOrgSlugFromPathname, toNexusPath } from '@/lib/os/nexus-routing';
+import { extractData, extractError } from '@/lib/shared/api-types';
 import { encodeWorkspaceOrgSlug, parseWorkspaceRoute } from '@/lib/os/social-routing';
 import NexusCard from '@/components/shared/NexusCard';
 
@@ -161,8 +162,6 @@ export const MeView: React.FC<{
       return getWorkspaceOrgSlugFromPathname(window.location.pathname) || null;
   };
 
-  const unwrap = (data: any) =>
-      (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
   // Handle RSVP for events
   const handleEventRSVP = async (eventId: string, status: 'attending' | 'not_attending') => {
@@ -176,8 +175,8 @@ export const MeView: React.FC<{
 
           if (!response.ok) {
               const errorData = await response.json().catch(() => ({}));
-              const errPayload = unwrap(errorData);
-              throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אישור הגעה');
+              const errorMsg = extractError(errorData);
+              throw new Error(errorMsg || 'שגיאה בשמירת אישור הגעה');
           }
 
           setEventRSVPStatus(prev => ({ ...prev, [eventId]: status }));
@@ -192,9 +191,9 @@ export const MeView: React.FC<{
                   });
                   if (response.ok) {
                       const data = await response.json().catch(() => ({}));
-                      const payload = unwrap(data);
+                      const payload = extractData<{ events?: unknown[] }>(data);
                       const now = new Date();
-                      const upcoming = ((payload as any).events || []).filter((e: any) => {
+                      const upcoming = (payload?.events || []).filter((e: any) => {
                           const eventDate = new Date(e.start_date);
                           return eventDate >= now;
                       }).slice(0, 3);
@@ -310,8 +309,8 @@ export const MeView: React.FC<{
               });
               if (response.ok) {
                   const data = await response.json().catch(() => ({}));
-                  const payload = unwrap(data);
-                  const newRequests = (payload as any).requests || [];
+                  const payload = extractData<{ requests?: unknown[] }>(data);
+                  const newRequests = payload?.requests || [];
                   setMyLeaveRequests(newRequests);
                   setCachedLeaveRequests(newRequests);
               }
@@ -334,9 +333,9 @@ export const MeView: React.FC<{
               });
               if (response.ok) {
                   const data = await response.json().catch(() => ({}));
-                  const payload = unwrap(data);
+                  const payload = extractData<{ events?: unknown[] }>(data);
                   const now = new Date();
-                  const upcoming = ((payload as any).events || []).filter((e: any) => {
+                  const upcoming = (payload?.events || []).filter((e: any) => {
                       const eventDate = new Date(e.start_date);
                       return eventDate >= now;
                   }).slice(0, 3); // Show only next 3
@@ -356,8 +355,8 @@ export const MeView: React.FC<{
                                   });
                               if (rsvpResponse.ok) {
                                   const rsvpData = await rsvpResponse.json().catch(() => ({}));
-                                  const rsvpPayload = unwrap(rsvpData);
-                                  const myAttendance = (rsvpPayload as any).attendance?.find((a: any) => 
+                                  const rsvpPayload = extractData<{ attendance?: any[] }>(rsvpData);
+                                  const myAttendance = rsvpPayload?.attendance?.find((a: any) => 
                                       (a.user_id === currentUser.id) || (a.userId === currentUser.id)
                                   );
                                   if (myAttendance && (myAttendance.status === 'attending' || myAttendance.status === 'not_attending')) {
@@ -434,6 +433,11 @@ export const MeView: React.FC<{
 
   const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+  const getMapUrl = (lat?: number, lng?: number) => {
+      if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  };
 
   // Settings Modal Content Generator
   const renderModalContent = () => {
@@ -748,21 +752,47 @@ export const MeView: React.FC<{
                                           <tr>
                                               <th className="px-4 py-2">תאריך</th>
                                               <th className="px-4 py-2">כניסה</th>
+                                              <th className="px-4 py-2">מיקום כניסה</th>
                                               <th className="px-4 py-2">יציאה</th>
+                                              <th className="px-4 py-2">מיקום יציאה</th>
                                               <th className="px-4 py-2">סה״כ</th>
                                           </tr>
                                       </thead>
                                       <tbody className="divide-y divide-gray-100">
                                           {myHistory.slice(0, 5).map((entry: any) => (
+                                              (() => {
+                                                  const startMapUrl = getMapUrl(entry?.startLat, entry?.startLng);
+                                                  const endMapUrl = getMapUrl(entry?.endLat, entry?.endLng);
+                                                  return (
                                               <tr key={entry.id} className="text-gray-600 hover:bg-white transition-colors">
                                                   <td className="px-4 py-3 font-bold text-gray-900">{formatDate(entry.startTime)}</td>
                                                   <td className="px-4 py-3 font-mono text-xs">{formatTime(entry.startTime)}</td>
+                                                  <td className="px-4 py-3 text-xs">
+                                                      {startMapUrl ? (
+                                                          <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                              <MapPin size={14} /> הצג
+                                                          </a>
+                                                      ) : (
+                                                          <span className="text-gray-400">-</span>
+                                                      )}
+                                                  </td>
                                                   <td className="px-4 py-3 font-mono text-xs">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
+                                                  <td className="px-4 py-3 text-xs">
+                                                      {endMapUrl ? (
+                                                          <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                              <MapPin size={14} /> הצג
+                                                          </a>
+                                                      ) : (
+                                                          <span className="text-gray-400">-</span>
+                                                      )}
+                                                  </td>
                                                   <td className="px-4 py-3 font-bold">{entry.durationMinutes ? `${Math.floor(entry.durationMinutes / 60)}:${(entry.durationMinutes % 60).toString().padStart(2, '0')}` : '-'}</td>
                                               </tr>
+                                                  );
+                                              })()
                                           ))}
                                           {myHistory.length === 0 && (
-                                              <tr><td colSpan={4} className="p-6 text-center text-gray-600 text-xs">אין נתונים להצגה</td></tr>
+                                              <tr><td colSpan={6} className="p-6 text-center text-gray-600 text-xs">אין נתונים להצגה</td></tr>
                                           )}
                                       </tbody>
                                   </table>
@@ -1032,8 +1062,8 @@ export const MeView: React.FC<{
                           });
                           if (response.ok) {
                               const data = await response.json().catch(() => ({}));
-                              const payload = unwrap(data);
-                              setMyLeaveRequests((payload as any).requests || []);
+                              const payload = extractData<{ requests?: unknown[] }>(data);
+                              setMyLeaveRequests(payload?.requests || []);
                           }
                       };
                       loadData();
@@ -1062,9 +1092,9 @@ export const MeView: React.FC<{
                           });
                           if (response.ok) {
                               const data = await response.json().catch(() => ({}));
-                              const payload = unwrap(data);
+                              const payload = extractData<{ events?: unknown[] }>(data);
                               const now = new Date();
-                              const upcoming = ((payload as any).events || []).filter((e: any) => {
+                              const upcoming = (payload?.events || []).filter((e: any) => {
                                   const eventDate = new Date(e.start_date);
                                   return eventDate >= now;
                               }).slice(0, 3);

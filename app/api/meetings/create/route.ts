@@ -3,6 +3,8 @@ import { createMeeting } from '@/lib/services/meeting-service';
 import { auth } from '@clerk/nextjs/server';
 import { getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { workspaceTenantGuard } from '@/lib/api-workspace-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +13,7 @@ const IS_PROD = process.env.NODE_ENV === 'production';
 /**
  * Create a meeting with automatic platform selection (Zoom or Meet)
  */
-export async function POST(request: NextRequest) {
+async function POSTHandler(request: NextRequest) {
   try {
     const { userId: clerkUserId } = await auth();
     
@@ -73,3 +75,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = shabbatGuard(workspaceTenantGuard(POSTHandler, { source: 'api_meetings_create', reason: 'POST' }));

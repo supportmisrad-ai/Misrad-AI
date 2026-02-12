@@ -159,4 +159,70 @@ export class GeminiProvider {
       clearTimeout(timeout);
     }
   }
+
+  async streamText(params: {
+    model: string;
+    prompt: string;
+    systemInstruction?: string;
+    timeoutMs: number;
+  }): Promise<{ stream: ReadableStream<Uint8Array> }> {
+    const ai = new GoogleGenAI({ apiKey: this.apiKey });
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      const encoder = new TextEncoder();
+      
+      const stream = new ReadableStream({
+        async start(controller) {
+          try {
+            const request = {
+              model: params.model,
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: params.prompt }],
+                },
+              ],
+              config: {
+                systemInstruction: params.systemInstruction,
+              },
+            };
+
+            const response = await ai.models.generateContentStream(request);
+            
+            for await (const chunk of response) {
+              const text = chunk.text || '';
+              if (text) {
+                controller.enqueue(encoder.encode(text));
+              }
+            }
+            
+            clearTimeout(timeout);
+            controller.close();
+          } catch (err: unknown) {
+            clearTimeout(timeout);
+            controller.error(err);
+          }
+        },
+        cancel() {
+          clearTimeout(timeout);
+          ac.abort();
+        },
+      });
+
+      return { stream };
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      const obj = asObject(err) ?? {};
+      const responseObj = asObject(obj.response);
+      const status =
+        typeof obj.status === 'number'
+          ? obj.status
+          : typeof responseObj?.status === 'number'
+            ? responseObj.status
+            : undefined;
+      throw new AIProviderError({ provider: 'google', status, message: getErrorMessage(err) || 'Gemini streaming failed', cause: err });
+    }
+  }
 }

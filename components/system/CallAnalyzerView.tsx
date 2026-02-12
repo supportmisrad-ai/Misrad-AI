@@ -16,6 +16,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useToast } from './contexts/ToastContext';
 import AiOutOfCreditsModal from './AiOutOfCreditsModal';
 import { CallAnalysisTask, Lead } from './types';
+import { Priority } from '@/types';
 import { createNexusTaskByOrgSlug } from '@/app/actions/nexus';
 import { Skeleton } from '@/components/ui/skeletons';
 
@@ -115,10 +116,10 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
         });
         updateHistoryItem(state.result.id, {
             topics: {
-                ...(state.result.topics as any),
+                ...state.result.topics,
                 tasks: next,
-            } as any,
-        } as any);
+            },
+        });
     };
 
     const confirmTask = async (idx: number, dueDateIso: string) => {
@@ -154,15 +155,15 @@ const CallAnalyzerView: React.FC<CallAnalyzerViewProps> = ({ leads = [] }) => {
                     assigneeId,
                     assigneeIds: [assigneeId],
                     dueDate,
-                    priority: 'medium' as any,
-                    status: 'todo' as any,
+                    priority: Priority.MEDIUM,
+                    status: 'todo',
                     tags: ['Call Analyzer'],
                     timeSpent: 0,
                     isTimerRunning: false,
                     messages: [],
                     createdAt: new Date().toISOString(),
                     leadId: state.result?.leadId ? String(state.result.leadId) : null,
-                } as any,
+                },
             });
             updateTaskAtIndex(idx, {
                 confirmedDueAt: due.toISOString(),

@@ -7,7 +7,7 @@ import { translateError } from '@/lib/errorTranslations';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -24,26 +24,6 @@ export interface UploadResult {
   bucket?: string;
   signedUrl?: string;
   error?: string;
-}
-
-async function ensureBucketExists(supabase: ReturnType<typeof createStorageClient>, bucketName: string) {
-  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-  if (listError) {
-    throw new Error(listError.message || 'Failed to list storage buckets');
-  }
-
-  const exists =
-    Array.isArray(buckets) &&
-    (buckets as unknown[]).some((b) => {
-      const obj = asObject(b);
-      return String(obj?.name || '') === bucketName;
-    });
-  if (exists) return;
-
-  const { error: createError } = await supabase.storage.createBucket(bucketName, { public: false });
-  if (createError) {
-    throw new Error(createError.message || `Failed to create bucket ${bucketName}`);
-  }
 }
 
 /**
@@ -191,7 +171,6 @@ export async function uploadCallRecordingFile(
     }
 
     const supabase = createStorageClient();
-    await ensureBucketExists(supabase, CALL_RECORDINGS_BUCKET);
 
     const timestamp = Date.now();
     const sanitizedFileName = String(fileName ?? '').replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -209,6 +188,12 @@ export async function uploadCallRecordingFile(
     if (error) {
       console.error('Storage upload error:', error);
       const raw = String(error.message || '').toLowerCase();
+      if (raw.includes('bucket') && raw.includes('not') && raw.includes('found')) {
+        return {
+          success: false,
+          error: 'לא ניתן להעלות הקלטה: חסר Supabase Storage bucket בשם call-recordings. יש ליצור bucket בשם call-recordings (Private) ולהגדיר מדיניות מתאימה.',
+        };
+      }
       if (raw.includes('permission') || raw.includes('not authorized') || raw.includes('rls') || raw.includes('row-level')) {
         return {
           success: false,

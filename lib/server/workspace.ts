@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma';
 import { enterTenantIsolationContext, withPrismaTenantIsolationOverride, withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { OSModuleKey } from '@/lib/os/modules/types';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import {
   getErrorMessage,
   getErrorStatus,
@@ -22,7 +23,7 @@ import {
   inferOrganizationPackageType as inferOrganizationPackageTypeInternal,
 } from '@/lib/server/workspace-access/entitlements';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type PackageType = import('@/lib/billing/pricing').PackageType;
 
@@ -137,6 +138,13 @@ export async function loadCurrentUserLastLocation(): Promise<LastLocation> {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] organization_user last_location missing table (${rawMessage || 'missing relation'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/server/workspace.loadCurrentUserLastLocation',
+        reason: 'organization_user last_location schema mismatch (fallback to null location)',
+        error,
+        extras: { clerkUserId: redactId(clerkUserId) },
+      });
       return { orgSlug: null, module: null };
     }
     if (message.includes('permission denied')) {
@@ -204,6 +212,13 @@ export async function persistCurrentUserLastLocation({
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] organization_user last_location missing table (${rawMessage || 'missing relation'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/server/workspace.persistCurrentUserLastLocation',
+        reason: 'organization_user last_location schema mismatch (skip persist)',
+        error,
+        extras: { clerkUserId: redactId(clerkUserId), orgSlug },
+      });
       return;
     }
     throw error instanceof Error ? error : new Error(getErrorMessage(error) || 'Failed to persist last location');
@@ -245,6 +260,15 @@ export async function requireCurrentOrganizationId(): Promise<string> {
       const message = rawMessage.toLowerCase();
       if (!ALLOW_SCHEMA_FALLBACKS && (message.includes('does not exist') || message.includes('relation'))) {
         throw new Error(`[SchemaMismatch] organizations missing table (${rawMessage || 'missing relation'})`);
+      }
+
+      if (ALLOW_SCHEMA_FALLBACKS && (message.includes('does not exist') || message.includes('relation'))) {
+        reportSchemaFallback({
+          source: 'lib/server/workspace.requireCurrentOrganizationId',
+          reason: 'organizations lookup by owner_id schema mismatch (fallback to redirect/login)',
+          error,
+          extras: { clerkUserId: redactId(clerkUserId), socialUserId: redactId(socialUser.id) },
+        });
       }
       console.error('[workspace-access] failed to resolve organization by owner_id', {
         clerkUserId: redactId(clerkUserId),

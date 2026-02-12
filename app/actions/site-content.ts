@@ -1,13 +1,15 @@
 'use server';
 
 import { requireAuth, createErrorResponse } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getContentByKey as getContentByKeyService } from '@/lib/services/site-content';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 type UnknownRecord = Record<string, unknown>;
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function getUnknownErrorCode(error: unknown): string {
   const obj = asObject(error);
@@ -37,6 +39,15 @@ async function bestEffortResolveUpdatedByUserId(clerkUserId: string): Promise<st
   } catch (e: unknown) {
     if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] organizationUser lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/site-content.bestEffortResolveUpdatedByUserId',
+        reason: 'organizationUser lookup missing table/column (fallback to null)',
+        error: e,
+        extras: { clerkUserId: v },
+      });
     }
     return null;
   }
@@ -94,6 +105,13 @@ export async function getSiteContent(
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_site_content missing table (${getErrorMessage(error) || 'missing table'})`);
       }
+
+      reportSchemaFallback({
+        source: 'app/actions/site-content.getSiteContent',
+        reason: 'socialMediaSiteContent missing table (fallback to empty list)',
+        error,
+        extras: { page },
+      });
       return { success: true, data: [] };
     }
     const res = createErrorResponse(error, 'שגיאה בטעינת תוכן האתר');
@@ -114,6 +132,12 @@ export async function updateSiteContent(
     const authCheck = await requireAuth();
     if (!authCheck.success) {
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return { success: false, error: 'אין הרשאה' };
     }
 
     const updatedBy = await bestEffortResolveUpdatedByUserId(String(authCheck.userId || ''));

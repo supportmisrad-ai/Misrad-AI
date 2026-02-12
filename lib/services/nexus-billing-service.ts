@@ -4,8 +4,9 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error);
@@ -157,6 +158,15 @@ export async function getNexusBillingItems(workspaceId: string): Promise<NexusBi
         if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
           throw new Error(`[SchemaMismatch] nexus onboarding template lookup failed (${getErrorMessage(error) || 'missing relation'})`);
         }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'lib/services/nexus-billing-service.getNexusBillingItems',
+            reason: 'nexus onboarding template lookup schema mismatch (fallback to default templateKey)',
+            error,
+            extras: { organizationId: String(workspaceId) },
+          });
+        }
         return null;
       });
       const templateKey = (onboarding?.key === 'retainer_fixed' || onboarding?.key === 'deliverables_package')
@@ -191,6 +201,13 @@ export async function getNexusBillingItems(workspaceId: string): Promise<NexusBi
     if (!ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(tableError) || 'missing relation'})`);
     }
+
+    reportSchemaFallback({
+      source: 'lib/services/nexus-billing-service.getNexusBillingItems',
+      reason: 'nexus_billing_items missing table/column (fallback to legacy storage)',
+      error: tableError,
+      extras: { organizationId: String(workspaceId) },
+    });
   }
 
   // Fallback: legacy storage
@@ -260,6 +277,13 @@ export async function setNexusBillingItems(params: {
     if (!ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(upsertError) || 'missing relation'})`);
     }
+
+    reportSchemaFallback({
+      source: 'lib/services/nexus-billing-service.setNexusBillingItems',
+      reason: 'nexus_billing_items missing table/column (fallback to legacy storage)',
+      error: upsertError,
+      extras: { organizationId: String(params.workspaceId), templateKey: String(params.templateKey) },
+    });
   }
 
   // Fallback: legacy storage

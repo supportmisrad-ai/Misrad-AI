@@ -16,7 +16,7 @@ if (fs.existsSync(envPath)) {
   console.error(`[db-check-prisma-migrations] ${envPath} not found; using process.env only.`);
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 
 function parseDbIdentity(urlValue) {
   try {
@@ -120,8 +120,8 @@ async function canReachTcp(host, port, timeoutMs) {
 async function runCheck(label) {
   const prisma = new PrismaClient();
   try {
-    const existsRows = await prisma.$queryRawUnsafe(
-      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='_prisma_migrations') AS has_prisma_migrations;"
+    const existsRows = await prisma.$queryRaw(
+      Prisma.sql`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='_prisma_migrations') AS has_prisma_migrations;`
     );
 
     const hasPrismaMigrations = Boolean(existsRows?.[0]?.has_prisma_migrations);
@@ -146,27 +146,27 @@ async function runCheck(label) {
       return;
     }
 
-    const last = await prisma.$queryRawUnsafe(
-      "SELECT migration_name, finished_at FROM public._prisma_migrations ORDER BY finished_at DESC NULLS LAST LIMIT 30;"
+    const last = await prisma.$queryRaw(
+      Prisma.sql`SELECT migration_name, finished_at FROM public._prisma_migrations ORDER BY finished_at DESC NULLS LAST LIMIT 30;`
     );
 
-    const hasInit = await prisma.$queryRawUnsafe(
-      "SELECT migration_name FROM public._prisma_migrations WHERE migration_name='20260126000000_init' LIMIT 1;"
+    const hasInit = await prisma.$queryRaw(
+      Prisma.sql`SELECT migration_name FROM public._prisma_migrations WHERE migration_name='20260126000000_init' LIMIT 1;`
     );
 
-    const hasOwnerAlign = await prisma.$queryRawUnsafe(
-      "SELECT migration_name FROM public._prisma_migrations WHERE migration_name='20260201000000_owner_id_social_users' LIMIT 1;"
+    const hasOwnerAlign = await prisma.$queryRaw(
+      Prisma.sql`SELECT migration_name FROM public._prisma_migrations WHERE migration_name='20260201000000_owner_id_social_users' LIMIT 1;`
     );
 
     result.hasInitMigration = hasInit.length > 0;
     result.hasOwnerIdAlignMigration = hasOwnerAlign.length > 0;
     result.lastMigrations = last;
 
-    const socialUsersIdConstraintRows = await prisma.$queryRawUnsafe(
-      "SELECT c.conname, c.contype, pg_get_constraintdef(c.oid) AS def " +
-        "FROM pg_constraint c " +
-        "WHERE c.conrelid = 'public.organization_users'::regclass " +
-        "AND c.contype IN ('p','u');"
+    const socialUsersIdConstraintRows = await prisma.$queryRaw(
+      Prisma.sql`SELECT c.conname, c.contype, pg_get_constraintdef(c.oid) AS def
+        FROM pg_constraint c
+        WHERE c.conrelid = 'public.organization_users'::regclass
+        AND c.contype IN ('p','u');`
     );
 
     result.socialUsersHasIdPkOrUnique = socialUsersIdConstraintRows.some((r) => {
@@ -174,13 +174,13 @@ async function runCheck(label) {
       return def.includes('(') && def.includes('id') && (r.contype === 'p' || r.contype === 'u');
     });
 
-    const dupeIdRows = await prisma.$queryRawUnsafe(
-      "SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.organization_users GROUP BY id HAVING COUNT(*) > 1) t;"
+    const dupeIdRows = await prisma.$queryRaw(
+      Prisma.sql`SELECT COUNT(*)::int AS dupes FROM (SELECT id FROM public.organization_users GROUP BY id HAVING COUNT(*) > 1) t;`
     );
     result.socialUsersDuplicateIdCount = dupeIdRows?.[0]?.dupes ?? null;
 
-    const fkRows = await prisma.$queryRawUnsafe(
-      "SELECT conname, confrelid::regclass::text AS referenced_table FROM pg_constraint WHERE conrelid = 'public.organizations'::regclass AND contype = 'f';"
+    const fkRows = await prisma.$queryRaw(
+      Prisma.sql`SELECT conname, confrelid::regclass::text AS referenced_table FROM pg_constraint WHERE conrelid = 'public.organizations'::regclass AND contype = 'f';`
     );
     result.hasOrganizationsOwnerIdFk = fkRows.some((r) => {
       const referenced = String(r.referenced_table || '').toLowerCase();
@@ -190,53 +190,53 @@ async function runCheck(label) {
       );
     });
 
-    const invalidRows = await prisma.$queryRawUnsafe(
-      "SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.organization_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;"
+    const invalidRows = await prisma.$queryRaw(
+      Prisma.sql`SELECT COUNT(*)::int AS invalid_count FROM public.organizations o LEFT JOIN public.organization_users su ON su.id = o.owner_id WHERE o.owner_id IS NOT NULL AND su.id IS NULL;`
     );
     result.invalidOrganizationsOwnerIdCount = invalidRows?.[0]?.invalid_count ?? null;
 
-    const failed = await prisma.$queryRawUnsafe(
-      "SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at DESC LIMIT 20;"
+    const failed = await prisma.$queryRaw(
+      Prisma.sql`SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations WHERE finished_at IS NULL AND rolled_back_at IS NULL ORDER BY started_at DESC LIMIT 20;`
     );
     result.failedMigrations = failed;
 
-    const invalidDetails = await prisma.$queryRawUnsafe(
-      "SELECT\n" +
-        "  o.id AS organization_id,\n" +
-        "  o.name AS organization_name,\n" +
-        "  o.slug AS organization_slug,\n" +
-        "  o.created_at AS organization_created_at,\n" +
-        "  o.owner_id,\n" +
-        "  p_owner.id AS owner_profile_id,\n" +
-        "  p_owner.clerk_user_id AS owner_profile_clerk_user_id,\n" +
-        "  p_owner.email AS owner_profile_email,\n" +
-        "  p_candidate.id AS candidate_profile_id,\n" +
-        "  p_candidate.clerk_user_id AS candidate_clerk_user_id,\n" +
-        "  su_candidate.id AS candidate_social_user_id,\n" +
-        "  su_fallback.id AS fallback_social_user_id,\n" +
-        "  su_fallback.clerk_user_id AS fallback_clerk_user_id,\n" +
-        "  su_fallback.email AS fallback_email\n" +
-        "FROM public.organizations o\n" +
-        "LEFT JOIN public.organization_users su ON su.id = o.owner_id\n" +
-        "LEFT JOIN public.profiles p_owner ON p_owner.id = o.owner_id\n" +
-        "LEFT JOIN LATERAL (\n" +
-        "  SELECT p.*\n" +
-        "  FROM public.profiles p\n" +
-        "  WHERE p.organization_id = o.id\n" +
-        "  ORDER BY CASE WHEN p.role = 'owner' THEN 0 ELSE 1 END, p.created_at ASC\n" +
-        "  LIMIT 1\n" +
-        ") p_candidate ON true\n" +
-        "LEFT JOIN public.organization_users su_candidate ON su_candidate.clerk_user_id = p_candidate.clerk_user_id\n" +
-        "LEFT JOIN LATERAL (\n" +
-        "  SELECT su2.*\n" +
-        "  FROM public.organization_users su2\n" +
-        "  WHERE su2.organization_id = o.id\n" +
-        "  ORDER BY su2.created_at ASC\n" +
-        "  LIMIT 1\n" +
-        ") su_fallback ON true\n" +
-        "WHERE o.owner_id IS NOT NULL AND su.id IS NULL\n" +
-        "ORDER BY o.id\n" +
-        "LIMIT 50;"
+    const invalidDetails = await prisma.$queryRaw(
+      Prisma.sql`SELECT
+        o.id AS organization_id,
+        o.name AS organization_name,
+        o.slug AS organization_slug,
+        o.created_at AS organization_created_at,
+        o.owner_id,
+        p_owner.id AS owner_profile_id,
+        p_owner.clerk_user_id AS owner_profile_clerk_user_id,
+        p_owner.email AS owner_profile_email,
+        p_candidate.id AS candidate_profile_id,
+        p_candidate.clerk_user_id AS candidate_clerk_user_id,
+        su_candidate.id AS candidate_social_user_id,
+        su_fallback.id AS fallback_social_user_id,
+        su_fallback.clerk_user_id AS fallback_clerk_user_id,
+        su_fallback.email AS fallback_email
+      FROM public.organizations o
+      LEFT JOIN public.organization_users su ON su.id = o.owner_id
+      LEFT JOIN public.profiles p_owner ON p_owner.id = o.owner_id
+      LEFT JOIN LATERAL (
+        SELECT p.*
+        FROM public.profiles p
+        WHERE p.organization_id = o.id
+        ORDER BY CASE WHEN p.role = 'owner' THEN 0 ELSE 1 END, p.created_at ASC
+        LIMIT 1
+      ) p_candidate ON true
+      LEFT JOIN public.organization_users su_candidate ON su_candidate.clerk_user_id = p_candidate.clerk_user_id
+      LEFT JOIN LATERAL (
+        SELECT su2.*
+        FROM public.organization_users su2
+        WHERE su2.organization_id = o.id
+        ORDER BY su2.created_at ASC
+        LIMIT 1
+      ) su_fallback ON true
+      WHERE o.owner_id IS NOT NULL AND su.id IS NULL
+      ORDER BY o.id
+      LIMIT 50;`
     );
     result.invalidOrganizationsSample = invalidDetails;
 

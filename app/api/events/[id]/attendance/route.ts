@@ -227,27 +227,33 @@ async function POSTHandler(
             select: { id: true },
         });
 
-        const attendance = existing?.id
-            ? await prisma.nexus_event_attendance.update({
-                  where: { id: String(existing.id) },
-                  data: {
-                      status,
-                      rsvp_at: now,
-                      notes: notes || null,
-                      updated_at: now,
-                  },
-              })
-            : await prisma.nexus_event_attendance.create({
-                  data: {
-                      organizationId: String(workspace.id),
-                      event_id: String(eventId),
-                      user_id: String(dbUser.id),
-                      status,
-                      rsvp_at: now,
-                      notes: notes || null,
-                      updated_at: now,
-                  },
-              });
+        if (existing?.id) {
+            await prisma.nexus_event_attendance.updateMany({
+                where: { id: String(existing.id), organizationId: String(workspace.id) },
+                data: {
+                    status,
+                    rsvp_at: now,
+                    notes: notes || null,
+                    updated_at: now,
+                },
+            });
+        } else {
+            await prisma.nexus_event_attendance.create({
+                data: {
+                    organizationId: String(workspace.id),
+                    event_id: String(eventId),
+                    user_id: String(dbUser.id),
+                    status,
+                    rsvp_at: now,
+                    notes: notes || null,
+                    updated_at: now,
+                },
+            });
+        }
+
+        const attendance = await prisma.nexus_event_attendance.findFirst({
+            where: { event_id: String(eventId), user_id: String(dbUser.id), organizationId: String(workspace.id) },
+        });
 
         return NextResponse.json(
             { attendance: normalizeAttendanceRow(attendance), message: 'אישור הגעה נשמר בהצלחה' },

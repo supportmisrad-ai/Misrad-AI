@@ -20,10 +20,11 @@ import type { WorkspaceEntitlements } from '@/lib/server/workspace';
 import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 
@@ -241,6 +242,15 @@ async function POSTHandler(request: NextRequest) {
             if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] organizations.seats_allowed query failed (${getErrorMessage(e) || 'missing relation'})`);
             }
+
+            if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
+                reportSchemaFallback({
+                    source: 'app/api/employees/invite.POSTHandler',
+                    reason: 'organizations.seats_allowed query schema mismatch (fallback seatsAllowedOverride=null)',
+                    error: e,
+                    extras: { organizationId },
+                });
+            }
             seatsAllowedOverride = null;
         }
 
@@ -395,6 +405,15 @@ async function POSTHandler(request: NextRequest) {
         } catch (notifError: unknown) {
             if (isMissingRelationOrColumnError(notifError) && !ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(notifError) || 'missing relation'})`);
+            }
+
+            if (isMissingRelationOrColumnError(notifError) && ALLOW_SCHEMA_FALLBACKS) {
+                reportSchemaFallback({
+                    source: 'app/api/employees/invite.POSTHandler',
+                    reason: 'misrad_notifications insert schema mismatch (drop notification)',
+                    error: notifError,
+                    extras: { organizationId, invitationId: String(invitation?.id || '') },
+                });
             }
             if (IS_PROD) console.warn('[API] Could not create notification');
             else console.warn('[API] Could not create notification:', notifError);

@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import { useData } from '../context/DataContext';
 import { Toast, Task, Client, Tenant, RoleDefinition, User } from '../types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { extractData, extractError } from '@/lib/shared/api-types';
 import {
     createNexusTask,
     listNexusTasks,
@@ -71,12 +72,6 @@ export function useSecureAPI() {
     const { addToast, currentUser } = useData();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    const unwrap = (data: unknown) => {
-        const obj = asObject(data);
-        const inner = obj ? asObject(obj.data) : null;
-        return inner ?? data;
-    };
 
     const getOrgSlugFromBrowser = useCallback(() => {
         if (typeof window === 'undefined') return null;
@@ -170,7 +165,7 @@ export function useSecureAPI() {
             }
 
             const data: unknown = await response.json().catch(() => ({}));
-            return unwrap(data);
+            return extractData(data);
         } catch (err: unknown) {
             const errorMessage = getErrorMessage(err) || 'שגיאה בצימוד מכשיר';
             if (isNetworkError(err)) {
@@ -208,7 +203,7 @@ export function useSecureAPI() {
             }
 
             const data: unknown = await response.json().catch(() => ({}));
-            const payload = unwrap(data);
+            const payload = extractData<{ token?: string; expiresAt?: string }>(data);
             const payloadObj = asObject(payload) ?? {};
             const token = typeof payloadObj.token === 'string' ? payloadObj.token : '';
             const expiresAt = typeof payloadObj.expiresAt === 'string' ? payloadObj.expiresAt : '';
@@ -364,7 +359,7 @@ export function useSecureAPI() {
             }
             
             const raw: unknown = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
+            const payload = extractData(raw);
 
             if (options?.clientId) {
                 return payload;
@@ -467,7 +462,7 @@ export function useSecureAPI() {
             }
             
             const raw: unknown = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
+            const payload = extractData<{ client?: unknown }>(raw);
             const payloadObj = asObject(payload) ?? {};
             const created = asObject(payloadObj.client) ?? payloadObj;
             addToast('לקוח נוצר בהצלחה', 'success');
@@ -595,12 +590,12 @@ export function useSecureAPI() {
                     throw new Error('אין לך הרשאה ליצור tenants');
                 }
                 const errorData: unknown = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error(getApiErrorMessage(errPayload, errorData, 'שגיאה ביצירת tenant'));
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה ביצירת tenant');
             }
             
             const raw: unknown = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
+            const payload = extractData<{ tenant?: unknown }>(raw);
             const payloadObj = asObject(payload) ?? {};
             return payloadObj.tenant;
             

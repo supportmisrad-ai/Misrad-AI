@@ -248,6 +248,7 @@ const ALLOWED_SERVICE_ROLE_UNSCOPED_REASONS = new Set<string>([
   'kiosk_pairing_status',
   'landing_upload_public_assets',
   'storage_upload_default',
+  'storage_signed_url_resolve',
   'storage_test_admin',
   'storage_upload_global_branding',
   'system_flags_resolve_tenant',

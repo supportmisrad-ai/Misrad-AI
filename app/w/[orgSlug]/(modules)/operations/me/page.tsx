@@ -2,6 +2,7 @@ import PremiumFrame from '@/components/profile/PremiumFrame';
 import { DataProvider } from '@/context/DataContext';
 import { requireWorkspaceAccessByOrgSlugUi } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { MeView } from '@/views/MeView';
 import Link from 'next/link';
 import {
@@ -35,9 +36,11 @@ export default async function OperationsMePage({
     phone: user.phone ?? undefined,
   };
 
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+
   const initialOrganization = {
     ...workspace,
-    logo: workspace.logo ?? undefined,
+    logo: signedLogo ?? undefined,
   };
 
   const technicianId = String(user.profileId || '').trim();

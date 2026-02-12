@@ -154,7 +154,12 @@ export const LoginView: React.FC = () => {
 
         if (direct.status === 'complete') {
           await setActive({ session: direct.createdSessionId });
-          router.replace(getLoginReturnUrl());
+          const returnUrl = getLoginReturnUrl();
+          if (typeof window !== 'undefined') {
+            window.location.assign(returnUrl);
+            return;
+          }
+          router.replace(returnUrl);
           router.refresh();
           return;
         }
@@ -177,7 +182,12 @@ export const LoginView: React.FC = () => {
 
         if (init.status === 'complete') {
           await setActive({ session: init.createdSessionId });
-          router.replace(getLoginReturnUrl());
+          const returnUrl = getLoginReturnUrl();
+          if (typeof window !== 'undefined') {
+            window.location.assign(returnUrl);
+            return;
+          }
+          router.replace(returnUrl);
           router.refresh();
           return;
         }
@@ -200,7 +210,12 @@ export const LoginView: React.FC = () => {
 
           if (result.status === 'complete') {
             await setActive({ session: result.createdSessionId });
-            router.replace(getLoginReturnUrl());
+            const returnUrl = getLoginReturnUrl();
+            if (typeof window !== 'undefined') {
+              window.location.assign(returnUrl);
+              return;
+            }
+            router.replace(returnUrl);
             router.refresh();
             return;
           }
@@ -295,7 +310,12 @@ export const LoginView: React.FC = () => {
 
       if (result.status === 'complete') {
         await setActive({ session: result.createdSessionId });
-        router.replace(getLoginReturnUrl());
+        const returnUrl = getLoginReturnUrl();
+        if (typeof window !== 'undefined') {
+          window.location.assign(returnUrl);
+          return;
+        }
+        router.replace(returnUrl);
         router.refresh();
         return;
       }
@@ -348,7 +368,12 @@ export const LoginView: React.FC = () => {
         })) as any;
         if (result?.createdSessionId) {
           await setActive({ session: result.createdSessionId });
-          router.replace(getLoginReturnUrl());
+          const returnUrl = getLoginReturnUrl();
+          if (typeof window !== 'undefined') {
+            window.location.assign(returnUrl);
+            return;
+          }
+          router.replace(returnUrl);
           router.refresh();
         } else {
           setError('ההתחברות עם Google נכשלה. נא לנסות שוב.');

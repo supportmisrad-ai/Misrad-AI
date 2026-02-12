@@ -7,7 +7,7 @@ import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/share
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, requirePermission, requireSuperAdmin } from '@/lib/auth';
 import { RoleDefinition, PermissionId } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
@@ -44,6 +44,7 @@ async function PATCHHandler(
         const user = await getAuthenticatedUser();
         
         // Only users with manage_system permission can update roles
+        await requireSuperAdmin();
         await requirePermission('manage_system');
         
         const { id: roleId } = params;
@@ -146,6 +147,7 @@ async function DELETEHandler(
         const user = await getAuthenticatedUser();
         
         // Only users with manage_system permission can delete roles
+        await requireSuperAdmin();
         await requirePermission('manage_system');
         
         const { id: roleId } = params;

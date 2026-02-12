@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
   shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
@@ -993,6 +994,12 @@ model NexusTimeEntry {
   userId          String               @map("user_id") @db.Uuid
   startTime       DateTime             @map("start_time") @db.Timestamptz(6)
   endTime         DateTime?            @map("end_time") @db.Timestamptz(6)
+  startLat        Float?               @map("start_lat")
+  startLng        Float?               @map("start_lng")
+  startAccuracy   Float?               @map("start_accuracy")
+  endLat          Float?               @map("end_lat")
+  endLng          Float?               @map("end_lng")
+  endAccuracy     Float?               @map("end_accuracy")
   date            DateTime             @db.Date
   durationMinutes Int?                 @map("duration_minutes")
   voidReason      String?              @map("void_reason")

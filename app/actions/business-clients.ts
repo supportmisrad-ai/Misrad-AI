@@ -3,6 +3,9 @@
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+import { requireAuth } from '@/lib/errorHandler';
+import { getAuthenticatedUser } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 // ============================================================
 // Types
@@ -53,12 +56,25 @@ export type OrganizationInput = {
   is_shabbat_protected?: boolean;
 };
 
+async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+
+  const user = await getAuthenticatedUser();
+  if (!user.isSuperAdmin) return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+
+  return { ok: true };
+}
+
 // ============================================================
 // Create Business Client
 // ============================================================
 
 export async function createBusinessClient(input: BusinessClientInput) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Validation
     if (!input.company_name?.trim()) {
       return { ok: false, error: 'שם חברה הוא שדה חובה' };
@@ -150,6 +166,9 @@ export async function getBusinessClients(filters?: {
   search?: string;
 }) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     const where: any = {
       deleted_at: null,
     };
@@ -176,33 +195,43 @@ export async function getBusinessClients(filters?: {
       ];
     }
 
-    const clients = await prisma.businessClient.findMany({
-      where,
-      include: {
-        contacts: {
+    const clients = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.getBusinessClients',
+        reason: 'global_admin_list_business_clients',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        await prisma.businessClient.findMany({
+          where,
           include: {
-            user: {
+            contacts: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                    email: true,
+                    avatar_url: true,
+                  },
+                },
+              },
+            },
+            organizations: {
               select: {
                 id: true,
-                full_name: true,
-                email: true,
-                avatar_url: true,
+                name: true,
+                slug: true,
+                subscription_status: true,
+                created_at: true,
               },
             },
           },
-        },
-        organizations: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            subscription_status: true,
-            created_at: true,
-          },
-        },
-      },
-      orderBy: { created_at: 'desc' },
-    });
+          orderBy: { created_at: 'desc' },
+        })
+    );
 
     return { ok: true, clients };
   } catch (error) {
@@ -217,46 +246,56 @@ export async function getBusinessClients(filters?: {
 
 export async function getBusinessClient(clientId: string) {
   try {
-    const client = await prisma.businessClient.findUnique({
-      where: { id: clientId },
-      include: {
-        contacts: {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
+    const client = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.getBusinessClient',
+        reason: 'global_admin_get_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        await prisma.businessClient.findUnique({
+          where: { id: clientId },
           include: {
-            user: {
+            contacts: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    full_name: true,
+                    email: true,
+                    avatar_url: true,
+                    role: true,
+                  },
+                },
+              },
+              orderBy: [{ is_primary: 'desc' }, { created_at: 'asc' }],
+            },
+            organizations: {
               select: {
                 id: true,
-                full_name: true,
-                email: true,
-                avatar_url: true,
-                role: true,
+                name: true,
+                slug: true,
+                subscription_status: true,
+                subscription_plan: true,
+                trial_start_date: true,
+                trial_days: true,
+                created_at: true,
+                has_nexus: true,
+                has_social: true,
+                has_finance: true,
+                has_client: true,
+                has_operations: true,
               },
+              orderBy: { created_at: 'desc' },
             },
           },
-          orderBy: [
-            { is_primary: 'desc' },
-            { created_at: 'asc' },
-          ],
-        },
-        organizations: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            subscription_status: true,
-            subscription_plan: true,
-            trial_start_date: true,
-            trial_days: true,
-            created_at: true,
-            has_nexus: true,
-            has_social: true,
-            has_finance: true,
-            has_client: true,
-            has_operations: true,
-          },
-          orderBy: { created_at: 'desc' },
-        },
-      },
-    });
+        })
+    );
 
     if (!client) {
       return { ok: false, error: 'לקוח עסקי לא נמצא' };
@@ -275,6 +314,9 @@ export async function getBusinessClient(clientId: string) {
 
 export async function updateBusinessClient(clientId: string, input: Partial<BusinessClientInput>) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Check if email is being changed
     if (input.primary_email) {
       const normalizedEmail = input.primary_email.trim().toLowerCase();
@@ -328,6 +370,9 @@ export async function updateBusinessClient(clientId: string, input: Partial<Busi
 
 export async function addContactToClient(clientId: string, input: ContactInput) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Check if contact already exists
     const existing = await prisma.businessClientContact.findUnique({
       where: {
@@ -350,27 +395,37 @@ export async function addContactToClient(clientId: string, input: ContactInput) 
       });
     }
 
-    const contact = await prisma.businessClientContact.create({
-      data: {
-        client_id: clientId,
-        user_id: input.user_id,
-        role: input.role || 'contact',
-        title: input.title,
-        department: input.department,
-        is_primary: input.is_primary || false,
-        is_billing_contact: input.is_billing_contact || false,
-        is_technical_contact: input.is_technical_contact || false,
+    const contact = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.addContactToClient',
+        reason: 'global_admin_add_contact_to_business_client',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            full_name: true,
-            email: true,
+      async () =>
+        await prisma.businessClientContact.create({
+          data: {
+            client_id: clientId,
+            user_id: input.user_id,
+            role: input.role || 'contact',
+            title: input.title,
+            department: input.department,
+            is_primary: input.is_primary || false,
+            is_billing_contact: input.is_billing_contact || false,
+            is_technical_contact: input.is_technical_contact || false,
           },
-        },
-      },
-    });
+          include: {
+            user: {
+              select: {
+                id: true,
+                full_name: true,
+                email: true,
+              },
+            },
+          },
+        })
+    );
 
     return { ok: true, contact };
   } catch (error) {
@@ -385,6 +440,9 @@ export async function addContactToClient(clientId: string, input: ContactInput) 
 
 export async function removeContactFromClient(clientId: string, userId: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     await prisma.businessClientContact.delete({
       where: {
         client_id_user_id: {
@@ -411,6 +469,9 @@ export async function createOrganizationForClient(
   input: OrganizationInput
 ) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Validate
     if (!input.name?.trim()) {
       return { ok: false, error: 'שם ארגון הוא שדה חובה' };
@@ -423,7 +484,7 @@ export async function createOrganizationForClient(
     const now = new Date();
 
     // Apply coupon if provided (TODO: implement coupon validation)
-    let appliedTrialDays = input.trial_days ?? DEFAULT_TRIAL_DAYS;
+    const appliedTrialDays = input.trial_days ?? DEFAULT_TRIAL_DAYS;
     if (input.coupon_code) {
       // TODO: Validate coupon and adjust trial_days or subscription_plan
       console.log('[createOrganizationForClient] Coupon code provided:', input.coupon_code);
@@ -490,6 +551,9 @@ export async function updateOrganization(orgId: string, input: {
   is_shabbat_protected?: boolean;
 }) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     const org = await prisma.social_organizations.update({
       where: { id: orgId },
       data: {
@@ -516,6 +580,9 @@ export async function updateOrganization(orgId: string, input: {
 
 export async function deleteBusinessClient(clientId: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     await prisma.businessClient.update({
       where: { id: clientId },
       data: { deleted_at: new Date() },
@@ -534,6 +601,9 @@ export async function deleteBusinessClient(clientId: string) {
 
 export async function searchUsersForContact(clientId: string, searchTerm: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     if (!searchTerm.trim()) {
       return { ok: true, users: [] };
     }
@@ -547,31 +617,41 @@ export async function searchUsersForContact(clientId: string, searchTerm: string
     const linkedUserIds = linkedContacts.map((c) => c.user_id);
 
     // Search for users not yet linked
-    const users = await prisma.organizationUser.findMany({
-      where: {
-        AND: [
-          {
-            OR: [
-              { full_name: { contains: searchTerm, mode: 'insensitive' } },
-              { email: { contains: searchTerm, mode: 'insensitive' } },
+    const users = await withTenantIsolationContext(
+      {
+        source: 'app/actions/business-clients.searchUsersForContact',
+        reason: 'global_admin_search_users_for_contact',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+        suppressReporting: true,
+      },
+      async () =>
+        await prisma.organizationUser.findMany({
+          where: {
+            AND: [
+              {
+                OR: [
+                  { full_name: { contains: searchTerm, mode: 'insensitive' } },
+                  { email: { contains: searchTerm, mode: 'insensitive' } },
+                ],
+              },
+              {
+                NOT: {
+                  id: { in: linkedUserIds },
+                },
+              },
             ],
           },
-          {
-            NOT: {
-              id: { in: linkedUserIds },
-            },
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            avatar_url: true,
+            role: true,
           },
-        ],
-      },
-      select: {
-        id: true,
-        full_name: true,
-        email: true,
-        avatar_url: true,
-        role: true,
-      },
-      take: 10,
-    });
+          take: 10,
+        })
+    );
 
     return { ok: true, users };
   } catch (error) {

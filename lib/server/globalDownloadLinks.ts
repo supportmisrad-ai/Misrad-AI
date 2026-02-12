@@ -4,8 +4,9 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type GlobalDownloadLinks = {
   windowsDownloadUrl: string | null;
@@ -63,6 +64,13 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
           if (!ALLOW_SCHEMA_FALLBACKS) {
             throw new Error(`[SchemaMismatch] social_system_settings missing table (${getErrorMessage(e) || 'missing relation'})`);
           }
+
+          reportSchemaFallback({
+            source: 'lib/server/globalDownloadLinks.getGlobalDownloadLinksUnsafe',
+            reason: 'coreSystemSettings missing table/column (skip legacy storage)',
+            error: e,
+            extras: { key: LEGACY_KEY },
+          });
           return null;
         }
         throw e;
@@ -84,6 +92,14 @@ export async function getGlobalDownloadLinksUnsafe(): Promise<GlobalDownloadLink
   } catch (error: unknown) {
     if (isMissingRelationError(error) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] global_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
+    }
+
+    if (isMissingRelationError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/server/globalDownloadLinks.getGlobalDownloadLinksUnsafe',
+        reason: 'global_settings missing table/column (fallback to env)',
+        error,
+      });
     }
     return envFallback;
   }
@@ -125,6 +141,12 @@ export async function setGlobalDownloadLinksUnsafe(input: {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] global_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/server/globalDownloadLinks.setGlobalDownloadLinksUnsafe',
+        reason: 'global_settings missing table/column (fallback to legacy storage)',
+        error,
+      });
       // Fallback: legacy storage
       try {
         await prisma.coreSystemSettings.upsert({

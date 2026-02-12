@@ -69,7 +69,7 @@ const Sidebar = React.memo(({ activeTab, setActiveTab, user, logout, mobile = fa
                 </div>
                 <div className="flex flex-col justify-center overflow-hidden">
                     <h1 className="text-xl md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 leading-none tracking-tight font-sans truncate">{brandName}</h1>
-                    <span className="text-[10px] md:text-[11px] font-black text-slate-400 tracking-[0.25em] uppercase mt-1.5 ml-0.5">{roomName || 'Misrad OS - מערכת צמיחה'}</span>
+                    <span className="text-[10px] md:text-[11px] font-black text-slate-400 tracking-[0.25em] uppercase mt-1.5 ml-0.5">{roomName || 'MISRAD AI - מערכת צמיחה'}</span>
                 </div>
             </div>
             {mobile && onClose && (

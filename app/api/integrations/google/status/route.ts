@@ -15,12 +15,13 @@ import prisma from '@/lib/prisma';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 async function selectDbUserId(params: { workspaceId: string; email: string }): Promise<string | null> {
     const email = String(params.email || '').trim().toLowerCase();
@@ -85,6 +86,13 @@ async function GETHandler(request: NextRequest) {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] scale_integrations missing table (${msg || 'missing relation'})`);
                 }
+
+                reportSchemaFallback({
+                    source: 'app/api/integrations/google/status.GETHandler',
+                    reason: 'scale_integrations missing table (fallback to connected=false)',
+                    error,
+                    extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
+                });
                 if (IS_PROD) console.warn('[API] Integrations table not found');
                 else console.warn('[API] Integrations table not found. Run supabase-integrations-schema.sql to create it.');
                 return apiSuccess({
@@ -92,6 +100,15 @@ async function GETHandler(request: NextRequest) {
                         calendar: { connected: false },
                         drive: { connected: false }
                     }
+                });
+            }
+
+            if ((msg.includes('does not exist') || msg.includes('relation') || msg.includes('column')) && ALLOW_SCHEMA_FALLBACKS) {
+                reportSchemaFallback({
+                    source: 'app/api/integrations/google/status.GETHandler',
+                    reason: 'scale_integrations query schema mismatch (fallback to connected=false)',
+                    error,
+                    extras: { workspaceId: String(workspace.id), dbUserId: String(dbUserId || ''), service: service ?? null },
                 });
             }
             return apiSuccess({

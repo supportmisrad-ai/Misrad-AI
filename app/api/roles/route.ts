@@ -7,7 +7,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUser, requirePermission } from '@/lib/auth';
+import { getAuthenticatedUser, requirePermission, requireSuperAdmin } from '@/lib/auth';
 import { PermissionId, RoleDefinition } from '@/types';
 import { logAuditEvent } from '@/lib/audit';
 import prisma from '@/lib/prisma';
@@ -95,6 +95,7 @@ async function POSTHandler(request: NextRequest) {
         const user = await getAuthenticatedUser();
         
         // Only users with manage_system permission can create roles
+        await requireSuperAdmin();
         await requirePermission('manage_system');
         
         const body: unknown = await request.json();

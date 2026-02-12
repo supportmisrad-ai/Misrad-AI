@@ -6,6 +6,9 @@
  * Panel for managers/CEOs to create and manage employee invitation links
  */
 
+import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { SearchableEmployeeSelect } from './SearchableEmployeeSelect';
+import { extractData, extractError } from '@/lib/shared/api-types';
 import React, { useState, useEffect } from 'react';
 import { CustomSelect } from '../CustomSelect';
 import { CustomDatePicker } from '../CustomDatePicker';
@@ -47,9 +50,6 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
     const [copiedToken, setCopiedToken] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
     // Form state
     const [formData, setFormData] = useState({
         employeeEmail: '',
@@ -73,12 +73,13 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
             const response = await fetch('/api/employees/invitations');
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || `Failed to load invitations (${response.status})`);
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || `Failed to load invitations (${response.status})`);
             }
             const data = await response.json().catch(() => ({}));
-            const payload = unwrap(data);
-            setInvitations((payload as any).invitations || []);
+            const payload = extractData<{ invitations?: EmployeeInvitation[] }>(data);
+            const next = Array.isArray(payload?.invitations) ? payload.invitations : [];
+            setInvitations(next);
         } catch (error: any) {
             console.error('[EmployeeInvitations] Error loading invitations:', error);
             addToast(error.message || 'שגיאה בטעינת קישורים', 'error');
@@ -124,8 +125,8 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to create invitation');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'Failed to create invitation');
             }
 
             await response.json().catch(() => ({}));
@@ -179,15 +180,15 @@ export const EmployeeInvitationsPanel: React.FC<EmployeeInvitationsPanelProps> =
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'Failed to deactivate invitation');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'Failed to deactivate invitation');
             }
 
             addToast('קישור הזמנה בוטל', 'success');
             await loadInvitations();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('[EmployeeInvitations] Error deactivating invitation:', error);
-            addToast(error.message || 'שגיאה בביטול קישור', 'error');
+            addToast(error instanceof Error ? error.message : 'שגיאה בביטול קישור', 'error');
         }
     };
 

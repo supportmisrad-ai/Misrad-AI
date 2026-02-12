@@ -3,6 +3,8 @@
 import prisma from '@/lib/prisma';
 import { generateOrgSlug, generateUniqueOrgSlug } from '@/lib/server/orgSlug';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+import { requireAuth } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
 
 type CreateClientParams = {
   fullName: string;
@@ -23,6 +25,17 @@ export async function createClient(
   params: CreateClientParams
 ): Promise<CreateClientResult> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+    }
+
     const { fullName, email, sendInviteEmail = true } = params;
 
     // Validate required fields
@@ -40,12 +53,15 @@ export async function createClient(
     }
 
     // Check if email already exists
-    const existingUser = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `SELECT id FROM organization_users WHERE email = $1 AND role = 'owner' LIMIT 1`,
-      normalizedEmail
-    );
+    const existingUser = await prisma.organizationUser.findFirst({
+      where: {
+        email: { equals: normalizedEmail, mode: 'insensitive' },
+        role: 'owner',
+      },
+      select: { id: true },
+    });
 
-    if (existingUser && existingUser.length > 0) {
+    if (existingUser?.id) {
       return { ok: false, error: `לקוח עם מייל ${normalizedEmail} כבר קיים במערכת` };
     }
 
@@ -53,21 +69,21 @@ export async function createClient(
 
     // Create client (owner) WITHOUT organization
     const clerkId = `pending_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    
-    const clientResult = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
-      `INSERT INTO organization_users (clerk_user_id, email, full_name, role, allowed_modules, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING id`,
-      clerkId,
-      normalizedEmail,
-      fullName.trim(),
-      'owner',
-      ['nexus', 'system', 'finance', 'client', 'operations'],
-      now,
-      now
-    );
-    
-    const clientId = clientResult[0].id;
+
+    const created = await prisma.organizationUser.create({
+      data: {
+        clerk_user_id: clerkId,
+        email: normalizedEmail,
+        full_name: fullName.trim(),
+        role: 'owner',
+        allowed_modules: ['nexus', 'system', 'finance', 'client', 'operations'],
+        created_at: now,
+        updated_at: now,
+      },
+      select: { id: true },
+    });
+
+    const clientId = String(created.id);
 
     // TODO: Send invite email if requested
     // For now, admin will need to manually invite the client via Clerk
@@ -93,6 +109,17 @@ export async function createClient(
  */
 export async function getClients() {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+    }
+
     // Use existing getOrganizations action which already has the data we need
     const { getOrganizations } = await import('./admin-organizations');
     const result = await getOrganizations({});

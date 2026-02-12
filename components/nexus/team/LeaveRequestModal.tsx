@@ -14,13 +14,7 @@ import { CustomDatePicker } from '../../CustomDatePicker';
 import { CustomSelect } from '../../CustomSelect';
 import { SearchableEmployeeSelect } from '../SearchableEmployeeSelect';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
-
-const unwrap = (data: any) => {
-    if (data && typeof data === 'object' && data.data && typeof data.data === 'object') {
-        return data.data;
-    }
-    return data;
-};
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 interface LeaveRequestModalProps {
     request?: LeaveRequest | null;
@@ -155,17 +149,16 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
 
             if (!response.ok) {
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בשמירת בקשת חופש');
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה בשמירת בקשת חופש');
             }
 
-            const raw = await response.json().catch(() => ({}));
-            unwrap(raw);
+            await response.json().catch(() => ({}));
             // Don't show toast here - let the parent component handle it via onSuccess
             onSuccess();
             onClose();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בשמירת בקשת חופש', 'error');
+        } catch (error: unknown) {
+            addToast(error instanceof Error ? error.message : 'שגיאה בשמירת בקשת חופש', 'error');
         } finally {
             setIsSubmitting(false);
         }

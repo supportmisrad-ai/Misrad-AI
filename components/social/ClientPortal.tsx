@@ -51,8 +51,8 @@ export default function ClientPortal() {
   const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
 
-  // AI Chat hook with client context
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = (useChat as any)({
+  // AI Chat hook with client context - only initialized when chat is opened
+  const chatConfig = {
     api: '/api/chat',
     headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
     body: {
@@ -70,7 +70,9 @@ export default function ClientPortal() {
         parts: [{ type: 'text', text: `היי ${activeClient.name}, איך אוכל לעזור לך בניהול הסושיאל?` }],
       },
     ] : [],
-  });
+  };
+
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = (useChat as any)(chatConfig);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -474,23 +476,44 @@ ${String(request.description || '').trim()}`.trim();
          </AnimatePresence>
       </main>
 
-      {/* Chat Bot Button - Optimized for mobile position */}
-      <button onClick={() => setIsChatOpen(true)} className="fixed bottom-6 left-6 md:bottom-10 md:left-10 w-16 h-16 md:w-20 md:h-20 bg-blue-600 text-white rounded-2xl md:rounded-[32px] shadow-2xl flex items-center justify-center z-[150] shadow-blue-200">
-           <MessageSquare size={28} />
+      {/* Chat Bot Button - Center bottom, always visible */}
+      <button 
+        onClick={() => setIsChatOpen(true)} 
+        style={{ 
+          bottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          left: '50%',
+          transform: 'translateX(-50%)'
+        }}
+        className="fixed sm:bottom-8 md:bottom-12 w-16 h-16 sm:w-[72px] sm:h-[72px] md:w-20 md:h-20 bg-blue-600 text-white rounded-2xl md:rounded-3xl shadow-2xl flex items-center justify-center z-[150] hover:bg-blue-700 hover:shadow-blue-500/50 active:scale-95 transition-all"
+        aria-label="פתח צ'אט תמיכה"
+      >
+           <MessageSquare size={26} className="sm:w-8 sm:h-8 md:w-9 md:h-9" />
       </button>
 
       {/* Mobile Chat Overlay */}
       <AnimatePresence>
         {isChatOpen && (
-          <motion.div initial={{ opacity: 0, y: 100 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 100 }} className="fixed inset-0 md:inset-auto md:bottom-8 md:left-8 w-full md:max-w-sm bg-white md:rounded-[40px] shadow-2xl z-[200] flex flex-col overflow-hidden">
-             <div className="p-6 bg-slate-950 text-white flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Sparkles size={20}/></div>
-                   <p className="font-black">עוזר AI אישי</p>
+          <motion.div 
+            initial={{ opacity: 0, y: 100 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-0 md:inset-auto md:bottom-8 md:left-8 w-full md:max-w-md md:h-[600px] bg-white md:rounded-[40px] shadow-2xl z-[200] flex flex-col overflow-hidden"
+          >
+             <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-950 to-slate-900 text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                   <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Sparkles size={18} className="sm:w-5 sm:h-5"/></div>
+                   <p className="font-black text-sm sm:text-base">עוזר AI אישי</p>
                 </div>
-                <button onClick={() => setIsChatOpen(false)} className="p-2"><X size={24}/></button>
+                <button 
+                  onClick={() => setIsChatOpen(false)} 
+                  className="p-2 hover:bg-white/10 rounded-lg transition-colors active:scale-95"
+                  aria-label="סגור צ'אט"
+                >
+                  <X size={20} className="sm:w-6 sm:h-6"/>
+                </button>
              </div>
-             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 bg-slate-50">
+             <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 flex flex-col gap-3 sm:gap-4 bg-slate-50">
                 {messages.map((message: any) => (
                   <div
                     key={message.id}
@@ -499,7 +522,7 @@ ${String(request.description || '').trim()}`.trim();
                     }`}
                   >
                     <div
-                      className={`p-4 rounded-2xl shadow-sm font-bold text-sm max-w-[85%] border leading-relaxed ${
+                      className={`p-3 sm:p-4 rounded-2xl shadow-sm font-bold text-xs sm:text-sm max-w-[90%] sm:max-w-[85%] border leading-relaxed ${
                         message.role === 'user'
                           ? 'bg-blue-600 text-white border-blue-700'
                           : 'bg-white text-slate-800 border-slate-200'
@@ -508,7 +531,7 @@ ${String(request.description || '').trim()}`.trim();
                       {message.parts?.map((part: any, i: number) => {
                         if (part.type === 'text') {
                           return (
-                            <div key={`${message.id}-${i}`} className="whitespace-pre-wrap">
+                            <div key={`${message.id}-${i}`} className="whitespace-pre-wrap break-words">
                               {part.text}
                             </div>
                           );
@@ -516,40 +539,51 @@ ${String(request.description || '').trim()}`.trim();
                         return null;
                       })}
                       {isLoading && message.id === messages[messages.length - 1]?.id && message.role === 'assistant' && (
-                        <span className="inline-block mr-1 text-slate-400 font-bold">...</span>
+                        <span className="inline-flex items-center gap-1 text-slate-400 font-bold">
+                          <span className="animate-bounce">.</span>
+                          <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>.</span>
+                          <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>.</span>
+                        </span>
                       )}
                     </div>
                   </div>
                 ))}
                 {isLoading && messages[messages.length - 1]?.role === 'user' && (
                   <div className="flex items-start gap-2">
-                    <div className="bg-white p-4 rounded-2xl shadow-sm font-bold text-sm border border-slate-200">
-                      <div className="space-y-2 w-40">
-                        <Skeleton className="h-3 w-32 rounded-xl" />
-                        <Skeleton className="h-3 w-28 rounded-xl" />
+                    <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-sm font-bold text-xs sm:text-sm border border-slate-200">
+                      <div className="space-y-2 w-32 sm:w-40">
+                        <Skeleton className="h-2.5 sm:h-3 w-28 sm:w-32 rounded-xl animate-pulse" />
+                        <Skeleton className="h-2.5 sm:h-3 w-24 sm:w-28 rounded-xl animate-pulse" />
+                        <Skeleton className="h-2.5 sm:h-3 w-20 sm:w-24 rounded-xl animate-pulse" />
                       </div>
                     </div>
                   </div>
                 )}
                 <div ref={chatMessagesEndRef} />
              </div>
-             <form onSubmit={handleSubmit} className="p-4 border-t border-slate-200 bg-white flex gap-2">
+             <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-slate-200 bg-white flex gap-2 shrink-0">
                 <input
                   value={input}
                   onChange={handleInputChange}
                   placeholder="שאל אותי משהו..."
-                  className="flex-1 bg-slate-50 rounded-xl px-4 py-3 font-bold text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 bg-slate-50 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 font-bold text-xs sm:text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
                   disabled={isLoading}
+                  autoComplete="off"
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !input.trim()}
-                  className="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+                  className="w-11 h-11 sm:w-12 sm:h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700 active:scale-95 transition-all"
+                  aria-label="שלח הודעה"
                 >
                   {isLoading ? (
-                    <span className="text-xs font-black">...</span>
+                    <div className="flex gap-0.5">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></span>
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></span>
+                    </div>
                   ) : (
-                    <Send size={20} className="rotate-180" />
+                    <Send size={18} className="sm:w-5 sm:h-5 rotate-180" />
                   )}
                 </button>
              </form>

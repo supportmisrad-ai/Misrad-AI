@@ -14,8 +14,9 @@ import { requireOrganizationId } from '@/lib/tenant-isolation';
 import { saveGoogleTokensForOrganizationUser } from '@/lib/services/integrations/google-tokens';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -143,6 +144,15 @@ export async function hasMorningCredentialsForWorkspace(
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] integrationCredential missing table/column (${getErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/integrations.hasMorningCredentialsForWorkspace',
+        reason: 'integrationCredential missing table/column (fallback to connected=false)',
+        error: e,
+        extras: { orgSlug: String(orgSlug || '') },
+      });
     }
     return { success: true, connected: false };
   }

@@ -1,8 +1,8 @@
 -- ============================================
--- Misrad OS - Rename (Option A / No data loss)
+-- MISRAD AI - Rename (Option A / No data loss)
 -- ============================================
 -- Purpose:
---   Rename legacy Scale tables to Misrad tables, and social_organizations -> organizations.
+--   Rename legacy scale tables to Misrad tables, and social_organizations -> organizations.
 --   This script is intended for an EXISTING database.
 --
 -- Notes:

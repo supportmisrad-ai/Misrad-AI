@@ -115,6 +115,7 @@ async function PUTHandler(
         updated_at: new Date(),
       },
       update: {
+        organization_id: String(workspace.id),
         ai_dna: aiDna,
         updated_at: new Date(),
       },

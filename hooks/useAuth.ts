@@ -9,7 +9,8 @@ import { DEFAULT_ROLE_DEFINITIONS } from '../constants';
 
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { isCeoRole } from '@/lib/constants/roles';
-import { getNexusMe, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
+import { getNexusMe, listNexusTimeEntries, listNexusUsers, updateNexusPresenceHeartbeat } from '@/app/actions/nexus';
+import { punchIn, punchOut } from '@/app/actions/attendance';
 
 const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const PRESENCE_REQUEST_TIMEOUT_MS = 8_000;
@@ -45,6 +46,10 @@ function getClerkRole(clerkUser: unknown): string | undefined {
 function getUnknownProp(obj: unknown, key: string): unknown {
     const o = asObject(obj);
     return o ? o[key] : undefined;
+}
+
+function toIsoDateOnly(d: Date): string {
+    return d.toISOString().slice(0, 10);
 }
 
 export const useAuth = (
@@ -147,11 +152,60 @@ export const useAuth = (
     const [isAuthenticated, setIsAuthenticated] = useState(Boolean(initialCurrentUser?.id));
     const [isLoadingCurrentUser, setIsLoadingCurrentUser] = useState(false);
 
+    const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+    const [trashUsers, setTrashUsers] = useState<User[]>([]);
+    const [trashTimeEntries, setTrashTimeEntries] = useState<TimeEntry[]>([]);
+    const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
+
     const clerkUserId = asObject(clerkUser)?.id;
     const pathname = usePathname();
     const orgSlug = useMemo(() => {
         return getWorkspaceOrgSlugFromPathname(pathname);
     }, [pathname]);
+
+    const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+
+    const refreshTimeEntries = useCallback(async () => {
+        if (!orgSlug) return;
+        try {
+            const now = new Date();
+            const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+            const res = await listNexusTimeEntries({
+                orgId: orgSlug,
+                dateFrom: toIsoDateOnly(startOfMonth),
+                dateTo: toIsoDateOnly(now),
+                page: 1,
+                pageSize: 200,
+            });
+            if (Array.isArray(res?.timeEntries)) {
+                setTimeEntries(res.timeEntries);
+            }
+        } catch {
+        }
+    }, [orgSlug]);
+
+    const getLocation = useCallback(async () => {
+        if (typeof window === 'undefined') {
+            throw new Error('Location not available');
+        }
+        if (!('geolocation' in navigator)) {
+            throw new Error('אין תמיכה במיקום בדפדפן הזה');
+        }
+
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 0,
+            });
+        });
+
+        return {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+        };
+    }, []);
 
     const presenceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const presenceInFlightRef = useRef(false);
@@ -299,12 +353,11 @@ export const useAuth = (
         };
     }, [orgSlug, isClerkLoaded, sendPresenceHeartbeat]);
 
-    const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
-    const [trashUsers, setTrashUsers] = useState<User[]>([]);
-    const [trashTimeEntries, setTrashTimeEntries] = useState<TimeEntry[]>([]);
-    const [changeRequests, setChangeRequests] = useState<ChangeRequest[]>([]);
-
-    const activeShift = timeEntries.find(t => t.userId === currentUser.id && !t.endTime) || null;
+    useEffect(() => {
+        if (!orgSlug) return;
+        if (!isClerkLoaded) return;
+        void refreshTimeEntries();
+    }, [orgSlug, isClerkLoaded, refreshTimeEntries]);
 
     const meQuery = useQuery({
         queryKey: ['nexus', 'me', orgSlug],
@@ -528,28 +581,51 @@ export const useAuth = (
     };
 
     const clockIn = () => {
-        const newEntry: TimeEntry = {
-            id: `TE-${Date.now()}`,
-            userId: currentUser.id,
-            startTime: new Date().toISOString(),
-            date: new Date().toISOString().split('T')[0]
-        };
-        setTimeEntries(prev => [...prev, newEntry]);
-        addToast('נכנסת למשמרת. עבודה נעימה!', 'success');
+        void (async () => {
+            if (!orgSlug) {
+                addToast('חסר ארגון פעיל', 'error');
+                return;
+            }
+            try {
+                const location = await getLocation();
+                const res = await punchIn(orgSlug, undefined, location);
+                await refreshTimeEntries();
+                addToast(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!', 'success');
+            } catch (e: any) {
+                const msg = String(e?.message || e);
+                if (msg.toLowerCase().includes('denied')) {
+                    addToast('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת', 'error');
+                } else {
+                    addToast(msg || 'שגיאה בכניסה למשמרת', 'error');
+                }
+            }
+        })();
     };
 
     const clockOut = () => {
-        if (activeShift) {
-            const endTime = new Date().toISOString();
-            const duration = (new Date(endTime).getTime() - new Date(activeShift.startTime).getTime()) / 60000;
-            
-            setTimeEntries(prev => prev.map(te => 
-                te.id === activeShift.id 
-                ? { ...te, endTime, durationMinutes: Math.round(duration) } 
-                : te
-            ));
-            addToast('יצאת ממשמרת. תודה!', 'info');
-        }
+        void (async () => {
+            if (!orgSlug) {
+                addToast('חסר ארגון פעיל', 'error');
+                return;
+            }
+            if (!activeShift) {
+                addToast('אין משמרת פעילה לסגירה.', 'info');
+                return;
+            }
+            try {
+                const location = await getLocation();
+                const res = await punchOut(orgSlug, undefined, location);
+                await refreshTimeEntries();
+                addToast(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!', 'info');
+            } catch (e: any) {
+                const msg = String(e?.message || e);
+                if (msg.toLowerCase().includes('denied')) {
+                    addToast('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת', 'error');
+                } else {
+                    addToast(msg || 'שגיאה ביציאה ממשמרת', 'error');
+                }
+            }
+        })();
     };
 
     const addManualTimeEntry = (entry: TimeEntry) => {

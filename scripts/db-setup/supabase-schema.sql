@@ -1,5 +1,5 @@
 -- ============================================
--- Nexus OS / Scale CRM - Supabase Schema
+-- MISRAD AI - Supabase Schema
 -- ============================================
 -- Run this SQL in Supabase SQL Editor to create all tables
 -- ============================================

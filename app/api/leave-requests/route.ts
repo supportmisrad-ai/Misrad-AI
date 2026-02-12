@@ -15,10 +15,11 @@ import { Prisma } from '@prisma/client';
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 import { buildLeaveRequestTeamUrl, sendWebPushNotificationToEmails } from '@/lib/server/web-push';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -422,10 +423,12 @@ async function insertNotifications(params: { workspaceId: string; notifications:
 }
 
 async function GETHandler(request: NextRequest) {
+    let organizationId: string | null = null;
     try {
         const user = await getAuthenticatedUser();
 
-        const { workspaceId: organizationId } = await getWorkspaceOrThrow(request);
+        const { workspaceId } = await getWorkspaceOrThrow(request);
+        organizationId = String(workspaceId);
 
         const allowUnscoped = isBypassModuleEntitlementsEnabled();
         if (allowUnscoped) {
@@ -547,6 +550,13 @@ async function GETHandler(request: NextRequest) {
                     message: `[SchemaMismatch] leave-requests query failed (${msg || 'missing tenant scoping column'})`,
                 });
             }
+
+            reportSchemaFallback({
+                source: 'app/api/leave-requests.GETHandler',
+                reason: 'leave-requests query missing tenant scoping (fallback to empty list)',
+                error,
+                extras: { organizationId },
+            });
             return apiSuccessCompat({ requests: [] as LeaveRequest[] }, { status: 200 });
         }
         const safeMsg = 'שגיאה בטעינת בקשות חופש';
@@ -745,6 +755,18 @@ async function POSTHandler(request: NextRequest) {
                     } catch (e: unknown) {
                         if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
                             throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(e) || 'missing relation'})`);
+                        }
+
+                        if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
+                            reportSchemaFallback({
+                                source: 'app/api/leave-requests.POSTHandler',
+                                reason: 'misrad_notifications insert schema mismatch (drop notifications)',
+                                error: e,
+                                extras: {
+                                    organizationId,
+                                    leaveRequestId: String(leaveRequest?.id || ''),
+                                },
+                            });
                         }
                         if (IS_PROD) console.warn('[API] Could not create notifications');
                         else console.warn('[API] Could not create notifications:', e);

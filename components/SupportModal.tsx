@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageSquare, Send, CheckCircle2, User, CreditCard, LifeBuoy, FileText, Clock, MessageCircle, Compass, Video } from 'lucide-react';
@@ -6,6 +5,7 @@ import { useData } from '../context/DataContext';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { getContentByKey } from '@/app/actions/site-content';
 import { Skeleton } from '@/components/ui/skeletons';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 export const SupportModal: React.FC = () => {
     const { isSupportModalOpen, closeSupport, currentUser, addNotification, supportDraft, setSupportDraft, startTutorial } = useData();
@@ -15,10 +15,7 @@ export const SupportModal: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [whatsappGroupUrl, setWhatsappGroupUrl] = useState<string>('');
 
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
-    const setCategory = (category: any) => setSupportDraft((prev: any) => ({ ...prev, category }));
+    const setCategory = (category: string) => setSupportDraft((prev) => ({ ...prev, category }));
     const setSubject = (subject: string) => setSupportDraft((prev: any) => ({ ...prev, subject }));
     const setMessage = (message: string) => setSupportDraft((prev: any) => ({ ...prev, message }));
 
@@ -63,28 +60,28 @@ export const SupportModal: React.FC = () => {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה ביצירת קריאת תמיכה');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה ביצירת קריאת תמיכה');
             }
 
             const data = await response.json().catch(() => ({}));
-            const payload = unwrap(data);
-            setTicketId(String((payload as any)?.ticket?.ticket_number || ''));
+            const payload = extractData<{ ticket?: { ticket_number?: string } }>(data);
+            setTicketId(String(payload?.ticket?.ticket_number || ''));
 
             // Notify admins
-        addNotification({
+            addNotification({
                 recipientId: 'all',
-            type: 'system',
+                type: 'system',
                 text: `פניית תמיכה חדשה (${String((payload as any)?.ticket?.ticket_number || '')}) מאת ${currentUser.name}: ${supportDraft.subject}`,
-            actorName: 'System Support',
-        });
+                actorName: 'System Support',
+            });
 
-        setStep('success');
-        // Clear draft on successful submission
-        setSupportDraft({ category: 'Tech', subject: '', message: '' });
-        } catch (err: any) {
-            console.error('[SupportModal] Error creating ticket:', err);
-            setError(err.message || 'שגיאה ביצירת קריאת תמיכה. אנא נסה שוב.');
+            setStep('success');
+            // Clear draft on successful submission
+            setSupportDraft({ category: 'Tech', subject: '', message: '' });
+        } catch (error: unknown) {
+            console.error('[SupportModal] Error creating ticket:', error);
+            setError(error instanceof Error ? error.message : 'שגיאה בשליחת הקריאה. אנא נסה שוב.');
         } finally {
             setIsSubmitting(false);
         }

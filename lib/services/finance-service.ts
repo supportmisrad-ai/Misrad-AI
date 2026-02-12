@@ -2,6 +2,7 @@ import 'server-only';
 import prisma from '@/lib/prisma';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 function isMissingColumnError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -27,9 +28,7 @@ function isSchemaMismatchError(error: unknown): boolean {
   );
 }
 
-const ALLOW_SCHEMA_FALLBACKS =
-  String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true' ||
-  String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 type FinanceUserLite = {
   id: string;
@@ -112,8 +111,11 @@ async function selectUsersInWorkspaceByIds(params: {
       });
     } catch (error: unknown) {
       if (isMissingColumnError(error) && ALLOW_SCHEMA_FALLBACKS) {
-        console.warn('[finance-service] nexusUser columns missing; fallback to minimal select', {
-          message: getErrorMessage(error),
+        reportSchemaFallback({
+          source: 'lib/services/finance-service.selectUsersInWorkspaceByIds',
+          reason: 'nexusUser columns missing (fallback to minimal select)',
+          error,
+          extras: { organizationId: params.organizationId },
         });
         const minimalRows = await prisma.nexusUser.findMany({
           where: {
@@ -267,6 +269,18 @@ export async function getFinanceOverviewData(params: {
           })
           .catch(async (error: unknown) => {
             if (isSchemaMismatchError(error)) {
+              if (!ALLOW_SCHEMA_FALLBACKS) {
+                throw new Error(
+                  `[SchemaMismatch] misradInvoice groupBy failed (${getErrorMessage(error) || 'missing relation'})`
+                );
+              }
+
+              reportSchemaFallback({
+                source: 'lib/services/finance-service.getFinanceOverviewData',
+                reason: 'misradInvoice groupBy schema mismatch (fallback to string date filter)',
+                error,
+                extras: { organizationId: params.organizationId },
+              });
               return prisma.misradInvoice.groupBy({
                 by: ['status'],
                 orderBy: { status: 'asc' },
@@ -284,8 +298,11 @@ export async function getFinanceOverviewData(params: {
       ]);
     } catch (error: unknown) {
       if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-        console.warn('[finance-service] getFinanceOverviewData failed (schema mismatch; fallback to empty)', {
-          message: getErrorMessage(error),
+        reportSchemaFallback({
+          source: 'lib/services/finance-service.getFinanceOverviewData',
+          reason: 'getFinanceOverviewData failed (schema mismatch; fallback to empty)',
+          error,
+          extras: { organizationId: params.organizationId },
         });
         return {
           users: [],
@@ -408,8 +425,11 @@ export async function getFinanceOverviewData(params: {
     };
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-      console.warn('[finance-service] getFinanceOverviewData failed (schema mismatch; fallback to empty)', {
-        message: getErrorMessage(error),
+      reportSchemaFallback({
+        source: 'lib/services/finance-service.getFinanceOverviewData',
+        reason: 'getFinanceOverviewData failed (schema mismatch; fallback to empty)',
+        error,
+        extras: { organizationId: params.organizationId },
       });
       return {
         users: [],
@@ -464,6 +484,17 @@ export async function getFinanceInvoices(params: {
       });
     } catch (error: unknown) {
       if (!isSchemaMismatchError(error)) throw error;
+
+      if (!ALLOW_SCHEMA_FALLBACKS) {
+        throw new Error(`[SchemaMismatch] misradInvoice findMany failed (${getErrorMessage(error) || 'missing relation'})`);
+      }
+
+      reportSchemaFallback({
+        source: 'lib/services/finance-service.getFinanceInvoices',
+        reason: 'misradInvoice findMany schema mismatch (fallback to orderBy date)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       rows = await prisma.misradInvoice.findMany({
         where: { organization_id: params.organizationId },
         select: {
@@ -493,8 +524,11 @@ export async function getFinanceInvoices(params: {
     }));
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-      console.warn('[finance-service] getFinanceInvoices failed (schema mismatch; fallback to empty)', {
-        message: getErrorMessage(error),
+      reportSchemaFallback({
+        source: 'lib/services/finance-service.getFinanceInvoices',
+        reason: 'getFinanceInvoices failed (schema mismatch; fallback to empty)',
+        error,
+        extras: { organizationId: params.organizationId },
       });
       return [];
     }
@@ -528,8 +562,11 @@ export async function getFinanceExpensesData(params: {
     });
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-      console.warn('[finance-service] getFinanceExpensesData failed (schema mismatch; fallback to empty)', {
-        message: getErrorMessage(error),
+      reportSchemaFallback({
+        source: 'lib/services/finance-service.getFinanceExpensesData',
+        reason: 'getFinanceExpensesData failed (schema mismatch; fallback to empty)',
+        error,
+        extras: { organizationId: params.organizationId },
       });
       return {
         organizationId: params.organizationId,
@@ -595,8 +632,11 @@ export async function getFinanceExpensesData(params: {
     totalDirectExpenses = toNumberSafe(directExpensesAgg._sum?.directExpenses);
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
-      console.warn('[finance-service] misradClient directExpenses missing; fallback to 0', {
-        message: getErrorMessage(error),
+      reportSchemaFallback({
+        source: 'lib/services/finance-service.getFinanceExpensesData',
+        reason: 'misradClient directExpenses missing (fallback to 0)',
+        error,
+        extras: { organizationId: params.organizationId },
       });
       totalDirectExpenses = 0;
     } else {

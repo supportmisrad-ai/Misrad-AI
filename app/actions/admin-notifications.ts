@@ -99,22 +99,42 @@ export async function sendNotification(
       return createErrorResponse(new Error('Missing organization_id'), 'ארגון לא נמצא');
     }
 
-    await prisma.misradNotification.create({
-      data: {
-        organization_id: organizationId,
-        client_id: targetType === 'client' && targetId ? String(targetId) : null,
-        recipient_id: targetType === 'user' && targetId ? String(targetId) : null,
-        type: mapUiNotificationType(type),
-        title: String(title || ''),
-        message: String(message || ''),
-        timestamp: nowIso,
-        isRead: false,
-        link: null,
-        created_at: now,
-        updated_at: now,
-      },
-      select: { id: true },
-    });
+    try {
+      await prisma.misradNotification.create({
+        data: {
+          organization_id: organizationId,
+          client_id: targetType === 'client' && targetId ? String(targetId) : null,
+          recipient_id: targetType === 'user' && targetId ? String(targetId) : null,
+          type: mapUiNotificationType(type),
+          title: String(title || ''),
+          message: String(message || ''),
+          timestamp: nowIso,
+          timestampAt: now,
+          isRead: false,
+          link: null,
+          created_at: now,
+          updated_at: now,
+        } as unknown as Prisma.MisradNotificationUncheckedCreateInput,
+        select: { id: true },
+      });
+    } catch {
+      await prisma.misradNotification.create({
+        data: {
+          organization_id: organizationId,
+          client_id: targetType === 'client' && targetId ? String(targetId) : null,
+          recipient_id: targetType === 'user' && targetId ? String(targetId) : null,
+          type: mapUiNotificationType(type),
+          title: String(title || ''),
+          message: String(message || ''),
+          timestamp: nowIso,
+          isRead: false,
+          link: null,
+          created_at: now,
+          updated_at: now,
+        },
+        select: { id: true },
+      });
+    }
 
     return createSuccessResponse(true);
   } catch (error) {

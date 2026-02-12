@@ -110,6 +110,7 @@ async function PATCHHandler(request: NextRequest) {
         updated_at: new Date(),
       },
       update: {
+        organization_id: String(workspace.id),
         ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },

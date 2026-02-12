@@ -73,28 +73,28 @@
 ### 24 רעיונות ליוטיוב (2/חודש)
 
 #### חודש 1-3: Foundation
-1. "איך בניתי CRM לעסק שלי (והפכתי למוצר)"
+1. "איך בניתי מערכת AI שמנהלת את הארגון (והפכתי למוצר)"
 2. "5 טעויות שעשיתי בניהול לקוחות (ואיך תימנעו)"
 3. "MISRAD AI vs Monday.com — השוואה כנה"
 4. "יום בחיים של Solo Founder שבונה SaaS"
-5. "איך לנהל 50 לקוחות בלי להשתגע"
+5. "איך AI מחזה סגירות: ליד X סיכוי 75% — מה עושים עם זה?"
 6. "למה אקסל הורג את העסק שלך (ואיך לעצור)"
 
 #### חודש 4-6: Growth
-7. "Build a Simple CRM with No-Code Tools (Free)"
-8. "איך להגדיל מכירות ב-30% עם מערכת פשוטה"
+7. "איך AI יוצר תוכן + Hashtags חכמים + שעת פרסום מיטבית"
+8. "איך להגדיל מכירות ב-30% עם AI שמנתח שיחות"
 9. "הפיצ'ר שהעלה לי ₪50K (Voice Control Tutorial)"
-10. "MISRAD AI vs Salesforce — למי מתאים מה?"
-11. "Behind the Scenes: איך אני בונה פיצ'רים חדשים"
-12. "Customer Success Story: איך עסק X חסך 10 שעות"
+10. "MISRAD AI vs Salesforce — AI נגד AI, למי מתאים מה?"
+11. "Behind the Scenes: איך ה-AI לומד מכל שיחה"
+12. "Customer Success Story: איך AI חסך לעסק X את 10 השעות"
 
 #### חודש 7-9: Authority
-13. "The Complete CRM Setup Guide for Small Business"
-14. "איך לבחור CRM ב-2026 — המדריך המלא"
-15. "5 CRM Hacks שחוסכים 5 שעות שבועיות"
-16. "MISRAD AI Full Demo — כל התכונות ב-15 דקות"
-17. "איך לאוטמט את כל העסק שלך"
-18. "Why I Built MISRAD AI (The Full Story)"
+13. "The Complete AI-Powered Business Setup Guide"
+14. "איך לבחור מערכת AI לעסק ב-2026 — המדריך המלא"
+15. "5 AI Hacks שחוסכים 5 שעות שבועיות בניהול עסק"
+16. "MISRAD AI Full Demo — כל התכונות וה-AI ב-15 דקות"
+17. "איך AI מאוטמט את כל העסק שלך"
+18. "Why I Built MISRAD AI — מערכת AI שמנהלת ארגונים"
 
 #### חודש 10-12: Scale
 19. "From 0 to 500 Customers in 9 Months"

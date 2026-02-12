@@ -8,6 +8,7 @@ import {
 } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import FinanceModuleEntryClient from './FinanceModuleEntryClient';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -29,9 +30,10 @@ export default async function FinanceModuleLayout({
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
   const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
   const initialOrganization = {
     name: workspace.name,
-    logo: workspace.logo || '',
+    logo: signedLogo || '',
     primaryColor: '#000000',
     isShabbatProtected: workspace.isShabbatProtected,
   };

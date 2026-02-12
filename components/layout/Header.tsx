@@ -98,8 +98,8 @@ export const Header: React.FC<HeaderProps> = ({
       switcherSlot={switcherSlot}
       notificationsSlot={notificationsSlot}
       user={{ name: currentUser.name, role: currentUser.role }}
-      onProfileClickAction={undefined}
-      profileHref="/me"
+      onProfileClickAction={() => navigate('/me')}
+      profileHref={undefined}
       userAvatarSlot={
         <Avatar
           src={currentUser.avatar}

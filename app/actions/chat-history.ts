@@ -1,11 +1,13 @@
 'use server';
 
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { headers } from 'next/headers';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -108,25 +110,14 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
       return { success: false, error: 'No organization context - missing x-org-id header' };
     }
 
-    // קבלת organization_id בפועל
-    const org = await prisma.organization.findFirst({
-      where: {
-        OR: [
-          { id: orgSlug },
-          { slug: orgSlug }
-        ]
-      },
-      select: { id: true }
-    });
-
-    if (!org?.id) {
-      return { success: false, error: 'Organization not found' };
-    }
-
-    const organizationId = String(org.id);
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const organizationId = String(workspace.id);
 
     // שמירה/עדכון עם tenant isolation
-    await prisma.$executeRawUnsafe(`
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'module_chat_history_upsert',
+      query: `
       INSERT INTO module_chat_history (
         organization_id,
         user_id,
@@ -149,20 +140,34 @@ export async function saveChatHistory(params: SaveChatHistoryParams) {
         messages_count = $8,
         updated_at = NOW()
     `,
-      organizationId,
-      userId,
-      params.moduleKey,
-      params.chatSessionId,
-      params.title,
-      params.preview,
-      JSON.stringify(params.messages),
-      params.messages.length
-    );
+      values: [
+        organizationId,
+        userId,
+        params.moduleKey,
+        params.chatSessionId,
+        params.title,
+        params.preview,
+        JSON.stringify(params.messages),
+        params.messages.length,
+      ],
+    });
 
     return { success: true };
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/chat-history.saveChatHistory',
+        reason: 'module_chat_history missing table/column (fallback to error response)',
+        error,
+        extras: {
+          moduleKey: String(params.moduleKey || ''),
+          chatSessionId: String(params.chatSessionId || ''),
+        },
+      });
     }
     console.error('Error saving chat history:', error);
     return { success: false, error: String(error) };
@@ -187,26 +192,15 @@ export async function getChatHistory(params: GetChatHistoryParams) {
       return { success: false, error: 'No organization context - missing x-org-id header', data: [] };
     }
 
-    // קבלת organization_id בפועל
-    const org = await prisma.organization.findFirst({
-      where: {
-        OR: [
-          { id: orgSlug },
-          { slug: orgSlug }
-        ]
-      },
-      select: { id: true }
-    });
-
-    if (!org?.id) {
-      return { success: false, error: 'Organization not found', data: [] };
-    }
-
-    const organizationId = String(org.id);
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const organizationId = String(workspace.id);
     const limit = params.limit || 20;
 
     // שאילתה עם tenant isolation מלא: organization + user + module
-    const history = await prisma.$queryRawUnsafe<ModuleChatHistoryRow[]>(`
+    const history = await queryRawOrgScoped<ModuleChatHistoryRow[]>(prisma, {
+      organizationId,
+      reason: 'module_chat_history_list',
+      query: `
       SELECT
         id,
         chat_session_id,
@@ -223,11 +217,8 @@ export async function getChatHistory(params: GetChatHistoryParams) {
       ORDER BY updated_at DESC
       LIMIT $4
     `,
-      organizationId,
-      userId,
-      params.moduleKey,
-      limit
-    );
+      values: [organizationId, userId, params.moduleKey, limit],
+    });
 
     return {
       success: true,
@@ -243,6 +234,17 @@ export async function getChatHistory(params: GetChatHistoryParams) {
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/chat-history.getChatHistory',
+        reason: 'module_chat_history missing table/column (fallback to empty list)',
+        error,
+        extras: {
+          moduleKey: String(params.moduleKey || ''),
+        },
+      });
     }
     console.error('Error getting chat history:', error);
     return { success: false, error: String(error), data: [] };
@@ -267,40 +269,39 @@ export async function deleteChatHistory(params: { moduleKey: string; chatSession
       return { success: false, error: 'No organization context - missing x-org-id header' };
     }
 
-    const org = await prisma.organization.findFirst({
-      where: {
-        OR: [
-          { id: orgSlug },
-          { slug: orgSlug }
-        ]
-      },
-      select: { id: true }
-    });
-
-    if (!org?.id) {
-      return { success: false, error: 'Organization not found' };
-    }
-
-    const organizationId = String(org.id);
+    const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+    const organizationId = String(workspace.id);
 
     // מחיקה רק אם זה של המשתמש + הארגון + המודול
-    await prisma.$executeRawUnsafe(`
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'module_chat_history_delete',
+      query: `
       DELETE FROM module_chat_history
       WHERE organization_id = $1
         AND user_id = $2
         AND module_key = $3
         AND chat_session_id = $4
     `,
-      organizationId,
-      userId,
-      params.moduleKey,
-      params.chatSessionId
-    );
+      values: [organizationId, userId, params.moduleKey, params.chatSessionId],
+    });
 
     return { success: true };
   } catch (error: unknown) {
     if (isSchemaMismatchError(error) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] module_chat_history missing table/column (${getErrorMessage(error) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/chat-history.deleteChatHistory',
+        reason: 'module_chat_history missing table/column (fallback to error response)',
+        error,
+        extras: {
+          moduleKey: String(params.moduleKey || ''),
+          chatSessionId: String(params.chatSessionId || ''),
+        },
+      });
     }
     console.error('Error deleting chat history:', error);
     return { success: false, error: String(error) };

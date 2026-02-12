@@ -12,10 +12,11 @@ import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -57,6 +58,12 @@ async function deactivateInvitation(params: { workspaceId: string; invitationId:
             if (!ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
             }
+            reportSchemaFallback({
+                source: 'api/invitations/[id]/deactivate',
+                reason: 'system_invitation_links.organization_id missing column (fallback update without org scope)',
+                error,
+                extras: { workspaceId: params.workspaceId, invitationId: params.invitationId },
+            });
             const res = await prisma.$executeRaw(
                 Prisma.sql`
                     UPDATE system_invitation_links

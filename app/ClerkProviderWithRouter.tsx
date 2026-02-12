@@ -31,8 +31,10 @@ export function ClerkProviderWithRouter({
 }: Props) {
   const router = useRouter();
 
+  const isProd = process.env.NODE_ENV === 'production';
+
   const envProxyUrl = process.env.NEXT_PUBLIC_CLERK_PROXY_URL;
-  const finalProxyUrl = proxyUrl ?? envProxyUrl;
+  const finalProxyUrl = proxyUrl ?? (isProd ? envProxyUrl : undefined);
 
   const useProxyUrl = finalProxyUrl !== undefined && finalProxyUrl !== '';
   const useDomain = domain !== undefined && isSatellite !== undefined;

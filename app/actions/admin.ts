@@ -9,8 +9,8 @@ import { requireSuperAdmin, requireAuditLogAccess } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 
 import { asObject } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
-
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isMissingOrganizationIdColumnError(err: unknown): boolean {
   const obj = asObject(err) ?? {};
@@ -471,6 +471,13 @@ export async function impersonateUser(clientId: string): Promise<{ success: bool
         const msg = String((sessionError as Error)?.message || sessionError || '').trim();
         throw new Error(`[SchemaMismatch] social_impersonation_sessions create failed (${msg || 'unknown error'})`);
       }
+
+      reportSchemaFallback({
+        source: 'app/actions/admin.impersonateUser',
+        reason: 'impersonationSession create failed (fallback to returning token only)',
+        error: sessionError,
+        extras: { clientId: String(clientId || '') },
+      });
       return createSuccessResponse({ impersonationToken: token });
     }
 

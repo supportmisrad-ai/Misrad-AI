@@ -353,6 +353,12 @@ export interface TimeEntry {
     endTime?: string;
     date: string;
     durationMinutes?: number;
+    startLat?: number;
+    startLng?: number;
+    startAccuracy?: number | null;
+    endLat?: number;
+    endLng?: number;
+    endAccuracy?: number | null;
     // Audit Trail Fields
     voidReason?: string; 
     voidedBy?: string;

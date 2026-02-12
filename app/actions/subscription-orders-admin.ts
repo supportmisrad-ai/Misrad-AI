@@ -7,13 +7,15 @@ import { sendFirstCustomerEmail, sendOrganizationWelcomeEmail } from '@/lib/emai
 import { getPackageModules } from '@/lib/server/workspace';
 import type { PackageType } from '@/lib/server/workspace';
 import { syncOrganizationAccessFromBilling } from '@/lib/billing/sync';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 type SocialOrganizationsUpdateManyData = Parameters<typeof prisma.organization.updateMany>[0]['data'];
 type SubscriptionsCreateData = Parameters<typeof prisma.subscriptions.create>[0]['data'];
@@ -142,54 +144,72 @@ export async function adminMarkSubscriptionOrderPaid(input: {
     const guard = await requireSuperAdmin();
     if (!guard.success) return guard;
 
-    const authCheck = await requireAuth();
-    const actorClerkUserId = authCheck.success ? authCheck.userId : null;
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/subscription-orders-admin.adminMarkSubscriptionOrderPaid',
+        reason: 'admin_mark_subscription_order_paid',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
 
-    const orderId = String(parsed.data.orderId || '').trim();
-    if (!orderId) return createErrorResponse(null, 'orderId חסר');
+        const authCheck = await requireAuth();
+        const actorClerkUserId = authCheck.success ? authCheck.userId : null;
 
-    let order: unknown = null;
-    try {
-      order = await prisma.subscription_orders.findFirst({
-        where: { id: orderId },
-        select: {
-          id: true,
-          organization_id: true,
-          package_type: true,
-          plan_key: true,
-          billing_cycle: true,
-          amount: true,
-          currency: true,
-          status: true,
-          customer_email: true,
-          customer_name: true,
-          seats: true,
-        },
-      });
-    } catch (error: unknown) {
-      if (isMissingColumnError(error, 'seats')) {
-        if (!ALLOW_SCHEMA_FALLBACKS) {
-          throw new Error(`[SchemaMismatch] subscription_orders.seats missing column (${getUnknownErrorMessage(error) || 'missing column'})`);
+        const orderId = String(parsed.data.orderId || '').trim();
+        if (!orderId) return createErrorResponse(null, 'orderId חסר');
+
+        let order: unknown = null;
+        try {
+          order = await prisma.subscription_orders.findFirst({
+            where: { id: orderId },
+            select: {
+              id: true,
+              organization_id: true,
+              package_type: true,
+              plan_key: true,
+              billing_cycle: true,
+              amount: true,
+              currency: true,
+              status: true,
+              customer_email: true,
+              customer_name: true,
+              seats: true,
+            },
+          });
+        } catch (error: unknown) {
+          if (isMissingColumnError(error, 'seats')) {
+            if (!ALLOW_SCHEMA_FALLBACKS) {
+              throw new Error(
+                `[SchemaMismatch] subscription_orders.seats missing column (${getUnknownErrorMessage(error) || 'missing column'})`
+              );
+            }
+
+            reportSchemaFallback({
+              source: 'app/actions/subscription-orders-admin.adminMarkSubscriptionOrderPaid',
+              reason: 'subscription_orders.seats missing column (fallback to query without seats)',
+              error,
+              extras: { orderId },
+            });
+            order = await prisma.subscription_orders.findFirst({
+              where: { id: orderId },
+              select: {
+                id: true,
+                organization_id: true,
+                package_type: true,
+                plan_key: true,
+                billing_cycle: true,
+                amount: true,
+                currency: true,
+                status: true,
+                customer_email: true,
+                customer_name: true,
+              },
+            });
+          } else {
+            throw error;
+          }
         }
-        order = await prisma.subscription_orders.findFirst({
-          where: { id: orderId },
-          select: {
-            id: true,
-            organization_id: true,
-            package_type: true,
-            plan_key: true,
-            billing_cycle: true,
-            amount: true,
-            currency: true,
-            status: true,
-            customer_email: true,
-            customer_name: true,
-          },
-        });
-      } else {
-        throw error;
-      }
-    }
 
     const orderObjRaw = asObject(order);
     if (!orderObjRaw?.id) return createErrorResponse(null, 'שגיאה בטעינת הזמנה');
@@ -239,6 +259,13 @@ export async function adminMarkSubscriptionOrderPaid(input: {
         if (!ALLOW_SCHEMA_FALLBACKS) {
           throw new Error(`[SchemaMismatch] social_organizations.seats_allowed missing column (${getUnknownErrorMessage(orgUpdateError) || 'missing column'})`);
         }
+
+        reportSchemaFallback({
+          source: 'app/actions/subscription-orders-admin.adminMarkSubscriptionOrderPaid',
+          reason: 'organization.seats_allowed missing column (retry update without seats_allowed)',
+          error: orgUpdateError,
+          extras: { organizationId, seatsAllowed },
+        });
         try {
           const { seats_allowed: _seatsAllowed, ...withoutSeatsAllowed } = orgUpdatePayloadBase as SocialOrganizationsUpdateManyData & {
             seats_allowed?: unknown;
@@ -383,6 +410,13 @@ export async function adminMarkSubscriptionOrderPaid(input: {
         if (!ALLOW_SCHEMA_FALLBACKS) {
           throw new Error(`[SchemaMismatch] billing layer missing table (${getUnknownErrorMessage(e) || 'missing relation'})`);
         }
+
+        reportSchemaFallback({
+          source: 'app/actions/subscription-orders-admin.adminMarkSubscriptionOrderPaid',
+          reason: 'billing layer missing table (skip billing writes)',
+          error: e,
+          extras: { organizationId, orderId },
+        });
       } else {
         captureActionException(e, { action: 'adminMarkSubscriptionOrderPaid', stage: 'billing_layer_write', organizationId, orderId });
       }
@@ -440,7 +474,9 @@ export async function adminMarkSubscriptionOrderPaid(input: {
       captureActionException(e, { action: 'adminMarkSubscriptionOrderPaid', stage: 'audit_log', organizationId, orderId });
     }
 
-    return createSuccessResponse(true);
+        return createSuccessResponse(true);
+      }
+    );
   } catch (e: unknown) {
     captureActionException(e, { action: 'adminMarkSubscriptionOrderPaid', stage: 'outer' });
     return createErrorResponse(e, 'שגיאה באישור תשלום');

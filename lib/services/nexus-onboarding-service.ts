@@ -3,7 +3,8 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type NexusOnboardingTemplateKey = 'retainer_fixed' | 'deliverables_package';
 
@@ -14,7 +15,7 @@ export type NexusOnboardingTemplatePayload = {
 
 export function getNexusOnboardingSettingsKey(workspaceId: string): string {
   return `nexus_onboarding_template:${workspaceId}`;
-}
+}
 
 function isTemplateKey(value: unknown): value is NexusOnboardingTemplateKey {
   return value === 'retainer_fixed' || value === 'deliverables_package';
@@ -64,6 +65,13 @@ export async function getNexusOnboardingTemplate(workspaceId: string): Promise<N
     if (!ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] nexus_onboarding_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
     }
+
+    reportSchemaFallback({
+      source: 'lib/services/nexus-onboarding-service.getNexusOnboardingTemplate',
+      reason: 'nexus_onboarding_settings missing table/column (fallback to legacy storage)',
+      error,
+      extras: { organizationId: String(workspaceId) },
+    });
   }
 
   // Fallback: legacy storage
@@ -95,6 +103,7 @@ export async function setNexusOnboardingTemplate(params: {
     await prisma.nexus_onboarding_settings.upsert({
       where: { organization_id: params.workspaceId },
       update: {
+        organization_id: params.workspaceId,
         template_key: params.templateKey,
         selected_at: new Date(selectedAt),
         updated_at: new Date(),
@@ -115,6 +124,13 @@ export async function setNexusOnboardingTemplate(params: {
     if (!ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] nexus_onboarding_settings missing table (${getErrorMessage(error) || 'missing relation'})`);
     }
+
+    reportSchemaFallback({
+      source: 'lib/services/nexus-onboarding-service.setNexusOnboardingTemplate',
+      reason: 'nexus_onboarding_settings missing table/column (fallback to legacy storage)',
+      error,
+      extras: { organizationId: String(params.workspaceId), templateKey: String(params.templateKey) },
+    });
   }
 
   // Fallback: legacy storage

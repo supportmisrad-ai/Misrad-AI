@@ -12,6 +12,7 @@ import { logAuditEvent } from '@/lib/audit';
 import { sendTenantInvitationEmail } from '@/lib/email';
 import { getBaseUrl } from '@/lib/utils';
 import prisma from '@/lib/prisma';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { Prisma } from '@prisma/client';
 import { apiError, apiErrorCompat, apiSuccessCompat } from '@/lib/server/api-response';
 
@@ -128,53 +129,64 @@ async function selectTenants(params: {
  *   - status: string (optional) - Filter by status
  */
 async function GETHandler(request: NextRequest) {
-    try {
-        await requireSuperAdmin();
-        const user = await getAuthenticatedUser();
+    return await withTenantIsolationContext(
+        {
+            source: 'api/admin/tenants.GET',
+            reason: 'admin_list_tenants',
+            mode: 'global_admin',
+            isSuperAdmin: true,
+            suppressReporting: true,
+        },
+        async () => {
+            try {
+                await requireSuperAdmin();
+                const user = await getAuthenticatedUser();
 
-        const searchParams = request.nextUrl.searchParams;
-        const ownerEmail = searchParams.get('ownerEmail');
-        const tenantId = searchParams.get('tenantId');
-        const status = searchParams.get('status');
+                const searchParams = request.nextUrl.searchParams;
+                const ownerEmail = searchParams.get('ownerEmail');
+                const tenantId = searchParams.get('tenantId');
+                const status = searchParams.get('status');
 
-        const filters: {
-            tenantId?: string;
-            status?: string;
-            ownerEmail?: string;
-        } = {};
+                const filters: {
+                    tenantId?: string;
+                    status?: string;
+                    ownerEmail?: string;
+                } = {};
 
-        if (tenantId) {
-            filters.tenantId = tenantId;
+                if (tenantId) {
+                    filters.tenantId = tenantId;
+                }
+                if (status) {
+                    filters.status = status;
+                }
+                if (ownerEmail) {
+                    filters.ownerEmail = ownerEmail;
+                }
+
+                const tenants = await selectTenants({ filters });
+
+                await logAuditEvent('data.read', 'tenant', {
+                    resourceId: 'list',
+                    details: {
+                        requestedBy: user.id,
+                        filters,
+                        count: tenants.length,
+                    },
+                });
+
+                return apiSuccessCompat({ tenants });
+            } catch (error: unknown) {
+                if (IS_PROD) console.error('[API] Error fetching tenants');
+                else console.error('[API] Error fetching tenants:', error);
+                const msg = getErrorMessage(error);
+                const safeMsg = 'שגיאה בטעינת רשימת טננטים';
+                return apiError(IS_PROD ? safeMsg : error, {
+                    status: msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500,
+                    message: IS_PROD ? safeMsg : msg || safeMsg,
+                });
+            }
         }
-        if (status) {
-            filters.status = status;
-        }
-        if (ownerEmail) {
-            filters.ownerEmail = ownerEmail;
-        }
-
-        const tenants = await selectTenants({ filters });
-
-        await logAuditEvent('data.read', 'tenant', {
-            resourceId: 'list',
-            details: {
-                requestedBy: user.id,
-                filters,
-                count: tenants.length,
-            },
-        });
-
-        return apiSuccessCompat({ tenants });
-    } catch (error: unknown) {
-        if (IS_PROD) console.error('[API] Error fetching tenants');
-        else console.error('[API] Error fetching tenants:', error);
-        const msg = getErrorMessage(error);
-        const safeMsg = 'שגיאה בטעינת רשימת טננטים';
-        return apiError(IS_PROD ? safeMsg : error, {
-            status: msg.includes('Unauthorized') ? 401 : msg.includes('Forbidden') ? 403 : 500,
-            message: IS_PROD ? safeMsg : msg || safeMsg,
-        });
-    }
+    );
 }
 
 /**
@@ -183,12 +195,21 @@ async function GETHandler(request: NextRequest) {
  * Create a new tenant (business)
  */
 async function POSTHandler(request: NextRequest) {
-    try {
-        await requireSuperAdmin();
-        const user = await getAuthenticatedUser();
+    return await withTenantIsolationContext(
+        {
+            source: 'api/admin/tenants.POST',
+            reason: 'admin_create_tenant',
+            mode: 'global_admin',
+            isSuperAdmin: true,
+            suppressReporting: true,
+        },
+        async () => {
+            try {
+                await requireSuperAdmin();
+                const user = await getAuthenticatedUser();
 
-        const body = (await request.json()) as unknown;
-        const bodyObj = asObject(body) ?? {};
+                const body = (await request.json()) as unknown;
+                const bodyObj = asObject(body) ?? {};
 
         const name = getString(bodyObj, 'name');
         const ownerEmail = getString(bodyObj, 'ownerEmail');
@@ -346,30 +367,32 @@ async function POSTHandler(request: NextRequest) {
             }
         }
 
-        return apiSuccessCompat(
-            {
-                tenantId: newTenant.id,
-                tenant: newTenant,
-                invitationSent,
-                signupUrl,
-            },
-            { status: 201 }
-        );
-    } catch (error: unknown) {
-        if (IS_PROD) console.error('[API] Error creating tenant');
-        else console.error('[API] Error creating tenant:', error);
-        const msg = getErrorMessage(error);
+                return apiSuccessCompat(
+                    {
+                        tenantId: newTenant.id,
+                        tenant: newTenant,
+                        invitationSent,
+                        signupUrl,
+                    },
+                    { status: 201 }
+                );
+            } catch (error: unknown) {
+                if (IS_PROD) console.error('[API] Error creating tenant');
+                else console.error('[API] Error creating tenant:', error);
+                const msg = getErrorMessage(error);
 
-        if (error instanceof SyntaxError || msg.includes('JSON')) {
-            return apiError('Invalid JSON in request body', { status: 400 });
+                if (error instanceof SyntaxError || msg.includes('JSON')) {
+                    return apiError('Invalid JSON in request body', { status: 400 });
+                }
+
+                const safeMsg = 'שגיאה ביצירת טננט';
+                return apiError(IS_PROD ? safeMsg : error, {
+                    status: msg.includes('Forbidden') ? 403 : 500,
+                    message: IS_PROD ? safeMsg : msg || safeMsg,
+                });
+            }
         }
-
-        const safeMsg = 'שגיאה ביצירת טננט';
-        return apiError(IS_PROD ? safeMsg : error, {
-            status: msg.includes('Forbidden') ? 403 : 500,
-            message: IS_PROD ? safeMsg : msg || safeMsg,
-        });
-    }
+    );
 }
 
 export const GET = shabbatGuard(GETHandler);

@@ -5,8 +5,9 @@ import prisma from '@/lib/prisma';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 import { Prisma } from '@prisma/client';
 import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -128,6 +129,20 @@ function toNullableJsonUpdateValue(value: unknown): Prisma.InputJsonValue | Pris
   return toJsonInput(value);
 }
 
+async function assertClientInWorkspace(params: { organizationId: string; clientId: string }): Promise<void> {
+  const row = await prisma.clientClient.findFirst({
+    where: {
+      id: String(params.clientId),
+      organizationId: String(params.organizationId),
+    },
+    select: { id: true },
+  });
+
+  if (!row?.id) {
+    throw new Error('Forbidden');
+  }
+}
+
 export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
   if (!orgId) throw new Error('orgId is required');
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
@@ -177,6 +192,15 @@ export async function getClinicClients(orgId: string): Promise<ClinicClient[]> {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientClient.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
     }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.getClinicClients',
+        reason: 'clientClient.findMany failed (fallback to empty array)',
+        error: e,
+        extras: { orgId },
+      });
+    }
     const eObj = asObject(e);
     const stack = e instanceof Error ? e.stack : typeof eObj?.stack === 'string' ? eObj.stack : null;
     console.error('[getClinicClients] unexpected error', {
@@ -224,6 +248,15 @@ export async function getClinicClient(orgId: string, clientId: string): Promise<
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientClient.findFirst failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.getClinicClient',
+        reason: 'clientClient.findFirst failed (fallback to null)',
+        error: e,
+        extras: { orgId, clientId },
+      });
     }
     return null;
   }
@@ -325,6 +358,15 @@ export async function listClinicTasks(params: {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientTask.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
     }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.listClinicTasks',
+        reason: 'clientTask.findMany failed (fallback to empty array)',
+        error: e,
+        extras: { orgId, clientId: clientId ?? null, status: status ?? null },
+      });
+    }
     return [];
   }
 }
@@ -347,6 +389,8 @@ export async function createClinicTask(params: {
   if (!title) throw new Error('title is required');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
+  await assertClientInWorkspace({ organizationId: workspace.id, clientId });
 
   const created = await prisma.clientTask.create({
     data: {
@@ -433,6 +477,15 @@ export async function listClinicSessions(params: {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientSession.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
     }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.listClinicSessions',
+        reason: 'clientSession.findMany failed (fallback to empty array)',
+        error: e,
+        extras: { orgId, clientId: clientId ?? null },
+      });
+    }
     return [];
   }
 }
@@ -455,6 +508,8 @@ export async function createClinicSession(params: {
   if (!startAt) throw new Error('startAt is required');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
+  await assertClientInWorkspace({ organizationId: workspace.id, clientId });
 
   return await createClinicSessionForOrganizationId({
     organizationId: workspace.id,
@@ -510,6 +565,19 @@ export async function listClinicPortalContent(params: {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientPortalContent.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
     }
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.listClinicPortalContent',
+        reason: 'clientPortalContent.findMany failed (fallback to empty array)',
+        error: e,
+        extras: {
+          orgId: String(orgId || ''),
+          clientId: clientId ? String(clientId) : null,
+          kind: kind ? String(kind) : null,
+          onlyPublished: typeof onlyPublished === 'boolean' ? onlyPublished : null,
+        },
+      });
+    }
     return [];
   }
 }
@@ -532,6 +600,8 @@ export async function createClinicPortalContent(params: {
   if (!title) throw new Error('title is required');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
+  await assertClientInWorkspace({ organizationId: workspace.id, clientId });
 
   const created = await prisma.clientPortalContent.create({
     data: {
@@ -584,6 +654,18 @@ export async function listClinicFeedbacks(params: {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clientFeedback.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
     }
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'actions/client-clinic.listClinicFeedbacks',
+        reason: 'clientFeedback.findMany failed (fallback to empty array)',
+        error: e,
+        extras: {
+          orgId: String(orgId || ''),
+          clientId: clientId ? String(clientId) : null,
+        },
+      });
+      return [];
+    }
     console.error('[listClinicFeedbacks] unexpected error', {
       message: getErrorMessage(e),
     });
@@ -604,6 +686,8 @@ export async function createClinicFeedback(params: {
   if (!rating || rating < 1 || rating > 10) throw new Error('rating must be between 1 and 10');
 
   const workspace = await requireWorkspaceAccessByOrgSlug(orgId);
+
+  await assertClientInWorkspace({ organizationId: workspace.id, clientId });
 
   const created = await prisma.clientFeedback.create({
     data: {

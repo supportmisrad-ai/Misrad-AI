@@ -87,13 +87,13 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
     return (
         <>
             {/* FAB - כפתור עזרה קבוע עם dropdown */}
-            <div className="fab-container fixed bottom-6 left-6 z-[70]">
+            <div className="fab-container fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-[70]">
                 <motion.button
                     type="button"
                     onClick={() => setIsFabOpen((v) => !v)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-slate-700 to-slate-800 text-white shadow-xl border-2 border-slate-200/40 flex items-center justify-center transition-all hover:shadow-slate-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ring-offset-2"
                     aria-label="עזרה ונגישות"
                     aria-expanded={isFabOpen}
                 >
@@ -101,7 +101,7 @@ export const Navbar = ({ initialLogo, initialLogoText, isSignedIn = false }: Nav
                         animate={{ rotate: isFabOpen ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        {isFabOpen ? <X size={20} strokeWidth={2} /> : <Accessibility size={22} strokeWidth={2} />}
+                        {isFabOpen ? <X size={18} className="sm:w-5 sm:h-5" strokeWidth={2} /> : <Accessibility size={20} className="sm:w-[22px] sm:h-[22px]" strokeWidth={2} />}
                     </motion.div>
                 </motion.button>
                 <AnimatePresence>

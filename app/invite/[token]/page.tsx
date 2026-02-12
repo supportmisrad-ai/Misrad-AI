@@ -656,7 +656,7 @@ export default function InvitePage() {
                             <span className="text-sm font-black text-white">MISRAD AI</span>
                         </div>
                         <p className="text-xs text-slate-500">
-                            מערכת ניהול עסקים מתקדמת • בטוח ומאובטח • תמיכה 24/7
+                            מערכת AI לניהול ארגונים • בטוח ומאובטח • תמיכה 24/7
                         </p>
                     </div>
                 </motion.div>

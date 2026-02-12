@@ -32,7 +32,10 @@ import { useOnClickOutside } from '../hooks/useOnClickOutside';
 import { motion, AnimatePresence } from 'framer-motion';
 import MobileBottomNav from './shared/MobileBottomNav';
 
-declare const confetti: any;
+declare const confetti: {
+  (options?: Record<string, unknown>): void;
+  reset?: () => void;
+};
 
 const SystemBootScreen = ({ onComplete }: { onComplete: () => void }) => {
     const [progress, setProgress] = useState(0);
@@ -193,8 +196,8 @@ const SystemOSApp = () => {
     }));
   };
 
-  const handleSaveNewLead = (newLead: any) => {
-      setLeads(prev => [newLead as any, ...prev]);
+  const handleSaveNewLead = (newLead: Lead) => {
+      setLeads(prev => [newLead, ...prev]);
       addToast("נקלט ליד", 'success');
   };
 
@@ -328,9 +331,9 @@ const SystemOSApp = () => {
                               )}
                               {activeTab === 'sales_hub' && (
                                 <LeadsHub
-                                  leads={leads as any}
-                                  onLeadClick={(lead) => setSelectedLead(lead as any)}
-                                  onStatusChange={handleStatusChange as any}
+                                  leads={leads}
+                                  onLeadClick={(lead) => setSelectedLead(lead)}
+                                  onStatusChange={handleStatusChange}
                                 />
                               )}
                               {activeTab === 'marketing' && <MarketingView campaigns={storedCampaigns} content={storedContent} onUpdateContent={(c) => setStoredContent(p => p.map(i => i.id === c.id ? c : i))} onAddContent={(c) => setStoredContent(p => [c, ...p])} onAddCampaign={(c) => setStoredCampaigns(p => [c, ...p])} onUpdateCampaign={(c) => setStoredCampaigns(p => p.map(i => i.id === c.id ? c : i))} onDeleteCampaign={(id) => setStoredCampaigns(p => p.filter(i => i.id !== id))} />}
@@ -391,7 +394,7 @@ const SystemOSApp = () => {
 
       <CommandPalette isOpen={isCommandPaletteOpen} onClose={() => setIsCommandPaletteOpen(false)} onNavigate={setActiveTab} onSelectLead={setSelectedLead} leads={leads} />
       {selectedLead && <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} onAddActivity={handleAddActivity} onScheduleMeeting={handleScheduleMeeting} onOpenClientPortal={() => handleOpenClientPortal(selectedLead)} onAddTask={(t) => setStoredTasks(p => [t, ...p])} />}
-      {showNewLeadModal && <NewLeadModal onClose={() => setShowNewLeadModal(false)} onSave={handleSaveNewLead as any} />}
+      {showNewLeadModal && <NewLeadModal onClose={() => setShowNewLeadModal(false)} onSave={handleSaveNewLead} />}
       {showNewMeetingModal && <NewMeetingModal leads={leads} initialLeadId={meetingModalPreselectId} onClose={() => setShowNewMeetingModal(false)} onSave={handleSaveMeeting} />}
       {showHandoverDialog && pendingWonLead && goldenPayload && <HandoverDialog lead={pendingWonLead} payload={goldenPayload} onClose={() => { setShowHandoverDialog(false); setPendingWonLead(null); }} onConfirm={handleHandoverConfirm} />}
     </div>

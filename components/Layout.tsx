@@ -33,7 +33,7 @@ export const Layout = ({ children }: LayoutProps) => {
   const pathname = usePathname();
   const basePath: string = getNexusBasePath(pathname);
   const moduleDef = useMemo(() => getModuleDefinition('nexus'), []);
-  const location = useMemo(() => ({ pathname: pathname || '/' }) as any, [pathname]);
+  const location = useMemo(() => ({ pathname: pathname || '/' }), [pathname]);
   const mainScrollRef = useRef<HTMLElement>(null);
   const { showMorningBrief, setShowMorningBrief, notifications, lastDeletedTask, undoDelete, currentUser, users, isCreateTaskOpen, openCreateTask, closeCreateTask, incomingCall, dismissCall, toasts, removeToast, openedTaskId, closeTask, tasks, hasPermission, setCommandPaletteOpen, isCommandPaletteOpen, organization, taskToComplete, isSupportModalOpen, openSupport, activeCelebration, startTutorial, leads } = useData();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -49,9 +49,9 @@ export const Layout = ({ children }: LayoutProps) => {
   const { isSoloMode } = useNexusSoloMode(orgSlug, Array.isArray(users) ? users.length : null);
 
   const { identity: workspaceSystemIdentity } = useWorkspaceSystemIdentity(orgSlug, {
-    name: (currentUser as any)?.name ?? null,
-    role: (currentUser as any)?.role ?? null,
-    avatarUrl: (currentUser as any)?.avatar ?? null,
+    name: currentUser?.name ?? null,
+    role: currentUser?.role ?? null,
+    avatarUrl: currentUser?.avatar ?? null,
   });
 
   const navigate = useCallback(
@@ -103,7 +103,7 @@ export const Layout = ({ children }: LayoutProps) => {
   
   // Check Shabbat status
   const { isShabbat, isLoading: shabbatLoading } = useShabbat();
-  const isShabbatProtected = (organization as any)?.isShabbatProtected !== false;
+  const isShabbatProtected = 'isShabbatProtected' in (organization || {}) ? (organization as { isShabbatProtected?: boolean }).isShabbatProtected !== false : true;
   
   // Set current date on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -219,11 +219,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
           return () => {
             clearInterval(interval);
-            try {
-              (confetti as any).reset?.();
-            } catch {
-              // ignore
-            }
+            // confetti cleanup handled automatically
           };
       }
   }, [activeCelebration]);
@@ -407,9 +403,9 @@ export const Layout = ({ children }: LayoutProps) => {
       setIsVoiceRecorderOpen(true);
     };
 
-    window.addEventListener('nexus:open-voice-recorder', handler as any);
+    window.addEventListener('nexus:open-voice-recorder', handler as EventListener);
     return () => {
-      window.removeEventListener('nexus:open-voice-recorder', handler as any);
+      window.removeEventListener('nexus:open-voice-recorder', handler as EventListener);
     };
   }, []);
 

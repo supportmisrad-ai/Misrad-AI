@@ -6,7 +6,7 @@
  * 3. מוסיף טריגר שמונע מחיקה של ארגונים מוגנים
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const readline = require('readline');
 const prisma = new PrismaClient();
 
@@ -25,7 +25,7 @@ async function addProtectionField() {
     console.log('🔍 בודק אם שדה ההגנה כבר קיים...');
     
     // בדוק אם השדה כבר קיים
-    const columnExists = await prisma.$queryRawUnsafe(`
+    const columnExists = await prisma.$queryRaw(Prisma.sql`
       SELECT EXISTS (
         SELECT 1
         FROM information_schema.columns
@@ -39,7 +39,7 @@ async function addProtectionField() {
     } else {
       console.log('🔧 מוסיף שדה הגנה לטבלת הארגונים...');
       
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw(Prisma.sql`
         ALTER TABLE organizations
         ADD COLUMN is_protected BOOLEAN NOT NULL DEFAULT false;
       `);
@@ -60,7 +60,7 @@ async function addProtectionTrigger() {
     console.log('🔍 בודק אם טריגר ההגנה כבר קיים...');
     
     // בדוק אם הטריגר כבר קיים
-    const triggerExists = await prisma.$queryRawUnsafe(`
+    const triggerExists = await prisma.$queryRaw(Prisma.sql`
       SELECT EXISTS (
         SELECT 1
         FROM pg_trigger
@@ -76,7 +76,7 @@ async function addProtectionTrigger() {
       console.log('🔧 מוסיף טריגר הגנה למניעת מחיקת ארגונים מוגנים...');
       
       // צור פונקציה לטריגר
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw(Prisma.sql`
         CREATE OR REPLACE FUNCTION prevent_protected_organization_deletion()
         RETURNS TRIGGER AS $$
         BEGIN
@@ -89,7 +89,7 @@ async function addProtectionTrigger() {
       `);
       
       // צור את הטריגר
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw(Prisma.sql`
         CREATE TRIGGER prevent_protected_organization_deletion
         BEFORE DELETE ON organizations
         FOR EACH ROW
@@ -112,16 +112,16 @@ async function protectOrganizations() {
     console.log(`🔒 מגן על ${PROTECTED_SLUGS.length} ארגונים חשובים...`);
     
     // עדכן את הארגונים הרצויים כמוגנים
-    const result = await prisma.$executeRawUnsafe(`
+    const result = await prisma.$executeRaw(Prisma.sql`
       UPDATE organizations
       SET is_protected = true
-      WHERE slug IN (${PROTECTED_SLUGS.map(s => `'${s}'`).join(',')});
+      WHERE slug IN (${Prisma.join(PROTECTED_SLUGS.map((s) => String(s)))})
     `);
     
     console.log(`✅ הוגנו ${result} ארגונים בהצלחה!`);
     
     // הצג את כל הארגונים המוגנים
-    const protectedOrgs = await prisma.$queryRawUnsafe(`
+    const protectedOrgs = await prisma.$queryRaw(Prisma.sql`
       SELECT name, slug FROM organizations
       WHERE is_protected = true
       ORDER BY name;
@@ -171,11 +171,11 @@ async function testProtection() {
     
     // נסה למחוק ארגון מוגן (הבדיקה תיכשל, וזה בסדר)
     try {
-      await prisma.$executeRawUnsafe(`
+      await prisma.$executeRaw(Prisma.sql`
         DO $$
         BEGIN
           -- נסיון מחיקת ארגון מוגן (לא יצליח)
-          DELETE FROM organizations WHERE slug = '${PROTECTED_SLUGS[0]}';
+          DELETE FROM organizations WHERE slug = ${String(PROTECTED_SLUGS[0])};
         EXCEPTION WHEN OTHERS THEN
           RAISE NOTICE 'מחיקה נחסמה בהצלחה: %', SQLERRM;
         END $$;

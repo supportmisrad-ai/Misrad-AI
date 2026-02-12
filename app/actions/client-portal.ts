@@ -3,7 +3,9 @@
 import type { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 import { getAuthenticatedUser } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { asObjectLoose as asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import {
   ClientStatus,
   ClientType,
@@ -28,7 +30,7 @@ import {
 } from '@/components/client-os-full/types';
 import { analyzeAndStoreMeeting as analyzeAndStoreMeetingService } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -44,6 +46,113 @@ function isSchemaMismatchError(error: unknown): boolean {
     message.includes('column') ||
     message.includes('could not find the table') ||
     message.includes('schema cache')
+  );
+}
+
+function isUuidLike(value: unknown): boolean {
+  const v = typeof value === 'string' ? value.trim() : '';
+  if (!v) return false;
+  const normalized = v.toLowerCase().startsWith('urn:uuid:') ? v.slice('urn:uuid:'.length) : v;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(normalized);
+}
+
+async function resolveClientPortalOrganizationContext(orgKey: string): Promise<{ organizationId: string }> {
+  const key = String(orgKey || '').trim();
+  if (!key) {
+    throw new Error('orgId is required');
+  }
+
+  const user = await getAuthenticatedUser();
+  const email = String(user.email || '').trim().toLowerCase();
+
+  const org = await prisma.organization.findFirst({
+    where: {
+      OR: [
+        { slug: key },
+        ...(isUuidLike(key) ? [{ id: key }] : []),
+      ],
+    },
+    select: { id: true, owner_id: true },
+  });
+
+  if (!org?.id) {
+    throw new Error('Forbidden');
+  }
+
+  if (user.isSuperAdmin) {
+    return { organizationId: String(org.id) };
+  }
+
+  let socialUser: { id: string; organization_id: string | null } | null = null;
+  try {
+    socialUser = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: String(user.id) },
+      select: { id: true, organization_id: true },
+    });
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] organizationUser lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/client-portal.resolveClientPortalOrganizationContext',
+        reason: 'organizationUser lookup schema mismatch (fallback to null)',
+        error: e,
+        extras: { orgKey: key },
+      });
+    }
+    socialUser = null;
+  }
+
+  const socialUserId = socialUser?.id ? String(socialUser.id) : '';
+  const socialUserOrgId = socialUser?.organization_id ? String(socialUser.organization_id) : '';
+
+  if (socialUserOrgId && socialUserOrgId === String(org.id)) {
+    return { organizationId: String(org.id) };
+  }
+
+  if (socialUserId && org.owner_id && String(org.owner_id) === socialUserId) {
+    return { organizationId: String(org.id) };
+  }
+
+  if (socialUserId) {
+    const team = await prisma.teamMember.findFirst({
+      where: { organization_id: String(org.id), user_id: socialUserId },
+      select: { id: true },
+    });
+    if (team?.id) {
+      return { organizationId: String(org.id) };
+    }
+  }
+
+  if (email) {
+    const portalUser = await prisma.clientPortalUser.findFirst({
+      where: {
+        organizationId: String(org.id),
+        email: { equals: email, mode: 'insensitive' },
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    });
+    if (portalUser?.id) {
+      return { organizationId: String(org.id) };
+    }
+  }
+
+  throw new Error('Forbidden');
+}
+
+async function withClientPortalTenantContext<T>(params: {
+  orgKey: string;
+  reason: string;
+  fn: (params: { organizationId: string }) => Promise<T>;
+}): Promise<T> {
+  const resolved = await resolveClientPortalOrganizationContext(params.orgKey);
+  const organizationId = String(resolved.organizationId);
+  return await withTenantIsolationContext(
+    { source: 'server_actions_client_portal', reason: String(params.reason || 'client_portal'), organizationId },
+    async () => await params.fn({ organizationId })
   );
 }
 
@@ -78,6 +187,10 @@ function toPrismaJsonObject(value: unknown): Prisma.InputJsonObject {
 
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((v) => String(v)) : [];
+}
+
+function toUtcDateOnly(d: Date): Date {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
 function asString(value: unknown, fallback = ''): string {
@@ -294,15 +407,15 @@ function normalizeTransformationState(value: unknown): ClientTransformation['bef
   };
 }
 
-async function resolveClientIdByClerkEmailOrThrow(params: { orgId: string }): Promise<{ clientId: string; email: string }> {
-  const { orgId } = params;
+async function resolveClientIdByClerkEmailOrThrow(params: { organizationId: string }): Promise<{ clientId: string; email: string }> {
+  const { organizationId } = params;
   const user = await getAuthenticatedUser();
   const email = String(user.email || '').trim();
   if (!email) throw new Error('Client profile not found');
 
   const portalUser = await prisma.clientPortalUser.findFirst({
     where: {
-      organizationId: orgId,
+      organizationId: String(organizationId),
       email: { equals: email, mode: 'insensitive' },
       status: 'ACTIVE',
     },
@@ -314,11 +427,61 @@ async function resolveClientIdByClerkEmailOrThrow(params: { orgId: string }): Pr
   return { clientId: portalUser.clientId, email };
 }
 
+async function getPortalClientIdIfAny(params: { organizationId: string }): Promise<string | null> {
+  const user = await getAuthenticatedUser();
+  if (user.isSuperAdmin) return null;
+
+  const email = String(user.email || '').trim();
+  if (!email) return null;
+
+  try {
+    const portalUser = await prisma.clientPortalUser.findFirst({
+      where: {
+        organizationId: String(params.organizationId),
+        email: { equals: email, mode: 'insensitive' },
+        status: 'ACTIVE',
+      },
+      select: { clientId: true },
+    });
+
+    return portalUser?.clientId ? String(portalUser.clientId) : null;
+  } catch (e: unknown) {
+    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+      throw new Error(`[SchemaMismatch] clientPortalUser lookup failed (${getErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/client-portal.getPortalClientIdIfAny',
+        reason: 'clientPortalUser lookup schema mismatch (fallback to null)',
+        error: e,
+        extras: { organizationId: String(params.organizationId || '') },
+      });
+      return null;
+    }
+
+    throw e;
+  }
+}
+
+async function assertMisradClientInOrg(params: { organizationId: string; clientId: string }): Promise<void> {
+  const row = await prisma.misradClient.findFirst({
+    where: { organizationId: String(params.organizationId), id: String(params.clientId) },
+    select: { id: true },
+  });
+
+  if (!row?.id) throw new Error('Forbidden');
+}
+
 export async function getClientIdByClerkEmail(params: { orgId: string }): Promise<{ clientId: string }> {
-  const { orgId } = params;
-  if (!orgId) throw new Error('orgId is required');
-  const { clientId } = await resolveClientIdByClerkEmailOrThrow({ orgId });
-  return { clientId };
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'getClientIdByClerkEmail',
+    fn: async ({ organizationId }) => {
+      const { clientId } = await resolveClientIdByClerkEmailOrThrow({ organizationId });
+      return { clientId };
+    },
+  });
 }
 
 export type ClientDashboardData = {
@@ -336,89 +499,95 @@ export type ClientDashboardData = {
 };
 
 export async function getClientDashboardData(orgId: string): Promise<ClientDashboardData> {
-  if (!orgId) throw new Error('orgId is required');
+  return await withClientPortalTenantContext({
+    orgKey: orgId,
+    reason: 'getClientDashboardData',
+    fn: async ({ organizationId }) => {
+      const clients = await prisma.misradClient.findMany({
+        where: { organizationId },
+        select: {
+          id: true,
+          status: true,
+          monthlyRetainer: true,
+          healthStatus: true,
+        },
+      });
 
-  const clients = await prisma.misradClient.findMany({
-    where: { organizationId: orgId },
-    select: {
-      id: true,
-      status: true,
-      monthlyRetainer: true,
-      healthStatus: true,
+      const clientsCount = clients.length;
+      const activeClients = clients.filter((c) => String(c.status) === 'ACTIVE');
+      const activeClientsCount = activeClients.length;
+
+      const totalMRR = activeClients.reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
+      const revenueAtRisk = activeClients
+        .filter((c) => String(c.healthStatus) === 'AT_RISK' || String(c.healthStatus) === 'CRITICAL')
+        .reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
+
+      const [
+        invoicesCount,
+        overdueInvoicesCount,
+        deliverablesCount,
+        openClientTasksCount,
+        openAgencyTasksCount,
+        groupEventsUpcomingCount,
+      ] = await prisma.$transaction([
+        prisma.misradInvoice.count({ where: { organization_id: organizationId } }),
+        prisma.misradInvoice.count({ where: { organization_id: organizationId, status: 'OVERDUE' } }),
+        prisma.misradClientDeliverable.count({ where: { organization_id: organizationId } }),
+        prisma.misradClientAction.count({
+          where: {
+            organization_id: organizationId,
+            status: 'PENDING',
+            type: { in: ['APPROVAL', 'UPLOAD', 'SIGNATURE', 'FORM', 'FEEDBACK'] },
+          },
+        }),
+        prisma.misradAiTask.count({ where: { organization_id: organizationId, status: 'PENDING', bucket: 'agency' } }),
+        prisma.misradGroupEvent.count({ where: { organization_id: organizationId, status: 'UPCOMING' } }),
+      ]);
+
+      return {
+        orgId: organizationId,
+        clientsCount,
+        activeClientsCount,
+        totalMRR,
+        revenueAtRisk,
+        invoicesCount,
+        overdueInvoicesCount,
+        deliverablesCount,
+        openClientTasksCount,
+        openAgencyTasksCount,
+        groupEventsUpcomingCount,
+      };
     },
   });
-
-  const clientsCount = clients.length;
-  const activeClients = clients.filter((c) => String(c.status) === 'ACTIVE');
-  const activeClientsCount = activeClients.length;
-
-  const totalMRR = activeClients.reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
-  const revenueAtRisk = activeClients
-    .filter((c) => String(c.healthStatus) === 'AT_RISK' || String(c.healthStatus) === 'CRITICAL')
-    .reduce((acc, c) => acc + Number(c.monthlyRetainer ?? 0), 0);
-
-  const [
-    invoicesCount,
-    overdueInvoicesCount,
-    deliverablesCount,
-    openClientTasksCount,
-    openAgencyTasksCount,
-    groupEventsUpcomingCount,
-  ] = await Promise.all([
-    prisma.misradInvoice.count({ where: { organization_id: orgId } }),
-    prisma.misradInvoice.count({ where: { organization_id: orgId, status: 'OVERDUE' } }),
-    prisma.misradClientDeliverable.count({ where: { organization_id: orgId } }),
-    prisma.misradClientAction.count({
-      where: {
-        organization_id: orgId,
-        status: 'PENDING',
-        type: { in: ['APPROVAL', 'UPLOAD', 'SIGNATURE', 'FORM', 'FEEDBACK'] },
-      },
-    }),
-    prisma.misradAiTask.count({ where: { organization_id: orgId, status: 'PENDING', bucket: 'agency' } }),
-    prisma.misradGroupEvent.count({ where: { organization_id: orgId, status: 'UPCOMING' } }),
-  ]);
-
-  return {
-    orgId,
-    clientsCount,
-    activeClientsCount,
-    totalMRR,
-    revenueAtRisk,
-    invoicesCount,
-    overdueInvoicesCount,
-    deliverablesCount,
-    openClientTasksCount,
-    openAgencyTasksCount,
-    groupEventsUpcomingCount,
-  };
 }
 
 const toHeDate = (d: Date) => d.toLocaleDateString('he-IL');
 
 export async function getClientOSClients(orgId: string): Promise<Client[]> {
-  if (!orgId) throw new Error('orgId is required');
+  return await withClientPortalTenantContext({
+    orgKey: orgId,
+    reason: 'getClientOSClients',
+    fn: async ({ organizationId }) => {
+      const rows = await prisma.misradClient.findMany({
+        where: { organizationId },
+        orderBy: { created_at: 'desc' },
+        include: {
+          deliverables: true,
+          assets: true,
+          actions: true,
+          successGoals: { include: { history: true } },
+          opportunities: true,
+          journeyStages: { include: { milestones: true } },
+          handoff: true,
+          roiRecords: true,
+          stakeholders: true,
+          transformations: true,
+          invoices: true,
+          agreements: true,
+        },
+      });
 
-  const rows = await prisma.misradClient.findMany({
-    where: { organizationId: orgId },
-    orderBy: { created_at: 'desc' },
-    include: {
-      deliverables: true,
-      assets: true,
-      actions: true,
-      successGoals: { include: { history: true } },
-      opportunities: true,
-      journeyStages: { include: { milestones: true } },
-      handoff: true,
-      roiRecords: true,
-      stakeholders: true,
-      transformations: true,
-      invoices: true,
-      agreements: true,
-    },
-  });
-
-  return rows.map((c): Client => {
+      return rows.map((c): Client => {
     const healthBreakdown: HealthBreakdown = normalizeHealthBreakdown(c.healthBreakdown);
     const engagementMetrics: EngagementMetrics = normalizeEngagementMetrics(c.engagementMetrics);
 
@@ -597,6 +766,8 @@ export async function getClientOSClients(orgId: string): Promise<Client[]> {
       cancellationReason: c.cancellationReason ?? undefined,
       cancellationNote: c.cancellationNote ?? undefined,
     };
+      });
+    },
   });
 }
 
@@ -608,141 +779,216 @@ export async function createDeliverable(params: {
   type: 'CAMPAIGN' | 'REPORT' | 'DESIGN' | 'STRATEGY' | 'DEV';
   thumbnailUrl?: string | null;
   tags?: string[];
-}): Promise<{ id: string }> {
-  const { orgId, clientId, title, description, type, thumbnailUrl, tags } = params;
-  if (!orgId) throw new Error('orgId is required');
-  if (!clientId) throw new Error('clientId is required');
-  if (!title) throw new Error('title is required');
+ }): Promise<{ id: string }> {
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'createDeliverable',
+    fn: async ({ organizationId }) => {
+      const { clientId, title, description, type, thumbnailUrl, tags } = params;
+      if (!clientId) throw new Error('clientId is required');
+      if (!title) throw new Error('title is required');
 
-  const deliverable = await prisma.misradClientDeliverable.create({
-    data: {
-      organization_id: orgId,
-      client_id: clientId,
-      title,
-      description,
-      type,
-      thumbnailUrl: thumbnailUrl ?? null,
-      status: 'DRAFT',
-      date: new Date().toLocaleDateString('he-IL'),
-      tags: tags ?? [],
+      const portalClientId = await getPortalClientIdIfAny({ organizationId });
+      if (portalClientId) throw new Error('Forbidden');
+
+      await assertMisradClientInOrg({ organizationId, clientId });
+
+      const now = new Date();
+      const dateLabel = now.toLocaleDateString('he-IL');
+      const dateAt = toUtcDateOnly(now);
+
+      let deliverable: { id: string };
+
+      try {
+        deliverable = await prisma.misradClientDeliverable.create({
+          data: {
+            organization_id: organizationId,
+            client_id: clientId,
+            title,
+            description,
+            type,
+            thumbnailUrl: thumbnailUrl ?? null,
+            status: 'DRAFT',
+            date: dateLabel,
+            dateAt,
+            tags: tags ?? [],
+          } as unknown as Prisma.MisradClientDeliverableUncheckedCreateInput,
+          select: { id: true },
+        });
+      } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] misradClientDeliverable.create failed (${getErrorMessage(e) || 'missing relation'})`
+          );
+        }
+
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/client-portal.createDeliverable',
+            reason: 'misradClientDeliverable.create schema mismatch (retry without dateAt)',
+            error: e,
+            extras: {
+              organizationId: String(organizationId || ''),
+              clientId: String(clientId || ''),
+              title: String(title || ''),
+            },
+          });
+        }
+
+        deliverable = await prisma.misradClientDeliverable.create({
+          data: {
+            organization_id: organizationId,
+            client_id: clientId,
+            title,
+            description,
+            type,
+            thumbnailUrl: thumbnailUrl ?? null,
+            status: 'DRAFT',
+            date: dateLabel,
+            tags: tags ?? [],
+          },
+          select: { id: true },
+        });
+      }
+
+      return { id: deliverable.id };
     },
-    select: { id: true },
   });
-
-  return { id: deliverable.id };
 }
 
 export async function updateTaskStatus(params:
   | { scope: 'client_action'; orgId: string; taskId: string; status: 'PENDING' | 'COMPLETED' | 'OVERDUE' }
   | { scope: 'cycle_task'; orgId: string; taskId: string; status: 'PENDING' | 'COMPLETED' | 'OVERDUE' }
 ): Promise<{ ok: true }> {
-  if (!params.orgId) throw new Error('orgId is required');
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'updateTaskStatus',
+    fn: async ({ organizationId }) => {
+      if (params.scope === 'client_action') {
+        const updated = await prisma.misradClientAction.updateMany({
+          where: { id: params.taskId, organization_id: organizationId },
+          data: { status: params.status },
+        });
+        if (!updated?.count) throw new Error('Task not found');
+        return { ok: true };
+      }
 
-  if (params.scope === 'client_action') {
-    const updated = await prisma.misradClientAction.updateMany({
-      where: { id: params.taskId, organization_id: params.orgId },
-      data: { status: params.status },
-    });
-    if (!updated?.count) throw new Error('Task not found');
-    return { ok: true };
-  }
+      const updated = await prisma.misradCycleTask.updateMany({
+        where: { id: params.taskId, organization_id: organizationId },
+        data: { status: params.status },
+      });
+      if (!updated?.count) throw new Error('Task not found');
 
-  const updated = await prisma.misradCycleTask.updateMany({
-    where: { id: params.taskId, organization_id: params.orgId },
-    data: { status: params.status },
+      return { ok: true };
+    },
   });
-  if (!updated?.count) throw new Error('Task not found');
-
-  return { ok: true };
 }
 
 export async function getInbox(params: {
   orgId: string;
   scope?: 'org' | 'client_by_clerk_email';
 }): Promise<Email[]> {
-  const { orgId, scope = 'org' } = params;
-  if (!orgId) throw new Error('orgId is required');
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'getInbox',
+    fn: async ({ organizationId }) => {
+      const scope = params.scope ?? 'org';
 
-  const resolvedClientId = scope === 'client_by_clerk_email'
-    ? (await resolveClientIdByClerkEmailOrThrow({ orgId })).clientId
-    : null;
+      const resolvedClientId = scope === 'client_by_clerk_email'
+        ? (await resolveClientIdByClerkEmailOrThrow({ organizationId })).clientId
+        : null;
 
-  let rows: Array<{
-    id: string;
-    sender_id: string;
-    recipient_id: string;
-    subject: string;
-    body: string;
-    read_status: boolean;
-    created_at: Date;
-  }> = [];
+      let rows: Array<{
+        id: string;
+        sender_id: string;
+        recipient_id: string;
+        subject: string;
+        body: string;
+        read_status: boolean;
+        created_at: Date;
+      }> = [];
 
-  try {
-    rows = await prisma.misradMessage.findMany({
-      where: {
-        organization_id: orgId,
-        ...(resolvedClientId
-          ? {
-              OR: [{ sender_id: resolvedClientId }, { recipient_id: resolvedClientId }],
-            }
-          : undefined),
-      },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        sender_id: true,
-        recipient_id: true,
-        subject: true,
-        body: true,
-        read_status: true,
-        created_at: true,
-      },
-    });
-  } catch (e: unknown) {
-    if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
-      throw new Error(`[SchemaMismatch] misradMessage.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
-    }
-    return [];
-  }
+      try {
+        rows = await prisma.misradMessage.findMany({
+          where: {
+            organization_id: organizationId,
+            ...(resolvedClientId
+              ? {
+                  OR: [{ sender_id: resolvedClientId }, { recipient_id: resolvedClientId }],
+                }
+              : undefined),
+          },
+          orderBy: { created_at: 'desc' },
+          select: {
+            id: true,
+            sender_id: true,
+            recipient_id: true,
+            subject: true,
+            body: true,
+            read_status: true,
+            created_at: true,
+          },
+        });
+      } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(`[SchemaMismatch] misradMessage.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+        }
 
-  const clientIds = Array.from(
-    new Set(
-      rows
-        .flatMap((r) => [r.sender_id, r.recipient_id])
-        .filter((id) => id && id !== 'agency')
-    )
-  );
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/client-portal.getInbox',
+            reason: 'misradMessage.findMany schema mismatch (fallback to empty inbox)',
+            error: e,
+            extras: {
+              organizationId,
+              scope,
+              resolvedClientId: resolvedClientId ? String(resolvedClientId) : null,
+            },
+          });
+        }
+        return [];
+      }
 
-  const clients = clientIds.length
-    ? await prisma.misradClient.findMany({
-        where: { organizationId: orgId, id: { in: clientIds } },
-        select: { id: true, name: true },
-      })
-    : [];
+      const clientIds = Array.from(
+        new Set(
+          rows
+            .flatMap((r) => [r.sender_id, r.recipient_id])
+            .filter((id) => id && id !== 'agency')
+        )
+      );
 
-  const clientNameById = new Map(clients.map((c) => [c.id, c.name]));
+      const clients = clientIds.length
+        ? await prisma.misradClient.findMany({
+            where: { organizationId, id: { in: clientIds } },
+            select: { id: true, name: true },
+          })
+        : [];
 
-  return rows.map((r) => {
-    const isFromAgency = r.sender_id === 'agency';
-    const otherClientId = isFromAgency ? r.recipient_id : r.sender_id;
-    const sender = isFromAgency ? 'הסוכנות' : clientNameById.get(r.sender_id) || 'לקוח';
-    const snippet = (r.body || '').replace(/\s+/g, ' ').slice(0, 160);
+      const clientNameById = new Map(clients.map((c) => [c.id, c.name]));
 
-    const email: Email = {
-      id: r.id,
-      sender,
-      senderEmail: '',
-      subject: r.subject,
-      snippet,
-      body: r.body,
-      timestamp: new Date(r.created_at).toLocaleString('he-IL'),
-      isRead: Boolean(r.read_status),
-      tags: [],
-      avatarUrl: undefined,
-      clientId: otherClientId && otherClientId !== 'agency' ? otherClientId : undefined,
-    };
+      return rows.map((r) => {
+        const isFromAgency = r.sender_id === 'agency';
+        const otherClientId = isFromAgency ? r.recipient_id : r.sender_id;
+        const sender = isFromAgency ? 'הסוכנות' : clientNameById.get(r.sender_id) || 'לקוח';
+        const snippet = (r.body || '').replace(/\s+/g, ' ').slice(0, 160);
 
-    return email;
+        const email: Email = {
+          id: r.id,
+          sender,
+          senderEmail: '',
+          subject: r.subject,
+          snippet,
+          body: r.body,
+          timestamp: new Date(r.created_at).toLocaleString('he-IL'),
+          isRead: Boolean(r.read_status),
+          tags: [],
+          avatarUrl: undefined,
+          clientId: otherClientId && otherClientId !== 'agency' ? otherClientId : undefined,
+        };
+
+        return email;
+      });
+    },
   });
 }
 
@@ -755,51 +1001,83 @@ export async function sendMessage(params: {
   relatedProjectId?: string | null;
   attachments?: Array<{ name: string; url: string; mimeType?: string | null; sizeBytes?: number | null }>;
 }): Promise<{ id: string }> {
-  const { orgId, senderId, recipientId, subject, body, relatedProjectId, attachments } = params;
-  if (!orgId) throw new Error('orgId is required');
-  if (!senderId) throw new Error('senderId is required');
-  if (!recipientId) throw new Error('recipientId is required');
-  if (!subject) throw new Error('subject is required');
-  if (!body?.trim()) throw new Error('body is required');
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'sendMessage',
+    fn: async ({ organizationId }) => {
+      const { senderId, recipientId, subject, body, relatedProjectId, attachments } = params;
+      if (!senderId) throw new Error('senderId is required');
+      if (!recipientId) throw new Error('recipientId is required');
+      if (!subject) throw new Error('subject is required');
+      if (!body?.trim()) throw new Error('body is required');
 
-  const msg = await prisma.misradMessage.create({
-    data: {
-      organization_id: orgId,
-      sender_id: senderId,
-      recipient_id: recipientId,
-      subject,
-      body,
-      read_status: false,
-      related_project_id: relatedProjectId ?? null,
-      attachments: {
-        create:
-          attachments?.map((a) => ({
-            organization_id: orgId,
-            name: a.name,
-            url: a.url,
-            mimeType: a.mimeType ?? null,
-            sizeBytes: a.sizeBytes ?? null,
-          })) ?? [],
-      },
+      const portalClientId = await getPortalClientIdIfAny({ organizationId });
+      if (portalClientId) {
+        if (String(senderId) !== String(portalClientId)) throw new Error('Forbidden');
+        if (String(recipientId) !== 'agency') throw new Error('Forbidden');
+      }
+
+      if (String(senderId) !== 'agency') {
+        await assertMisradClientInOrg({ organizationId, clientId: String(senderId) });
+      }
+      if (String(recipientId) !== 'agency') {
+        await assertMisradClientInOrg({ organizationId, clientId: String(recipientId) });
+      }
+
+      const msg = await prisma.misradMessage.create({
+        data: {
+          organization_id: organizationId,
+          sender_id: senderId,
+          recipient_id: recipientId,
+          subject,
+          body,
+          read_status: false,
+          related_project_id: relatedProjectId ?? null,
+          attachments: {
+            create:
+              attachments?.map((a) => ({
+                organization_id: organizationId,
+                name: a.name,
+                url: a.url,
+                mimeType: a.mimeType ?? null,
+                sizeBytes: a.sizeBytes ?? null,
+              })) ?? [],
+          },
+        },
+        select: { id: true },
+      });
+
+      return { id: msg.id };
     },
-    select: { id: true },
   });
-
-  return { id: msg.id };
 }
 
 export async function markAsRead(params: { orgId: string; messageId: string; read: boolean }): Promise<{ ok: true }> {
-  const { orgId, messageId, read } = params;
-  if (!orgId) throw new Error('orgId is required');
-  if (!messageId) throw new Error('messageId is required');
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'markAsRead',
+    fn: async ({ organizationId }) => {
+      const { messageId, read } = params;
+      if (!messageId) throw new Error('messageId is required');
 
-  const updated = await prisma.misradMessage.updateMany({
-    where: { id: messageId, organization_id: orgId },
-    data: { read_status: read },
+      const portalClientId = await getPortalClientIdIfAny({ organizationId });
+      const updated = await prisma.misradMessage.updateMany({
+        where: {
+          id: messageId,
+          organization_id: organizationId,
+          ...(portalClientId
+            ? {
+                OR: [{ sender_id: portalClientId }, { recipient_id: portalClientId }],
+              }
+            : undefined),
+        },
+        data: { read_status: read },
+      });
+      if (!updated?.count) throw new Error('Message not found');
+
+      return { ok: true };
+    },
   });
-  if (!updated?.count) throw new Error('Message not found');
-
-  return { ok: true };
 }
 
 export async function analyzeAndStoreMeeting(params: {
@@ -811,5 +1089,17 @@ export async function analyzeAndStoreMeeting(params: {
   recordingUrl?: string | null;
   attendees?: string[];
 }): Promise<{ meetingId: string; analysis: unknown }> {
-  return await analyzeAndStoreMeetingService(params);
+  return await withClientPortalTenantContext({
+    orgKey: params.orgId,
+    reason: 'analyzeAndStoreMeeting',
+    fn: async ({ organizationId }) => {
+      const portalClientId = await getPortalClientIdIfAny({ organizationId });
+      if (portalClientId && String(params.clientId) !== String(portalClientId)) {
+        throw new Error('Forbidden');
+      }
+
+      await assertMisradClientInOrg({ organizationId, clientId: String(params.clientId) });
+      return await analyzeAndStoreMeetingService({ ...params, orgId: organizationId });
+    },
+  });
 }

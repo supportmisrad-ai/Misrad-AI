@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 
 import { hasPermission } from '@/lib/auth';
 import { logAuditEvent } from '@/lib/audit';
+import prisma from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import { isUuidLike as isUUID } from '@/lib/server/workspace-access/utils';
 
@@ -102,29 +103,48 @@ export async function listNexusTimeEntries(params: {
   const offset = (page - 1) * pageSize;
   const take = pageSize + 1;
 
-  const where: Prisma.NexusTimeEntryWhereInput = {};
-  if (queryUserId) where.userId = queryUserId;
-  if (params.dateFrom || params.dateTo) {
-    const dateFilter: Prisma.DateTimeFilter<'NexusTimeEntry'> = {};
-    if (params.dateFrom) {
-      const d = parseDateOnlyToDate(params.dateFrom);
-      if (d) dateFilter.gte = d;
-    }
-    if (params.dateTo) {
-      const d = parseDateOnlyToDate(params.dateTo);
-      if (d) dateFilter.lte = d;
-    }
-    if (Object.keys(dateFilter).length) where.date = dateFilter;
+  const conditions: Prisma.Sql[] = [Prisma.sql`organization_id = ${workspace.id}::uuid`];
+  if (queryUserId) {
+    conditions.push(Prisma.sql`user_id = ${queryUserId}::uuid`);
   }
-  if (!params.includeVoided) where.voidedAt = null;
+  if (params.dateFrom) {
+    const d = parseDateOnlyToDate(params.dateFrom);
+    if (d) conditions.push(Prisma.sql`date >= ${d.toISOString().slice(0, 10)}::date`);
+  }
+  if (params.dateTo) {
+    const d = parseDateOnlyToDate(params.dateTo);
+    if (d) conditions.push(Prisma.sql`date <= ${d.toISOString().slice(0, 10)}::date`);
+  }
+  if (!params.includeVoided) {
+    conditions.push(Prisma.sql`voided_at IS NULL`);
+  }
 
-  const rows = await listNexusTimeEntryRows({
-    organizationId: workspace.id,
-    where,
-    orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
-    skip: offset,
-    take,
-  });
+  const whereSql = Prisma.join(conditions, ' AND ');
+
+  const rows = await prisma.$queryRaw<unknown[]>(Prisma.sql`
+    SELECT
+      id,
+      organization_id,
+      user_id,
+      start_time,
+      end_time,
+      start_lat,
+      start_lng,
+      start_accuracy,
+      end_lat,
+      end_lng,
+      end_accuracy,
+      date,
+      duration_minutes,
+      void_reason,
+      voided_by,
+      voided_at
+    FROM nexus_time_entries
+    WHERE ${whereSql}
+    ORDER BY date DESC, start_time DESC
+    OFFSET ${offset}
+    LIMIT ${take}
+  `);
 
   const hasMore = rows.length > pageSize;
   const trimmed = hasMore ? rows.slice(0, pageSize) : rows;

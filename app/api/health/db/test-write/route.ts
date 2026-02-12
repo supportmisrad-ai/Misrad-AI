@@ -67,7 +67,7 @@ async function POSTHandler(request: NextRequest) {
         testResults.clients = { success: true, id: String(clientData.id) };
 
         // Clean up - delete the test record
-        await prisma.nexusClient.delete({ where: { id: clientData.id } });
+        await prisma.nexusClient.deleteMany({ where: { id: clientData.id, organizationId: workspaceId } });
     } catch (error: unknown) {
         const safeMsg = 'Internal server error';
         testResults.clients = { success: false, error: IS_PROD ? safeMsg : getErrorMessage(error) };
@@ -92,7 +92,7 @@ async function POSTHandler(request: NextRequest) {
         testResults.tasks = { success: true, id: String(taskData.id) };
 
         // Clean up - delete the test record
-        await prisma.nexusTask.delete({ where: { id: taskData.id } });
+        await prisma.nexusTask.deleteMany({ where: { id: taskData.id, organizationId: workspaceId } });
     } catch (error: unknown) {
         const safeMsg = 'Internal server error';
         testResults.tasks = { success: false, error: IS_PROD ? safeMsg : getErrorMessage(error) };

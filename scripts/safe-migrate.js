@@ -20,7 +20,7 @@ if (fs.existsSync(envPath)) {
   console.error(`[safe-migrate] ${envPath} not found; using process.env only.`);
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const readline = require('readline');
@@ -100,8 +100,8 @@ function question(query) {
 
 async function checkDatabaseStatus() {
   try {
-    const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organization_users');
+    const orgs = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as count FROM organizations`);
+    const users = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as count FROM organization_users`);
     
     return {
       organizations: orgs[0].count,

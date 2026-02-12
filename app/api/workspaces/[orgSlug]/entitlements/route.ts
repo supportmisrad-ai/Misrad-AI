@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled } from '@/lib/server/workspace';
+import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { getErrorStatus } from '@/lib/server/workspace-access/utils';
-import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -49,7 +48,7 @@ async function GETHandler(
     }
 
     const loadPromise = (async () => {
-      const workspace = await requireWorkspaceAccessByOrgSlugApiCached(String(clerkUserId), String(orgSlug || ''));
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(String(orgSlug || ''));
       const value = (workspace?.entitlements ?? {}) as Record<string, boolean>;
       entitlementsCache.set(cacheKey, { value, expiresAt: Date.now() + ENTITLEMENTS_TTL_MS });
       return value;

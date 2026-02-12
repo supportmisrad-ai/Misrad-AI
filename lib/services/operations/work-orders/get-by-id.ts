@@ -9,6 +9,7 @@ import {
   logOperationsError,
   toIsoDate,
 } from '@/lib/services/operations/shared';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { resolveStorageUrlMaybe } from '@/lib/services/operations/storage';
 import {
   ensureOperationsPrimaryWarehouseHolderId,
@@ -144,6 +145,15 @@ export async function getOperationsWorkOrderByIdForOrganizationId(params: {
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/get-by-id.getOperationsWorkOrderByIdForOrganizationId',
+        reason: 'operations_work_orders schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), id: String(params.id || '') },
+      });
     }
     logOperationsError('[operations] getOperationsWorkOrderById failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת הקריאה' };

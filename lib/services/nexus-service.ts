@@ -47,8 +47,8 @@ export type NexusDashboardBootstrap = {
 };
 
 const reactCache: unknown = Reflect.get(React, 'cache');
-type CacheFn = <T extends (...args: any[]) => any>(fn: T) => T;
-function identityCache<T extends (...args: any[]) => any>(fn: T): T {
+type CacheFn = <Args extends readonly unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
+function identityCache<Args extends readonly unknown[], R>(fn: (...args: Args) => R): (...args: Args) => R {
   return fn;
 }
 

@@ -2,7 +2,10 @@
 
 import { resend, isResendConfigured } from '@/lib/resend';
 import { Client } from '@/types';
-import { sendMisradWelcomeEmail } from '@/lib/email';
+import { sendMisradWelcomeEmail } from '@/lib/email';
+
+import { requireAuth } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
 
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
 
@@ -25,6 +28,14 @@ interface SendInvitationEmailParams {
  */
 export async function sendInvitationEmail(params: SendInvitationEmailParams) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return {
+        success: false,
+        error: authCheck.error || 'נדרשת התחברות',
+      };
+    }
+
     if (!isResendConfigured()) {
       return {
         success: false,
@@ -159,6 +170,14 @@ export async function sendMisradWelcomeEmailAction(params: {
   signInUrl: string;
 }) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return {
+        success: false,
+        error: authCheck.error || 'נדרשת התחברות',
+      };
+    }
+
     if (!isResendConfigured()) {
       return {
         success: false,
@@ -203,6 +222,23 @@ export async function sendMisradWelcomeEmailAction(params: {
  */
 export async function sendTestEmail(to: string) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return {
+        success: false,
+        error: authCheck.error || 'נדרשת התחברות',
+      };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return {
+        success: false,
+        error: 'אין הרשאה',
+      };
+    }
+
     if (!isResendConfigured()) {
       return {
         success: false,

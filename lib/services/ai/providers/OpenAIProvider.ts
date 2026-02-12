@@ -30,7 +30,8 @@ const OpenAIChatCompletionResponseSchema = z
   })
   .passthrough();
 
-type OpenAIResponseFormat = { type: 'json_object' };
+type OpenAIResponseFormat = { type: 'json_object' };
+
 
 function isAbortError(err: unknown): boolean {
   const obj = asObject(err);
@@ -105,6 +106,90 @@ export class OpenAIProvider {
       timeoutMs: params.timeoutMs,
       responseFormat: undefined,
     });
+  }
+
+  async streamText(params: {
+    model: string;
+    prompt: string;
+    systemInstruction?: string;
+    timeoutMs: number;
+  }): Promise<{ stream: ReadableStream<Uint8Array> }> {
+    const ac = new AbortController();
+    const timeout = setTimeout(() => ac.abort(), params.timeoutMs);
+
+    try {
+      const body: Record<string, unknown> = {
+        model: params.model,
+        messages: [
+          ...(params.systemInstruction ? [{ role: 'system', content: params.systemInstruction }] : []),
+          { role: 'user', content: params.prompt },
+        ],
+        stream: true,
+      };
+
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new AIProviderError({ provider: 'openai', status: res.status, message: `OpenAI error (${res.status}): ${txt}` });
+      }
+
+      if (!res.body) {
+        throw new AIProviderError({ provider: 'openai', message: 'OpenAI returned no stream body' });
+      }
+
+      // Transform SSE stream to text chunks
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      
+      const transformStream = new TransformStream({
+        async transform(chunk, controller) {
+          const text = decoder.decode(chunk, { stream: true });
+          const lines = text.split('\n').filter(line => line.trim() !== '');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') {
+                clearTimeout(timeout);
+                return;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  controller.enqueue(encoder.encode(content));
+                }
+              } catch {
+                // Skip malformed JSON
+              }
+            }
+          }
+        },
+      });
+
+      return { stream: res.body.pipeThrough(transformStream) };
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      if (isAbortError(err)) {
+        throw new AIProviderError({
+          provider: 'openai',
+          status: 504,
+          message: 'השרת עמוס כרגע ולא הצלחנו לקבל תגובה בזמן. נסה שוב בעוד דקה.',
+          cause: err,
+        });
+      }
+      throw err;
+    }
   }
 
   async generateJson(params: {

@@ -93,16 +93,26 @@ async function globalSetup(config: FullConfig) {
   const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4000';
   const appHost = new URL(baseURL).hostname;
   const e2eKey = process.env.E2E_API_KEY;
-  const email = process.env.E2E_EMAIL;
-  const password = process.env.E2E_PASSWORD;
+  const email = process.env.E2E_AUTH_EMAIL || process.env.E2E_EMAIL;
+  const password = process.env.E2E_AUTH_PASSWORD || process.env.E2E_PASSWORD;
   const orgSlug = process.env.E2E_ORG_SLUG;
-  const skipLogin = String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === '1' || String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === 'true';
+  const skipLoginRequested =
+    String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === '1' ||
+    String(process.env.E2E_SKIP_LOGIN || '').toLowerCase() === 'true';
   let refreshStorageState =
     String(process.env.E2E_REFRESH_STORAGE_STATE || '').toLowerCase() === '1' ||
     String(process.env.E2E_REFRESH_STORAGE_STATE || '').toLowerCase() === 'true';
   const manualLogin =
     String(process.env.E2E_MANUAL_LOGIN || '').toLowerCase() === '1' ||
     String(process.env.E2E_MANUAL_LOGIN || '').toLowerCase() === 'true';
+
+  const hasConfiguredCredentials = Boolean(
+    String(email || '').trim() &&
+      String(password || '').trim() &&
+      String(password || '').trim().toLowerCase() !== 'changeme'
+  );
+
+  let skipLogin = skipLoginRequested || (!manualLogin && !hasConfiguredCredentials);
 
   const firstProject = config.projects[0];
   const storageStatePath =
@@ -211,7 +221,11 @@ async function globalSetup(config: FullConfig) {
     refreshStorageState = true;
   }
 
-  if (!manualLogin && (!email || !password)) {
+  if (skipLoginRequested && refreshStorageState && !manualLogin && hasConfiguredCredentials) {
+    skipLogin = false;
+  }
+
+  if (!manualLogin && !skipLogin && (!email || !password)) {
     throw new Error('Missing E2E_EMAIL or E2E_PASSWORD env vars');
   }
 
@@ -371,89 +385,63 @@ async function globalSetup(config: FullConfig) {
 
       const afterLoginPath =
         process.env.E2E_AFTER_LOGIN_PATH || (orgSlug ? `/w/${encodeURIComponent(String(orgSlug))}/system` : '/');
-      const signInTarget = `${baseURL}/sign-in?redirect_url=${encodeURIComponent(afterLoginPath)}`;
+      const signInTarget = `${baseURL}/login?redirect_url=${encodeURIComponent(afterLoginPath)}`;
+
+      const errorLocator = page
+        .locator('text=/ההתחברות נכשלה|שגיאה בהתחברות|נא לבדוק את הפרטים|נדרשת סיסמה|נדרש אימות|אימות דו-שלבי|ההתחברות לא הושלמה|סטטוס:/i')
+        .first();
 
       const attemptLogin = async () => {
         await page.goto(signInTarget, { waitUntil: 'domcontentloaded', timeout: 120_000 });
 
-        const googleBtn = page.getByRole('button', { name: 'המשך עם Google' });
-        await googleBtn.waitFor({ state: 'visible', timeout: 120_000 });
-        await googleBtn.waitFor({ state: 'attached', timeout: 120_000 });
+        const passwordInput = page.getByPlaceholder('הקלד סיסמה...');
+        const inPasswordStep = await passwordInput.isVisible().catch(() => false);
+        if (!inPasswordStep) {
+          const emailInput = page.locator('input[type="email"]');
+          await emailInput.waitFor({ state: 'visible', timeout: 60_000 });
+          await emailInput.fill(emailValue);
+          await page.getByRole('button', { name: 'המשך', exact: true }).click();
+          await passwordInput.waitFor({ state: 'visible', timeout: 60_000 });
+        }
 
-        await page
-          .waitForFunction(() => {
-            const btn = Array.from(document.querySelectorAll('button')).find((b) =>
-              (b.textContent || '').includes('המשך עם Google')
-            ) as HTMLButtonElement | undefined;
-            return Boolean(btn && !btn.disabled);
-          })
-          .catch(() => undefined);
+        await passwordInput.fill(passwordValue);
 
-        await googleBtn
-          .evaluate((btn) => {
-            if ((btn as HTMLButtonElement).disabled) throw new Error('Google button still disabled (Clerk not loaded)');
-          })
-          .catch(() => undefined);
+        const observedEmail = await page
+          .locator('body')
+          .locator(`text=${emailValue}`)
+          .first()
+          .isVisible()
+          .catch(() => false);
+        if (!observedEmail) {
+          throw new Error('Email not reflected on password step (unexpected login UI state)');
+        }
 
-      const passwordInput = page.getByPlaceholder('הקלד סיסמה...');
-      const inPasswordStep = await passwordInput.isVisible().catch(() => false);
-      if (!inPasswordStep) {
-        const emailInput = page.locator('input[type="email"]');
-        await emailInput.waitFor({ state: 'visible', timeout: 60_000 });
-        await emailInput.fill(emailValue);
-        await page.getByRole('button', { name: 'המשך', exact: true }).click();
-        await passwordInput.waitFor({ state: 'visible', timeout: 60_000 });
-      }
+        const submit = page.getByRole('button', { name: /כניסה למערכת/ });
+        await submit.waitFor({ state: 'visible', timeout: 60_000 });
+        await submit.waitFor({ state: 'attached', timeout: 60_000 });
+        await submit.evaluate((btn) => {
+          if ((btn as HTMLButtonElement).disabled) throw new Error('Submit button disabled (Clerk not loaded)');
+        });
 
-      await passwordInput.fill(passwordValue);
+        await submit.click();
 
-      const observedEmail = await page.locator('body').locator(`text=${emailValue}`).first().isVisible().catch(() => false);
-      if (!observedEmail) {
-        throw new Error('Email not reflected on password step (unexpected login UI state)');
-      }
+        const navigated = page.waitForURL(
+          (url) => {
+            const p = url.pathname || '';
+            return !p.startsWith('/login') && !p.startsWith('/sign-in');
+          },
+          { waitUntil: 'domcontentloaded', timeout: 30_000 }
+        );
 
-      const submit = page.getByRole('button', { name: /כניסה למערכת/ });
-      await submit.waitFor({ state: 'visible', timeout: 60_000 });
-      await submit.waitFor({ state: 'attached', timeout: 60_000 });
-      await submit.evaluate((btn) => {
-        if ((btn as HTMLButtonElement).disabled) throw new Error('Submit button disabled (Clerk not loaded)');
-      });
+        const errorText = errorLocator.waitFor({ state: 'visible', timeout: 30_000 });
 
-      await page
-        .waitForFunction(() => {
-          const btn = Array.from(document.querySelectorAll('button')).find((b) =>
-            (b.textContent || '').includes('כניסה למערכת')
-          ) as HTMLButtonElement | undefined;
-          return Boolean(btn && !btn.disabled);
-        })
-        .catch(() => undefined);
-
-      await submit.click();
-
-      const navigated = page.waitForURL(
-        (url) => {
-          const p = url.pathname || '';
-          return !p.startsWith('/login') && !p.startsWith('/sign-in');
-        },
-        { waitUntil: 'domcontentloaded', timeout: 30_000 }
-      );
-
-      const errorText = page
-        .locator(
-          'role=alert, text=/ההתחברות נכשלה|שגיאה בהתחברות|נא לבדוק את הפרטים|נדרשת סיסמה|נדרש אימות|אימות דו-שלבי|ההתחברות לא הושלמה|סטטוס:/i'
-        )
-        .first()
-        .waitFor({ state: 'visible', timeout: 30_000 });
-
-      await Promise.race([navigated, errorText]).catch(() => undefined);
-    };
+        await Promise.race([navigated, errorText]).catch(() => undefined);
+      };
 
     await attemptLogin();
 
     const errorNow = await page
-      .locator(
-        'role=alert, text=/ההתחברות נכשלה|שגיאה בהתחברות|נא לבדוק את הפרטים|נדרשת סיסמה|נדרש אימות|אימות דו-שלבי|ההתחברות לא הושלמה|סטטוס:/i'
-      )
+      .locator('text=/ההתחברות נכשלה|שגיאה בהתחברות|נא לבדוק את הפרטים|נדרשת סיסמה|נדרש אימות|אימות דו-שלבי|ההתחברות לא הושלמה|סטטוס:/i')
       .first()
       .isVisible()
       .catch(() => false);

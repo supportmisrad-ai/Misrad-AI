@@ -16,7 +16,13 @@ interface AddTenantModalProps {
 
 export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, products }) => {
     const [selectedPlan, setSelectedPlan] = useState(products[0]?.name || '');
-    const [selectedRegion, setSelectedRegion] = useState('il-central');
+    const [selectedRegion, setSelectedRegion] = useState<NonNullable<Tenant['region']>>('il-central');
+
+    const handleRegionChange = (value: string) => {
+        if (value === 'il-central' || value === 'eu-west' || value === 'us-east') {
+            setSelectedRegion(value);
+        }
+    };
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -39,7 +45,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
             ownerEmail: email, 
             subdomain: String(subdomain ?? '').toLowerCase().replace(/\s+/g, '-'),
             plan: selectedPlan,
-            region: selectedRegion as any,
+            region: selectedRegion,
             modules: defaultModules,
             phone,
             maxUsers: maxUsers ? parseInt(maxUsers) : undefined,
@@ -54,7 +60,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
         label: `${p.name} • ₪${p.price}`
     }));
 
-    const regionOptions = [
+    const regionOptions: Array<{ value: NonNullable<Tenant['region']>; label: string }> = [
         { value: 'il-central', label: 'Israel (TLV)' },
         { value: 'eu-west', label: 'Europe (Frankfurt)' },
         { value: 'us-east', label: 'USA (N. Virginia)' }
@@ -173,7 +179,7 @@ export const AddTenantModal: React.FC<AddTenantModalProps> = ({ onClose, onAdd, 
                                     </label>
                                     <StyledDropdown
                                         value={selectedRegion}
-                                        onChange={setSelectedRegion}
+                                        onChange={handleRegionChange}
                                         options={regionOptions}
                                         variant="default"
                                     />

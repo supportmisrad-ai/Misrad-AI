@@ -4,6 +4,7 @@ import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { APIError } from '@/lib/server/api-workspace';
 import { queryRawOrgScoped } from '@/lib/prisma';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { workspaceTenantGuard } from '@/lib/api-workspace-tenant-guard';
@@ -11,7 +12,7 @@ import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 export const runtime = 'nodejs';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
 function asString(v: unknown): string {
@@ -60,7 +61,7 @@ async function GETHandler(
     const moduleId = String(url.searchParams.get('module') || '').trim().toLowerCase();
 
     if (moduleId === 'system') {
-      const [totalLeads, hotLeads] = await Promise.all([
+      const [totalLeads, hotLeads] = await prisma.$transaction([
         prisma.systemLead.count({ where: { organizationId: workspace.id } }),
         prisma.systemLead.findMany({
           where: { organizationId: workspace.id },
@@ -83,27 +84,28 @@ async function GETHandler(
 
       const hottest = hotLeads[0] || null;
 
-      const indexedLeadsCount = await prisma.ai_embeddings.count({
-        where: {
-          organization_id: workspace.id,
-          module_id: 'system',
-          doc_key: { startsWith: 'system:system_leads:' },
-        },
-      });
-
       const docKeys = hotLeads.map((l) => `system:system_leads:${l.id}`);
 
       const takeEmbeddings = Math.max(1, Math.min(50, docKeys.length || 1));
 
-      const embeddedKeys = await prisma.ai_embeddings.findMany({
-        where: {
-          organization_id: workspace.id,
-          module_id: 'system',
-          doc_key: { in: docKeys },
-        },
-        select: { doc_key: true },
-        take: takeEmbeddings,
-      });
+      const [indexedLeadsCount, embeddedKeys] = await prisma.$transaction([
+        prisma.ai_embeddings.count({
+          where: {
+            organization_id: workspace.id,
+            module_id: 'system',
+            doc_key: { startsWith: 'system:system_leads:' },
+          },
+        }),
+        prisma.ai_embeddings.findMany({
+          where: {
+            organization_id: workspace.id,
+            module_id: 'system',
+            doc_key: { in: docKeys },
+          },
+          select: { doc_key: true },
+          take: takeEmbeddings,
+        }),
+      ]);
 
       const embeddedKeySet = new Set((embeddedKeys || []).map((r) => String(r.doc_key || '')));
 
@@ -364,6 +366,13 @@ async function GETHandler(
         if (!ALLOW_SCHEMA_FALLBACKS) {
           throw new Error(`[SchemaMismatch] nexus_billing_items missing table (${getErrorMessage(e) || 'missing relation'})`);
         }
+
+        reportSchemaFallback({
+          source: 'app/api/workspaces/[orgSlug]/me-insights.GETHandler',
+          reason: 'nexus_billing_items missing table/column (fallback recurringMonthly=0)',
+          error: e,
+          extras: { organizationId: String(workspace.id), moduleId: 'finance' },
+        });
       }
 
       const expectedMonthlyRevenue = Math.round((weightedPipeline + systemInvoicesOpen + misradInvoicesOpenThisMonth + recurringMonthly) * 100) / 100;

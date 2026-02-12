@@ -102,11 +102,11 @@ export function PasskeyOnboardingPrompt() {
 
       if (typeof (user as any).createPasskey === 'function') {
         await (user as any).createPasskey({
-          name: 'Misrad OS - זיהוי ביומטרי',
+          name: 'MISRAD AI - זיהוי ביומטרי',
         });
       } else if ((user as any).passkeys && typeof (user as any).passkeys.create === 'function') {
         await (user as any).passkeys.create({
-          name: 'Misrad OS - זיהוי ביומטרי',
+          name: 'MISRAD AI - זיהוי ביומטרי',
         });
       } else {
         setError('הפיצ׳ר לא זמין כרגע. ודא ש-Passkeys מופעלים ב-Clerk.');

@@ -1,5 +1,7 @@
 import { requireWorkspaceAccessByOrgSlugApi, type WorkspaceInfo } from '@/lib/server/workspace';
 
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 
 function normalizeOrgKey(orgKey: string): string {
@@ -54,6 +56,10 @@ export async function getWorkspaceByOrgKeyOrThrow(orgKey: string): Promise<{
 
   try {
     const workspace = await requireWorkspaceAccessByOrgSlugApi(String(normalizedOrgKey));
+    enterTenantIsolationContext({
+      source: 'api_workspace',
+      organizationId: String(workspace.id),
+    });
     return { workspace, workspaceId: workspace.id, orgKey: String(normalizedOrgKey) };
   } catch (e: unknown) {
     const status = getErrorStatus(e) ?? 403;
@@ -104,6 +110,7 @@ export async function getWorkspaceContextOrThrow(
           throw new APIError(400, 'Conflicting workspace context');
         }
       } catch {
+        throw new APIError(400, 'Conflicting workspace context');
       }
     }
 

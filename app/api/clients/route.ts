@@ -15,10 +15,11 @@ import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export const runtime = 'nodejs';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function getString(obj: Record<string, unknown>, key: string, fallback = ''): string {
     const v = obj[key];
@@ -379,6 +380,19 @@ async function POSTHandler(request: NextRequest) {
                         if (isMissingRelationOrColumnError(fullNotifError) && !ALLOW_SCHEMA_FALLBACKS) {
                             throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${getErrorMessage(fullNotifError) || 'missing relation'})`);
                         }
+
+                        if (isMissingRelationOrColumnError(fullNotifError) && ALLOW_SCHEMA_FALLBACKS) {
+                            reportSchemaFallback({
+                                source: 'app/api/clients.POSTHandler',
+                                reason: 'misrad_notifications insert schema mismatch (fallback to minimal insert)',
+                                error: fullNotifError,
+                                extras: {
+                                    organizationId: String(workspace.id),
+                                    clientId: String(newClient.id),
+                                    managerId: String(managerId),
+                                },
+                            });
+                        }
                         try {
                             await executeRawOrgScoped(prisma, {
                                 organizationId: String(workspace.id),
@@ -401,6 +415,19 @@ async function POSTHandler(request: NextRequest) {
                             const msg = getErrorMessage(e);
                             if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
                                 throw new Error(`[SchemaMismatch] misrad_notifications insert failed (${msg || 'missing relation'})`);
+                            }
+
+                            if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
+                                reportSchemaFallback({
+                                    source: 'app/api/clients.POSTHandler',
+                                    reason: 'misrad_notifications insert schema mismatch (drop notification)',
+                                    error: e,
+                                    extras: {
+                                        organizationId: String(workspace.id),
+                                        clientId: String(newClient.id),
+                                        managerId: String(managerId),
+                                    },
+                                });
                             }
                             if (String(msg || '').includes('[SchemaMismatch]')) {
                                 throw e instanceof Error ? e : new Error(msg);

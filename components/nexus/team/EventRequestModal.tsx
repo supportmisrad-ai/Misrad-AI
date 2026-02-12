@@ -12,6 +12,7 @@ import { X, Calendar, MapPin, Users, Clock, FileText } from 'lucide-react';
 import { TeamEvent, TeamEventType } from '../../../types';
 import { formatHebrewDate } from '../../../lib/hebrew-calendar';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 let showHebrewDatesPreference = false;
 
@@ -50,9 +51,6 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        const unwrap = (data: any) =>
-            (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
         
         if (!formData.title) {
             addToast('נא למלא כותרת האירוע', 'error');
@@ -93,13 +91,13 @@ export const EventRequestModal: React.FC<EventRequestModalProps> = ({
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אירוע');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה בשמירת אירוע');
             }
 
             onSuccess();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בשמירת אירוע', 'error');
+        } catch (error: unknown) {
+            addToast(error instanceof Error ? error.message : 'שגיאה בשמירת אירוע', 'error');
         } finally {
             setIsSubmitting(false);
         }

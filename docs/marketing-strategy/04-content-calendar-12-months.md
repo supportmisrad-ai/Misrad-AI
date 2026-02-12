@@ -16,10 +16,10 @@
 
 #### LinkedIn (20 פוסטים)
 1. הכרות: "מי אני ולמה בניתי MISRAD AI"
-2. Problem: "הכאוס שעסקים קטנים חווים"
+2. Problem: "הכאוס שארגונים חווים — ואיך AI פותר את זה"
 3. Solution Overview: "מה זה MISRAD AI"
-4. Feature: Voice Control
-5. Feature: לוח עברי
+4. Feature: Voice Control + AI
+5. Feature: לוח עברי + שעות פרסום מיטביות
 6. Behind the Scenes: "יום ראשון בעבודה"
 7. Customer Story: לקוח ראשון
 8. Comparison: MISRAD vs Excel
@@ -48,8 +48,8 @@
 5. Before/After: העסק שלי לפני vs אחרי
 
 #### Blog (2 מאמרים)
-1. "המדריך המלא לבחירת CRM לעסק קטן"
-2. "5 סימנים שאתם צריכים CRM (ואתם לא יודעים)"
+1. "המדריך המלא לבחירת מערכת AI לעסק"
+2. "5 סימנים שאתם צריכים מערכת AI לניהול (ואתם לא יודעים)"
 
 ---
 
@@ -168,7 +168,7 @@
 2. "What's Coming in Q3"
 
 #### Facebook Group Launch
-"בעלי עסקים קטנים בישראל"
+"מנהלים ויזמים בישראל"
 
 ---
 
@@ -231,7 +231,7 @@
 2. "Best Moments from Our Meetup"
 
 #### Event
-Meetup: "בעלי עסקים קטנים — נטוורקינג"
+Meetup: "מנהלים ויזמים — נטוורקינג"
 
 ---
 

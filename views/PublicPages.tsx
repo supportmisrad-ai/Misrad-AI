@@ -71,17 +71,17 @@ export const PrivacyView: React.FC = () => (
 
             <section>
                 <h3 className="text-xl font-bold text-white mb-4">אבטחת מידע</h3>
-                <p>Misrad OS משתמשת בתקני ההצפנה המתקדמים ביותר (TLS 1.3, AES-256) כדי להגן על המידע שלך במנוחה ובתנועה. השרתים שלנו ממוקמים במתקנים מאובטחים העומדים בתקני ISO 27001.</p>
+                <p>MISRAD AI משתמשת בתקני ההצפנה המתקדמים ביותר (TLS 1.3, AES-256) כדי להגן על המידע שלך במנוחה ובתנועה. השרתים שלנו ממוקמים במתקנים מאובטחים העומדים בתקני ISO 27001.</p>
             </section>
         </div>
     </PublicLayout>
 );
 
 export const TermsView: React.FC = () => (
-    <PublicLayout title="תנאי שימוש" subtitle="ההסכם המשפטי בינך לבין Misrad OS.">
+    <PublicLayout title="תנאי שימוש" subtitle="ההסכם המשפטי בינך לבין MISRAD AI.">
         <div className="space-y-8 text-slate-300">
             <h3 className="text-xl font-bold text-white">1. הסכמה לתנאים</h3>
-            <p>בעת השימוש בתוכנת Misrad OS, אתה מסכים לכל התנאים המפורטים במסמך זה. אם אינך מסכים, אנא הפסק את השימוש במערכת.</p>
+            <p>בעת השימוש בתוכנת MISRAD AI, אתה מסכים לכל התנאים המפורטים במסמך זה. אם אינך מסכים, אנא הפסק את השימוש במערכת.</p>
 
             <h3 className="text-xl font-bold text-white">2. רישיון שימוש</h3>
             <p>אנו מעניקים לך רישיון מוגבל, לא בלעדי ובלתי ניתן להעברה להשתמש בתוכנה לצרכים עסקיים פנימיים, בהתאם לחבילה שבחרת.</p>

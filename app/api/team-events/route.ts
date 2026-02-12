@@ -14,10 +14,18 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { assertNoProdEntitlementsBypass, isBypassModuleEntitlementsEnabled, isE2eTestingEnv } from '@/lib/server/workspace';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import type { Prisma } from '@prisma/client';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
+
+function isMissingRelationOrColumnError(error: unknown): boolean {
+    const obj = asObject(error) ?? {};
+    const code = String(obj['code'] ?? '').toLowerCase();
+    const message = String(obj['message'] ?? '').toLowerCase();
+    return code === 'p2021' || code === 'p2022' || code === '42p01' || code === '42703' || message.includes('does not exist') || message.includes('relation') || message.includes('column');
+}
 
 function hasFunction(value: unknown, name: string): value is Record<string, (...args: unknown[]) => unknown> {
     const obj = asObject(value);
@@ -277,6 +285,12 @@ async function GETHandler(request: NextRequest) {
                     message: `[SchemaMismatch] team-events query failed (${msg || 'missing tenant scoping column'})`,
                 });
             }
+
+            reportSchemaFallback({
+                source: 'app/api/team-events.GETHandler',
+                reason: 'team-events query missing tenant scoping (fallback to empty list)',
+                error,
+            });
             return apiSuccess({ events: [] }, { status: 200 });
         }
         const safeMsg = 'שגיאה בטעינת אירועים';
@@ -327,23 +341,44 @@ async function bestEffortInsertModernNotification(params: {
 }): Promise<void> {
     const now = new Date();
     type NotificationType = Prisma.MisradNotificationCreateInput['type'];
-    const data = {
-        organization_id: String(params.organizationId),
-        recipient_id: String(params.recipientId),
-        type: String(params.type) as NotificationType,
-        title: String(params.title),
-        message: String(params.message),
-        timestamp: now.toISOString(),
-        isRead: false,
-        link: params.relatedId ? String(params.relatedId) : null,
-        created_at: now,
-        updated_at: now,
-    } satisfies Prisma.MisradNotificationCreateInput;
+    try {
+        const data = {
+            organization_id: String(params.organizationId),
+            recipient_id: String(params.recipientId),
+            type: String(params.type) as NotificationType,
+            title: String(params.title),
+            message: String(params.message),
+            timestamp: now.toISOString(),
+            timestampAt: now,
+            isRead: false,
+            link: params.relatedId ? String(params.relatedId) : null,
+            created_at: now,
+            updated_at: now,
+        } as unknown as Prisma.MisradNotificationUncheckedCreateInput;
 
-    await prisma.misradNotification.create({
-        data,
-        select: { id: true },
-    });
+        await prisma.misradNotification.create({
+            data,
+            select: { id: true },
+        });
+    } catch {
+        const data = {
+            organization_id: String(params.organizationId),
+            recipient_id: String(params.recipientId),
+            type: String(params.type) as NotificationType,
+            title: String(params.title),
+            message: String(params.message),
+            timestamp: now.toISOString(),
+            isRead: false,
+            link: params.relatedId ? String(params.relatedId) : null,
+            created_at: now,
+            updated_at: now,
+        } satisfies Prisma.MisradNotificationCreateInput;
+
+        await prisma.misradNotification.create({
+            data,
+            select: { id: true },
+        });
+    }
 }
 
 async function POSTHandler(request: NextRequest) {
@@ -472,7 +507,21 @@ async function POSTHandler(request: NextRequest) {
                             actorName: organizerName,
                             relatedId: event.id,
                         });
-                    } catch {
+                    } catch (legacyError: unknown) {
+                        if (isMissingRelationOrColumnError(legacyError) && !ALLOW_SCHEMA_FALLBACKS) {
+                            throw new Error(
+                                `[SchemaMismatch] misrad_notifications legacy insert failed (${getErrorMessage(legacyError) || 'missing relation'})`
+                            );
+                        }
+
+                        if (isMissingRelationOrColumnError(legacyError) && ALLOW_SCHEMA_FALLBACKS) {
+                            reportSchemaFallback({
+                                source: 'app/api/team-events.POSTHandler',
+                                reason: 'misrad_notifications legacy insert schema mismatch (fallback to modern insert)',
+                                error: legacyError,
+                                extras: { organizationId: String(workspace.id), eventId: String(event.id), attendeeId: String(attendeeId) },
+                            });
+                        }
                         try {
                             await bestEffortInsertModernNotification({
                                 organizationId: workspace.id,
@@ -483,6 +532,20 @@ async function POSTHandler(request: NextRequest) {
                                 relatedId: event.id,
                             });
                         } catch (e: unknown) {
+                            if (isMissingRelationOrColumnError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+                                throw new Error(
+                                    `[SchemaMismatch] misradNotification insert failed (${getErrorMessage(e) || 'missing relation'})`
+                                );
+                            }
+
+                            if (isMissingRelationOrColumnError(e) && ALLOW_SCHEMA_FALLBACKS) {
+                                reportSchemaFallback({
+                                    source: 'app/api/team-events.POSTHandler',
+                                    reason: 'misradNotification insert schema mismatch (drop event notification)',
+                                    error: e,
+                                    extras: { organizationId: String(workspace.id), eventId: String(event.id), attendeeId: String(attendeeId) },
+                                });
+                            }
                             if (IS_PROD) console.warn('[API] Could not create event notification (ignored)');
                             else console.warn('[API] Could not create event notification (ignored):', e);
                         }

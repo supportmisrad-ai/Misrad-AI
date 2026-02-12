@@ -78,7 +78,7 @@ export default function NexusSidebar({
                     {organization.name}
                   </span>
                   {!hideLogoSubtitle ? (
-                    <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">{roomName || 'Misrad OS - מערכת צמיחה'}</span>
+                    <span className="text-[9px] text-gray-400 font-bold tracking-widest uppercase">{roomName || 'MISRAD AI - מערכת צמיחה'}</span>
                   ) : null}
                 </div>
               </button>

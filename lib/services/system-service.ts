@@ -1,6 +1,7 @@
 import 'server-only';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 export type SystemBootstrap = {
   initialCurrentUser: {
@@ -33,12 +34,23 @@ export async function getSystemBootstrap(orgSlug: string): Promise<SystemBootstr
     ...(initialCurrentUser.phone != null ? { phone: initialCurrentUser.phone } : { phone: undefined }),
   };
 
+  const ttlSeconds = 60 * 60;
+  const [resolvedAvatar, resolvedLogo] = await Promise.all([
+    resolveStorageUrlMaybeServiceRole(normalizedCurrentUser.avatar, ttlSeconds, { organizationId: workspace.id }),
+    resolveStorageUrlMaybeServiceRole(workspace.logo, ttlSeconds, { organizationId: workspace.id }),
+  ]);
+
+  const resolvedCurrentUser = {
+    ...normalizedCurrentUser,
+    avatar: resolvedAvatar ?? '',
+  };
+
   const initialOrganization = {
     name: workspace.name,
-    logo: workspace.logo || '',
+    logo: resolvedLogo ?? '',
     primaryColor: '#000000',
     isShabbatProtected: workspace.isShabbatProtected,
   };
 
-  return { initialCurrentUser: normalizedCurrentUser, initialOrganization };
+  return { initialCurrentUser: resolvedCurrentUser, initialOrganization };
 }

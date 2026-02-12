@@ -8,8 +8,9 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -135,6 +136,12 @@ async function getMyProfileRow(params: {
           if (!ALLOW_SCHEMA_FALLBACKS) {
             throw new Error(`[SchemaMismatch] profiles missing table (${msg || 'missing relation'})`);
           }
+          reportSchemaFallback({
+            source: 'app/actions/profiles.getMyProfileRow',
+            reason: 'profiles missing table (fallback to error response)',
+            error,
+            extras: { orgSlug: params.orgSlug },
+          });
           return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
             error,
             'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'
@@ -166,6 +173,15 @@ async function bootstrapProfile(params: {
             `[SchemaMismatch] organizationUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
         }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/profiles.bootstrapProfile',
+            reason: 'organizationUser lookup schema mismatch (fallback to null)',
+            error,
+            extras: { orgSlug: params.orgSlug },
+          });
+        }
         socialUser = null;
       }
 
@@ -193,6 +209,15 @@ async function bootstrapProfile(params: {
             throw new Error(
               `[SchemaMismatch] nexusUser lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
             );
+          }
+
+          if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+            reportSchemaFallback({
+              source: 'app/actions/profiles.bootstrapProfile',
+              reason: 'nexusUser lookup schema mismatch (fallback to null)',
+              error,
+              extras: { orgSlug: params.orgSlug },
+            });
           }
           nexusUser = null;
         }
@@ -227,6 +252,12 @@ async function bootstrapProfile(params: {
           if (!ALLOW_SCHEMA_FALLBACKS) {
             throw new Error(`[SchemaMismatch] profiles missing table (${msg || 'missing relation'})`);
           }
+          reportSchemaFallback({
+            source: 'app/actions/profiles.bootstrapProfile',
+            reason: 'profiles missing table during create (fallback to error response)',
+            error,
+            extras: { orgSlug: params.orgSlug },
+          });
           return createErrorResponse<{ profile: ProfileRecord; workspace: { id: string } }>(
             error,
             'טבלת profiles עדיין לא קיימת. יש להריץ את הסקריפט scripts/db-setup/create-profiles-table.sql בסופאבייס.'

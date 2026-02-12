@@ -13,10 +13,11 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -79,12 +80,24 @@ async function loadInvitationsForWorkspace(workspaceId: string) {
             if (!ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] system_invitation_links missing table (${getErrorMessage(error) || 'missing relation'})`);
             }
+            reportSchemaFallback({
+                source: 'api/invitations',
+                reason: 'system_invitation_links missing table (fallback to empty + missingTable=true)',
+                error,
+                extras: { workspaceId },
+            });
             return { missingTable: true as const, rows: [] as InvitationRow[] };
         }
         if (code === '42703') {
             if (!ALLOW_SCHEMA_FALLBACKS) {
                 throw new Error(`[SchemaMismatch] system_invitation_links.organization_id missing column (${getErrorMessage(error) || 'missing column'})`);
             }
+            reportSchemaFallback({
+                source: 'api/invitations',
+                reason: 'system_invitation_links.organization_id missing column (fallback to unscoped select)',
+                error,
+                extras: { workspaceId },
+            });
             const rows = await prisma.$queryRaw<unknown[]>(
                 Prisma.sql`
                     SELECT

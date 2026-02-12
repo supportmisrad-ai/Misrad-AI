@@ -1,6 +1,6 @@
 'use server';
 
-import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
 
 export type NotificationChannel = 'push' | 'email' | 'both';
 
@@ -20,6 +20,11 @@ export async function sendSupportTicketNotification(params: {
   message: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return createErrorResponse('Unauthorized', authCheck.error || 'נדרשת התחברות');
+    }
+
     const { payload, channel, message } = params;
 
     const results = {
@@ -119,6 +124,11 @@ export async function notifyAdminsOfNewTicket(params: {
   organizationName?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return createErrorResponse('Unauthorized', authCheck.error || 'נדרשת התחברות');
+    }
+
     console.log('[Support Notifications] Notifying admins of new ticket:', {
       ticketId: params.ticketId,
       subject: params.subject,

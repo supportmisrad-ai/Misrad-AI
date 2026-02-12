@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { getCurrentUserId } from '@/lib/server/authHelper';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import prisma from '@/lib/prisma';
 import { resolveWorkspaceCurrentUserForApi } from '@/lib/server/workspaceUser';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
+import { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
 export const runtime = 'nodejs';
@@ -72,6 +73,54 @@ function parseIsoToDateOnlyAndTime(iso: string): { dueDate: Date | null; dueTime
     : null;
 
   return { dueDate, dueTime };
+}
+
+async function createMisradInvoiceBestEffort(params: {
+  organizationId: string;
+  clientId: string;
+  number: string;
+  amount: number;
+  dateStr: string;
+  dueDateStr: string;
+  dateAt: Date;
+  dueDateAt: Date;
+  status: 'DRAFT' | 'PENDING';
+  downloadUrl: string;
+  draftDescription?: string | null;
+}): Promise<{ id: string; number: string; amount: number }> {
+  try {
+    return await prisma.misradInvoice.create({
+      data: {
+        organization_id: params.organizationId,
+        client_id: params.clientId,
+        number: params.number,
+        amount: params.amount,
+        date: params.dateStr,
+        dateAt: params.dateAt,
+        dueDate: params.dueDateStr,
+        dueDateAt: params.dueDateAt,
+        status: params.status,
+        downloadUrl: params.downloadUrl,
+        draftDescription: params.draftDescription ?? null,
+      } as unknown as Prisma.MisradInvoiceUncheckedCreateInput,
+      select: { id: true, number: true, amount: true },
+    });
+  } catch {
+    return await prisma.misradInvoice.create({
+      data: {
+        organization_id: params.organizationId,
+        client_id: params.clientId,
+        number: params.number,
+        amount: params.amount,
+        date: params.dateStr,
+        dueDate: params.dueDateStr,
+        status: params.status,
+        downloadUrl: params.downloadUrl,
+        draftDescription: params.draftDescription ?? null,
+      },
+      select: { id: true, number: true, amount: true },
+    });
+  }
 }
 
 async function transcribeWithOpenAI(params: { apiKey: string; file: File }): Promise<string> {
@@ -469,12 +518,14 @@ async function executeCommand(params: {
     }
 
     const now = new Date();
+    const nowDateOnly = toIsoDateOnly(now);
     const yyyy = String(now.getFullYear());
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}-${mm}-${dd}`;
 
     const due = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const dueDateOnly = toIsoDateOnly(due);
     const dueStr = `${String(due.getFullYear())}-${String(due.getMonth() + 1).padStart(2, '0')}-${String(due.getDate()).padStart(2, '0')}`;
 
     const draftNumber = `DRAFT-${Date.now()}`;
@@ -482,50 +533,64 @@ async function executeCommand(params: {
     let invoice: { id: string; number: string; amount: number };
 
     try {
-      invoice = await prisma.misradInvoice.create({
-        data: {
-          organization_id: params.workspaceId,
-          client_id: match.id,
-          number: draftNumber,
-          amount,
-          date: dateStr,
-          dueDate: dueStr,
-          status: 'DRAFT',
-          downloadUrl: '',
-          draftDescription: description || null,
-        },
-        select: { id: true, number: true, amount: true },
+      invoice = await createMisradInvoiceBestEffort({
+        organizationId: params.workspaceId,
+        clientId: match.id,
+        number: draftNumber,
+        amount,
+        dateStr,
+        dueDateStr: dueStr,
+        dateAt: nowDateOnly,
+        dueDateAt: dueDateOnly,
+        status: 'DRAFT',
+        downloadUrl: '',
+        draftDescription: description || null,
       });
     } catch (e) {
-      invoice = await prisma.misradInvoice.create({
-        data: {
-          organization_id: params.workspaceId,
-          client_id: match.id,
-          number: draftNumber,
-          amount,
-          date: dateStr,
-          dueDate: dueStr,
-          status: 'PENDING',
-          downloadUrl: '',
-        },
-        select: { id: true, number: true, amount: true },
+      invoice = await createMisradInvoiceBestEffort({
+        organizationId: params.workspaceId,
+        clientId: match.id,
+        number: draftNumber,
+        amount,
+        dateStr,
+        dueDateStr: dueStr,
+        dateAt: nowDateOnly,
+        dueDateAt: dueDateOnly,
+        status: 'PENDING',
+        downloadUrl: '',
+        draftDescription: null,
       });
 
       const activityDescription = description
         ? `טיוטת חשבונית (קולית): ${description} | סכום: ${amount} ₪`
         : `טיוטת חשבונית (קולית) | סכום: ${amount} ₪`;
 
-      await prisma.misradActivityLog.create({
-        data: {
-          organization_id: params.workspaceId,
-          client_id: match.id,
-          type: 'FINANCIAL',
-          description: activityDescription,
-          date: dateStr,
-          isRisk: false,
-        },
-        select: { id: true },
-      });
+      try {
+        await prisma.misradActivityLog.create({
+          data: {
+            organization_id: params.workspaceId,
+            client_id: match.id,
+            type: 'FINANCIAL',
+            description: activityDescription,
+            date: dateStr,
+            dateAt: nowDateOnly,
+            isRisk: false,
+          } as unknown as Prisma.MisradActivityLogUncheckedCreateInput,
+          select: { id: true },
+        });
+      } catch {
+        await prisma.misradActivityLog.create({
+          data: {
+            organization_id: params.workspaceId,
+            client_id: match.id,
+            type: 'FINANCIAL',
+            description: activityDescription,
+            date: dateStr,
+            isRisk: false,
+          },
+          select: { id: true },
+        });
+      }
     }
 
     const msgClientName = String(match.name || clientName);
@@ -595,7 +660,25 @@ async function POSTHandler(req: Request) {
     const orgSlug = String(orgSlugRaw);
     const pathname = pathnameRaw ? String(pathnameRaw) : '/';
 
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
+    }
+
     const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgSlug);
+
+    if (headerOrgKey && headerOrgKey !== orgSlug) {
+      try {
+        const { workspace: headerWorkspace } = await getWorkspaceByOrgKeyOrThrow(headerOrgKey);
+        if (String(headerWorkspace.id) !== String(workspace.id)) {
+          return NextResponse.json({ ok: false, message: 'Conflicting workspace context' }, { status: 400 });
+        }
+      } catch {
+        return NextResponse.json({ ok: false, message: 'Conflicting workspace context' }, { status: 400 });
+      }
+    }
 
     const ctx = await resolveWorkspaceCurrentUserForApi(orgSlug);
     const ctxObj = asObject(ctx) ?? {};

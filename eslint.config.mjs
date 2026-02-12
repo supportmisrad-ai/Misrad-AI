@@ -100,6 +100,16 @@ const eslintConfig = defineConfig([
   },
 
   {
+    files: [
+      "lib/server/**/*.{js,jsx,ts,tsx}",
+      "lib/services/**/*.{js,jsx,ts,tsx}",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+    },
+  },
+
+  {
     files: ["lib/shared/unknown.ts"],
     rules: {
       "no-restricted-syntax": "off",

@@ -6,6 +6,25 @@ try {
 const cp = require('child_process');
 const path = require('path');
 
+function parseDbUrl(url) {
+  try {
+    if (!url) return null;
+    const u = new URL(String(url));
+    const port = u.port ? Number.parseInt(String(u.port), 10) : 5432;
+    return { host: String(u.hostname || ''), port: Number.isFinite(port) ? port : 5432 };
+  } catch {
+    return null;
+  }
+}
+
+function looksLikeSupabasePooler(url) {
+  const info = parseDbUrl(url);
+  if (!info) return false;
+  if (info.port === 6543 || info.port === 6544) return true;
+  if (info.host.includes('pooler.supabase.com')) return true;
+  return false;
+}
+
 function envBool(name, defaultValue) {
   const raw = String(process.env[name] ?? '').trim().toLowerCase();
   if (!raw) return defaultValue;
@@ -33,6 +52,12 @@ function main() {
     throw new Error('CI prisma migrate deploy requires DATABASE_URL');
   }
 
+  const directUrl = String(process.env.DIRECT_URL || '').trim();
+  const shouldForceDirect = Boolean(directUrl) && looksLikeSupabasePooler(dbUrl);
+  if (shouldForceDirect) {
+    console.log('[CI] Detected pooler DATABASE_URL; using DIRECT_URL for migrate deploy.');
+  }
+
   const repoRoot = path.resolve(__dirname, '..');
   const schemaPath = path.join(repoRoot, 'prisma', 'schema.prisma');
 
@@ -49,7 +74,10 @@ function main() {
     cp.execFileSync(prismaBin, ['migrate', 'deploy', '--schema', schemaPath], {
       cwd: repoRoot,
       stdio: 'inherit',
-      env: process.env,
+      env: {
+        ...process.env,
+        DATABASE_URL: shouldForceDirect ? directUrl : process.env.DATABASE_URL,
+      },
     });
     console.log('[CI] ✅ Prisma migrate deploy completed successfully');
   } catch (err) {

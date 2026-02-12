@@ -11,13 +11,14 @@ import type { Client } from '@/types/social';
 import { withWorkspaceTenantContext } from '@/lib/server/workspace-tenant-context';
 
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import {
   decodeSystemLeadsCursor,
   encodeSystemLeadsCursor,
   parseFollowUpDateFromHebrew,
 } from '@/lib/server/system-leads-utils';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -67,6 +68,12 @@ export type SystemLeadDTO = {
 type SystemLeadRow = SystemLead & { activities?: SystemLeadActivity[] };
 
 function toDto(row: SystemLeadRow): SystemLeadDTO {
+  const rowObj = asObject(row) ?? {};
+
+  const closureProbabilityRaw = rowObj.closureProbability ?? rowObj.closure_probability;
+  const closureRationaleRaw = rowObj.closureRationale ?? rowObj.closure_rationale;
+  const recommendedActionRaw = rowObj.recommendedAction ?? rowObj.recommended_action;
+
   return {
     id: row.id,
     organization_id: row.organizationId,
@@ -85,9 +92,9 @@ function toDto(row: SystemLeadRow): SystemLeadDTO {
     assigned_agent_id: row.assignedAgentId ?? null,
     product_interest: row.productInterest ?? null,
     ai_tags: Array.isArray(row.aiTags) ? row.aiTags.map((t) => String(t)).filter(Boolean) : [],
-    closure_probability: row.closureProbability != null ? Number(row.closureProbability) : null,
-    closure_rationale: row.closureRationale != null ? String(row.closureRationale) : null,
-    recommended_action: row.recommendedAction != null ? String(row.recommendedAction) : null,
+    closure_probability: closureProbabilityRaw != null ? Number(closureProbabilityRaw) : null,
+    closure_rationale: closureRationaleRaw != null ? String(closureRationaleRaw) : null,
+    recommended_action: recommendedActionRaw != null ? String(recommendedActionRaw) : null,
     next_action_date: row.nextActionDate ? new Date(row.nextActionDate).toISOString() : null,
     next_action_date_suggestion: row.nextActionDateSuggestion ? new Date(row.nextActionDateSuggestion).toISOString() : null,
     next_action_note: row.nextActionNote != null ? String(row.nextActionNote) : null,
@@ -128,6 +135,15 @@ async function upsertCanonicalClientByEmail(params: {
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] clients lookup failed (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/system-leads.upsertCanonicalClientByEmail',
+        reason: 'clients lookup schema mismatch (fallback to createClientForWorkspace dedupe)',
+        error: e,
+        extras: { organizationId, email: normalizedEmail },
+      });
     }
     findError = e;
   }
@@ -232,7 +248,10 @@ export async function getSystemCalendarEventsRange(params: {
       try {
         const where: Prisma.SystemCalendarEventWhereInput = {
           organizationId,
-          date: { gte: fromDateStr, lt: toDateStr },
+          OR: [
+            { occursAt: { gte: fromDate, lt: toDate } },
+            { occursAt: null, date: { gte: fromDateStr, lt: toDateStr } },
+          ],
         };
 
         const rows = await prisma.systemCalendarEvent.findMany({
@@ -248,6 +267,15 @@ export async function getSystemCalendarEventsRange(params: {
           throw new Error(
             `[SchemaMismatch] systemCalendarEvent query failed (${getUnknownErrorMessage(e) || 'missing relation'})`
           );
+        }
+
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/system-leads.getSystemCalendarEventsRange',
+            reason: 'systemCalendarEvent query schema mismatch (fallback to legacy date filter)',
+            error: e,
+            extras: { organizationId, from: fromDateStr, to: toDateStr },
+          });
         }
         console.error('[system-leads] getSystemCalendarEventsRange failed; fallback to legacy date filter', e);
         const rows = await prisma.systemCalendarEvent.findMany({
@@ -413,6 +441,21 @@ export async function getSystemCalendarEvents(params: {
         });
         return rows.map(toCalendarEventDto);
       } catch (e: unknown) {
+        if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
+          throw new Error(
+            `[SchemaMismatch] systemCalendarEvent query failed (${getUnknownErrorMessage(e) || 'missing relation'})`
+          );
+        }
+
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/system-leads.getSystemCalendarEvents',
+            reason: 'systemCalendarEvent query schema mismatch (fallback retry)',
+            error: e,
+            extras: { organizationId, take },
+          });
+        }
+
         // Backwards-compatible fallback for DBs that don't have occurs_at yet.
         const rows = await prisma.systemCalendarEvent.findMany({
           where: { organizationId },
@@ -467,34 +510,78 @@ export async function createSystemCalendarEvent(params: {
           if (!lead?.id) return { ok: false, message: 'Lead not found' };
         }
 
-        const created = await prisma.systemCalendarEvent.create({
-          data: {
-            organizationId,
-            leadId,
-            title,
-            leadName,
-            leadCompany,
-            dayName,
-            date,
-            time,
-            type,
-            location,
-            participants: params.participants == null ? null : Number(params.participants),
-            reminders:
-              params.reminders === undefined
-                ? undefined
-                : params.reminders === null
-                  ? Prisma.DbNull
-                  : params.reminders,
-            postMeeting:
-              params.postMeeting === undefined
-                ? undefined
-                : params.postMeeting === null
-                  ? Prisma.DbNull
-                  : params.postMeeting,
-          },
-          select: SYSTEM_CALENDAR_EVENT_SELECT,
-        });
+        let occursAt: Date | null = null;
+        try {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(date) && /^\d{1,2}:\d{2}$/.test(time)) {
+            const iso = `${date}T${time.length === 4 ? `0${time}` : time}:00.000Z`;
+            const parsed = new Date(iso);
+            occursAt = Number.isNaN(parsed.getTime()) ? null : parsed;
+          }
+        } catch {
+          occursAt = null;
+        }
+
+        let created: SystemCalendarEventRow;
+        try {
+          created = await prisma.systemCalendarEvent.create({
+            data: {
+              organizationId,
+              leadId,
+              title,
+              leadName,
+              leadCompany,
+              dayName,
+              date,
+              time,
+              occursAt,
+              type,
+              location,
+              participants: params.participants == null ? null : Number(params.participants),
+              reminders:
+                params.reminders === undefined
+                  ? undefined
+                  : params.reminders === null
+                    ? Prisma.DbNull
+                    : params.reminders,
+              postMeeting:
+                params.postMeeting === undefined
+                  ? undefined
+                  : params.postMeeting === null
+                    ? Prisma.DbNull
+                    : params.postMeeting,
+            } as unknown as Prisma.SystemCalendarEventUncheckedCreateInput,
+            select: SYSTEM_CALENDAR_EVENT_SELECT,
+          });
+        } catch {
+          created = await prisma.systemCalendarEvent.create({
+            data: {
+              organizationId,
+              leadId,
+              title,
+              leadName,
+              leadCompany,
+              dayName,
+              date,
+              time,
+              type,
+              location,
+              participants: params.participants == null ? null : Number(params.participants),
+              reminders:
+                params.reminders === undefined
+                  ? undefined
+                  : params.reminders === null
+                    ? Prisma.DbNull
+                    : params.reminders,
+              postMeeting:
+                params.postMeeting === undefined
+                  ? undefined
+                  : params.postMeeting === null
+                    ? Prisma.DbNull
+                    : params.postMeeting,
+            },
+            select: SYSTEM_CALENDAR_EVENT_SELECT,
+          });
+        }
 
         return { ok: true, event: toCalendarEventDto(created) };
       },
@@ -979,7 +1066,7 @@ ${history || 'אין אינטראקציות עדיין'}
             closureProbability: nextClosureProbability,
             closureRationale: nextClosureRationale || null,
             recommendedAction: nextRecommendedAction || null,
-          },
+          } as unknown as Prisma.SystemLeadUncheckedUpdateManyInput,
         });
 
         if (!updated.count) {
@@ -1084,6 +1171,15 @@ export async function createSystemLeadActivity(params: {
               throw new Error(
                 `[SchemaMismatch] recomputeSystemLeadAiScore failed (${getUnknownErrorMessage(error) || 'missing relation'})`
               );
+            }
+
+            if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+              reportSchemaFallback({
+                source: 'app/actions/system-leads.createSystemLeadActivity',
+                reason: 'recomputeSystemLeadAiScore schema mismatch (fallback to base lead dto)',
+                error,
+                extras: { orgSlug, leadId },
+              });
             }
             return null;
           });

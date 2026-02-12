@@ -254,7 +254,7 @@ def create_pdf_from_screenshots(screenshots):
     # Title page
     story.append(Paragraph(reverse_hebrew("תיעוד מסכי המערכת"), title_style))
     story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph(reverse_hebrew("Scale CRM / Nexus OS"), subheading_style))
+    story.append(Paragraph(reverse_hebrew("MISRAD AI"), subheading_style))
     story.append(Spacer(1, 0.3*cm))
     story.append(Paragraph(reverse_hebrew(f"נוצר ב-{datetime.now().strftime('%d/%m/%Y %H:%M')}"), normal_style))
     story.append(Spacer(1, 0.5*cm))

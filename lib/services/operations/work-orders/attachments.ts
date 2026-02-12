@@ -9,6 +9,7 @@ import {
   logOperationsError,
   toIsoDate,
 } from '@/lib/services/operations/shared';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { resolveStorageUrlsMaybeBatched } from '@/lib/services/operations/storage';
 import type { OperationsWorkOrderAttachmentRow } from '@/lib/services/operations/types';
 
@@ -66,6 +67,15 @@ export async function addOperationsWorkOrderAttachmentForOrganizationId(params: 
         `[SchemaMismatch] operations_work_order_attachments missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
       );
     }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/attachments.addOperationsWorkOrderAttachmentForOrganizationId',
+        reason: 'operations_work_order_attachments schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), workOrderId: String(params.workOrderId || '') },
+      });
+    }
     logOperationsError('[operations] addOperationsWorkOrderAttachment failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת קובץ לקריאה' };
   }
@@ -121,6 +131,15 @@ export async function getOperationsWorkOrderAttachmentsForOrganizationId(params:
       throw new Error(
         `[SchemaMismatch] operations_work_order_attachments missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
       );
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/attachments.getOperationsWorkOrderAttachmentsForOrganizationId',
+        reason: 'operations_work_order_attachments schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), workOrderId: String(params.workOrderId || '') },
+      });
     }
     logOperationsError('[operations] getOperationsWorkOrderAttachments failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת קבצים לקריאה' };

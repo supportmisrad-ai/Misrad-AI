@@ -9,6 +9,7 @@ import { UpdatesTab } from '../components/settings/UpdatesTab';
 import { DataTab } from '../components/settings/SystemTabs';
 import { useNexusNavigation } from '@/lib/os/nexus-routing';
 import { useSearchParams } from 'next/navigation';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 // New Components
 import { TenantsPanel } from '../components/saas/TenantsPanel';
@@ -49,6 +50,8 @@ type ClientTab = 'support' | 'features' | 'announcements';
 type LandingTab = 'pricing' | 'payment_links' | 'videos' | 'logo' | 'branding' | 'partners' | 'founder' | 'announcements';
 type SocialTab = 'overview' | 'team' | 'integrations' | 'quotas' | 'automation' | 'features' | 'updates';
 
+type SystemMetricsData = NonNullable<Awaited<ReturnType<typeof getSystemMetrics>>['data']>;
+
 export const SaaSAdminView: React.FC = () => {
     const { tenants, addTenant, updateTenant, deleteTenant, products, feedbacks, systemReports, markReportRead, addToast, switchToTenantConfig, organization, updateSystemFlag, userApprovalRequests, approveUserRequest, rejectUserRequest, addAllowedEmail, removeAllowedEmail, currentUser, availableVersions, updateTenantVersion } = useData();
     const [selectedSystem, setSelectedSystem] = useState<SystemType>(null);
@@ -60,7 +63,7 @@ export const SaaSAdminView: React.FC = () => {
     const [socialTab, setSocialTab] = useState<SocialTab>('overview');
     const [searchTerm, setSearchTerm] = useState('');
     const [isLoadingTenants, setIsLoadingTenants] = useState(false);
-    const [adminSystemMetrics, setAdminSystemMetrics] = useState<any>(null);
+    const [adminSystemMetrics, setAdminSystemMetrics] = useState<SystemMetricsData | null>(null);
     
     // Modal States
     const [isAddTenantOpen, setIsAddTenantOpen] = useState(false);
@@ -155,9 +158,6 @@ export const SaaSAdminView: React.FC = () => {
         return `${base}${path}`;
     };
 
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
     const handleCopyMarketingLinks = async () => {
         const links = getMarketingLinks();
         const text = links.map((l) => `${l.label}: ${toAbsoluteUrl(l.path)}`).join('\n');
@@ -186,17 +186,17 @@ export const SaaSAdminView: React.FC = () => {
                 });
 
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
+                const payload = extractData<{ tenants?: Tenant[]; error?: string }>(raw);
 
                 if (!response.ok) {
                     if (response.status === 401) {
                         addToast('אינך מורשה לראות tenants', 'error');
                         return;
                     }
-                    throw new Error((payload as any)?.error || (raw as any)?.error || 'Failed to load tenants');
+                    throw new Error(extractError(raw) || payload?.error || 'Failed to load tenants');
                 }
 
-                const loadedTenants = (payload as any).tenants || [];
+                const loadedTenants = Array.isArray(payload?.tenants) ? payload.tenants : [];
                 
                 // Update local state with loaded tenants
                 // Add tenants that don't exist yet
@@ -284,13 +284,16 @@ export const SaaSAdminView: React.FC = () => {
 
             if (!response.ok) {
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה ביצירת tenant');
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה ביצירת tenant');
             }
 
             const raw = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
-            const newTenant = (payload as any).tenant;
+            const payload = extractData<{ tenant?: Tenant }>(raw);
+            const newTenant = payload?.tenant;
+            if (!newTenant || !newTenant.id) {
+                throw new Error('שגיאה ביצירת tenant');
+            }
 
             // Add to local state
             addTenant(newTenant);
@@ -301,9 +304,9 @@ export const SaaSAdminView: React.FC = () => {
                 try {
                     await handleUpdateTenant(newTenant.id, { status: 'Active' });
                 } catch (error) {
-                    // Error already handled in handleUpdateTenant
+                    console.error('[SaaSAdmin] Error setting tenant to Active:', error);
                 }
-            }, 3500);
+            }, 1500);
 
         } catch (error: any) {
             console.error('[SaaSAdmin] Error creating tenant:', error);
@@ -326,13 +329,16 @@ export const SaaSAdminView: React.FC = () => {
 
             if (!response.ok) {
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בעדכון tenant');
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה בעדכון tenant');
             }
 
             const raw = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
-            const updatedTenant = (payload as any).tenant;
+            const payload = extractData<{ tenant?: Tenant }>(raw);
+            const updatedTenant = payload?.tenant;
+            if (!updatedTenant) {
+                throw new Error('שגיאה בעדכון tenant');
+            }
 
             // Update local state only if API call succeeded
             updateTenant(id, updatedTenant);
@@ -345,9 +351,9 @@ export const SaaSAdminView: React.FC = () => {
     };
 
     const toggleStatus = async (id: string, currentStatus: string) => {
-        const newStatus = currentStatus === 'Active' ? 'Churned' : 'Active';
+        const newStatus: Tenant['status'] = currentStatus === 'Active' ? 'Churned' : 'Active';
         try {
-            await handleUpdateTenant(id, { status: newStatus as any });
+            await handleUpdateTenant(id, { status: newStatus });
         } catch (error) {
             // Error already handled in handleUpdateTenant
         }
@@ -374,8 +380,8 @@ export const SaaSAdminView: React.FC = () => {
 
             if (!response.ok) {
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה במחיקת tenant');
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה במחיקת tenant');
             }
 
             await response.json().catch(() => ({}));

@@ -6,6 +6,7 @@ import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { asObject } from '@/lib/shared/unknown';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
@@ -141,14 +142,23 @@ async function GETHandler() {
       };
     });
 
+    const ttlSeconds = 60 * 60;
+
+    const resolved = await Promise.all(
+      workspaces.map(async (w) => {
+        const signedLogo = await resolveStorageUrlMaybeServiceRole(w.logo, ttlSeconds, { organizationId: String(w.id) });
+        return { ...w, logo: signedLogo ?? null };
+      })
+    );
+
     void logAuditEvent('data.read', 'workspaces.list', {
       details: {
-        workspaceCount: workspaces.length,
-        primaryOrganizationId: socialUser.organization_id ?? null,
+        workspaceCount: resolved.length,
+        primaryOrganizationId: socialUser?.organization_id ?? null,
       },
     });
 
-    return workspaces;
+    return resolved;
   })();
 
   workspacesInFlight.set(clerkUserId, loadPromise);

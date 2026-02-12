@@ -20,11 +20,11 @@
 ## Facebook Group Strategy
 
 ### שם הקבוצה
-**"בעלי עסקים קטנים בישראל — טיפים, עזרה, נטוורקינג"**
+**"מנהלים ויזמים בישראל — טיפים, עזרה, נטוורקינג"**
 
 **לא:**
 - "MISRAD AI Users" — יותר מדי promotional
-- "CRM Help" — יותר מדי צר
+- "AI CRM Help" — יותר מדי צר
 
 ---
 
@@ -133,7 +133,7 @@ MISRAD AI Community (Slack)
 ├── #feature-requests — רעיונות
 ├── #bug-reports — באגים
 ├── #integrations — API, Zapier
-├── #crm — דיונים על CRM
+├── #crm-ai — דיונים על AI וניהול
 ├── #social — שיווק דיגיטלי
 ├── #finance — חשבונאות
 └── #random — off-topic
@@ -202,7 +202,7 @@ Broadcast List (לא קבוצה!) — הודעות לכיוון אחד
 ## LinkedIn Group (Optional)
 
 ### שם
-"ניהול עסקים ישראליים — CRM, שיווק, כספים"
+"ניהול ארגונים בישראל — AI, שיווק, כספים"
 
 ### למה?
 - B2B Audience

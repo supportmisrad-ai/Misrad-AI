@@ -3,6 +3,9 @@
 import prisma from '@/lib/prisma';
 import { asObject, getErrorMessage } from '@/lib/server/workspace-access/utils';
 
+import { requireAuth } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
+
 /**
  * Debug function to check Supabase connection
  * Call this from client to see what's happening
@@ -12,6 +15,29 @@ export async function debugSupabaseConnection(): Promise<{
   details: Record<string, unknown>;
 }> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return {
+        success: false,
+        details: {
+          step: 'auth',
+          error: authCheck.error || 'נדרשת התחברות',
+        },
+      };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return {
+        success: false,
+        details: {
+          step: 'auth',
+          error: 'אין הרשאה',
+        },
+      };
+    }
+
     const isProd = process.env.NODE_ENV === 'production';
     if (isProd) {
       return {

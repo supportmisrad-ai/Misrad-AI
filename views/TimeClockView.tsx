@@ -48,6 +48,11 @@ export const TimeClockView: React.FC = () => {
   const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
   const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit' });
 
+  const getMapUrl = (lat?: number, lng?: number) => {
+      if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+  };
+
   // Permission check
   const isManager = hasPermission('manage_team');
 
@@ -337,7 +342,9 @@ export const TimeClockView: React.FC = () => {
                                 <th className="px-6 py-4 rounded-tr-3xl">שם העובד</th>
                                 <th className="px-6 py-4">תאריך</th>
                                 <th className="px-6 py-4">שעת כניסה</th>
+                                <th className="px-6 py-4">מיקום כניסה</th>
                                 <th className="px-6 py-4">שעת יציאה</th>
+                                <th className="px-6 py-4">מיקום יציאה</th>
                                 <th className="px-6 py-4">משך זמן</th>
                                 <th className="px-6 py-4">סטטוס</th>
                                 {isManager && <th className="px-6 py-4 text-left rounded-tl-3xl">פעולות</th>}
@@ -346,6 +353,8 @@ export const TimeClockView: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                             {filteredEntries.length > 0 ? filteredEntries.map((entry: TimeEntry) => {
                                 const user = users.find((u: User) => u.id === entry.userId);
+                                const startMapUrl = getMapUrl(entry?.startLat, entry?.startLng);
+                                const endMapUrl = getMapUrl(entry?.endLat, entry?.endLng);
                                 return (
                                     <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                         <td className="px-6 py-4 flex items-center gap-3 font-bold text-gray-900">
@@ -356,7 +365,25 @@ export const TimeClockView: React.FC = () => {
                                             {formatDate(entry.date)}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-gray-600">{formatTime(entry.startTime)}</td>
+                                        <td className="px-6 py-4 text-xs">
+                                            {startMapUrl ? (
+                                                <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                    <MapPin size={14} /> הצג
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 font-mono text-gray-600">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
+                                        <td className="px-6 py-4 text-xs">
+                                            {endMapUrl ? (
+                                                <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                    <MapPin size={14} /> הצג
+                                                </a>
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-4 font-bold text-gray-800">
                                             {entry.durationMinutes ? `${Math.floor(entry.durationMinutes / 60)}:${(entry.durationMinutes % 60).toString().padStart(2, '0')}` : '-'}
                                         </td>
@@ -391,7 +418,7 @@ export const TimeClockView: React.FC = () => {
                                 );
                             }) : (
                                 <tr>
-                                    <td colSpan={isManager ? 7 : 6} className="p-16 text-center text-gray-400">
+                                    <td colSpan={isManager ? 9 : 8} className="p-16 text-center text-gray-400">
                                         <History size={48} className="mx-auto mb-4 opacity-20" />
                                         <p>אין רישומים בטווח התאריכים הנבחר.</p>
                                     </td>

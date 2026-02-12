@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createStorageClientMaybe } from '@/lib/supabase';
+import { createServiceRoleStorageClient, createStorageClientMaybe } from '@/lib/supabase';
 import { asObject } from '@/lib/shared/unknown';
 
 type StorageScope = { organizationId: string; orgSlug?: string | null };
@@ -46,6 +46,18 @@ export function toSbRefMaybe(refOrUrl: string | null | undefined): string | null
   } catch {
     return null;
   }
+}
+
+export async function resolveStorageUrlMaybeServiceRole(
+  refOrUrl: string | null | undefined,
+  ttlSeconds: number,
+  scope: StorageScope
+): Promise<string | null> {
+  const raw = refOrUrl === null || refOrUrl === undefined ? '' : String(refOrUrl).trim();
+  if (!raw) return null;
+
+  const [resolved] = await resolveStorageUrlsMaybeBatchedServiceRole([raw], ttlSeconds, scope);
+  return resolved ?? null;
 }
 
 export function parseSbRef(ref: string): { bucket: string; path: string } | null {
@@ -121,6 +133,22 @@ export async function resolveStorageUrlsMaybeBatched(
   }
 
   return resolveStorageUrlsMaybeBatchedWithClient(sb, refsOrUrls, ttlSeconds, scope);
+}
+
+export async function resolveStorageUrlsMaybeBatchedServiceRole(
+  refsOrUrls: Array<string | null | undefined>,
+  ttlSeconds: number,
+  scope: StorageScope
+): Promise<(string | null)[]> {
+  const inputs = Array.isArray(refsOrUrls) ? refsOrUrls : [];
+  if (!inputs.length) return [];
+
+  try {
+    const sb = createServiceRoleStorageClient({ allowUnscoped: true, reason: 'storage_signed_url_resolve' });
+    return await resolveStorageUrlsMaybeBatchedWithClient(sb, inputs, ttlSeconds, scope);
+  } catch {
+    return inputs.map(() => null);
+  }
 }
 
 export async function resolveStorageUrlsMaybeBatchedWithClient(

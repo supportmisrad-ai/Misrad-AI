@@ -9,6 +9,8 @@ import {
   AIGenerateJsonResult,
   AIGenerateTextParams,
   AIGenerateTextResult,
+  AIStreamTextParams,
+  AIStreamTextResult,
   AITaskKind,
   AIProviderName,
   AITranscribeParams,
@@ -1353,6 +1355,87 @@ export class AIService {
     }
 
     throw new AIProviderError({ provider: params.provider, message: 'Provider not implemented yet' });
+  }
+
+  async streamText(params: AIStreamTextParams): Promise<AIStreamTextResult> {
+    const ctx = await this.resolveContext({ organizationId: params.organizationId, userId: params.userId });
+    const feature = await this.loadFeatureSettings({ organizationId: ctx.organizationId, featureKey: params.featureKey });
+
+    const effectivePrompt = await this.assemblePrompt({
+      organizationId: ctx.organizationId,
+      featureKey: params.featureKey,
+      basePrompt: feature.settings.base_prompt ?? null,
+      userRequest: params.prompt,
+      meta: params.meta,
+    });
+
+    const systemInstruction = this.mergeSystemInstruction(params.systemInstruction);
+    const provider = feature.settings.primary_provider;
+    const model = feature.settings.primary_model;
+
+    const modelDisplayName = await this.getModelDisplayName({
+      organizationId: ctx.organizationId,
+      provider,
+      model,
+    });
+
+    const stream = await this.tryStreamText({
+      organizationId: ctx.organizationId,
+      provider,
+      model,
+      prompt: effectivePrompt,
+      systemInstruction,
+      timeoutMs: feature.settings.timeout_ms,
+    });
+
+    return {
+      stream: stream.stream,
+      provider,
+      model,
+      modelDisplayName,
+    };
+  }
+
+  private async tryStreamText(params: {
+    organizationId: string;
+    provider: AIProviderName;
+    model: string;
+    prompt: string;
+    systemInstruction?: string;
+    timeoutMs: number;
+  }): Promise<{ stream: ReadableStream<Uint8Array> }> {
+    if (params.provider === 'google') {
+      const apiKey = await this.getProviderKey({ provider: 'google', organizationId: params.organizationId });
+      const gemini = new GeminiProvider(apiKey);
+      return gemini.streamText({
+        model: params.model,
+        prompt: params.prompt,
+        systemInstruction: params.systemInstruction,
+        timeoutMs: params.timeoutMs,
+      });
+    }
+
+    if (params.provider === 'openai') {
+      const apiKey = await this.getProviderKey({ provider: 'openai', organizationId: params.organizationId });
+      const openai = new OpenAIProvider(apiKey);
+      return openai.streamText({
+        model: params.model,
+        prompt: params.prompt,
+        systemInstruction: params.systemInstruction,
+        timeoutMs: params.timeoutMs,
+      });
+    }
+
+    // Fallback to non-streaming for providers that don't support it yet
+    const result = await this.tryGenerateText(params);
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(result.text));
+        controller.close();
+      },
+    });
+    return { stream };
   }
 
   private async tryGenerateText(params: {

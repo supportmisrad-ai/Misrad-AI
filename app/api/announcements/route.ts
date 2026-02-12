@@ -13,10 +13,11 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -145,6 +146,12 @@ async function GETHandler(request: NextRequest) {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
                 }
+                reportSchemaFallback({
+                    source: 'api/announcements',
+                    reason: 'announcements missing table/column (GET)',
+                    error,
+                    extras: { workspaceId: workspace.id },
+                });
                 return apiSuccess({ announcements: [] }, { status: 200 });
             }
             if (IS_PROD) console.error('[API] Error fetching announcements');
@@ -218,6 +225,12 @@ async function POSTHandler(request: NextRequest) {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
                 }
+                reportSchemaFallback({
+                    source: 'api/announcements',
+                    reason: 'announcements missing table/column (POST)',
+                    error,
+                    extras: { workspaceId: workspace.id },
+                });
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
             if (IS_PROD) console.error('[API] Error creating announcement');
@@ -270,6 +283,12 @@ async function POSTHandler(request: NextRequest) {
                     if (!ALLOW_SCHEMA_FALLBACKS) {
                         throw new Error(`[SchemaMismatch] misrad_notifications missing table/column (${getErrorMessage(notifError) || 'missing relation'})`);
                     }
+                    reportSchemaFallback({
+                        source: 'api/announcements',
+                        reason: 'misrad_notifications missing table/column (createMany ignored)',
+                        error: notifError,
+                        extras: { workspaceId: workspace.id },
+                    });
                 } else {
                     if (IS_PROD) console.error('[API] Error creating notifications');
                     else console.error('[API] Error creating notifications:', notifError);

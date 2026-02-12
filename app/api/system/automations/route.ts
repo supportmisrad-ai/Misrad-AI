@@ -9,7 +9,8 @@ import { Prisma } from '@prisma/client';
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
 import { asObject } from '@/lib/shared/unknown';
-const AI_DNA_KEY_AUTOMATIONS = '__automations_v1';
+const AI_DNA_KEY_AUTOMATIONS = '__automations_v1';
+
 
 function readAiDnaObject(input: unknown): Record<string, unknown> {
   return asObject(input) ?? {};
@@ -77,6 +78,7 @@ async function PATCHHandler(request: NextRequest) {
         ai_dna: nextAiDna as Prisma.InputJsonValue,
       },
       update: {
+        organization_id: String(workspace.id),
         ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },

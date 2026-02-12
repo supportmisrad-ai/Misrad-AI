@@ -1,5 +1,6 @@
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { currentUser } from '@clerk/nextjs/server';
 import LobbyClient from './LobbyClient';
 
@@ -42,10 +43,12 @@ export default async function LobbyPage({
     };
   }
 
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+
   return (
     <LobbyClient
       orgSlug={orgSlug}
-      workspace={{ name: workspace.name, logoUrl: workspace.logo || null }}
+      workspace={{ name: workspace.name, logoUrl: signedLogo || null }}
       user={{ name: user?.name || 'User', role: user?.role || null, avatarUrl: user?.avatar || null }}
       entitlements={workspace.entitlements ?? {}}
       kpis={null}

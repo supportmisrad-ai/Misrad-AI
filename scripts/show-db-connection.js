@@ -29,17 +29,17 @@ if (explicitEnv) {
   }
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function tableExists(tableName) {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT EXISTS (
+  const rows = await prisma.$queryRaw(Prisma.sql`
+    SELECT EXISTS (
       SELECT 1
       FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name = '${tableName}'
-    ) AS exists`
-  );
+      WHERE table_schema = 'public' AND table_name = ${String(tableName)}
+    ) AS exists
+  `);
   return Boolean(rows?.[0]?.exists);
 }
 
@@ -82,8 +82,8 @@ async function main() {
     console.log('\n\n📡 Actual DB Connection:');
     console.log('='.repeat(60));
     
-    const conn = await prisma.$queryRawUnsafe(`
-      SELECT 
+    const conn = await prisma.$queryRaw(Prisma.sql`
+      SELECT
         inet_server_addr()::text as server_ip,
         inet_server_port() as server_port,
         current_database() as db,
@@ -103,17 +103,23 @@ async function main() {
     const hasSocialOrgs = await tableExists('social_organizations');
     const hasOrgs = await tableExists('organizations');
     const orgTable = hasSocialOrgs ? 'social_organizations' : hasOrgs ? 'organizations' : null;
-    const orgs = orgTable
-      ? await prisma.$queryRawUnsafe(`SELECT COUNT(*)::int as count FROM ${orgTable}`)
+    let orgs = [{ count: null }];
+    if (orgTable === 'social_organizations' || orgTable === 'organizations') {
+      orgs = await prisma.$queryRaw(
+        Prisma.sql`SELECT COUNT(*)::int as count FROM ${Prisma.raw(String(orgTable))}`
+      );
+    }
+    
+    const hasOrgUsers = await tableExists('organization_users');
+    const users = hasOrgUsers
+      ? await prisma.$queryRaw(Prisma.sql`
+          SELECT COUNT(*)::int as count FROM organization_users
+        `)
       : [{ count: null }];
     
-    const users = await prisma.$queryRawUnsafe(`
-      SELECT COUNT(*)::int as count FROM organization_users
-    `);
-    
-    const migrations = await prisma.$queryRawUnsafe(`
+    const migrations = await prisma.$queryRaw(Prisma.sql`
       SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_schema='public' AND table_name='_prisma_migrations'
       ) AS has_migrations
     `);
@@ -125,10 +131,10 @@ async function main() {
     console.log(`   Has Prisma Migrations: ${migrations[0].has_migrations ? 'YES' : 'NO'}`);
     
     if (migrations[0].has_migrations) {
-      const lastMigrations = await prisma.$queryRawUnsafe(`
-        SELECT migration_name, finished_at 
-        FROM _prisma_migrations 
-        ORDER BY finished_at DESC NULLS LAST 
+      const lastMigrations = await prisma.$queryRaw(Prisma.sql`
+        SELECT migration_name, finished_at
+        FROM _prisma_migrations
+        ORDER BY finished_at DESC NULLS LAST
         LIMIT 5
       `);
       

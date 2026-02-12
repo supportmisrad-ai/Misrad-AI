@@ -7,7 +7,7 @@
 require('dotenv').config({ path: '.env' });
 try { require('dotenv').config({ path: '.env.local' }); } catch {}
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
@@ -26,7 +26,7 @@ async function main() {
     console.log('✅ Environment: development');
     
     // 2. Check for pending migrations
-    const migrations = await prisma.$queryRawUnsafe(`
+    const migrations = await prisma.$queryRaw(Prisma.sql`
       SELECT EXISTS (
         SELECT 1 FROM information_schema.tables 
         WHERE table_schema='public' AND table_name='_prisma_migrations'
@@ -34,7 +34,7 @@ async function main() {
     `);
     
     if (migrations[0].has_table) {
-      const pending = await prisma.$queryRawUnsafe(`
+      const pending = await prisma.$queryRaw(Prisma.sql`
         SELECT COUNT(*)::int as count 
         FROM _prisma_migrations 
         WHERE finished_at IS NULL
@@ -49,8 +49,8 @@ async function main() {
     }
     
     // 3. Check data count
-    const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as c FROM organization_users');
+    const orgs = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as c FROM organizations`);
+    const users = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as c FROM organization_users`);
     
     console.log(`✅ Data count: ${orgs[0].c} orgs, ${users[0].c} users`);
     

@@ -109,7 +109,13 @@ async function POSTHandler(request: NextRequest) {
             }
 
             // Delete from database
-            return prisma.scale_integrations.delete({ where: { id: String(integration.id) } });
+            return prisma.scale_integrations.deleteMany({
+                where: {
+                    id: String(integration.id),
+                    tenant_id: String(workspace.id),
+                    user_id: String(dbUserId),
+                },
+            });
         });
 
         await Promise.all(revokePromises);

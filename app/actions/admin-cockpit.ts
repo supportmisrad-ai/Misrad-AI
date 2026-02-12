@@ -8,10 +8,10 @@ import { requireSuperAdmin } from '@/lib/auth';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { Prisma } from '@prisma/client';
 
-
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};
@@ -670,6 +670,14 @@ export async function getFeatureFlags(): Promise<{
             `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
         }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.getFeatureFlags',
+            reason: 'coreSystemSettings feature_flags lookup schema mismatch (fallback to defaults)',
+            error,
+          });
+        }
         return null;
       });
 
@@ -719,6 +727,14 @@ export async function getFeatureFlags(): Promise<{
         `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
       );
     }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/admin-cockpit.getFeatureFlags',
+        reason: 'coreSystemSettings feature_flags lookup schema mismatch (fallback to defaults)',
+        error,
+      });
+    }
     // If table doesn't exist, return defaults
     return createSuccessResponse({
       maintenanceMode: false,
@@ -767,6 +783,14 @@ export async function updateFeatureFlags(
           throw new Error(
             `[SchemaMismatch] social_system_settings feature_flags lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
+        }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.updateFeatureFlags',
+            reason: 'coreSystemSettings feature_flags lookup schema mismatch (fallback to defaults)',
+            error,
+          });
         }
         return null;
       });
@@ -885,6 +909,14 @@ export async function getSystemEmailSettings(): Promise<{
             `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
         }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.getSystemEmailSettings',
+            reason: 'coreSystemSettings system_email_settings lookup schema mismatch (fallback to env defaults)',
+            error,
+          });
+        }
         return null;
       });
 
@@ -917,6 +949,14 @@ export async function getSystemEmailSettings(): Promise<{
         `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
       );
     }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/admin-cockpit.getSystemEmailSettings',
+        reason: 'coreSystemSettings system_email_settings lookup schema mismatch (fallback to env defaults)',
+        error,
+      });
+    }
     const supportEmailFallback = (process.env.MISRAD_SUPPORT_EMAIL || 'support@misrad-ai.com,itsikdahan1@gmail.com').trim();
     const migrationEmailFallback = (process.env.MISRAD_MIGRATION_EMAIL || '').trim();
     return createSuccessResponse({
@@ -944,6 +984,14 @@ export async function updateSystemEmailSettings(input: {
           throw new Error(
             `[SchemaMismatch] social_system_settings system_email_settings lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
+        }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.updateSystemEmailSettings',
+            reason: 'coreSystemSettings system_email_settings lookup schema mismatch (fallback to defaults)',
+            error,
+          });
         }
         return null;
       });
@@ -1009,6 +1057,14 @@ export async function getModuleIcons(): Promise<{
             `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
         }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.getModuleIcons',
+            reason: 'coreSystemSettings module_icons lookup schema mismatch (fallback to empty object)',
+            error,
+          });
+        }
         return null;
       });
 
@@ -1035,6 +1091,14 @@ export async function getModuleIcons(): Promise<{
         `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
       );
     }
+
+    if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'app/actions/admin-cockpit.getModuleIcons',
+        reason: 'coreSystemSettings module_icons lookup schema mismatch (fallback to empty object)',
+        error,
+      });
+    }
     return createSuccessResponse({});
   }
 }
@@ -1056,6 +1120,14 @@ export async function updateModuleIcons(params: {
           throw new Error(
             `[SchemaMismatch] social_system_settings module_icons lookup failed (${getUnknownErrorMessage(error) || 'missing relation'})`
           );
+        }
+
+        if (isSchemaMismatchError(error) && ALLOW_SCHEMA_FALLBACKS) {
+          reportSchemaFallback({
+            source: 'app/actions/admin-cockpit.updateModuleIcons',
+            reason: 'coreSystemSettings module_icons lookup schema mismatch (fallback to defaults)',
+            error,
+          });
         }
         return null;
       });

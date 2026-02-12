@@ -11,10 +11,11 @@ import prisma from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -80,6 +81,12 @@ async function DELETEHandler(
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
                 }
+                reportSchemaFallback({
+                    source: 'api/announcements/[id]',
+                    reason: 'announcements missing table/column (DELETE)',
+                    error,
+                    extras: { workspaceId: workspace.id, announcementId: id },
+                });
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
             if (IS_PROD) console.error('[API] Error deleting announcement');
@@ -140,6 +147,12 @@ async function PATCHHandler(
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] announcements missing table/column (${getErrorMessage(error) || 'missing relation'})`);
                 }
+                reportSchemaFallback({
+                    source: 'api/announcements/[id]',
+                    reason: 'announcements missing table/column (PATCH)',
+                    error,
+                    extras: { workspaceId: workspace.id, announcementId: id },
+                });
                 return apiError('Announcements table is not configured in the database', { status: 501 });
             }
             if (IS_PROD) console.error('[API] Error updating announcement');

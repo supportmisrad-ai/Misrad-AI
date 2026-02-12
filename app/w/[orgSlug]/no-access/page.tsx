@@ -71,7 +71,7 @@ export default async function NoAccessPage({
         </div>
 
         <div className="mt-8 text-center text-xs text-white/40">
-          Nexus Villa OS · Access Control
+          MISRAD AI · בקרת גישה
         </div>
       </div>
     </div>

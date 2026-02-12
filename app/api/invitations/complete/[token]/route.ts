@@ -11,10 +11,11 @@ import { getClientIpFromRequest, rateLimit } from '@/lib/server/rateLimit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import prisma from '@/lib/prisma';
 import { MisradNotificationType, Prisma } from '@prisma/client';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -220,6 +221,14 @@ async function POSTHandler(
                 if (!ALLOW_SCHEMA_FALLBACKS && isSchemaMismatchError(clientError)) {
                     throw new Error(`[SchemaMismatch] nexusClient update failed (${msg || 'missing relation'})`);
                 }
+                if (ALLOW_SCHEMA_FALLBACKS && isSchemaMismatchError(clientError)) {
+                    reportSchemaFallback({
+                        source: 'api/invitations/complete/[token]',
+                        reason: 'nexusClient update failed (ignored)',
+                        error: clientError,
+                        extras: { clientId: invitation.client_id },
+                    });
+                }
                 if (IS_PROD) console.error('[API] Error updating client (ignored)');
                 else console.error('[API] Error updating client:', clientError);
                 // Don't fail the request if client update fails
@@ -228,21 +237,22 @@ async function POSTHandler(
 
         // Send notification to all super admins
         // Try to create a system task or notification for admins
+        let notificationOrganizationId: string | null = null;
         try {
             const organizationIdFromMetadata = asObject(invitation?.metadata)?.organizationId ?? null;
 
-            let organizationId: string | null =
+            notificationOrganizationId =
                 typeof organizationIdFromMetadata === 'string' && organizationIdFromMetadata.length > 0 ? organizationIdFromMetadata : null;
 
-            if (!organizationId && invitation.client_id) {
+            if (!notificationOrganizationId && invitation.client_id) {
                 const clientOrg = await prisma.nexusClient.findUnique({
                     where: { id: String(invitation.client_id) },
                     select: { organizationId: true },
                 });
-                if (clientOrg?.organizationId) organizationId = String(clientOrg.organizationId);
+                if (clientOrg?.organizationId) notificationOrganizationId = String(clientOrg.organizationId);
             }
 
-            if (!organizationId) {
+            if (!notificationOrganizationId) {
                 return apiSuccess(
                     {
                         message: 'הטופס נשלח בהצלחה',
@@ -256,7 +266,7 @@ async function POSTHandler(
                 );
             }
 
-            const adminIds = await selectTenantAdminIdsInWorkspace({ workspaceId: String(organizationId) });
+            const adminIds = await selectTenantAdminIdsInWorkspace({ workspaceId: String(notificationOrganizationId) });
             
             if (adminIds.length > 0) {
                 // Try to create notifications in notifications table (if exists)
@@ -265,19 +275,38 @@ async function POSTHandler(
                 
                 // Try to insert into notifications table (gracefully handle if table doesn't exist)
                 try {
-                    await prisma.misradNotification.createMany({
-                        data: adminIds.map((adminId: string) => ({
-                            organization_id: String(organizationId),
-                            recipient_id: String(adminId),
-                            type: MisradNotificationType.SUCCESS,
-                            title: 'טופס הזמנה הושלם',
-                            message: notificationText,
-                            timestamp: new Date().toISOString(),
-                            isRead: false,
-                            client_id: invitation.client_id ? String(invitation.client_id) : null,
-                            link: null,
-                        })),
-                    });
+                    const now = new Date();
+                    const nowIso = now.toISOString();
+                    try {
+                        await prisma.misradNotification.createMany({
+                            data: adminIds.map((adminId: string) => ({
+                                organization_id: String(notificationOrganizationId),
+                                recipient_id: String(adminId),
+                                type: MisradNotificationType.SUCCESS,
+                                title: 'טופס הזמנה הושלם',
+                                message: notificationText,
+                                timestamp: nowIso,
+                                timestampAt: now,
+                                isRead: false,
+                                client_id: invitation.client_id ? String(invitation.client_id) : null,
+                                link: null,
+                            })) as unknown as Prisma.MisradNotificationCreateManyInput[],
+                        });
+                    } catch {
+                        await prisma.misradNotification.createMany({
+                            data: adminIds.map((adminId: string) => ({
+                                organization_id: String(notificationOrganizationId),
+                                recipient_id: String(adminId),
+                                type: MisradNotificationType.SUCCESS,
+                                title: 'טופס הזמנה הושלם',
+                                message: notificationText,
+                                timestamp: nowIso,
+                                isRead: false,
+                                client_id: invitation.client_id ? String(invitation.client_id) : null,
+                                link: null,
+                            })),
+                        });
+                    }
                 } catch (notifError: unknown) {
                     // Only ignore if table doesn't exist
                     const msg = getUnknownErrorMessage(notifError);
@@ -286,6 +315,15 @@ async function POSTHandler(
                         if (!ALLOW_SCHEMA_FALLBACKS) {
                             throw new Error(`[SchemaMismatch] misrad_notifications missing table (${msg || code || 'missing relation'})`);
                         }
+                        reportSchemaFallback({
+                            source: 'app/api/invitations/complete/[token].POSTHandler',
+                            reason: 'misrad_notifications missing table/column (fallback to ignore notification insert)',
+                            error: notifError,
+                            extras: {
+                                organizationId: String(notificationOrganizationId || ''),
+                                adminCount: Array.isArray(adminIds) ? adminIds.length : null,
+                            },
+                        });
                         if (!IS_PROD) console.log('[API] Could not create notifications (table may not exist):', msg);
                     } else {
                         throw notifError;
@@ -307,6 +345,16 @@ async function POSTHandler(
             const msg = getUnknownErrorMessage(notifError);
             if (!ALLOW_SCHEMA_FALLBACKS && (String(msg || '').includes('[SchemaMismatch]') || isSchemaMismatchError(notifError))) {
                 throw notifError;
+            }
+            if (ALLOW_SCHEMA_FALLBACKS && isSchemaMismatchError(notifError)) {
+                reportSchemaFallback({
+                    source: 'app/api/invitations/complete/[token].POSTHandler',
+                    reason: 'admin notifications schema mismatch (fallback to ignore notification failure)',
+                    error: notifError,
+                    extras: {
+                        organizationId: String(notificationOrganizationId || ''),
+                    },
+                });
             }
             if (IS_PROD) console.error('[API] Error processing admin notifications (ignored)');
             else console.error('[API] Error processing admin notifications:', notifError);

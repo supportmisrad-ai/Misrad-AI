@@ -24,6 +24,13 @@ type OwnerDashboardAction = {
   priority: 'urgent' | 'high' | 'normal';
 };
 
+function readGroupByCountAll(row: unknown): number {
+  const obj = asObject(row) ?? {};
+  const count = asObject(obj._count) ?? {};
+  const n = Number(count._all);
+  return Number.isFinite(n) ? n : 0;
+}
+
 async function GETHandler(
   _req: Request,
   ctx: {
@@ -69,9 +76,13 @@ async function GETHandler(
       priority: { in: ['urgent', 'Urgent'] },
     };
 
-    const [tasksOpen, tasksUrgent, urgentTasks] = await Promise.all([
-      prisma.nexusTask.count({ where: openWhere }),
-      prisma.nexusTask.count({ where: urgentWhere }),
+    const [taskCounts, urgentTasks] = await prisma.$transaction([
+      prisma.nexusTask.groupBy({
+        by: ['priority'],
+        where: openWhere,
+        orderBy: { priority: 'asc' },
+        _count: { _all: true },
+      }),
       prisma.nexusTask.findMany({
         where: urgentWhere,
         select: { id: true, title: true, dueDate: true, createdAt: true },
@@ -79,6 +90,16 @@ async function GETHandler(
         take: 4,
       }),
     ]);
+
+    let tasksOpen = 0;
+    let tasksUrgent = 0;
+    for (const row of taskCounts) {
+      const n = readGroupByCountAll(row);
+      tasksOpen += n;
+      if (String(row?.priority || '').toLowerCase() === 'urgent') {
+        tasksUrgent += n;
+      }
+    }
 
     kpis.nexus = {
       tasksOpen,
@@ -101,11 +122,12 @@ async function GETHandler(
   // System (Leads)
   // -----------------------------
   if (entitlements.system) {
-    const [leadsTotal, leadsHot, leadsIncoming, hotLeads] = await Promise.all([
-      prisma.systemLead.count({ where: { organizationId: workspace.id } }),
-      prisma.systemLead.count({ where: { organizationId: workspace.id, isHot: true } }),
-      prisma.systemLead.count({
-        where: { organizationId: workspace.id, status: { equals: 'incoming', mode: 'insensitive' } },
+    const [leadCounts, hotLeads] = await prisma.$transaction([
+      prisma.systemLead.groupBy({
+        by: ['status', 'isHot'],
+        where: { organizationId: workspace.id },
+        _count: { _all: true },
+        orderBy: [{ status: 'asc' }, { isHot: 'asc' }],
       }),
       prisma.systemLead.findMany({
         where: { organizationId: workspace.id, isHot: true },
@@ -114,6 +136,16 @@ async function GETHandler(
         select: { id: true, name: true, company: true },
       }),
     ]);
+
+    let leadsTotal = 0;
+    let leadsHot = 0;
+    let leadsIncoming = 0;
+    for (const row of leadCounts) {
+      const n = readGroupByCountAll(row);
+      leadsTotal += n;
+      if (row?.isHot === true) leadsHot += n;
+      if (String(row?.status || '').toLowerCase() === 'incoming') leadsIncoming += n;
+    }
 
     kpis.system = {
       leadsTotal,
@@ -139,11 +171,13 @@ async function GETHandler(
   // -----------------------------
   if (entitlements.social) {
     const orgId = String(workspace.id);
-    const [postsTotal, postsDraft, postsScheduled, postsPublished, scheduledPosts] = await Promise.all([
-      prisma.socialPost.count({ where: { organizationId: orgId } }),
-      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'draft', mode: 'insensitive' } } }),
-      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } } }),
-      prisma.socialPost.count({ where: { organizationId: orgId, status: { equals: 'published', mode: 'insensitive' } } }),
+    const [postCounts, scheduledPosts] = await prisma.$transaction([
+      prisma.socialPost.groupBy({
+        by: ['status'],
+        where: { organizationId: orgId },
+        _count: { _all: true },
+        orderBy: [{ status: 'asc' }],
+      }),
       prisma.socialPost.findMany({
         where: { organizationId: orgId, status: { equals: 'scheduled', mode: 'insensitive' } },
         select: { id: true },
@@ -151,6 +185,19 @@ async function GETHandler(
         take: 2,
       }),
     ]);
+
+    let postsTotal = 0;
+    let postsDraft = 0;
+    let postsScheduled = 0;
+    let postsPublished = 0;
+    for (const row of postCounts) {
+      const n = readGroupByCountAll(row);
+      postsTotal += n;
+      const status = String(row?.status || '').toLowerCase();
+      if (status === 'draft') postsDraft += n;
+      if (status === 'scheduled') postsScheduled += n;
+      if (status === 'published') postsPublished += n;
+    }
 
     kpis.social = {
       postsTotal,

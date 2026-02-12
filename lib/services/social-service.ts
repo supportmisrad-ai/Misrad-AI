@@ -5,10 +5,11 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import type { ActivityLog, Client, ClientRequest, Conversation, Idea, ManagerRequest, PostStatus, SocialPlatform, SocialPost, SocialTask, TeamMember } from '@/types/social';
 import * as React from 'react';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import { createStorageClient } from '@/lib/supabase';
-import { resolveStorageUrlsMaybeBatchedWithClient, toSbRefMaybe } from '@/lib/services/operations/storage';
+import { resolveStorageUrlsMaybeBatchedServiceRole, resolveStorageUrlsMaybeBatchedWithClient, toSbRefMaybe } from '@/lib/services/operations/storage';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 type CacheFn = <Args extends unknown[], R>(fn: (...args: Args) => R) => (...args: Args) => R;
 function identityCache<Args extends unknown[], R>(fn: (...args: Args) => R) {
@@ -164,6 +165,14 @@ export async function getSocialNavigationMenu(): Promise<SocialNavigationItem[]>
     if (isMissingRelationOrColumnError(error) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] social_navigation_menu missing table/column (${getErrorMessage(error) || 'missing relation'})`);
     }
+
+    if (isMissingRelationOrColumnError(error) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialNavigationMenu',
+        reason: 'social_navigation_menu missing table/column (fallback to empty array)',
+        error,
+      });
+    }
     return [];
   }
 }
@@ -178,7 +187,7 @@ export async function getSocialPosts(params: {
     throw new Error('Missing organizationId');
   }
 
-  const posts = await prisma.socialPost.findMany({
+  const posts = (await prisma.socialPost.findMany({
     where: {
       organizationId,
       ...(params.clientId ? { clientId: params.clientId } : {}),
@@ -195,7 +204,17 @@ export async function getSocialPosts(params: {
       postPlatforms: { select: { platform: true } },
     },
     orderBy: { createdAt: 'desc' },
-  });
+  })) as unknown as Array<{
+    id: string;
+    clientId: string;
+    content: string;
+    media_url: string | null;
+    status: string | null;
+    scheduled_at: Date | null;
+    published_at: Date | null;
+    createdAt: Date | null;
+    postPlatforms?: Array<{ platform: string }>;
+  }>;
 
   const raw = (posts || []).map((post) => {
     const mediaRaw = post.media_url ? String(post.media_url).trim() : '';
@@ -315,6 +334,13 @@ async function getSocialTasksForOrg(params: { orgSlug: string; organizationId: s
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_tasks.organization_id missing column (${message || 'missing column'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialTasksForOrg',
+        reason: 'social_tasks.organization_id missing column (fallback to empty array)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       return [];
     }
     throw error;
@@ -370,6 +396,13 @@ async function getSocialConversationsForOrg(params: { orgSlug: string; organizat
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_conversations.organization_id missing column (${message || 'missing column'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialConversationsForOrg',
+        reason: 'social_conversations.organization_id missing column (fallback to empty array)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       return [];
     }
     throw error;
@@ -413,6 +446,13 @@ async function getSocialClientRequestsForOrg(params: { organizationId: string })
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_client_requests.organization_id missing column (${message || 'missing column'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialClientRequestsForOrg',
+        reason: 'social_client_requests.organization_id missing column (fallback to empty array)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       return [];
     }
     throw error;
@@ -495,6 +535,13 @@ async function getSocialManagerRequestsForOrg(params: { organizationId: string }
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_manager_requests.organization_id missing column (${message || 'missing column'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialManagerRequestsForOrg',
+        reason: 'social_manager_requests.organization_id missing column (fallback to empty array)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       return [];
     }
     throw error;
@@ -534,6 +581,13 @@ async function getSocialIdeasForOrg(params: { organizationId: string }) {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] social_ideas.organization_id missing column (${message || 'missing column'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/services/social-service.getSocialIdeasForOrg',
+        reason: 'social_ideas.organization_id missing column (fallback to empty array)',
+        error,
+        extras: { organizationId: params.organizationId },
+      });
       return [];
     }
     throw error;
@@ -623,13 +677,28 @@ export async function getSocialInitialData(params: {
   const clients = clientsResult.success ? clientsResult.data.clients : [];
   const clientsWithPlatforms = await attachActivePlatforms(clients);
 
+  const ttlSeconds = 60 * 60;
+  const resolvedConversationAvatars = await resolveStorageUrlsMaybeBatchedServiceRole(
+    (Array.isArray(conversations) ? conversations : []).map((c) => c.userAvatar),
+    ttlSeconds,
+    { organizationId }
+  );
+  const resolvedConversations = (Array.isArray(conversations) ? conversations : []).map((c, idx) => {
+    const signed = resolvedConversationAvatars[idx] ?? null;
+    if (signed) return { ...c, userAvatar: signed };
+    if (typeof c.userAvatar === 'string' && c.userAvatar.startsWith('sb://')) {
+      return { ...c, userAvatar: '' };
+    }
+    return c;
+  });
+
   return {
     orgSlug: params.orgSlug,
     clients: clientsWithPlatforms,
     team: teamResult.success ? (teamResult.data ?? []) : [],
     posts: Array.isArray(postsResult) ? postsResult : [],
     tasks: Array.isArray(tasks) ? tasks : [],
-    conversations: Array.isArray(conversations) ? conversations : [],
+    conversations: resolvedConversations,
     clientRequests: Array.isArray(clientRequests) ? clientRequests : [],
     managerRequests: Array.isArray(managerRequests) ? managerRequests : [],
     ideas: Array.isArray(ideas) ? ideas : [],

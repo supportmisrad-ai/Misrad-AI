@@ -3,6 +3,8 @@
 import { PostVariation, AIOpportunity, ClientDNA } from "@/types/social";
 import { AIService } from "@/lib/services/ai/AIService";
 
+import { requireAuth } from '@/lib/errorHandler';
+
 
 import { asObject } from '@/lib/shared/unknown';
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
@@ -22,6 +24,9 @@ export async function generatePostVariationsAction(
   useSearch: boolean = false
 ): Promise<PostVariation[]> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) return [];
+
     const formalText = dna.voice.formal > 70 ? "רשמי מאוד, שפה נקייה ומכובדת" : dna.voice.formal < 30 ? "חברי, בגובה העיניים, סלנג עדין" : "מאוזן";
     const funnyText = dna.voice.funny > 70 ? "הומוריסטי, שנון, משתמש באימוג'ים מצחיקים" : dna.voice.funny < 30 ? "רציני, ענייני, מקצועי" : "חיובי";
     const lengthText = dna.voice.length > 70 ? "מפורט, עם הרבה ערך מוסף" : dna.voice.length < 30 ? "קצר וקולע, פאנצ'י" : "בינוני";
@@ -112,6 +117,9 @@ export async function generatePostVariationsAction(
 
 export async function generateAIImageAction(prompt: string): Promise<string> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) return '';
+
     // This is a placeholder - actual image generation would use Gemini's image generation API
     return `https://picsum.photos/seed/${encodeURIComponent(prompt)}/800/600`;
   } catch (error) {
@@ -121,17 +129,26 @@ export async function generateAIImageAction(prompt: string): Promise<string> {
 }
 
 export async function getTrendingOpportunitiesAction(): Promise<AIOpportunity[]> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return [];
+
   // Returns empty array - to be implemented with real AI analysis
   return [];
 }
 
 export async function getBusinessAuditAction(clientId: string): Promise<string> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return '';
+
   // Returns empty object - to be implemented with real AI analysis
   return '';
 }
 
 export async function draftAIResponseAction(message: string, context: string): Promise<string> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) return '';
+
     const prompt = `כתוב תגובה מקצועית וחמה בעברית להודעה הבאה: "${message}". הקשר: ${context}`;
 
     const ai = AIService.getInstance();
@@ -148,6 +165,9 @@ export async function draftAIResponseAction(message: string, context: string): P
 
 export async function getGlobalAgencyAuditAction(clients: unknown[], team: unknown[]): Promise<string> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) return 'נדרשת התחברות';
+
     const totalRevenue = clients.reduce<number>((sum, c) => {
       const obj = asObject(c);
       return sum + getNumberProp(obj, 'monthlyFee');

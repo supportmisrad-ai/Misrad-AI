@@ -15,6 +15,7 @@ import { BILLING_PACKAGES } from '@/lib/billing/pricing';
 import { createHash, timingSafeEqual } from 'crypto';
 import prisma from '@/lib/prisma';
 import { APIError, getOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { enterTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 import { Prisma } from '@prisma/client';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
@@ -197,6 +198,12 @@ async function POSTHandler(request: NextRequest) {
                 { status: 401 }
             );
         }
+
+        enterTenantIsolationContext({
+            source: 'api_integrations_onboard_client',
+            reason: 'POST',
+            organizationId: String(organizationId),
+        });
 
         const rlKey = await rateLimit({
             namespace: 'integrations-onboard-client.key_org',

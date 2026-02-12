@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import prisma from '@/lib/prisma';
 
 import { asObject } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 type OrgModuleFlags = {
   has_nexus: boolean;
@@ -93,6 +94,13 @@ async function safeUpdateOrganization(params: {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] organization.update: missing column (${msg || 'P2022'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/billing/sync.safeUpdateOrganization',
+        reason: 'organization.update missing column (retry without missing fields)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), message: msg || code },
+      });
       // Best-effort: retry without missing columns.
       type OrganizationUpdateData = Parameters<typeof prisma.organization.update>[0]['data'];
       const retryPatch: OrganizationUpdateData = {
@@ -155,6 +163,13 @@ async function safeReadOrganizationEntitlements(params: {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] organization.findUnique: missing table/column (${String(obj?.message || '') || String(obj?.code || '')})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/billing/sync.safeReadOrganizationEntitlements',
+        reason: 'organization.findUnique missing table/column (fallback to default entitlements)',
+        error: e,
+        extras: { organizationId: String(params.organizationId) },
+      });
       return {
         seatsAllowed: 1,
         entitlements: {
@@ -225,6 +240,13 @@ export async function syncOrganizationAccessFromBilling(params: {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] subscription_items missing table (${String(obj?.message || '') || 'P2021'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/billing/sync.syncOrganizationAccessFromBilling',
+        reason: 'subscription_items missing table (fallback to default entitlements)',
+        error: e,
+        extras: { organizationId },
+      });
       return {
         seatsAllowed: 1,
         entitlements: {
@@ -303,6 +325,13 @@ export async function syncOrganizationAccessFromBilling(params: {
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] billing_events missing table (${String(asObject(e)?.message || '') || 'missing relation'})`);
       }
+
+      reportSchemaFallback({
+        source: 'lib/billing/sync.syncOrganizationAccessFromBilling',
+        reason: 'billing_events missing table (skip audit write)',
+        error: e,
+        extras: { organizationId, seatsAllowed },
+      });
       return { seatsAllowed, entitlements: flags };
     }
     throw e;

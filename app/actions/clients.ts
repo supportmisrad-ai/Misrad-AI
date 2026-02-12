@@ -9,6 +9,7 @@ import { createClientSchema, validateWithSchema } from '@/lib/validation';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { requireOrganizationId } from '@/lib/tenant-isolation';
+import { resolveStorageUrlMaybeServiceRole, resolveStorageUrlsMaybeBatchedServiceRole } from '@/lib/services/operations/storage';
 
 import { getErrorMessageFromErrorOr as getErrorMessage } from '@/lib/shared/unknown';
 const clientClientSelect = {
@@ -223,6 +224,38 @@ function mapClientClientToSocialClient(row: {
   };
 }
 
+function getDefaultAvatarForClientId(clientId: string): string {
+  return `https://i.pravatar.cc/150?u=${encodeURIComponent(String(clientId))}`;
+}
+
+async function resolveClientAvatarMaybe(client: Client, organizationId: string): Promise<Client> {
+  const ttlSeconds = 60 * 60;
+  const signed = await resolveStorageUrlMaybeServiceRole(client.avatar, ttlSeconds, { organizationId });
+  const fallback =
+    typeof client.avatar === 'string' && client.avatar.startsWith('sb://')
+      ? getDefaultAvatarForClientId(client.id)
+      : String(client.avatar || '');
+  return { ...client, avatar: signed ?? fallback };
+}
+
+async function resolveClientsAvatarsMaybe(clients: Client[], organizationId: string): Promise<Client[]> {
+  const list = Array.isArray(clients) ? clients : [];
+  if (list.length === 0) return [];
+
+  const ttlSeconds = 60 * 60;
+  const refsOrUrls = list.map((c) => c.avatar);
+  const resolved = await resolveStorageUrlsMaybeBatchedServiceRole(refsOrUrls, ttlSeconds, { organizationId });
+
+  return list.map((c, idx) => {
+    const signed = resolved[idx] ?? null;
+    if (signed) return { ...c, avatar: signed };
+    if (typeof c.avatar === 'string' && c.avatar.startsWith('sb://')) {
+      return { ...c, avatar: getDefaultAvatarForClientId(c.id) };
+    }
+    return { ...c, avatar: String(c.avatar || '') };
+  });
+}
+
 /**
  * Server Action: Get all clients for the current user
  * Filters by organization - only shows clients from user's organization
@@ -309,7 +342,8 @@ export async function getClients(
       cursor = { createdAt: last.createdAt.toISOString(), id: String(last.id) };
     }
 
-    return { success: true, data: acc.slice(0, maxTotal) };
+    const resolved = await resolveClientsAvatarsMaybe(acc.slice(0, maxTotal), organizationId);
+    return { success: true, data: resolved };
   } catch (error: unknown) {
     console.error('Error in getClients:', error);
     const message = error instanceof Error && error.message ? error.message : 'שגיאה בטעינת לקוחות';
@@ -416,12 +450,14 @@ export async function getClientsPage(params: {
 
     const clients: Client[] = trimmed.map((row: ClientClientPageRow) => mapClientClientToSocialClient(row));
 
+    const resolvedClients = await resolveClientsAvatarsMaybe(clients, String(organizationId));
+
     const last = trimmed[trimmed.length - 1];
     const nextCursor = hasMore && last?.id && last?.createdAt
       ? encodeClientsCursor({ createdAt: last.createdAt.toISOString(), id: String(last.id) })
       : null;
 
-    return { success: true, data: { clients, nextCursor, hasMore } };
+    return { success: true, data: { clients: resolvedClients, nextCursor, hasMore } };
   } catch (error: unknown) {
     console.error('Error in getClientsPage:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוחות') };
@@ -455,7 +491,9 @@ export async function getClientByIdForWorkspace(params: {
     });
 
     if (!row?.id) return { success: false, error: 'לקוח לא נמצא' };
-    return { success: true, data: mapClientClientToSocialClient(row) };
+    const client = mapClientClientToSocialClient(row);
+    const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    return { success: true, data: resolved };
   } catch (error: unknown) {
     console.error('Error in getClientByIdForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };
@@ -662,7 +700,9 @@ export async function createClientForWorkspace(
       });
     }
 
-    return { success: true, data: mapClientClientToSocialClient(row) };
+    const client = mapClientClientToSocialClient(row);
+    const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    return { success: true, data: resolved };
   } catch (error: unknown) {
     console.error('Error in createClientForWorkspace:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
@@ -745,7 +785,9 @@ export async function createClient(
       },
     });
 
-    return { success: true, data: mapClientClientToSocialClient(created) };
+    const client = mapClientClientToSocialClient(created);
+    const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    return { success: true, data: resolved };
   } catch (error: unknown) {
     console.error('Error in createClient:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה ביצירת לקוח') };
@@ -1178,7 +1220,8 @@ export async function getClientByInvitationToken(
       return { success: false, error: 'ההזמנה כבר הושלמה או לא תקינה' };
     }
 
-    return { success: true, data: client };
+    const resolved = await resolveClientAvatarMaybe(client, String(organizationId));
+    return { success: true, data: resolved };
   } catch (error: unknown) {
     console.error('Error in getClientByInvitationToken:', error);
     return { success: false, error: getErrorMessage(error, 'שגיאה בטעינת לקוח') };

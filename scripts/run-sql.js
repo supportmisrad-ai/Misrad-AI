@@ -4,7 +4,7 @@
  * Usage: node scripts/run-sql.js scripts/create-demo-organizations.sql
  */
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
@@ -33,11 +33,11 @@ async function runSqlFile(filePath) {
       
       try {
         if (sql.toUpperCase().startsWith('SELECT')) {
-           const result = await prisma.$queryRawUnsafe(sql);
+           const result = await prisma.$queryRaw(Prisma.sql`${Prisma.raw(sql)}`);
            console.log(`✅ Command ${i+1} (SELECT): Returned ${result.length} rows`);
            if (result.length > 0) console.log(result);
         } else {
-           const result = await prisma.$executeRawUnsafe(sql);
+           const result = await prisma.$executeRaw(Prisma.sql`${Prisma.raw(sql)}`);
            console.log(`✅ Command ${i+1}: Affected ${result} rows`);
         }
       } catch (err) {

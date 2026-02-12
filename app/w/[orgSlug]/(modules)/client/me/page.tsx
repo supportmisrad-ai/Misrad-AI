@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import ClientModuleEntryClient from '../ClientModuleEntryClient';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { asObject } from '@/lib/shared/unknown';
 
 export const dynamic = 'force-dynamic';
@@ -77,7 +78,8 @@ export default async function ClientMePage({
     where: { id: organizationId },
     select: { id: true, name: true, logo: true, has_client: true },
   });
-  organization = org ? { ...org } : null;
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(org?.logo ?? null, 60 * 60, { organizationId });
+  organization = org ? { ...org, logo: signedLogo } : null;
 
   const hasClient = organization?.has_client === true;
   const canAccess = hasClient || isAdmin;

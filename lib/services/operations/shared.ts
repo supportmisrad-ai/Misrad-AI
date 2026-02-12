@@ -4,7 +4,7 @@ import { asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
 
 export { asObject, getUnknownErrorMessage };
 
-export const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+export const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export function isSchemaMismatchError(error: unknown): boolean {
   const obj = asObject(error) ?? {};

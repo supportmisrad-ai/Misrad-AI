@@ -6,7 +6,8 @@ import { useUser } from '@clerk/nextjs';
 import { usePathname } from 'next/navigation';
 import { parseWorkspaceRoute } from '@/lib/os/social-routing';
 import { encodeWorkspaceOrgSlug } from '@/lib/os/social-routing';
-import { getNexusMe, listNexusTimeEntries, updateNexusTimeEntry } from '@/app/actions/nexus';
+import { getNexusMe, listNexusTimeEntries } from '@/app/actions/nexus';
+import { punchOut } from '@/app/actions/attendance';
 import { useSecondTicker } from '@/hooks/useSecondTicker';
 
 const BROADCAST_CHANNEL = 'NEXUS_ATTENDANCE_V1';
@@ -41,6 +42,7 @@ export default function AttendanceMiniStatus() {
   const [entryId, setEntryId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const now = useSecondTicker(Boolean(startTime));
   const loadInFlightRef = React.useRef(false);
@@ -185,12 +187,33 @@ export default function AttendanceMiniStatus() {
   const clockOutQuick = useCallback(async () => {
     if (!entryId || !orgSlug) return;
     setIsBusy(true);
+    setErrorMessage(null);
     try {
-      await updateNexusTimeEntry({ orgId: orgSlug, entryId, endTime: new Date().toISOString() });
+      if (typeof window === 'undefined') throw new Error('Location not available');
+      if (!('geolocation' in navigator)) throw new Error('אין תמיכה במיקום בדפדפן הזה');
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        });
+      });
+      await punchOut(orgSlug, undefined, {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+      });
       setEntryId(null);
       setStartTime(null);
       broadcast({ orgSlug, entryId: null, startTime: null });
       void loadActiveShift();
+    } catch (e: any) {
+      const msg = String(e?.message || e);
+      if (msg.toLowerCase().includes('denied')) {
+        setErrorMessage('נדרש אישור גישה למיקום כדי לבצע יציאה');
+      } else {
+        setErrorMessage(msg || 'שגיאה ביציאה');
+      }
     } finally {
       setIsBusy(false);
     }
@@ -208,6 +231,11 @@ export default function AttendanceMiniStatus() {
       <Clock size={14} className="text-emerald-700" />
       <span className="hidden md:inline text-xs font-black text-emerald-800">פעיל</span>
       <span className="text-xs font-bold text-slate-700 tabular-nums">{formatDuration(elapsed)}</span>
+      {errorMessage && (
+        <span className="hidden md:inline text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100">
+          {errorMessage}
+        </span>
+      )}
       <button
         type="button"
         onClick={clockOutQuick}

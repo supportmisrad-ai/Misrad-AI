@@ -14,6 +14,27 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { installPrismaTenantGuard } from '@/lib/prisma-tenant-guard';
 
+const _allowSchemaFallbacks = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '')
+  .trim()
+  .toLowerCase() === 'true';
+const _isE2e = String(process.env.IS_E2E_TESTING || '').trim().toLowerCase() === 'true';
+
+if (_allowSchemaFallbacks && !_isE2e) {
+  try {
+    Sentry.captureMessage(
+      'MISRAD_ALLOW_SCHEMA_FALLBACKS is enabled (blocked)',
+      'fatal'
+    );
+  } catch {
+    // ignore
+  }
+  throw new Error('[Safety] MISRAD_ALLOW_SCHEMA_FALLBACKS cannot be enabled. Use IS_E2E_TESTING only.');
+}
+
+if (_allowSchemaFallbacks && _isE2e) {
+  process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS = 'false';
+}
+
 declare global {
   var __MISRAD_PRISMA_CLIENT__: PrismaClient | undefined;
   var __MISRAD_PRISMA_TENANT_GUARD_INSTALLED__: boolean | undefined;
@@ -229,6 +250,21 @@ type _AssertMisradActivityLogCreateHasOrgId = _Assert<_HasSomeKey<_MisradActivit
 function getEffectiveDatabaseUrlForPrisma(): string | null {
   const envDatabaseUrl = String(process.env.DATABASE_URL || '').trim();
   const envDirectUrl = String(process.env.DIRECT_URL || '').trim();
+ 
+  const forcePoolerTransaction =
+    String(process.env.MISRAD_PRISMA_FORCE_POOLER_TRANSACTION || '').trim().toLowerCase() === 'true';
+
+  const readPositiveIntEnv = (name: string): number | null => {
+    const raw = String(process.env[name] || '').trim();
+    if (!raw) return null;
+    const n = Math.floor(Number(raw));
+    return Number.isFinite(n) && n > 0 ? n : null;
+  };
+
+  const envPoolConnectionLimit =
+    readPositiveIntEnv('MISRAD_PRISMA_POOL_CONNECTION_LIMIT') ?? readPositiveIntEnv('MISRAD_PRISMA_CONNECTION_LIMIT');
+  const envPoolTimeoutSeconds = readPositiveIntEnv('MISRAD_PRISMA_POOL_TIMEOUT_SECONDS');
+  const envConnectTimeoutSeconds = readPositiveIntEnv('MISRAD_PRISMA_CONNECT_TIMEOUT_SECONDS');
 
   const getPoolerMode = (value: string): 'transaction' | 'session' | 'none' => {
     try {
@@ -274,7 +310,7 @@ function getEffectiveDatabaseUrlForPrisma(): string | null {
     if (!candidate) return null;
 
     const mode = getPoolerMode(candidate);
-    const upgraded = mode === 'session' ? upgradeSessionPoolerToTransaction(candidate) : candidate;
+    const upgraded = mode === 'session' && forcePoolerTransaction ? upgradeSessionPoolerToTransaction(candidate) : candidate;
     const isPooler = getPoolerMode(upgraded) !== 'none';
     if (!isPooler) return upgraded;
 
@@ -283,9 +319,15 @@ function getEffectiveDatabaseUrlForPrisma(): string | null {
       // Vercel serverless needs more connections under production load
       // Default was 1 which caused severe timeouts. 5 was still slow. 10 was still slow. 20 was still slow. 30 was still slow. 40 was still slow. Using 50 now.
       // Increased to 100 connections and 90s timeout to handle high load
-      u.searchParams.set('connection_limit', '100');
-      u.searchParams.set('pool_timeout', '90');
-      u.searchParams.set('connect_timeout', '15');
+      if (envPoolConnectionLimit !== null) u.searchParams.set('connection_limit', String(envPoolConnectionLimit));
+      else if (!u.searchParams.has('connection_limit')) u.searchParams.set('connection_limit', '5');
+
+      if (envPoolTimeoutSeconds !== null) u.searchParams.set('pool_timeout', String(envPoolTimeoutSeconds));
+      else if (!u.searchParams.has('pool_timeout')) u.searchParams.set('pool_timeout', '10');
+
+      if (envConnectTimeoutSeconds !== null) u.searchParams.set('connect_timeout', String(envConnectTimeoutSeconds));
+      else if (!u.searchParams.has('connect_timeout')) u.searchParams.set('connect_timeout', '15');
+
       u.searchParams.set('pgbouncer', 'true');
       u.searchParams.set('statement_cache_size', '0');
       return u.toString();
@@ -332,11 +374,18 @@ if (!_client) {
   globalThis.__MISRAD_PRISMA_DATASOURCE_URL__ = _effectiveDatabaseUrl;
 }
 
+type _SocialMediaInvoiceDelegate = PrismaClient extends { socialMediaInvoice: infer D }
+  ? D
+  : PrismaClient extends { social_invoices: infer D }
+    ? D
+    : never;
+
 type PrismaClientWithAliases = PrismaClient & {
   organization: PrismaClient['social_organizations'];
   organizationUser: PrismaClient['organizationUser'];
   teamMember: PrismaClient['teamMember'];
   teamMemberClient: PrismaClient['teamMemberClient'];
+  socialMediaInvoice: _SocialMediaInvoiceDelegate;
 };
 
 const _basePrismaClient = _client;
@@ -346,6 +395,7 @@ export const prisma: PrismaClientWithAliases = Object.assign(_basePrismaClient, 
   organizationUser: _basePrismaClient.organizationUser,
   teamMember: _basePrismaClient.teamMember,
   teamMemberClient: _basePrismaClient.teamMemberClient,
+  socialMediaInvoice: (_basePrismaClient as any).socialMediaInvoice ?? (_basePrismaClient as any).social_invoices,
 });
 
 type RawQueryUnsafe = PrismaClient['$queryRawUnsafe'];

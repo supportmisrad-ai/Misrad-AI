@@ -16,7 +16,7 @@ import { CustomSelect } from '../components/CustomSelect';
 import { isTenantAdminRole } from '@/lib/constants/roles';
 
 // Map string names to components for templates
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
     'Layers': Layers,
     'UserPlus': UserPlus,
     'FileText': FileText,
@@ -121,9 +121,9 @@ export const TasksView: React.FC = () => {
           setIsTaskStatusSheetOpen(true);
       };
 
-      window.addEventListener('taskStatusMenu', handler as any);
+      window.addEventListener('taskStatusMenu', handler as EventListener);
       return () => {
-          window.removeEventListener('taskStatusMenu', handler as any);
+          window.removeEventListener('taskStatusMenu', handler as EventListener);
       };
   }, [isMobile]);
 
@@ -197,14 +197,14 @@ export const TasksView: React.FC = () => {
           setCachedTasks(prev => prev.map(t => (t.id === taskId ? { ...t, ...updates } : t)));
       };
 
-      window.addEventListener('nexusTaskDeleted', onDeleted as any);
-      window.addEventListener('nexusTaskRestored', onRestored as any);
-      window.addEventListener('nexusTaskUpdated', onUpdated as any);
+      window.addEventListener('nexusTaskDeleted', onDeleted as EventListener);
+      window.addEventListener('nexusTaskRestored', onRestored as EventListener);
+      window.addEventListener('nexusTaskUpdated', onUpdated as EventListener);
 
       return () => {
-          window.removeEventListener('nexusTaskDeleted', onDeleted as any);
-          window.removeEventListener('nexusTaskRestored', onRestored as any);
-          window.removeEventListener('nexusTaskUpdated', onUpdated as any);
+          window.removeEventListener('nexusTaskDeleted', onDeleted as EventListener);
+          window.removeEventListener('nexusTaskRestored', onRestored as EventListener);
+          window.removeEventListener('nexusTaskUpdated', onUpdated as EventListener);
       };
   }, []);
 
@@ -1293,7 +1293,7 @@ export const TasksView: React.FC = () => {
                                             {col.avatar ? (
                                                 <img src={col.avatar} className="w-6 h-6 rounded-full border border-white shadow-sm" />
                                             ) : (
-                                                <div className={`w-2 h-2 rounded-full ${String((col as any)?.color ?? '').includes('bg-') ? String((col as any)?.color ?? '').split(' ')[0].replace('bg-', 'bg-') : 'bg-gray-400'}`}></div>
+                                                <div className={`w-2 h-2 rounded-full ${'color' in col && typeof col.color === 'string' && col.color.includes('bg-') ? col.color.split(' ')[0] : 'bg-gray-400'}`}></div>
                                             )}
                                             
                                             <h3 className="text-sm font-bold text-gray-900 truncate max-w-[120px]" title={col.title}>{col.title}</h3>

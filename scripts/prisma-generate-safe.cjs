@@ -93,20 +93,33 @@ async function main() {
 
     try {
       const cmd = `"${prismaBin}" generate --schema "${schemaPath}"`;
-      cp.execSync(cmd, { cwd: repoRoot, stdio: 'inherit', env: process.env });
+      const stdout = cp.execSync(cmd, {
+        cwd: repoRoot,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: process.env,
+      });
+      if (stdout) process.stdout.write(stdout);
       return;
     } catch (e) {
-      const message = String(e && (e.message || e.stderr || e.stdout || e));
+      const stdout = e && e.stdout ? String(e.stdout) : '';
+      const stderr = e && e.stderr ? String(e.stderr) : '';
+      if (stdout) process.stdout.write(stdout);
+      if (stderr) process.stderr.write(stderr);
+
+      const message = String(e && (e.message || e));
+      const combined = `${stdout}\n${stderr}\n${message}`;
+      const normalized = combined.replace(/\s+/g, '');
 
       const retryable =
-        /EPERM|EBUSY|operation not permitted/i.test(message) && /query_engine/i.test(message);
+        /EPERM|EBUSY|operationnotpermitted/i.test(normalized) &&
+        /query_engine|queryengine|libquery_engine|queryengine-windows\.dll\.node/i.test(normalized);
 
       if (!retryable || attempt === maxAttempts) {
         console.error('[prisma-generate-safe] prisma generate failed:', e);
         process.exit(1);
       }
 
-      bestEffortCleanupFromRenameError(message);
+      bestEffortCleanupFromRenameError(combined);
 
       const waitMs = Math.min(250 * attempt * attempt, 5000);
       await sleep(waitMs);

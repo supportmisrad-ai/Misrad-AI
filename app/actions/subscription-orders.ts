@@ -7,16 +7,22 @@ import type { OSModuleKey } from '@/lib/os/modules/types';
 import { uploadFile } from '@/app/actions/files';
 import { calculateOrderAmount } from '@/lib/billing/pricing';
 import { CouponEngine } from '@/lib/server/couponEngine';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+import { requireWorkspaceAccessByOrgSlugApiCached } from '@/lib/server/workspace-access/access';
 import prisma from '@/lib/prisma';
 import { Prisma, type subscription_orders } from '@prisma/client';
 import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
+import { getAuthenticatedUser } from '@/lib/auth';
+import { isTenantAdminRole } from '@/lib/constants/roles';
+
 import { asObjectLoose as asObject, getUnknownErrorMessage } from '@/lib/shared/unknown';
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 export type SubscriptionOrderStatus = 'pending' | 'pending_verification' | 'paid' | 'cancelled';
-export type BillingCycle = 'monthly' | 'yearly';
+export type BillingCycle = 'monthly' | 'yearly';
 
 function captureActionException(error: unknown, context: Record<string, unknown>) {
   Sentry.withScope((scope) => {
@@ -43,8 +49,78 @@ function normalizePaymentMethod(value: unknown): 'manual' | 'automatic' {
   return String(value ?? '').toLowerCase() === 'automatic' ? 'automatic' : 'manual';
 }
 
+async function requireTenantOrgAdminOrReturn(
+  orgId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const organizationId = String(orgId || '').trim();
+  if (!organizationId) return { ok: false, error: 'organizationId חסר' };
+
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+
+  const user = await getAuthenticatedUser();
+  if (user.isSuperAdmin) return { ok: true };
+
+  const dbUser = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: String(user.id) },
+    select: { id: true, organization_id: true, role: true },
+  });
+
+  if (!dbUser?.id) return { ok: false, error: 'אין הרשאה' };
+
+  const org = await prisma.social_organizations.findUnique({
+    where: { id: organizationId },
+    select: { owner_id: true },
+  });
+
+  if (!org?.owner_id) return { ok: false, error: 'ארגון לא נמצא' };
+
+  if (String(org.owner_id) === String(dbUser.id)) return { ok: true };
+
+  const userOrgId = dbUser.organization_id ? String(dbUser.organization_id) : '';
+  const isPrimaryMembership = userOrgId === organizationId;
+
+  let membershipRole: string | null = String(dbUser.role || '').trim() || null;
+  if (!isPrimaryMembership) {
+    const teamMember = await prisma.teamMember.findFirst({
+      where: {
+        user_id: String(dbUser.id),
+        organization_id: organizationId,
+      },
+      select: { role: true },
+    });
+
+    if (!teamMember?.role) return { ok: false, error: 'אין הרשאה לארגון זה' };
+    membershipRole = String(teamMember.role || '').trim() || null;
+  }
+
+  const clerkRole = String(user.role || '').trim();
+  if (!isTenantAdminRole(clerkRole) && !isTenantAdminRole(membershipRole)) {
+    return { ok: false, error: 'אין הרשאה (נדרש אדמין ארגון)' };
+  }
+
+  return { ok: true };
+}
+
+async function requireSubscriptionOrderAccessOrReturn(params: {
+  actorClerkUserId: string;
+  actorOrganizationId: string | null;
+  orderClerkUserId: string | null;
+  orderOrganizationId: string | null;
+  isSuperAdmin: boolean;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (params.isSuperAdmin) return { ok: true };
+  if (params.orderClerkUserId && params.orderClerkUserId === params.actorClerkUserId) return { ok: true };
+
+  if (params.orderOrganizationId) {
+    const guard = await requireTenantOrgAdminOrReturn(String(params.orderOrganizationId));
+    if (guard.ok) return { ok: true };
+  }
+
+  return { ok: false, error: 'אין הרשאה' };
+}
+
 export type CreateSubscriptionOrderInput = {
-  organizationId?: string;
   packageType?: PackageType;
   soloModuleKey?: OSModuleKey;
   billingCycle: BillingCycle;
@@ -60,7 +136,6 @@ export type CreateSubscriptionOrderInput = {
 
 const BillingCycleSchema = z.enum(['monthly', 'yearly']);
 const CreateSubscriptionOrderInputSchema = z.object({
-  organizationId: z.string().optional(),
   packageType: z.string().optional(),
   soloModuleKey: z.string().optional(),
   billingCycle: BillingCycleSchema,
@@ -147,12 +222,22 @@ export async function createSubscriptionOrder(
     const id = randomUUID();
     const now = new Date();
 
-    const userOrganizationId = socialUser?.organization_id || null;
-    if (input.organizationId && input.organizationId !== userOrganizationId) {
-      return createErrorResponse(null, 'אין הרשאה');
+    const organizationId = socialUser?.organization_id ? String(socialUser.organization_id) : null;
+    if (!organizationId) {
+      return createErrorResponse(null, 'חסרה חברה להזמנה');
     }
 
-    const organizationId = userOrganizationId || null;
+    const orgAdmin = await requireTenantOrgAdminOrReturn(String(organizationId));
+    if (!orgAdmin.ok) {
+      return createErrorResponse(null, orgAdmin.error);
+    }
+
+    try {
+      await requireWorkspaceAccessByOrgSlugApiCached(String(clerkUserId || ''), String(organizationId));
+    } catch (e: unknown) {
+      captureActionException(e, { action: 'createSubscriptionOrder', stage: 'workspace_access', organizationId: String(organizationId) });
+      return createErrorResponse(e, 'אין הרשאה');
+    }
 
     const packageType = (input.packageType || 'solo') as PackageType;
     const soloModuleKey = input.soloModuleKey ?? null;
@@ -181,10 +266,6 @@ export async function createSubscriptionOrder(
     }
 
     const couponCode = String(input.couponCode || '').trim();
-
-    if (couponCode && !organizationId) {
-      return createErrorResponse(null, 'חסרה חברה להזמנה');
-    }
 
     class CouponApplyError extends Error {
       reason: string;
@@ -257,6 +338,13 @@ export async function createSubscriptionOrder(
             if (!ALLOW_SCHEMA_FALLBACKS) {
               throw new Error(`[SchemaMismatch] subscription_orders.seats missing column (${getUnknownErrorMessage(error) || 'missing column'})`);
             }
+
+            reportSchemaFallback({
+              source: 'app/actions/subscription-orders.createSubscriptionOrder',
+              reason: 'subscription_orders.seats missing column (retry create without seats)',
+              error,
+              extras: { orderId: id },
+            });
             createData.seats = undefined;
             await tx.subscription_orders.create({ data: createData });
           } else {
@@ -322,11 +410,18 @@ export async function createSubscriptionOrder(
       }
 
       if (organizationId) {
+        const guard = await requireTenantOrgAdminOrReturn(String(organizationId));
+        if (!guard.ok) return createErrorResponse(null, guard.error);
+
         try {
-          await prisma.organization.updateMany({
-            where: { id: organizationId },
+          const updated = await prisma.organization.updateMany({
+            where: { id: organizationId, partnerId: null },
             data: { partnerId } satisfies Prisma.social_organizationsUncheckedUpdateManyInput,
           });
+
+          if (!updated || updated.count < 1) {
+            return createErrorResponse(null, 'כבר משויך שותף לחברה זו');
+          }
         } catch (error: unknown) {
           captureActionException(error, { action: 'createSubscriptionOrder', stage: 'apply_partner_to_org', organizationId });
           return createErrorResponse(error, 'שגיאה בעדכון שיוך שותף');
@@ -370,16 +465,76 @@ export async function getSubscriptionOrder(
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
+    const actorClerkUserId = String(authCheck.userId || '').trim();
+    if (!actorClerkUserId) return createErrorResponse('Unauthorized', 'נדרשת התחברות');
+
+    const actor = await getAuthenticatedUser();
+    const socialUser = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: actorClerkUserId },
+      select: { id: true, organization_id: true },
+    });
+    const actorSocialUserId = socialUser?.id ? String(socialUser.id) : null;
+    const actorOrganizationId = socialUser?.organization_id ? String(socialUser.organization_id) : null;
+
     const id = String(parsed.data.orderId || '').trim();
     if (!id) return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנת מנוי');
 
-    const row = await prisma.subscription_orders.findFirst({
-      where: { id },
-    });
+    const allowedOrganizationIds = new Set<string>();
+    if (actorOrganizationId) allowedOrganizationIds.add(String(actorOrganizationId));
+    if (actorSocialUserId) {
+      try {
+        const teamMemberships = await prisma.teamMember.findMany({
+          where: { user_id: actorSocialUserId },
+          select: { organization_id: true },
+        });
+        for (const tm of teamMemberships) {
+          const oid = tm?.organization_id ? String(tm.organization_id).trim() : '';
+          if (oid) allowedOrganizationIds.add(oid);
+        }
+      } catch (e: unknown) {
+        captureActionException(e, { action: 'getSubscriptionOrder', stage: 'team_memberships' });
+      }
+    }
+
+    const orgIdList = Array.from(allowedOrganizationIds);
+
+    const row = actor.isSuperAdmin
+      ? await withTenantIsolationContext(
+          { source: 'app/actions/subscription-orders.getSubscriptionOrder', mode: 'global_admin', isSuperAdmin: true },
+          async () =>
+            prisma.subscription_orders.findFirst({
+              where: { id },
+            })
+        )
+      : orgIdList.length
+        ? await prisma.subscription_orders.findFirst({
+            where: { id, organization_id: { in: orgIdList } },
+          })
+        : null;
 
     if (!row) {
       return createErrorResponse('Not found', 'שגיאה בטעינת הזמנת מנוי');
     }
+
+    const orderClerkUserId = row.clerk_user_id ? String(row.clerk_user_id) : null;
+    const orderOrganizationId = row.organization_id ? String(row.organization_id) : null;
+
+    if (!actor.isSuperAdmin && orderOrganizationId) {
+      try {
+        await requireWorkspaceAccessByOrgSlugApiCached(actorClerkUserId, String(orderOrganizationId));
+      } catch (e: unknown) {
+        return createErrorResponse('Forbidden', 'אין הרשאה');
+      }
+    }
+
+    const access = await requireSubscriptionOrderAccessOrReturn({
+      actorClerkUserId,
+      actorOrganizationId,
+      orderClerkUserId,
+      orderOrganizationId,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (!access.ok) return createErrorResponse('Forbidden', access.error);
 
     return createSuccessResponse(row);
   } catch (error: unknown) {
@@ -441,23 +596,80 @@ export async function submitSubscriptionPaymentProof(input: {
     const authCheck = await requireAuth();
     if (!authCheck.success) return { success: false, error: authCheck.error || 'נדרשת התחברות' };
 
+    const actorClerkUserId = String(authCheck.userId || '').trim();
+    if (!actorClerkUserId) return createErrorResponse('Unauthorized', 'נדרשת התחברות');
+
+    const actor = await getAuthenticatedUser();
+    const actorMembership = await prisma.organizationUser.findUnique({
+      where: { clerk_user_id: actorClerkUserId },
+      select: { id: true, organization_id: true },
+    });
+    const actorSocialUserId = actorMembership?.id ? String(actorMembership.id) : null;
+    const actorOrganizationId = actorMembership?.organization_id ? String(actorMembership.organization_id) : null;
+
     const orderId = String(parsed.data.orderId || '').trim();
     if (!orderId) {
       return createErrorResponse('Missing orderId', 'שגיאה בטעינת הזמנה');
     }
 
-    const order = await prisma.subscription_orders.findFirst({
-      where: { id: orderId },
-      select: { id: true, clerk_user_id: true, status: true, organization_id: true },
-    });
+    const allowedOrganizationIds = new Set<string>();
+    if (actorOrganizationId) allowedOrganizationIds.add(String(actorOrganizationId));
+    if (actorSocialUserId) {
+      try {
+        const teamMemberships = await prisma.teamMember.findMany({
+          where: { user_id: actorSocialUserId },
+          select: { organization_id: true },
+        });
+        for (const tm of teamMemberships) {
+          const oid = tm?.organization_id ? String(tm.organization_id).trim() : '';
+          if (oid) allowedOrganizationIds.add(oid);
+        }
+      } catch (e: unknown) {
+        captureActionException(e, { action: 'submitSubscriptionPaymentProof', stage: 'team_memberships' });
+      }
+    }
+
+    const orgIdList = Array.from(allowedOrganizationIds);
+
+    const order = actor.isSuperAdmin
+      ? await withTenantIsolationContext(
+          { source: 'app/actions/subscription-orders.submitSubscriptionPaymentProof', mode: 'global_admin', isSuperAdmin: true },
+          async () =>
+            prisma.subscription_orders.findFirst({
+              where: { id: orderId },
+              select: { id: true, clerk_user_id: true, status: true, organization_id: true },
+            })
+        )
+      : orgIdList.length
+        ? await prisma.subscription_orders.findFirst({
+            where: { id: orderId, organization_id: { in: orgIdList } },
+            select: { id: true, clerk_user_id: true, status: true, organization_id: true },
+          })
+        : null;
 
     if (!order?.id) {
       return createErrorResponse(new Error('Order not found'), 'הזמנה לא נמצאה');
     }
 
-    if (order.clerk_user_id && authCheck.userId && order.clerk_user_id !== authCheck.userId) {
-      return createErrorResponse(new Error('Forbidden'), 'אין הרשאה לעדכן הזמנה זו');
+    const orderClerkUserId = order.clerk_user_id ? String(order.clerk_user_id) : null;
+    const orderOrganizationId = order.organization_id ? String(order.organization_id) : null;
+
+    if (!actor.isSuperAdmin && orderOrganizationId) {
+      try {
+        await requireWorkspaceAccessByOrgSlugApiCached(actorClerkUserId, String(orderOrganizationId));
+      } catch (e: unknown) {
+        return createErrorResponse(new Error('Forbidden'), 'אין הרשאה לעדכן הזמנה זו');
+      }
     }
+
+    const access = await requireSubscriptionOrderAccessOrReturn({
+      actorClerkUserId,
+      actorOrganizationId,
+      orderClerkUserId,
+      orderOrganizationId,
+      isSuperAdmin: actor.isSuperAdmin,
+    });
+    if (!access.ok) return createErrorResponse(new Error('Forbidden'), 'אין הרשאה לעדכן הזמנה זו');
 
     const now = new Date();
 
@@ -468,15 +680,19 @@ export async function submitSubscriptionPaymentProof(input: {
         return createErrorResponse(new Error('Missing organization'), 'חסרה חברה להזמנה');
       }
 
-      const organization = await prisma.organization.findFirst({
-        where: { id: organizationId },
-        select: { slug: true },
-      });
-
-      const orgSlug = String(organization?.slug || '').trim();
-      if (!orgSlug) {
-        return createErrorResponse(new Error('Missing organization slug'), 'לא נמצא מזהה ארגון');
+      let orgSlug = '';
+      try {
+        const ws = await requireWorkspaceAccessByOrgSlugApiCached(actorClerkUserId, String(organizationId));
+        orgSlug = String(ws.slug || ws.id || '').trim();
+      } catch (e: unknown) {
+        captureActionException(e, {
+          action: 'submitSubscriptionPaymentProof',
+          stage: 'resolve_org_slug',
+          organizationId: String(organizationId),
+        });
+        orgSlug = '';
       }
+      if (!orgSlug) return createErrorResponse(new Error('Missing organization slug'), 'לא נמצא מזהה ארגון');
 
       const fileName = `subscription-proof-${parsed.data.orderId}`;
       const upload = await uploadFile(parsed.data.proofFile, fileName, 'media', orgSlug);
@@ -487,16 +703,42 @@ export async function submitSubscriptionPaymentProof(input: {
     }
 
     try {
-      await prisma.subscription_orders.update({
-        where: { id: orderId },
-        data: {
-          status: 'pending_verification',
-          pending_verification_at: now,
-          proof_image_url: proof.url || null,
-          proof_image_path: proof.path || null,
-          updated_at: now,
-        },
-      });
+      if (actor.isSuperAdmin) {
+        await withTenantIsolationContext(
+          { source: 'app/actions/subscription-orders.submitSubscriptionPaymentProof', mode: 'global_admin', isSuperAdmin: true },
+          async () =>
+            prisma.subscription_orders.update({
+              where: { id: orderId },
+              data: {
+                status: 'pending_verification',
+                pending_verification_at: now,
+                proof_image_url: proof.url || null,
+                proof_image_path: proof.path || null,
+                updated_at: now,
+              },
+            })
+        );
+      } else {
+        const scopedOrgId = orderOrganizationId ? String(orderOrganizationId) : '';
+        if (!scopedOrgId) {
+          return createErrorResponse(new Error('Missing organization'), 'חסרה חברה להזמנה');
+        }
+
+        const updated = await prisma.subscription_orders.updateMany({
+          where: { id: orderId, organization_id: scopedOrgId },
+          data: {
+            status: 'pending_verification',
+            pending_verification_at: now,
+            proof_image_url: proof.url || null,
+            proof_image_path: proof.path || null,
+            updated_at: now,
+          },
+        });
+
+        if (!updated || updated.count < 1) {
+          return createErrorResponse(new Error('Update failed'), 'שגיאה בעדכון הזמנה');
+        }
+      }
     } catch (updateError: unknown) {
       captureActionException(updateError, { action: 'submitSubscriptionPaymentProof', stage: 'update_order', orderId });
       return createErrorResponse(updateError, 'שגיאה בעדכון הזמנה');

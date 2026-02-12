@@ -18,12 +18,29 @@ function isProductionEnv() {
 
 function main() {
   const bypassEntitlements = isTruthy(process.env.E2E_BYPASS_MODULE_ENTITLEMENTS);
-  if (!bypassEntitlements) return;
-
   const isE2E = isTruthy(process.env.IS_E2E_TESTING);
-  if (isE2E) return;
+  const allowSchemaFallbacks = isTruthy(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS);
+  if (allowSchemaFallbacks && !isE2E) {
+    console.error(
+      '[Safety] MISRAD_ALLOW_SCHEMA_FALLBACKS is enabled. ' +
+        'This can hide schema mismatches by returning empty/default values. ' +
+        'Remove MISRAD_ALLOW_SCHEMA_FALLBACKS from the runtime environment.'
+    );
+    process.exitCode = 1;
+  }
 
   if (!isProductionEnv()) return;
+
+  if (isE2E) {
+    console.error(
+      '[Security Risk] IS_E2E_TESTING is enabled in a production environment. ' +
+        'This flag is allowed only for E2E runs in non-production environments.'
+    );
+    process.exitCode = 1;
+  }
+
+  if (!bypassEntitlements) return;
+  if (isE2E) return;
 
   console.error(
     '[Security Risk] E2E_BYPASS_MODULE_ENTITLEMENTS is enabled in production environment. ' +

@@ -1,8 +1,9 @@
 'use server';
 
-import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { createErrorResponse, createSuccessResponse, requireAuth } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 import { asObject } from '@/lib/shared/unknown';
 export type PartnerPortalOrg = {
@@ -25,6 +26,17 @@ export async function getPartnerPortalSummary(input: {
   referralCode: string;
 }): Promise<{ success: boolean; data?: PartnerPortalSummary; error?: string }> {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return createErrorResponse('Forbidden', 'אין הרשאה');
+    }
+
     const referralCode = String(input.referralCode || '').trim();
     if (!referralCode) {
       return createErrorResponse(null, 'קוד שותף חובה');

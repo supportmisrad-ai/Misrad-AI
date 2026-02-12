@@ -16,6 +16,7 @@ import { CustomSelect } from '../../CustomSelect';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton, SkeletonGrid } from '@/components/ui/skeletons';
 import { isTenantAdminRole } from '@/lib/constants/roles';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 let leaveRequestsCache: LeaveRequest[] = [];
 let showHebrewDatesPreference = false;
@@ -99,21 +100,6 @@ function isLeaveRequest(value: LeaveRequest | null): value is LeaveRequest {
     return Boolean(value);
 }
 
-function unwrap(data: unknown): unknown {
-    const obj = asObject(data);
-    const inner = obj ? asObject(obj.data) : null;
-    if (inner) return inner;
-    return data;
-}
-
-function getApiErrorMessage(payload: unknown, raw: unknown, fallback: string): string {
-    const payloadObj = asObject(payload);
-    const rawObj = asObject(raw);
-    const fromPayload = payloadObj && typeof payloadObj.error === 'string' ? payloadObj.error : '';
-    const fromRaw = rawObj && typeof rawObj.error === 'string' ? rawObj.error : '';
-    return String(fromPayload || fromRaw || fallback);
-}
-
 function getMetadata(request: LeaveRequest): Record<string, unknown> {
     const obj = asObject(request);
     const meta = obj ? asObject(obj.metadata) : null;
@@ -165,10 +151,11 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
             console.log(`[LeaveRequests] Load time: ${loadTime.toFixed(2)}ms`);
 
             const raw: unknown = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
+            const payload = extractData<{ requests?: unknown[] }>(raw);
 
             if (!response.ok) {
-                throw new Error(getApiErrorMessage(payload, raw, `Failed to load requests (${response.status})`));
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || `Failed to load requests (${response.status})`);
             }
 
             const payloadObj = asObject(payload) ?? {};
@@ -227,8 +214,8 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
 
             if (!response.ok) {
                 const raw: unknown = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה במחיקת בקשת חופש'));
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה במחיקת בקשת חופש');
             }
 
             addToast('בקשת חופש נמחקה בהצלחה', 'success');
@@ -249,8 +236,8 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
 
             if (!response.ok) {
                 const raw: unknown = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה באישור בקשת חופש'));
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה באישור בקשת חופש');
             }
 
             addToast('בקשת חופש אושרה בהצלחה', 'success');
@@ -274,8 +261,8 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
 
             if (!response.ok) {
                 const raw: unknown = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה בדחיית בקשת חופש'));
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה בדחיית בקשת חופש');
             }
 
             addToast('בקשת חופש נדחתה', 'info');
@@ -302,8 +289,8 @@ export const LeaveRequestsPanel: React.FC<LeaveRequestsPanelProps> = ({ addToast
 
             if (!response.ok) {
                 const raw: unknown = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error(getApiErrorMessage(payload, raw, 'שגיאה בבקשת מידע נוסף'));
+                const errorMsg = extractError(raw);
+                throw new Error(errorMsg || 'שגיאה בבקשת מידע נוסף');
             }
 
             addToast('הבקשה נשלחה לעובד', 'success');

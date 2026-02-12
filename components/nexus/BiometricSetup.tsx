@@ -44,7 +44,7 @@ export const BiometricSetup: React.FC = () => {
                 try {
                     console.log('Trying user.createPasskey()...');
                     await (user as any).createPasskey({
-                        name: 'Misrad OS - זיהוי ביומטרי',
+                        name: 'MISRAD AI - זיהוי ביומטרי',
                     });
                     passkeyCreated = true;
                 } catch (err: any) {
@@ -58,7 +58,7 @@ export const BiometricSetup: React.FC = () => {
                 try {
                     console.log('Trying user.passkeys.create()...');
                     await (user.passkeys as any).create({
-                        name: 'Misrad OS - זיהוי ביומטרי',
+                        name: 'MISRAD AI - זיהוי ביומטרי',
                     });
                     passkeyCreated = true;
                 } catch (err: any) {
@@ -73,7 +73,7 @@ export const BiometricSetup: React.FC = () => {
                     console.log('Trying clerk.user.createPasskey()...');
                     if (typeof (clerk as any).user?.createPasskey === 'function') {
                         await (clerk as any).user.createPasskey({
-                            name: 'Misrad OS - זיהוי ביומטרי',
+                            name: 'MISRAD AI - זיהוי ביומטרי',
                         });
                         passkeyCreated = true;
                     }

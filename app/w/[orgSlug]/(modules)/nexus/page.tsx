@@ -2,6 +2,7 @@ import NexusModuleClient from './NexusModuleClient';
 import { currentUser } from '@clerk/nextjs/server';
 import { getNexusDashboardBootstrapCached } from '@/lib/services/nexus-service';
 import { asObject } from '@/lib/shared/unknown';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import type { ModuleId, OrganizationProfile } from '@/types';
 
 export const dynamic = 'force-dynamic';
@@ -57,9 +58,11 @@ export default async function NexusModuleHome({
     ...(workspace.entitlements?.operations ? (['operations'] as ModuleId[]) : []),
   ];
 
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
+
   const initialOrganization: Partial<OrganizationProfile> = {
     name: workspace.name,
-    logo: workspace.logo || '',
+    logo: signedLogo || '',
     primaryColor: '#000000',
     enabledModules,
     isShabbatProtected: workspace.isShabbatProtected,

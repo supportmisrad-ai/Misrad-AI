@@ -1,24 +1,33 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Building2, Check, Search, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Building2, ChevronDown, Check, Search, Plus } from 'lucide-react';
 import { Tenant } from '../types';
+import { extractData } from '@/lib/shared/api-types';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeletons';
 
 interface BusinessSwitcherProps {
     currentTenantId?: string;
     currentTenantName?: string;
 }
+type WorkspaceItem = { 
+    id: string; 
+    slug: string; 
+    name: string;
+    logo?: string;
+    subscription_plan?: string;
+    subscription_status?: string;
+    created_at?: string;
+    membersCount?: number;
+    owner?: { email?: string };
+};
 
 export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({ 
     currentTenantId,
-    currentTenantName 
+    currentTenantName
 }) => {
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
     const lastFetchAtRef = useRef<number>(0);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -51,16 +60,16 @@ export const BusinessSwitcher: React.FC<BusinessSwitcherProps> = ({
                 return;
             }
             const raw = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
-            const workspaces = (payload as any).workspaces || [];
-            const businesses = workspaces.map((w: any) => ({
+            const payload = extractData<{ workspaces?: WorkspaceItem[] }>(raw);
+            const workspaces = payload?.workspaces || [];
+            const businesses: Tenant[] = workspaces.map((w: WorkspaceItem): Tenant => ({
                 id: w.id,
                 name: w.name,
                 subdomain: w.slug,
                 logo: w.logo,
                 plan: w.subscription_plan || 'unknown',
-                status: w.subscription_status || 'Active',
-                joinedAt: w.created_at,
+                status: (w.subscription_status === 'trial' ? 'Trial' : 'Active'),
+                joinedAt: w.created_at ?? new Date().toISOString(),
                 mrr: 0,
                 usersCount: w.membersCount || 0,
                 modules: [],

@@ -106,7 +106,7 @@ export const TeamView: React.FC = () => {
 
   const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [rewardRecommendation, setRewardRecommendation] = useState<any | null>(null);
+  const [rewardRecommendation, setRewardRecommendation] = useState<{ userId: string; userName: string; avatar?: string; reason?: string; amount?: number; type?: string } | null>(null);
   const [isBonusConfirmOpen, setIsBonusConfirmOpen] = useState(false);
   const [assigningToUserId, setAssigningToUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'workload' | 'invitations' | 'events' | 'leave'>('workload');
@@ -156,8 +156,8 @@ export const TeamView: React.FC = () => {
 
   useEffect(() => {
       if (allUsers && allUsers.length > 0) {
-          const currentIds = allUsers.map((u: any) => u.id).sort().join(',');
-          const lastIds = lastAllUsersRef.current?.map((u: any) => u.id).sort().join(',') || '';
+          const currentIds = allUsers.map((u: User) => u.id).sort().join(',');
+          const lastIds = lastAllUsersRef.current?.map((u: User) => u.id).sort().join(',') || '';
 
           let hasChanges = false;
           if (lastAllUsersRef.current) {
@@ -165,7 +165,7 @@ export const TeamView: React.FC = () => {
                   hasChanges = true;
               } else {
                   for (const user of allUsers) {
-                      const lastUser = lastAllUsersRef.current.find((u: any) => u.id === user.id);
+                      const lastUser = lastAllUsersRef.current.find((u: User) => u.id === user.id);
                       if (!lastUser) {
                           hasChanges = true;
                           break;
@@ -196,10 +196,10 @@ export const TeamView: React.FC = () => {
   }, [allUsers]);
 
   useEffect(() => {
-      const list = (usersQuery.data as any)?.users;
+      const list = (usersQuery.data as { users?: User[] })?.users;
       if (Array.isArray(list)) {
-          setUsers(list as any);
-          lastAllUsersRef.current = list as any;
+          setUsers(list);
+          lastAllUsersRef.current = list;
       }
   }, [usersQuery.data]);
 
@@ -221,7 +221,7 @@ export const TeamView: React.FC = () => {
   }, [activeMenuId]);
 
   useEffect(() => {
-      const bestUser = users.find((u: any) => u?.pendingReward);
+      const bestUser = users.find((u: User) => u?.pendingReward);
       if (bestUser && !rewardRecommendation) {
           setTimeout(() => {
               setRewardRecommendation({
@@ -236,7 +236,7 @@ export const TeamView: React.FC = () => {
       }
   }, [users, rewardRecommendation]);
 
-  const visibleUsers = users.filter((user: any) => {
+  const visibleUsers = users.filter((user: User) => {
       if (showHeadsOnly) {
           const roleStr = String(user.role || '');
           const isHead =
@@ -244,8 +244,8 @@ export const TeamView: React.FC = () => {
               roleStr.includes('ראש') ||
               roleStr.includes('VP') ||
               roleStr.includes('סמנכ') ||
-              isCeoRole(roleStr) ||
-              isAdminRole(roleStr);
+              isCeoRole(user.role) ||
+              isAdminRole(user.role);
           if (!isHead) return false;
       }
 
@@ -263,7 +263,7 @@ export const TeamView: React.FC = () => {
       return user.id === currentUser.id;
   });
 
-  const myUnassignedTasks = tasks.filter((t: any) =>
+  const myUnassignedTasks = tasks.filter((t) =>
       (!t.assigneeIds || t.assigneeIds.length === 0) &&
       t.creatorId === currentUser.id &&
       t.status !== Status.DONE &&
@@ -271,7 +271,7 @@ export const TeamView: React.FC = () => {
   );
 
   const getWorkloadData = (user: User) => {
-      const activeTasks = tasks.filter((t: any) =>
+      const activeTasks = tasks.filter((t) =>
           (t.assigneeIds?.includes(user.id)) && isActiveTask(t.status)
       );
       const count = activeTasks.length;
@@ -283,7 +283,7 @@ export const TeamView: React.FC = () => {
       const userEfficiency =
           Math.min(
               100,
-              Math.round((activeTasks.filter((t: any) => t.status === Status.DONE).length / (user.targets?.tasksMonth || 1)) * 100) || 75
+              Math.round((activeTasks.filter((t) => t.status === Status.DONE).length / (user.targets?.tasksMonth || 1)) * 100) || 75
           );
       const performanceDiff = userEfficiency - roleAvg;
 
@@ -297,7 +297,6 @@ export const TeamView: React.FC = () => {
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
       e.dataTransfer.setData('taskId', taskId);
-      e.dataTransfer.effectAllowed = 'copy';
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -308,7 +307,7 @@ export const TeamView: React.FC = () => {
       e.preventDefault();
       const taskId = e.dataTransfer.getData('taskId');
       if (taskId) {
-          const task = tasks.find((t: any) => t.id === taskId);
+          const task = tasks.find((t) => t.id === taskId);
           if (task) {
               const currentAssignees = task.assigneeIds || [];
               if (!currentAssignees.includes(userId)) {
@@ -361,7 +360,7 @@ export const TeamView: React.FC = () => {
       setIsMemberModalOpen(true);
   };
 
-  const handleSaveMember = async (formData: any) => {
+  const handleSaveMember = async (formData: Partial<User> & { name: string }) => {
       if (!formData?.name) return;
 
       try {
@@ -385,7 +384,7 @@ export const TeamView: React.FC = () => {
                   commissionPct: Number(formData.commissionPct),
                   bonusPerTask: Number(formData.bonusPerTask),
                   managerId: formData.managerId || null,
-              } as any);
+              } as User);
 
               try {
                   const inviteData = await inviteUserMutation.mutateAsync({
@@ -405,7 +404,7 @@ export const TeamView: React.FC = () => {
                   addToast('העובד נוסף, אך שליחת ההזמנה נכשלה', 'warning');
               }
 
-              addUser(newUser as any);
+              addUser(newUser);
               if (orgSlug) {
                   queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
               }
@@ -426,7 +425,7 @@ export const TeamView: React.FC = () => {
                   },
               });
 
-              updateUser(editingUser.id, updated as any);
+              updateUser(editingUser.id, updated);
               if (orgSlug) {
                   queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
               }
@@ -434,9 +433,9 @@ export const TeamView: React.FC = () => {
           }
 
           setIsMemberModalOpen(false);
-      } catch (error: any) {
+      } catch (error: unknown) {
           console.error('Error saving member:', error);
-          addToast(error?.message || 'שגיאה בשמירת הפרטים', 'error');
+          addToast(error instanceof Error ? error.message : 'שגיאה בשמירת הפרטים', 'error');
       }
   };
 
@@ -453,8 +452,8 @@ export const TeamView: React.FC = () => {
           if (orgSlug) {
               queryClient.invalidateQueries({ queryKey: ['nexus', 'users', orgSlug] });
           }
-      } catch (error: any) {
-          addToast(error?.message || 'שגיאה במחיקת המשתמש', 'error');
+      } catch (error: unknown) {
+          addToast(error instanceof Error ? error.message : 'שגיאה במחיקת המשתמש', 'error');
       } finally {
           setUserToDelete(null);
       }
@@ -478,13 +477,13 @@ export const TeamView: React.FC = () => {
           addNotification({
               recipientId: rewardRecommendation.userId,
               type: 'reward',
-              text: `🎉 קיבלת בונוס של ${rewardRecommendation.amount}₪! ${rewardRecommendation.reason}`,
+              text: `🎉 קיבלת בונוס של ${rewardRecommendation.amount || 0}₪! ${rewardRecommendation.reason}`,
               actorName: 'Nexus AI'
           });
           
           updateUser(rewardRecommendation.userId, { 
               pendingReward: undefined,
-              accumulatedBonus: currentAccumulated + rewardRecommendation.amount
+              accumulatedBonus: currentAccumulated + (rewardRecommendation.amount || 0)
           });
           
           setRewardRecommendation(null);
@@ -507,7 +506,7 @@ export const TeamView: React.FC = () => {
 
   const handleAssignExisting = (taskId: string) => {
       if (assigningToUserId) {
-          const task = tasks.find((t: any) => t.id === taskId);
+          const task = tasks.find((t) => t.id === taskId);
           const currentAssignees = task?.assigneeIds || [];
           if (!currentAssignees.includes(assigningToUserId)) {
               updateTask(taskId, {
@@ -666,7 +665,7 @@ export const TeamView: React.FC = () => {
                     onChange={setSelectedDepartment}
                     options={[
                       { value: "All", label: "כל המחלקות", icon: <Building2 size={14} /> },
-                      ...departments.map((d: any) => ({
+                      ...departments.map((d: string) => ({
                         value: d,
                         label: d,
                         icon: <div className="w-2 h-2 rounded-full bg-gray-400" />,

@@ -23,8 +23,10 @@ import {
 } from '@/app/actions/operations';
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
-import { createServiceRoleClientScoped } from '@/lib/supabase';
-import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
+import {
+  uploadOpsWorkOrderAttachmentInternal,
+  uploadOpsWorkOrderSignatureInternal,
+} from '@/lib/services/operations/uploads';
 import type {
   OperationsInventoryOption,
   OperationsStockSourceOption,
@@ -204,52 +206,17 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('חובה לצרף חתימה')}`);
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-    const organizationId = String(workspace.id);
-
-    const supabase = createServiceRoleClientScoped({
-      reason: 'ops_work_order_signature_upload',
-      scopeColumn: 'organization_id',
-      scopeId: organizationId,
+    const uploaded = await uploadOpsWorkOrderSignatureInternal({
+      orgSlug,
+      workOrderId: w.id,
+      signatureDataUrl,
     });
-    const bucket = 'operations-files';
-    const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/signature.png`;
-
-    const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
-    if (!base64) {
-      redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('חתימה לא תקינה')}`);
-    }
-
-    const fileBuffer = Buffer.from(base64, 'base64');
-
-    // Best effort: ensure bucket exists (for local/dev setups)
-    try {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      if (!listError) {
-        const exists = (buckets || []).some((b) => b.name === bucket);
-        if (!exists) {
-          await supabase.storage.createBucket(bucket, {
-            public: false,
-            fileSizeLimit: 50 * 1024 * 1024,
-          });
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-      contentType: 'image/png',
-      upsert: true,
-    });
-
-    if (uploadError) {
-      const msg = uploadError.message ? String(uploadError.message) : 'שגיאה בהעלאת חתימה';
+    if (!uploaded.success || !uploaded.ref) {
+      const msg = uploaded.error ? String(uploaded.error) : 'שגיאה בהעלאת חתימה';
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent(msg)}`);
     }
 
-    const ref = `sb://${bucket}/${filePath}`;
+    const ref = uploaded.ref;
 
     const saveSig = await setOperationsWorkOrderCompletionSignature({ orgSlug, id: w.id, signatureUrl: ref });
     if (!saveSig.success) {
@@ -286,57 +253,26 @@ export default async function OperationsWorkOrderDetailsPage({
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent('חסר קובץ')}`);
     }
 
-    const workspace = await requireWorkspaceAccessByOrgSlug(orgSlug);
-    const organizationId = String(workspace.id);
-
-    const supabase = createServiceRoleClientScoped({
-      reason: 'ops_work_order_attachment_upload',
-      scopeColumn: 'organization_id',
-      scopeId: organizationId,
-    });
-    const bucket = 'operations-files';
-    const safeOrg = String(orgSlug || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${organizationId}/ops/internal/${safeOrg}/work-orders/${w.id}/${safeName}`;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
-
-    // Best effort: ensure bucket exists (for local/dev setups)
-    try {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      if (!listError) {
-        const exists = (buckets || []).some((b) => b.name === bucket);
-        if (!exists) {
-          await supabase.storage.createBucket(bucket, {
-            public: false,
-            fileSizeLimit: 50 * 1024 * 1024,
-          });
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
+    const uploaded = await uploadOpsWorkOrderAttachmentInternal({
+      orgSlug,
+      workOrderId: w.id,
+      file,
     });
 
-    if (uploadError) {
-      const msg = uploadError.message ? String(uploadError.message) : 'שגיאה בהעלאת קובץ';
+    if (!uploaded.success || !uploaded.ref || !uploaded.path) {
+      const msg = uploaded.error ? String(uploaded.error) : 'שגיאה בהעלאת קובץ';
       redirect(`${base}/work-orders/${encodeURIComponent(w.id)}?error=${encodeURIComponent(msg)}`);
     }
 
-    const ref = `sb://${bucket}/${filePath}`;
+    const ref = uploaded.ref;
 
     const save = await addOperationsWorkOrderAttachment({
       orgSlug,
       workOrderId: w.id,
-      storageBucket: bucket,
-      storagePath: filePath,
+      storageBucket: uploaded.bucket,
+      storagePath: uploaded.path,
       url: ref,
-      mimeType: file.type || null,
+      mimeType: uploaded.mimeType || null,
     });
 
     if (!save.success) {

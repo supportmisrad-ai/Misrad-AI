@@ -6,6 +6,7 @@ import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { logAuditEvent } from '@/lib/audit';
 import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage as getUnknownErrorMessage } from '@/lib/shared/unknown';
@@ -176,36 +177,64 @@ async function POSTHandler(req: NextRequest) {
 
     let organizationId: string | null = user.organization_id ? String(user.organization_id) : null;
 
-    if (!organizationId) {
-      const orgName = user.full_name || user.email || 'Organization';
+    await withTenantIsolationContext(
+      {
+        source: 'api/os/rooms.POST',
+        reason: 'super_admin_update_rooms',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+        if (!organizationId) {
+          const orgName = user.full_name || user.email || 'Organization';
 
-      // Finance is a free bonus for any paid package, so always set it to true for trial
-      const hasAnyModule = requestedRooms.nexus || requestedRooms.social || requestedRooms.system || requestedRooms.client;
-      const createdOrg = await prisma.organization.create({
-        data: {
-          subscription_status: 'trial',
-          trial_days: DEFAULT_TRIAL_DAYS,
-          trial_start_date: new Date(),
-          name: user.full_name || user.email || 'New Organization',
-          has_nexus: Boolean(requestedRooms.nexus),
-          has_social: Boolean(requestedRooms.social),
-          has_system: Boolean(requestedRooms.system),
-          has_finance: hasAnyModule, // Free bonus
-          has_client: Boolean(requestedRooms.client),
-          owner_id: user.id,
-        },
-        select: { id: true },
-      });
+          // Finance is a free bonus for any paid package, so always set it to true for trial
+          const hasAnyModule = requestedRooms.nexus || requestedRooms.social || requestedRooms.system || requestedRooms.client;
+          const createdOrg = await prisma.organization.create({
+            data: {
+              subscription_status: 'trial',
+              trial_days: DEFAULT_TRIAL_DAYS,
+              trial_start_date: new Date(),
+              name: orgName || 'New Organization',
+              has_nexus: Boolean(requestedRooms.nexus),
+              has_social: Boolean(requestedRooms.social),
+              has_system: Boolean(requestedRooms.system),
+              has_finance: hasAnyModule, // Free bonus
+              has_client: Boolean(requestedRooms.client),
+              owner_id: user.id,
+            },
+            select: { id: true },
+          });
 
-      organizationId = createdOrg?.id ? String(createdOrg.id) : null;
-      if (!organizationId) {
-        return apiError('Failed to create organization', { status: 500 });
+          organizationId = createdOrg?.id ? String(createdOrg.id) : null;
+          if (!organizationId) {
+            throw new Error('Failed to create organization');
+          }
+
+          await prisma.organizationUser.updateMany({
+            where: { id: String(user.id) },
+            data: { organization_id: organizationId },
+          });
+        }
+
+        const update: OrganizationRoomsUpdateData = {};
+        if (typeof requestedRooms.social === 'boolean') update.has_social = requestedRooms.social;
+        if (typeof requestedRooms.nexus === 'boolean') update.has_nexus = requestedRooms.nexus;
+        if (typeof requestedRooms.system === 'boolean') update.has_system = requestedRooms.system;
+        if (typeof requestedRooms.finance === 'boolean') update.has_finance = requestedRooms.finance;
+        if (typeof requestedRooms.client === 'boolean') update.has_client = requestedRooms.client;
+
+        if (Object.keys(update).length > 0) {
+          await prisma.organization.update({
+            where: { id: String(organizationId) },
+            data: update,
+          });
+        }
       }
+    );
 
-      await prisma.organizationUser.updateMany({
-        where: { id: String(user.id) },
-        data: { organization_id: organizationId },
-      });
+    if (!organizationId) {
+      return apiError('Failed to create organization', { status: 500 });
     }
 
     await getWorkspaceByOrgKeyOrThrow(String(organizationId));
@@ -216,13 +245,6 @@ async function POSTHandler(req: NextRequest) {
     if (typeof requestedRooms.system === 'boolean') update.has_system = requestedRooms.system;
     if (typeof requestedRooms.finance === 'boolean') update.has_finance = requestedRooms.finance;
     if (typeof requestedRooms.client === 'boolean') update.has_client = requestedRooms.client;
-
-    if (Object.keys(update).length > 0) {
-      await prisma.organization.update({
-        where: { id: String(organizationId) },
-        data: update,
-      });
-    }
 
     await logAuditEvent('data.write', 'os.rooms', {
       details: {

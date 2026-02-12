@@ -5,7 +5,7 @@ import { useSecureAPI } from '../hooks/useSecureAPI';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CustomDatePicker } from '../components/CustomDatePicker';
 import { CustomSelect } from '../components/CustomSelect';
-import { BarChart3, Clock, CheckCircle2, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, Activity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw } from 'lucide-react';
+import { BarChart3, Clock, CheckCircle2, TrendingUp, Download, Calendar, ShieldAlert, Filter, FileSpreadsheet, ArrowLeft, Activity, Building2, LayoutDashboard, History, Trash2, DollarSign, Lock, Receipt, Plus, Edit2, RefreshCw, MapPin } from 'lucide-react';
 import { Status, TimeEntry, User } from '../types';
 import { DeleteConfirmationModal } from '../components/DeleteConfirmationModal';
 import { TimeEntryModal } from '../components/nexus/TimeEntryModal';
@@ -397,14 +397,24 @@ export const ReportsView: React.FC = () => {
             ]);
             downloadCSV(headers, rows, 'performance_report');
         } else if (activeTab === 'attendance') {
-            const headers = ['שם העובד', 'תאריך', 'כניסה', 'יציאה', 'סה״כ שעות'];
+            const headers = ['שם העובד', 'תאריך', 'כניסה', 'מיקום כניסה', 'יציאה', 'מיקום יציאה', 'סה״כ שעות'];
             const rows = filteredTimeEntries.map(e => {
                 const u = users.find(usr => usr.id === e.userId);
+                const startLoc =
+                    typeof (e as any).startLat === 'number' && typeof (e as any).startLng === 'number'
+                        ? `${(e as any).startLat},${(e as any).startLng}${typeof (e as any).startAccuracy === 'number' ? ` (${Math.round((e as any).startAccuracy)}m)` : ''}`
+                        : '-';
+                const endLoc =
+                    typeof (e as any).endLat === 'number' && typeof (e as any).endLng === 'number'
+                        ? `${(e as any).endLat},${(e as any).endLng}${typeof (e as any).endAccuracy === 'number' ? ` (${Math.round((e as any).endAccuracy)}m)` : ''}`
+                        : '-';
                 return [
                     u?.name || 'Unknown',
                     e.date,
                     new Date(e.startTime).toLocaleTimeString('he-IL'),
+                    startLoc,
                     e.endTime ? new Date(e.endTime).toLocaleTimeString('he-IL') : 'Active',
+                    endLoc,
                     e.durationMinutes ? (e.durationMinutes / 60).toFixed(2) : '-'
                 ];
             });
@@ -440,6 +450,11 @@ export const ReportsView: React.FC = () => {
 
     const formatTime = (isoString: string) => new Date(isoString).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
     const formatDate = (isoString: string) => new Date(isoString).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: '2-digit' });
+
+    const getMapUrl = (lat?: number, lng?: number) => {
+        if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+    };
 
     // Active Employees Counter (Real-time)
     const activeEmployeesCount = timeEntries.filter(t => !t.endTime && visibleUsers.some(u => u.id === t.userId)).length;
@@ -829,7 +844,9 @@ export const ReportsView: React.FC = () => {
                                             <th className="px-3 md:px-6 py-3 md:py-4 rounded-tr-3xl">שם העובד</th>
                                             <th className="px-3 md:px-6 py-3 md:py-4">תאריך</th>
                                             <th className="px-3 md:px-6 py-3 md:py-4">כניסה</th>
+                                            <th className="px-3 md:px-6 py-3 md:py-4">מיקום כניסה</th>
                                             <th className="px-3 md:px-6 py-3 md:py-4">יציאה</th>
+                                            <th className="px-3 md:px-6 py-3 md:py-4">מיקום יציאה</th>
                                             <th className="px-3 md:px-6 py-3 md:py-4">משך</th>
                                             <th className="px-3 md:px-6 py-3 md:py-4">סטטוס</th>
                                             {isTeamManager && <th className="px-3 md:px-6 py-3 md:py-4 text-left rounded-tl-3xl">פעולות</th>}
@@ -838,6 +855,8 @@ export const ReportsView: React.FC = () => {
                                     <tbody className="divide-y divide-gray-100">
                                         {filteredTimeEntries.length > 0 ? filteredTimeEntries.map((entry) => {
                                             const user = users.find(u => u.id === entry.userId);
+                                            const startMapUrl = getMapUrl((entry as any).startLat, (entry as any).startLng);
+                                            const endMapUrl = getMapUrl((entry as any).endLat, (entry as any).endLng);
                                             return (
                                                 <tr key={entry.id} className="hover:bg-blue-50/30 transition-colors group">
                                                     <td className="px-3 md:px-6 py-3 md:py-4">
@@ -850,7 +869,25 @@ export const ReportsView: React.FC = () => {
                                                         {formatDate(entry.date)}
                                                     </td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-gray-600 text-xs md:text-sm">{formatTime(entry.startTime)}</td>
+                                                    <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
+                                                        {startMapUrl ? (
+                                                            <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                                <MapPin size={14} /> הצג
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-400">-</span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 font-mono text-gray-600 text-xs md:text-sm">{entry.endTime ? formatTime(entry.endTime) : '-'}</td>
+                                                    <td className="px-3 md:px-6 py-3 md:py-4 text-xs md:text-sm">
+                                                        {endMapUrl ? (
+                                                            <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold">
+                                                                <MapPin size={14} /> הצג
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-400">-</span>
+                                                        )}
+                                                    </td>
                                                     <td className="px-3 md:px-6 py-3 md:py-4 font-bold text-gray-800 text-xs md:text-sm">
                                                         {entry.durationMinutes ? `${Math.floor(entry.durationMinutes / 60)}:${(entry.durationMinutes % 60).toString().padStart(2, '0')}` : '-'}
                                                     </td>
@@ -887,7 +924,7 @@ export const ReportsView: React.FC = () => {
                                             );
                                         }) : (
                                             <tr>
-                                                <td colSpan={isTeamManager ? 7 : 6} className="p-8 md:p-16 text-center text-gray-600">
+                                                <td colSpan={isTeamManager ? 9 : 8} className="p-8 md:p-16 text-center text-gray-600">
                                                     <History size={48} className="mx-auto mb-4 opacity-20" />
                                                     <p className="text-gray-700 text-sm md:text-base">אין רישומים בטווח התאריכים הנבחר.</p>
                                                 </td>
@@ -901,6 +938,8 @@ export const ReportsView: React.FC = () => {
                             <div className="md:hidden p-4 space-y-3">
                                 {filteredTimeEntries.length > 0 ? filteredTimeEntries.map((entry) => {
                                     const user = users.find(u => u.id === entry.userId);
+                                    const startMapUrl = getMapUrl((entry as any).startLat, (entry as any).startLng);
+                                    const endMapUrl = getMapUrl((entry as any).endLat, (entry as any).endLng);
                                     return (
                                         <div key={entry.id} className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
                                             <div className="flex items-center gap-3">
@@ -924,6 +963,29 @@ export const ReportsView: React.FC = () => {
                                                 <div>
                                                     <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">יציאה</div>
                                                     <div className="font-mono text-gray-600 text-sm">{entry.endTime ? formatTime(entry.endTime) : '-'}</div>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">מיקום כניסה</div>
+                                                    {startMapUrl ? (
+                                                        <a href={startMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold text-xs">
+                                                            <MapPin size={14} /> הצג
+                                                        </a>
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">-</div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase mb-1">מיקום יציאה</div>
+                                                    {endMapUrl ? (
+                                                        <a href={endMapUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold text-xs">
+                                                            <MapPin size={14} /> הצג
+                                                        </a>
+                                                    ) : (
+                                                        <div className="text-xs text-gray-400">-</div>
+                                                    )}
                                                 </div>
                                             </div>
                                             

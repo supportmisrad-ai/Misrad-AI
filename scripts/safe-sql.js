@@ -46,7 +46,7 @@ function printDbTarget() {
 
 loadEnvLocalOnly();
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const readline = require('readline');
 
 const prisma = new PrismaClient();
@@ -91,10 +91,131 @@ function analyzeSql(sql) {
   };
 }
 
+function splitSqlStatements(sql) {
+  const out = [];
+  let buf = '';
+  let inSingle = false;
+  let inDouble = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  let dollarTag = null;
+
+  const push = () => {
+    const s = buf.trim();
+    buf = '';
+    if (s) out.push(s);
+  };
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    const next = i + 1 < sql.length ? sql[i + 1] : '';
+
+    if (inLineComment) {
+      buf += ch;
+      if (ch === '\n') inLineComment = false;
+      continue;
+    }
+
+    if (inBlockComment) {
+      buf += ch;
+      if (ch === '*' && next === '/') {
+        buf += next;
+        i++;
+        inBlockComment = false;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !dollarTag) {
+      if (ch === '-' && next === '-') {
+        buf += ch + next;
+        i++;
+        inLineComment = true;
+        continue;
+      }
+
+      if (ch === '/' && next === '*') {
+        buf += ch + next;
+        i++;
+        inBlockComment = true;
+        continue;
+      }
+    }
+
+    if (!inSingle && !inDouble) {
+      if (dollarTag) {
+        if (ch === '$') {
+          const endIdx = sql.indexOf('$', i + 1);
+          if (endIdx !== -1) {
+            const candidate = sql.slice(i, endIdx + 1);
+            if (candidate === dollarTag) {
+              buf += candidate;
+              i = endIdx;
+              dollarTag = null;
+              continue;
+            }
+          }
+        }
+      } else if (ch === '$') {
+        const endIdx = sql.indexOf('$', i + 1);
+        if (endIdx !== -1) {
+          const candidate = sql.slice(i, endIdx + 1);
+          if (/^\$[a-zA-Z0-9_]*\$$/.test(candidate)) {
+            buf += candidate;
+            i = endIdx;
+            dollarTag = candidate;
+            continue;
+          }
+        }
+      }
+    }
+
+    if (!inDouble && !dollarTag && ch === "'") {
+      buf += ch;
+      if (inSingle) {
+        if (next === "'") {
+          buf += next;
+          i++;
+        } else {
+          inSingle = false;
+        }
+      } else {
+        inSingle = true;
+      }
+      continue;
+    }
+
+    if (!inSingle && !dollarTag && ch === '"') {
+      buf += ch;
+      if (inDouble) {
+        if (next === '"') {
+          buf += next;
+          i++;
+        } else {
+          inDouble = false;
+        }
+      } else {
+        inDouble = true;
+      }
+      continue;
+    }
+
+    if (!inSingle && !inDouble && !dollarTag && ch === ';') {
+      push();
+      continue;
+    }
+
+    buf += ch;
+  }
+
+  push();
+  return out;
+}
+
 async function checkDatabaseStatus() {
   try {
-    const orgs = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organizations');
-    const users = await prisma.$queryRawUnsafe('SELECT COUNT(*)::int as count FROM organization_users');
+    const orgs = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as count FROM organizations`);
+    const users = await prisma.$queryRaw(Prisma.sql`SELECT COUNT(*)::int as count FROM organization_users`);
     
     return {
       organizations: orgs[0].count,
@@ -195,7 +316,22 @@ async function main() {
   console.log('\n⏳ מריץ SQL...\n');
   
   try {
-    await prisma.$executeRawUnsafe(sql);
+    const statements = splitSqlStatements(sql);
+    await prisma.$transaction(async (tx) => {
+      for (const statement of statements) {
+        const upper = statement.trim().toUpperCase();
+        if (upper === 'BEGIN' || upper === 'COMMIT' || upper === 'ROLLBACK') {
+          continue;
+        }
+
+        if (upper.startsWith('SELECT')) {
+          await tx.$queryRaw(Prisma.sql`${Prisma.raw(statement)}`);
+          continue;
+        }
+
+        await tx.$executeRaw(Prisma.sql`${Prisma.raw(statement)}`);
+      }
+    });
     console.log('✅ הסקריפט רץ בהצלחה!\n');
     
     // Show new status

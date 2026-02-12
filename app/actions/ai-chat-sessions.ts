@@ -1,7 +1,11 @@
 'use server';
 
-import prisma from '@/lib/prisma';
+import prisma, { executeRawOrgScoped, queryRawOrgScoped } from '@/lib/prisma';
 import { getCurrentUserId } from '@/lib/server/authHelper';
+import { requireAuth } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
+import { headers } from 'next/headers';
+import { requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 
 type ChatSessionData = {
   sessionId: string;
@@ -29,14 +33,59 @@ type EndSessionData = {
   helpfulYn?: boolean;
 };
 
+async function resolveOrganizationIdForWrite(params: {
+  organizationId?: string;
+  clerkUserId: string;
+}): Promise<string | null> {
+  const member = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: String(params.clerkUserId) },
+    select: { organization_id: true },
+  });
+  const memberOrgId = member?.organization_id ? String(member.organization_id) : '';
+
+  const inputOrgId = String(params.organizationId || '').trim();
+  if (inputOrgId && memberOrgId && inputOrgId === memberOrgId) {
+    return inputOrgId;
+  }
+
+  try {
+    const h = await headers();
+    const orgSlug = String(h.get('x-org-id') || '').trim();
+    if (orgSlug) {
+      const workspace = await requireWorkspaceAccessByOrgSlugApi(orgSlug);
+      const workspaceId = String(workspace?.id || '').trim();
+      if (workspaceId) return workspaceId;
+    }
+  } catch {
+  }
+
+  return memberOrgId || null;
+}
+
 /**
  * יצירה או עדכון של session שיחה
  */
 export async function upsertChatSession(data: ChatSessionData) {
   try {
     const userId = await getCurrentUserId();
+
+    if (!userId) {
+      return { success: true };
+    }
+
+    const organizationId = await resolveOrganizationIdForWrite({
+      organizationId: data.organizationId,
+      clerkUserId: userId,
+    });
+
+    if (!organizationId) {
+      return { success: true };
+    }
     
-    const session = await prisma.$executeRawUnsafe(`
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'ai_chat_sessions_upsert',
+      query: `
       INSERT INTO ai_chat_sessions (
         session_id,
         organization_id,
@@ -69,22 +118,24 @@ export async function upsertChatSession(data: ChatSessionData) {
         messages_count = COALESCE($13, ai_chat_sessions.messages_count),
         situation_type = COALESCE($14, ai_chat_sessions.situation_type),
         updated_at = NOW()
-    `, 
-      data.sessionId,
-      data.organizationId || null,
-      userId || null,
-      data.pathname,
-      data.isSalesMode,
-      data.detectedInfo?.name || null,
-      data.detectedInfo?.company || null,
-      data.detectedInfo?.industry || null,
-      data.detectedInfo?.painPoints ? JSON.stringify(data.detectedInfo.painPoints) : null,
-      data.detectedInfo?.objections ? JSON.stringify(data.detectedInfo.objections) : null,
-      data.detectedInfo?.budget || null,
-      data.detectedInfo?.timeline || null,
-      data.messagesCount || 0,
-      data.situationType || null
-    );
+    `,
+      values: [
+        data.sessionId,
+        organizationId,
+        userId,
+        data.pathname,
+        data.isSalesMode,
+        data.detectedInfo?.name || null,
+        data.detectedInfo?.company || null,
+        data.detectedInfo?.industry || null,
+        data.detectedInfo?.painPoints ? JSON.stringify(data.detectedInfo.painPoints) : null,
+        data.detectedInfo?.objections ? JSON.stringify(data.detectedInfo.objections) : null,
+        data.detectedInfo?.budget || null,
+        data.detectedInfo?.timeline || null,
+        data.messagesCount || 0,
+        data.situationType || null,
+      ],
+    });
 
     return { success: true };
   } catch (error) {
@@ -98,7 +149,20 @@ export async function upsertChatSession(data: ChatSessionData) {
  */
 export async function endChatSession(data: EndSessionData) {
   try {
-    await prisma.$executeRawUnsafe(`
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return { success: true };
+    }
+
+    const organizationId = await resolveOrganizationIdForWrite({ clerkUserId: userId });
+    if (!organizationId) {
+      return { success: true };
+    }
+
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'ai_chat_sessions_end',
+      query: `
       UPDATE ai_chat_sessions
       SET
         ended_at = NOW(),
@@ -109,13 +173,17 @@ export async function endChatSession(data: EndSessionData) {
         helpful_yn = $5,
         updated_at = NOW()
       WHERE session_id = $1
+        AND organization_id = $6
     `,
-      data.sessionId,
-      data.finalOutcome || null,
-      data.userRating || null,
-      data.userFeedback || null,
-      data.helpfulYn ?? null
-    );
+      values: [
+        data.sessionId,
+        data.finalOutcome || null,
+        data.userRating || null,
+        data.userFeedback || null,
+        data.helpfulYn ?? null,
+        organizationId,
+      ],
+    });
 
     return { success: true };
   } catch (error) {
@@ -129,15 +197,37 @@ export async function endChatSession(data: EndSessionData) {
  */
 export async function saveChatMessage(sessionId: string, role: 'user' | 'assistant', content: string, quickActions?: string[]) {
   try {
-    await prisma.$executeRawUnsafe(`
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return { success: true };
+    }
+
+    const organizationId = await resolveOrganizationIdForWrite({ clerkUserId: userId });
+    if (!organizationId) {
+      return { success: true };
+    }
+
+    await executeRawOrgScoped(prisma, {
+      organizationId,
+      reason: 'ai_chat_messages_insert',
+      query: `
       INSERT INTO ai_chat_messages (session_id, role, content, quick_actions)
       VALUES ($1, $2, $3, $4)
+      SELECT $1, $2, $3, $4
+      WHERE EXISTS (
+        SELECT 1 FROM ai_chat_sessions s
+        WHERE s.session_id = $1
+          AND s.organization_id = $5
+      )
     `,
-      sessionId,
-      role,
-      content,
-      quickActions ? JSON.stringify(quickActions) : null
-    );
+      values: [
+        sessionId,
+        role,
+        content,
+        quickActions ? JSON.stringify(quickActions) : null,
+        organizationId,
+      ],
+    });
 
     return { success: true };
   } catch (error) {
@@ -156,15 +246,25 @@ export async function getAIInsights(filters?: {
   toDate?: Date;
 }) {
   try {
+    const authCheck = await requireAuth();
+    if (!authCheck.success) {
+      return { success: false, error: authCheck.error || 'נדרשת התחברות' };
+    }
+
+    await requireSuperAdmin();
+
+    const organizationId = String(filters?.organizationId || '').trim();
+    if (!organizationId) {
+      return { success: false, error: 'organizationId חסר' };
+    }
+
     const whereConditions: string[] = ['1=1'];
     const params: Array<string | number | boolean | Date | null> = [];
     let paramIndex = 1;
 
-    if (filters?.organizationId) {
-      whereConditions.push(`organization_id = $${paramIndex}`);
-      params.push(filters.organizationId);
-      paramIndex++;
-    }
+    whereConditions.push(`organization_id = $${paramIndex}`);
+    params.push(organizationId);
+    paramIndex++;
 
     if (filters?.isSalesMode !== undefined) {
       whereConditions.push(`is_sales_mode = $${paramIndex}`);
@@ -184,7 +284,10 @@ export async function getAIInsights(filters?: {
       paramIndex++;
     }
 
-    const stats = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
+    const stats = await queryRawOrgScoped<Record<string, unknown>[]>(prisma, {
+      organizationId,
+      reason: 'ai_chat_sessions_insights_stats',
+      query: `
       SELECT
         COUNT(*) as total_sessions,
         AVG(messages_count) as avg_messages,
@@ -197,9 +300,14 @@ export async function getAIInsights(filters?: {
       FROM ai_chat_sessions
       WHERE ${whereConditions.join(' AND ')}
       GROUP BY situation_type
-    `, ...params);
+    `,
+      values: params,
+    });
 
-    const topObjections = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
+    const topObjections = await queryRawOrgScoped<Record<string, unknown>[]>(prisma, {
+      organizationId,
+      reason: 'ai_chat_sessions_insights_objections',
+      query: `
       SELECT 
         jsonb_array_elements_text(detected_objections) as objection,
         COUNT(*) as count
@@ -210,9 +318,14 @@ export async function getAIInsights(filters?: {
       GROUP BY objection
       ORDER BY count DESC
       LIMIT 10
-    `, ...params);
+    `,
+      values: params,
+    });
 
-    const topIndustries = await prisma.$queryRawUnsafe<Record<string, unknown>[]>(`
+    const topIndustries = await queryRawOrgScoped<Record<string, unknown>[]>(prisma, {
+      organizationId,
+      reason: 'ai_chat_sessions_insights_industries',
+      query: `
       SELECT 
         detected_industry as industry,
         COUNT(*) as count
@@ -222,7 +335,9 @@ export async function getAIInsights(filters?: {
       GROUP BY detected_industry
       ORDER BY count DESC
       LIMIT 10
-    `, ...params);
+    `,
+      values: params,
+    });
 
     return {
       success: true,

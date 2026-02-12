@@ -64,7 +64,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
   };
 
   const handleQuickCall = (lead: Lead) => {
-    const phone = String((lead as any)?.phone || '').trim();
+    const phone = String(lead?.phone || '').trim();
     if (!phone) return;
     window.location.href = `tel:${phone}`;
     setLogCallLead(lead);
@@ -119,7 +119,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                 <select 
                     className="w-full h-full pl-4 pr-10 py-3 bg-slate-50 rounded-xl text-sm font-bold text-slate-600 focus:outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-colors border border-transparent focus:border-indigo-200 focus:bg-white"
                     value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as any)}
+                    onChange={(e) => setStatusFilter(e.target.value as PipelineStage | 'all')}
                 >
                     <option value="all">כל הסטטוסים</option>
                     {STAGES.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
@@ -209,7 +209,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                             <td className="px-6 py-4">
                                 <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button 
-                                        onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String((lead as any)?.phone ?? '').replace(/-/g, '')}`, '_blank'); }} 
+                                        onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String(lead?.phone ?? '').replace(/-/g, '')}`, '_blank'); }} 
                                         className="p-2 hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                                         title="וואטסאפ"
                                     >
@@ -284,7 +284,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
                               <Phone size={14} /> חייג
                           </button>
                           <button 
-                              onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String((lead as any)?.phone ?? '').replace(/-/g, '')}`, '_blank'); }}
+                              onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/${String(lead?.phone ?? '').replace(/-/g, '')}`, '_blank'); }}
                               className="flex-1 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border border-emerald-100"
                           >
                               <MessageSquare size={14} /> וואטסאפ
@@ -298,7 +298,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
       <LogCallModal
         open={Boolean(logCallLead)}
         leadName={String(logCallLead?.name || '')}
-        leadPhone={String((logCallLead as any)?.phone || '')}
+        leadPhone={String(logCallLead?.phone || '')}
         onCloseAction={() => setLogCallLead(null)}
         onUploadRecordingAction={async (file: File) => {
           const lead = logCallLead;
@@ -324,12 +324,12 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
           });
 
           if (!transcribeRes.ok) {
-            const err = await transcribeRes.json().catch(() => ({} as any));
+            const err = await transcribeRes.json().catch(() => ({})) as { error?: string };
             addToast(err?.error || 'שגיאה בתמלול', 'error');
             return;
           }
 
-          const transcribeJson = (await transcribeRes.json().catch(() => ({} as any))) as any;
+          const transcribeJson = await transcribeRes.json().catch(() => ({})) as { transcriptText?: string };
           const transcriptText = String(transcribeJson?.transcriptText || '').trim();
           if (!transcriptText) {
             addToast('תמלול ריק', 'error');
@@ -343,12 +343,12 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
           });
 
           if (!suggestRes.ok) {
-            const err = await suggestRes.json().catch(() => ({} as any));
+            const err = await suggestRes.json().catch(() => ({})) as { error?: string };
             addToast(err?.error || 'שגיאה בניתוח', 'error');
             return;
           }
 
-          const suggestJson = (await suggestRes.json().catch(() => ({} as any))) as any;
+          const suggestJson = await suggestRes.json().catch(() => ({})) as { result?: { summary?: string; nextSteps?: string[] } };
           const analysisResult = suggestJson?.result || {};
           const summaryText = String(analysisResult?.summary || '').trim();
 
@@ -363,10 +363,10 @@ const ContactsView: React.FC<ContactsViewProps> = ({ leads, viewMode = 'all', on
               callAnalysis: {
                 kind: 'call_recording_ai',
                 audio: {
-                  bucket: (uploadRes as any).bucket,
+                  bucket: 'bucket' in uploadRes ? (uploadRes as { bucket: string }).bucket : '',
                   path: uploadRes.path,
                   url: uploadRes.url,
-                  signedUrl: (uploadRes as any).signedUrl,
+                  signedUrl: 'signedUrl' in uploadRes ? (uploadRes as { signedUrl: string }).signedUrl : '',
                   fileName: file.name,
                   mimeType: file.type,
                 },

@@ -129,7 +129,7 @@ Cost per Customer: ₪350 (if ₪8K ad spend)
 
 ### Stage 2: Profile → Website
 **Start:** 500 profile visitors  
-**Bio Link:** "MISRAD AI — מערכת ניהול לעסקים קטנים"  
+**Bio Link:** "MISRAD AI — מערכת AI שמנהלת ארגונים"  
 **Result:** 50 clicks (10% CTR)
 
 **Bio Optimization:**
@@ -328,7 +328,7 @@ Cost per Customer: ₪350 (if ₪8K ad spend)
 ### Landing Page Tests
 
 #### Test #1: Headline
-- **A:** "מערכת ניהול לעסקים קטנים"
+- **A:** "מערכת AI שמנהלת ארגונים"
 - **B:** "תפסיקו לאבד לידים בווצאפ"
 - **Winner:** B (+35% conversion)
 

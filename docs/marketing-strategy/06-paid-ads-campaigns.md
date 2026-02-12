@@ -31,7 +31,7 @@ Account: MISRAD AI Marketing
 **Headline 1:** MISRAD AI — האתר הרשמי  
 **Headline 2:** 6 מודולים במחיר אחד  
 **Headline 3:** התחל ניסיון 7 ימים חינם  
-**Description:** מערכת ניהול עסקית משולבת. CRM, שיווק, תפעול, Finance — הכל במקום אחד. תמיכה בעברית.
+**Description:** מערכת AI שמנהלת את הארגון. CRM, שיווק, תפעול, Finance — הכל במקום אחד. AI מנתח, מחזה, וממליץ.
 
 ### Settings
 - Location: ישראל
@@ -56,7 +56,7 @@ Account: MISRAD AI Marketing
 **Headline 1:** CRM בעברית | ₪149/חודש  
 **Headline 2:** מותאם לעסקים ישראליים  
 **Headline 3:** לוח עברי + הגנת שבת  
-**Description:** מערכת CRM המדברת עברית. ניהול לקוחות, משימות, חשבוניות. 7 ימים חינם.
+**Description:** מערכת AI בעברית מלאה. ניהול לקוחות, משימות, חשבוניות. AI מחזה סגירות. 7 ימים חינם.
 
 **Bid:** ₪8-12 (CPC)
 
@@ -65,20 +65,20 @@ Account: MISRAD AI Marketing
 - מערכת ניהול עסק קטן
 - תוכנה לניהול עסק
 - מערכת לניהול עסק
-- תוכנה לעסקים קטנים
+- תוכנה לניהול ארגונים
 
 **Ad Copy:**
-**Headline 1:** מערכת ניהול משולבת  
-**Headline 2:** 6 מודולים | ₪499/חודש  
-**Headline 3:** לא צריך מספר מערכות  
-**Description:** לקוחות, משימות, שיווק, תשלומים, תפעול — הכל במקום אחד. בעברית מלאה.
+**Headline 1:** מערכת AI לניהול ארגונים  
+**Headline 2:** 6 מודולים + AI | ₪499/חודש  
+**Headline 3:** AI מנתח, מחזה וממליץ  
+**Description:** AI מנהל לקוחות, משימות, שיווק, תשלומים, תפעול — הכל במקום אחד. חיזוי סגירות, hashtags חכמים, ניתוב שיחות.
 
 #### AG3: תוכנה לניהול לקוחות (₪800/חודש)
 **Keywords:**
 - תוכנה לניהול לקוחות
 - מערכת לניהול לקוחות
 - ניהול לקוחות דיגיטלי
-- crm לעסקים קטנים
+- crm לארגונים
 
 #### AG4: Alternative לקסל (₪500/חודש)
 **Keywords:**
@@ -125,7 +125,7 @@ Account: MISRAD AI Marketing
 **Headline 1:** Salesforce יקר מדי? יש פתרון  
 **Headline 2:** פי-10 זול יותר  
 **Headline 3:** מותאם לעסקים ישראליים  
-**Description:** Salesforce מעולה לענקיות. MISRAD AI לעסקים קטנים. ₪499 במקום ₪3,010.
+**Description:** Salesforce מעולה לענקיות. MISRAD AI לארגונים. ₪499 במקום ₪3,010.
 
 #### AG3: HubSpot Alternative (₪400/חודש)
 #### AG4: Fireberry Alternative (₪200/חודש)
@@ -226,7 +226,7 @@ Business Manager: MISRAD AI
 ### Audience
 - **Location:** ישראל
 - **Age:** 25-55
-- **Interests:** עסקים קטנים, יזמות, ניהול
+- **Interests:** ארגונים וחברות בישראל (עמוד פייסבוק עסקי, תפקיד: בעלים/מנכ"ל)
 - **Behaviors:** בעלי עמוד עסקי
 - **Job Title:** בעלים, מנכ"ל, מנהל
 
@@ -376,7 +376,7 @@ Business Manager: MISRAD AI
 **Lead Generation (LinkedIn Native Form)**
 
 #### Offer
-"המדריך המלא לבחירת CRM לעסק B2B [PDF 20 עמודים]"
+"המדריך המלא לבחירת מערכת AI לניהול ארגונים [PDF 20 עמודים]"
 
 #### Form Fields
 - שם
@@ -438,7 +438,7 @@ Founder, MISRAD AI
 #### Creative
 **Format:** Native TikTok (לא נראה כמו פרסומת)  
 **Style:** Founder מדבר למצלמה  
-**Hook:** "בניתי CRM לעסק שלי והרוויחו ₪50K בחודש ראשון"
+**Hook:** "בניתי מערכת AI שמנהלת ארגונים והרוויחו ₪50K בחודש ראשון"
 
 #### Budget
 - ₪33/יום

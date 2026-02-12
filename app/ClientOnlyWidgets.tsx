@@ -118,6 +118,7 @@ export function ClientOnlyClerkWidgets() {
   const mounted = useMounted();
   const [enableAiAssistant, setEnableAiAssistant] = useState(false);
   const [enablePasskeyPrompt, setEnablePasskeyPrompt] = useState(false);
+  const isAuthenticated = !isSalesPathname(pathname || '/');
 
   useEffect(() => {
     if (!mounted) return;
@@ -178,7 +179,7 @@ export function ClientOnlyClerkWidgets() {
   return (
     <>
       <LegalConsentSync />
-      {mounted && enablePasskeyPrompt && <PasskeyOnboardingPrompt />}
+      {mounted && enablePasskeyPrompt && isAuthenticated && <PasskeyOnboardingPrompt />}
       {mounted && showFAB && enableAiAssistant && <AiAssistantWidget />}
     </>
   );

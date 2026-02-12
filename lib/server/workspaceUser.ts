@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import { findUserGlobalByEmail } from '@/lib/db';
 import { requireWorkspaceAccessByOrgSlug, requireWorkspaceAccessByOrgSlugApi } from '@/lib/server/workspace';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string | null {
   const v = obj?.[key];
@@ -301,7 +302,10 @@ export async function resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspaceI
   const phoneValue = profileObj['phone'];
   const resolvedPhone = phoneValue != null ? String(phoneValue) : undefined;
   const avatarValue = nexusObj['avatar'];
-  const resolvedAvatar = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
+  const avatarCandidate = typeof avatarValue === 'string' ? avatarValue : String(avatarUrl || '');
+  const ttlSeconds = 60 * 60;
+  const signedAvatar = await resolveStorageUrlMaybeServiceRole(avatarCandidate, ttlSeconds, { organizationId: workspaceId });
+  const resolvedAvatar = signedAvatar ?? (avatarCandidate.startsWith('sb://') ? String(avatarUrl || '') : avatarCandidate);
   const capacityValue = nexusObj['capacity'];
   const capacity = Number(capacityValue ?? 0) || 0;
   const nexusEmail = typeof nexusObj['email'] === 'string' ? String(nexusObj['email']) : String(email);

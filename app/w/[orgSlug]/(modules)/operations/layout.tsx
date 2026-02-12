@@ -7,6 +7,7 @@ import {
 } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUiWithWorkspaceId } from '@/lib/server/workspaceUser';
 import OperationsShell from '@/components/operations/OperationsShell';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
 
 export const dynamic = 'force-dynamic';
@@ -27,6 +28,7 @@ export default async function OperationsModuleLayout({
 
   const user = await resolveWorkspaceCurrentUserForUiWithWorkspaceId(workspace.id);
   const def = getModuleDefinition('operations');
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
 
   const style = {
     '--os-accent': def.theme.accent,
@@ -47,7 +49,7 @@ export default async function OperationsModuleLayout({
     <div style={style} data-module={def.key} className="min-h-screen bg-[var(--os-bg)] text-slate-900" dir="rtl">
       <OperationsShell
         orgSlug={orgSlug}
-        workspace={{ name: workspace.name, logoUrl: workspace.logo || null }}
+        workspace={{ name: workspace.name, logoUrl: signedLogo || null }}
         user={{ name: user.name, role: user.role || null, avatarUrl: user.avatar || null }}
         entitlements={workspace.entitlements}
       >

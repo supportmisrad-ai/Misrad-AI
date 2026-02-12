@@ -8,6 +8,7 @@ import { requireWorkspaceAccessByOrgSlug } from '@/lib/server/workspace';
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import { getClientOSClients, getOrganizationSessions } from '@/app/actions/client-portal-clinic';
 import ClientOsAppLayoutClient from '@/components/client-os-full/app-router/ClientOsAppLayoutClient';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemMetadata } from '@/lib/metadata';
 import { asObject } from '@/lib/shared/unknown';
 
@@ -73,12 +74,13 @@ export default async function ClientAppLayout({
   const isAdmin = clerkIsSuperAdmin || role === 'admin' || role === 'super_admin' || role === 'owner';
 
   const organizationId = String(workspace?.id || '');
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId });
   const organization: { id: string; name: string; logo?: string | null; has_client?: boolean | null } | null =
     organizationId
       ? {
           id: organizationId,
           name: String(workspace?.name || 'Workspace'),
-          logo: (asObject(workspace)?.logo as string | null | undefined) ?? null,
+          logo: signedLogo ?? null,
           has_client: Boolean(workspace?.entitlements?.client),
         }
       : null;

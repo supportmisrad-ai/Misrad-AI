@@ -11,8 +11,9 @@ import { Prisma } from '@prisma/client';
 import { ModuleId, PermissionId, Tenant } from '../types';
 import prisma from '@/lib/prisma';
 import { ROLE_ADMIN, ROLE_CEO, isTenantAdminRole } from '@/lib/constants/roles';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function isSchemaMismatchError(error: unknown): boolean {
     const obj = asObject(error) ?? {};
@@ -100,6 +101,15 @@ async function selectRolePermissionsByName(roleName: string): Promise<Permission
         if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
             throw new Error(`[SchemaMismatch] scale_roles lookup failed (${getErrorMessage(e) || 'missing relation'})`);
         }
+
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+            reportSchemaFallback({
+                source: 'lib/auth.selectRolePermissionsByName',
+                reason: 'scale_roles lookup schema mismatch (fallback to hardcoded role permissions)',
+                error: e,
+                extras: { roleName: String(roleName || '') },
+            });
+        }
         return null;
     }
 }
@@ -140,6 +150,15 @@ async function selectTenants(filters?: {
     } catch (e: unknown) {
         if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
             throw new Error(`[SchemaMismatch] nexusTenant.findMany failed (${getErrorMessage(e) || 'missing relation'})`);
+        }
+
+        if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+            reportSchemaFallback({
+                source: 'lib/auth.selectTenants',
+                reason: 'nexusTenant.findMany schema mismatch (fallback to empty list)',
+                error: e,
+                extras: { filters: filters ?? null },
+            });
         }
         return [];
     }

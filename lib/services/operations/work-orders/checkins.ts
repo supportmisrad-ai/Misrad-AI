@@ -9,6 +9,7 @@ import {
   logOperationsError,
   toIsoDate,
 } from '@/lib/services/operations/shared';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 import type { OperationsWorkOrderCheckinRow } from '@/lib/services/operations/types';
 
 export async function getOperationsWorkOrderCheckinsForOrganizationId(params: {
@@ -51,6 +52,15 @@ export async function getOperationsWorkOrderCheckinsForOrganizationId(params: {
       throw new Error(
         `[SchemaMismatch] operations_work_order_checkins missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
       );
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/checkins.getOperationsWorkOrderCheckinsForOrganizationId',
+        reason: 'operations_work_order_checkins schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), workOrderId: String(params.workOrderId || '') },
+      });
     }
     logOperationsError('[operations] getOperationsWorkOrderCheckins failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בטעינת Check-In לקריאה' };
@@ -99,6 +109,15 @@ export async function addOperationsWorkOrderCheckinForOrganizationId(params: {
       throw new Error(
         `[SchemaMismatch] operations_work_order_checkins missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`
       );
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/checkins.addOperationsWorkOrderCheckinForOrganizationId',
+        reason: 'operations_work_order_checkins schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), workOrderId: String(params.workOrderId || '') },
+      });
     }
     logOperationsError('[operations] addOperationsWorkOrderCheckin failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת Check-In' };

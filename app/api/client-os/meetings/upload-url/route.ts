@@ -1,13 +1,32 @@
 import { apiError, apiSuccessCompat } from '@/lib/server/api-response';
 import { createStorageClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { asObject, getErrorMessage, getErrorStatus } from '@/lib/server/workspace-access/utils';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+const MEETING_RECORDINGS_BUCKET = 'meeting-recordings';
+const MAX_MEETING_RECORDING_SIZE = 1024 * 1024 * 1024; // 1GB
+
+function hasPathTraversal(v: string): boolean {
+  const s = String(v || '');
+  if (!s) return false;
+  if (s.includes('..')) return true;
+  if (s.includes('\\')) return true;
+  if (s.includes('//')) return true;
+  return false;
+}
+
+function isSafeIdSegment(seg: string): boolean {
+  const s = String(seg || '').trim();
+  if (!s) return false;
+  if (s.length > 120) return false;
+  return /^[a-zA-Z0-9_-]+$/.test(s);
+}
 
 function sanitizeFileName(name: string): string {
   return String(name ?? '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
@@ -20,17 +39,40 @@ async function POSTHandler(req: Request) {
     const bodyJson: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(bodyJson) ?? {};
 
-    const orgIdInput = String(bodyObj.orgId || '');
+    const bodyOrgKey = String(bodyObj.orgId || '').trim();
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
+    }
+    const orgKey = headerOrgKey || bodyOrgKey;
     const clientId = String(bodyObj.clientId || '');
     const fileName = String(bodyObj.fileName || 'recording');
     const mimeType = String(bodyObj.mimeType || '');
+    const fileSize = Number(bodyObj.fileSize ?? NaN);
 
-    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!orgKey) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
+
+    if (!isSafeIdSegment(clientId)) {
+      return apiError('Invalid clientId', { status: 400 });
+    }
+
+    const mime = String(mimeType || '').trim().toLowerCase();
+    const isAudio = mime.startsWith('audio/');
+    const isVideo = mime.startsWith('video/');
+    if (!isAudio && !isVideo) {
+      return apiError('Only audio/video files are supported', { status: 400 });
+    }
+
+    if (Number.isFinite(fileSize) && fileSize > MAX_MEETING_RECORDING_SIZE) {
+      return apiError('File too large', { status: 400 });
+    }
 
     let orgId: string;
     try {
-      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
@@ -38,33 +80,27 @@ async function POSTHandler(req: Request) {
       return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
     }
 
-    const bucket = 'meeting-recordings';
+    if (headerOrgKey && bodyOrgKey && headerOrgKey !== bodyOrgKey) {
+      try {
+        const otherKey = headerOrgKey === orgKey ? bodyOrgKey : headerOrgKey;
+        const { workspace: otherWorkspace } = await getWorkspaceByOrgKeyOrThrow(otherKey);
+        if (String(otherWorkspace.id) !== String(orgId)) {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      } catch {
+        return apiError('Conflicting workspace context', { status: 400 });
+      }
+    }
+
+    const bucket = MEETING_RECORDINGS_BUCKET;
     const safeName = sanitizeFileName(fileName);
     const path = `${orgId}/${clientId}/${Date.now()}-${safeName}`;
 
-    const supabase = createStorageClient();
-
-    // Best effort: ensure bucket exists
-    try {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      if (listError) throw listError;
-
-      const exists = (buckets || []).some((b) => b.name === bucket);
-      if (!exists) {
-        const { error: createError } = await supabase.storage.createBucket(bucket, {
-          public: false,
-          fileSizeLimit: 1024 * 1024 * 1024, // 1GB
-        });
-        if (createError) {
-          // If concurrent create or permissions issue, continue and let upload fail if needed.
-          if (IS_PROD) console.warn('[meeting-recordings] createBucket failed');
-          else console.warn('[meeting-recordings] createBucket failed:', createError.message);
-        }
-      }
-    } catch (e: unknown) {
-      if (IS_PROD) console.warn('[meeting-recordings] bucket check failed');
-      else console.warn('[meeting-recordings] bucket check failed:', getErrorMessage(e) || String(e));
+    if (hasPathTraversal(path)) {
+      return apiError('Invalid path', { status: 400 });
     }
+
+    const supabase = createStorageClient();
 
     const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(path);
     if (error || !data?.signedUrl || !data?.token) {
@@ -75,7 +111,7 @@ async function POSTHandler(req: Request) {
     return apiSuccessCompat({
       bucket,
       path,
-      mimeType,
+      mimeType: mime,
       signedUrl: data.signedUrl,
       token: data.token,
     });

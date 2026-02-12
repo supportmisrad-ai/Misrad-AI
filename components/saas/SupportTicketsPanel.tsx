@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LifeBuoy, Clock, CheckCircle2, XCircle, AlertCircle, Search, Filter, User, Mail, Calendar, MessageSquare, RefreshCw, Eye, Edit2, AlertTriangle } from 'lucide-react';
-import { SupportTicket } from '../../types';
+import { SupportTicket, SupportTicketEvent } from '@/types';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { SkeletonTable } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 interface SupportTicketsPanelProps {
     addToast: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -21,9 +22,6 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
     const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
     useEffect(() => {
         loadTickets();
@@ -58,15 +56,16 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בטעינת דיווחי תקלות');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה בטעינת דיווחי תקלות');
             }
             const data = await response.json().catch(() => ({}));
-            const payload = unwrap(data);
-            setTickets((payload as any).tickets || []);
-        } catch (err: any) {
+            const payload = extractData<{ tickets?: SupportTicket[] }>(data);
+            setTickets(payload?.tickets || []);
+        } catch (err: unknown) {
             console.error('[SupportTicketsPanel] Error loading tickets:', err);
-            addToast(err.message || 'שגיאה בטעינת דיווחי תקלות', 'error');
+            const message = err instanceof Error ? err.message : 'שגיאה בטעינת דיווחי תקלות';
+            addToast(message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -87,8 +86,8 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בעדכון סטטוס');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה בעדכון סטטוס');
             }
 
             await loadTickets();
@@ -98,12 +97,13 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                 const updated = await fetch(`/api/support?id=${ticketId}`, {
                     headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 }).then(r => r.json()).catch(() => ({}));
-                const updatedPayload = unwrap(updated);
-                setSelectedTicket(updatedPayload as any);
+                const updatedTicket = extractData<SupportTicket>(updated);
+                if (updatedTicket) setSelectedTicket(updatedTicket);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[SupportTicketsPanel] Error updating status:', err);
-            addToast(err.message || 'שגיאה בעדכון סטטוס', 'error');
+            const message = err instanceof Error ? err.message : 'שגיאה בעדכון סטטוס';
+            addToast(message, 'error');
         } finally {
             setUpdatingStatus(null);
         }
@@ -123,8 +123,8 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בהוספת עדכון');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה בהוספת עדכון');
             }
 
             await loadTickets();
@@ -134,12 +134,13 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                 const updated = await fetch(`/api/support?id=${ticketId}`, {
                     headers: orgSlug ? { 'x-org-id': orgSlug } : undefined
                 }).then(r => r.json()).catch(() => ({}));
-                const updatedPayload = unwrap(updated);
-                setSelectedTicket(updatedPayload as any);
+                const updatedTicket = extractData<SupportTicket>(updated);
+                if (updatedTicket) setSelectedTicket(updatedTicket);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('[SupportTicketsPanel] Error adding response:', err);
-            addToast(err.message || 'שגיאה בהוספת תגובה', 'error');
+            const message = err instanceof Error ? err.message : 'שגיאה בהוספת תגובה';
+            addToast(message, 'error');
         }
     };
 
@@ -176,7 +177,7 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
         total: tickets.length,
         open: tickets.filter(t => t.status === 'open').length,
         in_progress: tickets.filter(t => t.status === 'in_progress').length,
-        waiting: tickets.filter(t => (t as any).status === 'waiting_for_customer').length,
+        waiting: tickets.filter(t => t.status === 'waiting_for_customer').length,
         resolved: tickets.filter(t => t.status === 'resolved').length,
     };
 
@@ -193,8 +194,8 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
         const r = statusRank(a.status) - statusRank(b.status);
         if (r !== 0) return r;
 
-        const ad = (a as any)?.sla_deadline ? new Date(String((a as any).sla_deadline)) : null;
-        const bd = (b as any)?.sla_deadline ? new Date(String((b as any).sla_deadline)) : null;
+        const ad = a.sla_deadline ? new Date(a.sla_deadline) : null;
+        const bd = b.sla_deadline ? new Date(b.sla_deadline) : null;
         const at = ad && !Number.isNaN(ad.getTime()) ? ad.getTime() : Number.POSITIVE_INFINITY;
         const bt = bd && !Number.isNaN(bd.getTime()) ? bd.getTime() : Number.POSITIVE_INFINITY;
         return at - bt;
@@ -333,12 +334,9 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                         const categoryConfig = getCategoryConfig(ticket.category);
 
                         const sla = (() => {
-                            const deadlineRaw = (ticket as any)?.sla_deadline;
-                            const createdRaw = (ticket as any)?.created_at;
-                            const resolvedAtRaw = (ticket as any)?.resolved_at || (ticket as any)?.closed_at;
-                            const deadline = deadlineRaw ? new Date(String(deadlineRaw)) : null;
-                            const createdAt = createdRaw ? new Date(String(createdRaw)) : null;
-                            const resolvedAt = resolvedAtRaw ? new Date(String(resolvedAtRaw)) : null;
+                            const deadline = ticket.sla_deadline ? new Date(ticket.sla_deadline) : null;
+                            const createdAt = new Date(ticket.created_at);
+                            const resolvedAt = ticket.resolved_at ? new Date(ticket.resolved_at) : (ticket.closed_at ? new Date(ticket.closed_at) : null);
                             if (!deadline || Number.isNaN(deadline.getTime())) return null;
 
                             if (!createdAt || Number.isNaN(createdAt.getTime())) return null;
@@ -383,7 +381,7 @@ export const SupportTicketsPanel: React.FC<SupportTicketsPanelProps> = ({ addToa
                                 <div className="flex items-start justify-between gap-4">
                                     <div className="flex-1 space-y-3">
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-2 h-2 rounded-full ${String((statusConfig as any)?.color ?? '').split(' ')[0].replace(/\/\d+/, '')}`} />
+                                            <div className={`w-2 h-2 rounded-full ${statusConfig.color.split(' ')[0].replace(/\/\d+/, '')}`} />
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-bold text-slate-500 font-mono">{ticket.ticket_number}</span>
                                                 <span className={`text-xs px-2 py-1 rounded-full font-bold border ${statusConfig.color}`}>
@@ -475,7 +473,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
     const [responseText, setResponseText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [sendEmail, setSendEmail] = useState(true);
-    const [events, setEvents] = useState<any[]>([]);
+    const [events, setEvents] = useState<SupportTicketEvent[]>([]);
     const [eventsLoading, setEventsLoading] = useState(true);
     const [eventsReloadNonce, setEventsReloadNonce] = useState(0);
 
@@ -489,8 +487,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                     headers: orgSlug ? { 'x-org-id': orgSlug } : undefined,
                 });
                 const raw = await res.json().catch(() => ({}));
-                const payload = (raw as any)?.data ?? raw;
-                const rows = Array.isArray((payload as any)?.events) ? (payload as any).events : [];
+                const payload = extractData<{ events?: SupportTicketEvent[] }>(raw);
+                const rows = payload?.events || [];
                 if (!cancelled) setEvents(rows);
             } catch {
                 if (!cancelled) setEvents([]);
@@ -512,23 +510,23 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
         return s;
     };
 
-    const renderEventLine = (ev: any) => {
-        const action = String(ev?.action || 'updated');
-        const md = (ev?.metadata && typeof ev.metadata === 'object') ? ev.metadata : {};
-        const actor = String((md as any)?.actor_name || 'System');
-        const createdAt = ev?.created_at ? new Date(String(ev.created_at)) : null;
+    const renderEventLine = (ev: SupportTicketEvent) => {
+        const action = ev.action || 'updated';
+        const md = ev.metadata || {};
+        const actor = (md.actor_name && typeof md.actor_name === 'string') ? md.actor_name : 'System';
+        const createdAt = new Date(ev.created_at);
         const when = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('he-IL') : '';
 
         if (action === 'COMMENT') {
-            const role = String((md as any)?.role || '').toLowerCase();
+            const role = (md.role && typeof md.role === 'string') ? md.role.toLowerCase() : '';
             const roleHe = role === 'admin' ? 'צוות' : role === 'customer' ? 'מדווח' : 'משתמש';
-            return { title: `${roleHe}: ${actor}`, subtitle: when, content: String(ev?.content || '') };
+            return { title: `${roleHe}: ${actor}`, subtitle: when, content: ev.content || '' };
         }
 
         if (action === 'created') return { title: `${actor} פתח קריאה`, subtitle: when };
         if (action === 'status_changed') {
-            const from = formatStatusHe(String((md as any)?.from || ''));
-            const to = formatStatusHe(String((md as any)?.to || ''));
+            const from = formatStatusHe((md.from && typeof md.from === 'string') ? md.from : '');
+            const to = formatStatusHe((md.to && typeof md.to === 'string') ? md.to : '');
             return { title: `${actor} שינה סטטוס`, subtitle: `${from} → ${to}${when ? ` · ${when}` : ''}` };
         }
         if (action === 'admin_replied') return { title: `${actor} השיב`, subtitle: when };
@@ -601,20 +599,20 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-slate-600 uppercase mb-1">SLA יעד</p>
-                                        <p className="text-slate-900">{(ticket as any)?.sla_deadline ? new Date((ticket as any).sla_deadline).toLocaleString('he-IL') : '—'}</p>
+                                        <p className="text-slate-900">{ticket.sla_deadline ? new Date(ticket.sla_deadline).toLocaleString('he-IL') : '—'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-slate-600 uppercase mb-1">תגובה ראשונה</p>
-                                        <p className="text-slate-900">{(ticket as any)?.first_response_at ? new Date((ticket as any).first_response_at).toLocaleString('he-IL') : '—'}</p>
+                                        <p className="text-slate-900">{ticket.first_response_at ? new Date(ticket.first_response_at).toLocaleString('he-IL') : '—'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-slate-600 uppercase mb-1">נוצר</p>
                                         <p className="text-slate-900">{new Date(ticket.created_at).toLocaleString('he-IL')}</p>
                                     </div>
-                                    {(ticket as any)?.resolution_time_minutes != null ? (
+                                    {'resolution_time_minutes' in ticket && ticket.resolution_time_minutes != null ? (
                                         <div>
                                             <p className="text-xs font-bold text-slate-600 uppercase mb-1">זמן לפתרון</p>
-                                            <p className="text-slate-900">{Number((ticket as any).resolution_time_minutes).toLocaleString()} דקות</p>
+                                            <p className="text-slate-900">{Number(ticket.resolution_time_minutes).toLocaleString()} דקות</p>
                                         </div>
                                     ) : null}
                                 </div>

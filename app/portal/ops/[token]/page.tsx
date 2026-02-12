@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation';
 import {
   contractorAddWorkOrderAttachment,
   contractorAddWorkOrderCheckin,
-  contractorResolveTokenForApi,
   contractorSetWorkOrderCompletionSignature,
   contractorValidateWorkOrderAccess,
   contractorGetWorkOrderAttachments,
@@ -16,7 +15,10 @@ import {
 import GeoCheckInButton from '@/components/operations/GeoCheckInButton';
 import SignaturePad from '@/components/operations/SignaturePad';
 import VisionIdentifyFillSearch from '@/components/operations/VisionIdentifyFillSearch';
-import { createServiceRoleClientScoped } from '@/lib/supabase';
+import {
+  uploadOpsPortalWorkOrderAttachment,
+  uploadOpsPortalWorkOrderSignature,
+} from '@/lib/services/operations/uploads';
 
 function formatStatus(status: string): { label: string; className: string } {
   switch (status) {
@@ -138,60 +140,17 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent('חובה לצרף חתימה')}`);
     }
 
-    const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success || !access.organizationId) {
-      const msg = access.error ? String(access.error) : 'גישה נדחתה';
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
-    }
-
-    const tokenResolved = await contractorResolveTokenForApi({ token });
-    if (!tokenResolved.success || !tokenResolved.tokenHash) {
-      const msg = tokenResolved.error ? String(tokenResolved.error) : 'גישה נדחתה';
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
-    }
-
-    const supabase = createServiceRoleClientScoped({
-      reason: 'ops_portal_signature_upload',
-      scopeColumn: 'organization_id',
-      scopeId: String(access.organizationId).trim(),
+    const uploaded = await uploadOpsPortalWorkOrderSignature({
+      token,
+      workOrderId,
+      signatureDataUrl,
     });
-    const bucket = 'operations-files';
-    const filePath = `${String(access.organizationId).trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/signature.png`;
-
-    const base64 = signatureDataUrl.includes('base64,') ? signatureDataUrl.split('base64,')[1] : '';
-    if (!base64) {
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent('חתימה לא תקינה')}`);
-    }
-
-    const fileBuffer = Buffer.from(base64, 'base64');
-
-    // Best effort: ensure bucket exists
-    try {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      if (!listError) {
-        const exists = (buckets || []).some((b) => b.name === bucket);
-        if (!exists) {
-          await supabase.storage.createBucket(bucket, {
-            public: false,
-            fileSizeLimit: 50 * 1024 * 1024,
-          });
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-      contentType: 'image/png',
-      upsert: true,
-    });
-
-    if (uploadError) {
-      const msg = uploadError.message ? String(uploadError.message) : 'שגיאה בהעלאת חתימה';
+    if (!uploaded.success || !uploaded.ref) {
+      const msg = uploaded.error ? String(uploaded.error) : 'שגיאה בהעלאת חתימה';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const ref = `sb://${bucket}/${filePath}`;
+    const ref = uploaded.ref;
 
     const sig = await contractorSetWorkOrderCompletionSignature({ token, workOrderId, signatureUrl: ref });
     if (!sig.success) {
@@ -219,65 +178,25 @@ export default async function OpsContractorPortalPage({
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent('חסר קובץ')}`);
     }
 
-    const access = await contractorValidateWorkOrderAccess({ token, workOrderId });
-    if (!access.success || !access.organizationId) {
-      const msg = access.error ? String(access.error) : 'גישה נדחתה';
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
-    }
-
-    const tokenResolved = await contractorResolveTokenForApi({ token });
-    if (!tokenResolved.success || !tokenResolved.tokenHash) {
-      const msg = tokenResolved.error ? String(tokenResolved.error) : 'גישה נדחתה';
-      redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
-    }
-
-    const supabase = createServiceRoleClientScoped({
-      reason: 'ops_portal_attachment_upload',
-      scopeColumn: 'organization_id',
-      scopeId: String(access.organizationId).trim(),
+    const uploaded = await uploadOpsPortalWorkOrderAttachment({
+      token,
+      workOrderId,
+      file,
     });
-    const bucket = 'operations-files';
-    const safeName = String(file.name || 'upload').replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filePath = `${String(access.organizationId).trim()}/ops/contractor/${String(tokenResolved.tokenHash)}/work-orders/${workOrderId}/${safeName}`;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
-
-    // Best effort: ensure bucket exists
-    try {
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      if (!listError) {
-        const exists = (buckets || []).some((b) => b.name === bucket);
-        if (!exists) {
-          await supabase.storage.createBucket(bucket, {
-            public: false,
-            fileSizeLimit: 50 * 1024 * 1024,
-          });
-        }
-      }
-    } catch {
-      // ignore
-    }
-
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, fileBuffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    });
-
-    if (uploadError) {
-      const msg = uploadError.message ? String(uploadError.message) : 'שגיאה בהעלאת קובץ';
+    if (!uploaded.success || !uploaded.ref || !uploaded.path) {
+      const msg = uploaded.error ? String(uploaded.error) : 'שגיאה בהעלאת קובץ';
       redirect(`/portal/ops/${encodeURIComponent(token)}?workOrderId=${encodeURIComponent(workOrderId)}&error=${encodeURIComponent(msg)}`);
     }
 
-    const ref = `sb://${bucket}/${filePath}`;
+    const ref = uploaded.ref;
 
     const save = await contractorAddWorkOrderAttachment({
       token,
       workOrderId,
-      storageBucket: bucket,
-      storagePath: filePath,
+      storageBucket: uploaded.bucket,
+      storagePath: uploaded.path,
       url: ref,
-      mimeType: file.type || null,
+      mimeType: uploaded.mimeType || null,
     });
 
     if (!save.success) {

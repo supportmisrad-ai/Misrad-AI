@@ -23,7 +23,7 @@
 1. **שכפל את הפרויקט:**
 ```bash
 git clone <repository-url>
-cd scale-crm
+cd misrad-ai
 ```
 
 2. **התקן תלויות:**
@@ -91,7 +91,7 @@ Supabase משמש **רק** ל-Storage (העלאות/הורדות קבצים). ג
 ## 📁 מבנה הפרויקט
 
 ```
-scale-crm/
+misrad-ai/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API Routes
 │   └── page.tsx           # דף ראשי

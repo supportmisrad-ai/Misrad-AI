@@ -2,6 +2,9 @@
 
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
+import { requireAuth } from '@/lib/errorHandler';
+import { getAuthenticatedUser, requireSuperAdmin } from '@/lib/auth';
+import { isTenantAdminRole } from '@/lib/constants/roles';
 
 // ============================================================
 // Types
@@ -30,6 +33,72 @@ export type CouponValidationResult = {
   error?: string;
 };
 
+async function requireSuperAdminOrReturn(): Promise<{ ok: true } | { ok: false; error: string }> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return { ok: false, error: 'אין הרשאה (נדרש Super Admin)' };
+  }
+
+  return { ok: true };
+}
+
+async function requireTenantOrgAdminOrReturn(
+  orgId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const organizationId = String(orgId || '').trim();
+  if (!organizationId) return { ok: false, error: 'organizationId חסר' };
+
+  const authCheck = await requireAuth();
+  if (!authCheck.success) return { ok: false, error: authCheck.error || 'נדרשת התחברות' };
+
+  const user = await getAuthenticatedUser();
+  if (user.isSuperAdmin) return { ok: true };
+
+  const dbUser = await prisma.organizationUser.findUnique({
+    where: { clerk_user_id: String(user.id) },
+    select: { id: true, organization_id: true, role: true },
+  });
+
+  if (!dbUser?.id) return { ok: false, error: 'אין הרשאה' };
+
+  const org = await prisma.social_organizations.findUnique({
+    where: { id: organizationId },
+    select: { owner_id: true },
+  });
+
+  if (!org?.owner_id) return { ok: false, error: 'ארגון לא נמצא' };
+
+  if (String(org.owner_id) === String(dbUser.id)) return { ok: true };
+
+  const userOrgId = dbUser.organization_id ? String(dbUser.organization_id) : '';
+  const isPrimaryMembership = userOrgId === organizationId;
+
+  let membershipRole: string | null = String(dbUser.role || '').trim() || null;
+  if (!isPrimaryMembership) {
+    const teamMember = await prisma.teamMember.findFirst({
+      where: {
+        user_id: String(dbUser.id),
+        organization_id: organizationId,
+      },
+      select: { role: true },
+    });
+
+    if (!teamMember?.role) return { ok: false, error: 'אין הרשאה לארגון זה' };
+    membershipRole = String(teamMember.role || '').trim() || null;
+  }
+
+  const clerkRole = String(user.role || '').trim();
+  if (!isTenantAdminRole(clerkRole) && !isTenantAdminRole(membershipRole)) {
+    return { ok: false, error: 'אין הרשאה (נדרש אדמין ארגון)' };
+  }
+
+  return { ok: true };
+}
+
 // ============================================================
 // Billing Management
 // ============================================================
@@ -39,6 +108,9 @@ export async function updateOrganizationBilling(
   input: BillingUpdateInput
 ) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Validation
     if (input.seats_allowed && (input.seats_allowed < 1 || input.seats_allowed > 999)) {
       return { ok: false, error: 'מספר מקומות חייב להיות בין 1 ל-999' };
@@ -72,6 +144,11 @@ export async function updateOrganizationBilling(
 
     return { ok: true, organization: org };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error ?? '');
+    const msgLower = msg.toLowerCase();
+    if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
+      return { ok: false, error: 'אין הרשאה' };
+    }
     console.error('[updateOrganizationBilling] Error:', error);
     return { ok: false, error: 'שגיאה בעדכון פרטי חיוב' };
   }
@@ -83,6 +160,9 @@ export async function updateOrganizationBilling(
 
 export async function validateCoupon(code: string): Promise<CouponValidationResult> {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     if (!code || code.trim().length < 4) {
       return { ok: false, error: 'קוד קופון לא תקין' };
     }
@@ -148,6 +228,11 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
       },
     };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error ?? '');
+    const msgLower = msg.toLowerCase();
+    if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
+      return { ok: false, error: 'אין הרשאה' };
+    }
     console.error('[validateCoupon] Error:', error);
     return { ok: false, error: 'שגיאה בבדיקת קופון' };
   }
@@ -155,6 +240,9 @@ export async function validateCoupon(code: string): Promise<CouponValidationResu
 
 export async function applyCouponToOrganization(orgId: string, couponCode: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     // Validate coupon first
     const validation = await validateCoupon(couponCode);
     if (!validation.ok || !validation.coupon) {
@@ -235,6 +323,11 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
       },
     };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error ?? '');
+    const msgLower = msg.toLowerCase();
+    if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
+      return { ok: false, error: 'אין הרשאה' };
+    }
     console.error('[applyCouponToOrganization] Error:', error);
     return { ok: false, error: 'שגיאה בהחלת קופון' };
   }
@@ -242,6 +335,9 @@ export async function applyCouponToOrganization(orgId: string, couponCode: strin
 
 export async function removeCouponFromOrganization(orgId: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     await prisma.social_organizations.update({
       where: { id: orgId },
       data: {
@@ -252,6 +348,11 @@ export async function removeCouponFromOrganization(orgId: string) {
 
     return { ok: true };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error ?? '');
+    const msgLower = msg.toLowerCase();
+    if (msgLower.includes('forbidden') || msgLower.includes('unauthorized')) {
+      return { ok: false, error: 'אין הרשאה' };
+    }
     console.error('[removeCouponFromOrganization] Error:', error);
     return { ok: false, error: 'שגיאה בהסרת קופון' };
   }
@@ -261,12 +362,16 @@ export async function removeCouponFromOrganization(orgId: string) {
 // Trial Management
 // ============================================================
 
+// ... rest of the code remains the same ...
 export async function extendOrganizationTrial(
   orgId: string,
   additionalDays: number,
   reason?: string
 ) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     if (additionalDays < 1 || additionalDays > 365) {
       return { ok: false, error: 'מספר הימים חייב להיות בין 1 ל-365' };
     }
@@ -328,6 +433,9 @@ export async function extendOrganizationTrial(
 
 export async function convertTrialToActive(orgId: string, paymentMethodId?: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     const updates: any = {
       subscription_status: 'active',
       subscription_start_date: new Date(),
@@ -361,6 +469,9 @@ export async function convertTrialToActive(orgId: string, paymentMethodId?: stri
 
 export async function cancelSubscription(orgId: string, reason: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     if (!reason || reason.trim().length < 5) {
       return { ok: false, error: 'יש לציין סיבת ביטול (לפחות 5 תווים)' };
     }
@@ -388,6 +499,9 @@ export async function cancelSubscription(orgId: string, reason: string) {
 
 export async function calculateOrganizationRevenue(orgId: string) {
   try {
+    const guard = await requireTenantOrgAdminOrReturn(orgId);
+    if (!guard.ok) return guard;
+
     const org = await prisma.social_organizations.findUnique({
       where: { id: orgId },
       select: {
@@ -438,6 +552,9 @@ export async function calculateOrganizationRevenue(orgId: string) {
 
 export async function calculateClientTotalRevenue(clientId: string) {
   try {
+    const guard = await requireSuperAdminOrReturn();
+    if (!guard.ok) return guard;
+
     const orgs = await prisma.social_organizations.findMany({
       where: {
         client_id: clientId,
@@ -480,6 +597,9 @@ export async function calculateClientTotalRevenue(clientId: string) {
 
 export async function autoUpgradeSeats(organizationId: string, newSeats: number) {
   try {
+    const guard = await requireTenantOrgAdminOrReturn(organizationId);
+    if (!guard.ok) return guard;
+
     if (!organizationId || !newSeats || newSeats < 1) {
       return { ok: false, error: 'פרמטרים לא תקינים' };
     }
@@ -560,6 +680,9 @@ export async function autoUpgradeSeats(organizationId: string, newSeats: number)
 
 export async function getOrganizationBillingInfo(orgId: string) {
   try {
+    const guard = await requireTenantOrgAdminOrReturn(orgId);
+    if (!guard.ok) return guard;
+
     const org = await prisma.social_organizations.findUnique({
       where: { id: orgId },
       select: {

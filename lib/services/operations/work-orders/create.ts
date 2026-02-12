@@ -8,6 +8,7 @@ import {
   isSchemaMismatchError,
   logOperationsError,
 } from '@/lib/services/operations/shared';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 async function geocodeAddressNominatim(address: string): Promise<{ lat: number; lng: number } | null> {
   const q = String(address || '').trim();
@@ -113,6 +114,15 @@ export async function createOperationsWorkOrderForOrganizationId(params: {
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/create.createOperationsWorkOrderForOrganizationId',
+        reason: 'operations_work_orders schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), projectId: String(params.projectId || '') },
+      });
     }
     logOperationsError('[operations] createOperationsWorkOrder failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה ביצירת קריאה' };

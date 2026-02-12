@@ -5,6 +5,7 @@ import { enforceModuleAccessOrRedirect, persistCurrentUserLastLocation, requireW
 import { resolveWorkspaceCurrentUserForUi } from '@/lib/server/workspaceUser';
 import SocialShell from '@/components/social/SocialShell';
 import { getSocialInitialDataCached, getSocialNavigationMenu } from '@/lib/services/social-service';
+import { resolveStorageUrlMaybeServiceRole } from '@/lib/services/operations/storage';
 import { getSystemFeatureFlags } from '@/lib/server/featureFlags';
 import { computeWorkspaceCapabilities } from '@/lib/server/workspaceCapabilities';
 import { getSystemMetadata } from '@/lib/metadata';
@@ -27,9 +28,10 @@ export default async function SocialModuleLayout({
   const workspace = await requireWorkspaceAccessByOrgSlugUi(orgSlug);
   const def = getModuleDefinition('social');
   const initialCurrentUser = await resolveWorkspaceCurrentUserForUi(orgSlug);
+  const signedLogo = await resolveStorageUrlMaybeServiceRole(workspace.logo, 60 * 60, { organizationId: workspace.id });
   const initialOrganization = {
     name: workspace.name,
-    logo: workspace.logo || '',
+    logo: signedLogo || '',
     primaryColor: '#000000',
     isShabbatProtected: workspace.isShabbatProtected,
   };

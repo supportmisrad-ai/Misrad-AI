@@ -16,7 +16,7 @@ if (fs.existsSync(envPath)) {
   console.error(`[db-check-rls-coverage] ${envPath} not found; using process.env only.`);
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const net = require('net');
 
 function parseDbIdentity(urlValue) {
@@ -130,12 +130,12 @@ function shouldEnforceRlsCheck() {
 }
 
 async function loadTables(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    "SELECT c.relname AS table_name, c.relrowsecurity AS rls_enabled, c.relforcerowsecurity AS rls_forced " +
-      "FROM pg_class c " +
-      "JOIN pg_namespace n ON n.oid = c.relnamespace " +
-      "WHERE n.nspname = 'public' AND c.relkind = 'r' " +
-      "ORDER BY c.relname;"
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT c.relname AS table_name, c.relrowsecurity AS rls_enabled, c.relforcerowsecurity AS rls_forced
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r'
+      ORDER BY c.relname;`
   );
   return rows.map((r) => ({
     tableName: String(r.table_name),
@@ -145,8 +145,8 @@ async function loadTables(prisma) {
 }
 
 async function loadPolicyMap(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    "SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname"
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname`
   );
   const map = new Map();
   for (const r of rows) {
@@ -160,8 +160,8 @@ async function loadPolicyMap(prisma) {
 }
 
 async function loadColumnsMap(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    "SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'"
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'`
   );
   const map = new Map();
   for (const r of rows) {
@@ -179,13 +179,13 @@ async function loadColumnsMap(prisma) {
 }
 
 async function loadExposureGrantCountMap(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    "SELECT table_name, COUNT(*)::int AS cnt " +
-      "FROM information_schema.role_table_grants " +
-      "WHERE table_schema = 'public' " +
-      "  AND grantee IN ('anon', 'authenticated') " +
-      "  AND privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE') " +
-      "GROUP BY table_name"
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT table_name, COUNT(*)::int AS cnt
+      FROM information_schema.role_table_grants
+      WHERE table_schema = 'public'
+        AND grantee IN ('anon', 'authenticated')
+        AND privilege_type IN ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+      GROUP BY table_name`
   );
   const map = new Map();
   for (const r of rows) {

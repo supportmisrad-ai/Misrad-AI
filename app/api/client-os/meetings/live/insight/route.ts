@@ -27,14 +27,14 @@ async function POSTHandler(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as { orgId?: string; transcript?: string };
 
-    let orgKey = asString(body.orgId).trim();
-    if (!orgKey) {
-      try {
-        orgKey = getOrgKeyOrThrow(req);
-      } catch {
-        orgKey = '';
-      }
+    const bodyOrgKey = asString(body.orgId).trim();
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
     }
+    const orgKey = headerOrgKey || bodyOrgKey;
 
     const transcript = asString(body.transcript).trim();
 
@@ -42,6 +42,18 @@ async function POSTHandler(req: Request) {
     if (!transcript) return apiSuccessCompat({ insight: 'ממתין לתחילת השיחה...' });
 
     const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+
+    if (headerOrgKey && bodyOrgKey && headerOrgKey !== bodyOrgKey) {
+      try {
+        const otherKey = headerOrgKey === orgKey ? bodyOrgKey : headerOrgKey;
+        const { workspace: otherWorkspace } = await getWorkspaceByOrgKeyOrThrow(otherKey);
+        if (String(otherWorkspace.id) !== String(workspace.id)) {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      } catch {
+        return apiError('Conflicting workspace context', { status: 400 });
+      }
+    }
 
     const abuse = await enforceAiAbuseGuard({
       req,

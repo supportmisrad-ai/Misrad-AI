@@ -7,6 +7,7 @@ import {
   isSchemaMismatchError,
   logOperationsError,
 } from '@/lib/services/operations/shared';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export async function setOperationsWorkOrderCompletionSignatureUnsafe(params: {
   organizationId: string;
@@ -49,6 +50,15 @@ export async function setOperationsWorkOrderCompletionSignatureForOrganizationId
   } catch (e: unknown) {
     if (isSchemaMismatchError(e) && !ALLOW_SCHEMA_FALLBACKS) {
       throw new Error(`[SchemaMismatch] operations_work_orders missing table/column (${getUnknownErrorMessage(e) || 'missing relation'})`);
+    }
+
+    if (isSchemaMismatchError(e) && ALLOW_SCHEMA_FALLBACKS) {
+      reportSchemaFallback({
+        source: 'lib/services/operations/work-orders/signatures.setOperationsWorkOrderCompletionSignatureForOrganizationId',
+        reason: 'operations_work_orders schema mismatch (fallback to error response)',
+        error: e,
+        extras: { organizationId: String(params.organizationId), id: String(params.id || '') },
+      });
     }
     logOperationsError('[operations] setOperationsWorkOrderCompletionSignature failed', e);
     return { success: false, error: getUnknownErrorMessage(e) || 'שגיאה בשמירת חתימה' };

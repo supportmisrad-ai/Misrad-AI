@@ -262,6 +262,7 @@ const MeetingIntelligence: React.FC = () => {
               clientId: effectiveClientId,
               fileName: file.name,
               mimeType: file.type || '',
+              fileSize: file.size,
             }),
           });
 

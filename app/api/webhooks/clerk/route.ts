@@ -7,6 +7,7 @@ import { createServiceRoleClient, createServiceRoleClientScoped } from '@/lib/su
 import { ensureProfileForClerkUserInOrganizationAction, getOrCreateSupabaseUserFromClerkWebhookAction } from '@/lib/services/auth/clerk-webhook';
 import { DEFAULT_TRIAL_DAYS } from '@/lib/trial';
 import { generateOrgSlug } from '@/lib/server/orgSlug';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
@@ -14,7 +15,7 @@ import { withWebhookGlobalAdminContext } from '@/lib/api-webhook-guard';
 import { asObject } from '@/lib/shared/unknown';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 async function POSTHandler(req: Request) {
   // Get the Svix headers for verification
@@ -398,6 +399,13 @@ async function POSTHandler(req: Request) {
             const msg = typeof attemptErrorObj.message === 'string' ? String(attemptErrorObj.message) : 'missing column';
             throw new Error(`[SchemaMismatch] social_users missing column (${msg || '42703'})`);
           }
+
+          reportSchemaFallback({
+            source: 'app/api/webhooks/clerk.POSTHandler(user.deleted)',
+            reason: 'organization_users soft-delete update missing column (fallback to minimal update)',
+            error: attemptObj.error,
+            extras: { clerkUserId: String(clerkUserId), organizationId: orgId ? String(orgId) : null },
+          });
           const baseFallback = scoped ? scoped.from('organization_users') : supabase.from('organization_users');
           let fallbackQuery = baseFallback
             .update({ updated_at: nowIso, role: 'deleted', organization_id: null } satisfies Record<string, unknown>)

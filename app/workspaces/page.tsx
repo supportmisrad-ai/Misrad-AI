@@ -29,7 +29,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
   }
 
   if (!socialUser?.id) {
-    return [];
+    redirect('/workspaces/new');
   }
 
   const orgIds = new Set<string>();
@@ -55,7 +55,7 @@ async function loadWorkspacesForCurrentUser(): Promise<WorkspaceItem[]> {
   }
 
   if (orgIds.size === 0) {
-    return [];
+    redirect('/workspaces/new');
   }
 
   const orgs = await prisma.organization.findMany({

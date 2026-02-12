@@ -2,10 +2,12 @@ import { apiError, apiSuccess } from '@/lib/server/api-response';
 import { requireSuperAdmin } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 import { shabbatGuard } from '@/lib/api-shabbat-guard';
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
-export const runtime = 'nodejs';
+export const runtime = 'nodejs';
+
 
 async function GETHandler(req: Request) {
   try {
@@ -18,20 +20,29 @@ async function GETHandler(req: Request) {
     const now = new Date();
     const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [settings, usedAgg] = await Promise.all([
-      prisma.organization_settings.findUnique({
-        where: { organization_id: String(organizationId) },
-        select: { ai_quota_cents: true },
-      }),
-      prisma.ai_usage_logs.aggregate({
-        where: {
-          organization_id: String(organizationId),
-          status: 'success',
-          created_at: { gte: periodStart },
-        },
-        _sum: { charged_cents: true },
-      }),
-    ]);
+    const [settings, usedAgg] = await withTenantIsolationContext(
+      {
+        source: 'api_admin_ai_credits',
+        reason: 'GET',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.$transaction([
+          prisma.organization_settings.findUnique({
+            where: { organization_id: String(organizationId) },
+            select: { ai_quota_cents: true },
+          }),
+          prisma.ai_usage_logs.aggregate({
+            where: {
+              organization_id: String(organizationId),
+              status: 'success',
+              created_at: { gte: periodStart },
+            },
+            _sum: { charged_cents: true },
+          }),
+        ])
+    );
 
     const quota = settings?.ai_quota_cents ?? null;
     const used = usedAgg?._sum?.charged_cents ?? 0;
@@ -82,36 +93,49 @@ async function POSTHandler(req: Request) {
       return apiError('deltaCents must be a non-zero number', { status: 400 });
     }
 
-    const out = await prisma.$transaction(async (tx) => {
-      const existing = await tx.organization_settings.findUnique({
-        where: { organization_id: String(organizationId) },
-        select: { ai_quota_cents: true },
-      });
+    const out = await withTenantIsolationContext(
+      {
+        source: 'api_admin_ai_credits',
+        reason: 'POST',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.$transaction(async (tx) => {
+          const existing = await tx.organization_settings.findUnique({
+            where: { organization_id: String(organizationId) },
+            select: { ai_quota_cents: true },
+          });
 
-      const current = existing?.ai_quota_cents == null ? BigInt(0) : (typeof existing.ai_quota_cents === 'bigint'
-        ? existing.ai_quota_cents
-        : BigInt(Number(existing.ai_quota_cents)));
+          const current =
+            existing?.ai_quota_cents == null
+              ? BigInt(0)
+              : typeof existing.ai_quota_cents === 'bigint'
+                ? existing.ai_quota_cents
+                : BigInt(Number(existing.ai_quota_cents));
 
-      const next = current + BigInt(deltaCents);
-      const zero = BigInt(0);
-      const clamped = next < zero ? zero : next;
+          const next = current + BigInt(deltaCents);
+          const zero = BigInt(0);
+          const clamped = next < zero ? zero : next;
 
-      await tx.organization_settings.upsert({
-        where: { organization_id: String(organizationId) },
-        create: {
-          organization_id: String(organizationId),
-          ai_dna: {},
-          ai_quota_cents: clamped,
-          updated_at: new Date(),
-        },
-        update: {
-          ai_quota_cents: clamped,
-          updated_at: new Date(),
-        },
-      });
+          await tx.organization_settings.upsert({
+            where: { organization_id: String(organizationId) },
+            create: {
+              organization_id: String(organizationId),
+              ai_dna: {},
+              ai_quota_cents: clamped,
+              updated_at: new Date(),
+            },
+            update: {
+              organization_id: String(organizationId),
+              ai_quota_cents: clamped,
+              updated_at: new Date(),
+            },
+          });
 
-      return { nextQuotaCents: clamped };
-    });
+          return { nextQuotaCents: clamped };
+        })
+    );
 
     return apiSuccess({ organizationId, deltaCents, nextQuotaCents: String(out.nextQuotaCents) });
   } catch (e: unknown) {

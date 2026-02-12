@@ -202,6 +202,7 @@ async function POSTHandler(req: Request) {
             created_at: new Date(),
           },
           update: {
+            organization_id: String(organizationId),
             ai_dna: {
               ...aiDnaJson,
               ai_vision_usage: nextUsage,

@@ -29,7 +29,7 @@ if (explicitEnv) {
   }
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
@@ -37,9 +37,9 @@ async function main() {
     console.log('\n🔍 Checking Prisma Migration History...\n');
     
     // Check if _prisma_migrations exists
-    const hasMigrations = await prisma.$queryRawUnsafe(`
+    const hasMigrations = await prisma.$queryRaw(Prisma.sql`
       SELECT EXISTS (
-        SELECT 1 FROM information_schema.tables 
+        SELECT 1 FROM information_schema.tables
         WHERE table_schema='public' AND table_name='_prisma_migrations'
       ) AS exists
     `);
@@ -49,10 +49,10 @@ async function main() {
       console.log('   This means Prisma has NEVER run migrations on this database.\n');
       
       // Check if tables exist
-      const tables = await prisma.$queryRawUnsafe(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema='public' 
+      const tables = await prisma.$queryRaw(Prisma.sql`
+        SELECT table_name
+        FROM information_schema.tables
+        WHERE table_schema='public'
         AND table_type='BASE TABLE'
         ORDER BY table_name
       `);
@@ -76,13 +76,13 @@ async function main() {
     console.log('✅ _prisma_migrations table exists\n');
     
     // Get all migrations
-    const allMigrations = await prisma.$queryRawUnsafe(`
-      SELECT 
+    const allMigrations = await prisma.$queryRaw(Prisma.sql`
+      SELECT
         migration_name,
         started_at,
         finished_at,
         rolled_back_at,
-        CASE 
+        CASE
           WHEN finished_at IS NOT NULL THEN 'completed'
           WHEN rolled_back_at IS NOT NULL THEN 'rolled_back'
           ELSE 'failed'

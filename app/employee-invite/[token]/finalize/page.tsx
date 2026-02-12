@@ -9,10 +9,11 @@ import { countOrganizationActiveUsers } from '@/lib/server/seats';
 import { getOrCreateSupabaseUserAction } from '@/app/actions/users';
 import type { Prisma } from '@prisma/client';
 import { asObject } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 export const dynamic = 'force-dynamic';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function getString(value: unknown): string | null {
   if (value == null) return null;
@@ -126,6 +127,15 @@ export default async function EmployeeInviteFinalizePage({
     const msg = typeof errObj.message === 'string' ? String(errObj.message) : '';
     if (!ALLOW_SCHEMA_FALLBACKS && (code === 'P2021' || code === 'P2022' || msg.toLowerCase().includes('does not exist'))) {
       throw new Error(`[SchemaMismatch] organization flags query failed (${msg || code || 'missing relation'})`);
+    }
+
+    if (ALLOW_SCHEMA_FALLBACKS && (code === 'P2021' || code === 'P2022' || msg.toLowerCase().includes('does not exist'))) {
+      reportSchemaFallback({
+        source: 'app/employee-invite/[token]/finalize.EmployeeInviteFinalizePage',
+        reason: 'organization flags query schema mismatch (fallback org=null => abort finalize)',
+        error: e,
+        extras: { organizationId: String(organizationId) },
+      });
     }
     org = null;
   }

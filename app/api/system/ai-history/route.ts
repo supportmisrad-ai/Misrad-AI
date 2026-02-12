@@ -24,7 +24,8 @@ type AnalysisReport = {
   personalTasksAnalysis?: unknown;
 };
 
-type UnknownRecord = Record<string, unknown>;
+type UnknownRecord = Record<string, unknown>;
+
 
 function readAiDnaObject(input: unknown): UnknownRecord {
   return asObject(input) ?? {};
@@ -97,6 +98,7 @@ async function PATCHHandler(request: NextRequest) {
         updated_at: new Date(),
       },
       update: {
+        organization_id: String(workspace.id),
         ai_dna: nextAiDna as Prisma.InputJsonValue,
         updated_at: new Date(),
       },

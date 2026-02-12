@@ -59,6 +59,15 @@ export type AIGenerateTextParams = {
   meta?: Record<string, unknown>;
 };
 
+export type AIStreamTextParams = {
+  featureKey: string;
+  organizationId?: string;
+  userId?: string;
+  prompt: string;
+  systemInstruction?: string;
+  meta?: Record<string, unknown>;
+};
+
 export type AITranscribeParams = {
   featureKey: string;
   organizationId?: string;
@@ -82,6 +91,13 @@ export type AIGenerateTextResult = {
   model: string;
   modelDisplayName?: string | null;
   chargedCents: number;
+};
+
+export type AIStreamTextResult = {
+  stream: ReadableStream<Uint8Array>;
+  provider: AIProviderName;
+  model: string;
+  modelDisplayName?: string | null;
 };
 
 export type AITranscribeResult = {

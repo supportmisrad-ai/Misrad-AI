@@ -28,11 +28,9 @@ type NexusTeamEventsDelegate = {
 
 type NexusEventAttendanceDelegate = {
     findMany: (args: { where: Record<string, unknown>; orderBy?: Record<string, unknown> }) => Promise<Array<Record<string, unknown>>>;
-    upsert: (args: {
-        where: Record<string, unknown>;
-        create: Record<string, unknown>;
-        update: Record<string, unknown>;
-    }) => Promise<Record<string, unknown>>;
+    findFirst: (args: { where: Record<string, unknown>; select?: Record<string, unknown> }) => Promise<Record<string, unknown> | null>;
+    updateMany: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<{ count: number }>;
+    create: (args: { data: Record<string, unknown> }) => Promise<Record<string, unknown>>;
 };
 
 function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDelegate {
@@ -40,7 +38,13 @@ function isNexusTeamEventsDelegate(value: unknown): value is NexusTeamEventsDele
 }
 
 function isNexusEventAttendanceDelegate(value: unknown): value is NexusEventAttendanceDelegate {
-    return asObject(value) !== null && hasFunction(value, 'findMany') && hasFunction(value, 'upsert');
+    return (
+        asObject(value) !== null &&
+        hasFunction(value, 'findMany') &&
+        hasFunction(value, 'findFirst') &&
+        hasFunction(value, 'updateMany') &&
+        hasFunction(value, 'create')
+    );
 }
 
 function getNexusTeamEventsDelegate(): NexusTeamEventsDelegate {
@@ -275,28 +279,70 @@ async function POSTHandler(
 
         // Upsert attendance record
         const now = new Date();
-        const row = await getNexusEventAttendanceDelegate().upsert({
+        const delegate = getNexusEventAttendanceDelegate();
+
+        const existing = await delegate.findFirst({
             where: {
-                event_id_user_id: {
-                    event_id: String(eventId),
-                    user_id: String(dbUser.id),
-                },
-            },
-            create: {
-                organizationId: workspace.id,
+                organizationId: String(workspace.id),
                 event_id: String(eventId),
                 user_id: String(dbUser.id),
-                status: String(status),
-                rsvp_at: now,
-                notes: notes || null,
-                created_at: now,
-                updated_at: now,
             },
-            update: {
-                status: String(status),
-                rsvp_at: now,
-                notes: notes || null,
-                updated_at: now,
+            select: { id: true },
+        });
+
+        if (existing?.id) {
+            await delegate.updateMany({
+                where: {
+                    id: String(existing.id),
+                    organizationId: String(workspace.id),
+                },
+                data: {
+                    status: String(status),
+                    rsvp_at: now,
+                    notes: notes || null,
+                    updated_at: now,
+                },
+            });
+        } else {
+            try {
+                await delegate.create({
+                    data: {
+                        organizationId: String(workspace.id),
+                        event_id: String(eventId),
+                        user_id: String(dbUser.id),
+                        status: String(status),
+                        rsvp_at: now,
+                        notes: notes || null,
+                        created_at: now,
+                        updated_at: now,
+                    },
+                });
+            } catch (e: unknown) {
+                const code = String(asObject(e)?.code || '');
+                if (code !== 'P2002') {
+                    throw e;
+                }
+                await delegate.updateMany({
+                    where: {
+                        organizationId: String(workspace.id),
+                        event_id: String(eventId),
+                        user_id: String(dbUser.id),
+                    },
+                    data: {
+                        status: String(status),
+                        rsvp_at: now,
+                        notes: notes || null,
+                        updated_at: now,
+                    },
+                });
+            }
+        }
+
+        const row = await delegate.findFirst({
+            where: {
+                organizationId: String(workspace.id),
+                event_id: String(eventId),
+                user_id: String(dbUser.id),
             },
         });
 

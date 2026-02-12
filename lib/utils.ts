@@ -5,10 +5,11 @@
 import { NextRequest } from 'next/server';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function normalizeBaseUrl(input: string): string {
     const raw = (input || '').trim();
@@ -107,6 +108,11 @@ export async function generateInvitationToken(): Promise<string> {
                 if (!ALLOW_SCHEMA_FALLBACKS) {
                     throw new Error(`[SchemaMismatch] system_invitation_links missing table (${message || 'missing relation'})`);
                 }
+                reportSchemaFallback({
+                    source: 'lib/utils.generateInvitationToken',
+                    reason: 'system_invitation_links missing table (skip uniqueness check)',
+                    error,
+                });
                 return token;
             }
         }

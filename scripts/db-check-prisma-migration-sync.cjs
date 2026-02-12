@@ -18,7 +18,7 @@ if (fs.existsSync(envPath)) {
 
 const path = require('path');
 const net = require('net');
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 
 function parseDbIdentity(urlValue) {
   try {
@@ -35,6 +35,14 @@ function parseDbIdentity(urlValue) {
   } catch {
     return null;
   }
+}
+
+function looksLikeSupabasePooler(urlValue) {
+  const id = parseDbIdentity(urlValue);
+  if (!id) return false;
+  if (id.port === 6543 || id.port === 6544) return true;
+  if (String(id.host || '').includes('pooler.supabase.com')) return true;
+  return false;
 }
 
 function printDbTargetToStderr() {
@@ -124,15 +132,15 @@ function loadLocalMigrationNames() {
 }
 
 async function getHasPrismaMigrationsTable(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='_prisma_migrations') AS has_prisma_migrations;"
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='_prisma_migrations') AS has_prisma_migrations;`
   );
   return Boolean(rows?.[0]?.has_prisma_migrations);
 }
 
 async function loadDbMigrations(prisma) {
-  const rows = await prisma.$queryRawUnsafe(
-    'SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations ORDER BY started_at ASC'
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT migration_name, started_at, finished_at, rolled_back_at FROM public._prisma_migrations ORDER BY started_at ASC`
   );
   return Array.isArray(rows) ? rows : [];
 }
@@ -289,9 +297,15 @@ async function main() {
   const directUrl = process.env.DIRECT_URL;
   const checkDirectUrl = envBool('PRISMA_MIGRATION_SYNC_CHECK_DIRECT_URL', envBool('CI', false));
 
-  await runCheck('DATABASE_URL');
+  const shouldPreferDirect = Boolean(directUrl) && looksLikeSupabasePooler(originalDatabaseUrl);
+  if (shouldPreferDirect) {
+    process.env.DATABASE_URL = directUrl;
+    await runCheck('DIRECT_URL (preferred: pooler detected)');
+  } else {
+    await runCheck('DATABASE_URL');
+  }
 
-  if (directUrl && checkDirectUrl) {
+  if (directUrl && checkDirectUrl && !shouldPreferDirect) {
     const requireDirect = envBool('PRISMA_MIGRATION_SYNC_REQUIRE_DIRECT_URL', false) || envBool('CI', false);
     const tcpTimeoutMs = envInt('PRISMA_MIGRATION_SYNC_DIRECT_URL_TCP_TIMEOUT_MS', 2500);
     const hp = getHostPortSafe(directUrl);

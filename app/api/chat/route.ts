@@ -35,7 +35,8 @@ const CACHE_TTL_MS = 30_000;
 const MAX_CACHE_ENTRIES = 400;
 
 type CachedChatResponse = {
-  text: string;
+  text?: string;
+  stream?: ReadableStream<Uint8Array>;
 };
 
 type CacheEntry = { expiresAt: number; value: CachedChatResponse };
@@ -382,16 +383,8 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
       ...orgDayRateLimit.headers,
     };
 
-    const cached = cacheGet(cacheKey);
-    if (cached) {
-      return streamTextResponse(cached.text || '', { ...combinedHeaders, 'X-Misrad-Cache': 'HIT' });
-    }
-
-    const inflight = inflightByKey.get(cacheKey);
-    if (inflight) {
-      const resp = await inflight;
-      return streamTextResponse(resp.text || '', { ...combinedHeaders, 'X-Misrad-Cache': 'HIT-INFLIGHT' });
-    }
+    // Note: Streaming responses are not cached
+    // Only use cache for debugging/fallback scenarios
 
     await logAuditEvent('ai.query', featureKey, {
       details: {
@@ -438,25 +431,28 @@ async function POSTHandler(req: Request): Promise<NextResponse> {
         const prompt = `מודול: ${moduleName}\n\nContext (JSON):\n${ctx ? JSON.stringify(ctx).slice(0, 12000) : '{}'}\n\nHistory:\n${history || '(empty)'}${memoryBlock}\n\nUser message:\n${lastUser}`;
 
         const ai = AIService.getInstance();
-        const out = await ai.generateText({
+        const result = await ai.streamText({
           featureKey,
           organizationId: workspaceId,
           userId: clerkUserId,
           prompt,
         });
 
-        return { text: out.text || '' };
+        return { stream: result.stream };
       },
     });
 
-    inflightByKey.set(cacheKey, computePromise);
-    try {
-      const resp = await computePromise;
-      cacheSet(cacheKey, resp);
-      return streamTextResponse(resp.text || '', { ...combinedHeaders, 'X-Misrad-Cache': 'MISS' });
-    } finally {
-      inflightByKey.delete(cacheKey);
-    }
+    // Execute streaming request directly (no caching for streams)
+    const resp = await computePromise;
+    
+    // Return actual streaming response
+    return new NextResponse(resp.stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+        ...combinedHeaders,
+      },
+    });
   } catch (e: unknown) {
     if (e instanceof APIError) {
       const safeMsg =

@@ -2,6 +2,8 @@
 
 import type { SocialPlatform } from '@/types/social';
 
+import { requireAuth } from '@/lib/errorHandler';
+
 export interface PostingTimeRecommendation {
   day: string;
   dayHebrew: string;
@@ -29,6 +31,16 @@ export async function suggestBestPostingTimes(params: {
   platforms: SocialPlatform[];
   isReligious?: boolean;
 }): Promise<PostingTimesResult> {
+  const authCheck = await requireAuth();
+  if (!authCheck.success) {
+    return {
+      bestTimes: [],
+      avoidTimes: [],
+      dataSource: 'industry_best_practices',
+      generalTip: authCheck.error || 'נדרשת התחברות',
+    };
+  }
+
   const { platforms, isReligious = false } = params;
 
   const bestTimes: PostingTimeRecommendation[] = [];

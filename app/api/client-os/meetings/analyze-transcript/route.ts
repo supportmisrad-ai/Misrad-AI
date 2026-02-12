@@ -30,21 +30,34 @@ async function POSTHandler(req: Request) {
 
     const body = (await req.json().catch(() => ({}))) as { orgId?: string; transcript?: string };
 
-    let orgIdInput = String(body.orgId || '').trim();
-    if (!orgIdInput) {
-      try {
-        orgIdInput = getOrgKeyOrThrow(req);
-      } catch {
-        orgIdInput = '';
-      }
+    const bodyOrgKey = String(body.orgId || '').trim();
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
     }
+
+    const orgKey = headerOrgKey || bodyOrgKey;
 
     const transcript = String(body.transcript || '').trim();
 
-    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!orgKey) return apiError('orgId is required', { status: 400 });
     if (!transcript) return apiError('transcript is required', { status: 400 });
 
-    const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
+    const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
+
+    if (headerOrgKey && bodyOrgKey && headerOrgKey !== bodyOrgKey) {
+      try {
+        const otherKey = headerOrgKey === orgKey ? bodyOrgKey : headerOrgKey;
+        const { workspace: otherWorkspace } = await getWorkspaceByOrgKeyOrThrow(otherKey);
+        if (String(otherWorkspace.id) !== String(workspace.id)) {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      } catch {
+        return apiError('Conflicting workspace context', { status: 400 });
+      }
+    }
 
     const abuse = await enforceAiAbuseGuard({
       req,

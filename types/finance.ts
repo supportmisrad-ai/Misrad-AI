@@ -52,7 +52,7 @@ export interface Integration {
   isActive: boolean;
   connectedAt?: Date;
   lastSync?: Date;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
 }
 
 export interface GreenInvoiceIntegration extends Integration {

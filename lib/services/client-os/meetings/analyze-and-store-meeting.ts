@@ -47,6 +47,34 @@ function asNumber(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+ function toUtcDateOnly(d: Date): Date {
+   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+ }
+
+ function parseDateLikeToUtcDateOnly(value: unknown): Date | null {
+   const raw = String(value ?? '').trim();
+   if (!raw) return null;
+
+   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+     const d = new Date(`${raw}T00:00:00.000Z`);
+     return Number.isNaN(d.getTime()) ? null : d;
+   }
+
+   const dotMatch = raw.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+   if (dotMatch) {
+     const day = Number(dotMatch[1]);
+     const month = Number(dotMatch[2]);
+     const year = Number(dotMatch[3]);
+     if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+     const d = new Date(Date.UTC(year, month - 1, day));
+     return Number.isNaN(d.getTime()) ? null : d;
+   }
+
+   const d = new Date(raw);
+   if (Number.isNaN(d.getTime())) return null;
+   return toUtcDateOnly(d);
+ }
+
 export async function analyzeAndStoreMeeting(params: {
   orgId: string;
   clientId: string;
@@ -64,40 +92,43 @@ export async function analyzeAndStoreMeeting(params: {
 
   const now = new Date();
   const meetingDateLabel = now.toLocaleDateString('he-IL');
+  const meetingDateAt = toUtcDateOnly(now);
+
+  async function createMeetingWithData(data: Record<string, unknown>): Promise<{ id: string }> {
+    return await prisma.misradMeeting.create({
+      data: data as unknown as Prisma.MisradMeetingUncheckedCreateInput,
+      select: { id: true },
+    });
+  }
 
   let meeting: { id: string };
   try {
-    meeting = await prisma.misradMeeting.create({
-      data: {
-        organization_id: orgId,
-        client_id: clientId,
-        date: meetingDateLabel,
-        meetingAt: now,
-        title,
-        location,
-        attendees: attendees ?? [],
-        transcript,
-        summary: null,
-        recordingUrl: recordingUrl ?? null,
-        manualNotes: null,
-      },
-      select: { id: true },
+    meeting = await createMeetingWithData({
+      organization_id: orgId,
+      client_id: clientId,
+      date: meetingDateLabel,
+      dateAt: meetingDateAt,
+      meetingAt: now,
+      title,
+      location,
+      attendees: attendees ?? [],
+      transcript,
+      summary: null,
+      recordingUrl: recordingUrl ?? null,
+      manualNotes: null,
     });
   } catch {
-    meeting = await prisma.misradMeeting.create({
-      data: {
-        organization_id: orgId,
-        client_id: clientId,
-        date: meetingDateLabel,
-        title,
-        location,
-        attendees: attendees ?? [],
-        transcript,
-        summary: null,
-        recordingUrl: recordingUrl ?? null,
-        manualNotes: null,
-      },
-      select: { id: true },
+    meeting = await createMeetingWithData({
+      organization_id: orgId,
+      client_id: clientId,
+      date: meetingDateLabel,
+      title,
+      location,
+      attendees: attendees ?? [],
+      transcript,
+      summary: null,
+      recordingUrl: recordingUrl ?? null,
+      manualNotes: null,
     });
   }
 
@@ -208,13 +239,15 @@ export async function analyzeAndStoreMeeting(params: {
 
   const agencyTasks = agencyTasksRaw.map((t) => {
     const obj = asObject(t) ?? {};
+    const deadlineRaw = asString(obj.deadline);
     return {
       organization_id: orgId,
       client_id: clientId,
       analysis_id: analysisRow.id,
       bucket: 'agency',
       task: asString(obj.task),
-      deadline: asString(obj.deadline),
+      deadline: deadlineRaw,
+      deadlineAt: parseDateLikeToUtcDateOnly(deadlineRaw),
       priority: normalizeTaskPriority(obj.priority),
       status: normalizeTaskStatus(obj.status),
     };
@@ -222,13 +255,15 @@ export async function analyzeAndStoreMeeting(params: {
 
   const clientTasks = clientTasksRaw.map((t) => {
     const obj = asObject(t) ?? {};
+    const deadlineRaw = asString(obj.deadline);
     return {
       organization_id: orgId,
       client_id: clientId,
       analysis_id: analysisRow.id,
       bucket: 'client',
       task: asString(obj.task),
-      deadline: asString(obj.deadline),
+      deadline: deadlineRaw,
+      deadlineAt: parseDateLikeToUtcDateOnly(deadlineRaw),
       priority: normalizeTaskPriority(obj.priority),
       status: normalizeTaskStatus(obj.status),
     };
@@ -247,9 +282,16 @@ export async function analyzeAndStoreMeeting(params: {
   });
 
   if (agencyTasks.length + clientTasks.length > 0) {
-    await prisma.misradAiTask.createMany({
-      data: [...agencyTasks, ...clientTasks],
-    });
+    const data = [...agencyTasks, ...clientTasks];
+    try {
+      await prisma.misradAiTask.createMany({
+        data: data as unknown as Prisma.MisradAiTaskCreateManyInput[],
+      });
+    } catch {
+      await prisma.misradAiTask.createMany({
+        data: data.map(({ deadlineAt: _deadlineAt, ...rest }) => rest) as unknown as Prisma.MisradAiTaskCreateManyInput[],
+      });
+    }
   }
 
   if (risks.length > 0) {

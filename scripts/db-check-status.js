@@ -41,12 +41,12 @@ if (dbId) {
   console.error('[db-check-status] DATABASE_URL -> (missing/invalid)');
 }
 
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, Prisma } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function tableExists(tableName) {
-  const rows = await prisma.$queryRawUnsafe(
-    `SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='${tableName}') AS exists;`
+  const rows = await prisma.$queryRaw(
+    Prisma.sql`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name=${String(tableName)}) AS exists;`
   );
   return Boolean(rows?.[0]?.exists);
 }
@@ -129,8 +129,8 @@ async function main() {
     }
 
     if (hasMigrations) {
-      const last = await prisma.$queryRawUnsafe(
-        "SELECT migration_name, finished_at FROM public._prisma_migrations ORDER BY finished_at DESC NULLS LAST LIMIT 5;"
+      const last = await prisma.$queryRaw(
+        Prisma.sql`SELECT migration_name, finished_at FROM public._prisma_migrations ORDER BY finished_at DESC NULLS LAST LIMIT 5;`
       );
 
       console.log('\n📜 Last 5 migrations');

@@ -34,6 +34,29 @@ function KioskHomePageInner() {
   const [attendanceMessage, setAttendanceMessage] = useState<string>('');
   const [isAttendanceBusy, setIsAttendanceBusy] = useState(false);
 
+  const getLocation = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      throw new Error('Location not available');
+    }
+    if (!('geolocation' in navigator)) {
+      throw new Error('אין תמיכה במיקום בדפדפן הזה');
+    }
+
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0,
+      });
+    });
+
+    return {
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+    };
+  }, []);
+
   const base = useMemo(() => {
     if (!orgSlug) return null;
     return `/w/${encodeURIComponent(orgSlug)}/nexus`;
@@ -235,13 +258,19 @@ function KioskHomePageInner() {
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
                     try {
-                      const res = await punchIn(orgSlug, attendanceNote);
+                      const location = await getLocation();
+                      const res = await punchIn(orgSlug, attendanceNote, location);
                       if (res?.activeShift) {
                         setActiveShift(res.activeShift);
                       }
                       setAttendanceMessage(res?.alreadyActive ? 'כבר יש משמרת פעילה.' : 'נכנסת למשמרת. עבודה נעימה!');
-                    } catch {
-                      setAttendanceMessage('שגיאה בכניסה למשמרת');
+                    } catch (e: any) {
+                      const msg = String(e?.message || e);
+                      if (msg.toLowerCase().includes('denied')) {
+                        setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע כניסה למשמרת');
+                      } else {
+                        setAttendanceMessage(msg || 'שגיאה בכניסה למשמרת');
+                      }
                     } finally {
                       setIsAttendanceBusy(false);
                     }
@@ -260,11 +289,17 @@ function KioskHomePageInner() {
                     setIsAttendanceBusy(true);
                     setAttendanceMessage('');
                     try {
-                      const res = await punchOut(orgSlug, attendanceNote);
+                      const location = await getLocation();
+                      const res = await punchOut(orgSlug, attendanceNote, location);
                       setActiveShift(null);
                       setAttendanceMessage(res?.noActiveShift ? 'אין משמרת פעילה לסגירה.' : 'יצאת ממשמרת. תודה!');
-                    } catch {
-                      setAttendanceMessage('שגיאה ביציאה ממשמרת');
+                    } catch (e: any) {
+                      const msg = String(e?.message || e);
+                      if (msg.toLowerCase().includes('denied')) {
+                        setAttendanceMessage('נדרש אישור גישה למיקום כדי לבצע יציאה ממשמרת');
+                      } else {
+                        setAttendanceMessage(msg || 'שגיאה ביציאה ממשמרת');
+                      }
                     } finally {
                       setIsAttendanceBusy(false);
                     }

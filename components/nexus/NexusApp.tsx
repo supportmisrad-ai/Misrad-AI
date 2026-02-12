@@ -113,7 +113,7 @@ const NexusOSApp = () => {
               <OSModuleSquircleIcon moduleKey="nexus" boxSize={40} iconSize={18} className="shadow-none" />
               <div>
                 <div className="text-lg font-black text-slate-900">Nexus</div>
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Misrad OS</div>
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MISRAD AI</div>
               </div>
             </div>
           </div>

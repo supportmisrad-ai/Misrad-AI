@@ -315,6 +315,7 @@ const MeetingsPageClient: React.FC<MeetingsPageClientProps> = ({
                           clientId: effectiveClientId,
                           fileName: file.name,
                           mimeType: file.type || '',
+                          fileSize: file.size,
                       }),
                   });
 

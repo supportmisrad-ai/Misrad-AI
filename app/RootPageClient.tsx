@@ -5,13 +5,16 @@ import { useRouter } from "next/navigation";
 import { LoginView } from "../views/LoginView";
 import { useEffect, useState } from "react";
 import { getUserPurchasedModules } from "../lib/user-subscription";
-import { OSModuleInfo, OS_MODULES } from "../types/os-modules";
+import { OSModule, OSModuleInfo, OS_MODULES } from "../types/os-modules";
 import { OSSelectionScreen } from "../components/shared/OSSelectionScreen";
+import { extractData } from "@/lib/shared/api-types";
+import { DEFAULT_OS_MODULE_PRIORITY } from "@/lib/os/modules/registry";
 
 type WorkspaceApiItem = {
   id: string;
   slug: string;
   name: string;
+  entitlements?: Partial<Record<OSModule, boolean>>;
 };
 
 type LastLocationApiResponse = {
@@ -25,9 +28,6 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
   const [isLoadingModules, setIsLoadingModules] = useState(true);
   const [purchasedModulesInfo, setPurchasedModulesInfo] = useState<OSModuleInfo[]>([]);
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
-
-  const unwrap = (data: any) =>
-    (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
 
   useEffect(() => {
     // Wait for Clerk to load
@@ -47,13 +47,13 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
           const workspacesJson = workspacesResponse && workspacesResponse.ok
             ? await workspacesResponse.json()
             : { workspaces: [] as WorkspaceApiItem[] };
-          const workspacesPayload = unwrap(workspacesJson);
-          const workspaces = ((workspacesPayload as any)?.workspaces || []) as WorkspaceApiItem[];
+          const workspacesPayload = extractData<{ workspaces?: WorkspaceApiItem[] }>(workspacesJson);
+          const workspaces = workspacesPayload?.workspaces || [];
 
           const lastLocationJson: LastLocationApiResponse =
             lastLocationResponse && lastLocationResponse.ok
-              ? (unwrap(await lastLocationResponse.json()) as LastLocationApiResponse)
-              : ({ orgSlug: null, module: null } as LastLocationApiResponse);
+              ? (extractData<LastLocationApiResponse>(await lastLocationResponse.json()) || { orgSlug: null, module: null })
+              : { orgSlug: null, module: null };
 
           const lastOrgSlug = lastLocationJson?.orgSlug ? String(lastLocationJson.orgSlug) : null;
           const hasLastOrg = Boolean(lastOrgSlug && workspaces.some((w) => String(w.slug) === String(lastOrgSlug)));
@@ -69,7 +69,16 @@ export default function RootPageClient({ initialUserId }: { initialUserId: strin
 
           setOrgSlug(resolvedOrgSlug);
 
-          const purchasedModules = await getUserPurchasedModules(userId, resolvedOrgSlug);
+          const resolvedWorkspace = workspaces.find((w) => String(w.slug) === String(resolvedOrgSlug)) ?? null;
+          const entitlements = resolvedWorkspace?.entitlements ?? null;
+
+          const purchasedModulesFromEntitlements: OSModule[] = entitlements
+            ? (DEFAULT_OS_MODULE_PRIORITY as OSModule[]).filter((m) => Boolean(entitlements[m]))
+            : [];
+
+          const purchasedModules = purchasedModulesFromEntitlements.length > 0
+            ? purchasedModulesFromEntitlements
+            : await getUserPurchasedModules(userId, resolvedOrgSlug);
 
           const modulesInfo = OS_MODULES.filter(m => 
             purchasedModules.includes(m.id) && m.purchased

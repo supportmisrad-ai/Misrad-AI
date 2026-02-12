@@ -565,11 +565,17 @@ input[type=range]:active::-webkit-slider-thumb {
   to { transform: translateY(0); opacity: 1; }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .animate-blob { animation: blob 7s infinite; }
 .animate-scroll-rtl { animation: scroll-rtl 20s linear infinite; }
 .animate-gradient-x { background-size: 200% 200%; animation: gradient-x 3s ease infinite; }
 .animate-float { animation: float 3s ease-in-out infinite; }
 .animate-shake { animation: shake 0.5s ease-in-out; }
+.animate-fadeIn { animation: fadeIn 0.5s ease-in-out; }
 
 /* 3D Utilities */
 .perspective-1000 { perspective: 1000px; }

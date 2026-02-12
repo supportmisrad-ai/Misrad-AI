@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
+import * as fs from 'fs';
 import * as path from 'path';
 
 const overrideEnv =
@@ -8,6 +9,34 @@ const overrideEnv =
 
 dotenv.config({ path: process.env.E2E_ENV_FILE || '.env.test', override: overrideEnv });
 dotenv.config({ path: '.env.local', override: false });
+
+try {
+  const localPath = path.join(process.cwd(), '.env.local');
+  if (fs.existsSync(localPath)) {
+    const parsed = dotenv.parse(fs.readFileSync(localPath, 'utf-8')) as Record<string, string>;
+    const placeholderEmail = new Set(['e2e-user@example.com', 'attacker-email@example.com']);
+
+    const shouldOverride = (key: string, current: string | undefined): boolean => {
+      if (overrideEnv) return true;
+      if (!current) return true;
+      const lower = String(current).trim().toLowerCase();
+      if (key.endsWith('_PASSWORD') && lower === 'changeme') return true;
+      if (key.endsWith('_EMAIL') && placeholderEmail.has(String(current).trim().toLowerCase())) return true;
+      return false;
+    };
+
+    for (const [k, v] of Object.entries(parsed)) {
+      if (!k.startsWith('E2E_')) continue;
+      if (shouldOverride(k, process.env[k])) {
+        process.env[k] = String(v);
+      }
+    }
+  }
+} catch {
+  // ignore
+}
+
+process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS = 'false';
 
 const baseURL = process.env.E2E_BASE_URL || 'http://127.0.0.1:4000';
 const baseUrlObj = new URL(baseURL);
@@ -31,6 +60,8 @@ const isAuthSetupRun =
 const webServerEnv = Object.fromEntries(
   Object.entries(process.env).filter(([, v]) => typeof v === 'string') as Array<[string, string]>
 );
+
+webServerEnv.MISRAD_ALLOW_SCHEMA_FALLBACKS = 'false';
 
 const defaultWebServerCommand = process.platform === 'win32' ? 'npm.cmd run dev' : 'npm run dev';
 const webServerCommand = process.env.E2E_WEBSERVER_COMMAND || defaultWebServerCommand;

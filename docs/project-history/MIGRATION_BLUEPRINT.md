@@ -1,6 +1,6 @@
 # MIGRATION_BLUEPRINT
 
-> Planning-only artifacts for Client OS merge into scale-crm.
+> Planning-only artifacts for Client OS merge into MISRAD AI.
 > No runtime code changes. No deletions.
 
 ## Scope

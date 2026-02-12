@@ -91,21 +91,19 @@ async function getRecentOrganizationsWithPrimaryClientId(): Promise<AdminGodView
 
   const orgIds = orgs.map((o) => String(o.id)).filter(Boolean);
 
-  const primaryClients = await Promise.all(
-    orgIds.map(async (orgId) => {
-      const row = await prisma.clientClient.findFirst({
-        where: { organizationId: orgId },
-        select: { id: true, organizationId: true },
-        orderBy: { createdAt: 'asc' },
-      });
-      return row ? { orgId: String(row.organizationId), clientId: String(row.id) } : { orgId, clientId: '' };
-    })
-  );
+  const primaryClientRows = orgIds.length
+    ? await prisma.clientClient.findMany({
+        where: { organizationId: { in: orgIds } },
+        select: { id: true, organizationId: true, createdAt: true },
+        orderBy: [{ organizationId: 'asc' }, { createdAt: 'asc' }],
+        distinct: ['organizationId'],
+      })
+    : [];
 
   const primaryClientByOrgId = new Map<string, string>();
-  for (const c of primaryClients) {
-    const orgId = String(c.orgId || '').trim();
-    const clientId = String(c.clientId || '').trim();
+  for (const row of Array.isArray(primaryClientRows) ? primaryClientRows : []) {
+    const orgId = row?.organizationId ? String(row.organizationId) : '';
+    const clientId = row?.id ? String(row.id) : '';
     if (!orgId || !clientId) continue;
     primaryClientByOrgId.set(orgId, clientId);
   }

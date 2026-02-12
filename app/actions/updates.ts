@@ -6,8 +6,9 @@ import prisma from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 
 import { asObject, getErrorMessage } from '@/lib/shared/unknown';
+import { reportSchemaFallback } from '@/lib/server/schema-fallbacks';
 
-const ALLOW_SCHEMA_FALLBACKS = String(process.env.MISRAD_ALLOW_SCHEMA_FALLBACKS || '').toLowerCase() === 'true';
+const ALLOW_SCHEMA_FALLBACKS = String(process.env.IS_E2E_TESTING || '').toLowerCase() === 'true';
 
 function getStringProp(obj: Record<string, unknown> | null, key: string): string {
   const v = obj?.[key];
@@ -133,6 +134,11 @@ export async function getUpdates(): Promise<{ success: boolean; data?: AppUpdate
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] app_updates missing table/column (${getErrorMessage(error) || 'missing relation'})`);
       }
+      reportSchemaFallback({
+        source: 'app/actions/updates.getUpdates',
+        reason: 'app_updates missing table/column (fallback to empty list)',
+        error,
+      });
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -197,6 +203,11 @@ export async function getUpdatesWithStatus(): Promise<{ success: boolean; data?:
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] app_updates/user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
       }
+      reportSchemaFallback({
+        source: 'app/actions/updates.getUpdatesWithStatus',
+        reason: 'app_updates/user_update_views missing table/column (fallback to empty list)',
+        error,
+      });
       return { success: true, data: [] };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בטעינת עדכונים') };
@@ -245,6 +256,12 @@ export async function markUpdateAsViewed(updateId: string): Promise<{ success: b
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
       }
+      reportSchemaFallback({
+        source: 'app/actions/updates.markUpdateAsViewed',
+        reason: 'user_update_views missing table/column (fallback to noop)',
+        error,
+        extras: { updateId: String(updateId || '') },
+      });
       return { success: true };
     }
     return { success: false, error: translateError(getErrorMessage(error) || 'שגיאה בסימון עדכון') };
@@ -302,6 +319,11 @@ export async function getUnreadUpdatesCount(): Promise<{ success: boolean; count
       if (!ALLOW_SCHEMA_FALLBACKS) {
         throw new Error(`[SchemaMismatch] app_updates/user_update_views missing table/column (${getErrorMessage(error) || 'missing relation'})`);
       }
+      reportSchemaFallback({
+        source: 'app/actions/updates.getUnreadUpdatesCount',
+        reason: 'app_updates/user_update_views missing table/column (fallback to count=0)',
+        error,
+      });
       return { success: true, count: 0 };
     }
     return { success: true, count: 0 }; // Return 0 on error to not block UI

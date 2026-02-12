@@ -360,21 +360,40 @@ async function createMisradNotification(params: {
   const nowIso = now.toISOString();
 
   try {
-    await prisma.misradNotification.create({
-      data: {
-        organization_id: params.organizationId,
-        recipient_id: params.recipientId,
-        client_id: null,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        timestamp: nowIso,
-        isRead: false,
-        link: params.link ?? null,
-        created_at: now,
-        updated_at: now,
-      },
-    });
+    try {
+      await prisma.misradNotification.create({
+        data: {
+          organization_id: params.organizationId,
+          recipient_id: params.recipientId,
+          client_id: null,
+          type: params.type,
+          title: params.title,
+          message: params.message,
+          timestamp: nowIso,
+          timestampAt: now,
+          isRead: false,
+          link: params.link ?? null,
+          created_at: now,
+          updated_at: now,
+        } as unknown as Prisma.MisradNotificationUncheckedCreateInput,
+      });
+    } catch {
+      await prisma.misradNotification.create({
+        data: {
+          organization_id: params.organizationId,
+          recipient_id: params.recipientId,
+          client_id: null,
+          type: params.type,
+          title: params.title,
+          message: params.message,
+          timestamp: nowIso,
+          isRead: false,
+          link: params.link ?? null,
+          created_at: now,
+          updated_at: now,
+        },
+      });
+    }
     return;
   } catch (e: unknown) {
     throw new Error(getErrorMessage(e) || 'Failed to create notification');

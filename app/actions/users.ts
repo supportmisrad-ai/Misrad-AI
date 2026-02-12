@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/prisma';
 import { createErrorResponse, createSuccessResponse } from '@/lib/errorHandler';
+import { requireSuperAdmin } from '@/lib/auth';
 import { BILLING_PACKAGES, type PackageType } from '@/lib/billing/pricing';
 import type { OSModuleKey } from '@/lib/os/modules/types';
 import { getCurrentUserId } from '@/lib/server/authHelper';
@@ -160,6 +161,8 @@ async function upsertProfileForClerkUser(params: {
   const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
   const isEmployeeInviteMode = preferredKeyRaw.toLowerCase().startsWith('employee-invite:');
 
+  const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
+
   // If profile already exists - best effort update
   const existing = await prisma.profile.findFirst({
     where: { clerkUserId },
@@ -232,13 +235,13 @@ async function upsertProfileForClerkUser(params: {
 
   // If we received an existing organization key (uuid or slug), attach profile to it.
   // This is used by webhooks after the org is provisioned.
-  if (preferredKeyRaw && !isEmployeeInviteMode) {
-    const where = isUuidLike(preferredKeyRaw)
+  if (safePreferredOrganizationKey && !isEmployeeInviteMode) {
+    const where = isUuidLike(safePreferredOrganizationKey)
       ? {
-          OR: [{ id: preferredKeyRaw }, { slug: preferredKeyRaw }],
+          OR: [{ id: safePreferredOrganizationKey }, { slug: safePreferredOrganizationKey }],
         }
       : {
-          slug: preferredKeyRaw,
+          slug: safePreferredOrganizationKey,
         };
 
     const org = await prisma.organization.findFirst({
@@ -360,7 +363,7 @@ async function upsertProfileForClerkUser(params: {
 
   const tempOrgId = crypto.randomUUID();
   const { createdOrg, createdProfile } = await prisma.$transaction(async (tx) => {
-    const organizationUser = tx.organizationUser;
+    const organizationUser = (tx as unknown as { organizationUser: typeof prisma.organizationUser }).organizationUser;
     const organization = tx.social_organizations;
 
     const createdSocialUser = await organizationUser.create({
@@ -477,6 +480,9 @@ export async function getOrCreateSupabaseUserAction(
 
     const preferredKeyRaw = preferredOrganizationKey ? String(preferredOrganizationKey).trim() : '';
     const isOrgInviteMode = preferredKeyRaw.toLowerCase().startsWith('invite:');
+    const isEmployeeInviteMode = preferredKeyRaw.toLowerCase().startsWith('employee-invite:');
+
+    const safePreferredOrganizationKey = isOrgInviteMode || isEmployeeInviteMode ? preferredKeyRaw : undefined;
 
     // Option A: webhook is the manager. If the user arrives with invite token, do NOT provision anything here.
     if (isOrgInviteMode) {
@@ -488,7 +494,7 @@ export async function getOrCreateSupabaseUserAction(
       email,
       fullName,
       imageUrl,
-      preferredOrganizationKey,
+      preferredOrganizationKey: safePreferredOrganizationKey,
       sendWelcomeEmail,
     });
 
@@ -514,6 +520,16 @@ export async function ensureProfileForClerkUserInOrganizationAction(params: {
   imageUrl?: string;
 }): Promise<{ success: boolean; profileId?: string; error?: string }> {
   try {
+    const sessionUserId = await getCurrentUserId();
+    if (!sessionUserId) {
+      return createErrorResponse('Not authenticated');
+    }
+    try {
+      await requireSuperAdmin();
+    } catch {
+      return createErrorResponse('Forbidden', 'אין הרשאה לבצע פעולה זו');
+    }
+
     const clerkUserId = String(params.clerkUserId || '').trim();
     const organizationId = String(params.organizationId || '').trim();
     if (!clerkUserId || !organizationId) {

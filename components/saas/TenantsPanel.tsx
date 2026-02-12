@@ -9,9 +9,7 @@ import { AddUserToTenantModal } from './AddUserToTenantModal';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
 import { Button } from '@/components/ui/button';
-
-const unwrap = (data: any) =>
-    (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
+import { extractData } from '@/lib/shared/api-types';
 
 interface TenantsPanelProps {
     tenants: Tenant[];
@@ -73,16 +71,20 @@ export const TenantsPanel: React.FC<TenantsPanelProps> = ({
 
             if (!response.ok) {
                 const raw = await response.json().catch(() => ({}));
-                const payload = unwrap(raw);
-                throw new Error((payload as any)?.error || (raw as any)?.error || 'שגיאה בשליחת ההזמנה');
+                const payload = extractData(raw);
+                const errorMsg = (payload && typeof payload === 'object' && 'error' in payload && typeof payload.error === 'string') 
+                    ? payload.error 
+                    : 'שגיאה בשליחת ההזמנה';
+                throw new Error(errorMsg);
             }
 
             const raw = await response.json().catch(() => ({}));
-            const payload = unwrap(raw);
-            alert(`הזמנה נשלחה בהצלחה ל-${tenant.ownerEmail}\n\nקישור: ${(payload as any)?.signupUrl}`);
-        } catch (error: any) {
+            const payload = extractData<{ signupUrl?: string }>(raw);
+            alert(`הזמנה נשלחה בהצלחה ל-${tenant.ownerEmail}\n\nקישור: ${payload?.signupUrl || 'לא זמין'}`);
+        } catch (error: unknown) {
             console.error('[TenantsPanel] Error sending invitation:', error);
-            alert(error.message || 'שגיאה בשליחת ההזמנה');
+            const message = error instanceof Error ? error.message : String(error) || 'שגיאה בשליחת ההזמנה';
+            alert(message);
         } finally {
             setSendingInvitation(null);
         }

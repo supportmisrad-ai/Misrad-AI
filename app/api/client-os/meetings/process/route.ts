@@ -7,7 +7,7 @@ import { createStorageClient } from '@/lib/supabase';
 import { analyzeAndStoreMeeting } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
 import { createClinicSessionForOrganizationId } from '@/lib/services/client-clinic/create-clinic-session';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
@@ -17,6 +17,18 @@ import { shabbatGuard } from '@/lib/api-shabbat-guard';
 export const runtime = 'nodejs';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+const MEETING_RECORDINGS_BUCKET = 'meeting-recordings';
+const MAX_MEETING_RECORDING_SIZE = 1024 * 1024 * 1024; // 1GB
+
+function hasPathTraversal(v: string): boolean {
+  const s = String(v || '');
+  if (!s) return false;
+  if (s.includes('..')) return true;
+  if (s.includes('\\')) return true;
+  if (s.includes('//')) return true;
+  return false;
+}
 
 function normalizeLocation(value: unknown): 'ZOOM' | 'FRONTAL' | 'PHONE' {
   const v = String(value ?? '').toUpperCase();
@@ -89,27 +101,46 @@ async function POSTHandler(req: Request) {
     const bodyJson: unknown = await req.json().catch(() => ({}));
     const bodyObj = asObject(bodyJson) ?? {};
 
-    const orgIdInput = String(bodyObj.orgId || '');
+    const bodyOrgKey = String(bodyObj.orgId || '').trim();
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
+    }
+    const orgKey = headerOrgKey || bodyOrgKey;
     const clientId = String(bodyObj.clientId || '');
     const title = String(bodyObj.title || 'פגישה');
     const location = normalizeLocation(bodyObj.location);
-    const bucket = String(bodyObj.bucket || 'meeting-recordings');
+    const bucket = String(bodyObj.bucket || MEETING_RECORDINGS_BUCKET);
     const storagePath = String(bodyObj.path || '');
     const mimeType = String(bodyObj.mimeType || '');
     const fileName = String(bodyObj.fileName || 'recording');
 
-    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    if (!orgKey) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
     if (!storagePath) return apiError('path is required', { status: 400 });
 
     let orgId: string;
     try {
-      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
       const safeMsg = 'Forbidden';
       return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
+    }
+
+    if (headerOrgKey && bodyOrgKey && headerOrgKey !== bodyOrgKey) {
+      try {
+        const otherKey = headerOrgKey === orgKey ? bodyOrgKey : headerOrgKey;
+        const { workspace: otherWorkspace } = await getWorkspaceByOrgKeyOrThrow(otherKey);
+        if (String(otherWorkspace.id) !== String(orgId)) {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      } catch {
+        return apiError('Conflicting workspace context', { status: 400 });
+      }
     }
 
     const abuse = await enforceAiAbuseGuard({
@@ -127,7 +158,12 @@ async function POSTHandler(req: Request) {
     }
 
     const expectedPrefix = `${orgId}/`;
-    if (!storagePath.startsWith(expectedPrefix) || !storagePath.includes(`/${clientId}/`)) {
+    if (
+      bucket !== MEETING_RECORDINGS_BUCKET ||
+      hasPathTraversal(storagePath) ||
+      !storagePath.startsWith(expectedPrefix) ||
+      !storagePath.includes(`/${clientId}/`)
+    ) {
       return apiError('Forbidden', { status: 403 });
     }
 
@@ -137,6 +173,11 @@ async function POSTHandler(req: Request) {
     if (downloadError || !downloadData) {
       const safeMsg = 'Failed to download from storage';
       return apiError(IS_PROD ? safeMsg : downloadError?.message || safeMsg, { status: 500 });
+    }
+
+    const blobSize = typeof (downloadData as { size?: unknown }).size === 'number' ? (downloadData as { size: number }).size : null;
+    if (blobSize !== null && blobSize > MAX_MEETING_RECORDING_SIZE) {
+      return apiError('File too large', { status: 400 });
     }
 
     const arrayBuffer = await downloadData.arrayBuffer();

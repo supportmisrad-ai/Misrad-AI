@@ -12,6 +12,9 @@ import {
   type SubscriptionStatus 
 } from '@/lib/trial';
 
+import { requireSuperAdmin } from '@/lib/auth';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
+
 import prisma from '@/lib/prisma';
 
 /**
@@ -41,7 +44,7 @@ export async function getCurrentUserTrialInfo(): Promise<{
       return { success: false, error: 'נדרשת התחברות' };
     }
 
-    const member = await prisma.teamMember.findUnique({
+    const member = await prisma.teamMember.findFirst({
       where: { user_id: String(userId) },
       select: {
         trial_start_date: true,
@@ -92,6 +95,17 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
       return { success: false, error: authCheck.error || 'נדרשת התחברות' };
     }
 
+    await requireSuperAdmin();
+
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/trial.checkAndUpdateExpiredTrials',
+        reason: 'check_and_update_expired_trials',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+
     // Only admins can trigger this check
     // TODO: Add admin check here if needed
 
@@ -134,7 +148,9 @@ export async function checkAndUpdateExpiredTrials(): Promise<{
       }
     }
 
-    return createSuccessResponse({ updated: updatedCount });
+        return createSuccessResponse({ updated: updatedCount });
+      }
+    );
   } catch (error: unknown) {
     console.error('[checkAndUpdateExpiredTrials] Error:', error);
     return createErrorResponse(error, 'שגיאה בעדכון טריאלים פגי תוקף');
@@ -154,6 +170,17 @@ export async function startSubscription(): Promise<{
       return authCheck;
     }
 
+    await requireSuperAdmin();
+
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/trial.startSubscription',
+        reason: 'start_subscription',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+
     const now = new Date();
 
     await prisma.teamMember.updateMany({
@@ -166,7 +193,9 @@ export async function startSubscription(): Promise<{
       },
     });
 
-    return createSuccessResponse(true);
+        return createSuccessResponse(true);
+      }
+    );
   } catch (error: unknown) {
     console.error('[startSubscription] Error:', error);
     return createErrorResponse(error, 'שגיאה בהפעלת מנוי');
@@ -186,6 +215,17 @@ export async function cancelSubscription(): Promise<{
       return authCheck;
     }
 
+    await requireSuperAdmin();
+
+    return await withTenantIsolationContext(
+      {
+        source: 'app/actions/trial.cancelSubscription',
+        reason: 'cancel_subscription',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+
     const now = new Date();
 
     await prisma.teamMember.updateMany({
@@ -197,7 +237,9 @@ export async function cancelSubscription(): Promise<{
       },
     });
 
-    return createSuccessResponse(true);
+        return createSuccessResponse(true);
+      }
+    );
   } catch (error: unknown) {
     console.error('[cancelSubscription] Error:', error);
     return createErrorResponse(error, 'שגיאה בביטול מנוי');

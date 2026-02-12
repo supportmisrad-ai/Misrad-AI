@@ -16,6 +16,7 @@ import { CustomSelect } from '../../CustomSelect';
 import { getWorkspaceOrgSlugFromPathname } from '@/lib/os/nexus-routing';
 import { Skeleton } from '@/components/ui/skeletons';
 import { isTenantAdminRole } from '@/lib/constants/roles';
+import { extractData, extractError } from '@/lib/shared/api-types';
 
 let showHebrewDatesPreference = false;
 
@@ -40,9 +41,6 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
         showHebrewDatesPreference = showHebrewDates;
     }, [showHebrewDates]);
 
-    const unwrap = (data: any) =>
-        (data as any)?.data && typeof (data as any).data === 'object' ? (data as any).data : data;
-
     const loadEvents = async () => {
         setIsLoading(true);
         try {
@@ -56,15 +54,16 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
             });
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || `Failed to load events (${response.status})`);
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || `Failed to load events (${response.status})`);
             }
             const data = await response.json().catch(() => ({}));
-            const payload = unwrap(data);
-            setEvents((payload as any).events || []);
-        } catch (error: any) {
+            const payload = extractData<{ events?: TeamEvent[] }>(data);
+            const next = Array.isArray(payload?.events) ? payload.events : [];
+            setEvents(next);
+        } catch (error: unknown) {
             console.error('[TeamEvents] Error loading events:', error);
-            addToast(error.message || 'שגיאה בטעינת אירועים', 'error');
+            addToast(error instanceof Error ? error.message : 'שגיאה בטעינת אירועים', 'error');
         } finally {
             setIsLoading(false);
         }
@@ -97,8 +96,8 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
             });
             if (response.ok) {
                 const data = await response.json().catch(() => ({}));
-                const payload = unwrap(data);
-                setAttendanceMap(prev => ({ ...prev, [eventId]: (payload as any).attendance || [] }));
+                const payload = extractData<{ attendance?: EventAttendance[] }>(data);
+                setAttendanceMap(prev => ({ ...prev, [eventId]: payload?.attendance || [] }));
             }
         } catch (error) {
             console.error('[TeamEvents] Error loading attendance:', error);
@@ -117,8 +116,8 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה בשמירת אישור הגעה');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה בשמירת אישור הגעה');
             }
 
             addToast(status === 'attending' ? 'אישור הגעה נשמר' : 'אישור אי-הגעה נשמר', 'success');
@@ -126,8 +125,8 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
             loadAttendance(eventId);
             // Reload events to refresh the list
             loadEvents();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה בשמירת אישור הגעה', 'error');
+        } catch (error: unknown) {
+            addToast(error instanceof Error ? error.message : 'שגיאה בשמירת אישור הגעה', 'error');
         }
     };
 
@@ -143,14 +142,14 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה במחיקת אירוע');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה במחיקת אירוע');
             }
 
             addToast('אירוע נמחק בהצלחה', 'success');
             loadEvents();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה במחיקת אירוע', 'error');
+        } catch (error: unknown) {
+            addToast(error instanceof Error ? error.message : 'שגיאה במחיקת אירוע', 'error');
         }
     };
 
@@ -165,14 +164,14 @@ export const TeamEventsPanel: React.FC<TeamEventsPanelProps> = ({ addToast, curr
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                const errPayload = unwrap(errorData);
-                throw new Error((errorData as any)?.error || (errPayload as any)?.error || 'שגיאה באישור אירוע');
+                const errorMsg = extractError(errorData);
+                throw new Error(errorMsg || 'שגיאה באישור אירוע');
             }
 
             addToast('אירוע אושר בהצלחה', 'success');
             loadEvents();
-        } catch (error: any) {
-            addToast(error.message || 'שגיאה באישור אירוע', 'error');
+        } catch (error: unknown) {
+            addToast(error instanceof Error ? error.message : 'שגיאה באישור אירוע', 'error');
         }
     };
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exchangeZoomCode } from '@/lib/integrations/zoom';
 import prisma from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import { withTenantIsolationContext } from '@/lib/prisma-tenant-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,31 +54,41 @@ export async function GET(request: NextRequest) {
     }
 
     // Store integration
-    await prisma.scale_integrations.upsert({
-      where: {
-        user_id_tenant_id_service_type: {
-          user_id: userId,
-          tenant_id: profile.organizationId,
-          service_type: 'zoom',
-        },
+    await withTenantIsolationContext(
+      {
+        source: 'api/integrations/zoom/callback',
+        reason: 'zoom_oauth_callback',
+        tenantId: String(profile.organizationId),
+        suppressReporting: true,
       },
-      create: {
-        user_id: userId,
-        tenant_id: profile.organizationId,
-        service_type: 'zoom',
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        expires_at: tokens.expiresAt,
-        is_active: true,
-      },
-      update: {
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken,
-        expires_at: tokens.expiresAt,
-        is_active: true,
-        updated_at: new Date(),
-      },
-    });
+      async () =>
+        await prisma.scale_integrations.upsert({
+          where: {
+            user_id_tenant_id_service_type: {
+              user_id: userId,
+              tenant_id: profile.organizationId,
+              service_type: 'zoom',
+            },
+          },
+          create: {
+            user_id: userId,
+            tenant_id: profile.organizationId,
+            service_type: 'zoom',
+            access_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken,
+            expires_at: tokens.expiresAt,
+            is_active: true,
+          },
+          update: {
+            tenant_id: profile.organizationId,
+            access_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken,
+            expires_at: tokens.expiresAt,
+            is_active: true,
+            updated_at: new Date(),
+          },
+        })
+    );
 
     return NextResponse.redirect(
       new URL(`/settings/integrations?success=zoom_connected`, request.url)

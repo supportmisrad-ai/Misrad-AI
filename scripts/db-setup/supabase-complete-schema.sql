@@ -1,5 +1,5 @@
 -- ============================================
--- Nexus OS / Scale CRM - Complete Supabase Schema
+-- MISRAD AI - Complete Supabase Schema
 -- ============================================
 -- Run this SQL in Supabase SQL Editor to create ALL tables
 -- This script will DROP existing tables and recreate them

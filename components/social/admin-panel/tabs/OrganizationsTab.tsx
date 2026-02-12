@@ -315,10 +315,10 @@ export default function OrganizationsTab() {
       }
 
       const uploaded = await uploadRes.json().catch(() => null);
-      const url = String(uploaded?.url || '');
-      if (!url) throw new Error('שגיאה: לא התקבל URL לאחר העלאה');
+      const logoRef = String(uploaded?.ref || uploaded?.url || '').trim();
+      if (!logoRef) throw new Error('שגיאה: לא התקבל URL לאחר העלאה');
 
-      const saveRes = await updateOrganization({ organizationId: orgId, logo: url });
+      const saveRes = await updateOrganization({ organizationId: orgId, logo: logoRef });
       if (!saveRes.success) {
         throw new Error(saveRes.error || 'שגיאה בשמירת לוגו לארגון');
       }

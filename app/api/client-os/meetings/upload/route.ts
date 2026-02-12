@@ -5,7 +5,7 @@ import os from 'os';
 import { spawn } from 'child_process';
 import { analyzeAndStoreMeeting } from '@/lib/services/client-os/meetings/analyze-and-store-meeting';
 import { getAuthenticatedUser } from '@/lib/auth';
-import { getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
+import { getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow } from '@/lib/server/api-workspace';
 import { getCurrentUserId } from '@/lib/server/authHelper';
 import { AIService } from '@/lib/services/ai/AIService';
 import { enforceAiAbuseGuard, withAiLoadIsolation } from '@/lib/server/aiAbuseGuard';
@@ -124,18 +124,39 @@ async function POSTHandler(req: Request) {
       }
     }
 
-    if (!orgIdInput) return apiError('orgId is required', { status: 400 });
+    const bodyOrgKey = String(orgIdInput || '').trim();
+    let headerOrgKey = '';
+    try {
+      headerOrgKey = getOrgKeyOrThrow(req);
+    } catch {
+      headerOrgKey = '';
+    }
+    const orgKey = headerOrgKey || bodyOrgKey;
+
+    if (!orgKey) return apiError('orgId is required', { status: 400 });
     if (!clientId) return apiError('clientId is required', { status: 400 });
     if (!inputBuf) return apiError('Missing file data', { status: 400 });
 
     let orgId: string;
     try {
-      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgIdInput);
+      const { workspace } = await getWorkspaceByOrgKeyOrThrow(orgKey);
       orgId = String(workspace.id);
     } catch (e: unknown) {
       const status = getErrorStatus(e) ?? 403;
       const safeMsg = 'Forbidden';
       return apiError(e, { status, message: IS_PROD ? safeMsg : getErrorMessage(e) || safeMsg });
+    }
+
+    if (headerOrgKey && bodyOrgKey && headerOrgKey !== bodyOrgKey) {
+      try {
+        const otherKey = headerOrgKey === orgKey ? bodyOrgKey : headerOrgKey;
+        const { workspace: otherWorkspace } = await getWorkspaceByOrgKeyOrThrow(otherKey);
+        if (String(otherWorkspace.id) !== String(orgId)) {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      } catch {
+        return apiError('Conflicting workspace context', { status: 400 });
+      }
     }
 
     const abuse = await enforceAiAbuseGuard({

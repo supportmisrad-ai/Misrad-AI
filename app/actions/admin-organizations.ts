@@ -397,31 +397,44 @@ export async function createOrganization(input: {
 
     const now = new Date();
 
-    const createdOrg = await prisma.organization.create({
-      data: {
-        name,
-        slug: finalSlug,
-        owner_id: ownerUserId,
-        has_nexus: input.has_nexus ?? true,
-        has_social: input.has_social ?? false,
-        has_system: input.has_system ?? false,
-        has_finance: input.has_finance ?? false,
-        has_client: input.has_client ?? false,
-        has_operations: input.has_operations ?? false,
-        subscription_status: input.subscription_status ?? 'trial',
-        subscription_plan: input.subscription_plan ?? null,
-        trial_start_date: now,
-        trial_days: input.trial_days ?? DEFAULT_TRIAL_DAYS,
-        created_at: now,
-        updated_at: now,
-      } satisfies OrganizationCreateData,
-      select: { id: true },
-    });
+    const createdOrg = await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        reason: 'admin_create_organization',
+        source: 'admin-organizations',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+        const createdOrg = await prisma.organization.create({
+          data: {
+            name,
+            slug: finalSlug,
+            owner_id: ownerUserId,
+            has_nexus: input.has_nexus ?? true,
+            has_social: input.has_social ?? false,
+            has_system: input.has_system ?? false,
+            has_finance: input.has_finance ?? false,
+            has_client: input.has_client ?? false,
+            has_operations: input.has_operations ?? false,
+            subscription_status: input.subscription_status ?? 'trial',
+            subscription_plan: input.subscription_plan ?? null,
+            trial_start_date: now,
+            trial_days: input.trial_days ?? DEFAULT_TRIAL_DAYS,
+            created_at: now,
+            updated_at: now,
+          } satisfies OrganizationCreateData,
+          select: { id: true },
+        });
 
-    await prisma.organizationUser.updateMany({
-      where: { id: ownerUserId },
-      data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
-    });
+        await prisma.organizationUser.updateMany({
+          where: { id: ownerUserId },
+          data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
+        });
+
+        return createdOrg;
+      }
+    );
 
     // Best-effort: send welcome email with portal link
     try {
@@ -493,31 +506,44 @@ export async function createOrganizationOrInviteOwner(input: {
     if (existingOwner?.id) {
       const now = new Date();
 
-      const createdOrg = await prisma.organization.create({
-        data: {
-          name,
-          slug: desiredSlug,
-          owner_id: String(existingOwner.id),
-          has_nexus: true,
-          has_social: false,
-          has_system: false,
-          has_finance: false,
-          has_client: false,
-          has_operations: false,
-          subscription_status: 'trial',
-          subscription_plan: null,
-          trial_start_date: now,
-          trial_days: DEFAULT_TRIAL_DAYS,
-          created_at: now,
-          updated_at: now,
-        } satisfies OrganizationCreateData,
-        select: { id: true },
-      });
+      const createdOrg = await withTenantIsolationContext(
+        {
+          suppressReporting: true,
+          reason: 'admin_create_organization_or_invite_owner_create_org',
+          source: 'admin-organizations',
+          mode: 'global_admin',
+          isSuperAdmin: true,
+        },
+        async () => {
+          const createdOrg = await prisma.organization.create({
+            data: {
+              name,
+              slug: desiredSlug,
+              owner_id: String(existingOwner.id),
+              has_nexus: true,
+              has_social: false,
+              has_system: false,
+              has_finance: false,
+              has_client: false,
+              has_operations: false,
+              subscription_status: 'trial',
+              subscription_plan: null,
+              trial_start_date: now,
+              trial_days: DEFAULT_TRIAL_DAYS,
+              created_at: now,
+              updated_at: now,
+            } satisfies OrganizationCreateData,
+            select: { id: true },
+          });
 
-      await prisma.organizationUser.updateMany({
-        where: { id: String(existingOwner.id) },
-        data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
-      });
+          await prisma.organizationUser.updateMany({
+            where: { id: String(existingOwner.id) },
+            data: { organization_id: createdOrg.id, updated_at: now } satisfies UserUpdateManyData,
+          });
+
+          return createdOrg;
+        }
+      );
 
       try {
         const baseUrl = getBaseUrl();
@@ -542,20 +568,30 @@ export async function createOrganizationOrInviteOwner(input: {
     const now = new Date();
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30);
 
-    await prisma.organization_signup_invitations.create({
-      data: {
-        token,
-        owner_email: ownerEmail,
-        organization_name: name,
-        desired_slug: desiredSlug,
-        is_used: false,
-        is_active: true,
-        created_at: now,
-        updated_at: now,
-        expires_at: expiresAt,
-        metadata: {},
-      } satisfies OrgSignupInvitationCreateData,
-    });
+    await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        reason: 'admin_create_organization_or_invite_owner_create_invite',
+        source: 'admin-organizations',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.organization_signup_invitations.create({
+          data: {
+            token,
+            owner_email: ownerEmail,
+            organization_name: name,
+            desired_slug: desiredSlug,
+            is_used: false,
+            is_active: true,
+            created_at: now,
+            updated_at: now,
+            expires_at: expiresAt,
+            metadata: {},
+          } satisfies OrgSignupInvitationCreateData,
+        })
+    );
 
     const baseUrl = getBaseUrl();
     const claimUrl = `${baseUrl}/login?mode=sign-up&invite=${encodeURIComponent(token)}&redirect=${encodeURIComponent('/workspaces/onboarding')}`;
@@ -656,15 +692,26 @@ export async function setOrganizationOwner(input: {
 
     const now = new Date();
 
-    await prisma.organization.updateMany({
-      where: { id: organizationId },
-      data: { owner_id: ownerUserId, updated_at: now } satisfies OrganizationUpdateManyData,
-    });
+    await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        reason: 'admin_set_organization_owner',
+        source: 'admin-organizations',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () => {
+        await prisma.organization.updateMany({
+          where: { id: organizationId },
+          data: { owner_id: ownerUserId, updated_at: now } satisfies OrganizationUpdateManyData,
+        });
 
-    await prisma.organizationUser.updateMany({
-      where: { id: ownerUserId },
-      data: { organization_id: organizationId, updated_at: now } satisfies UserUpdateManyData,
-    });
+        await prisma.organizationUser.updateMany({
+          where: { id: ownerUserId },
+          data: { organization_id: organizationId, updated_at: now } satisfies UserUpdateManyData,
+        });
+      }
+    );
 
     return createSuccessResponse(true);
   } catch (error) {
@@ -685,10 +732,20 @@ export async function setUserOrganization(input: {
 
     const organizationId = input.organizationId ? String(input.organizationId).trim() : null;
 
-    await prisma.organizationUser.updateMany({
-      where: { id: userId },
-      data: { organization_id: organizationId, updated_at: new Date() } satisfies UserUpdateManyData,
-    });
+    await withTenantIsolationContext(
+      {
+        suppressReporting: true,
+        reason: 'admin_set_user_organization',
+        source: 'admin-organizations',
+        mode: 'global_admin',
+        isSuperAdmin: true,
+      },
+      async () =>
+        await prisma.organizationUser.updateMany({
+          where: { id: userId },
+          data: { organization_id: organizationId, updated_at: new Date() } satisfies UserUpdateManyData,
+        })
+    );
 
     return createSuccessResponse(true);
   } catch (error) {

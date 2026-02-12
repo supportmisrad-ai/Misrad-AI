@@ -5,7 +5,7 @@ import { getCurrentUserId } from '@/lib/server/authHelper';
 import { logAuditEvent } from '@/lib/audit';
 import { AIService } from '@/lib/services/ai/AIService';
 import prisma from '@/lib/prisma';
-import { APIError, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
+import { APIError, getOrgKeyOrThrow, getWorkspaceByOrgKeyOrThrow, getWorkspaceOrThrow } from '@/lib/server/api-workspace';
 import { OpenAIProvider } from '@/lib/services/ai/providers/OpenAIProvider';
 import { GeminiProvider } from '@/lib/services/ai/providers/GeminiProvider';
 import { queryRawOrgScoped } from '@/lib/prisma';
@@ -657,11 +657,31 @@ async function POSTHandler(req: Request) {
       return apiError('Missing AI provider key', { status: 500 });
     }
 
-    const { workspaceId } = await getWorkspaceOrThrow(req);
-
     const clerkUserId = await getCurrentUserId();
     if (!clerkUserId) {
       return apiError('Unauthorized', { status: 401 });
+    }
+
+    const bodyOrgKey = body.orgId == null ? '' : String(body.orgId).trim();
+    if (bodyOrgKey) {
+      let headerOrgKey = '';
+      try {
+        headerOrgKey = getOrgKeyOrThrow(req);
+      } catch {
+        headerOrgKey = '';
+      }
+
+      if (headerOrgKey && headerOrgKey !== bodyOrgKey) {
+        try {
+          const { workspaceId: headerWorkspaceId } = await getWorkspaceOrThrow(req);
+          const { workspaceId: bodyWorkspaceId } = await getWorkspaceByOrgKeyOrThrow(bodyOrgKey);
+          if (String(headerWorkspaceId) !== String(bodyWorkspaceId)) {
+            return apiError('Conflicting workspace context', { status: 400 });
+          }
+        } catch {
+          return apiError('Conflicting workspace context', { status: 400 });
+        }
+      }
     }
 
     const featureKey = String(body.featureKey || 'ai.chat');
