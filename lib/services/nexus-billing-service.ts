@@ -256,6 +256,7 @@ export async function setNexusBillingItems(params: {
             },
           },
           update: {
+            organization_id: r.organization_id,
             title: r.title,
             cadence: r.cadence,
             amount: r.amount,

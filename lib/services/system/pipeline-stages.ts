@@ -145,6 +145,7 @@ export async function createSystemPipelineStageForOrganizationId(params: {
         isActive: true,
       },
       update: {
+        organizationId: orgId,
         label: String(label),
         color,
         accent,

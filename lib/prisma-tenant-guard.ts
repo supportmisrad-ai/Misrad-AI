@@ -812,6 +812,39 @@ function isSocialTeamMembersLookupByUserIdUnscopedAllowed(params: {
   return hasDirectKey(params.where, 'user_id') || hasDirectKey(params.where, 'userId');
 }
 
+function isOrganizationUserBootstrapCreateAllowed(params: {
+  model: string;
+  action: string;
+  args: Record<string, unknown>;
+  override?: TenantIsolationOverrideContext;
+  expectedOrganizationId: string | null;
+}): boolean {
+  if (params.expectedOrganizationId) return false;
+  if (params.action !== 'create') return false;
+
+  const modelLower = String(params.model || '').toLowerCase();
+  if (modelLower !== 'organizationuser') return false;
+
+  const reason = String(params.override?.reason || '').trim();
+  if (reason !== 'bootstrap_workspace_provision') return false;
+
+  const data = params.args.data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  const obj = data as Record<string, unknown>;
+
+  const clerkUserIdRaw = obj.clerk_user_id ?? obj.clerkUserId;
+  const clerkUserId = typeof clerkUserIdRaw === 'string' ? clerkUserIdRaw.trim() : '';
+  if (!clerkUserId) return false;
+
+  const orgVal = Object.prototype.hasOwnProperty.call(obj, 'organization_id')
+    ? obj.organization_id
+    : Object.prototype.hasOwnProperty.call(obj, 'organizationId')
+      ? obj.organizationId
+      : undefined;
+
+  return orgVal === null;
+}
+
 function isNexusUserLookupByEmailUnscopedAllowed(params: {
   model: string;
   action: string;
@@ -1032,6 +1065,17 @@ export function installPrismaTenantGuard(
         }
 
         if (req.requiresOrg && !hasScopedDataForCreateAction(action, data, ORG_KEYS)) {
+          if (
+            isOrganizationUserBootstrapCreateAllowed({
+              model,
+              action,
+              args,
+              override,
+              expectedOrganizationId: expected.organizationId,
+            })
+          ) {
+            return next(params);
+          }
           const message = `Tenant Guard Violation! Missing Organization ID. (${model}.${action})`;
           reportTenantIsolationBlocked({ message, model, action, reason: 'missing_organizationId_data', override });
           throw new Error(message);
