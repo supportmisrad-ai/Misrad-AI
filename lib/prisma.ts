@@ -668,16 +668,52 @@ function assertSqlObject(sql: unknown): asserts sql is { sql: string; values: un
   }
 }
 
+function isNestedSqlObject(val: unknown): val is { strings: string[]; values: unknown[] } {
+  if (!val || typeof val !== 'object' || Array.isArray(val)) return false;
+  const obj = val as Record<string, unknown>;
+  return Array.isArray(obj.strings) && Array.isArray(obj.values);
+}
+
+function flattenPrismaSql(sql: Prisma.Sql): { query: string; values: unknown[] } {
+  const flatValues: unknown[] = [];
+
+  function resolve(s: unknown): string {
+    if (!isNestedSqlObject(s)) return '';
+    const strings: string[] = s.strings;
+    const values: unknown[] = s.values;
+    if (strings.length === 0) return '';
+
+    let result = strings[0];
+    for (let i = 0; i < values.length; i++) {
+      const val = values[i];
+      if (isNestedSqlObject(val)) {
+        result += resolve(val);
+      } else {
+        flatValues.push(val);
+        result += `$${flatValues.length}`;
+      }
+      if (i + 1 < strings.length) {
+        result += strings[i + 1];
+      }
+    }
+    return result;
+  }
+
+  const query = resolve(sql);
+  return { query, values: flatValues };
+}
+
 export async function queryRawOrgScopedSql<T>(
   db: unknown,
   params: { organizationId: string; reason: string; sql: Prisma.Sql }
 ): Promise<T> {
   assertSqlObject(params.sql);
+  const flat = flattenPrismaSql(params.sql);
   return queryRawOrgScoped<T>(db, {
     organizationId: params.organizationId,
     reason: params.reason,
-    query: params.sql.sql,
-    values: params.sql.values,
+    query: flat.query,
+    values: flat.values,
   });
 }
 
@@ -686,11 +722,12 @@ export async function executeRawOrgScopedSql(
   params: { organizationId: string; reason: string; sql: Prisma.Sql }
 ): Promise<number> {
   assertSqlObject(params.sql);
+  const flat = flattenPrismaSql(params.sql);
   return executeRawOrgScoped(db, {
     organizationId: params.organizationId,
     reason: params.reason,
-    query: params.sql.sql,
-    values: params.sql.values,
+    query: flat.query,
+    values: flat.values,
   });
 }
 
@@ -699,11 +736,12 @@ export async function queryRawTenantScopedSql<T>(
   params: { tenantId: string; reason: string; sql: Prisma.Sql }
 ): Promise<T> {
   assertSqlObject(params.sql);
+  const flat = flattenPrismaSql(params.sql);
   return queryRawTenantScoped<T>(db, {
     tenantId: params.tenantId,
     reason: params.reason,
-    query: params.sql.sql,
-    values: params.sql.values,
+    query: flat.query,
+    values: flat.values,
   });
 }
 
@@ -712,11 +750,12 @@ export async function executeRawTenantScopedSql(
   params: { tenantId: string; reason: string; sql: Prisma.Sql }
 ): Promise<number> {
   assertSqlObject(params.sql);
+  const flat = flattenPrismaSql(params.sql);
   return executeRawTenantScoped(db, {
     tenantId: params.tenantId,
     reason: params.reason,
-    query: params.sql.sql,
-    values: params.sql.values,
+    query: flat.query,
+    values: flat.values,
   });
 }
 

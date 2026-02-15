@@ -957,10 +957,13 @@ export function installPrismaTenantGuard(
   }
 ): void {
   const excludedModels = new Set<string>([
+    // DB table names
     'system_settings',
     'core_system_settings',
     'social_system_settings',
     'global_settings',
+    // Prisma model names (params.model uses PascalCase model name, not DB table name)
+    'CoreSystemSettings',
     ...(options?.excludedModels ?? []),
   ]);
 
